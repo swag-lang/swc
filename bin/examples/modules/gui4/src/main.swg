@@ -211,7 +211,17 @@ func toggleTheme(_: *Button)
     applyTheme()
 }
 
-func initCard(c: *SceneCard, label: string, argb: u32, shape: CardShape, scale, radius, roughness, opacity: f32, shadow: bool, sk: ShadowKind, badges: CardBadge)
+func initCard(c: *SceneCard,
+              label: string,
+              argb: u32,
+              shape: CardShape,
+              scale,
+              radius,
+              roughness,
+              opacity: f32,
+              shadow: bool,
+              sk: ShadowKind,
+              badges: CardBadge)
 {
     c.label      = label
     c.fill       = Color.fromArgb(argb)
@@ -359,7 +369,10 @@ func createInspectorPage(parent: *Wnd)
 
     rebuildInspector()
 
-    let frame = createPanel(parent, "Live preview", "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.", {})
+    let frame = createPanel(parent,
+                            "Live preview",
+                            "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.",
+                            {})
     frame.dockStyle = .Center
     let preview = frame.view
     g_Preview = preview

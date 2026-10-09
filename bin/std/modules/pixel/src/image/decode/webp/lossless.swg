@@ -377,49 +377,51 @@ func losslessDecodeCodeLengths(reader: *LosslessBitReader, destination: [..] u32
     }
 }
 
+#[Swag.Propagate]
 func losslessDecodeHuffmanTree(reader: *LosslessBitReader, tree: *LosslessHuffmanTree?, alphabetSize: u32) fail
 {
-    if try reader.read(1)
+    if reader.read(1)
     {
-        let symbolCount = try reader.read(1) + 1
-        let firstLength = 7 * (try reader.read(1)) + 1
+        let symbolCount = reader.read(1) + 1
+        let firstLength = 7 * reader.read(1) + 1
         var symbols: [2] u32
-        symbols[0] = try reader.read(firstLength)
+        symbols[0] = reader.read(firstLength)
         if symbolCount == 2 do
-            symbols[1] = try reader.read(8)
+            symbols[1] = reader.read(8)
         if tree do
-            try tree.buildSimple(symbolCount, symbols, alphabetSize)
+            tree.buildSimple(symbolCount, symbols, alphabetSize)
         return
     }
 
-    let codeCount = try reader.read(4) + 4
+    let codeCount = reader.read(4) + 4
     if codeCount > LOSSLESS_CODE_LENGTH_ORDER.count do
-        try losslessTreeError()
+        losslessTreeError()
 
     var codeLengthCodeLengths: [LOSSLESS_CODE_LENGTH_ORDER.count] u32
     for i in codeCount do
-        codeLengthCodeLengths[LOSSLESS_CODE_LENGTH_ORDER[i]] = try reader.read(3)
+        codeLengthCodeLengths[LOSSLESS_CODE_LENGTH_ORDER[i]] = reader.read(3)
 
     var codeLengths: Array'u32
     codeLengths.resize(alphabetSize)
-    try losslessDecodeCodeLengths(reader, codeLengths.toSlice(), Swag.makeSlice(&codeLengthCodeLengths[0], codeLengthCodeLengths.count))
+    losslessDecodeCodeLengths(reader, codeLengths.toSlice(), Swag.makeSlice(&codeLengthCodeLengths[0], codeLengthCodeLengths.count))
     if tree do
-        try tree.build(codeLengths.toSlice())
+        tree.build(codeLengths.toSlice())
 }
 
+#[Swag.Propagate]
 func losslessDecodeHeader(reader: *LosslessBitReader, source: const [..] u8, width: *s32, height: *s32) fail
 {
     reader.ptr   = source.buffer
     reader.last  = reader.ptr + source.count
     reader.bits  = 0
     reader.nBits = 0
-    if try reader.read(8) != 0x2F do
+    if reader.read(8) != 0x2F do
         fail InvalidFormatError{"WebP lossless stream does not start with the VP8L signature"}
 
-    width[]  = cast(s32, (try reader.read(14))) + 1
-    height[] = cast(s32, (try reader.read(14))) + 1
-    discard try reader.read(1)
-    if try reader.read(3) != 0 do
+    width[]  = cast(s32, reader.read(14)) + 1
+    height[] = cast(s32, reader.read(14)) + 1
+    discard reader.read(1)
+    if reader.read(3) != 0 do
         fail UnsupportedFormatError{"WebP lossless stream uses an unsupported version"}
 }
 

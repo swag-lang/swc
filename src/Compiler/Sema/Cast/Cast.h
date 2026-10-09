@@ -55,13 +55,14 @@ struct UserDefinedLiteralSuffixInfo
     std::string_view suffix;
 };
 
-// Which argument of which call a parameter cast converts. Only a failed cast reads it, to name
-// the callee and the argument in its message, so the message arguments are built there instead
-// of once per argument of every call.
+// Which argument of which call a parameter cast converts, or which function a returned value is
+// converted for. Only a failed cast reads it, to name the callee and the argument in its message,
+// so the message arguments are built there instead of once per argument of every call.
 struct CastCallSite
 {
-    const SymbolFunction* function  = nullptr;
-    uint32_t              argNumber = 0;
+    const SymbolFunction* function    = nullptr;
+    uint32_t              argNumber   = 0;
+    bool                  returnValue = false;
 };
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo);

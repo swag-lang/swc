@@ -187,7 +187,16 @@ func currentModeName()->string
 
 func boolWord(value: bool)->string => value ? "on" : "off"
 
-func stateSummary()->String => Format.toString("Dirty: %    Grid: %    Guides: %    Mode: %    Pinned: %    Commands: %", boolWord(g_DocumentDirty), boolWord(g_ShowGrid), boolWord(g_ShowGuides), currentModeName(), boolWord(g_ContextPinned), g_ActionCount)
+func stateSummary()->String
+{
+    return Format.toString("Dirty: %    Grid: %    Guides: %    Mode: %    Pinned: %    Commands: %",
+                           boolWord(g_DocumentDirty),
+                           boolWord(g_ShowGrid),
+                           boolWord(g_ShowGuides),
+                           currentModeName(),
+                           boolWord(g_ContextPinned),
+                           g_ActionCount)
+}
 
 func updateHeader()
 {
@@ -343,7 +352,10 @@ func createMainMenuBar(parent: *Wnd, rect: Math.Rectangle)->*MenuCtrl
 
 func createStatusPanel(parent: *Wnd, rect: Math.Rectangle)
 {
-    let panel = createPanel(parent, "Command feedback", "The last selected menu item is reflected here while checked and disabled rows update from shared state.", rect)
+    let panel = createPanel(parent,
+                            "Command feedback",
+                            "The last selected menu item is reflected here while checked and disabled rows update from shared state.",
+                            rect)
     g_StatusLabel = createHelpText(panel, g_StatusText, {20, 92, rect.width - 40, rect.height - 112})
 }
 
@@ -396,10 +408,30 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         if contentWidth >= 560.0
         {
             let pillWidth = (contentWidth - 3 * pillGap) * 0.25
-            drawStatePill(painter, {contentX, pillTop, pillWidth, pillHeight}, Format.toString("grid %", boolWord(g_ShowGrid)), g_ShowGrid, font, colors)
-            drawStatePill(painter, {contentX + pillWidth + pillGap, pillTop, pillWidth, pillHeight}, Format.toString("guides %", boolWord(g_ShowGuides)), g_ShowGuides, font, colors)
-            drawStatePill(painter, {contentX + 2 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight}, currentModeName(), true, font, colors)
-            drawStatePill(painter, {contentX + 3 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight}, g_DocumentDirty ? "dirty" : "saved", g_DocumentDirty, font, colors)
+            drawStatePill(painter,
+                          {contentX, pillTop, pillWidth, pillHeight},
+                          Format.toString("grid %", boolWord(g_ShowGrid)),
+                          g_ShowGrid,
+                          font,
+                          colors)
+            drawStatePill(painter,
+                          {contentX + pillWidth + pillGap, pillTop, pillWidth, pillHeight},
+                          Format.toString("guides %", boolWord(g_ShowGuides)),
+                          g_ShowGuides,
+                          font,
+                          colors)
+            drawStatePill(painter,
+                          {contentX + 2 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
+                          currentModeName(),
+                          true,
+                          font,
+                          colors)
+            drawStatePill(painter,
+                          {contentX + 3 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
+                          g_DocumentDirty ? "dirty" : "saved",
+                          g_DocumentDirty,
+                          font,
+                          colors)
             pillsBottom = pillTop + pillHeight
         }
         else
@@ -407,10 +439,30 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
             let pillWidth = (contentWidth - pillGap) * 0.5
             let secondX   = contentX + pillWidth + pillGap
             let secondRow = pillTop + pillHeight + 10
-            drawStatePill(painter, {contentX, pillTop, pillWidth, pillHeight}, Format.toString("grid %", boolWord(g_ShowGrid)), g_ShowGrid, font, colors)
-            drawStatePill(painter, {secondX, pillTop, pillWidth, pillHeight}, Format.toString("guides %", boolWord(g_ShowGuides)), g_ShowGuides, font, colors)
-            drawStatePill(painter, {contentX, secondRow, pillWidth, pillHeight}, currentModeName(), true, font, colors)
-            drawStatePill(painter, {secondX, secondRow, pillWidth, pillHeight}, g_DocumentDirty ? "dirty" : "saved", g_DocumentDirty, font, colors)
+            drawStatePill(painter,
+                          {contentX, pillTop, pillWidth, pillHeight},
+                          Format.toString("grid %", boolWord(g_ShowGrid)),
+                          g_ShowGrid,
+                          font,
+                          colors)
+            drawStatePill(painter,
+                          {secondX, pillTop, pillWidth, pillHeight},
+                          Format.toString("guides %", boolWord(g_ShowGuides)),
+                          g_ShowGuides,
+                          font,
+                          colors)
+            drawStatePill(painter,
+                          {contentX, secondRow, pillWidth, pillHeight},
+                          currentModeName(),
+                          true,
+                          font,
+                          colors)
+            drawStatePill(painter,
+                          {secondX, secondRow, pillWidth, pillHeight},
+                          g_DocumentDirty ? "dirty" : "saved",
+                          g_DocumentDirty,
+                          font,
+                          colors)
             pillsBottom = secondRow + pillHeight
         }
 
@@ -418,7 +470,12 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         if lineY > pillsBottom + 12
         {
             painter.drawLine(contentX, lineY, contentX + contentWidth, lineY, Color.fromArgb(60'u8, Argb.Black), 1)
-            drawWrappedText(painter, {contentX, lineY + 12, contentWidth, card.bottom() - lineY - 18}, stateSummary(), font, Argb.DimGray, 1)
+            drawWrappedText(painter,
+                            {contentX, lineY + 12, contentWidth, card.bottom() - lineY - 18},
+                            stateSummary(),
+                            font,
+                            Argb.DimGray,
+                            1)
         }
     }
 

@@ -315,52 +315,314 @@ private impl GenericLexer
         .language = language
         switch language
         {
-        case .C, .Cpp, .Shader:           .addWords(["auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long", "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while", "bool", "class", "namespace", "new", "delete", "public", "private", "protected", "template", "typename", "using", "virtual", "override", "constexpr", "nullptr", "this", "throw", "try", "catch"])
-        case .CSharp:                     .addWords(["abstract", "as", "async", "await", "base", "bool", "break", "case", "catch", "class", "const", "continue", "decimal", "default", "delegate", "do", "else", "enum", "event", "explicit", "extern", "false", "finally", "fixed", "for", "foreach", "get", "if", "implicit", "in", "interface", "internal", "is", "lock", "namespace", "new", "null", "operator", "out", "override", "params", "private", "protected", "public", "readonly", "record", "ref", "return", "sealed", "set", "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof", "using", "var", "virtual", "void", "while", "yield"])
-        case .Java, .Kotlin:              .addWords(["abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "default", "do", "double", "else", "enum", "extends", "false", "final", "finally", "float", "for", "fun", "if", "implements", "import", "in", "instanceof", "int", "interface", "internal", "is", "long", "native", "new", "null", "object", "open", "override", "package", "private", "protected", "public", "return", "sealed", "short", "static", "super", "synchronized", "this", "throw", "throws", "transient", "true", "try", "val", "var", "void", "volatile", "when", "while"])
-        case .JavaScript, .TypeScript:    .addWords(["async", "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "from", "function", "get", "if", "implements", "import", "in", "instanceof", "interface", "let", "new", "null", "of", "private", "protected", "public", "return", "set", "static", "super", "switch", "this", "throw", "true", "try", "type", "typeof", "undefined", "var", "void", "while", "with", "yield"])
-        case .Go:                         .addWords(["break", "case", "chan", "const", "continue", "default", "defer", "else", "fallthrough", "false", "for", "func", "go", "goto", "if", "import", "interface", "map", "nil", "package", "range", "return", "select", "struct", "switch", "true", "type", "var"])
-        case .Rust:                       .addWords(["as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "type", "unsafe", "use", "where", "while"])
-        case .Python:                     .addWords(["and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else", "except", "False", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "None", "nonlocal", "not", "or", "pass", "raise", "return", "True", "try", "while", "with", "yield"])
-        case .Ruby:                       .addWords(["alias", "and", "begin", "break", "case", "class", "def", "defined", "do", "else", "elsif", "end", "ensure", "false", "for", "if", "in", "module", "next", "nil", "not", "or", "redo", "rescue", "retry", "return", "self", "super", "then", "true", "undef", "unless", "until", "when", "while", "yield"])
-        case .Shell, .PowerShell, .Batch: .addWords(["begin", "break", "case", "catch", "continue", "do", "done", "elif", "else", "end", "esac", "exit", "fi", "finally", "for", "foreach", "function", "if", "in", "param", "return", "select", "switch", "then", "throw", "trap", "try", "until", "while"])
-        case .Php:                        .addWords(["abstract", "and", "array", "as", "break", "callable", "case", "catch", "class", "clone", "const", "continue", "declare", "default", "do", "echo", "else", "elseif", "empty", "endfor", "endforeach", "endif", "endswitch", "endwhile", "enum", "extends", "false", "final", "finally", "fn", "for", "foreach", "function", "global", "if", "implements", "include", "instanceof", "interface", "match", "namespace", "new", "null", "private", "protected", "public", "readonly", "require", "return", "static", "throw", "trait", "true", "try", "use", "var", "while", "yield"])
-        case .Lua:                        .addWords(["and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"])
-        case .Sql:                        .addWords(["add", "alter", "and", "as", "asc", "begin", "between", "by", "case", "column", "commit", "constraint", "create", "database", "default", "delete", "desc", "distinct", "drop", "else", "end", "exists", "false", "foreign", "from", "full", "group", "having", "in", "index", "inner", "insert", "into", "is", "join", "key", "left", "like", "limit", "not", "null", "on", "or", "order", "outer", "primary", "references", "right", "rollback", "select", "set", "table", "then", "true", "union", "unique", "update", "values", "view", "when", "where", "with"])
-        case .Json:                       .addWords(["false", "null", "true"])
-        case .Css:                        .addWords(["@charset", "@container", "@font-face", "@import", "@keyframes", "@layer", "@media", "@namespace", "@page", "@supports", "important"])
-        case .Yaml, .Toml, .Config:       .addWords(["false", "inf", "nan", "null", "off", "on", "true", "yes", "no"])
-        case .Swift:                      .addWords(["as", "associatedtype", "break", "case", "catch", "class", "continue", "default", "defer", "deinit", "do", "else", "enum", "extension", "fallthrough", "false", "fileprivate", "for", "func", "guard", "if", "import", "in", "init", "inout", "internal", "is", "let", "nil", "open", "operator", "private", "protocol", "public", "repeat", "rethrows", "return", "self", "static", "struct", "subscript", "super", "switch", "throw", "throws", "true", "try", "typealias", "var", "where", "while"])
-        case .Dart:                       .addWords(["abstract", "as", "assert", "async", "await", "break", "case", "catch", "class", "const", "continue", "default", "deferred", "do", "dynamic", "else", "enum", "export", "extends", "extension", "external", "factory", "false", "final", "finally", "for", "function", "get", "hide", "if", "implements", "import", "in", "interface", "is", "late", "library", "mixin", "new", "null", "on", "operator", "part", "required", "return", "set", "show", "static", "super", "switch", "sync", "this", "throw", "true", "try", "typedef", "var", "void", "while", "with", "yield"])
-        case .R:                          .addWords(["break", "else", "FALSE", "for", "function", "if", "Inf", "NA", "NaN", "next", "NULL", "repeat", "return", "TRUE", "while"])
-        case .Perl:                       .addWords(["continue", "do", "else", "elsif", "for", "foreach", "given", "goto", "if", "last", "local", "my", "next", "no", "package", "redo", "require", "return", "state", "sub", "unless", "until", "use", "when", "while"])
-        case .VisualBasic:                .addWords(["as", "async", "await", "boolean", "byref", "byval", "case", "catch", "class", "const", "continue", "dim", "do", "each", "else", "elseif", "end", "enum", "false", "finally", "for", "function", "get", "handles", "if", "implements", "imports", "in", "inherits", "interface", "module", "new", "nothing", "of", "private", "property", "protected", "public", "return", "select", "set", "shared", "static", "structure", "sub", "then", "throw", "true", "try", "while", "with"])
-        case .CMake:                      .addWords(["break", "cmake_minimum_required", "continue", "else", "elseif", "endforeach", "endfunction", "endif", "endmacro", "endwhile", "find_package", "foreach", "function", "if", "include", "macro", "project", "return", "set", "target_compile_definitions", "target_include_directories", "target_link_libraries", "while"])
-        case .Assembly:                   .addWords(["section", "segment", "global", "extern", "align", "bits", "byte", "word", "dword", "qword", "db", "dw", "dd", "dq", "mov", "lea", "push", "pop", "call", "ret", "jmp", "cmp", "test", "add", "sub", "mul", "imul", "div", "idiv", "and", "or", "xor", "not", "shl", "shr", "sal", "sar", "inc", "dec", "nop"])
-        case .Zig:                        .addWords(["addrspace", "align", "allowzero", "and", "anyframe", "anytype", "asm", "async", "await", "break", "callconv", "catch", "comptime", "const", "continue", "defer", "else", "enum", "errdefer", "error", "export", "extern", "false", "fn", "for", "if", "inline", "linksection", "noalias", "nosuspend", "null", "opaque", "or", "orelse", "packed", "pub", "resume", "return", "struct", "suspend", "switch", "test", "threadlocal", "true", "try", "union", "unreachable", "usingnamespace", "var", "volatile", "while"])
-        case .Nim:                        .addWords(["addr", "and", "as", "asm", "bind", "block", "break", "case", "cast", "concept", "const", "continue", "converter", "defer", "discard", "distinct", "div", "do", "elif", "else", "end", "enum", "except", "export", "finally", "for", "from", "func", "if", "import", "in", "include", "interface", "is", "isnot", "iterator", "let", "macro", "method", "mixin", "mod", "nil", "not", "notin", "object", "of", "or", "out", "proc", "ptr", "raise", "ref", "return", "shl", "shr", "static", "template", "try", "tuple", "type", "using", "var", "when", "while", "with", "without", "xor", "yield"])
-        case .Haskell:                    .addWords(["as", "case", "class", "data", "default", "deriving", "do", "else", "family", "foreign", "hiding", "if", "import", "in", "infix", "infixl", "infixr", "instance", "let", "module", "newtype", "of", "pattern", "qualified", "role", "then", "type", "where"])
-        case .Scala:                      .addWords(["abstract", "case", "catch", "class", "def", "do", "else", "enum", "export", "extends", "false", "final", "finally", "for", "forSome", "given", "if", "implicit", "import", "inline", "lazy", "match", "new", "null", "object", "opaque", "open", "override", "package", "private", "protected", "return", "sealed", "super", "then", "this", "throw", "trait", "transparent", "true", "try", "type", "using", "val", "var", "while", "with", "yield"])
-        case .Groovy, .Gradle:            .addWords(["as", "assert", "break", "case", "catch", "class", "const", "continue", "def", "default", "do", "else", "enum", "extends", "false", "finally", "for", "goto", "if", "implements", "import", "in", "instanceof", "interface", "native", "new", "non-sealed", "null", "package", "permits", "private", "protected", "public", "record", "return", "sealed", "static", "strictfp", "super", "switch", "synchronized", "this", "throw", "throws", "trait", "transient", "true", "try", "var", "void", "volatile", "while"])
-        case .Elixir:                     .addWords(["after", "alias", "and", "case", "catch", "cond", "def", "defdelegate", "defexception", "defguard", "defimpl", "defmacro", "defmodule", "defp", "defprotocol", "defstruct", "do", "else", "end", "false", "fn", "for", "if", "import", "in", "nil", "not", "or", "quote", "raise", "receive", "require", "rescue", "super", "throw", "true", "try", "unless", "unquote", "use", "when", "with"])
-        case .Erlang:                     .addWords(["after", "and", "andalso", "band", "begin", "bnot", "bor", "bsl", "bsr", "bxor", "case", "catch", "cond", "div", "end", "fun", "if", "let", "not", "of", "or", "orelse", "receive", "rem", "try", "when", "xor"])
-        case .Clojure:                    .addWords(["def", "defn", "defmacro", "defmethod", "defmulti", "defonce", "defprotocol", "defrecord", "deftype", "do", "doseq", "dotimes", "fn", "for", "if", "if-let", "if-not", "let", "letfn", "loop", "ns", "quote", "recur", "throw", "try", "var", "when", "when-let", "when-not", "while"])
-        case .Julia:                      .addWords(["baremodule", "begin", "break", "catch", "const", "continue", "do", "else", "elseif", "end", "export", "false", "finally", "for", "function", "global", "if", "import", "let", "local", "macro", "module", "quote", "return", "struct", "true", "try", "using", "while"])
-        case .Fortran:                    .addWords(["allocate", "assign", "associate", "backspace", "block", "call", "case", "class", "close", "common", "contains", "continue", "cycle", "data", "deallocate", "dimension", "do", "else", "elseif", "end", "enddo", "endif", "entry", "equivalence", "exit", "external", "forall", "format", "function", "goto", "if", "implicit", "import", "include", "inquire", "interface", "intrinsic", "module", "namelist", "none", "nullify", "only", "open", "operator", "optional", "parameter", "pause", "pointer", "print", "private", "procedure", "program", "public", "pure", "read", "recursive", "return", "rewind", "save", "select", "stop", "subroutine", "target", "then", "type", "use", "where", "while", "write"])
-        case .Pascal:                     .addWords(["and", "array", "as", "asm", "begin", "case", "class", "const", "constructor", "destructor", "div", "do", "downto", "else", "end", "except", "exports", "file", "finalization", "finally", "for", "function", "goto", "if", "implementation", "in", "inherited", "initialization", "inline", "interface", "is", "label", "library", "mod", "nil", "not", "object", "of", "operator", "or", "out", "packed", "procedure", "program", "property", "raise", "record", "repeat", "resourcestring", "set", "shl", "shr", "then", "threadvar", "to", "try", "type", "unit", "until", "uses", "var", "while", "with", "xor"])
-        case .D:                          .addWords(["abstract", "alias", "align", "asm", "assert", "auto", "body", "bool", "break", "byte", "case", "cast", "catch", "class", "const", "continue", "debug", "default", "delegate", "delete", "deprecated", "do", "else", "enum", "export", "extern", "false", "final", "finally", "for", "foreach", "foreach_reverse", "function", "goto", "if", "immutable", "import", "in", "inout", "interface", "invariant", "is", "lazy", "mixin", "module", "new", "nothrow", "null", "out", "override", "package", "pragma", "private", "protected", "public", "pure", "ref", "return", "scope", "shared", "static", "struct", "super", "switch", "synchronized", "template", "this", "throw", "traits", "true", "try", "typedef", "typeid", "typeof", "union", "unittest", "version", "void", "while", "with"])
-        case .ObjectiveC:                 .addWords(["auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long", "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while", "@autoreleasepool", "@catch", "@class", "@dynamic", "@encode", "@end", "@finally", "@implementation", "@interface", "@optional", "@package", "@private", "@property", "@protected", "@protocol", "@public", "@required", "@selector", "@synchronized", "@synthesize", "@throw", "@try"])
-        case .Matlab:                     .addWords(["break", "case", "catch", "classdef", "continue", "else", "elseif", "end", "enumeration", "events", "for", "function", "global", "if", "methods", "otherwise", "parfor", "persistent", "properties", "return", "spmd", "switch", "try", "while"])
-        case .Tcl:                        .addWords(["after", "append", "apply", "array", "break", "catch", "concat", "continue", "dict", "else", "elseif", "error", "eval", "expr", "for", "foreach", "format", "global", "if", "incr", "info", "lappend", "lassign", "lindex", "linsert", "list", "llength", "lmap", "proc", "rename", "return", "set", "source", "string", "switch", "unset", "upvar", "variable", "while"])
-        case .Awk:                        .addWords(["BEGIN", "END", "break", "continue", "delete", "do", "else", "exit", "for", "function", "getline", "if", "in", "next", "nextfile", "print", "printf", "return", "while"])
-        case .Vim:                        .addWords(["autocmd", "break", "call", "catch", "command", "continue", "else", "elseif", "endfor", "endfunction", "endif", "endtry", "endwhile", "execute", "finish", "for", "function", "if", "let", "return", "set", "silent", "throw", "try", "while"])
-        case .Latex:                      .addWords(["\\begin", "\\chapter", "\\documentclass", "\\else", "\\end", "\\fi", "\\if", "\\include", "\\input", "\\label", "\\newcommand", "\\paragraph", "\\ref", "\\renewcommand", "\\section", "\\subsection", "\\subsubsection", "\\usepackage"])
-        case .Protobuf:                   .addWords(["bool", "bytes", "double", "enum", "extend", "extensions", "fixed32", "fixed64", "float", "group", "import", "int32", "int64", "map", "message", "oneof", "option", "optional", "package", "public", "repeated", "required", "reserved", "returns", "rpc", "service", "sfixed32", "sfixed64", "sint32", "sint64", "stream", "string", "syntax", "to", "uint32", "uint64", "weak"])
-        case .GraphQl:                    .addWords(["directive", "enum", "extend", "fragment", "implements", "input", "interface", "mutation", "null", "on", "query", "repeatable", "scalar", "schema", "subscription", "true", "type", "union"])
-        case .Makefile:                   .addWords(["define", "else", "endef", "endif", "export", "if", "ifdef", "ifeq", "ifndef", "ifneq", "include", "override", "private", "sinclude", "undefine", "unexport", "vpath"])
-        case .Dockerfile:                 .addWords(["add", "arg", "cmd", "copy", "entrypoint", "env", "expose", "from", "healthcheck", "label", "maintainer", "onbuild", "run", "shell", "stopsignal", "user", "volume", "workdir"])
-        case .Nix:                        .addWords(["assert", "else", "false", "if", "in", "inherit", "let", "null", "or", "rec", "then", "true", "with"])
-        case .Xml, .Html:                 return
+        case .C, .Cpp, .Shader: .addWords([
+            "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
+            "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
+            "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
+            "switch", "typedef", "union", "unsigned", "void", "volatile", "while", "bool",
+            "class", "namespace", "new", "delete", "public", "private", "protected", "template",
+            "typename", "using", "virtual", "override", "constexpr", "nullptr", "this", "throw",
+            "try", "catch"])
+
+        case .CSharp: .addWords([
+            "abstract", "as", "async", "await", "base", "bool", "break", "case", "catch",
+            "class", "const", "continue", "decimal", "default", "delegate", "do", "else",
+            "enum", "event", "explicit", "extern", "false", "finally", "fixed", "for",
+            "foreach", "get", "if", "implicit", "in", "interface", "internal", "is", "lock",
+            "namespace", "new", "null", "operator", "out", "override", "params", "private",
+            "protected", "public", "readonly", "record", "ref", "return", "sealed", "set",
+            "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof",
+            "using", "var", "virtual", "void", "while", "yield"])
+
+        case .Java, .Kotlin: .addWords([
+            "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char", "class",
+            "const", "continue", "default", "do", "double", "else", "enum", "extends", "false",
+            "final", "finally", "float", "for", "fun", "if", "implements", "import", "in",
+            "instanceof", "int", "interface", "internal", "is", "long", "native", "new", "null",
+            "object", "open", "override", "package", "private", "protected", "public", "return",
+            "sealed", "short", "static", "super", "synchronized", "this", "throw", "throws",
+            "transient", "true", "try", "val", "var", "void", "volatile", "when", "while"])
+
+        case .JavaScript, .TypeScript: .addWords([
+            "async", "await", "break", "case", "catch", "class", "const", "continue",
+            "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false",
+            "finally", "for", "from", "function", "get", "if", "implements", "import", "in",
+            "instanceof", "interface", "let", "new", "null", "of", "private", "protected",
+            "public", "return", "set", "static", "super", "switch", "this", "throw", "true",
+            "try", "type", "typeof", "undefined", "var", "void", "while", "with", "yield"])
+
+        case .Go: .addWords([
+            "break", "case", "chan", "const", "continue", "default", "defer", "else",
+            "fallthrough", "false", "for", "func", "go", "goto", "if", "import", "interface",
+            "map", "nil", "package", "range", "return", "select", "struct", "switch", "true",
+            "type", "var"])
+
+        case .Rust: .addWords([
+            "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else",
+            "enum", "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match",
+            "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static", "struct",
+            "super", "trait", "true", "type", "unsafe", "use", "where", "while"])
+
+        case .Python: .addWords([
+            "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del",
+            "elif", "else", "except", "False", "finally", "for", "from", "global", "if",
+            "import", "in", "is", "lambda", "None", "nonlocal", "not", "or", "pass", "raise",
+            "return", "True", "try", "while", "with", "yield"])
+
+        case .Ruby: .addWords([
+            "alias", "and", "begin", "break", "case", "class", "def", "defined", "do", "else",
+            "elsif", "end", "ensure", "false", "for", "if", "in", "module", "next", "nil",
+            "not", "or", "redo", "rescue", "retry", "return", "self", "super", "then", "true",
+            "undef", "unless", "until", "when", "while", "yield"])
+
+        case .Shell, .PowerShell, .Batch: .addWords([
+            "begin", "break", "case", "catch", "continue", "do", "done", "elif", "else", "end",
+            "esac", "exit", "fi", "finally", "for", "foreach", "function", "if", "in", "param",
+            "return", "select", "switch", "then", "throw", "trap", "try", "until", "while"])
+
+        case .Php: .addWords([
+            "abstract", "and", "array", "as", "break", "callable", "case", "catch", "class",
+            "clone", "const", "continue", "declare", "default", "do", "echo", "else", "elseif",
+            "empty", "endfor", "endforeach", "endif", "endswitch", "endwhile", "enum",
+            "extends", "false", "final", "finally", "fn", "for", "foreach", "function",
+            "global", "if", "implements", "include", "instanceof", "interface", "match",
+            "namespace", "new", "null", "private", "protected", "public", "readonly", "require",
+            "return", "static", "throw", "trait", "true", "try", "use", "var", "while", "yield"])
+
+        case .Lua: .addWords([
+            "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto",
+            "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true",
+            "until", "while"])
+
+        case .Sql: .addWords([
+            "add", "alter", "and", "as", "asc", "begin", "between", "by", "case", "column",
+            "commit", "constraint", "create", "database", "default", "delete", "desc",
+            "distinct", "drop", "else", "end", "exists", "false", "foreign", "from", "full",
+            "group", "having", "in", "index", "inner", "insert", "into", "is", "join", "key",
+            "left", "like", "limit", "not", "null", "on", "or", "order", "outer", "primary",
+            "references", "right", "rollback", "select", "set", "table", "then", "true",
+            "union", "unique", "update", "values", "view", "when", "where", "with"])
+
+        case .Json: .addWords(["false", "null", "true"])
+
+        case .Css: .addWords([
+            "@charset", "@container", "@font-face", "@import", "@keyframes", "@layer", "@media",
+            "@namespace", "@page", "@supports", "important"])
+
+        case .Yaml, .Toml, .Config: .addWords([
+            "false", "inf", "nan", "null", "off", "on", "true", "yes", "no"])
+
+        case .Swift: .addWords([
+            "as", "associatedtype", "break", "case", "catch", "class", "continue", "default",
+            "defer", "deinit", "do", "else", "enum", "extension", "fallthrough", "false",
+            "fileprivate", "for", "func", "guard", "if", "import", "in", "init", "inout",
+            "internal", "is", "let", "nil", "open", "operator", "private", "protocol", "public",
+            "repeat", "rethrows", "return", "self", "static", "struct", "subscript", "super",
+            "switch", "throw", "throws", "true", "try", "typealias", "var", "where", "while"])
+
+        case .Dart: .addWords([
+            "abstract", "as", "assert", "async", "await", "break", "case", "catch", "class",
+            "const", "continue", "default", "deferred", "do", "dynamic", "else", "enum",
+            "export", "extends", "extension", "external", "factory", "false", "final",
+            "finally", "for", "function", "get", "hide", "if", "implements", "import", "in",
+            "interface", "is", "late", "library", "mixin", "new", "null", "on", "operator",
+            "part", "required", "return", "set", "show", "static", "super", "switch", "sync",
+            "this", "throw", "true", "try", "typedef", "var", "void", "while", "with", "yield"])
+
+        case .R: .addWords([
+            "break", "else", "FALSE", "for", "function", "if", "Inf", "NA", "NaN", "next",
+            "NULL", "repeat", "return", "TRUE", "while"])
+
+        case .Perl: .addWords([
+            "continue", "do", "else", "elsif", "for", "foreach", "given", "goto", "if", "last",
+            "local", "my", "next", "no", "package", "redo", "require", "return", "state", "sub",
+            "unless", "until", "use", "when", "while"])
+
+        case .VisualBasic: .addWords([
+            "as", "async", "await", "boolean", "byref", "byval", "case", "catch", "class",
+            "const", "continue", "dim", "do", "each", "else", "elseif", "end", "enum", "false",
+            "finally", "for", "function", "get", "handles", "if", "implements", "imports", "in",
+            "inherits", "interface", "module", "new", "nothing", "of", "private", "property",
+            "protected", "public", "return", "select", "set", "shared", "static", "structure",
+            "sub", "then", "throw", "true", "try", "while", "with"])
+
+        case .CMake: .addWords([
+            "break", "cmake_minimum_required", "continue", "else", "elseif", "endforeach",
+            "endfunction", "endif", "endmacro", "endwhile", "find_package", "foreach",
+            "function", "if", "include", "macro", "project", "return", "set",
+            "target_compile_definitions", "target_include_directories", "target_link_libraries",
+            "while"])
+
+        case .Assembly: .addWords([
+            "section", "segment", "global", "extern", "align", "bits", "byte", "word", "dword",
+            "qword", "db", "dw", "dd", "dq", "mov", "lea", "push", "pop", "call", "ret", "jmp",
+            "cmp", "test", "add", "sub", "mul", "imul", "div", "idiv", "and", "or", "xor",
+            "not", "shl", "shr", "sal", "sar", "inc", "dec", "nop"])
+
+        case .Zig: .addWords([
+            "addrspace", "align", "allowzero", "and", "anyframe", "anytype", "asm", "async",
+            "await", "break", "callconv", "catch", "comptime", "const", "continue", "defer",
+            "else", "enum", "errdefer", "error", "export", "extern", "false", "fn", "for", "if",
+            "inline", "linksection", "noalias", "nosuspend", "null", "opaque", "or", "orelse",
+            "packed", "pub", "resume", "return", "struct", "suspend", "switch", "test",
+            "threadlocal", "true", "try", "union", "unreachable", "usingnamespace", "var",
+            "volatile", "while"])
+
+        case .Nim: .addWords([
+            "addr", "and", "as", "asm", "bind", "block", "break", "case", "cast", "concept",
+            "const", "continue", "converter", "defer", "discard", "distinct", "div", "do",
+            "elif", "else", "end", "enum", "except", "export", "finally", "for", "from", "func",
+            "if", "import", "in", "include", "interface", "is", "isnot", "iterator", "let",
+            "macro", "method", "mixin", "mod", "nil", "not", "notin", "object", "of", "or",
+            "out", "proc", "ptr", "raise", "ref", "return", "shl", "shr", "static", "template",
+            "try", "tuple", "type", "using", "var", "when", "while", "with", "without", "xor",
+            "yield"])
+
+        case .Haskell: .addWords([
+            "as", "case", "class", "data", "default", "deriving", "do", "else", "family",
+            "foreign", "hiding", "if", "import", "in", "infix", "infixl", "infixr", "instance",
+            "let", "module", "newtype", "of", "pattern", "qualified", "role", "then", "type",
+            "where"])
+
+        case .Scala: .addWords([
+            "abstract", "case", "catch", "class", "def", "do", "else", "enum", "export",
+            "extends", "false", "final", "finally", "for", "forSome", "given", "if", "implicit",
+            "import", "inline", "lazy", "match", "new", "null", "object", "opaque", "open",
+            "override", "package", "private", "protected", "return", "sealed", "super", "then",
+            "this", "throw", "trait", "transparent", "true", "try", "type", "using", "val",
+            "var", "while", "with", "yield"])
+
+        case .Groovy, .Gradle: .addWords([
+            "as", "assert", "break", "case", "catch", "class", "const", "continue", "def",
+            "default", "do", "else", "enum", "extends", "false", "finally", "for", "goto", "if",
+            "implements", "import", "in", "instanceof", "interface", "native", "new",
+            "non-sealed", "null", "package", "permits", "private", "protected", "public",
+            "record", "return", "sealed", "static", "strictfp", "super", "switch",
+            "synchronized", "this", "throw", "throws", "trait", "transient", "true", "try",
+            "var", "void", "volatile", "while"])
+
+        case .Elixir: .addWords([
+            "after", "alias", "and", "case", "catch", "cond", "def", "defdelegate",
+            "defexception", "defguard", "defimpl", "defmacro", "defmodule", "defp",
+            "defprotocol", "defstruct", "do", "else", "end", "false", "fn", "for", "if",
+            "import", "in", "nil", "not", "or", "quote", "raise", "receive", "require",
+            "rescue", "super", "throw", "true", "try", "unless", "unquote", "use", "when",
+            "with"])
+
+        case .Erlang: .addWords([
+            "after", "and", "andalso", "band", "begin", "bnot", "bor", "bsl", "bsr", "bxor",
+            "case", "catch", "cond", "div", "end", "fun", "if", "let", "not", "of", "or",
+            "orelse", "receive", "rem", "try", "when", "xor"])
+
+        case .Clojure: .addWords([
+            "def", "defn", "defmacro", "defmethod", "defmulti", "defonce", "defprotocol",
+            "defrecord", "deftype", "do", "doseq", "dotimes", "fn", "for", "if", "if-let",
+            "if-not", "let", "letfn", "loop", "ns", "quote", "recur", "throw", "try", "var",
+            "when", "when-let", "when-not", "while"])
+
+        case .Julia: .addWords([
+            "baremodule", "begin", "break", "catch", "const", "continue", "do", "else",
+            "elseif", "end", "export", "false", "finally", "for", "function", "global", "if",
+            "import", "let", "local", "macro", "module", "quote", "return", "struct", "true",
+            "try", "using", "while"])
+
+        case .Fortran: .addWords([
+            "allocate", "assign", "associate", "backspace", "block", "call", "case", "class",
+            "close", "common", "contains", "continue", "cycle", "data", "deallocate",
+            "dimension", "do", "else", "elseif", "end", "enddo", "endif", "entry",
+            "equivalence", "exit", "external", "forall", "format", "function", "goto", "if",
+            "implicit", "import", "include", "inquire", "interface", "intrinsic", "module",
+            "namelist", "none", "nullify", "only", "open", "operator", "optional", "parameter",
+            "pause", "pointer", "print", "private", "procedure", "program", "public", "pure",
+            "read", "recursive", "return", "rewind", "save", "select", "stop", "subroutine",
+            "target", "then", "type", "use", "where", "while", "write"])
+
+        case .Pascal: .addWords([
+            "and", "array", "as", "asm", "begin", "case", "class", "const", "constructor",
+            "destructor", "div", "do", "downto", "else", "end", "except", "exports", "file",
+            "finalization", "finally", "for", "function", "goto", "if", "implementation", "in",
+            "inherited", "initialization", "inline", "interface", "is", "label", "library",
+            "mod", "nil", "not", "object", "of", "operator", "or", "out", "packed", "procedure",
+            "program", "property", "raise", "record", "repeat", "resourcestring", "set", "shl",
+            "shr", "then", "threadvar", "to", "try", "type", "unit", "until", "uses", "var",
+            "while", "with", "xor"])
+
+        case .D: .addWords([
+            "abstract", "alias", "align", "asm", "assert", "auto", "body", "bool", "break",
+            "byte", "case", "cast", "catch", "class", "const", "continue", "debug", "default",
+            "delegate", "delete", "deprecated", "do", "else", "enum", "export", "extern",
+            "false", "final", "finally", "for", "foreach", "foreach_reverse", "function",
+            "goto", "if", "immutable", "import", "in", "inout", "interface", "invariant", "is",
+            "lazy", "mixin", "module", "new", "nothrow", "null", "out", "override", "package",
+            "pragma", "private", "protected", "public", "pure", "ref", "return", "scope",
+            "shared", "static", "struct", "super", "switch", "synchronized", "template", "this",
+            "throw", "traits", "true", "try", "typedef", "typeid", "typeof", "union",
+            "unittest", "version", "void", "while", "with"])
+
+        case .ObjectiveC: .addWords([
+            "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
+            "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
+            "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
+            "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
+            "@autoreleasepool", "@catch", "@class", "@dynamic", "@encode", "@end", "@finally",
+            "@implementation", "@interface", "@optional", "@package", "@private", "@property",
+            "@protected", "@protocol", "@public", "@required", "@selector", "@synchronized",
+            "@synthesize", "@throw", "@try"])
+
+        case .Matlab: .addWords([
+            "break", "case", "catch", "classdef", "continue", "else", "elseif", "end",
+            "enumeration", "events", "for", "function", "global", "if", "methods", "otherwise",
+            "parfor", "persistent", "properties", "return", "spmd", "switch", "try", "while"])
+
+        case .Tcl: .addWords([
+            "after", "append", "apply", "array", "break", "catch", "concat", "continue", "dict",
+            "else", "elseif", "error", "eval", "expr", "for", "foreach", "format", "global",
+            "if", "incr", "info", "lappend", "lassign", "lindex", "linsert", "list", "llength",
+            "lmap", "proc", "rename", "return", "set", "source", "string", "switch", "unset",
+            "upvar", "variable", "while"])
+
+        case .Awk: .addWords([
+            "BEGIN", "END", "break", "continue", "delete", "do", "else", "exit", "for",
+            "function", "getline", "if", "in", "next", "nextfile", "print", "printf", "return",
+            "while"])
+
+        case .Vim: .addWords([
+            "autocmd", "break", "call", "catch", "command", "continue", "else", "elseif",
+            "endfor", "endfunction", "endif", "endtry", "endwhile", "execute", "finish", "for",
+            "function", "if", "let", "return", "set", "silent", "throw", "try", "while"])
+
+        case .Latex: .addWords([
+            "\\begin", "\\chapter", "\\documentclass", "\\else", "\\end", "\\fi", "\\if",
+            "\\include", "\\input", "\\label", "\\newcommand", "\\paragraph", "\\ref",
+            "\\renewcommand", "\\section", "\\subsection", "\\subsubsection", "\\usepackage"])
+
+        case .Protobuf: .addWords([
+            "bool", "bytes", "double", "enum", "extend", "extensions", "fixed32", "fixed64",
+            "float", "group", "import", "int32", "int64", "map", "message", "oneof", "option",
+            "optional", "package", "public", "repeated", "required", "reserved", "returns",
+            "rpc", "service", "sfixed32", "sfixed64", "sint32", "sint64", "stream", "string",
+            "syntax", "to", "uint32", "uint64", "weak"])
+
+        case .GraphQl: .addWords([
+            "directive", "enum", "extend", "fragment", "implements", "input", "interface",
+            "mutation", "null", "on", "query", "repeatable", "scalar", "schema", "subscription",
+            "true", "type", "union"])
+
+        case .Makefile: .addWords([
+            "define", "else", "endef", "endif", "export", "if", "ifdef", "ifeq", "ifndef",
+            "ifneq", "include", "override", "private", "sinclude", "undefine", "unexport",
+            "vpath"])
+
+        case .Dockerfile: .addWords([
+            "add", "arg", "cmd", "copy", "entrypoint", "env", "expose", "from", "healthcheck",
+            "label", "maintainer", "onbuild", "run", "shell", "stopsignal", "user", "volume",
+            "workdir"])
+
+        case .Nix: .addWords([
+            "assert", "else", "false", "if", "in", "inherit", "let", "null", "or", "rec",
+            "then", "true", "with"])
+
+        case .Xml, .Html: return
         }
     }
 

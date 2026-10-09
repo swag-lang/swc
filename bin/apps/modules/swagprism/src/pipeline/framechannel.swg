@@ -32,19 +32,20 @@ impl FrameChannel
     const Height    = 400's32
     const ByteCount = cast(u64, (Width * Height * 4))
 
+    #[Swag.Propagate]
     mtd open(path: string, create = false) fail
     {
         .close()
         if create do
-            discard try File.writeAllBytes(path, {})
-        var file = try File.MappedFile.open(path, .ReadWrite)
+            discard File.writeAllBytes(path, {})
+        var file = File.MappedFile.open(path, .ReadWrite)
         if create do
-            try file.resize(#sizeof(FrameHeader) + ByteCount)
-        .region = try file.map(0, #sizeof(FrameHeader) + ByteCount)
+            file.resize(#sizeof(FrameHeader) + ByteCount)
+        .region = file.map(0, #sizeof(FrameHeader) + ByteCount)
         if create do
             Memory.set(.region.writableBytes().buffer, 0, .region.length)
         let name = Format.toString("SwagPrism.%", Path.fileName(Path.directoryName(path)))
-        try .consumedEvent.initNamed(name)
+        .consumedEvent.initNamed(name)
     }
 
     mtd header()->*FrameHeader => cast(*FrameHeader, .region.writableBytes().buffer)

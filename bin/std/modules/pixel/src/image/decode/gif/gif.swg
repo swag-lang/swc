@@ -118,6 +118,7 @@ public impl Decoder
         .reader = #move reader
     }
 
+    #[Swag.Propagate]
     internal mtd init(buffer: const [..] u8) fail
     {
         Swag.drop(me, 1)
@@ -128,34 +129,34 @@ public impl Decoder
 
         // Header
         var sigver: [3] u8
-        try .read(sigver, 3)
+        .read(sigver, 3)
         if Memory.compare(sigver, ("GIF").buffer, 3) != 0 do
             fail InvalidFormatError{"invalid signature"}
 
         // Version
-        try .read(sigver, 3)
+        .read(sigver, 3)
         if Memory.compare(sigver, ("89a").buffer, 3) != 0 and Memory.compare(sigver, ("87a").buffer, 3) != 0 do
             fail InvalidFormatError{"invalid version"}
 
         // Width x Height
-        .width  = try .readU16()
-        .height = try .readU16()
+        .width  = .readU16()
+        .height = .readU16()
 
         // FDSZ
         var fdsz: u8
-        try .read(&fdsz, 1)
+        .read(&fdsz, 1)
 
         // Ignore sort flag
         // GCT Size
         .gct.size = fdsz & 0x80 ? 1 << ((fdsz & 0x07) + 1) : 0
 
         // Background color index
-        .bgIndex = try .readU8()
+        .bgIndex = .readU8()
 
         // Aspect ratio
-        discard try .readU8()
+        discard .readU8()
 
-        try .read(.gct.colors, 3'u64 * .gct.size)
+        .read(.gct.colors, 3'u64 * .gct.size)
         .palette = &.gct
     }
 

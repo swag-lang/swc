@@ -115,3 +115,27 @@ func instantiateOverloadedDefer() fail
 {
     try overloadedDefer(1)
 }
+
+// 'Swag.Propagate' reads the unmarked calls of its own body as 'try'. A function or a lambda
+// declared inside that body spells its own handling.
+#[Swag.Propagate]
+func propagateNestedFunction() fail
+{
+    func nested() fail
+    {
+        fallibleVoid()     // swc-expected-error {{sema_err_fallible_call_requires_handler}}
+    }
+
+    nested()
+}
+
+#[Swag.Propagate]
+func propagateNestedLambda() fail
+{
+    let lambda = func() fail
+    {
+        fallibleVoid()     // swc-expected-error {{sema_err_fallible_call_requires_handler}}
+    }
+
+    lambda()
+}

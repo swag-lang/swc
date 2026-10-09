@@ -19,7 +19,8 @@ func fillNarrativeEditor(ed: *RichEditCtrl)
     ed.addText(" and small ", 0)
     ed.addText("underlined cues", 4)
     ed.addText(" without changing widgets.\n\n", 0)
-    ed.addText("This is especially useful for inspectors, changelogs and embedded documentation where code and prose live side by side.", 0)
+    ed.addText("This is especially useful for inspectors, changelogs and embedded documentation where code and prose live side by side.",
+               0)
 }
 
 func fillPaletteEditor(ed: *RichEditCtrl)
@@ -75,7 +76,10 @@ func createStylesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
 
-    let left = createPanel(parent, "Narrative spans", "Foreground, background, weight and underline can all be mixed in one flowing document.", layout.left)
+    let left = createPanel(parent,
+                           "Narrative spans",
+                           "Foreground, background, weight and underline can all be mixed in one flowing document.",
+                           layout.left)
     {
         let rect = left.clientRect()
         let ed   = createDocumentEditor(left, {18, 88, rect.width - 36, rect.height - 106}, "", .ShowFocusSel | .WordWrap)
@@ -83,7 +87,10 @@ func createStylesPage(parent: *Wnd)
         fillNarrativeEditor(ed)
     }
 
-    let right = createPanel(parent, "Semantic palette", "Read-only rich text is handy for summaries, diagnostics and inline metadata.", layout.right)
+    let right = createPanel(parent,
+                            "Semantic palette",
+                            "Read-only rich text is handy for summaries, diagnostics and inline metadata.",
+                            layout.right)
     {
         let rect = right.clientRect()
         let ed   = createDemoEditor(right, {18, 88, rect.width - 36, rect.height - 106}, .ShowFocusSel | .ReadOnly | .WordWrap, .Edit)
@@ -93,7 +100,10 @@ func createStylesPage(parent: *Wnd)
         fillPaletteEditor(ed)
     }
 
-    let bottom = createPanel(parent, "Styled log", "A single document can read like a live stream once styles are assigned meaningful roles.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Styled log",
+                             "A single document can read like a live stream once styles are assigned meaningful roles.",
+                             layout.bottom)
     {
         let rect = bottom.clientRect()
         let ed   = createDemoEditor(bottom, {20, 92, rect.width - 40, rect.height - 112}, .ShowFocusSel | .ReadOnly | .WordWrap)

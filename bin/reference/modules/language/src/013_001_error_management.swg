@@ -148,7 +148,8 @@ func propagateCount(name: string?)->u64 fail
 /**
 # Explicit Error Handling
 Every call to a function declared with 'fail' needs 'try', 'catch', 'expect', or 'assume'.
-Declaring the caller with 'fail' permits propagation, but does not make it implicit.
+Declaring the caller with 'fail' permits propagation, but does not make it implicit:
+that takes '#[Swag.Propagate]', described below.
 The compiler rejects a call that omits its error-management keyword.
 */
 func explicitTryCount(name: string?)->u64 fail
@@ -220,6 +221,48 @@ func blockCatchElse(name: string?)->u64
     Swag.assert(blockCatchCode() == 7)
     Swag.assert(blockCatchElse("abcd") == 4)
     Swag.assert(blockCatchElse(null) == 99)
+}
+
+/**
+# Implicit Propagation
+When nearly every call of a function propagates, a 'try' on each one tells the reader
+nothing. '#[Swag.Propagate]' reads every unmarked fallible call of the function body
+as 'try', so the only error keywords left are those that handle a failure differently:
+'catch', 'expect', and 'assume'.
+
+The function must be declared with 'fail'. An unmarked failure goes exactly where 'try'
+would send it: out of the function, or to an enclosing error-handling block. A written
+'try' changes nothing and is reported as a warning. The attribute is an implementation
+choice, not part of the signature: callers handle the function's errors as usual.
+
+It governs only the body it is written on. A function or a lambda declared inside that
+body spells its own handling, and a macro or a mixin cannot carry it, because its body
+belongs to the caller. An attribute block applies it to each function it holds; '#global'
+cannot apply it to a whole file. Editors that use the Swag language server show the
+implicit 'try' as a hint before each call it applies to.
+
+Use it for linear code where every step can fail and every failure ends the work:
+setup code, scripts, test scenarios. Code that builds state by hand and must undo it on
+failure reads better with each exit point spelled out.
+*/
+#[Swag.Propagate]
+func implicitTotal(name0: string?, name1: string?)->u64 fail
+{
+    let first  = count(name0)
+    let second = catch count(name1)
+    return first + second + count("ok")
+}
+
+#test
+{
+    let both = try implicitTotal("ab", "cde")
+    Swag.assert(both == 7)
+    let caught = try implicitTotal("ab", null)
+    Swag.assert(caught == 4)
+
+    let value = catch implicitTotal(null, "cde") as err
+    Swag.assert(value == 0)
+    Swag.assert(assume cast(MyError, err).code == 7)
 }
 
 /**

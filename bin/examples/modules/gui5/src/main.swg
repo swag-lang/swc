@@ -118,7 +118,15 @@ func pageSubtitle(page: s32)->string
 func colorSummary()->String
 {
     let hsl = g_Color.toHsl()
-    return Format.toString("#%{X08}  A:% R:% G:% B:%  H:% S:% L:%", g_Color.argb, g_Color.a, g_Color.r, g_Color.g, g_Color.b, cast(s32, (hsl.h * 360)), cast(s32, (hsl.s * 100)), cast(s32, (hsl.l * 100)))
+    return Format.toString("#%{X08}  A:% R:% G:% B:%  H:% S:% L:%",
+                           g_Color.argb,
+                           g_Color.a,
+                           g_Color.r,
+                           g_Color.g,
+                           g_Color.b,
+                           cast(s32, (hsl.h * 360)),
+                           cast(s32, (hsl.s * 100)),
+                           cast(s32, (hsl.l * 100)))
 }
 
 func updateHeader()
@@ -293,7 +301,12 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
     painter.drawStringCenter(tag.horzCenter(), tag.vertCenter(), "accent", bodyFont, accent.contrasting())
 
     painter.drawString(rect.x + 24, rect.y + 82, "Live swatch", titleFont, textColor)
-    drawWrappedText(painter, {rect.x + 24, rect.y + 118, rect.width - 48, 48}, "Every picker and palette page feeds this shared selected color.", bodyFont, textColor.withAlpha(220'u8), 2)
+    drawWrappedText(painter,
+                    {rect.x + 24, rect.y + 118, rect.width - 48, 48},
+                    "Every picker and palette page feeds this shared selected color.",
+                    bodyFont,
+                    textColor.withAlpha(220'u8),
+                    2)
 
     let lineY = rect.bottom() - 48
     painter.drawLine(rect.x + 24, lineY, rect.right() - 24, lineY, textColor.withAlpha(90'u8), 1)
@@ -438,13 +451,23 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
         painter.fillRoundRect(left, 18, 18, g_Color)
         painter.drawRoundRect(left, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
         painter.drawString(left.x + 24, left.y + 20, "Contrast pick", titleFont, text)
-        drawWrappedText(painter, {left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12}, "Foreground uses Color.contrasting() on the selected color.", font, text.withAlpha(220'u8), lines)
+        drawWrappedText(painter,
+                        {left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12},
+                        "Foreground uses Color.contrasting() on the selected color.",
+                        font,
+                        text.withAlpha(220'u8),
+                        lines)
 
         painter.fillRoundRect(right, 18, 18, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
         painter.fillRoundRect(right, 18, 18, g_Color.withAlpha(145'u8))
         painter.drawRoundRect(right, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
         painter.drawString(right.x + 24, right.y + 20, "Alpha sample", titleFont, text)
-        drawWrappedText(painter, {right.x + 24, right.y + bodyTop, right.width - 48, right.height - bodyTop - 12}, "The checkerboard makes semi-transparent selections visible.", font, text.withAlpha(220'u8), lines)
+        drawWrappedText(painter,
+                        {right.x + 24, right.y + bodyTop, right.width - 48, right.height - bodyTop - 12},
+                        "The checkerboard makes semi-transparent selections visible.",
+                        font,
+                        text.withAlpha(220'u8),
+                        lines)
     }
 
     return false

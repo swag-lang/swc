@@ -36,8 +36,11 @@ func createHeadersPage(parent: *Wnd)
     createHeaderBand(parent, layout.left, "Round header", true, false)
     createHeaderBand(parent, layout.right, "Flat locked header", false, true)
 
-    let bottom = createPanel(parent, "List-backed header", "ListCtrl owns a Header and keeps it synchronized with scrolling and column resizing.", layout.bottom)
-    let list   = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    let bottom = createPanel(parent,
+                             "List-backed header",
+                             "ListCtrl owns a Header and keeps it synchronized with scrolling and column resizing.",
+                             layout.bottom)
+    let list = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     list.setFrameForm(.Round)
     list.setSelectionMode(.Single)
     list.setIconSize(16)

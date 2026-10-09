@@ -20,8 +20,9 @@ attribute that acts on a lexical scope instead of a declaration, and '.File'
 one that can be written with '#global'.
 
 The compiler enforces the declared usage: writing an attribute directly on
-another kind of declaration is an error. An attribute with no 'AttrUsage' is
-unrestricted.
+another kind of declaration is an error, and so is writing it with '#global'
+when it does not declare '.File' ('.All' names declarations, not files). An
+attribute with no 'AttrUsage' is unrestricted.
 
 # Name Resolution
 
@@ -100,6 +101,7 @@ them explicitly for tests that need a GPU, a native window, or another host reso
 | 'Implicit()' | Permit an 'opCast' overload as an implicit conversion |
 | 'Discardable()' | Permit a function result to be ignored |
 | 'NoReturn()' | Declare that a call never comes back, like 'Swag.panic' |
+| 'Propagate()' | Read every unmarked fallible call in the function body as 'try' |
 | 'Deprecated(msg: string? = null)' | Mark an API as deprecated |
 
 # Operators, Matching, and Enums

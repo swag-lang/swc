@@ -26,7 +26,10 @@ func createComboBoxPage(parent: *Wnd)
         combo.setSelectedIndex(0)
     }
 
-    let right = createPanel(parent, "Editable and disabled", "Editable combos embed an EditBox; disabled combos keep their selected rendering.", layout.right)
+    let right = createPanel(parent,
+                            "Editable and disabled",
+                            "Editable combos embed an EditBox; disabled combos keep their selected rendering.",
+                            layout.right)
     {
         var combo = ComboBox.create(right, {24, 94, 260}, mode: .Editable)
         combo.addItem("Mercury", "mercury")

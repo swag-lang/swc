@@ -194,14 +194,15 @@ public impl TypeFace
     mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap fail => try .renderGlyphByIndex(.face.glyphIndex(c), size, forceBold, forceItalic)
 
     // Rasterizes one glyph index as a grayscale bitmap at `size` pixels, like [[Pixel.TypeFace.renderGlyph]].
+    #[Swag.Propagate]
     mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
-        try .face.setPixelSize(0, size)
-        try .face.loadGlyph(glyphIndex)
-        try .transform(size, 0, forceBold, forceItalic)
-        try .face.glyph.outline.embolden(stemDarkenStrength(size))
-        try .face.hintVertical()
-        try .face.renderGlyph()
+        .face.setPixelSize(0, size)
+        .face.loadGlyph(glyphIndex)
+        .transform(size, 0, forceBold, forceItalic)
+        .face.glyph.outline.embolden(stemDarkenStrength(size))
+        .face.hintVertical()
+        .face.renderGlyph()
         return &.face.glyph.bitmap
     }
 
@@ -212,12 +213,13 @@ public impl TypeFace
     mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail => try .renderGlyphMsdfByIndex(.face.glyphIndex(c), size, spread, forceBold, forceItalic)
 
     // Renders one glyph index as a multi-channel signed distance field, like [[Pixel.TypeFace.renderGlyphMsdf]].
+    #[Swag.Propagate]
     mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
-        try .face.setPixelSize(0, size)
-        try .face.loadGlyph(glyphIndex)
-        try .transform(size, 0, forceBold, forceItalic)
-        try .face.renderGlyphMsdf(spread)
+        .face.setPixelSize(0, size)
+        .face.loadGlyph(glyphIndex)
+        .transform(size, 0, forceBold, forceItalic)
+        .face.renderGlyphMsdf(spread)
         return &.face.glyph.bitmap
     }
 

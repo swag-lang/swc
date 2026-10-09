@@ -4,6 +4,7 @@ const {pathKey, pathToFileURL} = require('./compiler');
 const tokenTypes = ['namespace', 'type', 'struct', 'interface', 'enum', 'enumMember', 'function', 'variable', 'parameter', 'property'];
 const tokenModifiers = ['declaration', 'readonly'];
 const symbolKinds = {namespace: 3, type: 5, struct: 23, interface: 11, enum: 10, enumMember: 22, function: 12, variable: 13, parameter: 13, property: 7};
+const implicitTryTooltip = 'Propagates its error: the function has #[Swag.Propagate]';
 
 class Source
 {
@@ -20,6 +21,7 @@ class Source
             else if (this.bytes[i] === 13 && this.bytes[i + 1] !== 10) this.lines.push(i + 1);
         }
         this.occurrences = [];
+        this.propagations = [];
     }
 
     offset(byte)
@@ -84,6 +86,9 @@ class SemanticSnapshot
                         location: {uri: target.uri, range: targetRange}});
             }
             source.occurrences = [...candidates.values()].filter(item => !item.ambiguous).sort((a, b) => a.offset - b.offset);
+            // Fallible expressions a '#[Swag.Propagate]' body reads as an unwritten 'try'.
+            source.propagations = (file.propagations ?? []).map(byte => source.offset(byte))
+                .filter(offset => offset !== undefined).sort((a, b) => a - b);
         }
     }
 
@@ -140,6 +145,11 @@ class SemanticSnapshot
             const item = source.occurrences[i];
             if (item.inferred && item.type)
                 hints.push({position: item.range.end, label: `: ${item.type}`, kind: 1, paddingLeft: true});
+        }
+        for (const offset of source.propagations)
+        {
+            if (offset >= start && offset <= end)
+                hints.push({position: source.document.positionAt(offset), label: 'try', paddingRight: true, tooltip: implicitTryTooltip});
         }
         return hints;
     }

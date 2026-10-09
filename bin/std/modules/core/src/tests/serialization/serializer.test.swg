@@ -8,6 +8,7 @@ struct SerializerPayload
 }
 
 // Instantiate both the scalar interface calls and the reflected-value fallback.
+#[Swag.Propagate]
 func(T) roundTripSerializedField(value: T)->T fail
 {
     var buffer:     ConcatBuffer
@@ -16,18 +17,18 @@ func(T) roundTripSerializedField(value: T)->T fail
     var serializer: Serialization.Serializer
     var stored = value
 
-    try serializer.startWrite(&encoder, &buffer)
-    try serializer.beginSection()
-    try serializer.serialize("value", &stored)
-    try serializer.endSection()
-    try serializer.end()
+    serializer.startWrite(&encoder, &buffer)
+    serializer.beginSection()
+    serializer.serialize("value", &stored)
+    serializer.endSection()
+    serializer.end()
 
     var result: retval
-    try serializer.startRead(&decoder, buffer.toSlice()!)
-    try serializer.beginSection()
-    try serializer.serialize("value", &result)
-    try serializer.endSection()
-    try serializer.end()
+    serializer.startRead(&decoder, buffer.toSlice()!)
+    serializer.beginSection()
+    serializer.serialize("value", &result)
+    serializer.endSection()
+    serializer.end()
     return result
 }
 

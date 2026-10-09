@@ -39,6 +39,18 @@ test('definitions and references use semantic identity, preserving shadowed name
     assert.equal(snapshot.definition(uri, {line: 0, character: 5}), null);
 });
 
+test('implicit propagations become try hints before the fallible expression', () =>
+{
+    const text = 'let é = read()\r\nwrite(é)\n';
+    const bytes = Buffer.from(text);
+    const read = bytes.indexOf('read'), write = bytes.indexOf('write');
+    const snapshot = new SemanticSnapshot({files: [{path: filename, text, occurrences: [], propagations: [write, read, -1]}]});
+    const hints = snapshot.hints(uri, {start: {line: 0, character: 0}, end: {line: 2, character: 0}});
+    assert.deepEqual(hints.map(hint => [hint.label, hint.position]), [['try', {line: 0, character: 8}], ['try', {line: 1, character: 0}]]);
+    assert.ok(hints.every(hint => hint.paddingRight && hint.tooltip.includes('Swag.Propagate')));
+    assert.equal(snapshot.hints(uri, {start: {line: 1, character: 0}, end: {line: 2, character: 0}}).length, 1);
+});
+
 test('ambiguous instantiated types do not choose an arbitrary definition or hint', () =>
 {
     const occurrence = type => ({start: 0, length: 5, name: 'value', kind: 'variable', type,

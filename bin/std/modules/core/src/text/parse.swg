@@ -539,20 +539,21 @@ func toF64(str: string)->f64 fail
 //
 // The conversion and its failures are those of the matching `toX` function, such as
 // [[Core.StrConv.toS32]] for `s32`.
+#[Swag.Propagate]
 func(T) toNum(str: string)->T fail
 {
     #static switch T
     {
-    case u8:  return try toU8(str)
-    case u16: return try toU16(str)
-    case u32: return try toU32(str)
-    case u64: return try toU64(str)
-    case s8:  return try toS8(str)
-    case s16: return try toS16(str)
-    case s32: return try toS32(str)
-    case s64: return try toS64(str)
-    case f32: return try toF32(str)
-    case f64: return try toF64(str)
+    case u8:  return toU8(str)
+    case u16: return toU16(str)
+    case u32: return toU32(str)
+    case u64: return toU64(str)
+    case s8:  return toS8(str)
+    case s16: return toS16(str)
+    case s32: return toS32(str)
+    case s64: return toS64(str)
+    case f32: return toF32(str)
+    case f64: return toF64(str)
     default:  #error("invalid type")
     }
 

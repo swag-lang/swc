@@ -64,28 +64,30 @@ impl Decoder
         }
     }
 
+    #[Swag.Propagate]
     mtd readPlainTextExt() fail
     {
         // Discard plain text metadata.
-        try .seek(13)
+        .seek(13)
 
         // Discard plain text sub-blocks.
-        try .discardSubBlocks()
+        .discardSubBlocks()
     }
 
+    #[Swag.Propagate]
     mtd readGraphicControlExt() fail
     {
         // Discard block size (always 0x04)
-        try .seek(1)
-        let rdit = try .readU8()
+        .seek(1)
+        let rdit = .readU8()
         .gce.disposal     = (rdit >> 2) & 3
         .gce.input        = rdit & 2
         .gce.transparency = rdit & 1
-        .gce.delay        = try .readU16()
-        .gce.tindex       = try .readU8()
+        .gce.delay        = .readU16()
+        .gce.tindex       = .readU8()
 
         // Skip block terminator
-        try .seek(1)
+        .seek(1)
     }
 
     mtd readCommentExt() fail
@@ -93,45 +95,47 @@ impl Decoder
         try .discardSubBlocks()
     }
 
+    #[Swag.Propagate]
     mtd readApplicationExt() fail
     {
         var appId:       [8] u8
         var appAuthCode: [3] u8
 
         // Discard block size (always 0x0B)
-        try .seek(1)
+        .seek(1)
 
         // Application Identifier
-        try .read(appId, 8)
+        .read(appId, 8)
 
         // Application Authentication Code
-        try .read(appAuthCode, 3)
+        .read(appAuthCode, 3)
 
         if not Memory.compare(appId, ("NETSCAPE").buffer, appId.count)
         {
             // Discard block size (0x03) and constant byte (0x01).
-            try .seek(2)
-            .loopCount        = try .readU16()
+            .seek(2)
+            .loopCount        = .readU16()
             .hasLoopExtension = true
 
             // Skip block terminator.
-            try .seek(1)
+            .seek(1)
         }
         else
         {
-            try .discardSubBlocks()
+            .discardSubBlocks()
         }
     }
 
+    #[Swag.Propagate]
     mtd readExt() fail
     {
-        let label = try .readU8()
+        let label = .readU8()
         switch label
         {
-        case 0x01: try .readPlainTextExt()
-        case 0xF9: try .readGraphicControlExt()
-        case 0xFE: try .readCommentExt()
-        case 0xFF: try .readApplicationExt()
+        case 0x01: .readPlainTextExt()
+        case 0xF9: .readGraphicControlExt()
+        case 0xFE: .readCommentExt()
+        case 0xFF: .readApplicationExt()
         default:   fail UnsupportedFormatError{Errors.mkString(Format.toString("unknown extension: %", label))}
         }
     }

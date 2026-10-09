@@ -390,6 +390,7 @@ public:
     void setSymbol(AstNodeRef n, const Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
     bool hasSubstitute(AstNodeRef n) const { return nodePayloadContext().hasSubstitute(n); }
     void setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { nodePayloadContext().setSubstitute(n, substNodeRef); }
+    void recordImplicitPropagation(AstNodeRef n) { nodePayloadContext().recordImplicitPropagation(n); }
     void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 

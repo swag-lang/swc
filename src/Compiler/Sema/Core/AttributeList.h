@@ -19,6 +19,7 @@ enum class RtAttributeFlagsE : uint64_t
     EnumFlags      = 1 << 0,
     Strict         = 1 << 1,
     FullInit       = 1 << 2,
+    Propagate      = 1 << 3,
     AttrMulti      = 1 << 4,
     ConstExpr      = 1 << 5,
     PrintMicro     = 1 << 6,

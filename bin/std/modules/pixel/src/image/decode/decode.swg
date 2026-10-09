@@ -170,16 +170,17 @@ public impl Image
     //
     // `options` bounds the file size and the decoded image. File access errors and decoding
     // failures are reported through `fail`.
+    #[Swag.Propagate]
     func load(fileName: string, options: DecodeOptions = {})->Image fail
     {
         let found = getDecoder(fileName)
         if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        var file = try File.MappedFile.open(fileName)
-        if options.maxInputBytes and (try file.size()) > options.maxInputBytes do
+        var file = File.MappedFile.open(fileName)
+        if options.maxInputBytes and file.size() > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
-        let region = try file.mapAll()
-        var result = #move try decode(fileName, region.bytes(), options)
+        let region = file.mapAll()
+        var result = #move decode(fileName, region.bytes(), options)
         return #move result
     }
 

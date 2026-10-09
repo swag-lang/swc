@@ -26,7 +26,10 @@ func createCommandStatePage(parent: *Wnd)
     let layout = getPagePanelLayout(parent)
     createStateMenuModel(parent)
 
-    let left     = createPanel(parent, "Computed rows", "Open the menu to inspect check marks, radio groups and disabled save/undo/redo rows.", layout.left)
+    let left = createPanel(parent,
+                           "Computed rows",
+                           "Open the menu to inspect check marks, radio groups and disabled save/undo/redo rows.",
+                           layout.left)
     let stateBtn = PushButton.create(left, "Open state menu", {24, 104, 230})
     stateBtn.setForm(.Default)
     stateBtn.setIcon(app.theme.icon(.Options, 18))
@@ -36,7 +39,10 @@ func createCommandStatePage(parent: *Wnd)
     discard createActionButton(left, "Toggle guides", {24, 220, 230}, MenuCmd.ToggleGuides, .Options)
     discard createActionButton(left, "Save", {24, 274, 230}, MenuCmd.SaveFile, .Save)
 
-    let right = createPanel(parent, "State preview", "Buttons and menus listen to the same command state source, so disabled and checked states stay consistent.", layout.right)
+    let right = createPanel(parent,
+                            "State preview",
+                            "Buttons and menus listen to the same command state source, so disabled and checked states stay consistent.",
+                            layout.right)
     g_Preview = createPreview(right, {18, 86, layout.right.width - 36, layout.right.height - 104})
 
     createStatusPanel(parent, layout.bottom)

@@ -11,6 +11,8 @@ Compiler-backed language support and a dark theme for Swag in Visual Studio Code
  - Syntax highlighting
  - Semantic highlighting of resolved types, functions, parameters, fields, and variables
  - Hover types, including inferred types, and inferred variable type inlay hints
+ - A faded `try` inlay hint before each call that a `#[Swag.Propagate]` function propagates
+   without spelling `try`
  - Go to Definition, Peek Definition, references within the analyzed module, and document symbols
  - Compiler diagnostics for open files, updated after edits without saving
  - Theme 'Swag Dark', which uses the same token colors as the generated documentation,
@@ -28,7 +30,8 @@ semantic features. Build tasks use `swc` from PATH.
 
 Run `npm ci`, open this directory in VS Code, and launch the `Extension` configuration with
 F5. In the development window, open a Swag module or an existing `.swg`/`.swgs` file.
-Enable VS Code's **Editor: Inlay Hints** setting to show inferred types beside declarations.
+Enable VS Code's **Editor: Inlay Hints** setting to show inferred types beside declarations
+and the implicit `try` of `#[Swag.Propagate]` functions.
 To show hints only while holding `Ctrl+Alt`, set `"[swag]": { "editor.inlayHints.enabled": "offUnlessPressed" }`;
 use `onUnlessPressed` to show them by default and hide them while holding the keys.
 Use **Swag: Restart Language Server** after rebuilding the compiler. The **Swag Language

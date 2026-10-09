@@ -954,6 +954,15 @@ void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& no
     shard->foldedSourceSymbolsCount.store(static_cast<uint32_t>(shard->foldedSourceSymbols.size()), std::memory_order_release);
 }
 
+void NodePayload::recordImplicitPropagation(AstNodeRef nodeRef)
+{
+    if (!retainEditorSymbols_)
+        return;
+
+    const std::unique_lock lock(implicitPropagationsMutex_);
+    implicitPropagations_.push_back(nodeRef);
+}
+
 const Symbol* NodePayload::foldedSourceSymbol(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())

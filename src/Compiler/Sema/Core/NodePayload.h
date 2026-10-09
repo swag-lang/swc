@@ -105,6 +105,10 @@ public:
     const Symbol* foldedSourceSymbol(AstNodeRef nodeRef) const;
     void          retainEditorSymbols() { retainEditorSymbols_ = true; }
 
+    // Fallible expressions a 'Swag.Propagate' body handles as an unwritten 'try', in no
+    // particular order and possibly repeated. Only editor snapshots record them.
+    std::span<const AstNodeRef> implicitPropagations() const { return implicitPropagations_; }
+
 protected:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
@@ -228,6 +232,7 @@ private:
     AstNodeRef                     followSubstituteChain(AstNodeRef nodeRef) const;
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                           recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& node);
+    void                           recordImplicitPropagation(AstNodeRef nodeRef);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
@@ -246,6 +251,9 @@ private:
     SymbolNamespace* moduleNamespace_     = nullptr;
     SymbolNamespace* fileNamespace_       = nullptr;
     bool             retainEditorSymbols_ = false;
+
+    std::shared_mutex       implicitPropagationsMutex_;
+    std::vector<AstNodeRef> implicitPropagations_;
 
     struct Shard
     {

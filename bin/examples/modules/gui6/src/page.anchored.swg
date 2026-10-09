@@ -32,7 +32,10 @@ func createAnchoredPopupPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
 
-    let left   = createPanel(parent, "Toolbar anchors", "AnchorTopCenter and AnchorBottomCenter make compact menus feel attached to toolbar buttons.", layout.left)
+    let left = createPanel(parent,
+                           "Toolbar anchors",
+                           "AnchorTopCenter and AnchorBottomCenter make compact menus feel attached to toolbar buttons.",
+                           layout.left)
     let topBtn = PushButton.create(left, "Open below", {24, 112, 200})
     topBtn.setForm(.Default)
     topBtn.setIcon(app.theme.icon(.ChevronDown, 18))
@@ -48,7 +51,10 @@ func createAnchoredPopupPage(parent: *Wnd)
 
     discard createActionButton(left, "Switch to columns", {246, 178, 200}, MenuCmd.ModeColumns, .Sort)
 
-    let right = createPanel(parent, "Current selection", "Anchored popups reuse the same commands as the menu bar and state page.", layout.right)
+    let right = createPanel(parent,
+                            "Current selection",
+                            "Anchored popups reuse the same commands as the menu bar and state page.",
+                            layout.right)
     g_Preview = createPreview(right, {18, 86, layout.right.width - 36, layout.right.height - 104})
 
     createStatusPanel(parent, layout.bottom)

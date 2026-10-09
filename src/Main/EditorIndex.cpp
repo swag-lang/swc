@@ -158,6 +158,28 @@ namespace
                 }
             }
         }
+
+        // Where a 'Swag.Propagate' body reads a fallible expression as an unwritten 'try', as the
+        // byte offset of the expression's first token: the editor shows that 'try' there. Inline
+        // expansions and generic instances record clones of the same written expression, so only
+        // nodes spelled in this file count, once per position.
+        void implicitPropagations() const
+        {
+            const SourceView&     view = file->ast().srcView();
+            std::vector<uint32_t> starts;
+            for (const AstNodeRef ref : file->nodePayloadContext().implicitPropagations())
+            {
+                const AstNode& node = file->ast().node(ref);
+                if (node.srcViewRef() == view.ref())
+                    starts.push_back(node.codeRangeWithChildren(*ctx, file->ast(), view).offset);
+            }
+
+            std::ranges::sort(starts);
+            const auto repeated = std::ranges::unique(starts);
+            starts.erase(repeated.begin(), repeated.end());
+            for (size_t i = 0; i < starts.size(); ++i)
+                *out << (i ? "," : "") << starts[i];
+        }
     };
 }
 
@@ -204,12 +226,18 @@ Result EditorIndex::write(CompilerInstance& compiler)
     std::ofstream out(compiler.cmdLine().editorIndex, std::ios::binary | std::ios::trunc);
     TaskContext   ctx(compiler);
 
-    std::unordered_map<std::string, std::string> indexedSources;
-    std::unordered_set<std::string>              modulePaths;
-    std::unordered_set<const SourceFile*>        targetFiles;
-    const CommandLine&                           cmdLine      = compiler.cmdLine();
-    const std::string                            moduleKey    = cmdLine.modulePath.empty() ? std::string{} : pathKey(cmdLine.modulePath);
-    const std::string                            modulePrefix = moduleKey.empty() || moduleKey.ends_with('/') ? moduleKey : moduleKey + "/";
+    struct IndexedSource
+    {
+        std::string occurrences;
+        std::string propagations;
+    };
+
+    std::unordered_map<std::string, IndexedSource> indexedSources;
+    std::unordered_set<std::string>                modulePaths;
+    std::unordered_set<const SourceFile*>          targetFiles;
+    const CommandLine&                             cmdLine      = compiler.cmdLine();
+    const std::string                              moduleKey    = cmdLine.modulePath.empty() ? std::string{} : pathKey(cmdLine.modulePath);
+    const std::string                              modulePrefix = moduleKey.empty() || moduleKey.ends_with('/') ? moduleKey : moduleKey + "/";
 
     // Editor queries only search the requested module. Imported API files are included below
     // only when one of those queries points to a declaration inside them.
@@ -227,6 +255,7 @@ Result EditorIndex::write(CompilerInstance& compiler)
 
         modulePaths.insert(key);
         std::ostringstream occurrences;
+        std::ostringstream propagations;
         if (!Stats::hasError() && file->ast().root().isValid() && !file->isRuntime() && !file->isImportedApi())
         {
             FileWriter writer{&compiler, &ctx, file, &occurrences, &targetFiles};
@@ -234,8 +263,11 @@ Result EditorIndex::write(CompilerInstance& compiler)
                 writer.visit(ref, node);
                 return Ast::VisitResult::Continue;
             });
+
+            writer.out = &propagations;
+            writer.implicitPropagations();
         }
-        indexedSources.emplace(key, occurrences.str());
+        indexedSources.emplace(key, IndexedSource{.occurrences = occurrences.str(), .propagations = propagations.str()});
     }
 
     out << "{\"version\":1,\"complete\":" << (Stats::hasError() ? "false" : "true") << ",\"files\":[";
@@ -256,12 +288,13 @@ Result EditorIndex::write(CompilerInstance& compiler)
         writePath(out, file->path());
         out << ",\"text\":";
         writeString(out, file->sourceView());
-        out << ",\"occurrences\":[";
         const auto source = indexedSources.find(key);
+        out << ",\"occurrences\":[";
         if (source != indexedSources.end())
-        {
-            out << source->second;
-        }
+            out << source->second.occurrences;
+        out << "],\"propagations\":[";
+        if (source != indexedSources.end())
+            out << source->second.propagations;
         out << "]}";
     }
     out << "]}";

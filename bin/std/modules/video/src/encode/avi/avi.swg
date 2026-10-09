@@ -75,6 +75,7 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
 
+    #[Swag.Propagate]
     mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
         if info.width > MaxFrameSide or info.height > MaxFrameSide do
@@ -87,76 +88,78 @@ impl IEncoder for Encoder
             .options = cast(const *EncodeOptions, options.buffer!)[]
         }
 
-        try sink.writeNative(RiffId)
-        try sink.writeNative(0'u32)
-        try sink.writeNative(AviId)
+        sink.writeNative(RiffId)
+        sink.writeNative(0'u32)
+        sink.writeNative(AviId)
 
-        try sink.writeNative(ListId)
-        try sink.writeNative(cast(u32, HeaderListSize))
-        try sink.writeNative(HeaderListId)
+        sink.writeNative(ListId)
+        sink.writeNative(cast(u32, HeaderListSize))
+        sink.writeNative(HeaderListId)
 
-        try sink.writeNative(MainHeaderId)
-        try sink.writeNative(cast(u32, #sizeof(MainHeader)))
+        sink.writeNative(MainHeaderId)
+        sink.writeNative(cast(u32, #sizeof(MainHeader)))
         .mainHeader = sink.position()
-        try sink.writeNative(.createMainHeader())
+        sink.writeNative(.createMainHeader())
 
-        try sink.writeNative(ListId)
-        try sink.writeNative(cast(u32, StreamListSize))
-        try sink.writeNative(StreamListId)
+        sink.writeNative(ListId)
+        sink.writeNative(cast(u32, StreamListSize))
+        sink.writeNative(StreamListId)
 
-        try sink.writeNative(StreamHeaderId)
-        try sink.writeNative(cast(u32, #sizeof(StreamHeader)))
+        sink.writeNative(StreamHeaderId)
+        sink.writeNative(cast(u32, #sizeof(StreamHeader)))
         .streamHeader = sink.position()
-        try sink.writeNative(.createStreamHeader())
+        sink.writeNative(.createStreamHeader())
 
-        try sink.writeNative(StreamFormatId)
-        try sink.writeNative(cast(u32, #sizeof(Bmp.Header)))
-        try sink.writeNative(.createFormatHeader())
+        sink.writeNative(StreamFormatId)
+        sink.writeNative(cast(u32, #sizeof(Bmp.Header)))
+        sink.writeNative(.createFormatHeader())
 
-        try sink.writeNative(ListId)
+        sink.writeNative(ListId)
         .frameListSize = sink.position()
-        try sink.writeNative(0'u32)
+        sink.writeNative(0'u32)
         .frameList = sink.position()
-        try sink.writeNative(FrameListId)
+        sink.writeNative(FrameListId)
     }
 
+    #[Swag.Propagate]
     mtd impl addFrame(sink: *ByteSink, image: Image) fail
     {
         var frameOptions: Jpg.EncodeOptions
         frameOptions.quality = .options.quality
 
-        var encoded = try image.encode(JpegName, frameOptions)
+        var encoded = image.encode(JpegName, frameOptions)
         encoded.makeLinear()
 
         let payload = encoded.toSlice()!
         let size    = payload.count
-        try .reserve(sink, size)
+        .reserve(sink, size)
 
         .index.add({cast(u32, (sink.position() - .frameList)), cast(u32, size)})
-        try sink.writeNative(FrameChunkId)
-        try sink.writeNative(cast(u32, size))
-        try sink.write(payload)
+        sink.writeNative(FrameChunkId)
+        sink.writeNative(cast(u32, size))
+        sink.write(payload)
 
         // RIFF pads an odd payload so the next chunk starts on an even offset.
         if size & 1 do
-            try sink.writeNative(0'u8)
+            sink.writeNative(0'u8)
         .largestFrame = Math.max(.largestFrame, size)
     }
 
+    #[Swag.Propagate]
     mtd impl end(sink: *ByteSink) fail
     {
         let frameEnd = sink.position()
-        try sink.writeNative(IndexId)
-        try sink.writeNative(cast(u32, (.index.count * IndexEntrySize)))
+        sink.writeNative(IndexId)
+        sink.writeNative(cast(u32, (.index.count * IndexEntrySize)))
         for entry in .index
         {
-            try sink.writeNative(FrameChunkId)
-            try sink.writeNative(IndexKeyFrame)
-            try sink.writeNative(entry.offset)
-            try sink.writeNative(entry.size)
+            sink.writeNative(FrameChunkId)
+            sink.writeNative(IndexKeyFrame)
+            sink.writeNative(entry.offset)
+            sink.writeNative(entry.size)
         }
 
-        try .patchTotals(sink, frameEnd)
+        .patchTotals(sink, frameEnd)
     }
 }
 

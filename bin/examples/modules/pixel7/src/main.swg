@@ -153,16 +153,17 @@ func encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: I
     setCard(card, title, encoding, decoded, bytes.count)
 }
 
+#[Swag.Propagate]
 func buildPages() fail
 {
-    try buildBmpPage()
-    try buildTgaPage()
-    try buildJpgPage()
-    try buildPngPage()
-    try buildGifPage()
-    try buildTiffPage()
-    try buildIcoPage()
-    try buildWebpPage()
+    buildBmpPage()
+    buildTgaPage()
+    buildJpgPage()
+    buildPngPage()
+    buildGifPage()
+    buildTiffPage()
+    buildIcoPage()
+    buildWebpPage()
 }
 
 func pageTitle(page: s32)->string

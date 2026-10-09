@@ -30,7 +30,10 @@ func createTabPage(parent: *Wnd)
         tab.setSelectedIndex(1)
     }
 
-    let bottom = createPanel(parent, "Button forms", "Button and push-button tabs are compact alternatives for tool surfaces.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Button forms",
+                             "Button and push-button tabs are compact alternatives for tool surfaces.",
+                             layout.bottom)
     {
         var tab = Tab.create(bottom, {24, 92, 440, 120})
         tab.setForm(.Button)

@@ -5,6 +5,21 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.011 — No validation step compiles the Swag benchmark modules
+
+- Recorded: 2026-10-09 03:04
+- Evidence: `tools/build.swgs` covers std, examples, apps, the Vault integration, the
+  reference, and the workspace suite; `tools/tests.swgs` only scans `bench/` for portability.
+  The eleven modules with a `bench/*/module.swg` are compiled by nothing in the ladder, so the
+  unused-name rule (2f425f7dc) broke ten of them unnoticed until the benchmark campaign stopped
+  on the allocator task (fixed in b129b4bf4). Three of them (`argon2`, `chacha20`, `resize`)
+  are test-only modules meant for `test --no-test-jit -bc release`; their JIT run trips the
+  `Swag.workerCount()` assertion, so a compile check must not execute them.
+- Next: give `build.swgs` a benchmark step: `sema --module` for program modules, and a compile
+  of the test-only modules that runs none of their timed `#test` bodies (a compiler option to
+  build a test executable without running it, or a dedicated tag), in each configuration.
+- Complete when: breaking any `bench/*/module.swg` source fails `tools/build.swgs`.
+
 ### repo.tooling.002 — A video differential harness must line pictures up by time, not by rank
 
 - Recorded: 2026-08-25 16:27

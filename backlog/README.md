@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-09 03:04 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-09 02:07 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-10-08 23:15 |
 | [app.capture.md](app.capture.md) | The Swag Capture application | 2026-10-08 22:00 |
@@ -54,7 +55,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs, metadata, multi-image input, and SVG decoding in `std/pixel` | 2026-10-06 20:57 |
 | [std.video.md](std.video.md) | `std/video` | 2026-10-06 20:56 |
 | [std.audio.md](std.audio.md) | `std/audio` | 2026-10-06 20:56 |
-| [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-06 20:56 |
 | [app.scope.document.md](app.scope.document.md) | The Swag Scope Markdown, HTML, PDF, office-document, and ebook viewers | 2026-10-06 20:56 |
 | [std.core.md](std.core.md) | `std/core` | 2026-10-06 20:54 |
 | [std.gui.pdf.md](std.gui.pdf.md) | The PDF engine and `PdfView` inside `std/gui` | 2026-10-06 20:54 |

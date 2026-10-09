@@ -8,5 +8,5 @@ func returnValueStatement(flag: bool)->bool
 {
     if flag do
         return true
-    return 3.5     // swc-expected-error {{return value has type 'f64', but function 'returnValueStatement' returns 'bool'}}
+    return 3.5     // swc-expected-error {{return value has type 'float', but function 'returnValueStatement' returns 'bool'}}
 }

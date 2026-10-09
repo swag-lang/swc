@@ -511,7 +511,7 @@ private impl EditBox
         case .Insert:
             if ctrl and not shift and .selBeg != .selEnd
             {
-                Clipboard.addString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
+                Clipboard.setString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 return true
             }
             elif shift and not ctrl
@@ -524,14 +524,14 @@ private impl EditBox
         case .C:
             if ctrl and .selBeg != .selEnd
             {
-                Clipboard.addString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
+                Clipboard.setString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 return true
             }
 
         case .X:
             if ctrl and .selBeg != .selEnd
             {
-                Clipboard.addString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
+                Clipboard.setString(Swag.makeString(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 .deleteSelection()
                 return true
             }

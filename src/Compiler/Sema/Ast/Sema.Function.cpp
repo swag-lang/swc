@@ -2109,6 +2109,14 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
     if (inParallelForBody(sema))
         return SemaError::raise(sema, DiagnosticId::sema_err_return_leaves_parallel_for, sema.curNodeRef());
 
+    if (sema.frame().returnLeavesDefer())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_control_flow_leaves_defer, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_TOK, Token::toName(TokenId::KwdReturn));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     // A callee inlined here keeps its own 'return', which goes back to this body.
     const SymbolFunction* currentFn = sema.currentFunction();
     if (currentFn && currentFn->attributes().hasRtFlag(RtAttributeFlagsE::NoReturn) && !nearestReturnContextPayload(sema))

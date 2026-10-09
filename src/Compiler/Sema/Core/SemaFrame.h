@@ -237,6 +237,16 @@ public:
     bool deferBody() const { return deferBody_; }
     void setDeferBody() { deferBody_ = true; }
 
+    // The function and inline expansion a 'defer' body was entered in. A 'return' there would
+    // leave the body; one in a lambda declared inside it, or in an inlined callee, returns from
+    // that function instead.
+    bool returnLeavesDefer() const { return deferBody_ && function_ == deferFunction_ && inlinePayload_ == deferInlinePayload_; }
+    void setDeferOwner()
+    {
+        deferFunction_      = function_;
+        deferInlinePayload_ = inlinePayload_;
+    }
+
     void addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
     void addNarrowKill(std::span<const Symbol* const> path);
     bool queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const { return queryNarrowFact(narrowFacts_.span(), path, kind); }
@@ -275,6 +285,8 @@ private:
     SemaScope*                          upLookupScope_                 = nullptr;
     bool                                bindingScoped_                 = false;
     bool                                deferBody_                     = false;
+    const SymbolFunction*               deferFunction_                 = nullptr;
+    const SemaInlinePayload*            deferInlinePayload_            = nullptr;
     bool                                ignoreRuntimeAccess_           = false;
     bool                                ignoreRedirectedLookupSymMaps_ = false;
     BreakContext                        breakable_;

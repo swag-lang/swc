@@ -776,6 +776,17 @@ Result AstParallelForStmt::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
+namespace
+{
+    Result reportControlFlowLeavesDefer(Sema& sema)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_control_flow_leaves_defer, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_TOK, Token::toName(sema.token(sema.curNode().codeRef()).id));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+}
+
 Result AstBreakStmt::semaPreNode(Sema& sema)
 {
     if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::None)
@@ -792,6 +803,9 @@ Result AstBreakStmt::semaPreNode(Sema& sema)
 
         return Result::Continue;
     }
+
+    if (sema.frame().deferBody())
+        return reportControlFlowLeavesDefer(sema);
 
     // Inside a '#scope' the reader almost certainly meant to leave that scope, which only
     // 'break to <name>' does. Point at the scope instead of reporting a bare absence.
@@ -815,6 +829,8 @@ Result AstContinueStmt::semaPreNode(Sema& sema)
     SWC_ASSERT(continueKind == SemaFrame::BreakContextKind::None);
     if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::None)
         return SemaError::raise(sema, DiagnosticId::sema_err_continue_not_in_loop, sema.curNodeRef());
+    if (sema.frame().deferBody())
+        return reportControlFlowLeavesDefer(sema);
 
     // A '#scope' is not a loop, so there is nothing to restart. Say which construct was
     // mistaken for one rather than reporting that no loop encloses the statement.

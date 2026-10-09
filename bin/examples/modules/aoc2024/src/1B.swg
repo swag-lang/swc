@@ -36,27 +36,27 @@ func day1B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var arr0, arr1: Array's32
-    for l in lines
+    var leftIds, rightIds: Array's32
+    for line in lines
     {
-        let first = Tokenize.split(l[], ' 'u8)
-        arr0.add(expect StrConv.toS32(first[0]))
-        arr1.add(expect StrConv.toS32(first[1]))
+        let locationIds = Tokenize.split(line[], ' 'u8)
+        leftIds.add(expect StrConv.toS32(locationIds[0]))
+        rightIds.add(expect StrConv.toS32(locationIds[1]))
     }
 
-    // arr0.sort()
-    arr1.sort()
+    // Only the right list is sorted for matching; the left list stays as read.
+    rightIds.sort()
 
     var total = 0
-    for i in arr0.count
+    for index in leftIds.count
     {
-        var ist = Slice.findLinear(arr1.toSlice(), arr0[i])
-        if ist == Swag.U64.Max do
+        var matchIndex = Slice.findLinear(rightIds.toSlice(), leftIds[index])
+        if matchIndex == Swag.U64.Max do
             continue
-        while ist < arr0.count and arr1[ist] == arr0[i]
+        while matchIndex < leftIds.count and rightIds[matchIndex] == leftIds[index]
         {
-            total += arr0[i]
-            ist   += 1
+            total      += leftIds[index]
+            matchIndex += 1
         }
     }
 

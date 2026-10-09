@@ -82,27 +82,30 @@ func day5A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var first = true
-    var order: HashTable'(s32, Array's32)
-    var total = 0
+    var readingRules = true
+    var pagesAfter: HashTable'(s32, Array's32)
+    var total        = 0
 
-    for f in lines
+    for line in lines
     {
-        if f.isEmpty()
+        if line.isEmpty()
         {
-            first = false
+            readingRules = false
             continue
         }
 
-        if first
+        if readingRules
         {
-            let split = Tokenize.split(f[], '|'u8)
-            Swag.assert(split.count == 2)
-            order.findOrAdd(expect StrConv.toS32(split[0])).value.add(expect StrConv.toS32(split[1]))
+            let rulePages = Tokenize.split(line[], '|'u8)
+            Swag.assert(rulePages.count == 2)
+
+            let beforePage = expect StrConv.toS32(rulePages[0])
+            let afterPages = pagesAfter.findOrAdd(beforePage)
+            afterPages.value.add(expect StrConv.toS32(rulePages[1]))
         }
         else
         {
-            let update = Tokenize.split(f[], ','u8)
+            let update = Tokenize.split(line[], ','u8)
             Swag.assert(not update.isEmpty())
 
             var isOrdered = true
@@ -115,7 +118,10 @@ func day5A()
                 for afterIndex in beforeIndex + 1 to update.count - 1
                 {
                     let afterPage = expect StrConv.toS32(update[afterIndex])
-                    if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)
+
+                    // The later page cannot require an earlier page to follow it.
+                    if let requiredAfter = pagesAfter.tryFind(afterPage)
+                        where requiredAfter.value.contains(beforePage)
                     {
                         isOrdered = false
                         break

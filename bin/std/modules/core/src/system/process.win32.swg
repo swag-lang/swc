@@ -190,7 +190,13 @@ private func openNullDevice()->HANDLE fail
     attributes.bInheritHandle = TRUE
 
     let name = Utf16.toZeroTerminated("NUL")
-    return try CreateFileW(name.buffer, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &attributes, OPEN_EXISTING, 0, null)
+    return try CreateFileW(name.buffer,
+                           GENERIC_READ | GENERIC_WRITE,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE,
+                           &attributes,
+                           OPEN_EXISTING,
+                           0,
+                           null)
 }
 
 // Creates one redirection pipe and hands each end to its side.
@@ -297,9 +303,24 @@ func startProcess(info: StartInfo)->Process fail
     let anyRedirection = info.standardInput != .Inherit or
                          info.standardOutput != .Inherit or
                          info.standardError != .Inherit
-    let childInput  = try prepareChildStream(info.standardInput, &result.inputPipe, &ownedInput, STD_INPUT_HANDLE, anyRedirection, childWrites: false)
-    let childOutput = try prepareChildStream(info.standardOutput, &result.outputPipe, &ownedOutput, STD_OUTPUT_HANDLE, anyRedirection, childWrites: true)
-    let childError  = try prepareChildStream(info.standardError, &result.errorPipe, &ownedError, STD_ERROR_HANDLE, anyRedirection, childWrites: true)
+    let childInput = try prepareChildStream(info.standardInput,
+                                            &result.inputPipe,
+                                            &ownedInput,
+                                            STD_INPUT_HANDLE,
+                                            anyRedirection,
+                                            childWrites: false)
+    let childOutput = try prepareChildStream(info.standardOutput,
+                                             &result.outputPipe,
+                                             &ownedOutput,
+                                             STD_OUTPUT_HANDLE,
+                                             anyRedirection,
+                                             childWrites: true)
+    let childError = try prepareChildStream(info.standardError,
+                                            &result.errorPipe,
+                                            &ownedError,
+                                            STD_ERROR_HANDLE,
+                                            anyRedirection,
+                                            childWrites: true)
 
     // The executable is the first token of the command line, quoted so a path holding a space
     // stays one argument. Naming it there rather than through the application-name parameter
@@ -360,7 +381,16 @@ func startProcess(info: StartInfo)->Process fail
 
     let commandLine16 = Utf16.toZeroTerminated(commandLine.toString())
     var information: PROCESS_INFORMATION
-    try CreateProcessW(null, commandLine16.buffer, null, null, anyRedirection ? TRUE : FALSE, creationFlags, environmentPtr, directoryPtr, &startup, &information)
+    try CreateProcessW(null,
+                       commandLine16.buffer,
+                       null,
+                       null,
+                       anyRedirection ? TRUE : FALSE,
+                       creationFlags,
+                       environmentPtr,
+                       directoryPtr,
+                       &startup,
+                       &information)
 
     result.adoptStarted(information.hProcess, information.dwProcessId)
 
@@ -502,7 +532,12 @@ impl Process
                 return
 
             var read: DWORD
-            if not ReadFile(handle, &buffer[0], Math.min(available, PipeReadChunk), &read, null) or not read
+            if not ReadFile(handle,
+                            &buffer[0],
+                            Math.min(available, PipeReadChunk),
+                            &read,
+                            null) or
+               not read
             {
                 releaseHandle(pipe)
                 return

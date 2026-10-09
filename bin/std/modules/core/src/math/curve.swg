@@ -547,9 +547,19 @@ impl Curve
         let c   = 3.0 * t2 * it
         let d   = t2 * t
 
-        // Round each weighted coordinate and accumulate start, ctrl1, ctrl2, then end in f32.
+        // Accumulate each weighted coordinate from start through ctrl1, ctrl2, then end in f32.
         // Curve flattening depends on this order at pixel coverage boundaries.
-        return Vector2{x: Math.mulAdd(d, end.x, Math.mulAdd(c, ctrl2.x, Math.mulAdd(b, ctrl1.x, a * start.x))), y: Math.mulAdd(d, end.y, Math.mulAdd(c, ctrl2.y, Math.mulAdd(b, ctrl1.y, a * start.y)))}
+        var x = a * start.x
+        x = Math.mulAdd(b, ctrl1.x, x)
+        x = Math.mulAdd(c, ctrl2.x, x)
+        x = Math.mulAdd(d, end.x, x)
+
+        var y = a * start.y
+        y = Math.mulAdd(b, ctrl1.y, y)
+        y = Math.mulAdd(c, ctrl2.y, y)
+        y = Math.mulAdd(d, end.y, y)
+
+        return Vector2{x: x, y: y}
     }
 
     // Returns the real roots of `a * t² + b * t + c` that lie within [0, 1].

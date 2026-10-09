@@ -63,15 +63,19 @@ namespace
     using KnownValueTraits  = MicroSsaKnownValueTraits;
     using KnownValueContext = MicroSsaKnownValueContext;
 
+    // Label ordinals, label reference counts and register mentions. The branch scans are rebuilt
+    // after every rewrite into thread-local caches, so a cleared table is refilled in place.
+    using CountTable = FlatKeyMap<uint32_t>;
+
     struct ProgramLayout
     {
-        std::vector<MicroInstrRef>             order;
-        std::vector<uint32_t>                  ordinalByRef;
-        std::unordered_map<uint32_t, uint32_t> labelOrdinalById;
-        bool                                   hasAnyLabel         = false;
-        bool                                   hasConditionalJump  = false;
-        bool                                   hasImmediateCompare = false;
-        bool                                   hasSetCondition     = false;
+        std::vector<MicroInstrRef> order;
+        std::vector<uint32_t>      ordinalByRef;
+        CountTable                 labelOrdinalById;
+        bool                       hasAnyLabel         = false;
+        bool                       hasConditionalJump  = false;
+        bool                       hasImmediateCompare = false;
+        bool                       hasSetCondition     = false;
     };
 
     bool tryInferInstructionConstant(KnownValue& outValue, const KnownValueContext& context, const uint32_t, const MicroSsaState::ValueInfo& valueInfo, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags)
@@ -203,7 +207,7 @@ namespace
             {
                 outLayout.hasAnyLabel = true;
                 if (tryGetLabelId(labelId, *it, it->ops(operands)))
-                    outLayout.labelOrdinalById[labelId] = ordinal;
+                    outLayout.labelOrdinalById.getOrInsert(labelId) = ordinal;
             }
             else if (it->op == MicroInstrOpcode::JumpCond)
             {
@@ -255,10 +259,10 @@ namespace
     // after a transform has rewritten that stream.
     struct BranchScan
     {
-        ProgramLayout                          layout;
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        std::unordered_map<uint32_t, uint32_t> mentions;
-        bool                                   indirectJump = false;
+        ProgramLayout layout;
+        CountTable    labelReferences;
+        CountTable    mentions;
+        bool          indirectJump = false;
     };
 
     struct BranchScanCache
@@ -315,9 +319,9 @@ namespace
 
     struct JumpLabelReferenceCache
     {
-        std::unordered_map<uint32_t, uint32_t>        counts;
-        const std::unordered_map<uint32_t, uint32_t>* borrowed = nullptr;
-        bool                                          built    = false;
+        CountTable        counts;
+        const CountTable* borrowed = nullptr;
+        bool              built    = false;
 
         void invalidate()
         {
@@ -325,7 +329,7 @@ namespace
             built    = false;
         }
 
-        void borrow(const std::unordered_map<uint32_t, uint32_t>& source)
+        void borrow(const CountTable& source)
         {
             // Keep the same scratch-node lifetime as a fresh count build.
             counts.clear();
@@ -333,7 +337,7 @@ namespace
             built    = false;
         }
 
-        const std::unordered_map<uint32_t, uint32_t>& get(const MicroStorage& storage, const MicroOperandStorage& operands)
+        const CountTable& get(const MicroStorage& storage, const MicroOperandStorage& operands)
         {
             if (borrowed)
                 return *borrowed;
@@ -346,7 +350,7 @@ namespace
                         continue;
                     uint32_t labelId = 0;
                     if (tryGetJumpTargetLabelId(labelId, inst, inst.ops(operands)))
-                        ++counts[labelId];
+                        ++counts.getOrInsert(labelId);
                 }
                 built = true;
             }
@@ -354,10 +358,10 @@ namespace
         }
     };
 
-    uint32_t jumpLabelReferenceCount(const std::unordered_map<uint32_t, uint32_t>& counts, const uint32_t labelId)
+    uint32_t jumpLabelReferenceCount(const CountTable& counts, const uint32_t labelId)
     {
-        const auto it = counts.find(labelId);
-        return it == counts.end() ? 0 : it->second;
+        const uint32_t* count = counts.find(labelId);
+        return count ? *count : 0;
     }
 
     // Null when the function jumps through a register or takes a label's address:
@@ -389,7 +393,7 @@ namespace
                 const MicroInstrOperand* ops     = inst->ops(operands);
                 uint32_t                 labelId = 0;
                 if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, ops))
-                    ++scan.labelReferences[labelId];
+                    ++scan.labelReferences.getOrInsert(labelId);
 
                 if (cache.countMentions && ops)
                 {
@@ -397,7 +401,7 @@ namespace
                     for (size_t i = 0; i < modes.size(); ++i)
                     {
                         if (modes[i] != MicroInstrRegMode::None && ops[i].reg.isVirtualInt())
-                            ++scan.mentions[ops[i].reg.index()];
+                            ++scan.mentions.getOrInsert(ops[i].reg.index());
                     }
                 }
             }
@@ -463,12 +467,12 @@ namespace
 
     bool tryGetTrampolineTarget(uint32_t& outTargetLabelId, const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t labelId)
     {
-        outTargetLabelId   = 0;
-        const auto labelIt = layout.labelOrdinalById.find(labelId);
-        if (labelIt == layout.labelOrdinalById.end())
+        outTargetLabelId    = 0;
+        const auto* labelIt = layout.labelOrdinalById.find(labelId);
+        if (!labelIt)
             return false;
 
-        for (uint32_t ordinal = labelIt->second + 1; ordinal < layout.order.size(); ++ordinal)
+        for (uint32_t ordinal = *labelIt + 1; ordinal < layout.order.size(); ++ordinal)
         {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
             if (!inst)
@@ -1054,10 +1058,10 @@ namespace
             uint32_t joinId = 0;
             if (!tryGetJumpTargetLabelId(joinId, *edge, edgeOps))
                 continue;
-            const auto join = layout.labelOrdinalById.find(joinId);
-            if (join == layout.labelOrdinalById.end())
+            const auto* join = layout.labelOrdinalById.find(joinId);
+            if (!join)
                 continue;
-            size_t ordinal = join->second + 1;
+            size_t ordinal = *join + 1;
             while (ordinal < layout.order.size() && storage.ptr(layout.order[ordinal])->op == MicroInstrOpcode::Label)
                 ++ordinal;
             if (ordinal + 2 >= layout.order.size())
@@ -1412,10 +1416,10 @@ namespace
             uint32_t joinId = 0;
             if (!tryGetJumpTargetLabelId(joinId, *jumpInst, jumpOps))
                 continue;
-            const auto joinIt = layout.labelOrdinalById.find(joinId);
-            if (joinIt == layout.labelOrdinalById.end() || joinIt->second + 3 >= layout.order.size())
+            const auto* joinIt = layout.labelOrdinalById.find(joinId);
+            if (!joinIt || *joinIt + 3 >= layout.order.size())
                 continue;
-            const size_t        joinOrdinal = joinIt->second;
+            const size_t        joinOrdinal = *joinIt;
             const MicroInstrRef cmpRef      = layout.order[joinOrdinal + 1];
             const MicroInstrRef branchRef   = layout.order[joinOrdinal + 2];
             const MicroInstr*   cmpInst     = storage.ptr(cmpRef);
@@ -1645,7 +1649,7 @@ namespace
             return false;
         const size_t count = layout.order.size();
 
-        std::optional<std::unordered_map<uint32_t, uint32_t>> localLabelReferences;
+        std::optional<CountTable> localLabelReferences;
         if (!branchScan)
         {
             localLabelReferences.emplace();
@@ -1658,7 +1662,7 @@ namespace
                     return false;
                 uint32_t labelId = 0;
                 if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                    ++(*localLabelReferences)[labelId];
+                    ++localLabelReferences->getOrInsert(labelId);
             }
         }
         const auto& labelReferences = branchScan ? branchScan->labelReferences : *localLabelReferences;
@@ -1737,11 +1741,11 @@ namespace
             uint32_t                 labelId = 0;
             if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional || !tryGetJumpTargetLabelId(labelId, *jumpInst, jumpOps))
                 continue;
-            const auto labelIt = layout.labelOrdinalById.find(labelId);
-            if (labelIt == layout.labelOrdinalById.end() || labelIt->second <= p || jumpLabelReferenceCount(labelReferences, labelId) != 1 ||
-                relocationCache.get(context).contains(layout.order[labelIt->second].get()))
+            const auto* labelIt = layout.labelOrdinalById.find(labelId);
+            if (!labelIt || *labelIt <= p || jumpLabelReferenceCount(labelReferences, labelId) != 1 ||
+                relocationCache.get(context).contains(layout.order[*labelIt].get()))
                 continue;
-            const uint32_t j = labelIt->second;
+            const uint32_t j = *labelIt;
 
             // The rhs runs straight into the join.
             bool straight = true;
@@ -1981,10 +1985,10 @@ namespace
                 continue;
 
             // The join copies the value on, reading no more than the boolean.
-            const auto labelIt = layout.labelOrdinalById.find(joinLabelId);
-            if (labelIt == layout.labelOrdinalById.end() || labelIt->second + 1 >= layout.order.size())
+            const auto* labelIt = layout.labelOrdinalById.find(joinLabelId);
+            if (!labelIt || *labelIt + 1 >= layout.order.size())
                 continue;
-            const MicroInstr* joinInst = storage.ptr(layout.order[labelIt->second + 1]);
+            const MicroInstr* joinInst = storage.ptr(layout.order[*labelIt + 1]);
             if (!joinInst || joinInst->op != MicroInstrOpcode::LoadRegReg)
                 continue;
             const MicroInstrOperand* joinOps = joinInst->ops(operands);
@@ -2103,7 +2107,7 @@ namespace
             uint32_t markLabel = 0;
             if (!tryGetJumpTargetLabelId(joinLabel, *storage.ptr(layout.order[ordinal + 4]), exit) ||
                 !tryGetLabelId(markLabel, *storage.ptr(layout.order[ordinal + 9]), joinMark) || joinLabel != markLabel ||
-                labelReferences[joinLabel] != 1)
+                labelReferences.getOrInsert(joinLabel) != 1)
                 continue;
 
             if (!nextFloat)
@@ -2220,7 +2224,7 @@ namespace
             uint32_t                 markId    = 0;
             if (skip->op != MicroInstrOpcode::JumpCond || !skipOps || skipOps[0].cpuCond != MicroCond::Unconditional ||
                 !tryGetJumpTargetLabelId(joinLabel, *skip, skipOps) || !tryGetLabelId(markId, *elseMark, elseMark->ops(operands)) ||
-                markId != elseLabel || labelReferences[elseLabel] != 1 || !tryGetLabelId(markId, *joinMark, joinMark->ops(operands)) ||
+                markId != elseLabel || labelReferences.getOrInsert(elseLabel) != 1 || !tryGetLabelId(markId, *joinMark, joinMark->ops(operands)) ||
                 markId != joinLabel)
                 continue;
 
@@ -2309,7 +2313,7 @@ namespace
             return false;
 
         // Labels placed past a join's test, by the join's jump.
-        std::optional<std::unordered_map<uint32_t, uint32_t>> fallThroughLabels;
+        std::optional<CountTable> fallThroughLabels;
 
         bool changed = false;
         for (size_t ordinal = 0; ordinal < layout.order.size(); ++ordinal)
@@ -2365,10 +2369,10 @@ namespace
                 continue;
 
             // The join: copies of the boolean, `cmp B, 0`, a conditional jump.
-            const auto labelIt = layout.labelOrdinalById.find(joinLabelId);
-            if (labelIt == layout.labelOrdinalById.end())
+            const auto* labelIt = layout.labelOrdinalById.find(joinLabelId);
+            if (!labelIt)
                 continue;
-            const size_t      joinOrdinal = labelIt->second + 1;
+            const size_t      joinOrdinal = *labelIt + 1;
             const MicroInstr* joinInst    = joinOrdinal < layout.order.size() ? storage.ptr(layout.order[joinOrdinal]) : nullptr;
             if (!joinInst || joinInst->op != MicroInstrOpcode::CmpRegImm || joinOrdinal + 1 >= layout.order.size())
                 continue;
@@ -2398,11 +2402,11 @@ namespace
                     continue;
                 if (!fallThroughLabels)
                     fallThroughLabels.emplace();
-                uint32_t   pastLabelId = 0;
-                const auto known       = fallThroughLabels->find(joinJumpRef.get());
-                if (known != fallThroughLabels->end())
+                uint32_t    pastLabelId = 0;
+                const auto* known       = fallThroughLabels->find(joinJumpRef.get());
+                if (known)
                 {
-                    pastLabelId = known->second;
+                    pastLabelId = *known;
                 }
                 else
                 {
@@ -2507,7 +2511,7 @@ namespace
                 {
                     const MicroInstrOperand* aliasOps = first->ops(operands);
                     if (links.empty() || aliasOps[1].reg != value || !aliasOps[0].reg.isVirtualInt() ||
-                        getNumBits(aliasOps[2].opBits) < getNumBits(bits) || mentions[aliasOps[0].reg.index()] != 2)
+                        getNumBits(aliasOps[2].opBits) < getNumBits(bits) || mentions.getOrInsert(aliasOps[0].reg.index()) != 2)
                         break;
                     alias = aliasOps[0].reg;
                     body.push_back(at);
@@ -2530,7 +2534,7 @@ namespace
                 if (!cmpOps[0].reg.isVirtualInt() || cmpOps[2].hasWideImmediateValue() ||
                     (setOps[1].cpuCond != MicroCond::Equal && setOps[1].cpuCond != MicroCond::NotEqual) ||
                     !setOps[0].reg.isVirtualInt() || copyOps[1].reg != setOps[0].reg || copyOps[2].opBits != MicroOpBits::B8 ||
-                    !copyOps[0].reg.isVirtualInt() || copyOps[0].reg == tested || mentions[setOps[0].reg.index()] != 2)
+                    !copyOps[0].reg.isVirtualInt() || copyOps[0].reg == tested || mentions.getOrInsert(setOps[0].reg.index()) != 2)
                     break;
                 if (links.empty())
                 {
@@ -2564,7 +2568,7 @@ namespace
                     closed = true;
                 break;
             }
-            if (!closed || links.size() < K_MIN_CHAIN || labelReferences[endId] != links.size() - 1)
+            if (!closed || links.size() < K_MIN_CHAIN || labelReferences.getOrInsert(endId) != links.size() - 1)
                 continue;
 
             if (relocationCache.get(context).contains(layout.order[body.back() + 1].get()))
@@ -2743,8 +2747,8 @@ namespace
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
 
-        bool                                                  changed = false;
-        std::optional<std::unordered_map<uint32_t, uint32_t>> insideCounts;
+        bool                      changed = false;
+        std::optional<CountTable> insideCounts;
         for (size_t start = 1; start < count; ++start)
         {
             const MicroInstr* firstSet = instAt(start);
@@ -2815,11 +2819,11 @@ namespace
                         for (size_t operand = 0; operand < modes.size(); ++operand)
                         {
                             if (modes[operand] != MicroInstrRegMode::None && instructionOps[operand].reg.isVirtualInt())
-                                ++inside[instructionOps[operand].reg.index()];
+                                ++inside.getOrInsert(instructionOps[operand].reg.index());
                         }
                     }
 
-                    bool local = inside[result.index()] == 1;
+                    bool local = inside.getOrInsert(result.index()) == 1;
                     for (size_t index = at; index <= link.merge && local; ++index)
                     {
                         const MicroInstr* inst = instAt(index);
@@ -2828,7 +2832,7 @@ namespace
                         const MicroReg defined = inst->ops(operands)[0].reg;
                         if (defined == result && index == link.merge)
                             continue;
-                        if (!defined.isVirtualInt() || defined == result || inside[defined.index()] != mentions[defined.index()])
+                        if (!defined.isVirtualInt() || defined == result || inside.getOrInsert(defined.index()) != mentions.getOrInsert(defined.index()))
                             local = false;
                     }
                     if (!local)
@@ -2859,13 +2863,13 @@ namespace
                 break;
             }
 
-            if (!closed || links.size() < 2 || labelReferences[endId] != links.size() - 1)
+            if (!closed || links.size() < 2 || labelReferences.getOrInsert(endId) != links.size() - 1)
                 continue;
 
             // D leaves the chain as a byte, read once right after the join.
             const size_t      endAt  = links.back().merge + 1;
             const MicroInstr* reader = instAt(endAt + 1);
-            if (!reader || mentions[result.index()] != links.size() + 1)
+            if (!reader || mentions.getOrInsert(result.index()) != links.size() + 1)
                 continue;
             const MicroInstrOperand* readerOps = reader->ops(operands);
             const bool               byteRead  = (reader->op == MicroInstrOpcode::LoadZeroExtRegReg && readerOps[3].opBits == MicroOpBits::B8) ||
@@ -3029,7 +3033,7 @@ namespace
                 continue;
             if (!tryGetLabelId(label, *endLbl, endLbl->ops(operands)) || label != endId)
                 continue;
-            if (labelReferences[elseId] != 1 || labelReferences[endId] != 1)
+            if (labelReferences.getOrInsert(elseId) != 1 || labelReferences.getOrInsert(endId) != 1)
                 continue;
 
             // D = 1 on one side and D = -zext(x < y) on the other, or D = -1 and
@@ -3060,7 +3064,7 @@ namespace
             const uint32_t valueUses   = negated ? 3 : 2;
             const uint32_t flagInside  = flag == value ? valueUses + 2 : 2;
             const uint32_t valueInside = flag == value ? valueUses + 2 : valueUses;
-            if (mentions[flag.index()] != flagInside || mentions[value.index()] != valueInside)
+            if (mentions.getOrInsert(flag.index()) != flagInside || mentions.getOrInsert(value.index()) != valueInside)
                 continue;
 
             const auto& relocated     = relocationCache.get(context);
@@ -3159,8 +3163,8 @@ namespace
 
         struct TableScratch
         {
-            std::unordered_map<uint32_t, uint32_t> chainJumps;
-            std::unordered_map<uint32_t, Arm>      arms;
+            CountTable                        chainJumps;
+            std::unordered_map<uint32_t, Arm> arms;
         };
 
         bool                        changed = false;
@@ -3218,7 +3222,7 @@ namespace
                     uint32_t          placedId = 0;
                     if (!highCmp || !highJump || !skip || highCmp->op != MicroInstrOpcode::CmpRegImm || highJump->op != MicroInstrOpcode::JumpCond ||
                         !tryGetJumpTargetLabelId(skipId, *jump, jumpOps) || !tryGetLabelId(placedId, *skip, skip->ops(operands)) || placedId != skipId ||
-                        labelReferences[skipId] != 1)
+                        labelReferences.getOrInsert(skipId) != 1)
                         break;
                     const MicroInstrOperand* highOps     = highCmp->ops(operands);
                     const MicroInstrOperand* highJumpOps = highJump->ops(operands);
@@ -3258,7 +3262,7 @@ namespace
             auto& arms       = tableScratch->arms;
             chainJumps.clear();
             for (const uint32_t target : chainJumpTargets)
-                ++chainJumps[target];
+                ++chainJumps.getOrInsert(target);
 
             // Every case loads one immediate into the same register, then
             // returns, or joins at one label.
@@ -3268,10 +3272,10 @@ namespace
             bool        joins      = false;
             uint32_t    endId      = 0;
             const auto  matchArm   = [&](uint32_t labelId, Arm& arm) {
-                const auto found = layout.labelOrdinalById.find(labelId);
-                if (found == layout.labelOrdinalById.end() || found->second == 0)
+                const auto* found = layout.labelOrdinalById.find(labelId);
+                if (!found || *found == 0)
                     return false;
-                const size_t      labelAt    = found->second;
+                const size_t      labelAt    = *found;
                 const MicroInstr* before     = instAt(labelAt - 1);
                 const MicroInstr* load       = instAt(labelAt + 1);
                 const MicroInstr* exit       = instAt(labelAt + 2);
@@ -3327,7 +3331,7 @@ namespace
                 if (arms.contains(labelId))
                     continue;
                 Arm arm;
-                if (!matchArm(labelId, arm) || labelReferences[labelId] != chainJumps[labelId])
+                if (!matchArm(labelId, arm) || labelReferences.getOrInsert(labelId) != chainJumps.getOrInsert(labelId))
                 {
                     valid = false;
                     break;
@@ -3385,7 +3389,7 @@ namespace
             }
             else
             {
-                if (!matchArm(defaultId, defaultArm) || labelReferences[defaultId] != 1)
+                if (!matchArm(defaultId, defaultArm) || labelReferences.getOrInsert(defaultId) != 1)
                     continue;
                 defaultValue = defaultArm.value;
                 defaultIsArm = true;
@@ -4259,19 +4263,19 @@ namespace
 
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
-        std::optional<std::unordered_map<uint32_t, uint32_t>> localMentions;
-        const auto*                                           mentions = &scanCache.scan.mentions;
+        std::optional<CountTable> localMentions;
+        const auto*               mentions = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
             auto& counts = localMentions.emplace();
             mentions     = &counts;
             for (const Candidate& candidate : candidates)
             {
-                counts[candidate.rhs.index()] = 0;
+                counts.getOrInsert(candidate.rhs.index()) = 0;
                 if (candidate.skippedDecrement.isValid())
                 {
-                    counts[candidate.skippedDecrement.index()] = 0;
-                    counts[candidate.skippedMask.index()]      = 0;
+                    counts.getOrInsert(candidate.skippedDecrement.index()) = 0;
+                    counts.getOrInsert(candidate.skippedMask.index())      = 0;
                 }
             }
             for (const MicroInstr& inst : storage.view())
@@ -4284,15 +4288,15 @@ namespace
                 {
                     if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
                         continue;
-                    const auto found = counts.find(ops[i].reg.index());
-                    if (found != counts.end())
-                        ++found->second;
+                    uint32_t* found = counts.find(ops[i].reg.index());
+                    if (found)
+                        ++*found;
                 }
             }
         }
         const auto mentionCount = [&](const MicroReg reg) {
-            const auto it = mentions->find(reg.index());
-            return it == mentions->end() ? 0u : it->second;
+            const uint32_t* count = mentions->find(reg.index());
+            return count ? *count : 0u;
         };
 
         bool               changed = false;
@@ -4419,15 +4423,15 @@ namespace
         if (candidates.empty())
             return false;
 
-        std::optional<std::unordered_map<uint32_t, uint32_t>> localMentions;
-        const bool                                            hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
-        const auto*                                           mentions             = &scanCache.scan.mentions;
+        std::optional<CountTable> localMentions;
+        const bool                hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
+        const auto*               mentions             = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
             auto& counts = localMentions.emplace();
             mentions     = &counts;
             for (const Candidate& candidate : candidates)
-                counts[candidate.rhs.index()] = 0;
+                counts.getOrInsert(candidate.rhs.index()) = 0;
             for (const MicroInstr& inst : storage.view())
             {
                 const MicroInstrOperand* ops = inst.ops(operands);
@@ -4438,15 +4442,15 @@ namespace
                 {
                     if (modes[i] == MicroInstrRegMode::None || !ops[i].reg.isVirtualInt())
                         continue;
-                    const auto found = counts.find(ops[i].reg.index());
-                    if (found != counts.end())
-                        ++found->second;
+                    uint32_t* found = counts.find(ops[i].reg.index());
+                    if (found)
+                        ++*found;
                 }
             }
         }
         const auto mentionCount = [&](const MicroReg reg) {
-            const auto it = mentions->find(reg.index());
-            return it == mentions->end() ? 0u : it->second;
+            const uint32_t* count = mentions->find(reg.index());
+            return count ? *count : 0u;
         };
 
         bool               changed = false;
@@ -5039,7 +5043,7 @@ namespace
                 armLabelId != elseLabelId || !floatCopy(storage.ptr(layout.order[ordinal + 4]), bits, jumpDst, jumpSrc) ||
                 !labelIdAt(ordinal + 5, endLabelId) || endLabelId != joinLabelId)
                 continue;
-            if (fallDst != jumpDst || labelReferences[elseLabelId] != 1 || labelReferences[joinLabelId] != 1)
+            if (fallDst != jumpDst || labelReferences.getOrInsert(elseLabelId) != 1 || labelReferences.getOrInsert(joinLabelId) != 1)
                 continue;
             if (!((fallSrc == left && jumpSrc == right) || (fallSrc == right && jumpSrc == left)))
                 continue;

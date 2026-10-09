@@ -364,8 +364,8 @@ private:
 };
 
 // A map from 32-bit keys to small trivially copyable values, held in one flat table. The all-ones
-// key marks a free slot, so it is never a key. A found value is read before the next insertion,
-// which can move it.
+// key marks a free slot, so that one key lives beside the table. A found value is read before the
+// next insertion, which can move it. Clearing keeps the table, so a map that is refilled reuses it.
 template<typename V>
 class FlatKeyMap
 {
@@ -374,6 +374,8 @@ class FlatKeyMap
 public:
     const V* find(uint32_t key) const noexcept
     {
+        if (key == K_FREE)
+            return hasFreeKey_ ? &freeKeyValue_ : nullptr;
         if (slots_.empty())
             return nullptr;
 
@@ -406,7 +408,18 @@ public:
         return slotFor(key, inserted);
     }
 
-    size_t size() const noexcept { return count_; }
+    size_t size() const noexcept { return count_ + (hasFreeKey_ ? 1 : 0); }
+
+    void clear() noexcept
+    {
+        if (count_)
+        {
+            for (Slot& slot : slots_)
+                slot.key = K_FREE;
+            count_ = 0;
+        }
+        hasFreeKey_ = false;
+    }
 
 private:
     struct Slot
@@ -427,7 +440,17 @@ private:
     // where it is until the next one.
     V& slotFor(uint32_t key, bool& outInserted)
     {
-        SWC_ASSERT(key != K_FREE);
+        if (key == K_FREE)
+        {
+            outInserted = !hasFreeKey_;
+            if (outInserted)
+            {
+                hasFreeKey_   = true;
+                freeKeyValue_ = V{};
+            }
+            return freeKeyValue_;
+        }
+
         if (slots_.empty())
             rehash(INITIAL_CAPACITY);
         else if ((count_ + 1) * 4 > slots_.size() * 3)
@@ -469,6 +492,8 @@ private:
 
     std::vector<Slot> slots_;
     size_t            count_ = 0;
+    V                 freeKeyValue_{};
+    bool              hasFreeKey_ = false;
 };
 
 // The nodes on the current path of a recursive walk that must not re-enter itself. Each node

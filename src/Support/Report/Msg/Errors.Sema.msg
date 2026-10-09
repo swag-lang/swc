@@ -287,6 +287,7 @@ SWC_DIAG_DEF(sema_err_noreturn_return_type, Error, "'#[Swag.NoReturn]' needs a f
 SWC_DIAG_DEF(sema_err_impl_not_struct, Error, "implementation block needs a struct, but '{sym}' is {a-sym-fam}; [help] name a struct after 'impl'")
 SWC_DIAG_DEF(sema_err_impl_not_interface, Error, "implementation block needs an interface, but '{sym}' is {a-sym-fam}; [help] name an interface in the implementation header")
 SWC_DIAG_DEF(sema_err_interface_already_implemented, Error, "interface '{sym}' is already implemented for struct '{what}'; [help] remove the duplicate implementation")
+SWC_DIAG_DEF(sema_err_interface_method_not_implemented, Error, "struct '{what}' does not implement method '{sym}' of interface '{value}'; [help] implement '{sym}' in this block, or give it a default body in the interface")
 SWC_DIAG_DEF(sema_err_too_many_arguments, Error, "call accepts {what}, found {value}")
 SWC_DIAG_DEF(sema_err_too_many_arguments, Error, "call to '{sym}' accepts {what}, found {value}")
 SWC_DIAG_DEF(sema_err_too_few_arguments, Error, "call needs {what}, found {value}")

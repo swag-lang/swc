@@ -4,7 +4,12 @@ impl Volume
     mtd readHeader(slot: u32)->HeaderCandidate fail
     {
         var result: retval
-        result.plain = try .readFramedRecord(HeaderAreaOffset + slot * HeaderSlotSize, HeaderSlotSize, HeaderLocatorKind, HeaderKind, slot, HeaderPlainSize)
+        result.plain = try .readFramedRecord(HeaderAreaOffset + slot * HeaderSlotSize,
+                                             HeaderSlotSize,
+                                             HeaderLocatorKind,
+                                             HeaderKind,
+                                             slot,
+                                             HeaderPlainSize)
         if result.plain.isEmpty() do
             return result
 
@@ -521,7 +526,12 @@ impl Volume
             return try .checkpoint()
 
         let sequence = .sequence + 1
-        try .writeFramedRecord(JournalAreaOffset + (sequence % JournalCapacity) * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, sequence % JournalCapacity, plain.toSlice())
+        try .writeFramedRecord(JournalAreaOffset + (sequence % JournalCapacity) * JournalRecordSize,
+                               JournalRecordSize,
+                               JournalLocatorKind,
+                               JournalKind,
+                               sequence % JournalCapacity,
+                               plain.toSlice())
         .sequence = sequence
 
         // The record that dropped these blocks is durable, so they are genuinely
@@ -550,7 +560,12 @@ impl Volume
             #static if #command == Swag.CompilerCommand.Test do
                 .journalRecordsRead += 1
 
-            let plain = try .readFramedRecord(JournalAreaOffset + slot * JournalRecordSize, JournalRecordSize, JournalLocatorKind, JournalKind, slot, JournalPlainSize)
+            let plain = try .readFramedRecord(JournalAreaOffset + slot * JournalRecordSize,
+                                              JournalRecordSize,
+                                              JournalLocatorKind,
+                                              JournalKind,
+                                              slot,
+                                              JournalPlainSize)
             if plain.isEmpty() do
                 break
 

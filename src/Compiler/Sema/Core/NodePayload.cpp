@@ -723,8 +723,7 @@ bool NodePayload::hasLoweringPayload(AstNodeRef nodeRef) const
         return false;
 
     const std::shared_lock lock(shard->loweringPayloadsMutex);
-    const auto             it = shard->loweringPayloads.find(nodeRef);
-    return it != shard->loweringPayloads.end() && it->second != nullptr;
+    return shard->loweringPayloads.find(nodeRef) != nullptr;
 }
 
 void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
@@ -734,7 +733,7 @@ void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->loweringPayloadsMutex);
-    shard->loweringPayloads[nodeRef] = payload;
+    shard->loweringPayloads.set(nodeRef, payload);
     shard->loweringPayloadsCount.store(static_cast<uint32_t>(shard->loweringPayloads.size()), std::memory_order_release);
 }
 
@@ -751,10 +750,7 @@ void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
         return nullptr;
 
     const std::shared_lock lock(shard->loweringPayloadsMutex);
-    const auto             it = shard->loweringPayloads.find(nodeRef);
-    if (it == shard->loweringPayloads.end())
-        return nullptr;
-    return it->second;
+    return shard->loweringPayloads.find(nodeRef);
 }
 
 bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
@@ -770,8 +766,7 @@ bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
         return false;
 
     const std::shared_lock lock(shard->semaPayloadsMutex);
-    const auto             it = shard->semaPayloads.find(nodeRef);
-    return it != shard->semaPayloads.end() && it->second != nullptr;
+    return shard->semaPayloads.find(nodeRef) != nullptr;
 }
 
 bool NodePayload::hasInlinePayload(AstNodeRef nodeRef) const
@@ -787,8 +782,7 @@ bool NodePayload::hasInlinePayload(AstNodeRef nodeRef) const
         return false;
 
     const std::shared_lock lock(shard->inlinePayloadsMutex);
-    const auto             it = shard->inlinePayloads.find(nodeRef);
-    return it != shard->inlinePayloads.end() && it->second != nullptr;
+    return shard->inlinePayloads.find(nodeRef) != nullptr;
 }
 
 void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
@@ -798,8 +792,8 @@ void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->inlinePayloadsMutex);
-    SWC_ASSERT(!shard->inlinePayloads.contains(nodeRef));
-    shard->inlinePayloads[nodeRef] = payload;
+    SWC_ASSERT(!shard->inlinePayloads.find(nodeRef));
+    shard->inlinePayloads.set(nodeRef, payload);
     shard->inlinePayloadsCount.store(static_cast<uint32_t>(shard->inlinePayloads.size()), std::memory_order_release);
 }
 
@@ -816,10 +810,7 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
         return nullptr;
 
     const std::shared_lock lock(shard->inlinePayloadsMutex);
-    const auto             it = shard->inlinePayloads.find(nodeRef);
-    if (it == shard->inlinePayloads.end())
-        return nullptr;
-    return it->second;
+    return shard->inlinePayloads.find(nodeRef);
 }
 
 bool NodePayload::hasInlineContextOverride(AstNodeRef nodeRef) const
@@ -835,8 +826,7 @@ bool NodePayload::hasInlineContextOverride(AstNodeRef nodeRef) const
         return false;
 
     const std::shared_lock lock(shard->inlineContextOverridesMutex);
-    const auto             it = shard->inlineContextOverrides.find(nodeRef);
-    return it != shard->inlineContextOverrides.end() && it->second != nullptr;
+    return shard->inlineContextOverrides.find(nodeRef) != nullptr;
 }
 
 void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
@@ -846,8 +836,8 @@ void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->inlineContextOverridesMutex);
-    SWC_ASSERT(!shard->inlineContextOverrides.contains(nodeRef));
-    shard->inlineContextOverrides[nodeRef] = payload;
+    SWC_ASSERT(!shard->inlineContextOverrides.find(nodeRef));
+    shard->inlineContextOverrides.set(nodeRef, payload);
     shard->inlineContextOverridesCount.store(static_cast<uint32_t>(shard->inlineContextOverrides.size()), std::memory_order_release);
 }
 
@@ -864,10 +854,7 @@ void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
         return nullptr;
 
     const std::shared_lock lock(shard->inlineContextOverridesMutex);
-    const auto             it = shard->inlineContextOverrides.find(nodeRef);
-    if (it == shard->inlineContextOverrides.end())
-        return nullptr;
-    return it->second;
+    return shard->inlineContextOverrides.find(nodeRef);
 }
 
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
@@ -877,8 +864,8 @@ void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->semaPayloadsMutex);
-    SWC_ASSERT(!shard->semaPayloads.contains(nodeRef));
-    shard->semaPayloads[nodeRef] = payload;
+    SWC_ASSERT(!shard->semaPayloads.find(nodeRef));
+    shard->semaPayloads.set(nodeRef, payload);
     shard->semaPayloadsCount.store(static_cast<uint32_t>(shard->semaPayloads.size()), std::memory_order_release);
 }
 
@@ -895,10 +882,7 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
         return nullptr;
 
     const std::shared_lock lock(shard->semaPayloadsMutex);
-    const auto             it = shard->semaPayloads.find(nodeRef);
-    if (it == shard->semaPayloads.end())
-        return nullptr;
-    return it->second;
+    return shard->semaPayloads.find(nodeRef);
 }
 
 void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
@@ -922,7 +906,7 @@ void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const Symbol
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->constAssignSourceParametersMutex);
-    shard->constAssignSourceParameters[nodeRef] = sourceParam;
+    shard->constAssignSourceParameters.set(nodeRef, sourceParam);
     shard->constAssignSourceParametersCount.store(static_cast<uint32_t>(shard->constAssignSourceParameters.size()), std::memory_order_release);
 }
 
@@ -950,7 +934,7 @@ void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& no
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->foldedSourceSymbolsMutex);
-    shard->foldedSourceSymbols[nodeRef] = &symbol;
+    shard->foldedSourceSymbols.set(nodeRef, &symbol);
     shard->foldedSourceSymbolsCount.store(static_cast<uint32_t>(shard->foldedSourceSymbols.size()), std::memory_order_release);
 }
 
@@ -972,8 +956,7 @@ const Symbol* NodePayload::foldedSourceSymbol(AstNodeRef nodeRef) const
         return nullptr;
 
     const std::shared_lock lock(shard->foldedSourceSymbolsMutex);
-    const auto             it = shard->foldedSourceSymbols.find(nodeRef);
-    return it == shard->foldedSourceSymbols.end() ? nullptr : it->second;
+    return shard->foldedSourceSymbols.find(nodeRef);
 }
 
 const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef nodeRef) const
@@ -989,8 +972,7 @@ const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef node
         return nullptr;
 
     const std::shared_lock lock(shard->constAssignSourceParametersMutex);
-    const auto             it = shard->constAssignSourceParameters.find(nodeRef);
-    return it == shard->constAssignSourceParameters.end() ? nullptr : it->second;
+    return shard->constAssignSourceParameters.find(nodeRef);
 }
 
 void NodePayload::propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge)

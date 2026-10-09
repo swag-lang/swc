@@ -223,6 +223,10 @@ public:
         {
             if (slots_[index].key == key)
             {
+                if (!slots_[index].value && value)
+                    ++live_;
+                else if (slots_[index].value && !value)
+                    --live_;
                 slots_[index].value = value;
                 return;
             }
@@ -231,6 +235,8 @@ public:
 
         slots_[index] = {.key = key, .value = value};
         ++count_;
+        if (value)
+            ++live_;
 
         // Linear probing degrades sharply near a full table; keep it below three quarters.
         if (count_ * 4 > slots_.size() * 3)
@@ -242,6 +248,9 @@ public:
         if (find(ref))
             set(ref, nullptr);
     }
+
+    // The references that map to a value; an erased one no longer counts.
+    size_t size() const noexcept { return live_; }
 
 private:
     struct Slot
@@ -277,6 +286,7 @@ private:
 
     std::vector<Slot> slots_;
     size_t            count_ = 0;
+    size_t            live_  = 0;
 };
 
 // A map from pointers to pointers, held in one flat table. The null key marks a free slot, so it is

@@ -1,6 +1,7 @@
 #pragma once
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -257,21 +258,21 @@ private:
 
     struct Shard
     {
-        mutable std::mutex                                    storeMutex;
-        mutable std::shared_mutex                             loweringPayloadsMutex;
-        mutable std::shared_mutex                             inlinePayloadsMutex;
-        mutable std::shared_mutex                             inlineContextOverridesMutex;
-        mutable std::shared_mutex                             semaPayloadsMutex;
-        mutable std::shared_mutex                             constAssignSourceParametersMutex;
-        mutable std::shared_mutex                             foldedSourceSymbolsMutex;
-        mutable std::shared_mutex                             resolvedCallArgsMutex;
-        PagedStore                                            store;
-        std::unordered_map<AstNodeRef, void*>                 loweringPayloads;
-        std::unordered_map<AstNodeRef, void*>                 inlinePayloads;
-        std::unordered_map<AstNodeRef, void*>                 inlineContextOverrides;
-        std::unordered_map<AstNodeRef, void*>                 semaPayloads;
-        std::unordered_map<AstNodeRef, const SymbolVariable*> constAssignSourceParameters;
-        std::unordered_map<AstNodeRef, const Symbol*>         foldedSourceSymbols;
+        mutable std::mutex                              storeMutex;
+        mutable std::shared_mutex                       loweringPayloadsMutex;
+        mutable std::shared_mutex                       inlinePayloadsMutex;
+        mutable std::shared_mutex                       inlineContextOverridesMutex;
+        mutable std::shared_mutex                       semaPayloadsMutex;
+        mutable std::shared_mutex                       constAssignSourceParametersMutex;
+        mutable std::shared_mutex                       foldedSourceSymbolsMutex;
+        mutable std::shared_mutex                       resolvedCallArgsMutex;
+        PagedStore                                      store;
+        RefPointerMap<AstNodeRef>                       loweringPayloads;
+        RefPointerMap<AstNodeRef>                       inlinePayloads;
+        RefPointerMap<AstNodeRef>                       inlineContextOverrides;
+        RefPointerMap<AstNodeRef>                       semaPayloads;
+        RefPointerMap<AstNodeRef, const SymbolVariable> constAssignSourceParameters;
+        RefPointerMap<AstNodeRef, const Symbol>         foldedSourceSymbols;
 
         // Each side table above is read on the hot path and written almost never: inlining,
         // lowering, and const-assign tracking touch a handful of nodes out of the hundreds of

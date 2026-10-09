@@ -314,9 +314,10 @@ Use `text.startsWith("prefix")` for a literal prefix check instead of repeating 
 comparison per index. The string API already names both the operation and its boundary behavior;
 keep direct indexing for checks that are not a prefix.
 
-When a sum combines peer diagnostic counters, put one named field per line and preserve their
-order. In Swag Capture's `capture.file.swg`, the model, background, and original-image decoder
-counts each expose the same four diagnostic categories without making the reader parse a long sum.
+When a long sum combines peer counters, diagnostic categories, or geometry terms, put each named
+term on its own line and preserve the source order. Swag Capture's `capture.file.swg` exposes the
+four load-issue categories, while `propwnd.swg` shows each contribution to a popup's extent. This
+keeps both tallies and dimensions scannable without introducing a helper or regrouping arithmetic.
 
 Calls use a separate `single-line-argument-column-limit` of 100 columns. It breaks an editable,
 authored single-line call when the entire source line exceeds the limit, while preserving calls

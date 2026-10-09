@@ -25,29 +25,29 @@ using Core
 
 private struct Card
 {
-    val:    string = ""
-    bid:    u64
-    count:  [13] s32
-    countV: [6] s32
-    value:  s32
+    labels:              string = ""
+    bid:                 u64
+    countByRank:         [13] s32
+    ranksByMultiplicity: [6] s32
+    handType:            s32
 }
 
-private var map:   [256] u8
-private var cards: Array'Card
+private var strengthByLabel: [256] u8
+private var hands: Array'Card
 
 private func sort()
 {
-    cards.sort(func(a, b)
+    hands.sort(func(leftHand, rightHand)
     {
-        if a.value != b.value do
-            return a.value <=> b.value
+        if leftHand.handType != rightHand.handType do
+            return leftHand.handType <=> rightHand.handType
 
-        for i in a.val.count
+        for i in leftHand.labels.count
         {
-            let it0 = map[a.val[i]]
-            let it1 = map[b.val[i]]
-            if it0 != it1 do
-                return it0 <=> it1
+            let leftStrength  = strengthByLabel[leftHand.labels[i]]
+            let rightStrength = strengthByLabel[rightHand.labels[i]]
+            if leftStrength != rightStrength do
+                return leftStrength <=> rightStrength
         }
 
         return 0
@@ -59,63 +59,65 @@ func day7B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    map['A'u8] = 12
-    map['K'u8] = 11
-    map['Q'u8] = 10
-    map['T'u8] = 9
-    map['9'u8] = 8
-    map['8'u8] = 7
-    map['7'u8] = 6
-    map['6'u8] = 5
-    map['5'u8] = 4
-    map['4'u8] = 3
-    map['3'u8] = 2
-    map['2'u8] = 1
-    map['J'u8] = 0
+    strengthByLabel['A'u8] = 12
+    strengthByLabel['K'u8] = 11
+    strengthByLabel['Q'u8] = 10
+    strengthByLabel['T'u8] = 9
+    strengthByLabel['9'u8] = 8
+    strengthByLabel['8'u8] = 7
+    strengthByLabel['7'u8] = 6
+    strengthByLabel['6'u8] = 5
+    strengthByLabel['5'u8] = 4
+    strengthByLabel['4'u8] = 3
+    strengthByLabel['3'u8] = 2
+    strengthByLabel['2'u8] = 1
+    strengthByLabel['J'u8] = 0
 
-    for l in lines
+    for line in lines
     {
-        let first = Tokenize.split(l[], ' 'u8)
+        let handAndBid = Tokenize.split(line[], ' 'u8)
 
-        var card: Card
-        var maxCount = 0
-        for c in first[0]
+        var hand: Card
+        var mostFrequentRankCount = 0
+        for label in handAndBid[0]
         {
-            let it = map[c]
-            card.count[it] += 1
-            if it do
-                maxCount = Math.max(maxCount, card.count[it])
+            let rank = strengthByLabel[label]
+            hand.countByRank[rank] += 1
+            if rank do
+                mostFrequentRankCount = Math.max(mostFrequentRankCount, hand.countByRank[rank])
         }
 
-        for c, i in card.count
+        for rankCount, rank in hand.countByRank
         {
-            if c and i do
-                card.countV[c] += 1
+            if rankCount and rank do
+                hand.ranksByMultiplicity[rankCount] += 1
         }
 
-        card.countV[maxCount + card.count[0]] += 1
-        card.countV[maxCount] -= 1
+        // Add all jokers to the most frequent non-joker rank to maximize this hand type.
+        let jokerCount = hand.countByRank[0]
+        hand.ranksByMultiplicity[mostFrequentRankCount + jokerCount] += 1
+        hand.ranksByMultiplicity[mostFrequentRankCount] -= 1
 
         switch
         {
-        case card.countV[5]:      card.value = 6
-        case card.countV[4]:      card.value = 5
-        case card.countV[3] and card.countV[2]: card.value = 4
-        case card.countV[3]:      card.value = 3
-        case card.countV[2] == 2: card.value = 2
-        case card.countV[2]:      card.value = 1
+        case hand.ranksByMultiplicity[5]:      hand.handType = 6
+        case hand.ranksByMultiplicity[4]:      hand.handType = 5
+        case hand.ranksByMultiplicity[3] and hand.ranksByMultiplicity[2]: hand.handType = 4
+        case hand.ranksByMultiplicity[3]:      hand.handType = 3
+        case hand.ranksByMultiplicity[2] == 2: hand.handType = 2
+        case hand.ranksByMultiplicity[2]:      hand.handType = 1
         }
 
-        card.val = first[0]
-        card.bid = expect StrConv.toU64(first[1])
-        cards.add(card)
+        hand.labels = handAndBid[0]
+        hand.bid    = expect StrConv.toU64(handAndBid[1])
+        hands.add(hand)
     }
 
     sort()
 
     var total: u64
-    for c, idx in cards do
-        total += (idx + 1) * c.bid
+    for hand, rank in hands do
+        total += (rank + 1) * hand.bid
 
     Swag.assert(total == 248029057)
 }

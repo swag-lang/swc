@@ -34,9 +34,7 @@ Simultaneously start on every node that ends with A. How many steps does it take
 
 using Core
 
-// ********************************************
-// For the record, i've cheated for this one !!
-// ********************************************
+// This puzzle input makes the first-hit lengths sufficient; combine them with an LCM.
 
 // An inline anonymous struct cannot carry a per-field attribute, so the node shape is
 // named: 'name' is filled once the whole map has been read.
@@ -52,11 +50,11 @@ func day8B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var instructions: string = ""
-    var nodes:        Array'Node
-    var nameToNode:   HashTable'(string, u64)
+    var instructions:    string = ""
+    var nodes:           Array'Node
+    var nodeIndexByName: HashTable'(string, u64)
 
-    var startNode: Array'u64
+    var startNodeIndices: Array'u64
 
     for l, i in lines
     {
@@ -67,9 +65,9 @@ func day8B()
         elif i > 1
         {
             let name = l[0 to 2]
-            nameToNode.add(name, i - 2)
+            nodeIndexByName.add(name, i - 2)
             if name[2] == 'A' do
-                startNode.add(i - 2)
+                startNodeIndices.add(i - 2)
         }
     }
 
@@ -78,43 +76,42 @@ func day8B()
     {
         if i <= 1 do
             continue
-        let name   = l[0 to 2]
-        let left   = l[7 to 9]
-        let right  = l[12 to 14]
-        let leftV  = nameToNode.find(left).value
-        let rightV = nameToNode.find(right).value
-        nodes[i - 2] = {name, leftV, rightV}
+        let name           = l[0 to 2]
+        let left           = l[7 to 9]
+        let right          = l[12 to 14]
+        let leftNodeIndex  = nodeIndexByName.find(left).value
+        let rightNodeIndex = nodeIndexByName.find(right).value
+        nodes[i - 2] = {name, leftNodeIndex, rightNodeIndex}
     }
 
-    var curNode = startNode
+    var currentNodeIndices = startNodeIndices
 
-    var onEnd: Array'u64
-    onEnd.resize(startNode.count)
+    var stepsToFirstEnd: Array'u64
+    stepsToFirstEnd.resize(startNodeIndices.count)
 
-    // For each starting node, cound the length of the path to the first ending node
-    // Count is stored in 'onEnd'
-    for i in curNode.count
+    // For each starting node, count steps until its first node ending in Z.
+    for startIndex in currentNodeIndices.count
     {
-        var instIndex: u64
+        var instructionIndex: u64
         for
         {
-            let inst = instructions[instIndex]
-            instIndex = (instIndex + 1) % instructions.count
+            let instruction = instructions[instructionIndex]
+            instructionIndex = (instructionIndex + 1) % instructions.count
 
-            let c = curNode[i]
-            if inst == 'L' do
-                curNode[i] = nodes[c].left
+            let currentNodeIndex = currentNodeIndices[startIndex]
+            if instruction == 'L' do
+                currentNodeIndices[startIndex] = nodes[currentNodeIndex].left
             else do
-                curNode[i] = nodes[c].right
-            onEnd[i] += 1
-            if nodes[curNode[i]].name[2] == 'Z' do
+                currentNodeIndices[startIndex] = nodes[currentNodeIndex].right
+            stepsToFirstEnd[startIndex] += 1
+            if nodes[currentNodeIndices[startIndex]].name[2] == 'Z' do
                 break
         }
     }
 
-    var total = onEnd[0]
-    for i in 1 until onEnd.count do
-        total = Math.lcm(cast(s64, total), cast(s64, onEnd[i]))
+    var steps = stepsToFirstEnd[0]
+    for i in 1 until stepsToFirstEnd.count do
+        steps = Math.lcm(cast(s64, steps), cast(s64, stepsToFirstEnd[i]))
 
-    Swag.assert(total == 16187743689077)
+    Swag.assert(steps == 16187743689077)
 }

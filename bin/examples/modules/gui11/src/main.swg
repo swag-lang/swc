@@ -177,7 +177,8 @@ func layoutCurvePage()
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
     g_CurveNote!.setPosition({PagePad, PagePad, width, NoteHeight})
-    g_Wall!.setPosition({PagePad, PagePad + NoteHeight + RowGap, width, Math.max(rect.height - 2 * PagePad - NoteHeight - RowGap, 1.0)})
+    let wallHeight = Math.max(rect.height - 2 * PagePad - NoteHeight - RowGap, 1.0)
+    g_Wall!.setPosition({PagePad, PagePad + NoteHeight + RowGap, width, wallHeight})
 }
 
 func onCurvePageEvent(_: *Wnd, evt: IEvent)->bool
@@ -272,7 +273,10 @@ func updateStageReadout()
     let duration = g_StageDuration!.value()
     let stagger  = g_StageStagger!.value()
     let last     = duration + stagger * cast(f32, (StageCardCount - 1))
-    g_StageReadout!.setText(Format.toString("% ms each, % ms apart, % ms until the last tile lands", cast(s32, duration), cast(s32, stagger), cast(s32, last)))
+    g_StageReadout!.setText(Format.toString("% ms each, % ms apart, % ms until the last tile lands",
+                                            cast(s32, duration),
+                                            cast(s32, stagger),
+                                            cast(s32, last)))
 }
 
 // Replays the whole entrance from wherever the tiles currently are.
@@ -499,7 +503,12 @@ func startDecorativePulse()
         .motion      = .Decorative
     }
 
-    discard app.animator.animateF32(btn, AnimationChannel.from("Gui11.Pref.Pulse"), 1, 1.06, &setCardScale, options)
+    discard app.animator.animateF32(btn,
+                                    AnimationChannel.from("Gui11.Pref.Pulse"),
+                                    1,
+                                    1.06,
+                                    &setCardScale,
+                                    options)
 }
 
 // Breathes the opacity of one label forever, as feedback on work in progress.
@@ -514,7 +523,12 @@ func startEssentialBreath()
         .motion      = .Essential
     }
 
-    discard app.animator.animateF32(g_EssentialLbl!, AnimationChannel.from("Gui11.Pref.Breath"), 1, 0.35, &setCardOpacity, options)
+    discard app.animator.animateF32(g_EssentialLbl!,
+                                    AnimationChannel.from("Gui11.Pref.Breath"),
+                                    1,
+                                    0.35,
+                                    &setCardOpacity,
+                                    options)
 }
 
 func toggleExpander(_: *Button)
@@ -600,7 +614,8 @@ func layoutPrefPage()
 
     let expInner = g_Expander!.contentRect()
     g_ExpandBtn!.setPosition({expInner.x, expInner.y, 170, 36})
-    g_ExpandHost!.setPosition({expInner.x, expInner.y + 46, expInner.width, Math.max(expInner.height - 46, 20.0)})
+    let hostHeight = Math.max(expInner.height - 46, 20.0)
+    g_ExpandHost!.setPosition({expInner.x, expInner.y + 46, expInner.width, hostHeight})
     g_DetailText!.setPosition({12, 12, Math.max(expInner.width - 24, 40.0), ExpandedDetail - 24})
 }
 

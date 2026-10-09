@@ -313,6 +313,20 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
         }
     }
     f.applyArguments(diag);
+
+    // A 'let' binding is read-only without its type saying so: the source is shown as the 'const'
+    // type it is read as, or the message would name a qualifier the reader cannot see.
+    if (f.diagId == DiagnosticId::sema_err_cannot_cast_const && f.srcTypeRef.isValid())
+    {
+        const TypeInfo& srcType = sema.typeMgr().get(f.srcTypeRef);
+        if (!srcType.isConst())
+        {
+            TypeInfo constType = srcType;
+            constType.addFlag(TypeInfoFlagsE::Const);
+            diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().addType(constType));
+        }
+    }
+
     if (f.noteId != DiagnosticId::None)
     {
         diag.addNote(f.noteId);

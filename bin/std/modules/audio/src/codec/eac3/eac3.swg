@@ -389,7 +389,9 @@ private impl Eac3Codec
             block.channelBandwidth[channel] = reader.read(6)
         if block.coupling and block.couplingExpStrategy
         {
-            let groups = cast(u32, ((block.couplingEndMantissa - block.couplingStart) / cast(s32, (3 * ExponentGroupSize[block.couplingExpStrategy]))))
+            let couplingSpan = block.couplingEndMantissa - block.couplingStart
+            let groupWidth   = 3 * ExponentGroupSize[block.couplingExpStrategy]
+            let groups       = cast(u32, couplingSpan / cast(s32, groupWidth))
             try decodeExponents(reader, block.couplingExpStrategy, groups, reader.read(4) << 1, 0, &block.couplingExponents)
         }
 

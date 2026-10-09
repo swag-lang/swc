@@ -1082,10 +1082,12 @@ namespace
                 if (exprTypeView.type() && exprTypeView.type()->isVoid())
                     return Result::Continue;
 
-                // A '#run' block is compiled as a generated function: its name means nothing to the
-                // reader, and its declaration is the block itself.
-                const auto* currentFn = sema.currentFunction();
-                if (currentFn && currentFn->decl() && currentFn->decl()->is(AstNodeId::CompilerRunBlock))
+                // A '#run' statement block is compiled as a generated function: its name means nothing
+                // to the reader, and its declaration is the block itself. A '#run' block used as an
+                // expression returns its value instead, and never reaches here.
+                const auto*    currentFn = sema.currentFunction();
+                const AstNode* declNode  = currentFn ? currentFn->decl() : nullptr;
+                if (declNode && declNode->is(AstNodeId::CompilerFunc) && sema.token(declNode->codeRef()).id == TokenId::CompilerRun)
                     return SemaError::raise(sema, DiagnosticId::sema_err_return_value_in_run_block, exprRef);
 
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_return_value_in_void, exprRef);

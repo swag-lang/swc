@@ -101,10 +101,12 @@ namespace
 
     void printPassHeader(const MicroPassContext& context, const TaskContext& ctx, const MicroBuilder& builder, std::string_view stageName)
     {
-        const std::string_view symbolName = builder.printSymbolName().empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{builder.printSymbolName()};
-        const std::string_view filePath   = builder.printFilePath().empty() ? std::string_view{"<unknown-file>"} : std::string_view{builder.printFilePath()};
-        const uint32_t         sourceLine = builder.printSourceLine();
-        const std::string      optimize   = backendOptimizeWithInstructionStats(context, builder);
+        const Utf8             symbolStorage = builder.printSymbolName();
+        const Utf8             fileStorage   = builder.printFilePath();
+        const std::string_view symbolName    = symbolStorage.empty() ? std::string_view{"<unknown-symbol>"} : std::string_view{symbolStorage};
+        const std::string_view filePath      = fileStorage.empty() ? std::string_view{"<unknown-file>"} : std::string_view{fileStorage};
+        const uint32_t         sourceLine    = builder.printSourceLine();
+        const std::string      optimize      = backendOptimizeWithInstructionStats(context, builder);
 
         Logger::print(ctx, SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Compiler));
         Logger::print(ctx, "[micro]");

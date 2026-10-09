@@ -592,21 +592,16 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         builder_->setCurrentDebugSourceCodeRef(SourceCodeRef::invalid());
         builder_->setCurrentDebugNoStep(false);
 
-        const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
-        const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
-        const SourceFile*     file      = srcView.file();
-        const Utf8            fileName  = file ? file->formattedFileName(&ctx()) : Utf8{};
-        const Utf8            fullName  = symbolFunc.getFullScopedName(ctx());
-        const auto&           requests  = ctx().cmdLine().printMicro;
+        const auto& requests = ctx().cmdLine().printMicro;
         if (requests.empty())
             builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
         else
         {
             std::vector<Utf8> stages = symbolFunc.attributes().printMicroPassOptions;
-            appendCommandLinePrintMicroStages(stages, requests, fullName.view());
+            appendCommandLinePrintMicroStages(stages, requests, symbolFunc.getFullScopedName(ctx()).view());
             builder_->setPrintPassOptions(stages);
         }
-        builder_->setPrintLocation(fullName, fileName, codeRange.line);
+        builder_->setPrintSymbol(&symbolFunc);
 
         started_ = true;
     }

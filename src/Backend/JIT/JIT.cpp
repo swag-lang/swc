@@ -79,7 +79,9 @@ namespace
 
     struct JITRelocationPatchContext
     {
-        std::unordered_set<uint64_t>                        visitedConstantAllocations;
+        // One flat table, allocated when the first constant is walked; most functions name a
+        // few string constants, and a node-based set paid an allocation for each of them.
+        StampedKeySet                                       visitedConstantAllocations;
         std::unordered_map<const SymbolFunction*, uint64_t> resolvedFunctionAddresses;
     };
 
@@ -1063,9 +1065,10 @@ namespace
 
         // Constants can point to other constants that eventually contain function
         // pointers. Walk that graph once per allocation to avoid cycles while still
-        // patching nested runtime data used by JIT-executed code.
-        const uint64_t visitKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
-        if (!patchContext.visitedConstantAllocations.insert(visitKey).second)
+        // patching nested runtime data used by JIT-executed code. The high bit keeps the
+        // first allocation of the first shard from packing to zero, which marks a free slot.
+        const uint64_t visitKey = 1ULL << 63 | static_cast<uint64_t>(shardIndex) << 32 | allocation.offset;
+        if (!patchContext.visitedConstantAllocations.insert(visitKey))
             return Result::Continue;
 
         SmallVector<ConstantFunctionPatch> patches;
@@ -1159,7 +1162,6 @@ namespace
         SWC_ASSERT(basePtr != nullptr);
 
         JITRelocationPatchContext patchContext;
-        patchContext.visitedConstantAllocations.reserve(relocations.size());
         patchContext.resolvedFunctionAddresses.reserve(relocations.size());
 
         for (const MicroRelocation& reloc : relocations)

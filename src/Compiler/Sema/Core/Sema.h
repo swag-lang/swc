@@ -710,22 +710,29 @@ private:
     {
         // The state each alternative starts from is shared, not copied: a branch that changes no
         // borrow - which is most of them - leaves the facts it entered with untouched.
+        // The merge is made only once an alternative brings a fact: an empty map still
+        // allocates, and most branches of most functions bring none.
         std::shared_ptr<VariableEscapeInfoMap>   entryState;
         std::shared_ptr<ProjectionEscapeInfoMap> entryProjectionState;
-        VariableEscapeInfoMap                    mergedState;
-        ProjectionEscapeInfoMap                  mergedProjectionState;
+        std::optional<VariableEscapeInfoMap>     mergedState;
+        std::optional<ProjectionEscapeInfoMap>   mergedProjectionState;
     };
 
     SmallVector4<SemaBorrowInvalidation> borrowInvalidations_;
     // Borrow facts are snapshotted at every branch, and a function of any size has many. The
     // snapshot shares the map and a writer copies it only when it has something to change.
-    VariableEscapeInfoMap&                              mutableVariableEscapeInfos();
-    ProjectionEscapeInfoMap&                            mutableProjectionEscapeInfos();
-    std::shared_ptr<VariableEscapeInfoMap>              variableEscapeInfos_   = std::make_shared<VariableEscapeInfoMap>();
-    std::shared_ptr<ProjectionEscapeInfoMap>            projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>();
-    std::unordered_map<const SymbolVariable*, uint32_t> variableScopeDepths_;
-    std::vector<EscapeBranchState>                      escapeBranchStack_;
-    AstVisit                                            visit_;
+    // Every sema starts from no fact, and a code generation or declaration sema never records
+    // one: it starts from maps shared by all, which the first writer copies like any snapshot.
+    static const std::shared_ptr<VariableEscapeInfoMap>&   emptyVariableEscapeInfos();
+    static const std::shared_ptr<ProjectionEscapeInfoMap>& emptyProjectionEscapeInfos();
+    VariableEscapeInfoMap&                                 mutableVariableEscapeInfos();
+    ProjectionEscapeInfoMap&                               mutableProjectionEscapeInfos();
+    std::shared_ptr<VariableEscapeInfoMap>                 variableEscapeInfos_   = emptyVariableEscapeInfos();
+    std::shared_ptr<ProjectionEscapeInfoMap>               projectionEscapeInfos_ = emptyProjectionEscapeInfos();
+    // Only a function body records scope depths; the map exists once one is recorded.
+    std::optional<std::unordered_map<const SymbolVariable*, uint32_t>> variableScopeDepths_;
+    std::vector<EscapeBranchState>                                     escapeBranchStack_;
+    AstVisit                                                           visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_           = nullptr;

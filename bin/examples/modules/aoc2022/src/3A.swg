@@ -41,14 +41,15 @@ func day3A()
     var total: u64
     for l in lines
     {
-        let div = l.length / 2
-        for i in div
+        let compartmentStart = l.length / 2
+        for index in compartmentStart
         {
-            let c = l[i]
-            let f = Slice.findLinear(cast(const [..] u8, l[div to]), c)
-            if f != Swag.U64.Max
+            let itemType   = l[index]
+            let matchIndex = Slice.findLinear(cast(const [..] u8, l[compartmentStart to]), itemType)
+            if matchIndex != Swag.U64.Max
             {
-                total += 1 + (Latin1.isLower(c) ? c - 'a' : 26 + (c - 'A'))
+                let itemPriority = Latin1.isLower(itemType) ? itemType - 'a' : 26 + (itemType - 'A')
+                total += 1 + itemPriority
                 break
             }
         }

@@ -22,6 +22,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -1177,7 +1178,7 @@ namespace
         return IdentifierRef::invalid();
     }
 
-    void checkInlineLocalIdentifierUses(Sema& sema, AstNodeRef nodeRef, const std::unordered_set<IdentifierRef>& localIdentifiers, bool& found)
+    void checkInlineLocalIdentifierUses(Sema& sema, AstNodeRef nodeRef, const RefSet<IdentifierRef>& localIdentifiers, bool& found)
     {
         if (nodeRef.isInvalid())
             return;
@@ -1234,12 +1235,12 @@ namespace
             collectInlineClosureCaptureIdentifiers(sema, sourceAst, childRef, outIdentifiers, byRefOnly);
     }
 
-    bool inlineBindingIsCaptured(IdentifierRef idRef, const std::unordered_set<IdentifierRef>& capturedIdentifiers)
+    bool inlineBindingIsCaptured(IdentifierRef idRef, const RefSet<IdentifierRef>& capturedIdentifiers)
     {
         return idRef.isValid() && capturedIdentifiers.contains(idRef);
     }
 
-    bool inlineBindingNeedsMaterialization(Sema& sema, AstNodeRef exprRef, const std::unordered_set<IdentifierRef>& localIdentifiers)
+    bool inlineBindingNeedsMaterialization(Sema& sema, AstNodeRef exprRef, const RefSet<IdentifierRef>& localIdentifiers)
     {
         if (exprRef.isInvalid() || localIdentifiers.empty())
             return false;
@@ -1744,10 +1745,10 @@ namespace
     // then queried for every binding.
     struct InlineBodyIdentifiers
     {
-        std::unordered_set<IdentifierRef> locals;
-        std::unordered_set<IdentifierRef> captured;
-        std::unordered_set<IdentifierRef> capturedByRef;
-        bool                              hasGeneratedCode = false;
+        RefSet<IdentifierRef> locals;
+        RefSet<IdentifierRef> captured;
+        RefSet<IdentifierRef> capturedByRef;
+        bool                  hasGeneratedCode = false;
     };
 
     // The callee side of an expansion: what every binding is classified against.
@@ -1762,22 +1763,28 @@ namespace
         std::optional<bool>              stableArrayArguments;
     };
 
+    void insertIdentifiers(RefSet<IdentifierRef>& outSet, const SmallVector<IdentifierRef>& identifiers)
+    {
+        for (const IdentifierRef idRef : identifiers)
+            outSet.insert(idRef);
+    }
+
     void collectInlineBodyIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef bodyRef, InlineBodyIdentifiers& outIdentifiers)
     {
         SmallVector<IdentifierRef> identifiers;
         collectInlineLocalIdentifiers(sema, sourceAst, bodyRef, identifiers, outIdentifiers.hasGeneratedCode);
-        outIdentifiers.locals.insert(identifiers.begin(), identifiers.end());
+        insertIdentifiers(outIdentifiers.locals, identifiers);
 
         identifiers.clear();
         collectInlineClosureCaptureIdentifiers(sema, sourceAst, bodyRef, identifiers, false);
         // By-reference captures are a subset: an empty full scan needs no second walk.
         if (identifiers.empty())
             return;
-        outIdentifiers.captured.insert(identifiers.begin(), identifiers.end());
+        insertIdentifiers(outIdentifiers.captured, identifiers);
 
         identifiers.clear();
         collectInlineClosureCaptureIdentifiers(sema, sourceAst, bodyRef, identifiers, true);
-        outIdentifiers.capturedByRef.insert(identifiers.begin(), identifiers.end());
+        insertIdentifiers(outIdentifiers.capturedByRef, identifiers);
     }
 
     const SymbolVariable* inlineBindingParameter(const SymbolFunction& fn, IdentifierRef idRef)

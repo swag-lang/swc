@@ -15,6 +15,7 @@
 #include "Symbol.Variable.h"
 
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -27,11 +28,11 @@ namespace
         return ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeValuePtrVoid()));
     }
 
-    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited);
+    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, PointerSet<const SymbolStruct>& visited);
 
-    const SymbolFunction* resolveInterfaceMethodTargetInUsingFieldsRec(const TaskContext& ctx, const SymbolStruct& objectStruct, const SymbolInterface& interfaceSym, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited)
+    const SymbolFunction* resolveInterfaceMethodTargetInUsingFieldsRec(const TaskContext& ctx, const SymbolStruct& objectStruct, const SymbolInterface& interfaceSym, const SymbolFunction& interfaceMethod, PointerSet<const SymbolStruct>& visited)
     {
-        if (!visited.insert(&objectStruct).second)
+        if (!visited.insert(&objectStruct))
             return nullptr;
 
         for (const Symbol* field : objectStruct.fields())
@@ -62,7 +63,7 @@ namespace
         return nullptr;
     }
 
-    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited)
+    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, PointerSet<const SymbolStruct>& visited)
     {
         if (const SymbolFunction* implMethod = impl.findFunctionForInterfaceMethod(ctx, interfaceMethod))
             return implMethod;
@@ -195,7 +196,7 @@ const SymbolFunction* SymbolImpl::findFunctionForInterfaceMethod(const TaskConte
 
 const SymbolFunction* SymbolImpl::resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const
 {
-    std::unordered_set<const SymbolStruct*> visited;
+    PointerSet<const SymbolStruct> visited;
     return resolveInterfaceMethodTargetRec(ctx, *this, interfaceMethod, visited);
 }
 

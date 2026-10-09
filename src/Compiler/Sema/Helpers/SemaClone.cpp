@@ -16,6 +16,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -369,10 +370,10 @@ namespace
             return;
         }
 
-        const std::unordered_set<IdentifierRef> excludedSet{excludedIdentifiers.begin(), excludedIdentifiers.end()};
+        // Captures and parameters are a handful of names: scanning them beats building a set.
         for (const SemaClone::ParamBinding& binding : bindings)
         {
-            if (!excludedSet.contains(binding.idRef))
+            if (std::ranges::find(excludedIdentifiers, binding.idRef) == excludedIdentifiers.end())
                 outBindings.push_back(binding);
         }
     }
@@ -962,7 +963,7 @@ namespace
         return cloneSpan(sema, spanRef, noReplacements);
     }
 
-    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, std::unordered_set<AstNodeRef>& activeSourceRefSet);
+    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, WalkPath<AstNodeRef>& activeSourceRefSet);
 
     void pinResolvedCallCallee(Sema& sema, AstNodeRef calleeRef, const SymbolFunction& fn)
     {
@@ -1114,7 +1115,7 @@ namespace
         if (clonedRef.isInvalid())
             return AstNodeRef::invalid();
 
-        std::unordered_set<AstNodeRef> activeSourceRefSet;
+        WalkPath<AstNodeRef> activeSourceRefSet;
         copyDetachedBindingExprState(sema, sourceRef, clonedRef, activeSourceRefSet);
         return clonedRef;
     }
@@ -1130,7 +1131,7 @@ namespace
         return SemaInline::expansionPayload(sema, resolvedRef) != nullptr;
     }
 
-    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, std::unordered_set<AstNodeRef>& activeSourceRefSet)
+    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, WalkPath<AstNodeRef>& activeSourceRefSet)
     {
         SWC_ASSERT(sourceRef.isValid());
         SWC_ASSERT(clonedRef.isValid());

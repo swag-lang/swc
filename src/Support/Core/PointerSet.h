@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -133,6 +134,26 @@ public:
         return true;
     }
 
+    bool contains(R ref) const noexcept
+    {
+        if (slots_.empty() || !ref.isValid())
+            return false;
+
+        const uint32_t value = ref.get();
+        size_t         index = slotIndex(value, slots_.size() - 1);
+        while (slots_[index] != K_FREE)
+        {
+            if (slots_[index] == value)
+                return true;
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        return false;
+    }
+
+    size_t size() const noexcept { return count_; }
+    bool   empty() const noexcept { return count_ == 0; }
+
 private:
     static constexpr size_t   INITIAL_CAPACITY = 16;
     static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
@@ -161,6 +182,42 @@ private:
 
     std::vector<uint32_t> slots_;
     size_t                count_ = 0;
+};
+
+// The nodes on the current path of a recursive walk that must not re-enter itself. Each node
+// leaves the path before its frame returns, so the path is never deeper than the recursion and a
+// scan of it costs no more than the frames already on the stack. A node-based set pays two heap
+// allocations to exist and one more per step.
+template<typename T, size_t N = 16>
+class WalkPath
+{
+public:
+    // True when the value was not already on the path.
+    bool insert(const T& value)
+    {
+        if (contains(value))
+            return false;
+        values_.push_back(value);
+        return true;
+    }
+
+    bool contains(const T& value) const { return std::ranges::find(values_, value) != values_.end(); }
+
+    void erase(const T& value)
+    {
+        // The value that entered last is the one leaving, unless a walk gave up halfway.
+        for (size_t i = values_.size(); i-- > 0;)
+        {
+            if (values_[i] == value)
+            {
+                values_.erase_unordered(values_.begin() + i);
+                return;
+            }
+        }
+    }
+
+private:
+    SmallVector<T, N> values_;
 };
 
 // A membership set of 64-bit keys that a worker keeps between walks. A walk of the constant graph

@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Symbol/SymbolGenericData.h"
 #include "Compiler/Sema/Symbol/SymbolOrder.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
 
@@ -198,9 +199,9 @@ namespace
     ImplicitDefaultKind classifyTypeImplicitDefault(Sema& sema, TypeRef typeRef);
     ImplicitDefaultKind classifyConstantImplicitDefault(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
-    Result waitTypeImplicitDefaultReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
+    Result waitTypeImplicitDefaultReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, WalkPath<TypeRef>& visited)
     {
-        if (typeRef.isInvalid() || !visited.insert(typeRef).second)
+        if (typeRef.isInvalid() || !visited.insert(typeRef))
             return Result::Continue;
 
         const TypeInfo& type = sema.typeMgr().get(typeRef);
@@ -626,10 +627,10 @@ namespace
         return std::max<uint32_t>(alignOf, 1);
     }
 
-    bool resolveUsingFieldPathRec(const TaskContext& ctx, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps, std::unordered_set<const SymbolStruct*>& visited)
+    bool resolveUsingFieldPathRec(const TaskContext& ctx, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps, PointerSet<const SymbolStruct>& visited)
     {
         SWC_ASSERT(&currentStruct != &targetStruct);
-        if (!visited.insert(&currentStruct).second)
+        if (!visited.insert(&currentStruct))
             return false;
 
         for (const SymbolVariable* field : currentStruct.fields())
@@ -1053,7 +1054,7 @@ bool SymbolStruct::typeHasCompleteImplicitDefault(Sema& sema, TypeRef typeRef)
 
 Result SymbolStruct::waitTypeImplicitDefaultReady(Sema& sema, const TypeRef typeRef, const AstNodeRef waitNodeRef)
 {
-    std::unordered_set<TypeRef> visited;
+    WalkPath<TypeRef> visited;
     return waitTypeImplicitDefaultReadyRec(sema, typeRef, waitNodeRef, visited);
 }
 
@@ -1174,7 +1175,7 @@ bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStr
     outSteps.clear();
     if (this == &targetStruct)
         return true;
-    std::unordered_set<const SymbolStruct*> visited;
+    PointerSet<const SymbolStruct> visited;
     return resolveUsingFieldPathRec(ctx, *this, targetStruct, outSteps, visited);
 }
 

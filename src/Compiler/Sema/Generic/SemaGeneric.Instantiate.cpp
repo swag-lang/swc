@@ -132,8 +132,12 @@ namespace SemaGeneric
 
         void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)
         {
+            // One function per enclosing generic instance, so the list itself is the seen set.
             outFunctions.clear();
-            std::unordered_set<const SymbolFunction*> seenFunctions;
+            const auto appendUnique = [&outFunctions](const SymbolFunction* function) {
+                if (std::ranges::find(outFunctions, function) == outFunctions.end())
+                    outFunctions.push_back(function);
+            };
 
             // Inline expansion can nest generic instances inside other generic
             // instances. Walk from the innermost frame outward so value/type
@@ -148,20 +152,14 @@ namespace SemaGeneric
                 while (inlinePayload)
                 {
                     if (const SymbolFunction* function = genericFunctionInstanceOrNull(inlinePayload->sourceFunction))
-                    {
-                        if (seenFunctions.insert(function).second)
-                            outFunctions.push_back(function);
-                    }
+                        appendUnique(function);
 
                     inlinePayload = inlinePayload->parentInlinePayload;
                 }
             }
 
             if (const SymbolFunction* function = genericFunctionInstanceOrNull(sema.currentFunction()))
-            {
-                if (seenFunctions.insert(function).second)
-                    outFunctions.push_back(function);
-            }
+                appendUnique(function);
         }
 
         Utf8 formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg)

@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -215,11 +216,10 @@ namespace
         return followNamespacePath(importRoot, nsPath.first(1));
     }
 
-    Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, std::unordered_set<const SymbolStruct*>& visited)
+    // Every member lookup on a struct comes through here, and most structs have no `using` field:
+    // the set of structs already walked is only filled once there is one to follow.
+    Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, PointerSet<const SymbolStruct>& visited)
     {
-        if (!visited.insert(&symStruct).second)
-            return Result::Continue;
-
         for (const Symbol* field : symStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();
@@ -235,7 +235,10 @@ namespace
             constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::UsingDirective};
 
             addSymMap(lookUpCxt, target, priority);
-            SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, *target, visited));
+            if (visited.empty())
+                visited.insert(&symStruct);
+            if (visited.insert(target))
+                SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, *target, visited));
         }
 
         return Result::Continue;
@@ -295,8 +298,8 @@ namespace
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct() && !lookUpCxt.skipUsingFieldMembers)
             {
-                const auto&                             structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
-                std::unordered_set<const SymbolStruct*> visited;
+                const auto&                    structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+                PointerSet<const SymbolStruct> visited;
                 SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, structSym, visited));
             }
 

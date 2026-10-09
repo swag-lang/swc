@@ -16,6 +16,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 
@@ -66,7 +67,7 @@ namespace
         }
     }
 
-    bool typeHasLifecycleRec(TaskContext& ctx, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visiting)
+    bool typeHasLifecycleRec(TaskContext& ctx, TypeRef typeRef, const SpecOpKind kind, WalkPath<TypeRef>& visiting)
     {
         if (typeRef.isInvalid())
             return false;
@@ -75,7 +76,7 @@ namespace
         const TypeInfo* unwrappedType = declaredType.unwrapAliasType(ctx);
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         typeRef                       = type.typeRef();
-        if (!visiting.insert(typeRef).second)
+        if (!visiting.insert(typeRef))
             return false;
 
         if (type.isVoid() || type.isNull())
@@ -135,7 +136,7 @@ namespace
         return false;
     }
 
-    Result addTypeCallDependenciesRec(Sema& sema, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visited, const bool observesEffects = true)
+    Result addTypeCallDependenciesRec(Sema& sema, TypeRef typeRef, const SpecOpKind kind, RefSet<TypeRef>& visited, const bool observesEffects = true)
     {
         // None denotes implicit default initialization, which has no special operator.
         const bool defaultInit = kind == SpecOpKind::None;
@@ -148,7 +149,7 @@ namespace
         typeRef                       = type.typeRef();
         if (!type.isArray() && !type.isStruct())
             return Result::Continue;
-        if (!visited.insert(typeRef).second)
+        if (!visited.insert(typeRef))
             return Result::Continue;
         if (type.isArray())
         {
@@ -673,13 +674,13 @@ namespace
         return Result::Continue;
     }
 
-    Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
+    Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, WalkPath<TypeRef>& visiting);
 
     // A struct answers '==' member by member. Comparing its storage instead is only the same
     // question when every member itself compares as bytes, which is what this decides. It never
     // filters '#[Swag.OperatorIgnore]' fields: an ignored field still makes the struct generate
     // an 'opEquals', and the generated body is where the field drops out.
-    Result structComparesAsBytes(Sema& sema, bool& outResult, const SymbolStruct& ownerStruct, std::unordered_set<TypeRef>& visiting)
+    Result structComparesAsBytes(Sema& sema, bool& outResult, const SymbolStruct& ownerStruct, WalkPath<TypeRef>& visiting)
     {
         bool hasSelfEqualityOverload = false;
         SWC_RESULT(structHasSelfEqualityOverload(sema, hasSelfEqualityOverload, ownerStruct));
@@ -720,7 +721,7 @@ namespace
     // a member-wise struct comparison and a byte comparison give it the same answer, and forcing
     // a generated 'opEquals' on every holder of an array would inline a comparison of the whole
     // array into it.
-    Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    Result typeComparesAsBytesRec(Sema& sema, bool& outResult, TypeRef typeRef, WalkPath<TypeRef>& visiting)
     {
         outResult = true;
         if (typeRef.isInvalid())
@@ -730,7 +731,7 @@ namespace
         const TypeInfo* unwrappedType = declaredType.unwrapAliasType(sema.ctx());
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         typeRef                       = type.typeRef();
-        if (!visiting.insert(typeRef).second)
+        if (!visiting.insert(typeRef))
             return Result::Continue;
 
         bool result = true;
@@ -765,7 +766,7 @@ namespace
     // parts is answered by '__sliceCmp'. This walks a type the way that lowering does, so Sema
     // makes the helper a dependency exactly when lowering will call it: a struct answering with
     // its own 'opEquals' hides whatever it holds behind that call.
-    Result typeCompareNeedsContentHelperRec(Sema& sema, bool& outResult, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    Result typeCompareNeedsContentHelperRec(Sema& sema, bool& outResult, TypeRef typeRef, WalkPath<TypeRef>& visiting)
     {
         outResult = false;
         if (typeRef.isInvalid())
@@ -775,7 +776,7 @@ namespace
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
         typeRef                       = type.typeRef();
-        if (!visiting.insert(typeRef).second)
+        if (!visiting.insert(typeRef))
             return Result::Continue;
 
         bool result = false;
@@ -827,8 +828,8 @@ namespace
         if (hasSelfEqualityOverload)
             return Result::Continue;
 
-        std::unordered_set<TypeRef> visiting;
-        bool                        comparesAsBytes = true;
+        WalkPath<TypeRef> visiting;
+        bool              comparesAsBytes = true;
         SWC_RESULT(structComparesAsBytes(sema, comparesAsBytes, ownerStruct, visiting));
         outResult = !comparesAsBytes;
         return Result::Continue;
@@ -1297,13 +1298,13 @@ bool SemaSpecOp::isGeneratedLifecycleWrapperName(const std::string_view name)
 
 Result SemaSpecOp::typeCompareNeedsContentHelper(Sema& sema, bool& outResult, TypeRef typeRef)
 {
-    std::unordered_set<TypeRef> visiting;
+    WalkPath<TypeRef> visiting;
     return typeCompareNeedsContentHelperRec(sema, outResult, typeRef, visiting);
 }
 
 bool SemaSpecOp::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind)
 {
-    std::unordered_set<TypeRef> visiting;
+    WalkPath<TypeRef> visiting;
     return typeHasLifecycleRec(ctx, typeRef, kind, visiting);
 }
 
@@ -1311,7 +1312,7 @@ Result SemaSpecOp::addLifecycleCallDependencies(Sema& sema, TypeRef typeRef, Spe
 {
     // A conditional operator may disappear when its impl finishes. Record the candidates
     // now; CodeGenJob resolves them before publishing ordinary calls and emitting the caller.
-    std::unordered_set<TypeRef> visited;
+    RefSet<TypeRef> visited;
     return addTypeCallDependenciesRec(sema, typeRef, kind, visited);
 }
 
@@ -1319,7 +1320,7 @@ Result SemaSpecOp::addDefaultInitCallDependencies(Sema& sema, TypeRef typeRef)
 {
     if (!sema.isCurrentFunction())
         return Result::Continue;
-    std::unordered_set<TypeRef> visited;
+    RefSet<TypeRef> visited;
     return addTypeCallDependenciesRec(sema, typeRef, SpecOpKind::None, visited);
 }
 
@@ -1332,8 +1333,8 @@ Result SemaSpecOp::addImplicitLifecycleCallDependencies(Sema& sema, const Symbol
     SWC_ASSERT(sema.currentFunction() == &function);
     for (const SpecOpKind kind : {SpecOpKind::OpDrop, SpecOpKind::OpPostCopy, SpecOpKind::OpPostMove})
     {
-        std::unordered_set<TypeRef> readinessVisited;
-        std::unordered_set<TypeRef> effectsVisited;
+        RefSet<TypeRef> readinessVisited;
+        RefSet<TypeRef> effectsVisited;
         // Runtime aggregate temporaries are registered as locals too. Pointer and
         // reference parameters are ignored by the same concrete-value type walk.
         for (const SymbolVariable* parameter : function.parameters())

@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -35,9 +36,9 @@ namespace
         return hash & (ConstantManager::SHARD_COUNT - 1);
     }
 
-    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited);
+    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, WalkPath<TypeRef>& visited);
 
-    Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, const TypeInfo& typeInfo, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
+    Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, const TypeInfo& typeInfo, AstNodeRef waitNodeRef, WalkPath<TypeRef>& visited)
     {
         if (typeInfo.isAlias())
         {
@@ -81,7 +82,7 @@ namespace
         return Result::Continue;
     }
 
-    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
+    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, WalkPath<TypeRef>& visited)
     {
         if (typeRef.isInvalid())
             return Result::Continue;
@@ -100,7 +101,7 @@ namespace
             default:
                 return Result::Continue;
         }
-        if (!visited.insert(typeRef).second)
+        if (!visited.insert(typeRef))
             return Result::Continue;
 
         const Result result = waitStaticPayloadTypeReadyRecImpl(sema, typeInfo, waitNodeRef, visited);
@@ -159,13 +160,13 @@ namespace
         return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, capturedTarget);
     }
 
-    bool typeHasUnionStorageRec(const TaskContext& ctx, const TypeInfo& declaredType, std::unordered_set<TypeRef>& visited)
+    bool typeHasUnionStorageRec(const TaskContext& ctx, const TypeInfo& declaredType, RefSet<TypeRef>& visited)
     {
         const TypeInfo* storageType = declaredType.unwrapAliasEnumType(ctx);
         const TypeInfo* type        = storageType ? storageType : &declaredType;
         if (!type->isArray() && !type->isStruct())
             return false;
-        if (!visited.insert(type->typeRef()).second)
+        if (!visited.insert(type->typeRef()))
             return false;
         if (type->isArray())
             return typeHasUnionStorageRec(ctx, ctx.typeMgr().get(type->payloadArrayElemTypeRef()), visited);
@@ -367,7 +368,7 @@ bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, const TypeInfo
     const TypeInfo& type        = storageType ? *storageType : declaredType;
     if (!type.isArray() && !type.isStruct())
         return false;
-    std::unordered_set<TypeRef> visited;
+    RefSet<TypeRef> visited;
     return typeHasUnionStorageRec(ctx, type, visited);
 }
 
@@ -424,7 +425,7 @@ bool ConstantHelpers::hasSourceFunctionRelocation(Sema& sema, const void* fieldP
 
 Result ConstantHelpers::waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef)
 {
-    std::unordered_set<TypeRef> visited;
+    WalkPath<TypeRef> visited;
     return waitStaticPayloadTypeReadyRec(sema, typeRef, waitNodeRef, visited);
 }
 

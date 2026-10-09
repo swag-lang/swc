@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 
@@ -15,9 +16,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, WalkPath<TypeRef>& visiting);
 
-    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, std::unordered_set<TypeRef>& visiting)
+    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, WalkPath<TypeRef>& visiting)
     {
         if (!symFunc.returnTypeRef().isValid() || !canReflectTypeRef(ctx, symFunc.returnTypeRef(), visiting))
             return false;
@@ -31,7 +32,7 @@ namespace
         return true;
     }
 
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, WalkPath<TypeRef>& visiting)
     {
         if (!typeRef.isValid())
             return false;
@@ -39,7 +40,7 @@ namespace
         // Reflection eligibility is a graph property. A cycle already on the recursion stack
         // is acceptable: dependency collection gives every distinct TypeRef a cache entry,
         // then relocations wire the recursive edges once all payloads have offsets.
-        if (!visiting.insert(typeRef).second)
+        if (!visiting.insert(typeRef))
             return true;
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
@@ -232,7 +233,7 @@ TypeRef TypeGen::reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& 
     if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin | RtAttributeFlagsE::Compiler))
         return TypeRef::invalid();
 
-    std::unordered_set<TypeRef> visiting;
+    WalkPath<TypeRef> visiting;
     if (!canReflectFunctionSignature(ctx, symFunc, visiting))
         return TypeRef::invalid();
 

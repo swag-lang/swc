@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -110,7 +111,7 @@ namespace
         return hasOwningLifecycle(sema, typeRef);
     }
 
-    bool typeCanCarryBorrowRec(Sema& sema, TypeRef typeRef, std::unordered_set<TypeRef>& visiting, uint32_t& budget)
+    bool typeCanCarryBorrowRec(Sema& sema, TypeRef typeRef, RefSet<TypeRef>& visiting, uint32_t& budget)
     {
         if (!budget || !typeRef.isValid())
             return false;
@@ -126,7 +127,7 @@ namespace
         // Structural carriers are discovered through fields/elements, but cycles are
         // common in user types. A back-edge only says "already being inspected", so
         // treat it as neutral and let another path prove the carrier if one exists.
-        if (!visiting.insert(typeRef).second)
+        if (!visiting.insert(typeRef))
             return false;
 
         if (type.isArray())
@@ -168,8 +169,8 @@ namespace
 
     bool typeCanCarryBorrowImpl(Sema& sema, TypeRef typeRef)
     {
-        std::unordered_set<TypeRef> visiting;
-        uint32_t                    budget = K_TYPE_BUDGET;
+        RefSet<TypeRef> visiting;
+        uint32_t        budget = K_TYPE_BUDGET;
         return typeCanCarryBorrowRec(sema, typeRef, visiting, budget);
     }
 

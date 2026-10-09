@@ -56,7 +56,7 @@ namespace
                (ownerFile && ownerFile->hasErrorLineInRange(tokenRange.line, tokenRange.line));
     }
 
-    SemaScope* remapScopeFromParent(const std::vector<std::unique_ptr<SemaScope>>& parentScopes, const std::vector<std::unique_ptr<SemaScope>>& childScopes, const SemaScope* oldScope)
+    SemaScope* remapScopeFromParent(const std::vector<SemaScopePtr>& parentScopes, const std::vector<SemaScopePtr>& childScopes, const SemaScope* oldScope)
     {
         if (!oldScope)
             return nullptr;
@@ -233,7 +233,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     scopes_.reserve(parent.scopes_.size());
     for (const auto& scope : parent.scopes_)
     {
-        scopes_.emplace_back(std::make_unique<SemaScope>(*scope));
+        scopes_.emplace_back(scopeArena_.create(*scope));
         if (scopes_.size() > 1)
             scopes_.back()->setParent(scopes_[scopes_.size() - 2].get());
         else
@@ -807,7 +807,7 @@ uint64_t Sema::nextAutoMemberOrder()
 SemaScope* Sema::pushScope(SemaScopeFlags flags)
 {
     SemaScope* parent = curScope_;
-    scopes_.emplace_back(std::make_unique<SemaScope>(flags, parent));
+    scopes_.emplace_back(scopeArena_.create(flags, parent));
     SemaScope* scope = scopes_.back().get();
     scope->setSymMap(parent->symMap());
     curScope_ = scope;
@@ -1848,7 +1848,7 @@ Result Sema::execResult()
 {
     if (!curScope_ && scopes_.empty())
     {
-        scopes_.emplace_back(std::make_unique<SemaScope>(SemaScopeFlagsE::TopLevel, nullptr));
+        scopes_.emplace_back(scopeArena_.create(SemaScopeFlagsE::TopLevel, nullptr));
         curScope_ = scopes_.back().get();
         curScope_->setSymMap(startSymMap_);
     }

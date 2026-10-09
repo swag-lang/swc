@@ -745,12 +745,13 @@ private:
     std::vector<EscapeBranchState>                                     escapeBranchStack_;
     AstVisit                                                           visit_;
 
-    std::vector<std::unique_ptr<SemaScope>> scopes_;
-    SymbolMap*                              startSymMap_           = nullptr;
-    SemaScope*                              curScope_              = nullptr;
-    bool                                    declPass_              = false;
-    bool                                    rootVisitDone_         = false;
-    bool                                    hasInitFlowCandidates_ = false;
+    SemaScopeArena            scopeArena_;
+    std::vector<SemaScopePtr> scopes_;
+    SymbolMap*                startSymMap_           = nullptr;
+    SemaScope*                curScope_              = nullptr;
+    bool                      declPass_              = false;
+    bool                      rootVisitDone_         = false;
+    bool                      hasInitFlowCandidates_ = false;
 
     std::vector<SemaFrame> frames_;
 

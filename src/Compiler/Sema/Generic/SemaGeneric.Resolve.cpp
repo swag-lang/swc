@@ -183,7 +183,7 @@ namespace SemaGeneric
         if (impl)
             scopeFlags.add(SemaScopeFlagsE::Impl);
 
-        sema.scopes_.emplace_back(std::make_unique<SemaScope>(scopeFlags, nullptr));
+        sema.scopes_.emplace_back(sema.scopeArena_.create(scopeFlags, nullptr));
         sema.curScope_ = sema.scopes_.back().get();
         sema.curScope_->setSymMap(sema.startSymMap_);
 

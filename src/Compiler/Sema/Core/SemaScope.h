@@ -128,4 +128,51 @@ private:
     std::array<IdentifierRef, UNIQ_COUNT> uniqIdentifiers_ = {};
 };
 
+// A Sema opens a scope for every block, loop, call argument list and inline expansion, and closes
+// it again soon after. It takes them from chunks it keeps instead of one allocation each. A closed
+// scope is destroyed in place and its slot is never handed out again: an inline payload still
+// remembers the scope it was expanded from, so a later scope must never take that address.
+class SemaScopeArena
+{
+public:
+    SemaScopeArena()                                 = default;
+    SemaScopeArena(const SemaScopeArena&)            = delete;
+    SemaScopeArena& operator=(const SemaScopeArena&) = delete;
+
+    template<typename... Args>
+    SemaScope* create(Args&&... args)
+    {
+        if (chunks_.empty() || chunkUsed_ == chunkCapacity_)
+        {
+            chunkCapacity_ = chunks_.empty() ? K_FIRST_CHUNK_SCOPES : std::min(chunkCapacity_ * 2, K_MAX_CHUNK_SCOPES);
+            chunks_.push_back(std::make_unique_for_overwrite<Slot[]>(chunkCapacity_));
+            chunkUsed_ = 0;
+        }
+
+        Slot& slot = chunks_.back()[chunkUsed_++];
+        return std::construct_at(reinterpret_cast<SemaScope*>(slot.bytes), std::forward<Args>(args)...);
+    }
+
+private:
+    struct Slot
+    {
+        alignas(SemaScope) std::byte bytes[sizeof(SemaScope)];
+    };
+
+    static constexpr size_t K_FIRST_CHUNK_SCOPES = 4;
+    static constexpr size_t K_MAX_CHUNK_SCOPES   = 16;
+
+    std::vector<std::unique_ptr<Slot[]>> chunks_;
+    size_t                               chunkCapacity_ = 0;
+    size_t                               chunkUsed_     = 0;
+};
+
+// Ends a scope taken from a SemaScopeArena: the arena keeps the storage.
+struct SemaScopeRelease
+{
+    void operator()(SemaScope* scope) const noexcept { std::destroy_at(scope); }
+};
+
+using SemaScopePtr = std::unique_ptr<SemaScope, SemaScopeRelease>;
+
 SWC_END_NAMESPACE();

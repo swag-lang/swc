@@ -315,18 +315,23 @@ impl DateTime
     {
         switch #complete fmt
         {
-        case .DateIso:   return Format.toString("%-%{02}-%{02}", .year, .month, .day)
-        case .TimeIso:   return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
-        case .TimeIsoMs: return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
-        case .TimeIsoHm: return Format.toString("%{02}:%{02}", .hour, .minute)
-
-        case .Date: return Format.toString("% % % %",
+        case .DateIso:
+            return Format.toString("%-%{02}-%{02}", .year, .month, .day)
+        case .TimeIso:
+            return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
+        case .TimeIsoMs:
+            return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
+        case .TimeIsoHm:
+            return Format.toString("%{02}:%{02}", .hour, .minute)
+        case .Date:
+            return Format.toString("% % % %",
                                            dayOfWeekName(.dayOfWeek()),
                                            monthName(.month),
                                            .day,
                                            .year)
 
-        case .DateTime: return Format.toString("% % % % %{02}:%{02}:%{02}",
+        case .DateTime:
+            return Format.toString("% % % % %{02}:%{02}:%{02}",
                                                dayOfWeekName(.dayOfWeek()),
                                                monthName(.month),
                                                .day,
@@ -334,8 +339,8 @@ impl DateTime
                                                .hour,
                                                .minute,
                                                .second)
-
-        case .DateTimeMs: return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}",
+        case .DateTimeMs:
+            return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}",
                                                  dayOfWeekName(.dayOfWeek()),
                                                  monthName(.month),
                                                  .day,
@@ -345,7 +350,8 @@ impl DateTime
                                                  .second,
                                                  .millisecond)
 
-        case .DateTimeIso: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}",
+        case .DateTimeIso:
+            return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}",
                                                   .year,
                                                   .month,
                                                   .day,
@@ -353,7 +359,8 @@ impl DateTime
                                                   .minute,
                                                   .second)
 
-        case .DateTimeIsoMs: return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}",
+        case .DateTimeIsoMs:
+            return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}",
                                                     .year,
                                                     .month,
                                                     .day,
@@ -361,8 +368,8 @@ impl DateTime
                                                     .minute,
                                                     .second,
                                                     .millisecond)
-
-        case .DateTimeIsoHm: return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
+        case .DateTimeIsoHm:
+            return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
         }
     }
 }
@@ -392,9 +399,7 @@ impl Serialization.ISerialize for DateTime
     }
 
     mtd impl readElement(_: Swag.TypeValue, _: *void?, _: Serialization.IDecoder)->bool fail => false
-
     mtd impl writeElement(_: Swag.TypeValue, _: const *void?, _: Serialization.IEncoder)->bool fail => false
-
     mtd impl postRead(_: *void?, _: Serialization.IDecoder) fail {}
 }
 

@@ -1939,6 +1939,101 @@ Result AstClosureExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
     return attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym);
 }
 
+namespace
+{
+    // Two signature types agree when they are the same type, or when both are anonymous structs
+    // ('->{ width, height: s32 }') spelled again with the same field names and types: each spelling
+    // declares a struct of its own.
+    bool sameSignatureType(const Sema& sema, TypeRef left, TypeRef right)
+    {
+        if (left == right)
+            return true;
+        if (left.isInvalid() || right.isInvalid())
+            return false;
+
+        const TypeInfo& leftType  = sema.typeMgr().get(left);
+        const TypeInfo& rightType = sema.typeMgr().get(right);
+        if (!leftType.isStruct() || !rightType.isStruct())
+            return false;
+
+        const SymbolStruct& leftStruct  = leftType.payloadSymStruct();
+        const SymbolStruct& rightStruct = rightType.payloadSymStruct();
+        if (!leftStruct.hasExtraFlag(SymbolStructFlagsE::Anonymous) || !rightStruct.hasExtraFlag(SymbolStructFlagsE::Anonymous))
+            return false;
+
+        const auto& leftFields  = leftStruct.fields();
+        const auto& rightFields = rightStruct.fields();
+        if (leftFields.size() != rightFields.size())
+            return false;
+
+        for (size_t i = 0; i < leftFields.size(); ++i)
+        {
+            if (leftFields[i]->idRef() != rightFields[i]->idRef() || !sameSignatureType(sema, leftFields[i]->typeRef(), rightFields[i]->typeRef()))
+                return false;
+        }
+
+        return true;
+    }
+
+    // An implementation method carries its receiver as a leading parameter; an interface
+    // prototype does not.
+    bool interfaceImplSignatureMatches(const Sema& sema, const SymbolFunction& implMethod, const SymbolFunction& interfaceMethod)
+    {
+        const auto&  implParams = implMethod.parameters();
+        const auto&  itfParams  = interfaceMethod.parameters();
+        const size_t implOffset = implParams.size() == itfParams.size() + 1 ? 1 : 0;
+        if (implParams.size() != itfParams.size() + implOffset)
+            return false;
+
+        for (size_t i = 0; i < itfParams.size(); ++i)
+        {
+            if (!implParams[i + implOffset] || !itfParams[i] || !sameSignatureType(sema, implParams[i + implOffset]->typeRef(), itfParams[i]->typeRef()))
+                return false;
+        }
+
+        return sameSignatureType(sema, implMethod.returnTypeRef(), interfaceMethod.returnTypeRef());
+    }
+
+    // A method marked 'impl' in 'impl <Interface> for <Struct>' is one of the interface's methods
+    // with the same parameters and return type: the interface table calls it through the interface
+    // signature, so any other signature would be called with the wrong values.
+    Result validateInterfaceImplMethod(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym)
+    {
+        if (!node.hasFlag(AstFunctionFlagsE::Impl) || sym.isGenericInstance())
+            return Result::Continue;
+
+        const SymbolImpl*      declImpl     = functionDeclImplContext(sema, &sym);
+        const SymbolInterface* symInterface = declImpl ? declImpl->symInterface() : nullptr;
+        if (!symInterface)
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(symInterface, node.codeRef()));
+
+        const SymbolFunction* sameName = nullptr;
+        for (const SymbolFunction* interfaceMethod : symInterface->functions())
+        {
+            if (!interfaceMethod || interfaceMethod->idRef() != sym.idRef())
+                continue;
+            if (interfaceImplSignatureMatches(sema, sym, *interfaceMethod))
+                return Result::Continue;
+            sameName = interfaceMethod;
+        }
+
+        auto diag = SemaError::report(sema, sameName ? DiagnosticId::sema_err_impl_method_signature_mismatch : DiagnosticId::sema_err_impl_method_not_in_interface, sym);
+        diag.addArgument(Diagnostic::ARG_SYM, sym.name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_VALUE, symInterface->name(sema.ctx()));
+        if (sameName)
+        {
+            auto&             note    = diag.addElement(DiagnosticId::sema_note_interface_method_declared_here);
+            const SourceView& srcView = sema.compiler().srcView(sameName->srcViewRef());
+            note.setSrcView(&srcView);
+            note.addSpan(srcView.tokenCodeRange(sema.ctx(), sameName->tokRef()), "");
+        }
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+}
+
 Result AstFunctionDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
@@ -1968,6 +2063,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     }
 
     const auto& declNode = sema.curNode().cast<AstFunctionDecl>();
+    SWC_RESULT(validateInterfaceImplMethod(sema, declNode, sym));
     if (SemaInitFlow::wantsCheck(sema, sym))
     {
         // The return contract only binds a signature the function owns: interface

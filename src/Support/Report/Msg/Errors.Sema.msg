@@ -300,6 +300,8 @@ SWC_DIAG_DEF(sema_err_interface_already_implemented, Error, "interface '{sym}' i
 SWC_DIAG_DEF(sema_err_generic_struct_too_many_args, Error, "generic struct '{sym}' accepts {what}, found {value}; [help] remove the extra generic arguments")
 SWC_DIAG_DEF(sema_err_generic_struct_missing_arg, Error, "generic struct '{sym}' needs a generic argument for '{value}'; [help] add it to the specialization, or give '{value}' a default in the struct")
 SWC_DIAG_DEF(sema_err_generic_struct_needs_args, Error, "generic struct '{sym}' needs generic arguments to be the type of a value; [help] specialize it with its generic arguments")
+SWC_DIAG_DEF(sema_err_impl_method_not_in_interface, Error, "'{sym}' is marked 'impl', but interface '{value}' has no method '{sym}'; [help] check the method name, or remove 'impl' to declare an ordinary method")
+SWC_DIAG_DEF(sema_err_impl_method_signature_mismatch, Error, "'{sym}' does not match the signature of interface method '{value}.{sym}'; [help] give it the same parameters and return type as the interface method")
 SWC_DIAG_DEF(sema_err_interface_method_not_implemented, Error, "struct '{what}' does not implement method '{sym}' of interface '{value}'; [help] implement '{sym}' in this block, or give it a default body in the interface")
 SWC_DIAG_DEF(sema_err_too_many_arguments, Error, "call accepts {what}, found {value}")
 SWC_DIAG_DEF(sema_err_too_many_arguments, Error, "call to '{sym}' accepts {what}, found {value}")

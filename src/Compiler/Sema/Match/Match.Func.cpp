@@ -739,12 +739,12 @@ namespace
         return fn.parameters()[fail.paramIndex];
     }
 
-    // The parameter a message can name. An unnamed one ('func(s32)', '?') has nothing
+    // The parameter a message can name. An unnamed one ('func(s32)', '_') has nothing
     // to show; the implicit 'me' of a method has no declaration and still has its name.
     const SymbolVariable* namedFailedParameter(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
     {
         const SymbolVariable* param = failedParameter(fn, fail);
-        if (!param || param->name(ctx).empty())
+        if (!param || param->isUnnamed() || param->name(ctx).empty())
             return nullptr;
 
         return param;

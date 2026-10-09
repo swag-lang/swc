@@ -21,7 +21,10 @@ func createPushButtonPage(parent: *Wnd)
         btn.setIcon(app.theme.icon(ThemeIcons.Download, 18))
     }
 
-    let right = createPanel(parent, "States", "Hot/pressed states are interactive; disabled and long text variants check clipping.", layout.right)
+    let right = createPanel(parent,
+                            "States",
+                            "Hot/pressed states are interactive; disabled and long text variants check clipping.",
+                            layout.right)
     {
         let status = createText(right, "No button pressed yet.", {22, 190, 430, 28})
 
@@ -39,7 +42,10 @@ func createPushButtonPage(parent: *Wnd)
         btn.cursor = Cursor.from(CursorShape.Help)
     }
 
-    let bottom = createPanel(parent, "Style override", "A flat button with custom colors, used as a compact visual regression target.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Style override",
+                             "A flat button with custom colors, used as a compact visual regression target.",
+                             layout.bottom)
     {
         var btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
         btn.setForm(.Flat)

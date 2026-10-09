@@ -113,8 +113,10 @@ func display()
 {
     // The render context is physical device pixels; the fit is computed in logical
     // units, and the painter maps them to device pixels on scaled displays.
-    let scale  = g_Painter.contentScale()
-    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)), cast(s32, Math.round(g_RC.height / scale)))
+    let scale         = g_Painter.contentScale()
+    let logicalWidth  = cast(s32, Math.round(g_RC.width / scale))
+    let logicalHeight = cast(s32, Math.round(g_RC.height / scale))
+    let layout        = computeSceneLayout(logicalWidth, logicalHeight)
     g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter, layout)
@@ -132,7 +134,11 @@ func onResize(window: *Env.Window, width, height: s32)
 
 #main
 {
-    g_Window = try Env.createWindow({identifier: "pixel3", title: "Pixel font rendering: Bitmap vs MSDF vs Auto", width: W, height: H})
+    g_Window = try Env.createWindow({
+        identifier: "pixel3",
+        title: "Pixel font rendering: Bitmap vs MSDF vs Auto",
+        width: W,
+        height: H})
     defer catch g_Window.close()
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer

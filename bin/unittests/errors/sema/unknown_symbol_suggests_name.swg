@@ -18,3 +18,5 @@ func suggestLocal()->s32
 }
 
 func suggestNothing()->s32 => unrelatedName     // swc-expected-error {{unknown symbol 'unrelatedName'}}
+
+func suggestForeignType(_: int)->s32 => 0     // swc-expected-error {{unknown symbol 'int'; [help] use 's32' instead}}

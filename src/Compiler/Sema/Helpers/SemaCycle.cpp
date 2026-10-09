@@ -152,6 +152,49 @@ namespace
 
     // Says that a `.member` never resolved, against the scope the auto-scope wait recorded.
     // Reached only once publication is over, which is what makes the absence a fact.
+    // The Swag spelling of a type name another language uses ('int', 'double', 'usize'), written by
+    // habit where no visible name is close enough to suggest.
+    std::string_view swagTypeForForeignName(std::string_view name)
+    {
+        static constexpr std::pair<std::string_view, std::string_view> NAMES[] = {
+            {"int", "s32"},
+            {"uint", "u32"},
+            {"short", "s16"},
+            {"ushort", "u16"},
+            {"long", "s64"},
+            {"ulong", "u64"},
+            {"byte", "u8"},
+            {"sbyte", "s8"},
+            {"float", "f32"},
+            {"double", "f64"},
+            {"boolean", "bool"},
+            {"str", "string"},
+            {"i8", "s8"},
+            {"i16", "s16"},
+            {"i32", "s32"},
+            {"i64", "s64"},
+            {"isize", "s64"},
+            {"usize", "u64"},
+            {"size_t", "u64"},
+            {"int8_t", "s8"},
+            {"int16_t", "s16"},
+            {"int32_t", "s32"},
+            {"int64_t", "s64"},
+            {"uint8_t", "u8"},
+            {"uint16_t", "u16"},
+            {"uint32_t", "u32"},
+            {"uint64_t", "u64"},
+        };
+
+        for (const auto& [foreign, swag] : NAMES)
+        {
+            if (foreign == name)
+                return swag;
+        }
+
+        return {};
+    }
+
     void reportMissingAutoScopeMember(Sema& sema, TaskContext& ctx, const TaskState& state)
     {
         const TypeInfo& typeInfo = sema.typeMgr().get(state.autoScopeTypeRef);
@@ -361,6 +404,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                 std::erase(names, Utf8{name});
                 if (const std::optional<Utf8> suggestion = Utf8Helper::bestMatch(name, names))
                     diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
+                else if (const std::string_view swagType = swagTypeForForeignName(name); !swagType.empty())
+                    diag.addArgument(Diagnostic::ARG_VALUE, swagType);
             }
             diag.report(ctx);
         }

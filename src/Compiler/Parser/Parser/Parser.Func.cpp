@@ -307,7 +307,8 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
         flags.add(AstFunctionFlagsE::Method);
     else
     {
-        const TokenRef tokFunc = consumeAssert(TokenId::KwdFunc);
+        // A foreign function keyword ('fn') has been reported by the caller and stands for 'func'.
+        const TokenRef tokFunc = is(TokenId::Identifier) ? consume() : consumeAssert(TokenId::KwdFunc);
         if (isInterfaceDefinition)
         {
             raiseError(DiagnosticId::parser_err_interface_method_must_use_mtd, tokFunc);

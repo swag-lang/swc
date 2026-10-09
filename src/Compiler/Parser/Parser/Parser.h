@@ -218,6 +218,7 @@ private:
     AstNodeRef parseErrorManagementExpr();
     AstNodeRef parseErrorManagementStmt();
     AstNodeRef parseExpression();
+    bool       isForeignFunctionKeyword() const;
     AstNodeRef parseRangeExpression();
     AstNodeRef parseFail();
     AstNodeRef parseFallThrough();

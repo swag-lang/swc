@@ -28,6 +28,19 @@ bool Parser::isDestructuringAssignmentAhead() const
     return false;
 }
 
+// Another language's function keyword ('fn', 'fun', 'function', 'def') directly followed by the
+// function name.
+bool Parser::isForeignFunctionKeyword() const
+{
+    if (!is(TokenId::Identifier) || ref().get() + 1 >= ast_->srcView().tokens().size())
+        return false;
+    if (ast_->srcView().token(ref().offset(1)).id != TokenId::Identifier)
+        return false;
+
+    const std::string_view word = ast_->srcView().token(ref()).string(ast_->srcView());
+    return word == "fn" || word == "fun" || word == "function" || word == "def";
+}
+
 AstNodeRef Parser::parseTopLevelCall()
 {
     auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::CallExpr>(ref());
@@ -853,6 +866,17 @@ AstNodeRef Parser::parseDoCurlyBlock()
 
     const Diagnostic diag = reportExpectedDoBlock(ref().offset(-1));
     diag.report(*ctx_);
+
+    // 'if x = 1 do ...' is reported once at the '='; reading past the compared value lets the
+    // controlled statement parse instead of cascading into separator errors.
+    if (is(TokenId::SymEqual))
+    {
+        consume();
+        parseExpression();
+        if (is(TokenId::KwdDo) || is(TokenId::SymLeftCurly))
+            return parseDoCurlyBlock();
+    }
+
     return AstNodeRef::invalid();
 }
 
@@ -1046,6 +1070,13 @@ AstNodeRef Parser::parseTopLevelStmt()
             return parseCompilerGlobal();
 
         case TokenId::Identifier:
+            if (isForeignFunctionKeyword())
+            {
+                // 'fn name(...)' written by habit: report the keyword once and read the rest as
+                // the function declaration it is meant to be.
+                raiseError(DiagnosticId::parser_err_foreign_function_keyword, ref());
+                return parseFunctionDecl();
+            }
             return parseTopLevelCall();
 
         case TokenId::EndOfFile:

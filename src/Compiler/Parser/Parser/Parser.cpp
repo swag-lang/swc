@@ -531,6 +531,10 @@ void Parser::setReportSymbol(Diagnostic& diag, TokenRef tokRef) const
 
 Diagnostic Parser::reportExpectedDoBlock(TokenRef tknRefAfterHeader)
 {
+    // 'if x = 1' is a comparison written with the assignment operator, not a missing block.
+    if (id() == TokenId::SymEqual)
+        return reportError(DiagnosticId::parser_err_assign_in_condition, ref());
+
     Diagnostic diag = reportError(DiagnosticId::parser_err_expected_do_block, tknRefAfterHeader);
     diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_controlled_statement, DiagnosticSeverity::Note);
     return diag;

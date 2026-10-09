@@ -19,6 +19,8 @@ SWC_DIAG_DEF(parser_err_unnamed_read, Error, "'_' is the unnamed binding and hol
 SWC_DIAG_DEF(parser_err_for_range_missing_lower_bound, Error, "range in 'for' is missing its lower bound; [help] write '0 to ...' or '0 until ...'")
 SWC_DIAG_DEF(parser_err_duplicated_modifier, Error, "modifier '{tok}' is already specified; [help] remove the repeated modifier")
 SWC_DIAG_DEF(parser_err_unexpected_do_block, Error, "'{' cannot follow 'do'; [help] use either 'do <statement>' or '{ ... }', but not both")
+SWC_DIAG_DEF(parser_err_foreign_function_keyword, Error, "'{tok}' does not declare a function in Swag; [help] use 'func' instead")
+SWC_DIAG_DEF(parser_err_assign_in_condition, Error, "'=' assigns a value and cannot end a condition; [help] use '==' to compare")
 SWC_DIAG_DEF(parser_err_expected_do_block, Error, "expected 'do' or '{' after '{tok}' before the controlled statement; [help] use 'do <statement>' for a single statement, or '{ ... }' for a block")
 SWC_DIAG_DEF(parser_err_gen_param_type, Error, "generic type parameter cannot use a value type annotation")
 SWC_DIAG_DEF(parser_err_var_struct, Error, "field declarations in structs and unions do not use 'var' before '{next-tok}'; [help] remove 'var' and keep the field name and type")

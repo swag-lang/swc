@@ -897,7 +897,12 @@ impl InlineView
                 while groupEnd < .atoms.count
                 {
                     let next = &.atoms[groupEnd]
-                    if groupEnd > index and (atom.isSpace or atom.isBreak or next.isSpace or next.isBreak or next.emergencyWrap) do
+                    if groupEnd > index and
+                       (atom.isSpace or
+                        atom.isBreak or
+                        next.isSpace or
+                        next.isBreak or
+                        next.emergencyWrap) do
                         break
                     .measureAtom(next, right - continuationLeft)
                     groupWidth += next.position.width

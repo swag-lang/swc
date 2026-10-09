@@ -43,7 +43,10 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.assert(Utf8.contains(result.details, "HTML"))
     let view = assume cast(*Html.Panel, result.view)
     finishHtmlViewer(&host, &result)
-    Swag.assert(result.view != null and result.revealMatch != null and result.searchBounds != null and result.clearSearch != null)
+    Swag.assert(result.view != null and
+                result.revealMatch != null and
+                result.searchBounds != null and
+                result.clearSearch != null)
 
     var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent!(view.view, &zoomIn))

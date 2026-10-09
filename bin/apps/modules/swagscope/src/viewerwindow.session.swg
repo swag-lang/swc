@@ -3,7 +3,9 @@ impl ViewerWindow
     // Reloads the current path while retaining the active reading session.
     mtd reloadCurrentFile()
     {
-        if .currentFile.isEmpty() or not .pendingFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if .currentFile.isEmpty() or
+           not .pendingFile.isEmpty() or
+           .activeChoiceIndex >= .instances.count do
             return
         .readingState.capture(&.instances[.activeChoiceIndex], .choices[.activeChoiceIndex].key, .searchBox.text())
         .queueFile(.currentFile, remember: false, preserveReading: true)

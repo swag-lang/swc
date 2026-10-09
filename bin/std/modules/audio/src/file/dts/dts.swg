@@ -38,7 +38,9 @@ internal func openElementaryStream(path: string)->SoundFile fail
             channelCount = info.channels
             speakerMask  = info.speakerMask
         }
-        elif info.sampleRate != sampleRate or info.channels != channelCount or info.speakerMask != speakerMask
+        elif info.sampleRate != sampleRate or
+             info.channels != channelCount or
+             info.speakerMask != speakerMask
         {
             break
         }

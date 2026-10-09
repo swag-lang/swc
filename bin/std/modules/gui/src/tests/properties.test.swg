@@ -2197,7 +2197,9 @@ struct PropAlignData
             sawCategory = true
         if it.label.text() == "Nombre" do
             sawLabel = true
-        if it.comboBox != null and it.comboBox.items.count == 2 and it.comboBox.items[0]!.name.raw == "Droite" do
+        if it.comboBox != null and
+           it.comboBox.items.count == 2 and
+           it.comboBox.items[0]!.name.raw == "Droite" do
             sawCombo = true
     }
 

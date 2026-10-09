@@ -141,7 +141,10 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
             flowedArticleBytes  += item.text.count
         }
 
-        for item in page.items where item.cornerTopLeft > 0 or item.cornerTopRight > 0 or item.cornerBottomRight > 0 or item.cornerBottomLeft > 0 do
+        for item in page.items where item.cornerTopLeft > 0 or
+                                     item.cornerTopRight > 0 or
+                                     item.cornerBottomRight > 0 or
+                                     item.cornerBottomLeft > 0 do
             roundedFrames += 1
         for item in page.items where item.textColumns > 1 do
             multiColumnFrames += 1
@@ -181,15 +184,21 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     let firstPageImages = Testing.htmlImageSources(viewer.htmlView)
     Swag.assert(viewer.previewIndex == 0 and firstPageImages.count == 1)
     Swag.assert(Path.fileName(firstPageImages[0]) == "title.png")
-    Swag.assert(not viewer.goToTypedPage("0") and not viewer.goToTypedPage("5") and not viewer.goToTypedPage("page 1"))
+    Swag.assert(not viewer.goToTypedPage("0") and
+                not viewer.goToTypedPage("5") and
+                not viewer.goToTypedPage("page 1"))
     Swag.assert(viewer.goToTypedPage("2") and viewer.previewIndex == 1)
     Swag.assert(viewer.goToTypedPage("1") and viewer.previewIndex == 0)
     viewer.setMarkupZoom(125)
     Swag.assert(viewer.zoomLabel.text() == "125 %")
     viewer.fitMarkupWidth()
-    Swag.assert(viewer.markupFit and viewer.markupFitWidth and viewer.zoomLabel.text() == InDesign.texts().ui_FitWidth)
+    Swag.assert(viewer.markupFit and
+                viewer.markupFitWidth and
+                viewer.zoomLabel.text() == InDesign.texts().ui_FitWidth)
     viewer.fitMarkupPage()
-    Swag.assert(viewer.markupFit and not viewer.markupFitWidth and viewer.zoomLabel.text() == InDesign.texts().ui_Fit)
+    Swag.assert(viewer.markupFit and
+                not viewer.markupFitWidth and
+                viewer.zoomLabel.text() == InDesign.texts().ui_Fit)
     var qrcodePage = Swag.U64.Max
     for page, index in viewer.markupPages
     {

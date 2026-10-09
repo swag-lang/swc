@@ -272,7 +272,10 @@ impl PropWnd
     mtd propDashStyle(stack: *Wnd)
     {
         let curSelType = .getSelectedFormType()
-        if curSelType != FormShape and curSelType != FormLine and curSelType != FormArrow and curSelType != FormPolygon do
+        if curSelType != FormShape and
+           curSelType != FormLine and
+           curSelType != FormArrow and
+           curSelType != FormPolygon do
             return
 
         let curSel = .getSelectedBaseForm()

@@ -489,7 +489,9 @@ impl Painter
             {
                 let sourceFont = glyph.font orelse run.font
                 let glyphFont  = sourceFont == run.font ? font : font.withTypeFace(sourceFont.cache.typeFace)
-                let isSpace    = run.wordSpacing != 0 and glyph.glyphIndex != 0 and glyph.glyphIndex == sourceFont.glyphIndex(' ')
+                let isSpace    = run.wordSpacing != 0 and
+                                 glyph.glyphIndex != 0 and
+                                 glyph.glyphIndex == sourceFont.glyphIndex(' ')
                 appendShapedGlyph(&result, glyphFont, glyph.glyphIndex, glyph.cluster, previousGlyphIndex, 0.0, false, letterSpacingRef, isSpace ? wordSpacingRef : 0.0)
                 previousGlyphIndex = glyph.glyphIndex
             }
@@ -711,7 +713,10 @@ impl Painter
             return
 
         // Nothing visible: no face fill and no outline/glow/shadow either.
-        if .isInvisible(brush) and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and not effect.hasShadow() do
+        if .isInvisible(brush) and
+           effect.outlineColor.a == 0 and
+           effect.glowColor.a == 0 and
+           not effect.hasShadow() do
             return
 
         var info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
@@ -1230,7 +1235,10 @@ impl Painter
                     text.boundRect.x = Math.min(text.boundRect.x, c.pos.x)
                     boundRight       = Math.max(boundRight, c.pos.x + c.boundRect.width)
 
-                    if c.isSpace and format.horzAlignment == .Justify and idxLine != lines.count - 1 and not l.hasEol
+                    if c.isSpace and
+                       format.horzAlignment == .Justify and
+                       idxLine != lines.count - 1 and
+                       not l.hasEol
                     {
                         let spaceW = (pos.width - l.measure.width) / l.countSpaces
                         if spaceW < l.measure.height * format.justifyLimit do

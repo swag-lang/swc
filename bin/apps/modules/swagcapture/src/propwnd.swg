@@ -27,7 +27,13 @@ const PopupFrameInset   = 5.0       // Room the frame itself takes around its vi
 //
 // Every popup here is sized through this: written by hand, a dimension stopped matching its
 // list the day a style was added to an enum, and the last entry fell outside the frame.
-func popupExtent(count, size: f32)->f32 => count * size + Math.max(count - 1, 0) * PopupSpacing + 2 * PopupPadding + 2 * PopupFrameInset
+func popupExtent(count, size: f32)->f32
+{
+    return count * size +
+           Math.max(count - 1, 0) * PopupSpacing +
+           2 * PopupPadding +
+           2 * PopupFrameInset
+}
 
 // The enum popup buttons stash the value they represent in the untyped `userData`
 // slot of the widget; these two helpers keep the double cast in one place.

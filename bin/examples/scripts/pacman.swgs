@@ -397,7 +397,9 @@ impl Ghost
     mtd aiSpawn()
     {
         .setSpeed(50)
-        if cast(s32, (.y * 10.0)) % 10 == 5 and cast(s32, (.x * 10.0)) % 10 == 5 and isImpassible(.getNextTile(.dir))
+        if cast(s32, (.y * 10.0)) % 10 == 5 and
+           cast(s32, (.x * 10.0)) % 10 == 5 and
+           isImpassible(.getNextTile(.dir))
         {
             // Switch direction upon hitting a WALL
             switch .dir

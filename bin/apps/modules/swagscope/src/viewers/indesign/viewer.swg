@@ -415,7 +415,11 @@ private impl Panel
     mtd goToTypedPage(text: string)->bool
     {
         let parsed = catch StrConv.parseU64(text) as parseError
-        if parseError != null or parsed.eat != text.count or parsed.ovf or not parsed.value or parsed.value > .pageCount() do
+        if parseError != null or
+           parsed.eat != text.count or
+           parsed.ovf or
+           not parsed.value or
+           parsed.value > .pageCount() do
             return false
         .selectPreview(parsed.value - 1)
         return true

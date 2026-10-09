@@ -1757,7 +1757,9 @@ impl HtmlComputedStyle
 
         case .Content:
             var text = Latin1.trim(value)
-            if text.count >= 2 and (text[0] == '"' or text[0] == '\'') and text[text.count - 1] == text[0]
+            if text.count >= 2 and
+               (text[0] == '"' or text[0] == '\'') and
+               text[text.count - 1] == text[0]
             {
                 .content    = context.pool.addString(htmlDecodeText(text[1 until text.count - 1]).toString())
                 .hasContent = true

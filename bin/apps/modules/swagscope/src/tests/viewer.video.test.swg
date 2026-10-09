@@ -381,13 +381,17 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 2 and not view.playing)
     view.seekRelative(-10)
-    Swag.assert(view.seekOverlay!.isLocallyVisible() and view.seekOverlay!.direction == -1 and view.seekOverlay!.text == "-10")
+    Swag.assert(view.seekOverlay!.isLocallyVisible() and
+                view.seekOverlay!.direction == -1 and
+                view.seekOverlay!.text == "-10")
     Swag.assert(view.seekOverlay!.presentationOffset == {} and view.seekOverlay!.presentationScale == {1, 1})
     Swag.assert(view.seekOverlay!.position.vertCenter() > view.clientRect().vertCenter())
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0)
     view.seekRelative(10)
-    Swag.assert(view.seekOverlay.isLocallyVisible() and view.seekOverlay.direction == 1 and view.seekOverlay.text == "+10")
+    Swag.assert(view.seekOverlay.isLocallyVisible() and
+                view.seekOverlay.direction == 1 and
+                view.seekOverlay.text == "+10")
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 3)
     view.timeline.setValue(3)
@@ -646,7 +650,9 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     // taken long enough to be a wait.
     holdVideoProducer(view)
     view.timeline.setValue(cast(f32, view.frameSeconds(5)))
-    Swag.assert(view.awaitingFrame and not window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0)
+    Swag.assert(view.awaitingFrame and
+                not window.loadingOverlay.isLocallyVisible() and
+                window.loadingWantedSince != 0)
     expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible())
     releaseVideoProducer(view)

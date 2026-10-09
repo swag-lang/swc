@@ -202,7 +202,10 @@ func createSidePanelFixture(host: Viewer.Host)
 
     matches.clear()
     Viewer.collectTextMatches(Source, "cat", {wholeWord: true}, 0, 0, 0, &matches)
-    Swag.assert(matches.count == 3 and matches[0].offset == 0 and matches[1].offset == 12 and matches[2].offset == 25)
+    Swag.assert(matches.count == 3 and
+                matches[0].offset == 0 and
+                matches[1].offset == 12 and
+                matches[2].offset == 25)
 
     matches.clear()
     Viewer.collectTextMatches(Source, "cat", {matchCase: true, wholeWord: true}, 0, 0, 0, &matches)
@@ -1275,7 +1278,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchMatchCaseOption = true
     window.restartSearch()
     completeViewerSearch(&host, window)
-    Swag.assert(window.searchMatches.count == 2 and window.searchMatch == 12 and window.searchCountLabel.text() == "1/2")
+    Swag.assert(window.searchMatches.count == 2 and
+                window.searchMatch == 12 and
+                window.searchCountLabel.text() == "1/2")
 
     window.searchRegexOption     = true
     window.searchMatchCaseOption = false
@@ -1522,7 +1527,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     completeQueuedViewerFile(&host, window)
     window.applyLayout()
 
-    Swag.assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
+    Swag.assert(window.searchGroup.isLocallyVisible() and
+                window.searchBox.isVisible() and
+                window.searchBox.isEnabled())
     Swag.assert(window.searchPrevious.isVisible() and window.searchNext.isVisible())
     Swag.assert(window.searchOptionsButton.isVisible() and window.searchOptionsButton.icon.sizeX == themeActionIconSize(window.themeMetrics()))
     Swag.assert(window.searchOptionsButton.position.height == window.openButton.position.height)
@@ -1553,7 +1560,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
-    Swag.assert(window.searchGroup.isLocallyVisible() and window.searchBox.isVisible() and window.searchBox.isEnabled())
+    Swag.assert(window.searchGroup.isLocallyVisible() and
+                window.searchBox.isVisible() and
+                window.searchBox.isEnabled())
 }
 
 // File metadata can arrive after the first frame. Publishing it lays out the identity row
@@ -1771,7 +1780,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // that has lasted the delay shows the mark, faded in over the preserved document.
     window.instances[0].needsLoadingOverlay = func()->bool => true
     reportViewerLoadingChanged(loading)
-    Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince != 0 and window.loadingTimer != null)
+    Swag.assert(not window.loadingOverlay.isLocallyVisible() and
+                window.loadingWantedSince != 0 and
+                window.loadingTimer != null)
     expireViewerLoadingDelay(window)
     Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingShownSince != 0)
     host.app.animator.finishAll()
@@ -1809,7 +1820,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.loadingShownSince = Time.monotonicMicroseconds()
     window.instances[0].needsLoadingOverlay = null
     reportViewerLoadingChanged(loading)
-    Swag.assert(window.loadingOverlay.isLocallyVisible() and window.loadingWantedSince == 0 and window.loadingTimer != null)
+    Swag.assert(window.loadingOverlay.isLocallyVisible() and
+                window.loadingWantedSince == 0 and
+                window.loadingTimer != null)
     expireViewerLoadingLinger(window)
     Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
     Swag.assert(window.activateChoice(1))
@@ -2230,7 +2243,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.searchWholeWordOption = false
     window.searchRegexOption     = false
     loadViewerState(window, state)
-    Swag.assert(window.folderSameKind and window.searchMatchCaseOption and window.searchWholeWordOption and window.searchRegexOption)
+    Swag.assert(window.folderSameKind and
+                window.searchMatchCaseOption and
+                window.searchWholeWordOption and
+                window.searchRegexOption)
 }
 
 // Bare arrows never navigate files globally. The image viewer is the one document type that

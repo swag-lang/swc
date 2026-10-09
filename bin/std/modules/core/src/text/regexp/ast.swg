@@ -682,7 +682,9 @@ impl Ast
 
         // Any other escaped punctuation is that character. An escaped letter or digit that
         // is not one of the sequences above is a mistake, not a literal.
-        if (value >= 'a' and value <= 'z') or (value >= 'A' and value <= 'Z') or (value >= '0' and value <= '9') do
+        if (value >= 'a' and value <= 'z') or
+           (value >= 'A' and value <= 'Z') or
+           (value >= '0' and value <= '9') do
             fail SyntaxError{"unknown escape sequence"}
 
         .advance()

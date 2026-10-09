@@ -254,7 +254,11 @@ private func streamBoundary(source: string)->u64
         let line    = source[lineStart until index]
         let trimmed = Latin1.trim(line)
         let fence   = parseFence(line)
-        if not html and not fenceMarker and not displayMath and not bracketMath and isHtmlBlockStart(line)
+        if not html and
+           not fenceMarker and
+           not displayMath and
+           not bracketMath and
+           isHtmlBlockStart(line)
         {
             htmlDocument = HtmlDocument.create()
             htmlParser.start(&htmlDocument, .Fragment)
@@ -278,7 +282,10 @@ private func streamBoundary(source: string)->u64
             fenceMarker = fence.marker
             fenceLength = fence.length
         }
-        elif fence.found and fence.marker == fenceMarker and fence.length >= fenceLength and not fence.info.count
+        elif fence.found and
+             fence.marker == fenceMarker and
+             fence.length >= fenceLength and
+             not fence.info.count
         {
             fenceMarker = 0
         }
@@ -549,7 +556,9 @@ private impl View
             return false
         if .blocks.isEmpty() do
             return true
-        if .bytesRead - .residentStart >= ResidentSourceSize and not .jumpToEnd and not .hasPendingTarget do
+        if .bytesRead - .residentStart >= ResidentSourceSize and
+           not .jumpToEnd and
+           not .hasPendingTarget do
             return false
         if .jumpToEnd or .hasPendingTarget do
             return true
@@ -816,7 +825,10 @@ private impl View
                 break
         }
 
-        if .sourceDone and .sourceCarry.isEmpty() and .pendingIndex >= .pendingBlocks.count and .blocks.isEmpty() do
+        if .sourceDone and
+           .sourceCarry.isEmpty() and
+           .pendingIndex >= .pendingBlocks.count and
+           .blocks.isEmpty() do
             .appendBlock(Block{.Paragraph, strings().markdown_EmptyDocument})
 
         // Publish one complete batch. Updating the scroll extent for every block repeats resize
@@ -1463,7 +1475,9 @@ impl View
 
             // A block with no text view of its own — a formula, an embedded page — is taken whole
             // when the selection runs across it, and left alone when it merely touches an edge.
-            if range.startView < block.orderIndex and range.endView >= block.orderIndex and not block.searchText.isEmpty()
+            if range.startView < block.orderIndex and
+               range.endView >= block.orderIndex and
+               not block.searchText.isEmpty()
             {
                 if started do
                     result += "\n"
@@ -1936,7 +1950,9 @@ internal impl IWnd for View
         if not .prioritizeViewport and not .waitingScroll do
             return
         .streamStep()
-        if (.hasPendingTarget or .jumpToEnd) and .replacementAnchorOffset == Swag.U64.Max and not .retainedBlocks.isEmpty()
+        if (.hasPendingTarget or .jumpToEnd) and
+           .replacementAnchorOffset == Swag.U64.Max and
+           not .retainedBlocks.isEmpty()
         {
             // Slow image decoding may outlive this frame. Keep the previous reading surface
             // intact until the complete destination can replace it.

@@ -468,7 +468,9 @@ impl RecentWnd
 
     mtd scheduleLoadNextRecent()
     {
-        if .loadTimer or .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
+        if .loadTimer or
+           .recentView.items.count >= MaxRecent or
+           .pendingRecentIndex >= .pendingRecentFiles.count do
             return
         .prepareLoadRecent = false
         .loadTimer         = .addTimer(1'ms)

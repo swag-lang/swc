@@ -201,7 +201,10 @@ impl Page
 // by the local painter, so the four radii are retained rather than flattened.
 private func cornerCss(item: const *Item, factor: f32)->String
 {
-    if item.cornerTopLeft <= 0 and item.cornerTopRight <= 0 and item.cornerBottomRight <= 0 and item.cornerBottomLeft <= 0 do
+    if item.cornerTopLeft <= 0 and
+       item.cornerTopRight <= 0 and
+       item.cornerBottomRight <= 0 and
+       item.cornerBottomLeft <= 0 do
         return {}
     return Format.toString("border-radius:%px %px %px %px", item.cornerTopLeft * factor, item.cornerTopRight * factor, item.cornerBottomRight * factor, item.cornerBottomLeft * factor)
 }
@@ -791,7 +794,9 @@ func fileUriPath(uri: string)->String
     // Validate the decoded spelling: escaped separators must not introduce a network path.
     if not Path.isValidPathName(result) do
         return {}
-    if result.count >= 2 and Path.isDirectorySeparator(result[0]) and Path.isDirectorySeparator(result[1]) do
+    if result.count >= 2 and
+       Path.isDirectorySeparator(result[0]) and
+       Path.isDirectorySeparator(result[1]) do
         return {}
     return result
 }
@@ -803,7 +808,9 @@ private func localGraphicSource(path: string, loaded: *u64)->String
     if not mime.count do
         return {}
     let info = catch File.info(path) as infoError
-    if infoError != null or info.size > LinkedGraphicDataLimit or info.size > LinkedGraphicsDataLimit - loaded[] do
+    if infoError != null or
+       info.size > LinkedGraphicDataLimit or
+       info.size > LinkedGraphicsDataLimit - loaded[] do
         return {}
     var options: DecodeOptions
     options.decodePixels   = false
@@ -972,7 +979,10 @@ private func textAlignment(value: string)->string
         return "center"
     if value == "RightAlign" do
         return "right"
-    if value == "JustifyAll" or value == "JustifyLeft" or value == "JustifyRight" or value == "JustifyCenter" do
+    if value == "JustifyAll" or
+       value == "JustifyLeft" or
+       value == "JustifyRight" or
+       value == "JustifyCenter" do
         return "justify"
     return "left"
 }

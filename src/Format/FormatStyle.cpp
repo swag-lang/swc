@@ -51,8 +51,8 @@ namespace
         o.indentInsideParens      = false;
 
         // Wrapping
-        o.bitwiseChainColumnLimit              = 120;
-        o.logicalChainColumnLimit              = 120;
+        o.bitwiseChainColumnLimit              = 100;
+        o.logicalChainColumnLimit              = 100;
         o.breakBeforeBinaryOperators           = FormatOperatorWrapStyle::After;
         o.breakBeforeTernaryOperators          = false;
         o.breakAfterReturnType                 = false;

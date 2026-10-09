@@ -187,7 +187,9 @@ impl Volume
         {
             for mapping in node.blocks
             {
-                if mapping.physical >= .blockCount or not mapping.count or mapping.count > .blockCount - mapping.physical do
+                if mapping.physical >= .blockCount or
+                   not mapping.count or
+                   mapping.count > .blockCount - mapping.physical do
                     fail volumeError(.Corrupted)
                 for physical in mapping.physical until mapping.physical + mapping.count do
                     used.set(physical, true)
@@ -470,7 +472,10 @@ impl Volume
         .scalarsDirty = false
     }
 
-    mtd hasPendingChanges()->bool => not .touched.isEmpty() or not .metadataTouched.isEmpty() or not .removed.isEmpty() or .scalarsDirty
+    mtd hasPendingChanges()->bool => not .touched.isEmpty() or
+                                     not .metadataTouched.isEmpty() or
+                                     not .removed.isEmpty() or
+                                     .scalarsDirty
 
     // Makes every pending change durable.
     //

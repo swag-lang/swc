@@ -9,7 +9,10 @@ impl Image
 {
     mtd const doChangePf(dstImage: *Image)
     {
-        let srcLegacy = .pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
+        let srcLegacy = .pixelFormat == .BGR8 or
+                        .pixelFormat == .BGRA8 or
+                        .pixelFormat == .RGB8 or
+                        .pixelFormat == .RGBA8
         let dstLegacy = dstImage.pixelFormat == .BGR8 or
                         dstImage.pixelFormat == .BGRA8 or
                         dstImage.pixelFormat == .RGB8 or

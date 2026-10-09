@@ -62,7 +62,11 @@ impl Document
     // Appends a page and transfers its owned content into the document.
     mtd addPage(page: #move Page)
     {
-        Swag.assert(page.width > 0 and page.height > 0 and Math.isFinite(page.width) and Math.isFinite(page.height), "invalid page dimensions")
+        Swag.assert(page.width > 0 and
+                    page.height > 0 and
+                    Math.isFinite(page.width) and
+                    Math.isFinite(page.height),
+                    "invalid page dimensions")
         .pages.add(#move page)
     }
 

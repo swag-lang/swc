@@ -115,7 +115,9 @@ public func testErrorTransportAfterThreadExit()->bool
                     value.generation == generation + 2
         else do
             valid = false
-        valid = valid and state.drops[generation + 1].load() == 1 and state.drops[generation + 2].load() == 0
+        valid = valid and
+                state.drops[generation + 1].load() == 1 and
+                state.drops[generation + 2].load() == 0
     }
 
     return valid and state.drops[generation + 2].load() == 1 and allocator.stats().countAlloc == baseline

@@ -392,7 +392,10 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
     if not intersects do
         return result
 
-    if firstFactor < -epsilon or firstFactor > 1 + epsilon or secondFactor < -epsilon or secondFactor > 1 + epsilon do
+    if firstFactor < -epsilon or
+       firstFactor > 1 + epsilon or
+       secondFactor < -epsilon or
+       secondFactor > 1 + epsilon do
         return result
 
     result.intersects = true

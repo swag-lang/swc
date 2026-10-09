@@ -216,7 +216,9 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     Swag.assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
     Swag.assert(sound.packetCount() == wanted.count)
     Swag.assert(sound.sampleFrameCount() == wanted.count * 1024)
-    Swag.assert(sound.decoderConfig.count == 2 and sound.decoderConfig[0] == 0x12 and sound.decoderConfig[1] == 0x10)
+    Swag.assert(sound.decoderConfig.count == 2 and
+                sound.decoderConfig[0] == 0x12 and
+                sound.decoderConfig[1] == 0x10)
     for index in wanted.count
     {
         let got = expect sound.packet(index)
@@ -234,5 +236,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var sound = expect SoundFile.load(path.toString())
     Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
     Swag.assert(sound.speakerChannelMask() == 0x3F)
-    Swag.assert(sound.decoderConfig.count == 2 and sound.decoderConfig[0] == 0x11 and sound.decoderConfig[1] == 0xB0)
+    Swag.assert(sound.decoderConfig.count == 2 and
+                sound.decoderConfig[0] == 0x11 and
+                sound.decoderConfig[1] == 0xB0)
 }

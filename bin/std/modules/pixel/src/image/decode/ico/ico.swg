@@ -100,7 +100,11 @@ func maskBit(andRow: const [*] u8, x: s32)->u32 => cast(u32, ((andRow[x / 8] >> 
 // Decode the embedded BITMAPINFOHEADER icon image into a BGRA8 result.
 func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
 {
-    if dib.bitCount != 1 and dib.bitCount != 4 and dib.bitCount != 8 and dib.bitCount != 24 and dib.bitCount != 32 do
+    if dib.bitCount != 1 and
+       dib.bitCount != 4 and
+       dib.bitCount != 8 and
+       dib.bitCount != 24 and
+       dib.bitCount != 32 do
         fail UnsupportedFormatError{"unsupported icon bit count"}
     if dib.compression != 0 do
         fail UnsupportedFormatError{"unsupported icon compression"}

@@ -358,7 +358,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
                 for plane in 2'u32
                 {
                     let pix = frame.pixChroma(plane, mbX * 8 + edge * 2, mbY * 8)
-                    if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4 do
+                    if strengths.bs[0] < 4 and
+                       strengths.bs[1] < 4 and
+                       strengths.bs[2] < 4 and
+                       strengths.bs[3] < 4 do
                         filterChromaWeakVertical(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
                     else do
                         filterChromaStrongVertical(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
@@ -426,7 +429,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         if alpha != 0 and beta != 0
         {
             let pix = frame.pixLuma(mbX * 16, mbY * 16 + edge * 4)
-            if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+            if strengths.bs[0] < 4 and
+               strengths.bs[1] < 4 and
+               strengths.bs[2] < 4 and
+               strengths.bs[3] < 4
             {
                 filterLumaWeakHorizontal(pix, frame.strideLuma, &strengths, indexA, alpha, beta)
             }
@@ -447,7 +453,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             let cBeta   = cast(s32, DeblockBeta[cast(u64, cIndexB)])
             if cAlpha != 0 and cBeta != 0
             {
-                let weak = strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+                let weak = strengths.bs[0] < 4 and
+                           strengths.bs[1] < 4 and
+                           strengths.bs[2] < 4 and
+                           strengths.bs[3] < 4
                 for plane in 2'u32
                 {
                     let planePix = frame.pixChroma(plane, mbX * 16, mbY * 16 + edge * 4)
@@ -475,7 +484,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
                 for plane in 2'u32
                 {
                     let pix = frame.pixChroma(plane, mbX * 8, mbY * 8 + edge * 2)
-                    if strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+                    if strengths.bs[0] < 4 and
+                       strengths.bs[1] < 4 and
+                       strengths.bs[2] < 4 and
+                       strengths.bs[3] < 4
                     {
                         filterChromaWeakHorizontal(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
                     }

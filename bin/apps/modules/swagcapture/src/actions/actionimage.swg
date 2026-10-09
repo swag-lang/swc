@@ -23,7 +23,10 @@ func anchorSplit(delta: s32, cell: u64)->{before: s32, after: s32}
 // Whether a capture can take the size `width` by `height`, and it differs from the current one.
 private func acceptsNewSize(width, height, currentWidth, currentHeight: s32)->bool
 {
-    if width < Capture.MinSize or width > Capture.MaxSize or height < Capture.MinSize or height > Capture.MaxSize do
+    if width < Capture.MinSize or
+       width > Capture.MaxSize or
+       height < Capture.MinSize or
+       height > Capture.MaxSize do
         return false
     return width != currentWidth or height != currentHeight
 }
@@ -452,7 +455,9 @@ impl MainWnd
         // accumulators stay at their init sentinels (minX/minY = F32.Max, maxX/maxY = 0), so
         // minX > maxX. Require a valid content box first, otherwise the offsets below would be
         // computed from F32.Max and produce a corrupt MoveCapture undo.
-        if minX <= maxX and minY <= maxY and (minX or minY or maxX != capture.width or maxY != capture.height)
+        if minX <= maxX and
+           minY <= maxY and
+           (minX or minY or maxX != capture.width or maxY != capture.height)
         {
             with let undo = capture.newUndo(.MoveCapture)
             {

@@ -450,7 +450,9 @@ private func htmlParseColorMix(value: string)->HtmlColorValue
 {
     var result: retval
     let call = htmlFunctionArguments(value, "color-mix")
-    if not call.matched or call.arguments.count != 3 or Latin1.trim(call.arguments[0].toString()) != "in srgb" do
+    if not call.matched or
+       call.arguments.count != 3 or
+       Latin1.trim(call.arguments[0].toString()) != "in srgb" do
         return result
 
     let first  = htmlColorMixStop(call.arguments[1].toString())

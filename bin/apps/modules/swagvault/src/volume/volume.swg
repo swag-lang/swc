@@ -452,7 +452,9 @@ impl Volume
     // Checks that the entire hidden view still belongs to one genuinely free outer extent.
     mtd validateHiddenRegion(region: FreeExtent) fail
     {
-        if region.first < DataOffset or region.first > .containerSize or region.count > .containerSize - region.first do
+        if region.first < DataOffset or
+           region.first > .containerSize or
+           region.count > .containerSize - region.first do
             fail volumeError(.HiddenProtected)
         for extent in .blocks.free
         {

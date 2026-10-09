@@ -4,7 +4,10 @@ impl Image
 {
     mtd const doHalfSize(dstImage: *Image)
     {
-        let legacy = .pixelFormat == .BGR8 or .pixelFormat == .BGRA8 or .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
+        let legacy = .pixelFormat == .BGR8 or
+                     .pixelFormat == .BGRA8 or
+                     .pixelFormat == .RGB8 or
+                     .pixelFormat == .RGBA8
         if not legacy
         {
             var context = {src: me, dst: dstImage}

@@ -65,7 +65,9 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
     Memory.postCopyType(directRaw, aliasType)
     Memory.postMoveType(directRaw, aliasType)
     Memory.dropType(directRaw, aliasType)
-    if CoreAliasLifecyclePostCopyCount != 1 or CoreAliasLifecyclePostMoveCount != 1 or CoreAliasLifecycleDropCount != 1 do
+    if CoreAliasLifecyclePostCopyCount != 1 or
+       CoreAliasLifecyclePostMoveCount != 1 or
+       CoreAliasLifecycleDropCount != 1 do
         return false
 
     let arrayRaw = Memory.alloc(#sizeof([2] CoreAliasLifecycleProbe))
@@ -78,7 +80,9 @@ func testCoreAliasLifecycleRuntimeFlags()->bool
     Memory.postCopyType(arrayRaw, arrayType)
     Memory.postMoveType(arrayRaw, arrayType)
     Memory.dropType(arrayRaw, arrayType)
-    if CoreAliasLifecyclePostCopyCount != 2 or CoreAliasLifecyclePostMoveCount != 2 or CoreAliasLifecycleDropCount != 2 do
+    if CoreAliasLifecyclePostCopyCount != 2 or
+       CoreAliasLifecyclePostMoveCount != 2 or
+       CoreAliasLifecycleDropCount != 2 do
         return false
 
     let nestedArrayType = #typeof([3][2] CoreAliasLifecycleStrict)

@@ -110,7 +110,9 @@ func loadImages(fileName: string, archive: const *Archive.Zip)->Array'EmbeddedIm
         if not entry.path.startsWith("Pictures/", .Latin1NoCase) do
             continue
         let mediaType = imageMediaType(entry.path)
-        if mediaType == "" or entry.uncompressedSize > ImageLimit or entry.uncompressedSize > ImageLimit - total do
+        if mediaType == "" or
+           entry.uncompressedSize > ImageLimit or
+           entry.uncompressedSize > ImageLimit - total do
             continue
 
         let bytes = catch Archive.Zip.loadEntry(fileName, entry) as imageError

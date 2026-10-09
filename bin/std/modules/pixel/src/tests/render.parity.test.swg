@@ -665,7 +665,9 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
             let color = image.pixelColor(x, y)
             if color.a == 0 do
                 continue
-            Swag.assert(color.r == effect.glowColor.r and color.g == effect.glowColor.g and color.b == effect.glowColor.b)
+            Swag.assert(color.r == effect.glowColor.r and
+                        color.g == effect.glowColor.g and
+                        color.b == effect.glowColor.b)
             Swag.assert(color.a <= effect.glowColor.a)
             if color.a < effect.glowColor.a do
                 fractional += 1

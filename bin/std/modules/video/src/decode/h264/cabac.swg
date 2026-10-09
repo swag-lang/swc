@@ -315,7 +315,10 @@ impl Slice
             mb.cbpLuma   = .cbpLumaCabac(mb)
             mb.cbpChroma = dec.sps!.is444() ? 0 : .cbpChromaCabac(mb)
 
-            if mb.cbpLuma != 0 and pps.transform8x8 and mb.class == MbClassInter and .allowsTransform8x8(mb) do
+            if mb.cbpLuma != 0 and
+               pps.transform8x8 and
+               mb.class == MbClassInter and
+               .allowsTransform8x8(mb) do
                 mb.transform8x8 = .transformFlagCabac(mb) != 0
         }
 

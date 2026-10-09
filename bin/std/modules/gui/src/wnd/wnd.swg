@@ -1027,7 +1027,10 @@ impl Wnd
         // and it goes over the content so a filled button still shows it. A control that already
         // says it another way — a caret, a selected row, a highlighted cell — carries
         // [[Gui.WndFlags.NoFocusRing]] and paints nothing here.
-        if .focusPolicy == .Tab and not .wndFlags.has(.NoFocusRing) and not bc.isDisabled and .showsFocusRing()
+        if .focusPolicy == .Tab and
+           not .wndFlags.has(.NoFocusRing) and
+           not bc.isDisabled and
+           .showsFocusRing()
         {
             painter.setTransform(curTrs)
             theme.drawFocusRing(painter, .clientRect(), .focusRingRadius, .focusRingGround)

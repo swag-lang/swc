@@ -35,7 +35,9 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 
     Swag.assert(Text.hasBom(utf16le, .Utf16Le) and not Text.hasBom(utf16le, .Utf16Be))
     Swag.assert(Text.bomLength(.Utf8) == 3 and Text.bomLength(.Windows1252) == 0)
-    Swag.assert(Text.unitSize(.Utf16Be) == 2 and Text.unitSize(.Utf32Le) == 4 and Text.unitSize(.Windows1252) == 1)
+    Swag.assert(Text.unitSize(.Utf16Be) == 2 and
+                Text.unitSize(.Utf32Le) == 4 and
+                Text.unitSize(.Windows1252) == 1)
 }
 
 // Compare the vector mask split with the original scalar definition for every tail and for

@@ -240,7 +240,9 @@ impl Decoder
         let predictor    = try readScalar(base, last, le, &ifd, TAG_PREDICTOR, 1)
         var rowsPerStrip = try readScalar(base, last, le, &ifd, TAG_ROWS_PER_STRIP, height)
 
-        if compression != COMPRESSION_NONE and compression != COMPRESSION_LZW and compression != COMPRESSION_PACKBITS do
+        if compression != COMPRESSION_NONE and
+           compression != COMPRESSION_LZW and
+           compression != COMPRESSION_PACKBITS do
             fail UnsupportedFormatError{"unsupported compression"}
         if planar != 1 do
             fail UnsupportedFormatError{"unsupported planar configuration"}
@@ -267,7 +269,9 @@ impl Decoder
         var pf: PixelFormat
         if samples == 1
         {
-            if photometric != PHOTO_WHITE_IS_ZERO and photometric != PHOTO_BLACK_IS_ZERO and photometric != PHOTO_PALETTE do
+            if photometric != PHOTO_WHITE_IS_ZERO and
+               photometric != PHOTO_BLACK_IS_ZERO and
+               photometric != PHOTO_PALETTE do
                 fail UnsupportedFormatError{"unsupported photometric"}
 
             // Palette images carry real colors (RGB8); grayscale replicates a

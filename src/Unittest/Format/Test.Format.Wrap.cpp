@@ -47,6 +47,20 @@ SWC_TEST_BEGIN(FormatWrap_BitwiseChainsInsideCast)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_SwagStyleUsesDefaultBitwiseWidth)
+{
+    static constexpr std::string_view SOURCE =
+        "func probe()->u32 => firstOperandWithAnUnusuallyLongDescriptiveName | secondOperandWithAnUnusuallyLongDescriptiveName | thirdOperandWithAnUnusuallyLongDescriptiveName\n";
+    static constexpr std::string_view EXPECTED =
+        "func probe()->u32 => firstOperandWithAnUnusuallyLongDescriptiveName |\n"
+        "                     secondOperandWithAnUnusuallyLongDescriptiveName |\n"
+        "                     thirdOperandWithAnUnusuallyLongDescriptiveName\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatWrap_BitwiseChainsHonorOperatorPosition)
 {
     static constexpr std::string_view SOURCE =
@@ -216,6 +230,26 @@ SWC_TEST_BEGIN(FormatWrap_LogicalChainsSplitByOperand)
         SWC_RESULT(FormatRewriteCheck::check(ctx, source, expected, options));
     }
     return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_SwagStyleUsesDefaultLogicalWidth)
+{
+    static constexpr std::string_view SOURCE =
+        "func probe()->bool\n"
+        "{\n"
+        "    return firstConditionWithAnExtremelyLongDescriptiveName and secondConditionWithAnExtremelyLongDescriptiveName and thirdConditionWithAnExtremelyLongDescriptiveName\n"
+        "}\n";
+    static constexpr std::string_view EXPECTED =
+        "func probe()->bool\n"
+        "{\n"
+        "    return firstConditionWithAnExtremelyLongDescriptiveName and\n"
+        "           secondConditionWithAnExtremelyLongDescriptiveName and\n"
+        "           thirdConditionWithAnExtremelyLongDescriptiveName\n"
+        "}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

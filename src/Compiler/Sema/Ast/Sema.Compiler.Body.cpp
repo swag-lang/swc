@@ -128,7 +128,7 @@ namespace
     Utf8 compilerAstSourcePath(const SourceView& srcView)
     {
         if (const SourceFile* file = srcView.file())
-            return Utf8{file->path().string()};
+            return file->pathString();
 
         return "<unknown>";
     }

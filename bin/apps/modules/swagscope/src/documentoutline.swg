@@ -200,7 +200,14 @@ impl DocumentOutline
         .title.setText(g_DocumentOutlineStrings.title)
         .toggle.toolTip      = g_DocumentOutlineStrings.title
         .closeButton.toolTip = g_DocumentOutlineStrings.close
-        .status.setText(not .failure.isEmpty() ? .failure.toString() : .load.isPending() ? g_DocumentOutlineStrings.loading : g_DocumentOutlineStrings.empty)
+        var statusText: String
+        if not .failure.isEmpty() do
+            statusText = .failure.toString()
+        elif .load.isPending() do
+            statusText = g_DocumentOutlineStrings.loading
+        else do
+            statusText = g_DocumentOutlineStrings.empty
+        .status.setText(statusText)
         .status.show(.levels.isEmpty())
         .list.computeLayout()
         .applyLayout()

@@ -118,7 +118,14 @@ impl Document
         {
             let entropy = .entropy()
             let value   = Format.toString("%{f2} / 8", entropy)
-            head.derived(texts.rep_Entropy, value, entropy > 7.2 ? texts.rep_EntropyHigh : (entropy > 5 ? texts.rep_EntropyMid : texts.rep_EntropyLow))
+            var entropyLabel: string
+            if entropy > 7.2 do
+                entropyLabel = texts.rep_EntropyHigh
+            elif entropy > 5 do
+                entropyLabel = texts.rep_EntropyMid
+            else do
+                entropyLabel = texts.rep_EntropyLow
+            head.derived(texts.rep_Entropy, value, entropyLabel)
         }
 
         if .image.truncated do

@@ -157,12 +157,14 @@ impl Page
         result += Format.toString("<div class=\"idml-page\" style=\"width:%px;height:%px\">", .bounds.width * factor, .bounds.height * factor)
         for item in .items
         {
+            let itemPaint      = item.line ? item.stroke : item.fill
+            let itemBackground = itemPaint.isEmpty() ? "transparent" : itemPaint
             result += Format.toString("<div class=\"idml-item\" style=\"left:%px;top:%px;width:%px;height:%px;background:%;border:%px solid %;%;%;%;%\">",
                                       item.bounds.left * factor,
                                       item.bounds.top * factor,
                                       item.bounds.width * factor,
                                       item.bounds.height * factor,
-                                      item.line ? (item.stroke.isEmpty() ? "transparent" : item.stroke) : (item.fill.isEmpty() ? "transparent" : item.fill),
+                                      itemBackground,
                                       item.line ? 0 : item.strokeSize * factor,
                                       item.stroke.isEmpty() ? "transparent" : item.stroke,
                                       item.oval ? "border-radius:50%" : cornerCss(item, factor),
@@ -686,8 +688,12 @@ func embeddedGraphicDataUri(item: string)->String
         return {}
 
     let type = attribute(item[imageStart until imageOpenEnd + 1], "ImageTypeName")
-    let mime = Utf8.contains(type, "JPEG") ? "image/jpeg" : Utf8.contains(type, "PNG") ? "image/png" : ""
-    if not mime.count do
+    var mime: string
+    if Utf8.contains(type, "JPEG") do
+        mime = "image/jpeg"
+    elif Utf8.contains(type, "PNG") do
+        mime = "image/png"
+    else do
         return {}
 
     let contentsStart   = Utf8.indexOf(item, "<Contents", imageOpenEnd + 1)
@@ -1046,7 +1052,12 @@ private func textStyleCss(style: const *TextStyle)->String
         result += "font-weight:bold;"
     if style.italic do
         result += "font-style:italic;"
-    result += style.cjk ? "font-family:cjk;" : style.serif ? "font-family:serif;" : "font-family:sans-serif;"
+    if style.cjk do
+        result += "font-family:cjk;"
+    elif style.serif do
+        result += "font-family:serif;"
+    else do
+        result += "font-family:sans-serif;"
     return result
 }
 
@@ -1469,9 +1480,19 @@ private func appendItems(fileName, source: string, colors: const *HashTable'(Str
         let oval     = start == ovalStart
         let polygon  = start == polygonStart
         let line     = start == lineStart
-        let closing  = textItem ? "</TextFrame>" : oval ? "</Oval>" : polygon ? "</Polygon>" : line ? "</GraphicLine>" : "</Rectangle>"
-        let openEnd  = Utf8.indexOf(source, '>'rune, start)
-        let close    = openEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(source, closing, openEnd + 1)
+        var closing: string
+        if textItem do
+            closing = "</TextFrame>"
+        elif oval do
+            closing = "</Oval>"
+        elif polygon do
+            closing = "</Polygon>"
+        elif line do
+            closing = "</GraphicLine>"
+        else do
+            closing = "</Rectangle>"
+        let openEnd = Utf8.indexOf(source, '>'rune, start)
+        let close   = openEnd == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(source, closing, openEnd + 1)
         if close == Swag.U64.Max do
             break
         let tag       = source[start until openEnd + 1]

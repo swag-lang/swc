@@ -129,7 +129,9 @@ func updateHeader()
     let footer   = g_Footer!
     title.setText(Format.toString("GUI2 widget showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
-    footer.setText(Format.toString("F1 : next page (%/%). Pages : buttons, checks, radios, edits, sliders, combos, tabs, progress.", g_Page + 1, MaxPages))
+    footer.setText(Format.toString("F1 : next page (%/%). Pages : buttons, checks, radios, edits, sliders, combos, tabs, progress.",
+                                   g_Page + 1,
+                                   MaxPages))
 }
 
 func updateThemeButton()

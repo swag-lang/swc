@@ -3,7 +3,10 @@ using Core, Gui, Pixel
 func createProgressBarPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left   = createPanel(parent, "Finite", "Static progression values cover empty, partial, full and disabled bars.", layout.left)
+    let left   = createPanel(parent,
+                             "Finite",
+                             "Static progression values cover empty, partial, full and disabled bars.",
+                             layout.left)
     {
         createCaption(left, "25 percent", 24, 88, 160)
         var prg = ProgressBar.create(left, {24, 116, 320})
@@ -14,7 +17,10 @@ func createProgressBarPage(parent: *Wnd)
         prg.setValue(0.75)
     }
 
-    let right = createPanel(parent, "Infinite", "The built-in infinite mode animates itself during paint, and a spinner says the same thing where no bar fits.", layout.right)
+    let right = createPanel(parent,
+                            "Infinite",
+                            "The built-in infinite mode animates itself during paint, and a spinner says the same thing where no bar fits.",
+                            layout.right)
     {
         let prg = ProgressBar.create(right, {24, 116, 330})
         prg.updateFlags(.Indeterminate)
@@ -25,7 +31,10 @@ func createProgressBarPage(parent: *Wnd)
         Spinner.create(right, {96, 154, 40})
     }
 
-    let bottom = createPanel(parent, "Frame-driven", "One bar is advanced from the application frame callback; another shows disabled rendering.", layout.bottom)
+    let bottom = createPanel(parent,
+                             "Frame-driven",
+                             "One bar is advanced from the application frame callback; another shows disabled rendering.",
+                             layout.bottom)
     {
         createCaption(bottom, "Application frame", 24, 92, 180)
         let framePrg = ProgressBar.create(bottom, {24, 124, 420})

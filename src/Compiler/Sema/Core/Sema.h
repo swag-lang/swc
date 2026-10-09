@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaEscapeTypes.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
@@ -392,20 +393,24 @@ public:
     void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 
-    void enableLocalLoweringPayloads() { localLoweringPayloads_ = std::make_unique<std::unordered_map<AstNodeRef, void*>>(); }
-    bool usesLocalLoweringPayloads() const { return localLoweringPayloads_ != nullptr; }
+    // Every code generation job owns such a table, and most of them never record a payload in
+    // it: the table allocates nothing until the first one. A payload is never null, so a null
+    // read means absent.
+    void enableLocalLoweringPayloads() { localLoweringPayloads_.emplace(); }
+    bool usesLocalLoweringPayloads() const { return localLoweringPayloads_.has_value(); }
     bool hasLoweringPayload(AstNodeRef n) const
     {
-        if (localLoweringPayloads_ && localLoweringPayloads_->contains(n))
+        if (localLoweringPayloads_ && localLoweringPayloads_->find(n))
             return true;
         return nodePayloadContext().hasLoweringPayload(n);
     }
 
     void setLoweringPayload(AstNodeRef n, void* payload)
     {
+        SWC_ASSERT(payload != nullptr);
         if (localLoweringPayloads_)
         {
-            (*localLoweringPayloads_)[n] = payload;
+            localLoweringPayloads_->set(n, payload);
             return;
         }
 
@@ -417,9 +422,8 @@ public:
     {
         if (localLoweringPayloads_)
         {
-            const auto it = localLoweringPayloads_->find(n);
-            if (it != localLoweringPayloads_->end())
-                return static_cast<T*>(it->second);
+            if (void* local = localLoweringPayloads_->find(n))
+                return static_cast<T*>(local);
         }
 
         return static_cast<T*>(nodePayloadContext().getLoweringPayload(n));
@@ -431,17 +435,16 @@ public:
         if (!localLoweringPayloads_)
             return static_cast<T*>(nodePayloadContext().getLoweringPayload(n));
 
-        const auto it = localLoweringPayloads_->find(n);
-        if (it != localLoweringPayloads_->end())
-            return static_cast<T*>(it->second);
+        if (void* local = localLoweringPayloads_->find(n))
+            return static_cast<T*>(local);
 
         void* inherited = nodePayloadContext().getLoweringPayload(n);
         if (!inherited)
             return nullptr;
 
-        auto* payload                = ctx().allocate<T>();
-        *payload                     = *static_cast<T*>(inherited);
-        (*localLoweringPayloads_)[n] = payload;
+        auto* payload = ctx().allocate<T>();
+        *payload      = *static_cast<T*>(inherited);
+        localLoweringPayloads_->set(n, payload);
         return payload;
     }
 
@@ -703,9 +706,9 @@ private:
     void   processDeferredPopsPostNode(AstNodeRef nodeRef);
     Result processDeferredPostNodeActions(AstNodeRef nodeRef);
 
-    TaskContext*                                           ctx_                = nullptr;
-    NodePayload*                                           nodePayloadContext_ = nullptr;
-    std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
+    TaskContext*                             ctx_                = nullptr;
+    NodePayload*                             nodePayloadContext_ = nullptr;
+    std::optional<RefPointerMap<AstNodeRef>> localLoweringPayloads_;
     struct EscapeBranchState
     {
         // The state each alternative starts from is shared, not copied: a branch that changes no

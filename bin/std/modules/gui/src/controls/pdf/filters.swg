@@ -290,7 +290,14 @@ internal func decodeLzw(data: const [..] u8, earlyChange = true)->Array'u8 fail
         previous = code
 
         let limit = earlyChange ? next + 1 : next
-        codeBits = limit >= 2048 ? 12 : limit >= 1024 ? 11 : limit >= 512 ? 10 : 9
+        if limit >= 2048 do
+            codeBits = 12
+        elif limit >= 1024 do
+            codeBits = 11
+        elif limit >= 512 do
+            codeBits = 10
+        else do
+            codeBits = 9
     }
 
     return result

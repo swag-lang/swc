@@ -13,8 +13,20 @@ func drawRenderTargetContent(painter: *Pixel.Painter, width, height: s32)
     painter.drawCircle(backRect.x + 90, backRect.y + 92, 54, ringPen)
     painter.fillCircle(backRect.x + 90, backRect.y + 92, 24, Color.fromArgb(210, Argb.MidnightBlue))
 
-    painter.fillRoundRect(backRect.right() - 150, backRect.y + 26, 110, 74, 18, 18, Color.fromArgb(180, Argb.DeepSkyBlue))
-    painter.fillRoundRect(backRect.right() - 120, backRect.y + 54, 110, 74, 18, 18, Color.fromArgb(160, Argb.Tomato))
+    painter.fillRoundRect(backRect.right() - 150,
+                          backRect.y + 26,
+                          110,
+                          74,
+                          18,
+                          18,
+                          Color.fromArgb(180, Argb.DeepSkyBlue))
+    painter.fillRoundRect(backRect.right() - 120,
+                          backRect.y + 54,
+                          110,
+                          74,
+                          18,
+                          18,
+                          Color.fromArgb(160, Argb.Tomato))
     painter.drawString(backRect.x + 164, backRect.y + 92, "RT", g_TitleFont, Argb.MidnightBlue)
 
     var star = makeStarPolygon(backRect.right() - 106, backRect.bottom() - 70, 48, 20, 5)
@@ -24,7 +36,10 @@ func drawRenderTargetContent(painter: *Pixel.Painter, width, height: s32)
 
 func drawRenderTargetPreviewCard(painter: *Pixel.Painter, rect: Math.Rectangle, texture: Texture)
 {
-    let body      = drawPanel(painter, rect, "Offscreen texture reuse", "The render target is drawn once, then sampled back as a normal texture at different scales.")
+    let body = drawPanel(painter,
+                         rect,
+                         "Offscreen texture reuse",
+                         "The render target is drawn once, then sampled back as a normal texture at different scales.")
     let sampleGap = 18.0
     let sampleW   = (body.width - 2 * sampleGap) / 3.0
     let leftRect  = Math.Rectangle{body.x, body.y, sampleW, body.height}
@@ -56,7 +71,10 @@ func drawRenderTargetPreviewCard(painter: *Pixel.Painter, rect: Math.Rectangle, 
 
 func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, texture: Texture)
 {
-    let body = drawPanel(painter, rect, "Render target as a brush", "Once the offscreen pass is complete, its color buffer can feed regular brush and pen paths in the main scene.")
+    let body = drawPanel(painter,
+                         rect,
+                         "Render target as a brush",
+                         "Once the offscreen pass is complete, its color buffer can feed regular brush and pen paths in the main scene.")
 
     {
         let leftRect  = Math.Rectangle{body.x + 18, body.y + 18, body.width * 0.44, body.height - 36}
@@ -69,7 +87,11 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
         painter.drawRoundRect(leftRect, 22, 22, pen)
         let labelRect = Math.Rectangle{leftRect.x + 12, leftRect.bottom() - 34, leftRect.width - 24, 25}
         painter.fillRoundRect(labelRect, 7, 7, Color.fromArgb(205, Argb.MidnightBlue))
-        drawWrappedText(painter, insetRect(labelRect, 8, 3, 8, 2), "Brush.createTexture(target.colorBuffer)", g_HelpFont, Argb.White)
+        drawWrappedText(painter,
+                        insetRect(labelRect, 8, 3, 8, 2),
+                        "Brush.createTexture(target.colorBuffer)",
+                        g_HelpFont,
+                        Argb.White)
     }
 
     {
@@ -82,13 +104,19 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
 
         painter.fillPolygon(flower[to], Brush.createTiled(g_TileTexture))
         drawClosedOutline(painter, flower[to], pen)
-        drawWrappedText(painter, {rightRect.x + 10, rightRect.bottom() - 24, rightRect.width - 20, 22}, "Textured outline from the same target", g_HelpFont, Argb.DarkSlateGray)
+        drawWrappedText(painter,
+                        {rightRect.x + 10, rightRect.bottom() - 24, rightRect.width - 20, 22},
+                        "Textured outline from the same target",
+                        g_HelpFont,
+                        Argb.DarkSlateGray)
     }
 }
 
 func drawRenderTargetPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel render targets", "Page 11 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
+    drawPageHeader(painter,
+                   "Pixel render targets",
+                   "Page 11 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
 
     // The target stores device texels while the offscreen pass draws in logical
     // units: allocate it at the painter's content scale so the drawing is as dense

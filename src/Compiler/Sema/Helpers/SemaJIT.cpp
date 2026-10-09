@@ -1246,6 +1246,28 @@ namespace
         return Result::Continue;
     }
 
+    // Reads the arguments the way buildConstCallArguments does, up to the first default it would
+    // have to materialize. A pure call with a runtime argument, which is most of them, is then
+    // turned down before its fold payload, a kilobyte of inline storage, is allocated for nothing.
+    bool explicitArgumentsCanFold(Sema& sema, const SymbolFunction& calledFn, std::span<const ResolvedCallArgument> resolvedArgs)
+    {
+        SWC_ASSERT(resolvedArgs.size() == calledFn.parameters().size());
+        for (size_t i = 0; i < resolvedArgs.size(); ++i)
+        {
+            const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
+            if (resolvedArg.passKind != CallArgumentPassKind::Direct)
+                return false;
+            if (!sema.typeMgr().unwrapAlias(sema.ctx(), calledFn.parameters()[i]->typeRef()).isValid())
+                return false;
+            if (resolvedArg.argRef.isInvalid())
+                return true;
+            if (!sema.viewConstant(resolvedArg.argRef).cstRef().isValid())
+                return false;
+        }
+
+        return true;
+    }
+
     Result buildConstSetCallArguments(Sema& sema, bool& outBuilt, const SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, TypeRef receiverTypeRef, ConstantRef receiverInitCstRef, const std::byte*& outReceiverStorage, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         outBuilt           = false;
@@ -1554,6 +1576,8 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     ///////////////////////////////////////////
     // Build payload and arguments for call folding.
     if (resolvedArgs.size() != calledFn.parameters().size() || hasAnyVariadicParameter(sema, calledFn))
+        return Result::Continue;
+    if (!explicitArgumentsCanFold(sema, calledFn, resolvedArgs))
         return Result::Continue;
 
     const auto payload = std::make_shared<JITNodePayload>();

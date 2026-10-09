@@ -50,6 +50,7 @@ namespace Match
     };
 
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
+    void   collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::vector<Utf8>& out);
     Result matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols);
     Result ghosting(Sema& sema, const Symbol& sym);
 

@@ -1756,6 +1756,14 @@ DiagnosticArguments Cast::callSiteErrorArguments(const TaskContext& ctx, const C
     // no position between the parentheses. Leaving them out lets the message fall back to its
     // form without the callee instead of printing an empty name or a number the user never wrote.
     DiagnosticArguments arguments;
+    if (callSite.returnValue)
+    {
+        // A closure or a lambda has a generated name the reader never wrote.
+        if (callSite.function && !callSite.function->name(ctx).empty() && !callSite.function->name(ctx).starts_with("__"))
+            arguments.push_back(DiagnosticArgument{Diagnostic::ARG_RETURN_FN, Utf8{callSite.function->name(ctx)}});
+        return arguments;
+    }
+
     if (!callSite.function || callSite.function->name(ctx).empty() || !callSite.argNumber)
         return arguments;
     arguments.push_back(DiagnosticArgument{Diagnostic::ARG_INDEX, callSite.argNumber});

@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaEscapeTypes.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Support/Core/Flags.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
@@ -393,20 +394,24 @@ public:
     void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 
-    void enableLocalLoweringPayloads() { localLoweringPayloads_ = std::make_unique<std::unordered_map<AstNodeRef, void*>>(); }
-    bool usesLocalLoweringPayloads() const { return localLoweringPayloads_ != nullptr; }
+    // Every code generation job owns such a table, and most of them never record a payload in
+    // it: the table allocates nothing until the first one. A payload is never null, so a null
+    // read means absent.
+    void enableLocalLoweringPayloads() { localLoweringPayloads_.emplace(); }
+    bool usesLocalLoweringPayloads() const { return localLoweringPayloads_.has_value(); }
     bool hasLoweringPayload(AstNodeRef n) const
     {
-        if (localLoweringPayloads_ && localLoweringPayloads_->contains(n))
+        if (localLoweringPayloads_ && localLoweringPayloads_->find(n))
             return true;
         return nodePayloadContext().hasLoweringPayload(n);
     }
 
     void setLoweringPayload(AstNodeRef n, void* payload)
     {
+        SWC_ASSERT(payload != nullptr);
         if (localLoweringPayloads_)
         {
-            (*localLoweringPayloads_)[n] = payload;
+            localLoweringPayloads_->set(n, payload);
             return;
         }
 
@@ -418,9 +423,8 @@ public:
     {
         if (localLoweringPayloads_)
         {
-            const auto it = localLoweringPayloads_->find(n);
-            if (it != localLoweringPayloads_->end())
-                return static_cast<T*>(it->second);
+            if (void* local = localLoweringPayloads_->find(n))
+                return static_cast<T*>(local);
         }
 
         return static_cast<T*>(nodePayloadContext().getLoweringPayload(n));
@@ -432,17 +436,16 @@ public:
         if (!localLoweringPayloads_)
             return static_cast<T*>(nodePayloadContext().getLoweringPayload(n));
 
-        const auto it = localLoweringPayloads_->find(n);
-        if (it != localLoweringPayloads_->end())
-            return static_cast<T*>(it->second);
+        if (void* local = localLoweringPayloads_->find(n))
+            return static_cast<T*>(local);
 
         void* inherited = nodePayloadContext().getLoweringPayload(n);
         if (!inherited)
             return nullptr;
 
-        auto* payload                = ctx().allocate<T>();
-        *payload                     = *static_cast<T*>(inherited);
-        (*localLoweringPayloads_)[n] = payload;
+        auto* payload = ctx().allocate<T>();
+        *payload      = *static_cast<T*>(inherited);
+        localLoweringPayloads_->set(n, payload);
         return payload;
     }
 
@@ -704,29 +707,36 @@ private:
     void   processDeferredPopsPostNode(AstNodeRef nodeRef);
     Result processDeferredPostNodeActions(AstNodeRef nodeRef);
 
-    TaskContext*                                           ctx_                = nullptr;
-    NodePayload*                                           nodePayloadContext_ = nullptr;
-    std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
+    TaskContext*                             ctx_                = nullptr;
+    NodePayload*                             nodePayloadContext_ = nullptr;
+    std::optional<RefPointerMap<AstNodeRef>> localLoweringPayloads_;
     struct EscapeBranchState
     {
         // The state each alternative starts from is shared, not copied: a branch that changes no
         // borrow - which is most of them - leaves the facts it entered with untouched.
+        // The merge is made only once an alternative brings a fact: an empty map still
+        // allocates, and most branches of most functions bring none.
         std::shared_ptr<VariableEscapeInfoMap>   entryState;
         std::shared_ptr<ProjectionEscapeInfoMap> entryProjectionState;
-        VariableEscapeInfoMap                    mergedState;
-        ProjectionEscapeInfoMap                  mergedProjectionState;
+        std::optional<VariableEscapeInfoMap>     mergedState;
+        std::optional<ProjectionEscapeInfoMap>   mergedProjectionState;
     };
 
     SmallVector4<SemaBorrowInvalidation> borrowInvalidations_;
     // Borrow facts are snapshotted at every branch, and a function of any size has many. The
     // snapshot shares the map and a writer copies it only when it has something to change.
-    VariableEscapeInfoMap&                              mutableVariableEscapeInfos();
-    ProjectionEscapeInfoMap&                            mutableProjectionEscapeInfos();
-    std::shared_ptr<VariableEscapeInfoMap>              variableEscapeInfos_   = std::make_shared<VariableEscapeInfoMap>();
-    std::shared_ptr<ProjectionEscapeInfoMap>            projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>();
-    std::unordered_map<const SymbolVariable*, uint32_t> variableScopeDepths_;
-    std::vector<EscapeBranchState>                      escapeBranchStack_;
-    AstVisit                                            visit_;
+    // Every sema starts from no fact, and a code generation or declaration sema never records
+    // one: it starts from maps shared by all, which the first writer copies like any snapshot.
+    static const std::shared_ptr<VariableEscapeInfoMap>&   emptyVariableEscapeInfos();
+    static const std::shared_ptr<ProjectionEscapeInfoMap>& emptyProjectionEscapeInfos();
+    VariableEscapeInfoMap&                                 mutableVariableEscapeInfos();
+    ProjectionEscapeInfoMap&                               mutableProjectionEscapeInfos();
+    std::shared_ptr<VariableEscapeInfoMap>                 variableEscapeInfos_   = emptyVariableEscapeInfos();
+    std::shared_ptr<ProjectionEscapeInfoMap>               projectionEscapeInfos_ = emptyProjectionEscapeInfos();
+    // Only a function body records scope depths; the map exists once one is recorded.
+    std::optional<std::unordered_map<const SymbolVariable*, uint32_t>> variableScopeDepths_;
+    std::vector<EscapeBranchState>                                     escapeBranchStack_;
+    AstVisit                                                           visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_           = nullptr;

@@ -184,6 +184,99 @@ private:
     size_t                count_ = 0;
 };
 
+// A map from strong references to pointers, held in one flat table. Code generation records a
+// payload for nearly every node it lowers, and a node-based map paid one allocation per node. A
+// null value reads as absent, so erasing a key clears its value and probing never meets a
+// tombstone.
+template<typename R, typename V = void>
+class RefPointerMap
+{
+public:
+    V* find(R ref) const noexcept
+    {
+        if (slots_.empty() || ref.isInvalid())
+            return nullptr;
+
+        const uint32_t key   = ref.get();
+        size_t         index = slotIndex(key, slots_.size() - 1);
+        while (slots_[index].key != K_FREE)
+        {
+            if (slots_[index].key == key)
+                return slots_[index].value;
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        return nullptr;
+    }
+
+    void set(R ref, V* value)
+    {
+        SWC_ASSERT(ref.isValid());
+        if (slots_.empty())
+            rehash(INITIAL_CAPACITY);
+
+        const uint32_t key   = ref.get();
+        size_t         index = slotIndex(key, slots_.size() - 1);
+        while (slots_[index].key != K_FREE)
+        {
+            if (slots_[index].key == key)
+            {
+                slots_[index].value = value;
+                return;
+            }
+            index = (index + 1) & (slots_.size() - 1);
+        }
+
+        slots_[index] = {.key = key, .value = value};
+        ++count_;
+
+        // Linear probing degrades sharply near a full table; keep it below three quarters.
+        if (count_ * 4 > slots_.size() * 3)
+            rehash(slots_.size() * 2);
+    }
+
+    void erase(R ref)
+    {
+        if (find(ref))
+            set(ref, nullptr);
+    }
+
+private:
+    struct Slot
+    {
+        uint32_t key   = K_FREE;
+        V*       value = nullptr;
+    };
+
+    static constexpr size_t   INITIAL_CAPACITY = 64;
+    static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
+
+    static size_t slotIndex(uint32_t key, size_t mask) noexcept
+    {
+        return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+    }
+
+    void rehash(size_t capacity)
+    {
+        std::vector<Slot> previous(capacity);
+        previous.swap(slots_);
+
+        const size_t mask = slots_.size() - 1;
+        for (const Slot& slot : previous)
+        {
+            if (slot.key == K_FREE)
+                continue;
+            size_t index = slotIndex(slot.key, mask);
+            while (slots_[index].key != K_FREE)
+                index = (index + 1) & mask;
+            slots_[index] = slot;
+        }
+    }
+
+    std::vector<Slot> slots_;
+    size_t            count_ = 0;
+};
+
 // The nodes on the current path of a recursive walk that must not re-enter itself. Each node
 // leaves the path before its frame returns, so the path is never deeper than the recursion and a
 // scan of it costs no more than the frames already on the stack. A node-based set pays two heap

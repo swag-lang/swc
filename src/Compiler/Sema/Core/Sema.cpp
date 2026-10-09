@@ -264,6 +264,19 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
 Sema::~Sema() = default;
 
+const std::shared_ptr<Sema::VariableEscapeInfoMap>& Sema::emptyVariableEscapeInfos()
+{
+    // This reference keeps the count above one, so a writer always copies the shared map.
+    static const std::shared_ptr<VariableEscapeInfoMap> EMPTY = std::make_shared<VariableEscapeInfoMap>();
+    return EMPTY;
+}
+
+const std::shared_ptr<Sema::ProjectionEscapeInfoMap>& Sema::emptyProjectionEscapeInfos()
+{
+    static const std::shared_ptr<ProjectionEscapeInfoMap> EMPTY = std::make_shared<ProjectionEscapeInfoMap>();
+    return EMPTY;
+}
+
 Sema::VariableEscapeInfoMap& Sema::mutableVariableEscapeInfos()
 {
     if (variableEscapeInfos_.use_count() > 1)
@@ -431,14 +444,19 @@ void Sema::clearProjectionEscapeInfo(const SemaEscapeProjection& projection)
 
 uint32_t Sema::variableScopeDepth(const SymbolVariable& symVar) const
 {
-    const auto it = variableScopeDepths_.find(&symVar);
-    return it == variableScopeDepths_.end() ? 0 : it->second;
+    if (!variableScopeDepths_)
+        return 0;
+    const auto it = variableScopeDepths_->find(&symVar);
+    return it == variableScopeDepths_->end() ? 0 : it->second;
 }
 
 void Sema::setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth)
 {
-    if (depth)
-        variableScopeDepths_[&symVar] = depth;
+    if (!depth)
+        return;
+    if (!variableScopeDepths_)
+        variableScopeDepths_.emplace();
+    (*variableScopeDepths_)[&symVar] = depth;
 }
 
 uint32_t Sema::currentScopeDepth() const
@@ -483,11 +501,16 @@ void Sema::mergeEscapeInfo(SemaEscapeInfo& destination, const SemaEscapeInfo& so
 namespace
 {
     template<typename K, typename H>
-    void mergeEscapeStates(const Sema& sema, std::unordered_map<K, SemaEscapeInfo, H>& dst, const std::unordered_map<K, SemaEscapeInfo, H>& src)
+    void mergeEscapeStates(const Sema& sema, std::optional<std::unordered_map<K, SemaEscapeInfo, H>>& dst, const std::unordered_map<K, SemaEscapeInfo, H>& src)
     {
+        if (src.empty())
+            return;
+        if (!dst)
+            dst.emplace();
+
         for (const auto& [key, info] : src)
         {
-            auto [it, inserted] = dst.try_emplace(key, info);
+            auto [it, inserted] = dst->try_emplace(key, info);
             if (!inserted)
                 sema.mergeEscapeInfo(it->second, info);
         }
@@ -532,8 +555,12 @@ void Sema::popEscapeBranch(bool mergeEntryState)
         mergeEscapeStates(*this, state.mergedProjectionState, *state.entryProjectionState);
     }
 
-    variableEscapeInfos_   = std::make_shared<VariableEscapeInfoMap>(std::move(state.mergedState));
-    projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>(std::move(state.mergedProjectionState));
+    // Nothing merged means every alternative, and the entry when it counts, left the map empty:
+    // the current one is empty too, and stays.
+    if (state.mergedState)
+        variableEscapeInfos_ = std::make_shared<VariableEscapeInfoMap>(std::move(*state.mergedState));
+    if (state.mergedProjectionState)
+        projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>(std::move(*state.mergedProjectionState));
     escapeBranchStack_.pop_back();
 }
 

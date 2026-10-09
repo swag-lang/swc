@@ -345,7 +345,8 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
 
         // Compare collinear spans on the axis with the largest direction component.
         var a0, a1, b0, b1: f32
-        if Math.abs(r.x) >= Math.abs(r.y)
+        let useHorizontalAxis = Math.abs(r.x) >= Math.abs(r.y)
+        if useHorizontalAxis
         {
             a0 = start0.x
             a1 = end0.x
@@ -379,8 +380,8 @@ func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
         if overlapStart > overlapEnd + epsilon do
             return result
 
-        let denom  = Math.abs(r.x) >= Math.abs(r.y) ? r.x : r.y
-        let origin = Math.abs(r.x) >= Math.abs(r.y) ? start0.x : start0.y
+        let denom  = useHorizontalAxis ? r.x : r.y
+        let origin = useHorizontalAxis ? start0.x : start0.y
         let t      = (overlapStart - origin) / denom
 
         result.intersects = true

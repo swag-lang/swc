@@ -188,11 +188,11 @@ private:
 // payload for nearly every node it lowers, and a node-based map paid one allocation per node. A
 // null value reads as absent, so erasing a key clears its value and probing never meets a
 // tombstone.
-template<typename R>
+template<typename R, typename V = void>
 class RefPointerMap
 {
 public:
-    void* find(R ref) const noexcept
+    V* find(R ref) const noexcept
     {
         if (slots_.empty() || ref.isInvalid())
             return nullptr;
@@ -209,7 +209,7 @@ public:
         return nullptr;
     }
 
-    void set(R ref, void* value)
+    void set(R ref, V* value)
     {
         SWC_ASSERT(ref.isValid());
         if (slots_.empty())
@@ -245,7 +245,7 @@ private:
     struct Slot
     {
         uint32_t key   = K_FREE;
-        void*    value = nullptr;
+        V*       value = nullptr;
     };
 
     static constexpr size_t   INITIAL_CAPACITY = 64;

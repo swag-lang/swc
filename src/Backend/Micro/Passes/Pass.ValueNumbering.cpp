@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -476,7 +477,7 @@ namespace
     // still overlap by byte range, and a materialized global address makes its
     // segment opaque here. Calls are excluded across the entire function, so a
     // back edge cannot bring an unexamined callee mutation to a later load.
-    PrivateGlobalFacts collectPrivateGlobalFacts(const MicroPassContext& context, const std::unordered_map<MicroInstrRef, const MicroRelocation*>& relocations)
+    PrivateGlobalFacts collectPrivateGlobalFacts(const MicroPassContext& context, const RefPointerMap<MicroInstrRef, const MicroRelocation>& relocations)
     {
         PrivateGlobalFacts result;
         for (auto it = context.instructions->view().begin(), end = context.instructions->view().end(); it != end; ++it)
@@ -490,7 +491,7 @@ namespace
             const auto* ops = it->ops(*context.operands);
             if (info.flags.has(MicroInstrFlagsE::WritesMemory) && ops &&
                 info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-                ops[info.memBaseOperandIndex].reg.isInstructionPointer() && !relocations.contains(it.current))
+                ops[info.memBaseOperandIndex].reg.isInstructionPointer() && !relocations.find(it.current))
             {
                 // An unbound RIP write blocks both global segments. No later
                 // call or relocation can make any target safe to preserve.
@@ -642,17 +643,15 @@ namespace
 
     struct NumberingScratch
     {
-        std::unordered_map<MicroInstrRef, const MicroRelocation*> relocationByInstruction;
-        std::unordered_set<MicroReg>                              frameDerivedRegs;
-        std::unordered_set<MicroReg>                              immutableBases;
-        NumberingTable                                            table;
-        std::vector<PlannedRewrite>                               rewrites;
-        ValueAliases                                              valueAliases;
-        std::vector<uint32_t>                                     epochAt;
+        std::unordered_set<MicroReg> frameDerivedRegs;
+        std::unordered_set<MicroReg> immutableBases;
+        NumberingTable               table;
+        std::vector<PlannedRewrite>  rewrites;
+        ValueAliases                 valueAliases;
+        std::vector<uint32_t>        epochAt;
 
         void reset(const uint32_t instructionCount)
         {
-            relocationByInstruction.clear();
             frameDerivedRegs.clear();
             immutableBases.clear();
             table.clear();
@@ -729,20 +728,21 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     // functions. Resetting the contents keeps all keys local to this run.
     thread_local NumberingScratch scratch;
     scratch.reset(n);
-    auto&                             relocationByInstruction = scratch.relocationByInstruction;
-    auto&                             frameDerivedRegs        = scratch.frameDerivedRegs;
-    auto&                             immutableBases          = scratch.immutableBases;
-    auto&                             table                   = scratch.table;
-    auto&                             rewrites                = scratch.rewrites;
-    auto&                             valueAliases            = scratch.valueAliases;
-    auto&                             epochAt                 = scratch.epochAt;
-    std::optional<PrivateGlobalFacts> privateGlobalFacts;
-    bool                              relocationsReady      = false;
-    bool                              frameDerivedRegsReady = false;
-    bool                              immutableBasesReady   = !context.builder || context.builder->immutableStorageBases().empty();
-    uint32_t                          callCount             = 0;
-    uint32_t                          memoryEpoch           = 0;
-    uint32_t                          lastEpoch             = 0;
+    auto& frameDerivedRegs = scratch.frameDerivedRegs;
+    auto& immutableBases   = scratch.immutableBases;
+    auto& table            = scratch.table;
+    auto& rewrites         = scratch.rewrites;
+    auto& valueAliases     = scratch.valueAliases;
+    auto& epochAt          = scratch.epochAt;
+    // Filled on the first load that asks; one flat array instead of a node per relocation.
+    RefPointerMap<MicroInstrRef, const MicroRelocation> relocationByInstruction;
+    std::optional<PrivateGlobalFacts>                   privateGlobalFacts;
+    bool                                                relocationsReady      = false;
+    bool                                                frameDerivedRegsReady = false;
+    bool                                                immutableBasesReady   = !context.builder || context.builder->immutableStorageBases().empty();
+    uint32_t                                            callCount             = 0;
+    uint32_t                                            memoryEpoch           = 0;
+    uint32_t                                            lastEpoch             = 0;
 
     std::optional<bool> readOnlySelfCalls;
 
@@ -831,14 +831,12 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                 for (const MicroRelocation& reloc : context.builder->codeRelocations())
                 {
                     if (reloc.instructionRef.isValid())
-                        relocationByInstruction[reloc.instructionRef] = &reloc;
+                        relocationByInstruction.set(reloc.instructionRef, &reloc);
                 }
                 relocationsReady = true;
             }
 
-            const auto relocIt = relocationByInstruction.find(instRef);
-            if (relocIt != relocationByInstruction.end())
-                instReloc = relocIt->second;
+            instReloc = relocationByInstruction.find(instRef);
         }
 
         if (inst->op == MicroInstrOpcode::OpBinaryRegMem)
@@ -1073,7 +1071,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
         // A rewritten instruction no longer carries the address the relocation
         // was going to patch. Leaving the relocation attached would have the
         // emitter bind it to whatever the copy encodes.
-        if (relocationByInstruction.contains(rewrite.instRef))
+        if (relocationByInstruction.find(rewrite.instRef))
             context.builder->invalidateRelocationForInstruction(rewrite.instRef);
 
         inst->op      = rewrite.op;

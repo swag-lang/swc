@@ -61,8 +61,13 @@ impl IActionUI for ActionCapture
         {
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.disabled      = monitor >= main.monitors.count
-            evt.name          = evt.disabled ? Format.toString(appStrings().act_CaptureMonitor, monitor) : Format.toString(appStrings().act_CaptureMonitorSize, monitor, main.monitors[monitor].bounds.width, main.monitors[monitor].bounds.height)
-            evt.icon          = main.icon(.Monitor)
+            evt.name          = evt.disabled
+                                ? Format.toString(appStrings().act_CaptureMonitor, monitor)
+                                : Format.toString(appStrings().act_CaptureMonitorSize,
+                                                  monitor,
+                                                  main.monitors[monitor].bounds.width,
+                                                  main.monitors[monitor].bounds.height)
+            evt.icon = main.icon(.Monitor)
             return true
         }
 

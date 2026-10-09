@@ -24,7 +24,10 @@ func day3A()
         for l in lines
         {
             let split = Tokenize.split(l[], ' 'u8)
-            let v     = [try StrConv.toS32(split[0]), try StrConv.toS32(split[1]), try StrConv.toS32(split[2])]
+            let v     = [
+                try StrConv.toS32(split[0]),
+                try StrConv.toS32(split[1]),
+                try StrConv.toS32(split[2])]
 
             var ok = 0
             for i in 3 do

@@ -250,7 +250,11 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
         options.onCreated = func|main|(dialog)
         {
             let askAgain = CheckButton.create(dialog.surface!.view(), appStrings().ui_DoNotAskAgain, {0, 0, 100, 40})
-            askAgain.sigChanged += func|main|(button) { main.editorOptions.confirmLinkedOverwrite = not button.isChecked() }
+            askAgain.sigChanged += func|main|(button)
+            {
+                main.editorOptions.confirmLinkedOverwrite = not button.isChecked()
+            }
+
             dialog.setExtension(askAgain)
         }
 
@@ -267,7 +271,11 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
 private func showFileDetails(main: *MainWnd, capture: *Capture)
 {
     let texts  = appStrings()
-    let dialog = Dialog.create(main.surface!, 600, 400, title: texts.dlg_TitleDetails, flags: .Border | .CloseButton | .Resizable)
+    let dialog = Dialog.create(main.surface!,
+                               600,
+                               400,
+                               title: texts.dlg_TitleDetails,
+                               flags: .Border | .CloseButton | .Resizable)
     dialog.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
     with let rows = StackLayoutCtrl.create(dialog)
     {

@@ -304,6 +304,7 @@ public:
         return nullptr;
     }
 
+    V* find(uint32_t key) noexcept { return const_cast<V*>(std::as_const(*this).find(key)); }
 
     // Inserts the key with the value, or keeps the value already there, like 'emplace'.
     void emplace(uint32_t key, const V& value)

@@ -1261,7 +1261,9 @@ namespace
         bool    pointerLevel = false;
     };
 
-    using InlineBindingUses = std::unordered_map<IdentifierRef, InlineBindingUse>;
+    // Keyed by the binding's identifier. Every identifier of the inlined body is looked up here,
+    // and only the bindings are ever inserted: a flat table instead of a node per binding.
+    using InlineBindingUses = FlatKeyMap<InlineBindingUse>;
 
     struct InlineBindingUseContext
     {
@@ -1296,10 +1298,9 @@ namespace
         if (node.is(AstNodeId::Identifier))
         {
             const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
-            const auto          it    = outUses.find(idRef);
-            if (it != outUses.end())
+            if (InlineBindingUse* found = idRef.isValid() ? outUses.find(idRef.get()) : nullptr)
             {
-                InlineBindingUse& use = it->second;
+                InlineBindingUse& use = *found;
                 // Only the distinction between one and repeated use affects materialization.
                 if (use.count < 2)
                     ++use.count;
@@ -1873,8 +1874,8 @@ namespace
         const bool      isCaptured = inlineBindingIsCaptured(binding.idRef, context.identifiers.captured);
         SWC_ASSERT(!paramType.isCodeBlock());
 
-        const auto             useIt = context.uses->find(binding.idRef);
-        const InlineBindingUse use   = useIt != context.uses->end() ? useIt->second : InlineBindingUse{};
+        const InlineBindingUse* found = binding.idRef.isValid() ? context.uses->find(binding.idRef.get()) : nullptr;
+        const InlineBindingUse  use   = found ? *found : InlineBindingUse{};
 
         InlineBindingMaterialization mat;
         mat.capturedByRef = inlineBindingIsCaptured(binding.idRef, context.identifiers.capturedByRef);
@@ -2082,11 +2083,10 @@ namespace
             if (!context.uses)
             {
                 context.uses.emplace();
-                context.uses->reserve(ioBindings.size());
                 for (const SemaClone::ParamBinding& candidate : ioBindings)
                 {
                     if (candidate.idRef.isValid() && candidate.exprRef.isValid())
-                        context.uses->try_emplace(candidate.idRef);
+                        context.uses->getOrInsert(candidate.idRef.get());
                 }
                 collectInlineBindingUses(sema, *context.uses, sourceAst, decl.nodeBodyRef);
             }

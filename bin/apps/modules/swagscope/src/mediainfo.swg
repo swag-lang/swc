@@ -142,7 +142,7 @@ impl MediaInfoData
         .rows.add(#move row)
     }
 
-    // Appends the metadata group of a picture: decoded Exif properties, PNG text, or the size of opaque records.
+    // Appends decoded Exif properties, PNG text, or a size description for opaque records.
     mtd addImageMetadata(records: const [..] ImageMetadata, pngText = false)
     {
         .add(.Metadata, group: true)
@@ -182,8 +182,13 @@ impl MediaInfoData
             // PNG tEXt is Latin-1. Other opaque records keep a bounded size description.
             if pngText
             {
-                for index in Math.min(bytes.count, 4096) do
-                    text += cast(rune, bytes[index] >= 32 or bytes[index] == 10 or bytes[index] == 9 ? bytes[index] : ' ')
+                for index in Math.min(bytes.count, 4096)
+                {
+                    let byte   = bytes[index]
+                    let isText = byte >= 32 or byte == 10 or byte == 9
+                    text += cast(rune, isText ? byte : ' ')
+                }
+
                 if bytes.count > 4096 do
                     text += "…"
             }
@@ -222,7 +227,9 @@ impl MediaInfoPanel
     {
         registerMediaInfoStrings(host.application())
         let theme = host.contentParent().theme()
-        let side  = host.createSidePanel(368, theme.icon(.Information, themeActionIconSize(&theme.metrics)), g_MediaInfoStrings.title)
+        let side  = host.createSidePanel(368,
+                                         theme.icon(.Information, themeActionIconSize(&theme.metrics)),
+                                         g_MediaInfoStrings.title)
 
         with let result = Wnd.create'MediaInfoPanel(side.content)
         {
@@ -240,7 +247,9 @@ impl MediaInfoPanel
             .backgroundStyle = .Transparent
         }
 
-        with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
+        with result.closeButton = IconButton.create(header,
+                                                    theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())),
+                                                    {0, 0, size, size})
         {
             .dockStyle  = .Right
             .sigPressed += func|panel = result|(_)
@@ -250,7 +259,9 @@ impl MediaInfoPanel
             }
         }
 
-        with result.copyButton = IconButton.create(header, theme.icon(.Copy, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
+        with result.copyButton = IconButton.create(header,
+                                                   theme.icon(.Copy, themeRowIconSize(result.themeMetrics())),
+                                                   {0, 0, size, size})
         {
             .dockStyle  = .Right
             .sigPressed += func|panel = result|(_) { Clipboard.addString(panel.text()) }

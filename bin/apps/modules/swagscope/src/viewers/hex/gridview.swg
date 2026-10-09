@@ -489,7 +489,13 @@ impl GridView
             return
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let maxTop = .maxTopRow()
-        let row    = position <= 0 ? 0 : position >= usable ? maxTop : Math.min(cast(u64, Math.round(position / usable * cast(f32, maxTop))), maxTop)
+        var row: u64
+        if position <= 0 do
+            row = 0
+        elif position >= usable do
+            row = maxTop
+        else do
+            row = Math.min(cast(u64, Math.round(position / usable * cast(f32, maxTop))), maxTop)
         if row == .topRow do
             return
         .topRow = row

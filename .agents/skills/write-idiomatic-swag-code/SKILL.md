@@ -536,6 +536,9 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   `LoadFailed`) instead of comparing it with bare integers.
 - Replace a cascade of nested conditionals that maps two small indices to a value with a constant
   table indexed by them, when the table shows the whole mapping at once.
+- In a circular scan, name a derived partner index when wrapping arithmetic obscures the relation
+  being compared. Keep the offset visible as well when it defines the algorithm (for example, the
+  next item versus the item halfway around); do not inline modulo arithmetic into the comparison.
 - Write a text template (a style sheet, generated source, a theme sheet) as one `"""` constant laid
   out as it reads, not as a sequence of calls appending one line each. Continuation lines strip
   their indentation up to the column that follows the opening delimiter, so align them under the

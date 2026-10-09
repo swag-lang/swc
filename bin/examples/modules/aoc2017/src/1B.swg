@@ -20,11 +20,13 @@ func day1B()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "1.txt")
     let text     = expect File.readAllText(dataPath)
+    let offset   = text.length / 2
 
     var total = 0
     for i in text.count
     {
-        if text[i] == text[(i + (text.length / 2)) % text.length] do
+        let matchIndex = (i + offset) % text.length
+        if text[i] == text[matchIndex] do
             total += text[i] - '0'
     }
 

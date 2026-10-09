@@ -300,6 +300,12 @@ Boolean locals merely to shorten such a chain: eager evaluation can lose its sho
 Explicit single-line policies still take precedence. A long condition with only two operands may
 need authored wrapping or a meaningful predicate; this narrow rule does not decide that.
 
+In a circular scan, a named partner index can expose what the comparison means without hiding the
+wraparound rule: calculate `matchIndex = (i + offset) % values.length`, then compare against
+`values[matchIndex]`. Keep `offset` visible when it describes the algorithm, such as `1` for the
+next item or half the sequence length for its opposite. See the two inverse-captcha examples in
+`bin/examples/modules/aoc2017/`.
+
 Calls use a separate `single-line-argument-column-limit` of 100 columns. It breaks an editable,
 authored single-line call when the entire source line exceeds the limit, while preserving calls
 already laid out across lines. Short calls and their argument order stay as written; literals,

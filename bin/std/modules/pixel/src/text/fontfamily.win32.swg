@@ -94,7 +94,19 @@ impl FontFamily
     // coverage; Windows supplies family names and font data only when they are needed.
     internal func findSystemFallback(c: rune, bold, italic: bool)->*TypeFace?
     {
-        let style = bold ? (italic ? FontFamilyStyle.BoldItalic : FontFamilyStyle.Bold) : (italic ? FontFamilyStyle.Italic : FontFamilyStyle.Regular)
+        var style = FontFamilyStyle.Regular
+        if bold
+        {
+            if italic do
+                style = FontFamilyStyle.BoldItalic
+            else do
+                style = FontFamilyStyle.Bold
+        }
+        elif italic
+        {
+            style = FontFamilyStyle.Italic
+        }
+
         Sync.scopedLock(&g_SystemFallbackLock)
         return g_SystemFallback.find(c, style)
     }

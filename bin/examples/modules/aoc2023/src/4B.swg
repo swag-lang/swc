@@ -32,8 +32,8 @@ using Core
 
 private struct Card
 {
-    win: s32
-    num: s32
+    matchCount: s32
+    copies:     s32
 }
 
 private var cards: Array'Card
@@ -45,36 +45,36 @@ func day4B()
 
     for l in lines
     {
-        let first = Tokenize.split(l[], ':'u8)
-        let game  = Tokenize.split(first[1], '|'u8)
-        let val0  = Tokenize.split(game[0], ' 'u8)
-        let val1  = Tokenize.split(game[1], ' 'u8)
+        let cardRecord          = Tokenize.split(l[], ':'u8)
+        let numberLists         = Tokenize.split(cardRecord[1], '|'u8)
+        let winningNumberTokens = Tokenize.split(numberLists[0], ' 'u8)
+        let drawnNumberTokens   = Tokenize.split(numberLists[1], ' 'u8)
 
-        var v0, v1: Array's32
-        for v in val0 do
-            v0.add(expect StrConv.toS32(v))
-        for v in val1 do
-            v1.add(expect StrConv.toS32(v))
+        var winningNumbers, drawnNumbers: Array's32
+        for number in winningNumberTokens do
+            winningNumbers.add(expect StrConv.toS32(number))
+        for number in drawnNumberTokens do
+            drawnNumbers.add(expect StrConv.toS32(number))
 
-        var score = 0
-        for v in v1
+        var matchCount = 0
+        for number in drawnNumbers
         {
-            if v0.contains(v) do
-                score += 1
+            if winningNumbers.contains(number) do
+                matchCount += 1
         }
 
-        cards.add({win: score, num: 1})
+        cards.add({matchCount, copies: 1})
     }
 
     var total = 0'u64
-    for c, i in cards
+    for card, cardIndex in cards
     {
-        for x in c.win
+        for offset in card.matchCount
         {
-            cards[i + x + 1].num += c.num
+            cards[cardIndex + offset + 1].copies += card.copies
         }
 
-        total += c.num
+        total += card.copies
     }
 
     Swag.assert(total == 12263631)

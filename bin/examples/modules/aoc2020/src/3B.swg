@@ -22,19 +22,21 @@ func day3B()
     let lines    = expect File.readAllLines(dataPath)
 
     var total: u64 = 1
-    for s in [{1, 1}, {3, 1}, {5, 1}, {7, 1}, {1, 2}]
+    for slope in [{1, 1}, {3, 1}, {5, 1}, {7, 1}, {1, 2}]
     {
-        var x, y, count: u32
+        let rightStep = slope.item0
+        let downStep  = slope.item1
+        var column, row, treeCount: u32
         for
         {
-            y += s.item1
-            if y >= lines.count do
+            row += downStep
+            if row >= lines.count do
                 break
-            x     = cast(u32, ((x + s.item0) % lines[0].length))
-            count += lines[y][x] == '#' ? 1 : 0
+            column = cast(u32, ((column + rightStep) % lines[0].length))
+            treeCount += lines[row][column] == '#' ? 1 : 0
         }
 
-        total *= count
+        total *= treeCount
     }
 
     Swag.assert(total == 3584591857)

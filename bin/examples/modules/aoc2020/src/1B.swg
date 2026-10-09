@@ -11,26 +11,27 @@ using Core
 
 func day1B()
 {
+    const TargetSum = 2020
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var arr: Array's32
-    for v in lines do
-        arr.add(expect StrConv.toS32(v[]))
+    var expenseEntries: Array's32
+    for line in lines do
+        expenseEntries.add(expect StrConv.toS32(line[]))
 
-    arr.sort()
+    expenseEntries.sort()
 
-    for v0, i0 in arr
+    for firstValue, firstIndex in expenseEntries
     {
-        for v1, i1 in arr[i0 to]
+        for secondValue, secondIndex in expenseEntries[firstIndex to]
         {
-            let v2 = 2020 - (v0 + v1)
-            if v2 < 0 do
+            let matchingValue = TargetSum - (firstValue + secondValue)
+            if matchingValue < 0 do
                 continue
 
-            if Slice.containsSorted(arr[i1 to], v2)
+            if Slice.containsSorted(expenseEntries[secondIndex to], matchingValue)
             {
-                Swag.assert(v0 * v1 * v2 == 165795564)
+                Swag.assert(firstValue * secondValue * matchingValue == 165795564)
                 return
             }
         }

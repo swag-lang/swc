@@ -69,135 +69,131 @@ using Core
 
 func day4B()
 {
-    day4B0()
-    day4B1()
+    day4BWithExplicitChecks()
+    day4BWithRegexRules()
 }
 
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-func day4B0()
+func day4BWithExplicitChecks()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var total, pass: u32
-    for l, index in lines
+    var validPassportCount, validFields: u32
+    for line, lineIndex in lines
     {
-        for r in Tokenize.split(l[], ' 'u8)
+        for field in Tokenize.split(line[], ' 'u8)
         {
-            let res1 = Tokenize.split(r, ':'u8)
-            switch res1[0]
+            let fieldParts = Tokenize.split(field, ':'u8)
+            let fieldValue = fieldParts[1]
+            switch fieldParts[0]
             {
             case "byr":
-                let val = catch StrConv.toS32(res1[1])
-                if val >= 1920 and val <= 2002 do
-                    pass |= 1
+                let year = catch StrConv.toS32(fieldValue)
+                if year >= 1920 and year <= 2002 do
+                    validFields |= 1
 
             case "iyr":
-                let val = catch StrConv.toS32(res1[1])
-                if val >= 2010 and val <= 2020 do
-                    pass |= 2
+                let year = catch StrConv.toS32(fieldValue)
+                if year >= 2010 and year <= 2020 do
+                    validFields |= 2
 
             case "eyr":
-                let val = catch StrConv.toS32(res1[1])
-                if val >= 2020 and val <= 2030 do
-                    pass |= 4
+                let year = catch StrConv.toS32(fieldValue)
+                if year >= 2020 and year <= 2030 do
+                    validFields |= 4
 
             case "hgt":
-                let val = catch StrConv.parseS32(res1[1]) as err
+                let height = catch StrConv.parseS32(fieldValue) as err
                 if err != null do
                     break
-                if val.eat == res1[1].count do
+                if height.eat == fieldValue.count do
                     break
-                let sub = res1[1][val.eat to]
-                if sub != "cm" and sub != "in" do
+                let unit = fieldValue[height.eat to]
+                if unit != "cm" and unit != "in" do
                     break
-                if sub == "cm" and val.value >= 150 and val.value <= 193 do
-                    pass |= 8
-                elif sub == "in" and val.value >= 59 and val.value <= 76 do
-                    pass |= 8
+                if unit == "cm" and height.value >= 150 and height.value <= 193 do
+                    validFields |= 8
+                elif unit == "in" and height.value >= 59 and height.value <= 76 do
+                    validFields |= 8
 
             case "hcl":
-                if res1[1].count != 7 or res1[1][0] != '#' do
+                if fieldValue.count != 7 or fieldValue[0] != '#' do
                     break
-                discard catch StrConv.parseX64(res1[1][1 to]) as err
+                discard catch StrConv.parseX64(fieldValue[1 to]) as err
                 if err == null do
-                    pass |= 16
+                    validFields |= 16
 
             case "ecl":
-                if Slice.contains(["amb", "blu", "brn", "gry", "grn", "hzl", "oth"], res1[1]) do
-                    pass |= 32
+                if Slice.contains(["amb", "blu", "brn", "gry", "grn", "hzl", "oth"], fieldValue) do
+                    validFields |= 32
 
             case "pid":
-                discard catch StrConv.toS32(res1[1]) as err
-                if err == null and res1[1].count == 9 do
-                    pass |= 64
+                discard catch StrConv.toS32(fieldValue) as err
+                if err == null and fieldValue.count == 9 do
+                    validFields |= 64
             }
         }
 
-        if index == lines.count - 1 or lines[index + 1].isEmpty()
+        if lineIndex == lines.count - 1 or lines[lineIndex + 1].isEmpty()
         {
-            if pass & 0b1111111 == 0b1111111 do
-                total += 1
-            pass = 0
+            if validFields & 0b1111111 == 0b1111111 do
+                validPassportCount += 1
+            validFields = 0
         }
     }
 
-    Swag.assert(total == 224)
+    Swag.assert(validPassportCount == 224)
 }
-
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
 
 // One field rule: the expression a value has to match, and the bit it sets once it does.
 struct Day4Rule
 {
-    r: Parser.RegExp
-    b: u32
+    expression: Parser.RegExp
+    fieldMask:  u32
 }
 
-func day4B1()
+func day4BWithRegexRules()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     // A compiled expression owns its program, so a rule states no copy: build it in a local
     // and hand it over with '#move'.
-    var map:  HashTable'(string, Day4Rule)
+    var rulesByField: HashTable'(string, Day4Rule)
     var rule: Day4Rule
 
     rule = {expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1}
-    map.add("byr", #move rule)
+    rulesByField.add("byr", #move rule)
     rule = {expect Parser.RegExp.create("201[0-9]|2020"), 2}
-    map.add("iyr", #move rule)
+    rulesByField.add("iyr", #move rule)
     rule = {expect Parser.RegExp.create("202[0-9]|2030"), 4}
-    map.add("eyr", #move rule)
+    rulesByField.add("eyr", #move rule)
     rule = {expect Parser.RegExp.create("((1[5678][0-9])|(19[0-3]))cm|(59|6[0-9]|7[0-6])in"), 8}
-    map.add("hgt", #move rule)
+    rulesByField.add("hgt", #move rule)
     rule = {expect Parser.RegExp.create("#([a-f0-9]){6}"), 16}
-    map.add("hcl", #move rule)
+    rulesByField.add("hcl", #move rule)
     rule = {expect Parser.RegExp.create("amb|blu|brn|gry|grn|hzl|oth"), 32}
-    map.add("ecl", #move rule)
+    rulesByField.add("ecl", #move rule)
     rule = {expect Parser.RegExp.create("[0-9]{9}"), 64}
-    map.add("pid", #move rule)
+    rulesByField.add("pid", #move rule)
 
-    var total, pass: u32
-    for l, index in lines
+    var validPassportCount, validFields: u32
+    for line, lineIndex in lines
     {
-        for r in Tokenize.split(l[], ' 'u8)
+        for field in Tokenize.split(line[], ' 'u8)
         {
-            let res1 = Tokenize.split(r, ':'u8)
-            let it   = map.tryFind(res1[0])
-            if it and it.value.r.match(res1[1]) do
-                pass |= it.value.b
+            let fieldParts = Tokenize.split(field, ':'u8)
+            let fieldRule  = rulesByField.tryFind(fieldParts[0])
+            if fieldRule and fieldRule.value.expression.match(fieldParts[1]) do
+                validFields |= fieldRule.value.fieldMask
         }
 
-        if index == lines.count - 1 or lines[index + 1].isEmpty()
+        if lineIndex == lines.count - 1 or lines[lineIndex + 1].isEmpty()
         {
-            total += cast(s32, (pass == 0b1111111))
-            pass  = 0
+            validPassportCount += cast(s32, (validFields == 0b1111111))
+            validFields = 0
         }
     }
 
-    Swag.assert(total == 224)
+    Swag.assert(validPassportCount == 224)
 }

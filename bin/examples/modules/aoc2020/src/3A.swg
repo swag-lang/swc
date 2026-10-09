@@ -13,12 +13,12 @@ func day3A()
     let lines    = expect File.readAllLines(dataPath)
 
     var total: u32
-    var x, y = 0
-    while y != lines.count - 1
+    var column, row = 0
+    while row != lines.count - 1
     {
-        x     = cast(s32, ((x + 3) % lines[0].length))
-        y     += 1
-        total += lines[y][x] == '#' ? 1 : 0
+        column = cast(s32, ((column + 3) % lines[0].length))
+        row += 1
+        total += lines[row][column] == '#' ? 1 : 0
     }
 
     Swag.assert(total == 211)

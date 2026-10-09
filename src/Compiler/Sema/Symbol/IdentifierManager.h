@@ -87,6 +87,7 @@ public:
         NoReturn,
         Foreign,
         Discardable,
+        Propagate,
         NoCopy,
         DynCast,
         Opaque,

@@ -697,6 +697,11 @@ namespace
         // foreign call promises an expansion that cannot happen.
         if (hasExportedBody)
             appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Inline, "Inline");
+
+        // 'Propagate' changes how the body reads, not how it is called: an exported body
+        // relies on it to compile its unmarked calls again in the importer.
+        if (hasExportedBody)
+            appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Propagate, "Propagate");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::ConstExpr, "ConstExpr");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::ReadOnly, "ReadOnly");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Implicit, "Implicit");

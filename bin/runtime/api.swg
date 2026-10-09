@@ -235,6 +235,16 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]
     attr Discardable()
 
+    // Reads every unmarked fallible call in the function body as 'try'.
+    //
+    // The function must be declared with 'fail'. A call that spells 'catch', 'expect', or
+    // 'assume' keeps its own handling, and a written 'try' is reported as redundant. The
+    // attribute governs the body it is written on: a function or lambda declared inside it
+    // spells its own error handling. A macro or a mixin cannot carry it, because its body
+    // belongs to the caller.
+    #[AttrUsage(AttributeUsage.Function)]
+    attr Propagate()
+
     // Marks a declaration as deprecated: each use is reported, with 'msg' when one is given.
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]
     attr Deprecated(msg: string? = null)
@@ -278,7 +288,7 @@ namespace Swag
     // Declares that the values of the enum are not the full set.
     //
     // A value outside them is expected at runtime, so a switch on it is not meant to be exhaustive.
-    #[AttrUsage(AttributeUsage.Enum)]
+    #[AttrUsage(AttributeUsage.Enum | AttributeUsage.File)]
     attr Incomplete()
 
     // Runtime reflection data that [[ExportType]] adds to the type information of a struct.

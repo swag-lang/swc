@@ -461,6 +461,19 @@ func verifyImportedDiscardable()
     Swag.assert(depDiscardableInlineCount() == 67)
 }
 
+func verifyImportedPropagate()
+{
+    let generic = catch depPropagateGeneric(5's32, true) as genericSuccess
+    Swag.assert(generic == 5 and genericSuccess == null)
+    discard catch depPropagateGeneric(5's32, false) as genericFailure
+    Swag.assert(genericFailure is DepPropagateError)
+
+    let inlined = catch depPropagateInline(true) as inlineSuccess
+    Swag.assert(inlined == 21 and inlineSuccess == null)
+    discard catch depPropagateInline(false) as inlineFailure
+    Swag.assert(inlineFailure is DepPropagateError)
+}
+
 func verifyCrossDllTypeIdentity()
 {
     // The DLL-produced typeinfo for an imported type must compare equal to the
@@ -529,6 +542,7 @@ func verifyRuntimeTypeCrossDllIdentity()
     verifyRuntimeContext()
     verifyEmptyDerivedInterfaceIs()
     verifyImportedDiscardable()
+    verifyImportedPropagate()
     verifyCrossDllTypeIdentity()
     verifyRuntimeTypeCrossDllIdentity()
     verifyImportedBorrowSummaries()

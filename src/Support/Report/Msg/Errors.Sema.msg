@@ -1,5 +1,6 @@
 SWC_DIAG_DEF(sema_warn_compiler_warning, Warning, "compile-time warning: {because}")
 SWC_DIAG_DEF(sema_warn_unreachable_code, Warning, "unreachable code; [help] remove it, or move it before the statement that stops the flow")
+SWC_DIAG_DEF(sema_warn_redundant_try, Warning, "'try' is implied in '{sym}', which has 'Swag.Propagate'; [help] remove 'try'")
 
 SWC_DIAG_DEF(sema_err_unknown_warning, Error, "'#[Swag.Warning]' does not accept value '{value}'; it accepts a warning identifier, or 'all' for every warning")
 SWC_DIAG_DEF(sema_err_notnull_already_proven, Error, "'!' asserts a value of type '{type}' that cannot be null here; [help] remove the '!'")
@@ -137,6 +138,7 @@ SWC_DIAG_DEF(sema_err_not_attribute, Error, "'{sym}' cannot be used as an attrib
 SWC_DIAG_DEF(sema_err_attribute_usage, Error, "'{sym}' does not accept {what}; [help] move the attribute onto a declaration it accepts, or widen its 'Swag.AttrUsage'")
 SWC_DIAG_DEF(sema_err_attribute_inline_noinline_conflict, Error, "'Swag.Inline' and 'Swag.NoInline' cannot be used together")
 SWC_DIAG_DEF(sema_err_attribute_inline_macro_mixin_conflict, Error, "'Swag.Inline', 'Swag.Macro', and 'Swag.Mixin' are mutually exclusive")
+SWC_DIAG_DEF(sema_err_attribute_propagate_macro_mixin_conflict, Error, "'Swag.Propagate' conflicts with 'Swag.Macro' and 'Swag.Mixin'; [help] remove 'Swag.Propagate': a macro or mixin body follows the error handling of the code it expands into")
 SWC_DIAG_DEF(sema_err_foreign_cannot_have_body, Error, "a function marked with '#[Swag.Foreign]' cannot have a body")
 SWC_DIAG_DEF(sema_err_foreign_invalid_callconv, Error, "'#[Swag.Foreign]' does not support this calling convention; [help] use 'Swag.CallConv.C', 'Swag.CallConv.WindowsX64', or 'Swag.CallConv.Swag'")
 SWC_DIAG_DEF(sema_err_calling_convention_invalid_callconv, Error, "'#[Swag.CallingConvention]' does not support this calling convention; [help] use 'Swag.CallConv.C', 'Swag.CallConv.WindowsX64', or 'Swag.CallConv.Swag'")
@@ -248,6 +250,7 @@ SWC_DIAG_DEF(sema_err_continue_in_scope, Error, "cannot restart a '#scope' with 
 SWC_DIAG_DEF(sema_err_try_outside_fallible_context, Error, "'try' can only be used in a context that can propagate errors; [help] mark the enclosing function with 'fail', or use it inside 'catch'/'expect'")
 SWC_DIAG_DEF(sema_err_fail_outside_fallible_context, Error, "'fail' can only be used in a context that can propagate errors; [help] mark the enclosing function with 'fail', or use it inside 'catch'/'expect'")
 SWC_DIAG_DEF(sema_err_fallible_call_requires_handler, Error, "call to fallible function '{sym}' needs 'try', 'catch', 'expect', or 'assume'; [help] propagate with 'try', handle with 'catch', require success with 'expect', or assert a proven success invariant with 'assume'")
+SWC_DIAG_DEF(sema_err_propagate_needs_fail, Error, "'Swag.Propagate' needs a function that can fail; [help] declare '{sym}' with 'fail', or remove the attribute")
 SWC_DIAG_DEF(sema_err_error_mgmt_operand_not_fallible, Error, "'{tok}' needs a fallible expression or block; [help] apply it to a call to a function declared with 'fail', or to a block that contains one")
 SWC_DIAG_DEF(sema_err_orelse_not_nullable_type, Error, "'orelse' substitutes a missing value, but '{type}' can never be null; [help] to substitute a zero value, test it: 'value != 0 ? value : fallback'")
 SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing '#scope' named '{sym}'; [help] check the name, or add the matching enclosing scope")

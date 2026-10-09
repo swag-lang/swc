@@ -507,6 +507,11 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Mark every fallible call explicitly with `try`, `catch`, `expect`, or `assume`, including calls inside
   a fallible function or an error-handling block. A function's `fail` declaration does not make
   propagation implicit. Choose the keyword for the intended failure path.
+- Put `#[Swag.Propagate]` on a `fail` function whose calls nearly all propagate — setup code,
+  scripts, test scenarios — so that its unmarked calls read as `try` and the remaining `catch`,
+  `expect`, and `assume` stand out. Do not write `try` inside it: the compiler reports it as
+  redundant. Keep explicit `try` in code that builds state by hand and must undo it on failure,
+  where each exit point matters to the reader.
 - A `catch` expression supplies an implicit default on failure. Use
   `let value = catch operation() as error` only when the result type has that default, and guard
   the error before consuming the result. For a non-nullable `string` or pointer, keep an explicitly

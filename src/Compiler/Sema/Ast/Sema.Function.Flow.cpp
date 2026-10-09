@@ -299,6 +299,53 @@ namespace
         return true;
     }
 
+    // The function whose body wrote the code being analyzed. An ordinary inline expansion keeps
+    // its callee's error handling, while a macro or mixin body is code the caller owns.
+    const SymbolFunction* errorHandlingOwner(const Sema& sema)
+    {
+        for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
+        {
+            const auto* sourceFunction = payload->sourceFunction;
+            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+                return sourceFunction;
+        }
+
+        return sema.currentFunction();
+    }
+
+    bool propagatesImplicitly(const Sema& sema)
+    {
+        const SymbolFunction* owner = errorHandlingOwner(sema);
+        return owner && owner->attributes().hasRtFlag(RtAttributeFlagsE::Propagate);
+    }
+
+    // A fallible expression is handled by the keyword written around it or, in a
+    // 'Swag.Propagate' body, as an unwritten 'try'. Code generation already sends an unmarked
+    // failure to the nearest handler, which is exactly where 'try' sends it, so the implicit
+    // form only has to be accepted here. The editor is told where it applies, so it can show it.
+    bool acceptFallibleExpression(Sema& sema)
+    {
+        if (hasExplicitCallErrorHandler(sema))
+            return true;
+        if (!propagatesImplicitly(sema))
+            return false;
+
+        sema.recordImplicitPropagation(sema.curNodeRef());
+        return true;
+    }
+
+    // In a 'Swag.Propagate' body a written 'try' does what the unmarked call already does.
+    // Only the body's own analysis reports it, not each inline expansion of that body.
+    void reportRedundantTry(Sema& sema)
+    {
+        if (SemaHelpers::effectiveInlinePayload(sema) || !propagatesImplicitly(sema))
+            return;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_warn_redundant_try, sema.curNode().codeRef());
+        diag.addArgument(Diagnostic::ARG_SYM, sema.currentFunction()->name(sema.ctx()));
+        diag.report(sema.ctx());
+    }
+
     void addFunctionDeclaredHereNote(Sema& sema, Diagnostic& diag, const Symbol& fn)
     {
         const SourceCodeRange codeRange = fn.codeRange(sema.ctx());
@@ -604,6 +651,8 @@ namespace
 
         if (tokenId == TokenId::KwdTry && !canPropagateFallibleResult(sema))
             return reportTryOutsideFallibleContext(sema, sema.curNodeRef());
+        if (tok.id == TokenId::KwdTry)
+            reportRedundantTry(sema);
 
         // `notnull` asserts a non-nullity invariant: unwrap `nullable T` to `T` (panicking
         // under safety when the value IS null). On an operand that is already non-null
@@ -1578,7 +1627,7 @@ namespace
         if (calledFn.isFallible())
         {
             markCurrentErrorScopeFallible(sema);
-            if (!hasExplicitCallErrorHandler(sema))
+            if (!acceptFallibleExpression(sema))
                 return reportFallibleCallRequiresContext(sema, calledFn, sema.curNodeRef());
 
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, sema.curNode().codeRef()));
@@ -1656,7 +1705,7 @@ bool SemaHelpers::isAssumedCast(Sema& sema)
 Result SemaHelpers::prepareFallibleCast(Sema& sema)
 {
     markCurrentErrorScopeFallible(sema);
-    if (!hasExplicitCallErrorHandler(sema))
+    if (!acceptFallibleExpression(sema))
         return SemaError::raise(sema, DiagnosticId::sema_err_fallible_cast_requires_handler, sema.curNodeRef());
     auto& lowering               = ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
     lowering.fallibleDynamicCast = true;

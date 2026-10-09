@@ -473,6 +473,35 @@ namespace
         return sym.declNodeRef() != sema.curNodeRef();
     }
 
+    // Implicit propagation sends failures through the function's own 'fail' exit, so a
+    // function that cannot fail has nowhere to send them.
+    Result checkPropagateFunction(Sema& sema, const SymbolFunction& sym)
+    {
+        if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Propagate) || sym.isFallible())
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_propagate_needs_fail, sym);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    // 'Swag.Propagate' governs the calls written in its own body. A function declared inside
+    // that body spells its own error handling, so the attribute must not reach it through
+    // the body's attributes the way scope attributes do.
+    void keepPropagateOutOfNestedDeclarations(AttributeList& bodyAttributes)
+    {
+        if (!bodyAttributes.hasRtFlag(RtAttributeFlagsE::Propagate))
+            return;
+
+        bodyAttributes.rtFlags.remove(RtAttributeFlagsE::Propagate);
+        for (size_t i = bodyAttributes.attributes.size(); i != 0; --i)
+        {
+            const AttributeInstance& inst = bodyAttributes.attributes[i - 1];
+            if (inst.symbol && inst.symbol->rtAttributeFlags().has(RtAttributeFlagsE::Propagate))
+                bodyAttributes.attributes.erase(bodyAttributes.attributes.begin() + (i - 1));
+        }
+    }
+
 }
 
 Result Sema::completeLazyFunction(SymbolFunction& calledFn)
@@ -603,8 +632,11 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         return Result::SkipChildren;
     }
 
+    SWC_RESULT(checkPropagateFunction(sema, sym));
+
     SemaFrame frame           = sema.frame();
     frame.currentAttributes() = sym.attributes();
+    keepPropagateOutOfNestedDeclarations(frame.currentAttributes());
     frame.setCurrentImpl(declImpl);
     frame.setCurrentInterface(declItf);
     frame.setEnclosingFunction(sema.currentFunction());

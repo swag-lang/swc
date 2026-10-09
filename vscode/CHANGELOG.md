@@ -7,6 +7,8 @@
 - Analyze unsaved module buffers and discard results superseded by edits.
 - Add compiler selection and restart settings; require VS Code 1.82 or newer for language services.
 - Keep syntax highlighting available when workspace trust disables compiler execution.
+- Show a `try` inlay hint before each fallible call a `#[Swag.Propagate]` function propagates
+  implicitly.
 
 ## 0.0.170
 

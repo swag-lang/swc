@@ -50,6 +50,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::NoReturn, .str = "NoReturn"},
         {.name = PredefinedName::Foreign, .str = "Foreign"},
         {.name = PredefinedName::Discardable, .str = "Discardable"},
+        {.name = PredefinedName::Propagate, .str = "Propagate"},
         {.name = PredefinedName::NoCopy, .str = "NoCopy"},
         {.name = PredefinedName::DynCast, .str = "DynCast"},
         {.name = PredefinedName::Opaque, .str = "Opaque"},

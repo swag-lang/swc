@@ -7888,7 +7888,7 @@ swc test -w path/to/workspace -m messages</span></div>
 </tbody>
 </table>
 <p><span class="code-inline">Swag.AttributeUsage</span> is a flag enum. Combine values such as <span class="code-inline">.Function</span>, <span class="code-inline">.Struct</span>, <span class="code-inline">.Enum</span>, <span class="code-inline">.Alias</span>, and <span class="code-inline">.Variable</span> with <span class="code-inline">|</span>. <span class="code-inline">.Scope</span> marks an attribute that acts on a lexical scope instead of a declaration, and <span class="code-inline">.File</span> one that can be written with <span class="code-inline">#global</span>.</p>
-<p>The compiler enforces the declared usage: writing an attribute directly on another kind of declaration is an error. An attribute with no <span class="code-inline">AttrUsage</span> is unrestricted.</p>
+<p>The compiler enforces the declared usage: writing an attribute directly on another kind of declaration is an error, and so is writing it with <span class="code-inline">#global</span> when it does not declare <span class="code-inline">.File</span> (<span class="code-inline">.All</span> names declarations, not files). An attribute with no <span class="code-inline">AttrUsage</span> is unrestricted.</p>
 <h3 id="_010_002_predefined_attributes_swg_Name_Resolution">Name Resolution</h3>
 <table class="table-markdown">
 <thead>
@@ -7951,6 +7951,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <tr><td><span class="code-inline">Implicit()</span></td><td>Permit an <span class="code-inline">opCast</span> overload as an implicit conversion</td></tr>
 <tr><td><span class="code-inline">Discardable()</span></td><td>Permit a function result to be ignored</td></tr>
 <tr><td><span class="code-inline">NoReturn()</span></td><td>Declare that a call never comes back, like <span class="code-inline">Swag.panic</span></td></tr>
+<tr><td><span class="code-inline">Propagate()</span></td><td>Read every unmarked fallible call in the function body as <span class="code-inline">try</span></td></tr>
 <tr><td>'Deprecated(msg: string? = null)'</td><td>Mark an API as deprecated</td></tr>
 </tbody>
 </table>
@@ -8814,7 +8815,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Explicit_Error_Handling">Explicit Error Handling</h3>
-<p>Every call to a function declared with <span class="code-inline">fail</span> needs <span class="code-inline">try</span>, <span class="code-inline">catch</span>, <span class="code-inline">expect</span>, or <span class="code-inline">assume</span>. Declaring the caller with <span class="code-inline">fail</span> permits propagation, but does not make it implicit. The compiler rejects a call that omits its error-management keyword.</p>
+<p>Every call to a function declared with <span class="code-inline">fail</span> needs <span class="code-inline">try</span>, <span class="code-inline">catch</span>, <span class="code-inline">expect</span>, or <span class="code-inline">assume</span>. Declaring the caller with <span class="code-inline">fail</span> permits propagation, but does not make it implicit: that takes <span class="code-inline">#[Swag.Propagate]</span>, described below. The compiler rejects a call that omits its error-management keyword.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">explicitTryCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">return</span> <span class="SKwd">try</span> <span class="SFct">count</span>(name)
@@ -8879,6 +8880,30 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchCode</span>() == <span class="SNum">7</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchElse</span>(<span class="SStr">"abcd"</span>) == <span class="SNum">4</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchElse</span>(<span class="SKwd">null</span>) == <span class="SNum">99</span>)
+}</span></div>
+<h3 id="_013_001_error_management_swg_Implicit_Propagation">Implicit Propagation</h3>
+<p>When nearly every call of a function propagates, a <span class="code-inline">try</span> on each one tells the reader nothing. <span class="code-inline">#[Swag.Propagate]</span> reads every unmarked fallible call of the function body as <span class="code-inline">try</span>, so the only error keywords left are those that handle a failure differently: <span class="code-inline">catch</span>, <span class="code-inline">expect</span>, and <span class="code-inline">assume</span>.</p>
+<p>The function must be declared with <span class="code-inline">fail</span>. An unmarked failure goes exactly where <span class="code-inline">try</span> would send it: out of the function, or to an enclosing error-handling block. A written <span class="code-inline">try</span> changes nothing and is reported as a warning. The attribute is an implementation choice, not part of the signature: callers handle the function's errors as usual.</p>
+<p>It governs only the body it is written on. A function or a lambda declared inside that body spells its own handling, and a macro or a mixin cannot carry it, because its body belongs to the caller. An attribute block applies it to each function it holds; <span class="code-inline">#global</span> cannot apply it to a whole file. Editors that use the Swag language server show the implicit <span class="code-inline">try</span> as a hint before each call it applies to.</p>
+<p>Use it for linear code where every step can fail and every failure ends the work: setup code, scripts, test scenarios. Code that builds state by hand and must undo it on failure reads better with each exit point spelled out.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Propagate]</span>
+<span class="SKwd">func</span> <span class="SFct">implicitTotal</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
+{
+    <span class="SKwd">let</span> first  = <span class="SFct">count</span>(name0)
+    <span class="SKwd">let</span> second = <span class="SKwd">catch</span> <span class="SFct">count</span>(name1)
+    <span class="SLgc">return</span> first + second + <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> both = <span class="SKwd">try</span> <span class="SFct">implicitTotal</span>(<span class="SStr">"ab"</span>, <span class="SStr">"cde"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(both == <span class="SNum">7</span>)
+    <span class="SKwd">let</span> caught = <span class="SKwd">try</span> <span class="SFct">implicitTotal</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(caught == <span class="SNum">4</span>)
+
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">implicitTotal</span>(<span class="SKwd">null</span>, <span class="SStr">"cde"</span>) <span class="SLgc">as</span> err
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Expect">Expect</h3>
 <p><span class="code-inline">expect</span> returns the successful result or panics. This contract holds in every build configuration, including release and code with safety guards disabled. A panic hook may report the error or transfer control, but returning from the hook terminates the process. Use <span class="code-inline">expect</span> for an invariant, not for an ordinary failure that the caller should recover from.</p>
@@ -11293,6 +11318,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Propagating Errors|_013_001_error_management_swg_Propagating_Errors|",
 "h|Explicit Error Handling|_013_001_error_management_swg_Explicit_Error_Handling|",
 "h|Error-Handling Blocks|_013_001_error_management_swg_Error-Handling_Blocks|",
+"h|Implicit Propagation|_013_001_error_management_swg_Implicit_Propagation|",
 "h|Expect|_013_001_error_management_swg_Expect|",
 "h|Assume|_013_001_error_management_swg_Assume|",
 "h|Defer on Error Paths|_013_001_error_management_swg_Defer_on_Error_Paths|",

@@ -7,6 +7,14 @@ namespace Integration
     #[Swag.CallingConvention(.C)]
     alias FspSxsIdentFn = func()->const [*] u16
 
+    // A harness step that did not go as planned, with the sentence its report prints.
+    struct HarnessError
+    {
+        using base: Swag.BaseError
+    }
+
+    func harnessError(message: string)->HarnessError => {base: {Errors.mkString(message)}}
+
     const PasswordText            = "integration horse battery staple"
     const WrongPasswordText       = "definitely not the password"
     const VisibilityProbeArgument = "--integration-drive-probe"
@@ -36,15 +44,16 @@ namespace Integration
         return writeError == null ? 0 : 1
     }
 
+    #[Swag.Propagate]
     func shellRenameItems(paths: const [..] String, name: string) fail
     {
-        try verify(Win32.CoInitializeEx(null, Win32.COINIT_APARTMENTTHREADED) >= 0, "the Shell rename test needs a COM apartment")
+        verify(Win32.CoInitializeEx(null, Win32.COINIT_APARTMENTTHREADED) >= 0, "the Shell rename test needs a COM apartment")
         defer Win32.CoUninitialize()
 
         var classId     = Win32.GUID{0x3AD05575, 0x8857, 0x4850, [0x92, 0x77, 0x11, 0xB8, 0x5B, 0xDB, 0x8E, 0x09]}
         var interfaceId = Win32.GUID{0x947AAB5F, 0x0A5C, 0x4C13, [0xB4, 0xD6, 0x4B, 0xF7, 0x83, 0x6F, 0xC9, 0xF8]}
         var raw: Win32.LPVOID
-        try verify(Win32.CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw) >= 0, "Windows must create the Shell file operation")
+        verify(Win32.CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw) >= 0, "Windows must create the Shell file operation")
         let operation = cast(*IFileOperation, raw!)
         defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown, raw!))
 
@@ -63,22 +72,22 @@ namespace Integration
             let path16 = Utf16.toZeroTerminated(shellPath)
             var idList: PIDLIST_ABSOLUTE
             let status = SHParseDisplayName(path16.storage(), null, &idList, 0, null)
-            try verify(status >= 0, Format.toString("the Shell cannot resolve [[%]] (HRESULT 0x%{X})", shellPath, cast #bit (u32, status)))
+            verify(status >= 0, Format.toString("the Shell cannot resolve [[%]] (HRESULT 0x%{X})", shellPath, cast #bit (u32, status)))
             idLists.add(idList)
         }
 
         var items: *IShellItemArray?
-        try verify(SHCreateShellItemArrayFromIDLists(cast(u32, idLists.count), cast(const [*] PCIDLIST_ABSOLUTE, idLists.storage()), &items) >= 0, "the Shell must collect the batch rename sources")
+        verify(SHCreateShellItemArrayFromIDLists(cast(u32, idLists.count), cast(const [*] PCIDLIST_ABSOLUTE, idLists.storage()), &items) >= 0, "the Shell must collect the batch rename sources")
         defer discard (items!.lpVtbl.Release)(cast(*IUnknown, cast(*void, items)))
 
         // Suppress UI, stop on errors, and let Windows choose numbered names while keeping extensions.
         const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
-        try verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
+        verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
         let name16 = Utf16.toZeroTerminated(name)
-        try verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown, cast(*void, items!)), name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
-        try verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
+        verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown, cast(*void, items!)), name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
+        verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
         var aborted: s32
-        try verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
+        verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
     }
 
     func password()->const [..] u8      => PasswordText
@@ -87,7 +96,7 @@ namespace Integration
     func verify(condition: bool, message: string) fail
     {
         if not condition do
-            fail volumeError(Format.toString("Integration check failed: %", message))
+            fail harnessError(Format.toString("Integration check failed: %", message))
         g_CheckCount += 1
     }
 
@@ -118,7 +127,7 @@ namespace Integration
                 return Format.toString("%:", cast(rune, ('A' + index)))
         }
 
-        fail volumeError("No unused drive letter is available for the integration sandbox.")
+        fail harnessError("No unused drive letter is available for the integration sandbox.")
     }
 
     func movePath(existing, replacement: string, replace = false) fail
@@ -127,14 +136,14 @@ namespace Integration
         let replacement16 = Utf16.toZeroTerminated(replacement)
         catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) as error
         if error != null do
-            fail volumeError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
+            fail harnessError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
     }
 
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
         if not SetFileAttributesW(path16.buffer, attributes) do
-            fail volumeError(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
+            fail harnessError(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
     }
 
     func attributes(path: string)->u32
@@ -144,22 +153,23 @@ namespace Integration
         return error != null ? INVALID_FILE_ATTRIBUTES : attributes
     }
 
+    #[Swag.Propagate]
     func verifyFinalPath(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
 
         // Match Python's realpath: query metadata with all sharing modes and allow directories.
-        let handle = try CreateFileW(path16.buffer, 0, 7, null, 3, 0x02000000, null)
-        try verify(handle != WinFsp.InvalidHandle, Format.toString("Windows cannot open [[%]] for path resolution", path))
+        let handle = CreateFileW(path16.buffer, 0, 7, null, 3, 0x02000000, null)
+        verify(handle != WinFsp.InvalidHandle, Format.toString("Windows cannot open [[%]] for path resolution", path))
         defer CloseHandle(handle)
 
         var buffer: [32768] u16
         let count = GetFinalPathNameByHandleW(handle, buffer.buffer, cast(u32, buffer.count), 0)
-        try verify(count != 0 and count < buffer.count, Format.toString("Windows cannot resolve [[%]] from its handle (error %)", path, GetLastError()))
+        verify(count != 0 and count < buffer.count, Format.toString("Windows cannot resolve [[%]] from its handle (error %)", path, GetLastError()))
         let resolved   = Utf8.fromUtf16(Swag.makeSlice(buffer.buffer, count))
         let resolved16 = Utf16.toZeroTerminated(resolved)
-        let reopened   = try CreateFileW(resolved16.buffer, 0, 7, null, 3, 0x02000000, null)
-        try verify(reopened != WinFsp.InvalidHandle, Format.toString("Windows cannot reopen the resolved path [[%]]", resolved))
+        let reopened   = CreateFileW(resolved16.buffer, 0, 7, null, 3, 0x02000000, null)
+        verify(reopened != WinFsp.InvalidHandle, Format.toString("Windows cannot reopen the resolved path [[%]]", resolved))
         defer CloseHandle(reopened)
     }
 
@@ -168,7 +178,7 @@ namespace Integration
         let path16 = Utf16.toZeroTerminated(path)
         catch RemoveDirectoryW(path16.buffer) as error
         if error != null do
-            fail volumeError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
+            fail harnessError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -213,7 +223,7 @@ namespace Integration
             var result: retval
             let temp = Env.getSpecialDirectory(.Temp)
             if temp.isEmpty() do
-                fail volumeError("Windows did not provide a temporary directory for the sandbox.")
+                fail harnessError("Windows did not provide a temporary directory for the sandbox.")
             result.root = Path.combine(temp, Format.toString("vault-integration-%", Guid64.random()))
             try Directory.create(result.root)
             result.container  = Path.combine(result.root, "integration")
@@ -226,7 +236,7 @@ namespace Integration
         mtd mountVolume(passwordBytes: const [..] u8, protectionPassword: const [..] u8 = "") fail
         {
             if .mountedActive do
-                fail volumeError("The integration volume is already mounted.")
+                fail harnessError("The integration volume is already mounted.")
             let mounted = Memory.new'WinFsp.MountedVolume()
             discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError
             if mountError != null
@@ -273,7 +283,7 @@ namespace Integration
                 try .unmountVolume()
             WinFsp.removeRuntimeTree(.root)
             if Directory.exists(.root) do
-                fail volumeError(Format.toString("The integration sandbox could not be removed: %", .root))
+                fail harnessError(Format.toString("The integration sandbox could not be removed: %", .root))
             .root.clear()
         }
 
@@ -288,75 +298,76 @@ namespace Integration
         return result
     }
 
+    #[Swag.Propagate]
     func runFilesystemScenarios(box: *Sandbox, original: const [..] u8) fail
     {
         let root      = driveRoot(box.mountPoint)
         let documents = Path.combine(root, "Documents")
         let nested    = Path.combine(documents, "Nested")
         trace("FS: create nested directories")
-        try Directory.create(documents)
-        try Directory.create(nested)
-        try verify(Directory.exists(documents) and Directory.exists(nested), "nested directories must be creatable")
+        Directory.create(documents)
+        Directory.create(nested)
+        verify(Directory.exists(documents) and Directory.exists(nested), "nested directories must be creatable")
 
         let persistent = Path.combine(nested, "external-copy.bin")
         trace("FS: external copy round trip")
-        try File.duplicate(persistent, box.source)
-        try verify(File.exists(persistent), "an external file must copy into the mounted drive")
-        try File.duplicate(box.recovered, persistent)
-        let firstRecovery = try File.readAllBytes(box.recovered)
-        try verify(Slice.equals(original, firstRecovery.toSlice()), "a copied file must survive a round trip through the mounted drive")
+        File.duplicate(persistent, box.source)
+        verify(File.exists(persistent), "an external file must copy into the mounted drive")
+        File.duplicate(box.recovered, persistent)
+        let firstRecovery = File.readAllBytes(box.recovered)
+        verify(Slice.equals(original, firstRecovery.toSlice()), "a copied file must survive a round trip through the mounted drive")
 
         trace("FS: resolve and reopen final paths from handles")
-        try verifyFinalPath(root)
-        try verifyFinalPath(nested)
-        try verifyFinalPath(persistent)
+        verifyFinalPath(root)
+        verifyFinalPath(nested)
+        verifyFinalPath(persistent)
 
         let empty = Path.combine(documents, "empty.txt")
         trace("FS: empty file")
-        discard try File.writeAllText(empty, "")
-        try verify(File.exists(empty) and (try File.openRead(empty)).size() == 0, "zero-length files must be supported")
+        File.writeAllText(empty, "")
+        verify(File.exists(empty) and File.openRead(empty).size() == 0, "zero-length files must be supported")
 
         let unicode = Path.combine(documents, "résumé-東京.txt")
         trace("FS: Unicode file")
         let unicodePayload = "UTF-8 names are preserved"
-        discard try File.writeAllText(unicode, unicodePayload)
-        let unicodeRead = try File.readAllText(unicode)
-        try verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
-        try verifyFinalPath(unicode)
+        File.writeAllText(unicode, unicodePayload)
+        let unicodeRead = File.readAllText(unicode)
+        verify(unicodeRead == unicodePayload, "Unicode file names and text must round-trip")
+        verifyFinalPath(unicode)
 
         let overwrite = Path.combine(documents, "overwrite.bin")
         trace("FS: overwrite and append")
         let first:  [7] u8 = [1, 2, 3, 4, 5, 6, 7]
         let second: [3] u8 = [9, 8, 7]
-        discard try File.writeAllBytes(overwrite, first)
-        discard try File.writeAllBytes(overwrite, second)
-        let overwritten = try File.readAllBytes(overwrite)
-        try verify(Slice.equals(overwritten.toSlice(), second), "overwriting must truncate and replace an existing file")
+        File.writeAllBytes(overwrite, first)
+        File.writeAllBytes(overwrite, second)
+        let overwritten = File.readAllBytes(overwrite)
+        verify(Slice.equals(overwritten.toSlice(), second), "overwriting must truncate and replace an existing file")
 
-        var appendStream     = try File.open(overwrite, .Append, .Write, .Zero)
+        var appendStream     = File.open(overwrite, .Append, .Write, .Zero)
         let appended: [4] u8 = [6, 5, 4, 3]
-        discard try appendStream.write(&appended[0], #sizeof(appended))
+        discard appendStream.write(&appended[0], #sizeof(appended))
         appendStream.close()
-        let afterAppend = try File.readAllBytes(overwrite)
+        let afterAppend = File.readAllBytes(overwrite)
         let expectedAppend: [7] u8 = [9, 8, 7, 6, 5, 4, 3]
-        try verify(Slice.equals(afterAppend.toSlice(), expectedAppend), "append mode must add data at end of file")
+        verify(Slice.equals(afterAppend.toSlice(), expectedAppend), "append mode must add data at end of file")
 
         let sparse = Path.combine(documents, "sparse.bin")
         trace("FS: sparse file")
-        var sparseStream = try File.open(sparse, .CreateNew, .Write, .Zero)
-        try sparseStream.seek(.Begin, 128 * 1024 + 17)
+        var sparseStream = File.open(sparse, .CreateNew, .Write, .Zero)
+        sparseStream.seek(.Begin, 128 * 1024 + 17)
         let marker: [5] u8 = [0x51, 0x52, 0x53, 0x54, 0x55]
-        discard try sparseStream.write(&marker[0], #sizeof(marker))
+        discard sparseStream.write(&marker[0], #sizeof(marker))
         sparseStream.close()
-        let sparseData = try File.readAllBytes(sparse)
-        try verify(sparseData.count == 128 * 1024 + 17 + #sizeof(marker), "a sparse write must extend the file to the requested offset")
-        try verify(allZero(Swag.makeSlice(sparseData.buffer, 128 * 1024 + 17)), "sparse holes must read back as zero")
-        try verify(Swag.memcmp(sparseData.buffer + 128 * 1024 + 17, &marker[0], #sizeof(marker)) == 0, "the sparse tail must retain its data")
+        let sparseData = File.readAllBytes(sparse)
+        verify(sparseData.count == 128 * 1024 + 17 + #sizeof(marker), "a sparse write must extend the file to the requested offset")
+        verify(allZero(Swag.makeSlice(sparseData.buffer, 128 * 1024 + 17)), "sparse holes must read back as zero")
+        verify(Swag.memcmp(sparseData.buffer + 128 * 1024 + 17, &marker[0], #sizeof(marker)) == 0, "the sparse tail must retain its data")
 
         let renamed = Path.combine(documents, "renamed.bin")
         trace("FS: file and directory rename")
-        try movePath(overwrite, renamed)
-        try verify(not File.exists(overwrite) and File.exists(renamed), "files must be renameable")
+        movePath(overwrite, renamed)
+        verify(not File.exists(overwrite) and File.exists(renamed), "files must be renameable")
 
         // Explorer computes progress while cached writes and namespace notifications are still
         // active. WinFsp 2.1 could deadlock in that overlap and leave Explorer waiting forever.
@@ -365,76 +376,76 @@ namespace Integration
         let largeSource      = Path.combine(documents, "large-move-source.bin")
         let largeDestination = Path.combine(nested, "large-move-destination.bin")
         trace("FS: large file move between directories")
-        var largePayload = try createPayload(LargeMoveSize)
-        discard try File.writeAllBytes(largeSource, largePayload.toSlice())
+        var largePayload = createPayload(LargeMoveSize)
+        File.writeAllBytes(largeSource, largePayload.toSlice())
         var renameTimer: Time.Stopwatch
         renameTimer.start()
-        try movePath(largeSource, largeDestination)
+        movePath(largeSource, largeDestination)
         renameTimer.stop()
-        let movedLargeStream = try File.openRead(largeDestination)
-        let movedSize        = try movedLargeStream.size()
+        let movedLargeStream = File.openRead(largeDestination)
+        let movedSize        = movedLargeStream.size()
         movedLargeStream.close()
-        try verify(renameTimer.elapsedMilliseconds() < MaximumRenameDurationMs, "moving a large file between directories must not stall the filesystem host")
-        try verify(not File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
+        verify(renameTimer.elapsedMilliseconds() < MaximumRenameDurationMs, "moving a large file between directories must not stall the filesystem host")
+        verify(not File.exists(largeSource) and movedSize == LargeMoveSize, "a large moved file must retain its size and destination")
 
         let renamedNested = Path.combine(documents, "Renamed-Nested")
-        try movePath(nested, renamedNested)
+        movePath(nested, renamedNested)
         let movedPersistent = Path.combine(renamedNested, "external-copy.bin")
         let movedLargePath  = Path.combine(renamedNested, "large-move-destination.bin")
-        try verify(not Directory.exists(nested) and File.exists(movedPersistent) and File.exists(movedLargePath), "directories with children must be renameable")
+        verify(not Directory.exists(nested) and File.exists(movedPersistent) and File.exists(movedLargePath), "directories with children must be renameable")
 
         let replacementSource = Path.combine(documents, "replacement-source.bin")
         trace("FS: rename with replacement")
         let replacementTarget        = Path.combine(documents, "replacement-target.bin")
         let replacementBytes: [5] u8 = [21, 22, 23, 24, 25]
-        discard try File.writeAllBytes(replacementSource, replacementBytes)
-        discard try File.writeAllBytes(replacementTarget, first)
-        try movePath(replacementSource, replacementTarget, true)
-        let replacementRead = try File.readAllBytes(replacementTarget)
-        try verify(not File.exists(replacementSource) and Slice.equals(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
+        File.writeAllBytes(replacementSource, replacementBytes)
+        File.writeAllBytes(replacementTarget, first)
+        movePath(replacementSource, replacementTarget, true)
+        let replacementRead = File.readAllBytes(replacementTarget)
+        verify(not File.exists(replacementSource) and Slice.equals(replacementRead.toSlice(), replacementBytes), "rename with replacement must atomically replace the destination")
 
         let readOnlyPath = Path.combine(documents, "readonly.bin")
         trace("FS: read-only attributes")
-        discard try File.writeAllBytes(readOnlyPath, first)
-        try setAttributes(readOnlyPath, FileAttributeReadOnly)
-        try verify((attributes(readOnlyPath) & FileAttributeReadOnly) != 0, "read-only attributes must be reported")
+        File.writeAllBytes(readOnlyPath, first)
+        setAttributes(readOnlyPath, FileAttributeReadOnly)
+        verify((attributes(readOnlyPath) & FileAttributeReadOnly) != 0, "read-only attributes must be reported")
         discard catch File.writeAllBytes(readOnlyPath, second) as readonlyError
-        try verify(readonlyError != null, "writes to read-only files must be rejected")
-        try setAttributes(readOnlyPath, FileAttributeNormal)
-        discard try File.writeAllBytes(readOnlyPath, second)
-        try verify(Slice.equals((try File.readAllBytes(readOnlyPath)).toSlice(), second), "clearing read-only must allow writes again")
+        verify(readonlyError != null, "writes to read-only files must be rejected")
+        setAttributes(readOnlyPath, FileAttributeNormal)
+        File.writeAllBytes(readOnlyPath, second)
+        verify(Slice.equals(File.readAllBytes(readOnlyPath).toSlice(), second), "clearing read-only must allow writes again")
 
         let disposable = Path.combine(documents, "disposable.txt")
         trace("FS: file and directory deletion")
-        discard try File.writeAllBytes(disposable, first)
-        try File.delete(disposable)
-        try verify(not File.exists(disposable), "files must be deletable")
+        File.writeAllBytes(disposable, first)
+        File.delete(disposable)
+        verify(not File.exists(disposable), "files must be deletable")
         let emptyDirectory = Path.combine(documents, "Empty-Directory")
-        try Directory.create(emptyDirectory)
-        try removeDirectory(emptyDirectory)
-        try verify(not Directory.exists(emptyDirectory), "empty directories must be deletable")
+        Directory.create(emptyDirectory)
+        removeDirectory(emptyDirectory)
+        verify(not Directory.exists(emptyDirectory), "empty directories must be deletable")
 
         let bulk = Path.combine(documents, "Bulk")
         trace("FS: bulk directory enumeration")
-        try Directory.create(bulk)
+        Directory.create(bulk)
         for index in 24
         {
             let name = Path.combine(bulk, Format.toString("item-%.bin", index))
             var bytes: [113] u8
             for byteIndex in #sizeof(bytes) do
                 bytes[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
-            discard try File.writeAllBytes(name, bytes)
+            File.writeAllBytes(name, bytes)
         }
 
-        let entries     = try Directory.enumerateFiles(bulk)
+        let entries     = Directory.enumerateFiles(bulk)
         let scannedBulk = entries.count == 24 and
                           containsEntry(entries.toSlice(), "item-0.bin") and
                           containsEntry(entries.toSlice(), "item-23.bin")
-        try verify(scannedBulk, "directory scans must return every created file")
+        verify(scannedBulk, "directory scans must return every created file")
 
         trace("FS: batch rename with name collisions")
         let occupied = Path.combine(bulk, "occupied.bin")
-        discard try File.writeAllBytes(occupied, first)
+        File.writeAllBytes(occupied, first)
         let occupied16 = Utf16.toZeroTerminated(occupied)
         var renamePaths: Array'String
         for index in 24
@@ -445,97 +456,99 @@ namespace Integration
             var error: u64
             if collision is Swag.SystemError as system do
                 error = system.errorID
-            try verify(collision != null and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
-            try verify(File.exists(source) and Slice.equals((try File.readAllBytes(occupied)).toSlice(), first), "a refused rename must preserve both files")
+            verify(collision != null and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
+            verify(File.exists(source) and Slice.equals(File.readAllBytes(occupied).toSlice(), first), "a refused rename must preserve both files")
 
             let destination = Path.combine(bulk, Format.toString("clip (%).mp4", index + 1))
             renamePaths.add(destination)
-            try movePath(source, destination)
-            let renamedBytes = try File.readAllBytes(destination)
-            try verify(not File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
+            movePath(source, destination)
+            let renamedBytes = File.readAllBytes(destination)
+            verify(not File.exists(source) and renamedBytes.count == 113, "batch renames must preserve each file and remove its old name")
             var expected: [113] u8
             for byteIndex in expected.count do
                 expected[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
-            try verify(Slice.equals(renamedBytes.toSlice(), expected), "batch renames must preserve file contents")
+            verify(Slice.equals(renamedBytes.toSlice(), expected), "batch renames must preserve file contents")
         }
 
         trace("FS: Shell batch rename with automatic numbering")
 
         // Seed the first number, as an Explorer batch rename does; the Shell chooses the rest.
-        try shellRenameItems(renamePaths.toSlice(), "video (1).mp4")
+        shellRenameItems(renamePaths.toSlice(), "video (1).mp4")
         for index in 24
         {
             let numbered     = Path.combine(bulk, Format.toString("video (%).mp4", index + 1))
-            let renamedBytes = try File.readAllBytes(numbered)
-            try verify(not File.exists(renamePaths[index]) and renamedBytes.count == 113, "the Shell must assign a distinct numbered name to every file")
+            let renamedBytes = File.readAllBytes(numbered)
+            verify(not File.exists(renamePaths[index]) and renamedBytes.count == 113, "the Shell must assign a distinct numbered name to every file")
             var expected: [113] u8
             for byteIndex in expected.count do
                 expected[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
-            try verify(Slice.equals(renamedBytes.toSlice(), expected), "Shell batch renames must preserve file contents")
+            verify(Slice.equals(renamedBytes.toSlice(), expected), "Shell batch renames must preserve file contents")
         }
 
-        let documentsEntries = try Directory.enumerate(documents, {})
+        let documentsEntries = Directory.enumerate(documents, {})
         let scannedDocuments = containsEntry(documentsEntries.toSlice(), "Renamed-Nested") and
                                containsEntry(documentsEntries.toSlice(), "résumé-東京.txt") and
                                containsEntry(documentsEntries.toSlice(), "Bulk")
-        try verify(scannedDocuments, "mixed file and directory scans must preserve names")
+        verify(scannedDocuments, "mixed file and directory scans must preserve names")
     }
 
+    #[Swag.Propagate]
     func runPersistenceScenarios(box: *Sandbox, original: const [..] u8) fail
     {
-        try box.unmountVolume()
-        try verify(not Directory.exists(driveRoot(box.mountPoint)), "the drive letter must disappear after unmount")
+        box.unmountVolume()
+        verify(not Directory.exists(driveRoot(box.mountPoint)), "the drive letter must disappear after unmount")
 
         var rejected: WinFsp.MountedVolume
         discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordError
-        try rejected.close()
-        try verify(passwordError != null, "a wrong password must not mount the container")
-        try verify(not Directory.exists(driveRoot(box.mountPoint)), "a rejected password must not leave a drive mounted")
+        rejected.close()
+        verify(passwordError != null, "a wrong password must not mount the container")
+        verify(not Directory.exists(driveRoot(box.mountPoint)), "a rejected password must not leave a drive mounted")
 
-        try box.mountVolume(password())
-        try verify(Directory.exists(driveRoot(box.mountPoint)), "the same container must remount on the same free letter")
+        box.mountVolume(password())
+        verify(Directory.exists(driveRoot(box.mountPoint)), "the same container must remount on the same free letter")
 
         let root           = driveRoot(box.mountPoint)
         let persisted      = Path.combine(root, "Documents", "Renamed-Nested", "external-copy.bin")
         let recoveredAgain = Path.combine(box.root, "recovered-after-remount.bin")
-        try File.duplicate(recoveredAgain, persisted)
-        let bytes = try File.readAllBytes(recoveredAgain)
-        try verify(Slice.equals(original, bytes.toSlice()), "file contents must persist across unmount and remount")
+        File.duplicate(recoveredAgain, persisted)
+        let bytes = File.readAllBytes(recoveredAgain)
+        verify(Slice.equals(original, bytes.toSlice()), "file contents must persist across unmount and remount")
 
         let bulk    = Path.combine(root, "Documents", "Bulk")
-        let entries = try Directory.enumerateFiles(bulk)
-        try verify(entries.count == 25 and
-                   containsEntry(entries.toSlice(), "video (13).mp4") and
-                   containsEntry(entries.toSlice(), "occupied.bin"),
-                   "batch rename metadata must persist across remount")
+        let entries = Directory.enumerateFiles(bulk)
+        verify(entries.count == 25 and
+               containsEntry(entries.toSlice(), "video (13).mp4") and
+               containsEntry(entries.toSlice(), "occupied.bin"),
+               "batch rename metadata must persist across remount")
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
         let text = "mounted twice"
-        discard try File.writeAllText(newAfterRemount, text)
-        try verify((try File.readAllText(newAfterRemount)) == text, "the remounted drive must remain writable")
+        File.writeAllText(newAfterRemount, text)
+        verify(File.readAllText(newAfterRemount) == text, "the remounted drive must remain writable")
 
-        try box.unmountVolume()
-        try verify(not Directory.exists(driveRoot(box.mountPoint)), "the final unmount must release the drive letter")
+        box.unmountVolume()
+        verify(not Directory.exists(driveRoot(box.mountPoint)), "the final unmount must release the drive letter")
     }
 
+    #[Swag.Propagate]
     func runHiddenScenarios() fail
     {
-        var box   = try Sandbox.create()
-        var outer = try Volume.create(box.container, password(), ContainerSize)
+        var box   = Sandbox.create()
+        var outer = Volume.create(box.container, password(), ContainerSize)
         outer.close()
         const HiddenPassword = "independent hidden integration access"
-        var hidden = try Volume.createHidden(box.container, password(), HiddenPassword, 16'u64 * 1024 * 1024)
+        var hidden = Volume.createHidden(box.container, password(), HiddenPassword, 16'u64 * 1024 * 1024)
         hidden.close()
-        try box.mountVolume(HiddenPassword)
+        box.mountVolume(HiddenPassword)
         let secret = Path.combine(driveRoot(box.mountPoint), "secret.txt")
-        discard try File.writeAllBytes(secret, "hidden integration bytes")
-        try box.unmountVolume()
+        File.writeAllBytes(secret, "hidden integration bytes")
+        box.unmountVolume()
 
-        try box.mountVolume(password(), HiddenPassword)
-        try verify(not File.exists(secret), "the outer mount must not expose hidden entries")
+        box.mountVolume(password(), HiddenPassword)
+        verify(not File.exists(secret), "the outer mount must not expose hidden entries")
         let ordinary = Path.combine(driveRoot(box.mountPoint), "ordinary.bin")
-        var stream   = try File.open(ordinary, .CreateNew, .ReadWrite, .Read)
-        var chunk    = try createPayload(1024 * 1024)
+        var stream   = File.open(ordinary, .CreateNew, .ReadWrite, .Read)
+        var chunk    = createPayload(1024 * 1024)
         var stopped  = false
         var written  = 0'u64
         for 64
@@ -551,15 +564,15 @@ namespace Integration
         }
 
         stream.close()
-        try verify(written > 0 and stopped and box.mounted!.volume.file.protectionTriggered, "ordinary Windows writes must succeed until hidden protection stops them")
+        verify(written > 0 and stopped and box.mounted!.volume.file.protectionTriggered, "ordinary Windows writes must succeed until hidden protection stops them")
         discard catch box.unmountVolume()
-        try box.mountVolume(HiddenPassword)
-        try verify((try File.readAllText(secret)) == "hidden integration bytes", "hidden data must survive a protected outer write collision")
-        try box.unmountVolume()
-        try box.mountVolume(password())
-        try verify(box.mounted!.volume.file.protectedEnd == 0, "protection must be opt-in on every ordinary mount")
-        try box.unmountVolume()
-        try box.closeSandbox()
+        box.mountVolume(HiddenPassword)
+        verify(File.readAllText(secret) == "hidden integration bytes", "hidden data must survive a protected outer write collision")
+        box.unmountVolume()
+        box.mountVolume(password())
+        verify(box.mounted!.volume.file.protectedEnd == 0, "protection must be opt-in on every ordinary mount")
+        box.unmountVolume()
+        box.closeSandbox()
     }
 
     // Read the identity through the shipped DLL, which also catches WinFsp truncating it.
@@ -578,57 +591,59 @@ namespace Integration
         return Utf8.fromUtf16(Swag.makeSlice(identity, count))
     }
 
+    #[Swag.Propagate]
     func verifyRuntimeIsolation() fail
     {
         defer WinFsp.g_WinFsp.runtimeRoot.clear()
-        let first     = try WinFsp.stagePortableWinFsp()
+        let first     = WinFsp.stagePortableWinFsp()
         let firstRoot = WinFsp.g_WinFsp.runtimeRoot
         defer WinFsp.removeRuntimeTree(firstRoot)
-        let second     = try WinFsp.stagePortableWinFsp()
+        let second     = WinFsp.stagePortableWinFsp()
         let secondRoot = WinFsp.g_WinFsp.runtimeRoot
         defer WinFsp.removeRuntimeTree(secondRoot)
 
-        let firstIdentity  = try stagedRuntimeIdentity(first)
-        let secondIdentity = try stagedRuntimeIdentity(second)
-        let expectedFirst  = try File.readAllText(Path.combine(Path.directoryName(first)!, "winfsp.sxs"))
-        let expectedSecond = try File.readAllText(Path.combine(Path.directoryName(second)!, "winfsp.sxs"))
-        try verify(firstIdentity == expectedFirst and secondIdentity == expectedSecond, "WinFsp must read the complete staged identities")
-        try verify(firstIdentity.startsWith("swagvault-") and secondIdentity.startsWith("swagvault-"), "each runtime identity must belong to Swag Vault")
-        try verify(firstIdentity != secondIdentity, "independent guardians must never share a driver registration")
+        let firstIdentity  = stagedRuntimeIdentity(first)
+        let secondIdentity = stagedRuntimeIdentity(second)
+        let expectedFirst  = File.readAllText(Path.combine(Path.directoryName(first)!, "winfsp.sxs"))
+        let expectedSecond = File.readAllText(Path.combine(Path.directoryName(second)!, "winfsp.sxs"))
+        verify(firstIdentity == expectedFirst and secondIdentity == expectedSecond, "WinFsp must read the complete staged identities")
+        verify(firstIdentity.startsWith("swagvault-") and secondIdentity.startsWith("swagvault-"), "each runtime identity must belong to Swag Vault")
+        verify(firstIdentity != secondIdentity, "independent guardians must never share a driver registration")
     }
 
+    #[Swag.Propagate]
     func runInSandbox(box: *Sandbox)->u32 fail
     {
         g_CheckCount = 0
-        try verify(not WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
-        try verifyRuntimeIsolation()
+        verify(not WinFsp.isElevated(), "the filesystem host must use the normal Explorer security context")
+        verifyRuntimeIsolation()
         Console.println("Swag Vault integration sandbox: ", box.root)
         Console.println("Using temporary drive: ", box.mountPoint)
         trace(Format.toString("SANDBOX: %", box.root))
         trace(Format.toString("DRIVE: %", box.mountPoint))
 
-        var payload = try createPayload(512 * 1024 + 37)
-        discard try File.writeAllBytes(box.source, payload.toSlice())
-        try verify(File.exists(box.source), "the external source file must exist")
+        var payload = createPayload(512 * 1024 + 37)
+        File.writeAllBytes(box.source, payload.toSlice())
+        verify(File.exists(box.source), "the external source file must exist")
 
         Console.println("Creating encrypted fixed-size container...")
         trace("STAGE: create container")
-        var created      = try Volume.create(box.container, password(), ContainerSize)
+        var created      = Volume.create(box.container, password(), ContainerSize)
         let physicalSize = created.physicalSize
-        try verify(created.containerSize == ContainerSize, "the container must keep its requested logical capacity")
-        try verify(physicalSize > ContainerSize, "the container must camouflage its logical capacity on disk")
+        verify(created.containerSize == ContainerSize, "the container must keep its requested logical capacity")
+        verify(physicalSize > ContainerSize, "the container must camouflage its logical capacity on disk")
         created.close()
-        try verify(File.exists(box.container), "the encrypted container must be created")
-        var raw     = try File.open(box.container, .Open, .ReadWrite, .Read)
-        let rawSize = try raw.size()
+        verify(File.exists(box.container), "the encrypted container must be created")
+        var raw     = File.open(box.container, .Open, .ReadWrite, .Read)
+        let rawSize = raw.size()
         raw.close()
-        try verify(rawSize == physicalSize, "the container file must keep its authenticated physical size")
+        verify(rawSize == physicalSize, "the container file must keep its authenticated physical size")
 
         Console.println("Mounting and exercising live Windows file I/O...")
         trace("STAGE: first mount")
-        try box.mountVolume(password())
+        box.mountVolume(password())
         trace("STAGE: first mount complete")
-        try verify(Directory.exists(driveRoot(box.mountPoint)), "the mounted drive must be visible to Windows")
+        verify(Directory.exists(driveRoot(box.mountPoint)), "the mounted drive must be visible to Windows")
         let mountedRoot      = driveRoot(box.mountPoint)
         let visibilityMarker = Path.combine(mountedRoot, "external-process-visible.txt")
 
@@ -636,21 +651,21 @@ namespace Integration
         // Windows command-line grammar because the trailing slash escapes the quote.
         // Pass the complete marker path, which cannot end in a path separator.
         let probeArguments = Format.toString("% \"%\"", VisibilityProbeArgument, visibilityMarker)
-        let executablePath = try Env.Process.currentExecutablePath()
-        var probe          = try Env.startProcess(executablePath, probeArguments)
-        let probeExitCode  = try probe.waitForExit()
-        try verify(probeExitCode == 0, "the visibility probe must exit without reporting a failure")
-        try verify(File.exists(visibilityMarker) and (try File.readAllText(visibilityMarker)) == "VISIBLE", "an independent non-elevated process must see the mounted drive")
-        try runFilesystemScenarios(box, payload.toSlice())
+        let executablePath = Env.Process.currentExecutablePath()
+        var probe          = Env.startProcess(executablePath, probeArguments)
+        let probeExitCode  = probe.waitForExit()
+        verify(probeExitCode == 0, "the visibility probe must exit without reporting a failure")
+        verify(File.exists(visibilityMarker) and File.readAllText(visibilityMarker) == "VISIBLE", "an independent non-elevated process must see the mounted drive")
+        runFilesystemScenarios(box, payload.toSlice())
         trace("STAGE: live filesystem scenarios complete")
 
         Console.println("Unmounting, rejecting a wrong password, and remounting...")
         trace("STAGE: persistence scenarios")
-        try runPersistenceScenarios(box, payload.toSlice())
+        runPersistenceScenarios(box, payload.toSlice())
         trace("STAGE: persistence scenarios complete")
         Console.println("Checking hidden-volume mounts and optional write protection...")
-        try runHiddenScenarios()
-        try box.closeSandbox()
+        runHiddenScenarios()
+        box.closeSandbox()
         trace("STAGE: sandbox removed")
         return g_CheckCount
     }
@@ -676,11 +691,12 @@ namespace Integration
         return true
     }
 
-    func errorMessage(err: any?)->string
+    func errorMessage(err: any?)->String
     {
         switch err
         {
-        case Error as error: return error.message orelse "Swag Vault integration error."
+        case HarnessError as error:     return error.message orelse "Swag Vault integration error."
+        case Error as error:            return Format.toString("Swag Vault error %", cast(u32, error.kind))
         case Swag.SystemError as error: return error.message orelse "Windows integration error."
         }
 

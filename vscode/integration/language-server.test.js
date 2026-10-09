@@ -7,6 +7,7 @@ const {spawn} = require('node:child_process');
 const {pathToFileURL, fileURLToPath} = require('node:url');
 const {createMessageConnection, StreamMessageReader, StreamMessageWriter} = require('vscode-jsonrpc/node');
 const {analyze, projectFor, pathKey} = require('../src/compiler');
+const {SemanticSnapshot} = require('../src/semantic');
 const {TextDocument} = require('vscode-languageserver-textdocument');
 
 test('LSP uses compiler semantics across files and unsaved document versions', {timeout: 39000}, async () =>
@@ -90,6 +91,27 @@ test('LSP uses compiler semantics across files and unsaved document versions', {
         }
         await fs.rm(root, {recursive: true, force: true});
     }
+});
+
+test('implicit propagation in a Swag.Propagate body becomes a try hint', {timeout: 39000}, async () =>
+{
+    assert.ok(process.env.SWAG_TEST_COMPILER);
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'swag-propagate-editor-'));
+    try
+    {
+        const file = path.join(root, 'example.swgs');
+        const uri = pathToFileURL(file).href;
+        const text = 'func load()->s32 fail => 1\n#[Swag.Propagate]\nfunc sum()->s32 fail\n{\n    let a = load()\n    return a + (catch load())\n}\n#main { discard catch sum() }\n';
+        await fs.writeFile(file, text);
+        const result = await analyze(await projectFor(uri), [TextDocument.create(uri, 'swag', 1, text)],
+            {compilerPath: process.env.SWAG_TEST_COMPILER}, new AbortController().signal);
+        assert.equal(result.snapshot.complete, true, result.output);
+        const source = result.snapshot.files.find(item => item.path.replaceAll('\\', '/') === file.replaceAll('\\', '/'));
+        assert.deepEqual(source?.propagations, [text.indexOf('load()', text.indexOf('let a'))], result.output);
+        const hints = new SemanticSnapshot(result.snapshot).hints(uri, {start: {line: 0, character: 0}, end: {line: 8, character: 0}});
+        assert.deepEqual(hints.filter(hint => hint.label === 'try').map(hint => hint.position), [{line: 4, character: 12}]);
+    }
+    finally { await fs.rm(root, {recursive: true, force: true}); }
 });
 
 test('standalone scripts use compiler script setup and unsaved buffers', {timeout: 39000}, async () =>

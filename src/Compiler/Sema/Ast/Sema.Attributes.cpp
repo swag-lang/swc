@@ -164,6 +164,7 @@ namespace
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},
             {.name = IdentifierManager::PredefinedName::NoReturn, .flag = RtAttributeFlagsE::NoReturn},
             {.name = IdentifierManager::PredefinedName::Discardable, .flag = RtAttributeFlagsE::Discardable},
+            {.name = IdentifierManager::PredefinedName::Propagate, .flag = RtAttributeFlagsE::Propagate},
             {.name = IdentifierManager::PredefinedName::NoCopy, .flag = RtAttributeFlagsE::NoCopy},
             {.name = IdentifierManager::PredefinedName::DynCast, .flag = RtAttributeFlagsE::DynCast},
             {.name = IdentifierManager::PredefinedName::Opaque, .flag = RtAttributeFlagsE::Opaque},
@@ -196,6 +197,12 @@ namespace
         const bool nextHasMixin  = currentAttributes.hasRtFlag(RtAttributeFlagsE::Mixin) || attrFlags.has(RtAttributeFlagsE::Mixin);
         if ((nextHasInline && nextHasMacro) || (nextHasInline && nextHasMixin) || (nextHasMacro && nextHasMixin))
             return SemaError::raise(sema, DiagnosticId::sema_err_attribute_inline_macro_mixin_conflict, errorRef);
+
+        // A macro or a mixin body is spliced into its caller, and its failures follow the
+        // caller's handling like any code written there, so it has no propagation of its own.
+        const bool nextHasPropagate = currentAttributes.hasRtFlag(RtAttributeFlagsE::Propagate) || attrFlags.has(RtAttributeFlagsE::Propagate);
+        if (nextHasPropagate && (nextHasMacro || nextHasMixin))
+            return SemaError::raise(sema, DiagnosticId::sema_err_attribute_propagate_macro_mixin_conflict, errorRef);
 
         return Result::Continue;
     }
@@ -645,6 +652,8 @@ namespace
 
     std::string_view attributeTargetName(AttributeUsageFlags target)
     {
+        if (target.has(Runtime::AttributeUsage::File))
+            return "'#global'";
         if (target.has(Runtime::AttributeUsage::Function))
             return "a function";
         if (target.has(Runtime::AttributeUsage::Struct))
@@ -676,8 +685,11 @@ namespace
         if (!sym || !sym->isAttribute())
             return Result::Continue;
 
-        const AttributeUsageFlags declared = declaredAttributeUsage(sema, sym->cast<SymbolFunction>());
-        if (declared.none() || declared.has(Runtime::AttributeUsage::All) || declared.hasAny(target))
+        // 'All' names every declaration kind, and a file is not one: '#global' applies the
+        // attribute to everything the file declares, so it has to be accepted explicitly.
+        const AttributeUsageFlags declared  = declaredAttributeUsage(sema, sym->cast<SymbolFunction>());
+        const bool                acceptAll = declared.has(Runtime::AttributeUsage::All) && !target.has(Runtime::AttributeUsage::File);
+        if (declared.none() || acceptAll || declared.hasAny(target))
             return Result::Continue;
 
         // Predefined attributes are written qualified, so name them the way they are used.
@@ -897,6 +909,11 @@ Result AstAttribute::semaPostNode(Sema& sema) const
 
     if (!callView.sym()->isAttribute())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, errorRef);
+
+    // A '#global' list has no declaration of its own to check against: it is the file.
+    const AstNode* listOwner = sema.visit().parentNode(1);
+    if (listOwner && listOwner->is(AstNodeId::CompilerGlobal) && listOwner->cast<AstCompilerGlobal>().mode == AstCompilerGlobal::Mode::AttributeList)
+        SWC_RESULT(checkAttributeUsage(sema, sema.curNodeRef(), Runtime::AttributeUsage::File));
 
     const SymbolFunction& attrSym = callView.sym()->cast<SymbolFunction>();
 

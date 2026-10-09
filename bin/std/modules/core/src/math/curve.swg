@@ -238,7 +238,10 @@ private impl Curve
     {
         let t2 = t * t
         let t3 = t2 * t
-        return (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * m0 + (3 * t2 - 2 * t3) * y1 + (t3 - t2) * m1
+        return (2 * t3 - 3 * t2 + 1) * y0 +
+               (t3 - 2 * t2 + t) * m0 +
+               (3 * t2 - 2 * t3) * y1 +
+               (t3 - t2) * m1
     }
 
     // Returns the ordinate of a weighted Bézier segment at the abscissa fraction `t`.
@@ -257,7 +260,10 @@ private impl Curve
         let low   = k0.y + span * outWeight * k0.outTangent
         let high  = k1.y - span * inWeight * k1.inTangent
         let rest  = 1 - param
-        return rest * rest * rest * k0.y + 3 * rest * rest * param * low + 3 * rest * param * param * high + param * param * param * k1.y
+        return rest * rest * rest * k0.y +
+               3 * rest * rest * param * low +
+               3 * rest * param * param * high +
+               param * param * param * k1.y
     }
 
     // Returns the parameter at which a unit Bézier of abscissa controls `c1` and `c2` reaches the
@@ -308,14 +314,18 @@ private impl Curve
     func bezierAbscissa(c1, c2, t: f32)->f32
     {
         let rest = 1 - t
-        return 3 * rest * rest * t * c1 + 3 * rest * t * t * c2 + t * t * t
+        return 3 * rest * rest * t * c1 +
+               3 * rest * t * t * c2 +
+               t * t * t
     }
 
     // Returns the derivative of the abscissa of that unit Bézier, against its parameter.
     func bezierAbscissaSlope(c1, c2, t: f32)->f32
     {
         let rest = 1 - t
-        return 3 * rest * rest * c1 + 6 * rest * t * (c2 - c1) + 3 * t * t * (1 - c2)
+        return 3 * rest * rest * c1 +
+               6 * rest * t * (c2 - c1) +
+               3 * t * t * (1 - c2)
     }
 }
 

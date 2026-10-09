@@ -523,6 +523,10 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Preserve expression grouping when inserting `try`: after a cast or another operator, use
   parentheses such as `cast(u16, (try readByte())) << 8` so the conversion still precedes the shift.
 - Prefer early exits over nested success paths.
+- Use named arguments when a call combines several positional values whose roles are not clear
+  from the values themselves, especially numeric, boolean, and enum settings. Keep their original
+  parameter order, and leave an obvious owner or primary value positional. Do not name every
+  argument solely to make a call longer.
 - Use `orelse`, the postfix `!`, optional chaining, and `with` when they express absence or
   structured initialization more directly than temporary variables and repeated checks.
 - Use range, value, index, and filtered iteration instead of manual counters when iteration itself

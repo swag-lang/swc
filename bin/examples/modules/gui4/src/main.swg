@@ -220,7 +220,7 @@ func initCard(c: *SceneCard,
               roughness,
               opacity: f32,
               shadow: bool,
-              sk: ShadowKind,
+              shadowKind: ShadowKind,
               badges: CardBadge)
 {
     c.label      = label
@@ -231,16 +231,46 @@ func initCard(c: *SceneCard,
     c.roughness  = roughness
     c.opacity    = opacity
     c.castShadow = shadow
-    c.shadowKind = sk
+    c.shadowKind = shadowKind
     c.badges     = badges
 }
 
 func initDemoData()
 {
     // Deliberately different values so a multi-selection shows shared fields and "mixed" fields.
-    initCard(&g_Cards[0], "Alpha", 0xFF6495ED, .Card, 1.0, 16, 0.30, 1.00, true, .Soft, CardBadge.Accent | CardBadge.Tag)
-    initCard(&g_Cards[1], "Beta", 0xFFE2725B, .Banner, 1.3, 10, 0.60, 0.85, false, .None, CardBadge.Ring)
-    initCard(&g_Cards[2], "Gamma", 0xFF66BB6A, .Pill, 0.9, 24, 0.15, 1.00, true, .Hard, CardBadge.Accent)
+    initCard(&g_Cards[0],
+             label: "Alpha",
+             argb: 0xFF6495ED,
+             shape: .Card,
+             scale: 1.0,
+             radius: 16,
+             roughness: 0.30,
+             opacity: 1.00,
+             shadow: true,
+             shadowKind: .Soft,
+             badges: CardBadge.Accent | CardBadge.Tag)
+    initCard(&g_Cards[1],
+             label: "Beta",
+             argb: 0xFFE2725B,
+             shape: .Banner,
+             scale: 1.3,
+             radius: 10,
+             roughness: 0.60,
+             opacity: 0.85,
+             shadow: false,
+             shadowKind: .None,
+             badges: CardBadge.Ring)
+    initCard(&g_Cards[2],
+             label: "Gamma",
+             argb: 0xFF66BB6A,
+             shape: .Pill,
+             scale: 0.9,
+             radius: 24,
+             roughness: 0.15,
+             opacity: 1.00,
+             shadow: true,
+             shadowKind: .Hard,
+             badges: CardBadge.Accent)
 
     g_StatusText = "Pick a display mode, edit 1-3 cards at once; a field that differs shows as mixed."
 }
@@ -298,7 +328,9 @@ func rebuildInspector()
     var bases: Array'(*u8)
     for i in g_CardCount do
         bases.add(cast(*u8, &g_Cards[i]))
-    props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
+    props.addStructMulti(SceneCard,
+                         bases.toSlice(),
+                         Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
     if not g_Filter.isEmpty() do
         ctrl.search.setText(g_Filter.toString())
@@ -491,7 +523,8 @@ impl IPropertyEditor for RatingEditor
         let rating = cast(*Rating?, data)
         let prop   = list
 
-        let line = Wnd.create'Wnd(item.line, {0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
+        let line = Wnd.create'Wnd(item.line,
+                                  {0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
         line.maxSize.x = RatingMax * RatingPipSize
         if list.isGridLike() do
             line.dockStyle = .CenterKeepSizeVert

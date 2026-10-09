@@ -664,17 +664,20 @@ impl Panel
         let loadedHeight = .editor.loadedDocumentHeight()
 
         var residentHeight = 0'f32
-        if loadedHeight > 0 do
+        if loadedHeight > 0
+        {
             residentHeight = loadedHeight
+        }
         elif .fileSize
         {
             let scaledBytes = .virtualHeight * cast(f32, .bytesRead - .residentStart)
             residentHeight = scaledBytes / cast(f32, .fileSize)
         }
-        let residentEnd    = .residentOffsetY + residentHeight
-        let before         = .residentStart > 0 and
-                             newPosition.y < oldPosition.y and
-                             newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
+
+        let residentEnd = .residentOffsetY + residentHeight
+        let before      = .residentStart > 0 and
+                          newPosition.y < oldPosition.y and
+                          newPosition.y < .residentOffsetY + viewport.height * StreamLookAhead
         let after = .hasMore() and
                     .bytesRead - .residentStart >= ResidentWindowSize and
                     newPosition.y > oldPosition.y and

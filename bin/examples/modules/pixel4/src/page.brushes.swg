@@ -106,9 +106,15 @@ func drawBrushesPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel brush rendering", "Page 5 : drawing and filling forms with texture, tiled and hatch brushes.")
 
-    let fillBody = drawPanel(painter, {28, 104, 924, 272}, "Filled forms", "Three non-solid brushes filling the same kinds of primitives used across the showcase.")
+    let fillBody = drawPanel(painter,
+                             {28, 104, 924, 272},
+                             "Filled forms",
+                             "Three non-solid brushes filling the same kinds of primitives used across the showcase.")
     drawFilledBrushCells(painter, fillBody)
 
-    let drawBody = drawPanel(painter, {28, 402, 924, 262}, "Drawn forms", "The same brush family can drive pen strokes as well, including closed paths and rounded geometry.")
+    let drawBody = drawPanel(painter,
+                             {28, 402, 924, 262},
+                             "Drawn forms",
+                             "The same brush family can drive pen strokes as well, including closed paths and rounded geometry.")
     drawOutlinedBrushCells(painter, drawBody)
 }

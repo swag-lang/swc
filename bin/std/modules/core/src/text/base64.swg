@@ -183,9 +183,12 @@ func decode(text: string)->Array'u8 fail
         count         += 1
         if count == 4
         {
-            result.add(cast(u8, ((cast(u32, digits[0]) << 2) | (cast(u32, digits[1]) >> 4))))
-            result.add(cast(u8, ((cast(u32, (digits[1] & 15)) << 4) | (cast(u32, digits[2]) >> 2))))
-            result.add(cast(u8, ((cast(u32, (digits[2] & 3)) << 6) | digits[3])))
+            let firstByte  = cast(u8, ((cast(u32, digits[0]) << 2) | (cast(u32, digits[1]) >> 4)))
+            let secondByte = cast(u8, ((cast(u32, (digits[1] & 15)) << 4) | (cast(u32, digits[2]) >> 2)))
+            let thirdByte  = cast(u8, ((cast(u32, (digits[2] & 3)) << 6) | digits[3]))
+            result.add(firstByte)
+            result.add(secondByte)
+            result.add(thirdByte)
             count = 0
         }
     }
@@ -193,10 +196,17 @@ func decode(text: string)->Array'u8 fail
     // A final group of two or three digits spells one or two bytes; a lone digit spells nothing.
     if count == 1 do
         fail Errors.InvalidFormatError{"truncated base64 data"}
-    if count >= 2 do
-        result.add(cast(u8, ((cast(u32, digits[0]) << 2) | (cast(u32, digits[1]) >> 4))))
-    if count == 3 do
-        result.add(cast(u8, ((cast(u32, (digits[1] & 15)) << 4) | (cast(u32, digits[2]) >> 2))))
+    if count >= 2
+    {
+        let firstByte = cast(u8, ((cast(u32, digits[0]) << 2) | (cast(u32, digits[1]) >> 4)))
+        result.add(firstByte)
+    }
+
+    if count == 3
+    {
+        let secondByte = cast(u8, ((cast(u32, (digits[1] & 15)) << 4) | (cast(u32, digits[2]) >> 2)))
+        result.add(secondByte)
+    }
 
     return result
 }

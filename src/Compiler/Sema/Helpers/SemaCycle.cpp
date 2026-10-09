@@ -3,12 +3,14 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Thread/JobManager.h"
@@ -346,7 +348,20 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             auto diag = SemaError::report(*sema, DiagnosticId::sema_err_unknown_symbol, state.codeRef);
             diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
             if (state.memberScope)
+            {
                 SemaError::addUnknownMemberArguments(*sema, diag, state.idRef, *state.memberScope);
+            }
+            else
+            {
+                // The paused job still stands on the unresolved name, so its scopes are those the
+                // lookup searched. A name equal to the query was there but could not be used.
+                const std::string_view name = sema->idMgr().get(state.idRef).name;
+                std::vector<Utf8>      names;
+                Match::collectVisibleNames(*sema, state.codeRef, names);
+                std::erase(names, Utf8{name});
+                if (const std::optional<Utf8> suggestion = Utf8Helper::bestMatch(name, names))
+                    diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
+            }
             diag.report(ctx);
         }
     }

@@ -464,6 +464,36 @@ namespace
     }
 }
 
+// Every name an unqualified lookup at the current site searches, for the closest-name suggestion
+// of a lookup that found none.
+void Match::collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::vector<Utf8>& out)
+{
+    MatchContext lookUpCxt;
+    lookUpCxt.codeRef = codeRef;
+    if (collect(sema, lookUpCxt, IdentifierRef::invalid()) != Result::Continue)
+        return;
+
+    const auto append = [&](const Symbol& symbol) {
+        const std::string_view name = symbol.name(sema.ctx());
+        if (!name.empty() && !name.starts_with("__"))
+            out.emplace_back(name);
+    };
+
+    for (const SemaScope* scope = sema.lookupScope(); scope; scope = scope->lookupParent())
+    {
+        for (const Symbol* symbol : scope->symbols())
+            append(*symbol);
+    }
+
+    std::vector<const Symbol*> symbols;
+    for (const SymbolMap* symMap : lookUpCxt.symMaps)
+    {
+        symMap->getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+            append(*symbol);
+    }
+}
+
 Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 {
     SWC_RESULT(collect(sema, lookUpCxt, idRef));

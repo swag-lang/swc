@@ -120,6 +120,7 @@ SWC_DIAG_DEF(sema_err_foreach_too_many_names, Error, "too many bindings in 'for'
 SWC_DIAG_DEF(sema_err_type_not_visitable, Error, "type '{type}' cannot be iterated with 'for'; [help] use an iterable type, or define 'opVisit' for this type")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "{what} '{type}' has no member '{sym}'; [help] use '{value}' instead")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "{what} '{type}' has no member '{sym}'")
+SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "unknown symbol '{sym}'; [help] use '{value}' instead")
 SWC_DIAG_DEF(sema_err_unknown_symbol, Error, "unknown symbol '{sym}'")
 SWC_DIAG_DEF(sema_err_modifier_only_integer, Error, "modifier '{tok}' needs an integer type, found '{type}'")
 SWC_DIAG_DEF(sema_err_modifier_unsupported, Error, "modifier '{what}' is not supported on '{tok}'")

@@ -1515,7 +1515,10 @@ impl Transform
                 return false
         }
 
-        if (op1b == op1) or (op2b == op2) or (op1b == op2b) or ((outRec1 == outRec2) and (reverse1 == reverse2)) do
+        if (op1b == op1) or
+           (op2b == op2) or
+           (op1b == op2b) or
+           ((outRec1 == outRec2) and (reverse1 == reverse2)) do
             return false
 
         if reverse1
@@ -1556,7 +1559,9 @@ impl Transform
 
         if dir1 == .LeftToRight
         {
-            while nnOutPt(op1.next).pt.x <= pt.x and nnOutPt(op1.next).pt.x >= op1.pt.x and nnOutPt(op1.next).pt.y == pt.y do
+            while nnOutPt(op1.next).pt.x <= pt.x and
+                  nnOutPt(op1.next).pt.x >= op1.pt.x and
+                  nnOutPt(op1.next).pt.y == pt.y do
                 op1 = nnOutPt(op1.next)
             if discardLeft and (op1.pt.x != pt.x) do
                 op1 = nnOutPt(op1.next)
@@ -1570,7 +1575,9 @@ impl Transform
         }
         else
         {
-            while nnOutPt(op1.next).pt.x >= pt.x and nnOutPt(op1.next).pt.x <= op1.pt.x and nnOutPt(op1.next).pt.y == pt.y do
+            while nnOutPt(op1.next).pt.x >= pt.x and
+                  nnOutPt(op1.next).pt.x <= op1.pt.x and
+                  nnOutPt(op1.next).pt.y == pt.y do
                 op1 = nnOutPt(op1.next)
             if not discardLeft and (op1.pt.x != pt.x) do
                 op1 = nnOutPt(op1.next)
@@ -1585,7 +1592,9 @@ impl Transform
 
         if dir2 == .LeftToRight
         {
-            while nnOutPt(op2.next).pt.x <= pt.x and nnOutPt(op2.next).pt.x >= op2.pt.x and nnOutPt(op2.next).pt.y == pt.y do
+            while nnOutPt(op2.next).pt.x <= pt.x and
+                  nnOutPt(op2.next).pt.x >= op2.pt.x and
+                  nnOutPt(op2.next).pt.y == pt.y do
                 op2 = nnOutPt(op2.next)
             if discardLeft and (op2.pt.x != pt.x) do
                 op2 = nnOutPt(op2.next)
@@ -1599,7 +1608,9 @@ impl Transform
         }
         else
         {
-            while nnOutPt(op2.next).pt.x >= pt.x and nnOutPt(op2.next).pt.x <= op2.pt.x and nnOutPt(op2.next).pt.y == pt.y do
+            while nnOutPt(op2.next).pt.x >= pt.x and
+                  nnOutPt(op2.next).pt.x <= op2.pt.x and
+                  nnOutPt(op2.next).pt.y == pt.y do
                 op2 = nnOutPt(op2.next)
             if not discardLeft and (op2.pt.x != pt.x) do
                 op2 = nnOutPt(op2.next)
@@ -3111,7 +3122,9 @@ impl Transform
 
         if e1Contributing and e2Contributing
         {
-            if (e1Wc != 0 and e1Wc != 1) or (e2Wc != 0 and e2Wc != 1) or (e1.polyType != e2.polyType and .clipType != .Xor)
+            if (e1Wc != 0 and e1Wc != 1) or
+               (e2Wc != 0 and e2Wc != 1) or
+               (e1.polyType != e2.polyType and .clipType != .Xor)
             {
                 .addLocalMaxPoly(e1, e2, pt)
             }

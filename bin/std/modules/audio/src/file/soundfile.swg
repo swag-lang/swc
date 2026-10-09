@@ -480,7 +480,14 @@ impl SoundFile
         }
 
         result.durationSeconds = cast(f32, result.frameCount) / cast(f32, sampleRateHz)
-        result.availableFields = .Format | .SampleRate | .ChannelCount | .BitsPerSample | .ValidBitsPerSample | .Duration | .FrameCount | .Data
+        result.availableFields = .Format |
+                                 .SampleRate |
+                                 .ChannelCount |
+                                 .BitsPerSample |
+                                 .ValidBitsPerSample |
+                                 .Duration |
+                                 .FrameCount |
+                                 .Data
         if result.waveSpeakerMask do
             result.availableFields |= .SpeakerMask
         return result

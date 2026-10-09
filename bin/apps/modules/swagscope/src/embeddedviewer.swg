@@ -79,7 +79,7 @@ impl Viewer.Embedded for EmbeddedViewer
     mtd impl open(fileName, title: string) fail
     {
         if not .instances.isEmpty() do
-            fail Errors.BadParameterError{"embedded viewer already has an open file"}
+            fail Errors.BadParameterError{}
         if not File.exists(fileName) do
             fail Errors.FileNotFoundError{fileName: Errors.mkString(fileName)}
 
@@ -87,7 +87,7 @@ impl Viewer.Embedded for EmbeddedViewer
         .title    = title
         .choices  = .owner.index.choices(fileName)
         if .choices.isEmpty() do
-            fail Errors.UnsupportedFormatError{"no viewer can show the embedded file"}
+            fail Errors.UnsupportedFormatError{}
 
         .instances.resize(.choices.count)
         .viewerCombo.clear()
@@ -101,7 +101,7 @@ impl Viewer.Embedded for EmbeddedViewer
         .viewerCombo.show(.choices.count > 1)
         .viewerCombo.setSelectedIndex(0, notify: false)
         if not .activate(0) do
-            fail Errors.InvalidFormatError{"embedded viewer could not create its selected view"}
+            fail Errors.InvalidFormatError{}
     }
 
     mtd impl retire()->bool
@@ -223,7 +223,7 @@ private impl EmbeddedViewer
         let pluginHost: Viewer.Host = &host
         catch next.create(plugin, pluginHost) as viewerError
         if viewerError != null do
-            next.failureReason = Errors.message(viewerError)
+            next.failureReason = Viewer.failureText(viewerError)
         if not next.failureReason.isEmpty() do
             next.replaceWithFailure(.document)
 

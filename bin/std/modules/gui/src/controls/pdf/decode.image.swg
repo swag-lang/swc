@@ -285,7 +285,9 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
         result.components = 3
         let parameters = values.count > 1 ? parser.resolve(values[1]) : InvalidNode
         let rangeId    = parser.dict(parameters, "Range")
-        if rangeId != InvalidNode and parser.nodes[rangeId].kind == .Array and parser.nodes[rangeId].values.count >= 4
+        if rangeId != InvalidNode and
+           parser.nodes[rangeId].kind == .Array and
+           parser.nodes[rangeId].values.count >= 4
         {
             for i in 4'u64 do
                 result.range[i] = cast(f32, parser.number(parser.nodes[rangeId].values[i]))
@@ -330,7 +332,9 @@ func resolveImageSpace(parser: *PdfParser, spaceRaw, resourcesId: u32, depth: u3
 
     case "DeviceN":
         let names = values.count > 1 ? parser.resolve(values[1]) : InvalidNode
-        if names == InvalidNode or parser.nodes[names].kind != .Array or not parser.nodes[names].values.count do
+        if names == InvalidNode or
+           parser.nodes[names].kind != .Array or
+           not parser.nodes[names].values.count do
             fail InvalidFormatError{"PDF DeviceN color space names no colorants"}
         result.kind       = .Subtractive
         result.components = cast(u32, parser.nodes[names].values.count)
@@ -628,7 +632,9 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
     var lowest   = stencil ? 1.0'f32 : 0.0'f32
     var highest  = stencil ? 0.0'f32 : 1.0'f32
     let decodeId = parser.dict(nodeId, "Decode")
-    if decodeId != InvalidNode and parser.nodes[decodeId].kind == .Array and parser.nodes[decodeId].values.count >= 2
+    if decodeId != InvalidNode and
+       parser.nodes[decodeId].kind == .Array and
+       parser.nodes[decodeId].values.count >= 2
     {
         let first  = cast(f32, parser.number(parser.nodes[decodeId].values[0]))
         let second = cast(f32, parser.number(parser.nodes[decodeId].values[1]))

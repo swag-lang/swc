@@ -1386,7 +1386,9 @@ internal impl HtmlView
         {
             if target.virtualRepositioning do
                 return
-            if target.virtualSource and target.virtualHeight > 0 and target.fileSize > target.virtualContentStart
+            if target.virtualSource and
+               target.virtualHeight > 0 and
+               target.fileSize > target.virtualContentStart
             {
                 let contentBytes = target.fileSize - target.virtualContentStart
                 let ratio        = Math.clamp(newPosition.y / target.virtualHeight, 0, 1)

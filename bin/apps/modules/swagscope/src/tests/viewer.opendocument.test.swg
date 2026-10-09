@@ -227,7 +227,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     Swag.assert(Utf8.contains(presentation.slides[0].html, "Prepare the offline review") and Utf8.contains(presentation.slides[1].html, "Offline review is ready"))
 
     let drawing = expect OpenDocument.parseContent(drawingOpenDocumentXml(), .Drawing)
-    Swag.assert(drawing.slides.count == 2 and drawing.slides[0].name == "Diagram" and drawing.slides[1].name == "Delivery")
+    Swag.assert(drawing.slides.count == 2 and
+                drawing.slides[0].name == "Diagram" and
+                drawing.slides[1].name == "Delivery")
     Swag.assert(Utf8.contains(drawing.slides[0].html, "Read-only drawing page") and Utf8.contains(drawing.slides[1].html, "Drawing handoff is ready"))
 }
 
@@ -272,7 +274,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load)
-        Swag.assert(view.html != null and Utf8.contains(view.document.html, "Document with Tables") and result.info!.isVisible())
+        Swag.assert(view.html != null and
+                    Utf8.contains(view.document.html, "Document with Tables") and
+                    result.info!.isVisible())
     }
 
     {
@@ -360,7 +364,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     Swag.assert(last.accepted and flatView.slideIndex == 1)
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(flatResult.collectMatches!, "Read-only drawing page", &matches)
-    let revealed = matches.count == 1 and matches[0].major == 0 and flatResult.revealMatch!(matches[0], "Read-only drawing page")
+    let revealed = matches.count == 1 and
+                   matches[0].major == 0 and
+                   flatResult.revealMatch!(matches[0], "Read-only drawing page")
     Swag.assert(revealed)
     Swag.assert(flatView.slideIndex == 0)
 
@@ -460,9 +466,13 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
                 view.pageCombo.toolTip == OpenDocument.texts().ui_TipSheet)
 
     view.pageCombo.setSelectedIndex(1)
-    Swag.assert(view.sheetIndex == 1 and view.table.document.rows.count == 1 and view.table.document.rows[0].cells[0] == "Lyon")
+    Swag.assert(view.sheetIndex == 1 and
+                view.table.document.rows.count == 1 and
+                view.table.document.rows[0].cells[0] == "Lyon")
     view.pageCombo.setSelectedIndex(0)
-    Swag.assert(view.sheetIndex == 0 and view.table.document.rows.count == 2 and view.table.document.rows[1].cells[0] == "Berlin")
+    Swag.assert(view.sheetIndex == 0 and
+                view.table.document.rows.count == 2 and
+                view.table.document.rows[1].cells[0] == "Berlin")
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, "Lyon", &matches)
@@ -512,7 +522,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches!, "Offline review is ready", &matches)
-    let revealed = matches.count == 1 and matches[0].major == 1 and result.revealMatch!(matches[0], "Offline review is ready")
+    let revealed = matches.count == 1 and
+                   matches[0].major == 1 and
+                   result.revealMatch!(matches[0], "Offline review is ready")
     Swag.assert(revealed)
     Swag.assert(view.slideIndex == 1)
     var bounds: Math.Rectangle
@@ -750,7 +762,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     Swag.assert(table.rows.count == 4)
     Swag.assert(table.rows[0].cells[0] == "a" and table.rows[0].cells[1] == "1")
     Swag.assert(table.rows[1].cells.isEmpty() and table.rows[2].cells.isEmpty())
-    Swag.assert(table.rows[3].cells.count == 2 and table.rows[3].cells[0].isEmpty() and table.rows[3].cells[1] == "2")
+    Swag.assert(table.rows[3].cells.count == 2 and
+                table.rows[3].cells[0].isEmpty() and
+                table.rows[3].cells[1] == "2")
 }
 
 // The ODF namespaces are matched by URI, whatever prefixes a document binds them to.
@@ -766,7 +780,9 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     let sheetSource = Format.toString("<?xml version='1.0'?><o:document-content %><o:body><o:spreadsheet><tb:table tb:name='Renamed'><tb:table-row><tb:table-cell><t:p>Name</t:p></tb:table-cell></tb:table-row><tb:table-row><tb:table-cell o:value='7'/></tb:table-row></tb:table></o:spreadsheet></o:body></o:document-content>", Namespaces)
     let sheet       = expect OpenDocument.parseContent(sheetSource, .Spreadsheet)
-    Swag.assert(sheet.sheets.count == 1 and sheet.sheets[0].name == "Renamed" and sheet.sheets[0].table.rows[0].cells[0] == "7")
+    Swag.assert(sheet.sheets.count == 1 and
+                sheet.sheets[0].name == "Renamed" and
+                sheet.sheets[0].table.rows[0].cells[0] == "7")
 
     let metadata = expect OpenDocument.parseMetadata("<?xml version='1.0'?><m:document-meta xmlns:m='urn:oasis:names:tc:opendocument:xmlns:office:1.0' xmlns:d='http://purl.org/dc/elements/1.1/'><m:meta><d:title>Renamed title</d:title></m:meta></m:document-meta>")
     Swag.assert(metadata.title == "Renamed title")

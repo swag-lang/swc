@@ -973,7 +973,10 @@ impl FileBrowserCtrl
                 }
             }
 
-            if .options.mode != .SelectFolder and filterExtensions.count and not hasFilterExtension and extensions.count do
+            if .options.mode != .SelectFolder and
+               filterExtensions.count and
+               not hasFilterExtension and
+               extensions.count do
                 val += extensions[0]
 
             result.add(val)

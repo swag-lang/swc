@@ -302,7 +302,9 @@ impl Sps
         .maxTbLog2Size      = .minTbLog2Size + reader.ue()
         .maxTrafoDepthInter = reader.ue()
         .maxTrafoDepthIntra = reader.ue()
-        if .ctbLog2Size > MaxCtbLog2SizeY or .minCbLog2Size < MinCbLog2SizeAllowed or .minCbLog2Size > .ctbLog2Size do
+        if .ctbLog2Size > MaxCtbLog2SizeY or
+           .minCbLog2Size < MinCbLog2SizeAllowed or
+           .minCbLog2Size > .ctbLog2Size do
             fail InvalidFormatError{"HEVC coding block sizes are out of range"}
         if .maxTbLog2Size > 5 or .minTbLog2Size < 2 or .minTbLog2Size > .maxTbLog2Size do
             fail InvalidFormatError{"HEVC transform block sizes are out of range"}
@@ -378,7 +380,10 @@ impl Sps
 
             if multilayer or extension3d or screenContent do
                 fail UnsupportedFormatError{"HEVC multilayer, 3D and screen content extensions are not supported"}
-            if .extendedPrecision or .explicitRdpcm or .persistentRiceAdaptation or .cabacBypassAlignment do
+            if .extendedPrecision or
+               .explicitRdpcm or
+               .persistentRiceAdaptation or
+               .cabacBypassAlignment do
                 fail UnsupportedFormatError{"HEVC range extension tools are not supported"}
         }
 

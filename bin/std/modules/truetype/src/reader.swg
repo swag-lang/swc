@@ -57,7 +57,10 @@ func peekU32(buffer: const [..] u8, offset: u64)->u32
     if offset + 4 > buffer.count do
         return 0
     let buf = buffer
-    return cast(u32, buf[offset]) << 24 | cast(u32, buf[offset + 1]) << 16 | cast(u32, buf[offset + 2]) << 8 | buf[offset + 3]
+    return cast(u32, buf[offset]) << 24 |
+           cast(u32, buf[offset + 1]) << 16 |
+           cast(u32, buf[offset + 2]) << 8 |
+           buf[offset + 3]
 }
 
 func peekF2Dot14(buffer: const [..] u8, offset: u64)->f64 => peekS16(buffer, offset) / 16384.0
@@ -96,7 +99,10 @@ func readU32(buffer: const [..] u8, offset: u64)->u32 fail
 {
     try assertRange(buffer, offset, 4)
     let buf = buffer
-    return cast(u32, buf[offset]) << 24 | cast(u32, buf[offset + 1]) << 16 | cast(u32, buf[offset + 2]) << 8 | buf[offset + 3]
+    return cast(u32, buf[offset]) << 24 |
+           cast(u32, buf[offset + 1]) << 16 |
+           cast(u32, buf[offset + 2]) << 8 |
+           buf[offset + 3]
 }
 
 func readS32(buffer: const [..] u8, offset: u64)->s32 fail

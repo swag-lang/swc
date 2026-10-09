@@ -394,7 +394,9 @@ impl Panel
     // Writes the bounds of the outlined match to `result`, and returns whether one is visible.
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if .searchVisibleIndex == Swag.U32.Max or .searchRow >= .rowLines.count or not .rowLines[.searchRow] do
+        if .searchVisibleIndex == Swag.U32.Max or
+           .searchRow >= .rowLines.count or
+           not .rowLines[.searchRow] do
             return false
         let source = .cellText(.searchRow, .searchColumn)
         return Viewer.listCellMatchBounds(.list, .searchVisibleIndex, cast(u32, .searchColumn), source, .searchOffset, .searchLength, result)
@@ -851,7 +853,7 @@ impl IWnd for Panel
                 .pendingDoc = {}
                 catch .startLoad() as reloadError
                 if reloadError != null do
-                    .publishLoadFailure(Errors.message(reloadError))
+                    .publishLoadFailure(Viewer.failureText(reloadError))
                 return
             }
 
@@ -962,7 +964,7 @@ impl Panel
         .pendingDoc = {}
         catch .startLoad() as reloadError
         if reloadError != null do
-            .publishLoadFailure(Errors.message(reloadError))
+            .publishLoadFailure(Viewer.failureText(reloadError))
     }
 
     private mtd startLoad(notify = true) fail
@@ -1144,5 +1146,5 @@ func createViewer(host: Viewer.Host)
         host.setLifecycle(lifecycle)
     } as createError
     if createError != null do
-        host.reject(Errors.message(createError))
+        host.reject(Viewer.failureText(createError))
 }

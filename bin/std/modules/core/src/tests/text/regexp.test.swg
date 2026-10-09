@@ -1728,7 +1728,11 @@ func buildSubject(rng: *Rng)->String
 
     var comma  = expect Parser.RegExp.create(",")
     let fields = comma.split(",a,,b,")
-    Swag.assert(fields.count == 5 and fields[0] == "" and fields[1] == "a" and fields[2] == "" and fields[4] == "")
+    Swag.assert(fields.count == 5 and
+                fields[0] == "" and
+                fields[1] == "a" and
+                fields[2] == "" and
+                fields[4] == "")
     let none = comma.split("")
     Swag.assert(none.count == 1 and none[0] == "")
 }

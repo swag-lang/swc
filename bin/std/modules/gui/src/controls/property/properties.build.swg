@@ -333,7 +333,9 @@ internal impl Properties
                 // Keep the headers shared with the previously open path (longest common prefix),
                 // drop the diverging tail, then create only the new segments.
                 var common = 0'u64
-                while common < categPath.count and common < segs.count and categPath[common].name == segs[common] do
+                while common < categPath.count and
+                      common < segs.count and
+                      categPath[common].name == segs[common] do
                     common += 1
 
                 categPath.count = common

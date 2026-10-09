@@ -88,7 +88,7 @@ impl Panel
         {
             catch .selectAudioTrack(index) as trackError
             if trackError != null do
-                .services.failed(me, Errors.message(trackError))
+                .services.failed(me, Viewer.failureText(trackError))
             return
         }
     }
@@ -147,7 +147,9 @@ impl Panel
         }
 
         let seconds = .currentSeconds() + g_SubtitleSettings.delay
-        if .subtitleLastSeconds >= 0 and seconds >= .subtitleLastSeconds and seconds < .subtitleNextChange do
+        if .subtitleLastSeconds >= 0 and
+           seconds >= .subtitleLastSeconds and
+           seconds < .subtitleNextChange do
             return
         var text: String
         .subtitleLastSeconds = seconds

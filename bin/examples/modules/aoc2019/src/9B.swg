@@ -51,6 +51,16 @@ private func run(op: *Array's64, input: s64)->s64
     #[Swag.Mixin]
     func val(offset: u64)->s64 => valp(offset)[]
 
+    #[Swag.Mixin]
+    func parameterAddress(offset, mode: s64)->s64
+    {
+        if mode == 1 do
+            return ip + offset
+        if mode == 2 do
+            return op[ip + offset] + base
+        return op[ip + offset]
+    }
+
     while op[ip] != 99
     {
         let mode0 = (op[ip] / 100) % 10
@@ -58,9 +68,9 @@ private func run(op: *Array's64, input: s64)->s64
         let mode2 = (op[ip] / 10_000) % 10
         let inst  = (op[ip] % 10)
 
-        let param0 = mode0 == 1 ? ip + 1 : op[ip + 1] + (mode0 == 2 ? base : 0)
-        let param1 = mode1 == 1 ? ip + 2 : op[ip + 2] + (mode1 == 2 ? base : 0)
-        let param2 = mode2 == 1 ? ip + 3 : op[ip + 3] + (mode2 == 2 ? base : 0)
+        let param0 = parameterAddress(1, mode0)
+        let param1 = parameterAddress(2, mode1)
+        let param2 = parameterAddress(3, mode2)
 
         switch inst
         {

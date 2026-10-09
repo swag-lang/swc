@@ -9,7 +9,9 @@ private const HtmlSvgRasterPixels = 8 * 1024 * 1024'u64
 // Resolves an offline resource without accepting URL schemes, UNC paths, or device namespaces.
 internal func htmlLocalResourcePath(basePath, source: string)->String
 {
-    if not Path.isValidPathName(source) or Utf8.contains(source, "://") or Utf8.startsWith(source, "data:") do
+    if not Path.isValidPathName(source) or
+       Utf8.contains(source, "://") or
+       Utf8.startsWith(source, "data:") do
         return {}
     let colon = Utf8.indexOf(source, ':'rune)
     if colon != Swag.U64.Max and not (WINDOWS and colon == 1 and Latin1.isLetter(source[0])) do
@@ -18,7 +20,9 @@ internal func htmlLocalResourcePath(basePath, source: string)->String
         return {}
 
     let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(basePath, source)
-    if fileName.count >= 2 and Path.isDirectorySeparator(fileName[0]) and Path.isDirectorySeparator(fileName[1]) do
+    if fileName.count >= 2 and
+       Path.isDirectorySeparator(fileName[0]) and
+       Path.isDirectorySeparator(fileName[1]) do
         return {}
     return fileName
 }

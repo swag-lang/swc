@@ -216,6 +216,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
 - Use a conditional expression only when the condition and both values read at a glance.
   Expand nested choices or branches with substantial work into control flow. Preserve lazy
   evaluation: do not hoist a guarded access, fallible call, or side effect out of its branch.
+  When several nested choices map to a small set of named states, use explicit branches or a
+  helper that names the decision. Keep short-circuit guards inside that helper when moving them
+  out would eagerly evaluate work that the original expression skipped.
 - Keep `=>` and single-line bodies for short, obvious accessors, predicates, and delegations.
   A single statement is not necessarily simple: a long signature plus a long expression, nested
   calls, or mixed operators merits a block. Never compress a function solely to match a neighbour.
@@ -231,9 +234,9 @@ of a reader's brain. Apply these rules to all edited Swag code:
   owns an operation. Check existing unqualified calls when extending the visible namespaces.
 
 The default formatter keeps `column-limit = 0`: general wrapping remains an author decision.
-Its narrow `bitwise-chain-column-limit = 120` rule splits an unbroken chain of at least three
+Its narrow `bitwise-chain-column-limit = 100` rule splits an unbroken chain of at least three
 `&`, `|`, or `^` operands when the chain plus line indentation exceeds that width. The analogous
-`logical-chain-column-limit = 120` rule splits chains of at least three conditions joined by the same `and` or `or`. Mixed operators
+`logical-chain-column-limit = 100` rule splits chains of at least three conditions joined by the same `and` or `or`. Mixed operators
 at the same parenthesis depth remain an author decision. Call prefixes and trailing comments do
 not make a compact chain expand. Both rules preserve authored multiline chains and do not simplify
 logic. The formatter normalizes authored break placement (for example, bringing a call's first argument back beside its opening parenthesis), and preserves
@@ -537,6 +540,14 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   `LoadFailed`) instead of comparing it with bare integers.
 - Replace a cascade of nested conditionals that maps two small indices to a value with a constant
   table indexed by them, when the table shows the whole mapping at once.
+- Count a condition with `if condition do total += 1` instead of casting its boolean result to an
+  integer; the conditional states the counting rule directly.
+- Use `startsWith` to test a literal prefix instead of indexing and comparing each prefix character.
+- When a long sum aggregates peer counters, diagnostics, or geometry terms, put each term on its
+  own line and keep the source order; do not bury the categories in one arithmetic expression.
+- In a circular scan, name a derived partner index when wrapping arithmetic obscures the relation
+  being compared. Keep the offset visible as well when it defines the algorithm (for example, the
+  next item versus the item halfway around); do not inline modulo arithmetic into the comparison.
 - Write a text template (a style sheet, generated source, a theme sheet) as one `"""` constant laid
   out as it reads, not as a sequence of calls appending one line each. Continuation lines strip
   their indentation up to the column that follows the opening delimiter, so align them under the

@@ -209,7 +209,11 @@ public impl CultureInfo
         let integer  = cast(u64, Math.trunc(absolute))
         let integral = absolute == cast(f64, integer)
 
-        if .isLanguage("ja") or .isLanguage("zh") or .isLanguage("ko") or .isLanguage("th") or .isLanguage("vi") do
+        if .isLanguage("ja") or
+           .isLanguage("zh") or
+           .isLanguage("ko") or
+           .isLanguage("th") or
+           .isLanguage("vi") do
             return .Other
 
         if .isLanguage("ar") and integral

@@ -264,7 +264,9 @@ impl IWnd for RichEditView
                 bvis = false
 
             // Store the first visible line index
-            if bvis and edn.firstVisibleLineView == Swag.U64.Max and (edn.lines[i]!.isVisible() or firstHidden) do
+            if bvis and
+               edn.firstVisibleLineView == Swag.U64.Max and
+               (edn.lines[i]!.isVisible() or firstHidden) do
                 edn.firstVisibleLineView = i
 
             if edn.recomputeScroll do
@@ -279,7 +281,10 @@ impl IWnd for RichEditView
             l.drawingRect.height = size.y
 
             // Current line
-            if bvis and edn.isSelectionEmpty() and i == edn.cursorPos.lineIndex and edn.flags.has(.CurLineBorder)
+            if bvis and
+               edn.isSelectionEmpty() and
+               i == edn.cursorPos.lineIndex and
+               edn.flags.has(.CurLineBorder)
             {
                 var fullRect = l.drawingRect
                 fullRect.y -= .scrollPos.y

@@ -596,7 +596,10 @@ impl Circular
         let newUpper = .clamp((upper - .min) / diff)
         Swag.assert(newLower <= newUpper)
 
-        let changed = not .hasLowerValue or not .hasUpperValue or newLower != .lowerRatio or newUpper != .upperRatio
+        let changed = not .hasLowerValue or
+                      not .hasUpperValue or
+                      newLower != .lowerRatio or
+                      newUpper != .upperRatio
         .hasLowerValue, .hasUpperValue = true
         .lowerRatio = newLower
         .upperRatio = newUpper

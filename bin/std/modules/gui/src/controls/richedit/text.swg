@@ -840,7 +840,9 @@ public impl RichEditCtrl
                         x = .tabSize * size.x
                     x = charPt.x - x
 
-                    while charPt.x > x and beg.charPosInLine and Unicode.isSpace(line.chars[beg.charPosInLine - 1])
+                    while charPt.x > x and
+                          beg.charPosInLine and
+                          Unicode.isSpace(line.chars[beg.charPosInLine - 1])
                     {
                         beg.charPosInLine -= 1
                         charPt = .cursorDisplayPosition(beg)

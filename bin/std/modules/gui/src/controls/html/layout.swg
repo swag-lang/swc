@@ -153,9 +153,11 @@ impl HtmlLayout
         let font    = .font(styleIndex)
         var spacing = .styles[styleIndex].letterSpacing
         var scale   = .deviceScale
-        let salt    = cast(u64, font) ^ (cast(u64, cast(const *u32, &spacing)[]) << 32) ^ cast(u64, cast(const *u32, &scale)[])
-        let key     = Hash.murmur3(Hash.hash64(text), salt)
-        let found   = .widthCache.tryFind(key)
+        let salt    = cast(u64, font) ^
+                      (cast(u64, cast(const *u32, &spacing)[]) << 32) ^
+                      cast(u64, cast(const *u32, &scale)[])
+        let key   = Hash.murmur3(Hash.hash64(text), salt)
+        let found = .widthCache.tryFind(key)
         if found do
             return found.value
 
@@ -1503,7 +1505,9 @@ impl HtmlLayout
     private mtd const definiteContentHeight(style: const *HtmlComputedStyle, styleIndex: u32, containing: HtmlContainingBlock, extraY: f32)->{ value: f32, has: bool }
     {
         var result: retval
-        if style.height.isAuto() or style.height.isNone() or not style.height.isDefinite(.pool, containing.hasHeight) do
+        if style.height.isAuto() or
+           style.height.isNone() or
+           not style.height.isDefinite(.pool, containing.hasHeight) do
             return result
 
         let value = style.height.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), 0)
@@ -2200,7 +2204,9 @@ private impl HtmlLayout
         if extra <= 0 do
             return
         let style = &.styles[.boxes[box].style]
-        if style.flexWrap != .NoWrap or style.flexDirection == .Column or style.flexDirection == .ColumnReverse do
+        if style.flexWrap != .NoWrap or
+           style.flexDirection == .Column or
+           style.flexDirection == .ColumnReverse do
             return
 
         for child in .boxes[box].children where not .styles[.boxes[child].style].isOutOfFlow()

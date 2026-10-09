@@ -258,7 +258,7 @@ breaks. It cannot reliably discover business phases, invent names, extract helpe
 which comment would relieve a reader. Preserve those author decisions.
 
 For example, a long unbroken bitwise chain can be laid out by operand automatically. The
-default `bitwise-chain-column-limit = 120` applies to chains of at least three `&`, `|`, or `^`
+default `bitwise-chain-column-limit = 100` applies to chains of at least three `&`, `|`, or `^`
 operands, measuring the chain plus line indentation, without call prefixes or trailing comments.
 It leaves short masks, compact flag arguments, authored multiline chains, and literal table rows alone. This
 is a readability fallback, not a reason to keep a low-level expression that an existing API
@@ -293,12 +293,31 @@ Adding or adopting such helpers is a semantic refactoring with focused tests, ou
 strictly visual campaign in `backlog/repo.prompts.md`.
 
 The same mechanical fallback applies to a long chain of conditions: the default
-`logical-chain-column-limit = 120` splits at least three operands joined by the same `and` or
+`logical-chain-column-limit = 100` splits at least three operands joined by the same `and` or
 `or`, with the same width measurement and preservation rules. It keeps a parenthesized operand
 whole and leaves mixed operators at the same depth for an author to review. Do not invent named
 Boolean locals merely to shorten such a chain: eager evaluation can lose its short-circuit guards.
 Explicit single-line policies still take precedence. A long condition with only two operands may
 need authored wrapping or a meaningful predicate; this narrow rule does not decide that.
+
+In a circular scan, a named partner index can expose what the comparison means without hiding the
+wraparound rule: calculate `matchIndex = (i + offset) % values.length`, then compare against
+`values[matchIndex]`. Keep `offset` visible when it describes the algorithm, such as `1` for the
+next item or half the sequence length for its opposite. See the two inverse-captcha examples in
+`bin/examples/modules/aoc2017/`.
+
+When a loop counts matching records, `if matches do total += 1` shows the counting rule directly.
+Avoid converting the predicate to an integer just to add it to the total; that hides the condition
+inside a numeric conversion.
+
+Use `text.startsWith("prefix")` for a literal prefix check instead of repeating one character
+comparison per index. The string API already names both the operation and its boundary behavior;
+keep direct indexing for checks that are not a prefix.
+
+When a long sum combines peer counters, diagnostic categories, or geometry terms, put each named
+term on its own line and preserve the source order. Swag Capture's `capture.file.swg` exposes the
+four load-issue categories, while `propwnd.swg` shows each contribution to a popup's extent. This
+keeps both tallies and dimensions scannable without introducing a helper or regrouping arithmetic.
 
 Calls use a separate `single-line-argument-column-limit` of 100 columns. It breaks an editable,
 authored single-line call when the entire source line exceeds the limit, while preserving calls

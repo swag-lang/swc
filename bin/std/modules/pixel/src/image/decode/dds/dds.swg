@@ -153,7 +153,10 @@ impl Decoder
 
         var height = readU32(buffer.buffer + 12)
         var width  = readU32(buffer.buffer + 16)
-        if width == 0 or height == 0 or width > cast(u32, Swag.S32.Max) or height > cast(u32, Swag.S32.Max) do
+        if width == 0 or
+           height == 0 or
+           width > cast(u32, Swag.S32.Max) or
+           height > cast(u32, Swag.S32.Max) do
             fail UnsupportedFormatError{"DDS dimensions exceed the image limits"}
 
         let pfFlags   = readU32(buffer.buffer + 80)

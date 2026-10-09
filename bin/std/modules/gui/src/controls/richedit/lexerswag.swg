@@ -712,7 +712,10 @@ impl IRichEditLexer for RichEditLexerSwag
                 {
                     var word: String
                     let saveSeek = seek
-                    while Unicode.isLetterOrDigit(c) or c == '_' or c == '#' or (word == "Swag" and c == '.')
+                    while Unicode.isLetterOrDigit(c) or
+                          c == '_' or
+                          c == '#' or
+                          (word == "Swag" and c == '.')
                     {
                         word += c
                         seek += 1

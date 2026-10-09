@@ -243,11 +243,15 @@ func expectVec4(actual, expected: Math.Vector4)
     expectVec3(Math.Vector3.NegUnitX, Math.Vector3{-1, 0, 0})
     expectVec3(Math.Vector3.NegUnitY, Math.Vector3{0, -1, 0})
     expectVec3(Math.Vector3.NegUnitZ, Math.Vector3{0, 0, -1})
-    Swag.assert(Math.Vector3.Max.x == Swag.F32.Max and Math.Vector3.Max.y == Swag.F32.Max and Math.Vector3.Max.z == Swag.F32.Max)
+    Swag.assert(Math.Vector3.Max.x == Swag.F32.Max and
+                Math.Vector3.Max.y == Swag.F32.Max and
+                Math.Vector3.Max.z == Swag.F32.Max)
     Swag.assert(Math.Vector3.NegMax.x == -Swag.F32.Max and
                 Math.Vector3.NegMax.y == -Swag.F32.Max and
                 Math.Vector3.NegMax.z == -Swag.F32.Max)
-    Swag.assert(Math.Vector3.Min.x == Swag.F32.Min and Math.Vector3.Min.y == Swag.F32.Min and Math.Vector3.Min.z == Swag.F32.Min)
+    Swag.assert(Math.Vector3.Min.x == Swag.F32.Min and
+                Math.Vector3.Min.y == Swag.F32.Min and
+                Math.Vector3.Min.z == Swag.F32.Min)
 
     var vec: Math.Vector3 = 2.0
     expectVec3(vec, Math.Vector3{2, 2, 2})

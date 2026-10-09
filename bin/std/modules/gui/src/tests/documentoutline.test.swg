@@ -99,7 +99,10 @@ using Core, Pixel
         let revealed = view.revealHeading(offsets[index])
         Swag.assert(revealed)
         discard host.render(view)
-        Swag.assert(not view.hasPendingTarget and not view.pendingSeek and not view.waitingScroll and view.retainedBlocks.isEmpty())
+        Swag.assert(not view.hasPendingTarget and
+                    not view.pendingSeek and
+                    not view.waitingScroll and
+                    view.retainedBlocks.isEmpty())
         var found: bool
         for block in view.blocks where block.sourceOffset == offsets[index]
         {

@@ -273,5 +273,5 @@ func createViewer(host: Viewer.Host)
         host.setSearch(Viewer.searchApi(view))
     } as createError
     if createError != null do
-        host.reject(Errors.message(createError))
+        host.reject(Viewer.failureText(createError))
 }

@@ -726,7 +726,9 @@ private impl Codec
             fail UnsupportedFormatError{"Vorbis stream needs one to eight channels"}
         if not .sampleRate do
             fail InvalidFormatError{"Vorbis stream declares no sample rate"}
-        if .blockSizes[0] < MinBlockSize or .blockSizes[1] < .blockSizes[0] or .blockSizes[1] > MaxBlockSize do
+        if .blockSizes[0] < MinBlockSize or
+           .blockSizes[1] < .blockSizes[0] or
+           .blockSizes[1] > MaxBlockSize do
             fail InvalidFormatError{"Vorbis stream declares invalid block sizes"}
 
         for which in 2
@@ -814,7 +816,11 @@ private impl Codec
     mtd readConfig(config: const [..] u8) fail
     {
         var headers: [3] Array'u8
-        if config.count >= 4 and config[0] == 'O' and config[1] == 'g' and config[2] == 'g' and config[3] == 'S'
+        if config.count >= 4 and
+           config[0] == 'O' and
+           config[1] == 'g' and
+           config[2] == 'g' and
+           config[3] == 'S'
         {
             var hasSerial = false
             var completed = 0'u32
@@ -1660,7 +1666,11 @@ impl IPacketCodec for Codec
     {
         .output.clear()
         var frames: u64
-        if packet.count >= 4 and packet[0] == 'O' and packet[1] == 'g' and packet[2] == 'g' and packet[3] == 'S' do
+        if packet.count >= 4 and
+           packet[0] == 'O' and
+           packet[1] == 'g' and
+           packet[2] == 'g' and
+           packet[3] == 'S' do
             frames = try .decodeRun(packet)
         else do
             frames = try .decodeAudioPacket(packet)

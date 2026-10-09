@@ -121,7 +121,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 
         let image = renderCpu(8, 4, &painter)
         let value = image.pixelColor(4, 2)
-        Swag.assert(value.r == Expected[index].r and value.g == Expected[index].g and value.b == Expected[index].b)
+        Swag.assert(value.r == Expected[index].r and
+                    value.g == Expected[index].g and
+                    value.b == Expected[index].b)
     }
 }
 

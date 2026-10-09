@@ -79,6 +79,7 @@ struct AppStrings
     msg_FailedSaveCapture:      string = "Failed to save capture file: %"
     msg_FailedRename:           string = "Failed to rename capture"
     msg_FailedCopyImage:        string = "Failed to copy image"
+    msg_ImageSaved:             string = "Image <url>%</url> has been saved"
     msg_FailedCaptureScreen:    string = "Failed to capture the screen"
     msg_FailedLoadFile:         string = "Failed to load file: %"
     msg_FailedOpenLibrary:      string = "Cannot open the library folder"

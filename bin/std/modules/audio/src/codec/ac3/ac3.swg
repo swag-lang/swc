@@ -294,7 +294,9 @@ private impl Ac3Codec
             }
         }
 
-        if bsi.acmod == 2 and block.phaseFlagsInUse and (block.couplingCoordNew[0] or block.couplingCoordNew[1])
+        if bsi.acmod == 2 and
+           block.phaseFlagsInUse and
+           (block.couplingCoordNew[0] or block.couplingCoordNew[1])
         {
             for band in block.couplingBands do
                 block.couplingPhase[band] = reader.read(1) != 0

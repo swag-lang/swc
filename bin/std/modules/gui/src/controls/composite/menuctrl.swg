@@ -459,7 +459,11 @@ public impl IWnd for MenuCtrl
                 .subVisible.ignoreNextRelease = true
         }
 
-        elif .bar and evt.kind == .Released and evt.button == .Left and .hotIdx != Swag.U32.Max and not .subVisible
+        elif .bar and
+             evt.kind == .Released and
+             evt.button == .Left and
+             .hotIdx != Swag.U32.Max and
+             not .subVisible
         {
             .hideSubVisible()
             .removeTimer()

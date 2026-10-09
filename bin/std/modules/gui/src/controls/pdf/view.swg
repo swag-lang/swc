@@ -421,7 +421,11 @@ internal impl PdfView
             // reader is given the size of the page before it rather than a collapsed row that
             // cannot be scrolled onto.
             var size = catch .reader.pageSize(index) as sizeError
-            if sizeError != null or size.x <= 0 or size.y <= 0 or not Math.isFinite(size.x) or not Math.isFinite(size.y) do
+            if sizeError != null or
+               size.x <= 0 or
+               size.y <= 0 or
+               not Math.isFinite(size.x) or
+               not Math.isFinite(size.y) do
                 size = last
 
             last = size
@@ -608,7 +612,9 @@ internal impl PdfView
         let keepTo   = Math.min(range.last + 1, count - 1)
 
         // The page about to be evicted must not be the one the flattening worker is on.
-        if .preparing and .preparingPage and (.preparingPage.index < keepFrom or .preparingPage.index > keepTo) do
+        if .preparing and
+           .preparingPage and
+           (.preparingPage.index < keepFrom or .preparingPage.index > keepTo) do
             .stopPrepare()
 
         while true
@@ -1388,7 +1394,10 @@ impl PdfView
     // [[Gui.Pdf.OutlineEntry.position]]. Out-of-range pages and non-finite coordinates are ignored.
     mtd showPosition(index: u64, position: Math.Point)
     {
-        if not .hasDocument or index >= .pageSizes.count or not Math.isFinite(position.x) or not Math.isFinite(position.y) do
+        if not .hasDocument or
+           index >= .pageSizes.count or
+           not Math.isFinite(position.x) or
+           not Math.isFinite(position.y) do
             return
         .showPage(index)
         let page  = .pageRect(index)

@@ -174,12 +174,16 @@ impl MainWnd
         var capture = from
         if not capture
         {
+            var resolvedSourceKind = sourceKind
+            if resolvedSourceKind == .Unknown do
+                resolvedSourceKind = linked.count == 0 ? .Clipboard : .ImageFile
+
             with capture = Memory.new'Capture()
             {
                 .width, .widthOrg   = img.width
                 .height, .heightOrg = img.height
                 .backImg            = img
-                .sourceKind         = sourceKind == .Unknown ? (linked.count == 0 ? .Clipboard : .ImageFile) : sourceKind
+                .sourceKind         = resolvedSourceKind
                 .capturedAt         = Time.DateTime.now()
             }
         }

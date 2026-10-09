@@ -92,7 +92,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         Swag.assert(Utf8.contains(view.zoomLabel.text(), Picture.texts().word_Mirrored))
         Swag.assert(view.details != oldDetails)
         Swag.assert(view.information.list.selectedLine() == selectedFact)
-        Swag.assert(view.imageView.zoom == 1.5 and view.imageView.isMirrored and view.imageView.movie.frameIndex == frameIndex)
+        Swag.assert(view.imageView.zoom == 1.5 and
+                    view.imageView.isMirrored and
+                    view.imageView.movie.frameIndex == frameIndex)
         if view.imageView.movie.frameCount > 1 do
             Swag.assert(view.imageView.movie.isPaused)
         expect host.app.setLanguage(ReferenceLanguage)
@@ -129,7 +131,10 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     }
 
     var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: actionBar, actionParent: &host.root, infoParent: infoBar, services: {navigateFile: &countImageNavigation})
-    Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
+    Swag.assert(result.view != null and
+                result.actions == null and
+                result.info != null and
+                result.commands != null)
     actionBar.centerGroup = result.commands
     infoBar.centerGroup   = result.info
 
@@ -195,7 +200,10 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     defer host.shutdown()
 
     var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
-    Swag.assert(result.view != null and result.actions == null and result.info != null and result.commands != null)
+    Swag.assert(result.view != null and
+                result.actions == null and
+                result.info != null and
+                result.commands != null)
     let view = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(not view.failureReason.isEmpty())

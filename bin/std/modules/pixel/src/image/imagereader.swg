@@ -132,7 +132,9 @@ impl ImageReader
 
     mtd composite(frame: ImageFrameInfo, image: Image) fail
     {
-        if image.width != frame.width or image.height != frame.height or image.pixels.count != image.byteCount do
+        if image.width != frame.width or
+           image.height != frame.height or
+           image.pixels.count != image.byteCount do
             fail InvalidFormatError{"decoded frame does not match its image index"}
         for y in frame.height
         {

@@ -707,7 +707,12 @@ private func parseDashPattern(value: string)->Array'SvgLength
     var pos = 0'u64
     while pos < text.count
     {
-        while pos < text.count and (text[pos] == ' ' or text[pos] == ',' or text[pos] == '\t' or text[pos] == '\n' or text[pos] == '\r') do
+        while pos < text.count and
+              (text[pos] == ' ' or
+               text[pos] == ',' or
+               text[pos] == '\t' or
+               text[pos] == '\n' or
+               text[pos] == '\r') do
             pos += 1
         if pos >= text.count or not isNumberStart(text[pos]) do
             break
@@ -920,7 +925,12 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
     let len = value.count
     while pos < len
     {
-        while pos < len and (value[pos] == ' ' or value[pos] == ',' or value[pos] == '\t' or value[pos] == '\n' or value[pos] == '\r') do
+        while pos < len and
+              (value[pos] == ' ' or
+               value[pos] == ',' or
+               value[pos] == '\t' or
+               value[pos] == '\n' or
+               value[pos] == '\r') do
             pos += 1
 
         let nameStart = pos
@@ -1389,7 +1399,12 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             return 0
 
         var look = pos[]
-        while look < data.count and (data[look] == ' ' or data[look] == ',' or data[look] == '\t' or data[look] == '\n' or data[look] == '\r') do
+        while look < data.count and
+              (data[look] == ' ' or
+               data[look] == ',' or
+               data[look] == '\t' or
+               data[look] == '\n' or
+               data[look] == '\r') do
             look += 1
         if look >= data.count or not isNumberStart(data[look])
         {
@@ -1405,7 +1420,12 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         if not valid[] do
             return false
 
-        while pos[] < data.count and (data[pos[]] == ' ' or data[pos[]] == ',' or data[pos[]] == '\t' or data[pos[]] == '\n' or data[pos[]] == '\r') do
+        while pos[] < data.count and
+              (data[pos[]] == ' ' or
+               data[pos[]] == ',' or
+               data[pos[]] == '\t' or
+               data[pos[]] == '\n' or
+               data[pos[]] == '\r') do
             pos[] += 1
         if pos[] >= data.count or (data[pos[]] != '0' and data[pos[]] != '1')
         {
@@ -1992,7 +2012,11 @@ private impl Parser
             }
 
             let nameStart = .pos
-            while .pos < len and .text[.pos] != '=' and .text[.pos] != ' ' and .text[.pos] != '>' and .text[.pos] != '/' do
+            while .pos < len and
+                  .text[.pos] != '=' and
+                  .text[.pos] != ' ' and
+                  .text[.pos] != '>' and
+                  .text[.pos] != '/' do
                 .pos += 1
             let name = .text[nameStart until .pos]
 
@@ -2822,7 +2846,10 @@ private impl Parser
                         {
                             let width  = .geoNumber(&geo, "width", symbol.value.viewWidth)
                             let height = .geoNumber(&geo, "height", symbol.value.viewHeight)
-                            if symbol.value.viewWidth > 0 and symbol.value.viewHeight > 0 and width > 0 and height > 0
+                            if symbol.value.viewWidth > 0 and
+                               symbol.value.viewHeight > 0 and
+                               width > 0 and
+                               height > 0
                             {
                                 var fit = Math.Transform2.createTranslation(-symbol.value.viewX, -symbol.value.viewY)
                                 fit.multiply(Math.Transform2.createScale(width / symbol.value.viewWidth, height / symbol.value.viewHeight, 0, 0))

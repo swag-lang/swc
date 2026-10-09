@@ -303,7 +303,7 @@ impl Capture
         var reader: Scc.Reader
         try reader.initialize(file)
         if reader.kind() != containerKind() do
-            fail Core.Errors.InvalidFormatError{"capture file has a different SCC profile"}
+            fail Core.Errors.InvalidFormatError{}
         if reader.manifest().profileVersion > CaptureProfileVersion do
             fail Core.Errors.InvalidVersion{wantedVersion: CaptureProfileVersion, foundVersion: reader.manifest().profileVersion}
 
@@ -320,7 +320,7 @@ impl Capture
         {
             let info = reader.findRole(modelRole())
             if not info do
-                fail Core.Errors.InvalidFormatError{"capture SCC has no document model chunk"}
+                fail Core.Errors.InvalidFormatError{}
             var bytes = try reader.readChunk(info.id)
             var decoder: Decoder'Read.TagBin
             decoder.flags |= .IgnoreStructFieldError
@@ -329,7 +329,10 @@ impl Capture
             capture = fromFileModel(model)
 
             let diag = decoder.serializer.diag
-            capture.loadIssues = diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads
+            capture.loadIssues = diag.fieldErrors +
+                                 diag.droppedStreamFields +
+                                 diag.unknownTypes +
+                                 diag.corruptPayloads
 
             let background = reader.findRole(backgroundRole())
             if background
@@ -340,7 +343,10 @@ impl Capture
                 defer Memory.delete(image)
                 capture.backImg = #move image[]
                 let imageDiag = imageDecoder.serializer.diag
-                capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
+                capture.loadIssues += imageDiag.fieldErrors +
+                                      imageDiag.droppedStreamFields +
+                                      imageDiag.unknownTypes +
+                                      imageDiag.corruptPayloads
             }
 
             let original = reader.findRole(originalRole())
@@ -352,7 +358,10 @@ impl Capture
                 defer Memory.delete(image)
                 capture.backImgOriginal = #move image[]
                 let imageDiag = imageDecoder.serializer.diag
-                capture.loadIssues += imageDiag.fieldErrors + imageDiag.droppedStreamFields + imageDiag.unknownTypes + imageDiag.corruptPayloads
+                capture.loadIssues += imageDiag.fieldErrors +
+                                      imageDiag.droppedStreamFields +
+                                      imageDiag.unknownTypes +
+                                      imageDiag.corruptPayloads
             }
         }
 

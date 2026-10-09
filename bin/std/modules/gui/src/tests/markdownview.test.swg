@@ -1122,7 +1122,9 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     var previousBounds: Math.Rectangle
     for 2_048 where not view.searchMatchRect(&previousBounds) do
         host.fireTimers()
-    Swag.assert(view.searchMatchRect(&previousBounds) and view.residentStart <= offsets[1] and offsets[1] < view.bytesRead)
+    Swag.assert(view.searchMatchRect(&previousBounds) and
+                view.residentStart <= offsets[1] and
+                offsets[1] < view.bytesRead)
 }
 
 // Table columns size from their content instead of splitting the width evenly.

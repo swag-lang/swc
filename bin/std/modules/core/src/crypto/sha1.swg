@@ -35,9 +35,12 @@ impl Sha1
         var i, j = 0'u32
         while i < 16
         {
-            w[i] = (cast(u32, buf[j]) << 24) | (cast(u32, buf[j + 1]) << 16) | (cast(u32, buf[j + 2]) << 8) | buf[j + 3]
-            i    += 1
-            j    += 4
+            w[i] = (cast(u32, buf[j]) << 24) |
+                   (cast(u32, buf[j + 1]) << 16) |
+                   (cast(u32, buf[j + 2]) << 8) |
+                   buf[j + 3]
+            i += 1
+            j += 4
         }
 
         while i < 80

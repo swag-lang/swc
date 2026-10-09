@@ -22,7 +22,9 @@ private
 func isZipArchive(image: *BinaryImage)->bool
 {
     image.bigEndian = false
-    if image.matches(0, "PK\x03\x04") or image.matches(0, "PK\x05\x06") or image.matches(0, "PK\x07\x08") do
+    if image.matches(0, "PK\x03\x04") or
+       image.matches(0, "PK\x05\x06") or
+       image.matches(0, "PK\x07\x08") do
         return true
     return zipEndAt(image) != Swag.U64.Max
 }

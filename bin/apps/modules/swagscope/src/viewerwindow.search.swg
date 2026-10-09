@@ -157,7 +157,9 @@ impl ViewerWindow
         .searchError.clear()
         .refreshSearchReadout()
 
-        if not .searchBox.isEnabled() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if not .searchBox.isEnabled() or
+           .currentFile.isEmpty() or
+           .activeChoiceIndex >= .instances.count do
             return
 
         let instance = &.instances[.activeChoiceIndex]
@@ -252,7 +254,10 @@ impl ViewerWindow
         }
 
         let complete = instance.collectMatches!(.searchQuery, options, &.searchProgress, &.searchMatches)
-        if not complete and not .searchSelectLast and .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
+        if not complete and
+           not .searchSelectLast and
+           .searchIndex >= .searchMatches.count and
+           not .searchMatches.isEmpty()
         {
             .searchIndex = 0
             .revealCurrentSearchMatch()

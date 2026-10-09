@@ -116,7 +116,10 @@ func statusForError(kind: ErrorKind)->s32
     Swag.assert(info.fileSize == 9000)
     callbackStatus = WinFsp.callbackSetBasicInfo(context, fileId, FileAttributeArchive, 11, 12, 13, 14, &info)
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
-    Swag.assert(info.creationTime == 11 and info.lastAccessTime == 12 and info.lastWriteTime == 13 and info.changeTime == 14)
+    Swag.assert(info.creationTime == 11 and
+                info.lastAccessTime == 12 and
+                info.lastWriteTime == 13 and
+                info.changeTime == 14)
     callbackStatus = WinFsp.callbackFlush(context, fileId, &info)
     Swag.assert(callbackStatus == WinFsp.StatusSuccess)
 

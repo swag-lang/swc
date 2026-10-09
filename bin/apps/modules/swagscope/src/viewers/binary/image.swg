@@ -42,14 +42,14 @@ impl BinaryImage
         var file = catch File.MappedFile.openSnapshot(fileName, LoadLimit) as openError
         if openError != null
         {
-            .failureReason = Errors.message(openError)
+            .failureReason = Viewer.failureText(openError)
             return false
         }
 
         let metadata = catch File.info(fileName) as sizeError
         if sizeError != null
         {
-            .failureReason = Errors.message(sizeError)
+            .failureReason = Viewer.failureText(sizeError)
             return false
         }
 
@@ -58,7 +58,7 @@ impl BinaryImage
         .region = catch file.mapAll() as mapError
         if mapError != null
         {
-            .failureReason = Errors.message(mapError)
+            .failureReason = Viewer.failureText(mapError)
             return false
         }
 

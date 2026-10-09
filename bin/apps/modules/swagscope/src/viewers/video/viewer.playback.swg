@@ -130,7 +130,7 @@ impl Panel
 
         if decodeError != null
         {
-            .failureText = Errors.message(decodeError)
+            .failureText = Viewer.failureText(decodeError)
             .hasFailure  = true
             .freeSlots.add(slot)
             return false
@@ -204,7 +204,7 @@ impl Panel
         catch .finishMetadata() as metadataError
         if metadataError != null
         {
-            .services.failed(me, Errors.message(metadataError))
+            .services.failed(me, Viewer.failureText(metadataError))
             return false
         }
 
@@ -302,7 +302,7 @@ impl Panel
                     .playing = false
                     .audioRangePending = false
                     catch .voice.pause()
-                    .services.failed(me, Errors.message(seekError))
+                    .services.failed(me, Viewer.failureText(seekError))
                     return
                 }
             }
@@ -340,7 +340,7 @@ impl Panel
                     .playing = false
                     catch .voice.pause()
                     .refreshTransport()
-                    .services.failed(me, Errors.message(seekError))
+                    .services.failed(me, Viewer.failureText(seekError))
                     return
                 }
 
@@ -420,7 +420,7 @@ impl Panel
         {
             catch .completeOpen() as openError
             if openError != null do
-                .services.failed(me, Errors.message(openError))
+                .services.failed(me, Viewer.failureText(openError))
             return
         }
 
@@ -430,7 +430,7 @@ impl Panel
         catch .finishMetadata() as metadataError
         if metadataError != null
         {
-            .services.failed(me, Errors.message(metadataError))
+            .services.failed(me, Viewer.failureText(metadataError))
             return
         }
 

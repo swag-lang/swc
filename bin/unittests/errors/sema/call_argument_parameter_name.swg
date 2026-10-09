@@ -43,3 +43,10 @@ func parameterNameUnnamed(callback: func(s32), wide: u64)
 {
     callback(wide)     // swc-expected-error {{argument 1 for call to 'callback' has type 'u64', but the parameter needs 's32'}}
 }
+
+func parameterNameDiscarded(_: s32) {}
+
+func parameterNameDiscardedCall(wide: u64)
+{
+    parameterNameDiscarded(wide)     // swc-expected-error {{argument 1 for call to 'parameterNameDiscarded' has type 'u64', but the parameter needs 's32'}}
+}

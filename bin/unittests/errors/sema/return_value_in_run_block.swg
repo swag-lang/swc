@@ -7,7 +7,7 @@ func runBlockReturn()->s32
 {
     #run
     {
-        return 1     // swc-expected-error {{a '#run' block cannot return a value; [help] remove the value, or compute it with a '#run' expression instead}}
+        return 1     // swc-expected-error {{sema_err_return_value_in_run_block}}
     }
 
     return 0

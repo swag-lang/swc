@@ -5,9 +5,9 @@
 // not line up with it.
 
 func unclosedInner(x: s32)->s32
-{     // swc-expected-error {{expected closing '}'}}
+{     // swc-expected-error {{parser_err_expected_closing}}
     if x > 0
-    {     // swc-expected-note {{this block may be the one left open}}
+    {     // swc-expected-note {{parser_note_unclosed_candidate}}
         return 1
     return 0
 }

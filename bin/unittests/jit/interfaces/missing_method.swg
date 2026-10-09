@@ -14,7 +14,7 @@ struct MissingSquare
     side: f32
 }
 
-impl IMissingShape for MissingSquare {}     // swc-expected-error {{struct 'MissingSquare' does not implement method 'area' of interface 'IMissingShape'}}
+impl IMissingShape for MissingSquare {}     // swc-expected-error {{sema_err_interface_method_not_implemented}}
 
 #test
 {

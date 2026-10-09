@@ -175,7 +175,10 @@ func createDemoEditor(parent: *Wnd, rect: Math.Rectangle, flags: RichEditFlags, 
     return ed
 }
 
-func createCodeEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = RichEditFlags.ShowFocusSel | .CurLineBorder | .TabToSpaces)->*RichEditCtrl
+func createCodeEditor(parent: *Wnd,
+                      rect: Math.Rectangle,
+                      text: string,
+                      flags = RichEditFlags.ShowFocusSel | .CurLineBorder | .TabToSpaces)->*RichEditCtrl
 {
     let ed = createDemoEditor(parent, rect, flags)
     ed.setLexer(g_LexerSwag)
@@ -185,7 +188,11 @@ func createCodeEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = 
     return ed
 }
 
-func createDocumentEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flags = RichEditFlags.ShowFocusSel | .WordWrap, form = RichEditForm.Edit)->*RichEditCtrl
+func createDocumentEditor(parent: *Wnd,
+                          rect: Math.Rectangle,
+                          text: string,
+                          flags = RichEditFlags.ShowFocusSel | .WordWrap,
+                          form = RichEditForm.Edit)->*RichEditCtrl
 {
     let ed = createDemoEditor(parent, rect, flags, form)
     ed.marginLeft  = 18

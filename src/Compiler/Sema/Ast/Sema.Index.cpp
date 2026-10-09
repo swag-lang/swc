@@ -194,6 +194,17 @@ namespace
         return Result::Continue;
     }
 
+    // A constant index past the first dimension of a fixed-size array is known to fail before the
+    // program runs, whether or not the array itself is a constant. An array indexed by an enum maps
+    // the enum values itself, so its bound is not the index value.
+    bool constantIndexOutOfArray(const TypeInfo& arrayType, bool hasConstIndex, int64_t constIndex)
+    {
+        if (!hasConstIndex || arrayType.payloadArrayIndexTypeRef().isValid())
+            return false;
+        const auto& arrayDims = arrayType.payloadArrayDims();
+        return !arrayDims.empty() && std::cmp_greater_equal(constIndex, arrayDims[0]);
+    }
+
     Result checkSliceBound(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
         if (nodeArgRef.isInvalid())
@@ -524,6 +535,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     {
         const auto&    arrayDims   = indexedType.payloadArrayDims();
         const uint64_t numExpected = arrayDims.size();
+        if (constantIndexOutOfArray(indexedType, hasConstIndex, constIndex))
+            return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, arrayDims[0]);
         if (numExpected > 1)
         {
             const TypeInfo typeArray = indexedType.makeArrayAfterFirstDimension();
@@ -663,6 +676,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
             if (currentType.isArray())
             {
+                if (constantIndexOutOfArray(currentType, hasConstIndex, constIndex))
+                    return SemaError::raiseIndexOutOfRange(sema, nodeRef, constIndex, currentType.payloadArrayDims()[0]);
                 if (currentCstRef.isValid() && hasConstIndex)
                 {
                     ConstantRef nextCstRef = ConstantRef::invalid();

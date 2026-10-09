@@ -68,6 +68,18 @@ namespace
         uint32_t lastJump  = std::numeric_limits<uint32_t>::max();
     };
 
+    // Every label of the function, by id. The layout is rebuilt at every run and after every
+    // unroll, and a node-based map allocated one node per label each time. Label ids are 32-bit
+    // builder indices; a wider one sits the function out before reaching the table.
+    using LabelTable = FlatKeyMap<LabelInfo>;
+
+    constexpr uint64_t K_MAX_LABEL_ID = std::numeric_limits<uint32_t>::max() - 1;
+
+    const LabelInfo* findLabel(const LabelTable& labels, const uint64_t id)
+    {
+        return id <= K_MAX_LABEL_ID ? labels.find(static_cast<uint32_t>(id)) : nullptr;
+    }
+
     bool defsRegister(const MicroInstr& inst, const MicroOperandStorage& operands, const Encoder* encoder, const MicroReg reg)
     {
         SWC_ASSERT(reg.isVirtualInt());
@@ -155,7 +167,7 @@ namespace
     // then knows every trip count and every guard's outcome. An inner loop
     // must also pass the limits it will meet as an ordinary candidate, or the
     // outer unroll would only multiply loops.
-    bool flattenedNestSize(uint64_t& outTotal, const MicroPassContext& context, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint64_t, LabelInfo>& labels, const CountedLoop& outer)
+    bool flattenedNestSize(uint64_t& outTotal, const MicroPassContext& context, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<MicroInstrRef>& order, const LabelTable& labels, const CountedLoop& outer)
     {
         struct InnerLoop
         {
@@ -177,8 +189,8 @@ namespace
         offsets.emplace(outer.counter, 0);
 
         const auto labelOrdinal = [&](const uint64_t id) {
-            const auto it = labels.find(id);
-            return it == labels.end() ? std::numeric_limits<uint32_t>::max() : it->second.ordinal;
+            const LabelInfo* info = findLabel(labels, id);
+            return info ? info->ordinal : std::numeric_limits<uint32_t>::max();
         };
 
         // Inner latches first: the walk below meets a header before its latch.
@@ -204,7 +216,7 @@ namespace
                 cmpOps[2].hasWideImmediateValue() || addOps[3].hasWideImmediateValue() ||
                 addOps[3].valueU64 < 1 || addOps[3].valueU64 > 64 || cmpOps[2].valueU64 > 1000000)
                 return false;
-            const LabelInfo& header = labels.at(ops[2].valueU64);
+            const LabelInfo& header = *findLabel(labels, ops[2].valueU64);
             if (header.firstJump != o || header.lastJump != o)
                 return false;
 
@@ -743,7 +755,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
         // Program layout: ordinals, label positions, and plausible back-edge jumps.
         std::vector<MicroInstrRef>                 order;
-        std::unordered_map<uint64_t, LabelInfo>    labels;
+        LabelTable                                 labels;
         std::vector<std::pair<uint32_t, uint64_t>> jumps;
         order.reserve(storage.count());
 
@@ -762,10 +774,16 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             if (!ops)
                 continue;
             if (inst.op == MicroInstrOpcode::Label)
-                labels[ops[0].valueU64].ordinal = ord;
+            {
+                if (ops[0].valueU64 > K_MAX_LABEL_ID)
+                    return Result::Continue;
+                labels.getOrInsert(static_cast<uint32_t>(ops[0].valueU64)).ordinal = ord;
+            }
             else if (inst.op == MicroInstrOpcode::JumpCond && inst.numOperands >= 3)
             {
-                LabelInfo& target = labels[ops[2].valueU64];
+                if (ops[2].valueU64 > K_MAX_LABEL_ID)
+                    return Result::Continue;
+                LabelInfo& target = labels.getOrInsert(static_cast<uint32_t>(ops[2].valueU64));
                 if (target.ordinal != std::numeric_limits<uint32_t>::max() && target.ordinal + 4 <= ord)
                     jumps.emplace_back(ord, ops[2].valueU64);
                 if (target.firstJump == std::numeric_limits<uint32_t>::max())
@@ -782,7 +800,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
         for (const auto& [jccOrdinal, headerId] : jumps)
         {
-            const LabelInfo& label = labels.at(headerId);
+            const LabelInfo& label = *findLabel(labels, headerId);
             if (label.ordinal == std::numeric_limits<uint32_t>::max())
                 continue;
             const uint32_t h = label.ordinal;
@@ -1049,13 +1067,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                             ok = false;
                             break;
                         }
-                        const auto targetIt = labels.find(ops[2].valueU64);
-                        if (targetIt == labels.end() || targetIt->second.ordinal == std::numeric_limits<uint32_t>::max())
+                        const LabelInfo* targetInfo = findLabel(labels, ops[2].valueU64);
+                        if (!targetInfo || targetInfo->ordinal == std::numeric_limits<uint32_t>::max())
                         {
                             ok = false;
                             break;
                         }
-                        const uint32_t targetOrdinal = targetIt->second.ordinal;
+                        const uint32_t targetOrdinal = targetInfo->ordinal;
                         // Internal target or forward exit past the latch; anything
                         // aimed at the header, the latch, or behind the loop bails.
                         if (targetOrdinal <= h || (targetOrdinal >= bodyEnd && targetOrdinal <= jccOrdinal))
@@ -1109,7 +1127,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // bound every source without rescanning all function jumps.
             for (const uint64_t target : internalLabels)
             {
-                const LabelInfo& internal = labels.at(target);
+                const LabelInfo& internal = *findLabel(labels, target);
                 if (internal.firstJump != std::numeric_limits<uint32_t>::max() &&
                     (internal.firstJump < bodyBegin || internal.lastJump >= bodyEnd))
                 {

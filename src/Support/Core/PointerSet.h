@@ -8,7 +8,8 @@ SWC_BEGIN_NAMESPACE();
 // The compiler asks "have I already seen this symbol" tens of millions of times over a module, and
 // a node-based set answers each question with a heap allocation and a pointer chase. This one
 // stores the pointers themselves in a power-of-two table with linear probing: an insert is a
-// multiply, a mask and a compare, and a whole set costs one allocation.
+// multiply, a mask and a compare. The first table is inline, so a set that stays small - most of
+// them - allocates nothing.
 template<typename T>
 class PointerSet
 {
@@ -82,8 +83,9 @@ private:
 
     void rehash(size_t capacity)
     {
-        std::vector<T*> previous(capacity, nullptr);
-        previous.swap(slots_);
+        const SmallVector<T*, INITIAL_CAPACITY> previous = std::move(slots_);
+        slots_.clear();
+        slots_.resize(capacity, nullptr);
 
         const size_t mask = slots_.size() - 1;
         for (T* value : previous)
@@ -97,14 +99,13 @@ private:
         }
     }
 
-    std::vector<T*> slots_;
-    size_t          count_ = 0;
+    SmallVector<T*, INITIAL_CAPACITY> slots_;
+    size_t                            count_ = 0;
 };
 
 // The same table for strong references. A walk that only asks "have I been through this node"
-// pays a node-based set one allocation per node visited; this one allocates nothing until the
-// first insert and one array afterwards. The invalid reference marks a free slot, so it is never
-// a member.
+// pays a node-based set one allocation per node visited; this one keeps its first table inline
+// and allocates only past it. The invalid reference marks a free slot, so it is never a member.
 template<typename R>
 class RefSet
 {
@@ -165,8 +166,9 @@ private:
 
     void rehash(size_t capacity)
     {
-        std::vector<uint32_t> previous(capacity, K_FREE);
-        previous.swap(slots_);
+        const SmallVector<uint32_t, INITIAL_CAPACITY> previous = std::move(slots_);
+        slots_.clear();
+        slots_.resize(capacity, K_FREE);
 
         const size_t mask = slots_.size() - 1;
         for (const uint32_t value : previous)
@@ -180,8 +182,8 @@ private:
         }
     }
 
-    std::vector<uint32_t> slots_;
-    size_t                count_ = 0;
+    SmallVector<uint32_t, INITIAL_CAPACITY> slots_;
+    size_t                                  count_ = 0;
 };
 
 // A map from strong references to pointers, held in one flat table. Code generation records a
@@ -301,6 +303,7 @@ public:
 
         return nullptr;
     }
+
 
     // Inserts the key with the value, or keeps the value already there, like 'emplace'.
     void emplace(uint32_t key, const V& value)

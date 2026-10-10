@@ -510,6 +510,58 @@ namespace PostRaPeephole
         }
     }
 
+    namespace
+    {
+        // A product and the accumulation that consumes it are often separated by the load of
+        // the accumulator, which the allocator schedules right before its use: `p = a * b`,
+        // `v = [m]`, `v -= p`. The pair still contracts when nothing in between reads or writes
+        // the product or writes either factor - the fused form reads the factors where the
+        // accumulation stands. Look a few instructions back for such a product.
+        constexpr uint32_t K_MAX_PRODUCT_GAP = 6;
+
+        bool findSeparatedProduct(Context& ctx, std::span<const MicroInstrRef> refs, uint32_t blockBegin, uint32_t accumulateIndex, uint32_t& outMultiplyIndex)
+        {
+            ScalarFloatBinary accumulate;
+            if (!scalarFloatBinary(accumulate, *ctx.storage->ptr(refs[accumulateIndex]), *ctx.operands) ||
+                (accumulate.op != MicroOp::FloatAdd && accumulate.op != MicroOp::FloatSubtract))
+                return false;
+
+            MicroInstrUseDef useDef;
+            for (uint32_t back = 2; back <= K_MAX_PRODUCT_GAP && accumulateIndex >= blockBegin + back; ++back)
+            {
+                const uint32_t    candidateIndex = accumulateIndex - back;
+                const MicroInstr* candidate      = ctx.storage->ptr(refs[candidateIndex]);
+                ScalarFloatBinary multiply;
+                if (!candidate || ctx.isClaimed(refs[candidateIndex]) || !scalarFloatBinary(multiply, *candidate, *ctx.operands) ||
+                    multiply.op != MicroOp::FloatMultiply || (multiply.dst != accumulate.left && multiply.dst != accumulate.right))
+                    continue;
+
+                for (uint32_t gap = candidateIndex + 1; gap < accumulateIndex; ++gap)
+                {
+                    const MicroInstr* inst = ctx.storage->ptr(refs[gap]);
+                    if (!inst || ctx.isClaimed(refs[gap]))
+                        return false;
+                    const auto flags = MicroInstr::info(inst->op).flags;
+                    if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
+                        return false;
+                    inst->collectUseDef(useDef, *ctx.operands, ctx.encoder);
+                    if (std::ranges::find(useDef.uses, multiply.dst) != useDef.uses.end())
+                        return false;
+                    for (const MicroReg def : useDef.defs)
+                    {
+                        if (def == multiply.dst || def == multiply.left || def == multiply.right)
+                            return false;
+                    }
+                }
+
+                outMultiplyIndex = candidateIndex;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
     // MOVSS/MOVSD retain the old destination's upper lanes. A complete copy
     // removes that dependency whenever no reachable consumer needs those lanes.
     // Solve demands over straight-line blocks so a scalar use beyond a branch
@@ -567,6 +619,12 @@ namespace PostRaPeephole
                     --i;
                     continue;
                 }
+                // The instructions between a separated product and its accumulation stay in
+                // place and are walked next; the claimed product is erased.
+                uint32_t multiplyIndex = 0;
+                if (allowFusion && findSeparatedProduct(ctx, refs, block.begin, i, multiplyIndex) &&
+                    tryFuseScalarFloatProduct(ctx, demand, refs[multiplyIndex], ref))
+                    continue;
                 bool widen = false;
                 if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
                     ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&

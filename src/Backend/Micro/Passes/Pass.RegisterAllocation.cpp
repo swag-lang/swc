@@ -2812,11 +2812,11 @@ void MicroRegisterAllocationPass::applyStackPointerDelta(int64_t& stackDepth, co
         stackDepth -= immValue;
 }
 
-void MicroRegisterAllocationPass::mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth)
+void MicroRegisterAllocationPass::mergeLabelStackDepth(FlatKeyMap<int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth)
 {
     // Keep the first observed depth. Mismatches can happen on dead edges
     // (for example, after a return in linearized IR).
-    labelStackDepth.try_emplace(labelRef, stackDepth);
+    labelStackDepth.emplace(labelRef.get(), stackDepth);
 }
 
 bool MicroRegisterAllocationPass::isCandidateBetter(uint32_t candidateDense, uint32_t currentBestDense, uint32_t instructionIndex, uint32_t stamp) const
@@ -3763,10 +3763,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     uint32_t stamp      = 1;
     uint32_t idx        = 0;
     int64_t  stackDepth = 0;
-    labelStackDepth_.clear();
+    // The stack depth each jump target was first reached at, by label id: only looked up.
+    FlatKeyMap<int64_t> labelStackDepth;
     deferredLoopCarriedStores_.clear();
-    if (hasControlFlow_)
-        labelStackDepth_.reserve(instructions_->count() / 2 + 1);
 
     // Register mappings may survive a control-flow boundary only when the CFG
     // is precise: the join intersection walks predecessor lists, and an edge
@@ -3817,9 +3816,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             {
                 const MicroInstrOperand* ops = it->ops(*operands_);
                 const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[0].valueU64));
-                const auto               labelIt = labelStackDepth_.find(labelRef);
-                if (labelIt != labelStackDepth_.end())
-                    stackDepth = labelIt->second;
+                if (const int64_t* labelDepth = labelStackDepth.find(labelRef.get()))
+                    stackDepth = *labelDepth;
             }
         }
 
@@ -4225,7 +4223,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             {
                 const MicroInstrOperand* ops = it->ops(*operands_);
                 const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[2].valueU64));
-                mergeLabelStackDepth(labelStackDepth_, labelRef, stackDepth);
+                mergeLabelStackDepth(labelStackDepth, labelRef, stackDepth);
             }
         }
 
@@ -4356,7 +4354,6 @@ void MicroRegisterAllocationPass::clearState()
     pendingErasures_.clear();
     pending_.clear();
     boundaryPending_.clear();
-    labelStackDepth_.clear();
 }
 
 namespace

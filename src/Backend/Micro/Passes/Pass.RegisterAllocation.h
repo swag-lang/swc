@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
@@ -310,7 +311,7 @@ private:
     void              queueErase(MicroInstrRef instRef);
     void              flushQueuedErasures();
     void              applyStackPointerDelta(int64_t& stackDepth, const MicroInstr& inst) const;
-    static void       mergeLabelStackDepth(std::unordered_map<MicroLabelRef, int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
+    static void       mergeLabelStackDepth(FlatKeyMap<int64_t>& labelStackDepth, MicroLabelRef labelRef, int64_t stackDepth);
     bool              isCandidateBetter(uint32_t candidateDense, uint32_t currentBestDense, uint32_t instructionIndex, uint32_t stamp) const;
     bool              selectEvictionCandidate(MicroReg requestVirtKey, uint32_t instructionIndex, bool isFloatReg, bool fromPersistentPool, MicroRegSpan protectedKeys, MicroRegSpan forbiddenPhysRegs, uint32_t stamp, bool allowConcreteLive, MicroReg& outVirtKey, MicroReg& outPhys) const;
     FreePools         pickFreePools(const AllocRequest& request);
@@ -433,7 +434,6 @@ private:
     // the value's stable home slot always holds its latest value across the
     // back-edge regardless of when the register mapping is later dropped.
     std::vector<PendingInsert>                 deferredLoopCarriedStores_;
-    std::unordered_map<MicroLabelRef, int64_t> labelStackDepth_;
     // Snapshot of what each relocation-bearing address load points at, taken
     // before allocation so a rematerialized copy can be given its own.
     std::unordered_map<MicroInstrRef, MicroRelocation> relocationByDefInstruction_;

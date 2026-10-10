@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 // Stack adjustment normalization.
@@ -95,9 +96,9 @@ namespace
     // we leave the first observation untouched: such control flow already
     // disqualifies the function from normalization (validateOffsetRebase
     // will see the inconsistency through the per-instruction depths).
-    void mergeLabelDepth(std::unordered_map<uint32_t, uint64_t>& labelDepthById, uint32_t labelId, uint64_t depth)
+    void mergeLabelDepth(FlatKeyMap<uint64_t>& labelDepthById, uint32_t labelId, uint64_t depth)
     {
-        labelDepthById.try_emplace(labelId, depth);
+        labelDepthById.emplace(labelId, depth);
     }
 
     bool tryAddOffset(uint64_t& value, uint64_t delta, bool apply)
@@ -177,7 +178,7 @@ namespace
         outResult.minCallDepth = std::numeric_limits<uint64_t>::max();
         outResult.instructionDepths.reserve(context.instructions->count());
 
-        std::unordered_map<uint32_t, uint64_t> labelDepthById;
+        FlatKeyMap<uint64_t> labelDepthById;
 
         uint64_t depth = 0;
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
@@ -190,9 +191,8 @@ namespace
             if (it->op == MicroInstrOpcode::Label && ops && ops[0].valueU64 <= std::numeric_limits<uint32_t>::max())
             {
                 const uint32_t labelId = static_cast<uint32_t>(ops[0].valueU64);
-                const auto     labelIt = labelDepthById.find(labelId);
-                if (labelIt != labelDepthById.end())
-                    depth = labelIt->second;
+                if (const uint64_t* labelDepth = labelDepthById.find(labelId))
+                    depth = *labelDepth;
             }
 
             outResult.instructionDepths.push_back({it.current, depth});
@@ -225,11 +225,7 @@ namespace
 
             uint32_t jumpLabelId = 0;
             if (tryGetJumpTargetLabelId(*it, ops, jumpLabelId))
-            {
-                if (labelDepthById.empty())
-                    labelDepthById.reserve(context.instructions->count() / 8 + 1);
                 mergeLabelDepth(labelDepthById, jumpLabelId, depth);
-            }
         }
 
         return true;

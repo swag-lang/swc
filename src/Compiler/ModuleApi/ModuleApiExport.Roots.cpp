@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/PointerSet.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,9 +20,10 @@ namespace
     {
         TaskContext*                      ctx;
         std::vector<const Symbol*>        symbols;
-        std::unordered_set<const Symbol*> symbolSet;
-        std::unordered_set<const Symbol*> visitedSymbols;
-        std::unordered_set<TypeRef>       visitedTypeRefs;
+        // Membership only: one collector per root, so the sets stay small and flat.
+        PointerSet<const Symbol> symbolSet;
+        PointerSet<const Symbol> visitedSymbols;
+        RefSet<TypeRef>          visitedTypeRefs;
     };
 
     bool isGeneratedModuleApiTypeSymbol(const Symbol& symbol)
@@ -41,7 +43,7 @@ namespace
         if (!symbol.isPublic() || !isGeneratedModuleApiTypeSymbol(symbol))
             return;
 
-        if (collector.symbolSet.insert(&symbol).second)
+        if (collector.symbolSet.insert(&symbol))
             collector.symbols.push_back(&symbol);
     }
 
@@ -94,7 +96,7 @@ namespace
 
     void collectModuleApiTypeRefDependencies(ModuleApiDependencyCollector& collector, const TypeRef typeRef)
     {
-        if (!typeRef.isValid() || !collector.visitedTypeRefs.insert(typeRef).second)
+        if (!typeRef.isValid() || !collector.visitedTypeRefs.insert(typeRef))
             return;
 
         const TypeInfo& type = collector.ctx->typeMgr().get(typeRef);
@@ -159,7 +161,7 @@ namespace
 
     void collectModuleApiSymbolDependencies(ModuleApiDependencyCollector& collector, const Symbol& symbol)
     {
-        if (!collector.visitedSymbols.insert(&symbol).second)
+        if (!collector.visitedSymbols.insert(&symbol))
             return;
 
         if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())

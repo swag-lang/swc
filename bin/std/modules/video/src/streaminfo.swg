@@ -15,8 +15,8 @@ struct StreamInfo
 
         // Size the frame is meant to be shown at, in pixels, when that is not its stored size.
         //
-        // A picture with non-square samples, as in television standards and many disc sources, stores
-        // and most of what a disc was encoded from — stores fewer or more columns than it is
+        // A picture with non-square samples, common in television standards and on many discs, stores
+        // fewer or more columns than it is shown with. Zero means the stored size is the shown size, which is what every modern
         // shown with. Zero means the stored size is the shown size, which is what every modern
         // encode states.
         displayWidth:  s32

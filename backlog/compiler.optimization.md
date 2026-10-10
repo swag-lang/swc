@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:24 — Skip boundary-benefit scan without control flow.
+- Updated: 2026-10-10 14:31 — Decode copies only at candidate interference points.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -135,6 +135,10 @@ new language syntax.
   instructions when `hasControlFlow_` is false; `isFlushBoundary` rejects every instruction in
   that state. The Release build and focused native `physical_copy_intervals.swg` test passed; no
   timing claim is made.
+- Taken on 2026-10-10: the final copy-join scan now delays instruction lookup and full-copy
+  decoding until a candidate register is touched, and only checks copy shapes with one dense use
+  and definition. Untouched instructions avoid both operations. The Release build and focused
+  native `physical_copy_intervals.swg` test passed; no timing claim is made.
 - Evidence: the walk describes every concrete claim by the position it occupies, except
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole

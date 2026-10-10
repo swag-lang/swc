@@ -2414,8 +2414,28 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
 
         MicroReg          copyDst;
         MicroReg          copySrc;
-        const MicroInstr* inst   = instructions_->ptr(instrRefs[idx]);
-        const bool        isCopy = fullCopyOperands(copyDst, copySrc, inst, idx);
+        const bool        canBeCopy = defs.size() == 1 && uses.size() == 1;
+        const MicroInstr* inst      = nullptr;
+        bool              haveInst  = false;
+        const auto        getInst   = [&]() {
+            if (!haveInst)
+            {
+                inst     = instructions_->ptr(instrRefs[idx]);
+                haveInst = true;
+            }
+            return inst;
+        };
+        bool       haveCopy = false;
+        bool       isCopy   = false;
+        const auto isFullCopy = [&]() {
+            if (!haveCopy)
+            {
+                if (canBeCopy)
+                    isCopy = fullCopyOperands(copyDst, copySrc, getInst(), idx);
+                haveCopy = true;
+            }
+            return isCopy;
+        };
 
         // A value an instruction names outside its register operands (an
         // encoder-implied use or definition) cannot be renamed there.
@@ -2424,8 +2444,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         const auto namedByOperand = [&](const uint32_t dense) {
             if (!haveRegRefs)
             {
-                if (inst)
-                    inst->collectRegOperands(*operands_, regRefs, context_->encoder);
+                if (const MicroInstr* currentInst = getInst())
+                    currentInst->collectRegOperands(*operands_, regRefs, context_->encoder);
                 haveRegRefs = true;
             }
             return std::ranges::any_of(regRefs, [&](const MicroInstrRegOperandRef& ref) { return *ref.reg == virtualRegs[dense]; });
@@ -2488,7 +2508,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             const uint32_t partner = defDst ? c.src : c.dst;
             if (!DenseBits::contains(tempOutVirtual_, partner))
                 continue;
-            if (isCopy && copyDst == virtualRegs[defined] && copySrc == virtualRegs[partner])
+            if (isFullCopy() && copyDst == virtualRegs[defined] && copySrc == virtualRegs[partner])
                 continue;
             c.rejected = true;
             --activeCandidates;

@@ -1101,7 +1101,7 @@ namespace
             {
                 const MicroInstrRef nextRef = layout.order[ordinal + 2];
                 const MicroInstr*   next    = storage.ptr(nextRef);
-                if (!tryGetLabelId(targetId, *next, next->ops(operands)))
+                if (next->op != MicroInstrOpcode::Label || !tryGetLabelId(targetId, *next, next->ops(operands)))
                 {
                     for (const auto& [ref, id] : fallThroughLabels)
                     {
@@ -1460,7 +1460,7 @@ namespace
             if (!continueInst)
                 continue;
             uint32_t   continueId         = 0;
-            const bool needsContinueLabel = !tryGetLabelId(continueId, *continueInst, continueInst->ops(operands));
+            const bool needsContinueLabel = continueInst->op != MicroInstrOpcode::Label || !tryGetLabelId(continueId, *continueInst, continueInst->ops(operands));
             if (needsContinueLabel)
                 continueId = builder->createLabel().get();
             if (continueId == exitId)
@@ -2442,7 +2442,7 @@ namespace
                     const MicroInstr*   past    = storage.ptr(pastRef);
                     if (!past)
                         continue;
-                    if (!tryGetLabelId(pastLabelId, *past, past->ops(operands)))
+                    if (past->op != MicroInstrOpcode::Label || !tryGetLabelId(pastLabelId, *past, past->ops(operands)))
                     {
                         pastLabelId = builder->createLabel().get();
                         MicroInstrOperand labelOps[1];

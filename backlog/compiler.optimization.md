@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 15:28 — Share packed-switch exit operands across condition and target checks.
+- Updated: 2026-10-10 15:30 — Gate three fallthrough-label checks by opcode.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
@@ -105,6 +105,7 @@ new language syntax.
 - Taken on 2026-10-10: packed-switch matching now calls `tryGetLabelId` only on label opcodes for case arms, skip labels, and exits. Its bounded default-value lookback also reuses the decoded `LoadRegImm` operands for the following register-touch check, and the default tail shares one operand lookup between unconditional-condition and target checks. The Release build and 62 focused native `switch_` tests passed; no timing claim is made.
 - Taken on 2026-10-10: guarded-select diamond conversion now retrieves each comparison's operand pointer once before copying its fixed operands into the rewrite buffers, instead of repeating the lookup for each operand. The Release build and focused native `branch_simplification.swg` and `short_circuit_booleans.swg` tests passed; no timing claim is made.
 - Taken on 2026-10-10: packed-switch arm validation now passes the already-decoded unconditional-jump operands to `tryGetJumpTargetLabelId`, removing a second lookup of the same exit instruction. The Release build and 62 focused native `switch_` tests passed; no timing claim is made.
+- Taken on 2026-10-10: three branch-fold paths now call `tryGetLabelId` only when the next, continue, or fallthrough instruction is actually a label. Their non-label outcomes still insert the same derived label, and skip unnecessary operand decoding on those outcomes. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;

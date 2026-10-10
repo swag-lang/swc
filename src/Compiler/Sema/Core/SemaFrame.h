@@ -230,6 +230,7 @@ public:
     // on top belongs to the statement's own frame and is written past it.
     bool bindingScoped() const { return bindingScoped_; }
     void setBindingScoped() { bindingScoped_ = true; }
+    void clearBindingScoped() { bindingScoped_ = false; }
 
     // The frame of a 'defer' body. Its statements run at scope exit, so what they invalidate
     // cannot reach back to the code written between the 'defer' and that exit: a kill recorded

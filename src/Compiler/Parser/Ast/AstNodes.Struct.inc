@@ -704,6 +704,7 @@ struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
     static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
+    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -718,6 +719,7 @@ struct AstOptionalChainExpr : AstNodeT<AstNodeId::OptionalChainExpr>
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     static Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
     static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
+    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

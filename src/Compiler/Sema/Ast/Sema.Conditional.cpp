@@ -272,13 +272,11 @@ Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
                 enumTypeRef = trueView.typeRef();
         }
 
-        if (!facts.empty() || enumTypeRef.isValid())
-        {
-            SemaFrame frame = sema.frame();
-            SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
-            frame.pushBindingType(enumTypeRef);
-            sema.pushFramePopOnPostChild(std::move(frame), childRef);
-        }
+        SemaFrame frame = sema.frame();
+        frame.clearBindingScoped();
+        SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
+        frame.pushBindingType(enumTypeRef);
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
     }
 
     return Result::Continue;
@@ -380,6 +378,18 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     return Result::Continue;
 }
 
+Result AstNullCoalescingExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeLeftRef)
+    {
+        auto frame = sema.frame();
+        frame.clearBindingScoped();
+        sema.pushFramePopOnPostChild(std::move(frame), nodeRightRef);
+    }
+
+    return Result::Continue;
+}
+
 Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);
@@ -444,6 +454,18 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         }
         else
             sema.setSubstitute(sema.curNodeRef(), selectedRef);
+    }
+
+    return Result::Continue;
+}
+
+Result AstOptionalChainExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeExprRef)
+    {
+        auto frame = sema.frame();
+        frame.clearBindingScoped();
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
     }
 
     return Result::Continue;

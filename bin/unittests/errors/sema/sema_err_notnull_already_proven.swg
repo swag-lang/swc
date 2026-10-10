@@ -76,13 +76,17 @@ func notNullReassigned(a: *NotNullProvenNode?, b: *NotNullProvenNode?)->s32
     return first + cur!.value
 }
 
-// A '!' reached only when a short-circuit decided to evaluate it proves nothing past its own
-// region, so a later assertion on the same path stays necessary.
+// A '!' in a short-circuit branch proves the rest of that branch, but not the following statement.
 func notNullUnderShortCircuit(flag: bool, node: *NotNullProvenNode?)->s32
 {
     if flag and node!.value > 0 do
         discard flag
     return node!.value
+}
+
+func notNullTwiceUnderShortCircuit(flag: bool, node: *NotNullProvenNode?)->bool
+{
+    return flag and (node!.value > 0 and node!.value > 1)     // swc-expected-error {{sema_err_notnull_already_proven}}
 }
 
 func notNullUnderFallback(node: *NotNullProvenNode?)->s32
@@ -91,8 +95,35 @@ func notNullUnderFallback(node: *NotNullProvenNode?)->s32
     return first + node!.value
 }
 
+func notNullTwiceUnderFallback(node: *NotNullProvenNode?)->s32
+{
+    return node?.value orelse node!.value + node!.value     // swc-expected-error {{sema_err_notnull_already_proven}}
+}
+
 func notNullUnderConditional(flag: bool, node: *NotNullProvenNode?)->s32
 {
     let first = flag ? node!.value : 0
     return first + node!.value
+}
+
+func notNullTwiceUnderConditional(flag: bool, node: *NotNullProvenNode?)->s32
+{
+    return flag ? node!.value + node!.value : 0     // swc-expected-error {{sema_err_notnull_already_proven}}
+}
+
+impl NotNullProvenNode
+{
+    mtd sameNode(other: *NotNullProvenNode)->bool => me == other
+    mtd sameNodes(lhs, rhs: *NotNullProvenNode)->bool => lhs == rhs
+}
+
+func notNullUnderOptionalChain(node: *NotNullProvenNode?)->bool
+{
+    return node?.sameNodes(node!, node!)     // swc-expected-error {{sema_err_notnull_already_proven}}
+}
+
+func notNullDoesNotEscapeOptionalChain(node: *NotNullProvenNode?)->s32
+{
+    let same = node?.sameNode(node!) orelse false
+    return (same ? 1 : 0) + node!.value
 }

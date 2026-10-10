@@ -484,29 +484,6 @@ namespace
         return sema.typeMgr().addType(resultType);
     }
 
-    // A '!' is an assertion written in operand position: the code after it is reachable only
-    // when the value was present, exactly like the 'Swag.assert(p != null)' it stands for. That
-    // reasoning needs the assertion to have run. The right operand of 'and'/'or', a branch of
-    // '?:', the fallback of 'orelse' and the tail of a '?.' chain all evaluate on a decision
-    // taken to their left, and none of those regions carries a frame of its own here, so a fact
-    // recorded inside one would outlive what justifies it. Record nothing when the walk to the
-    // enclosing block crosses one.
-    bool notNullRunsUnconditionally(Sema& sema)
-    {
-        for (size_t up = 0;; ++up)
-        {
-            const AstNode* parent = sema.visit().parentNode(up);
-            if (!parent)
-                return true;
-            if (parent->is(AstNodeId::EmbeddedBlock) || parent->is(AstNodeId::TopLevelBlock))
-                return true;
-            if (parent->is(AstNodeId::LogicalExpr) || parent->is(AstNodeId::NullCoalescingExpr))
-                return false;
-            if (parent->is(AstNodeId::ConditionalExpr) || parent->is(AstNodeId::OptionalChainExpr))
-                return false;
-        }
-    }
-
     Result setupNotNullUnwrap(Sema& sema, AstNodeRef managedChildRef, ErrorManagementPayload& payload)
     {
         const AstNodeRef resolvedChildRef = sema.resolvedNodeRef(managedChildRef);
@@ -515,13 +492,10 @@ namespace
         auto& codeGenPayload         = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
         codeGenPayload.notNullUnwrap = true;
 
-        // The assertion holds for the rest of the enclosing block, so a later '!' on the same
-        // path has nothing left to prove and is reported instead of costing a second guard.
-        if (notNullRunsUnconditionally(sema))
-        {
-            SemaHelpers::killNarrowPathAfterStatement(sema, managedChildRef, true);
-            payload.notNullProofRecorded = true;
-        }
+        // Every conditional operand has its own frame, so the proof lasts only for the region
+        // where the assertion is guaranteed to execute.
+        SemaHelpers::killNarrowPathAfterStatement(sema, managedChildRef, true);
+        payload.notNullProofRecorded = true;
 
         return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Expect, sema.curNode().codeRef());
     }

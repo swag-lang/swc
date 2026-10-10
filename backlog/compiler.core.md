@@ -740,32 +740,6 @@ cache is part of the normal DevMode and Release paths.
 - Done when: a bounded reproducer identifies the responsible path, or evidence confines the
   failure to an invalid discarded prototype; remove this entry once that question is settled.
 
-### compiler.core.045 — A conditionally evaluated `!` cannot record the proof it makes
-
-- Found while: making the postfix `!` prove its own path so a second one on that path is
-  rejected (`sema_err_notnull_already_proven`).
-- Evidence: a proof is recorded by mutating live frames in place, because pushing a frame with
-  an ancestor-anchored pop from the middle of a statement breaks the LIFO discipline of the
-  deferred pops. The right operand of `and`/`or`, a branch of `?:`, the fallback of `orelse` and
-  the tail of a `?.` chain are each evaluated on a decision taken to their left, and none of them
-  carries a frame of its own: `AstLogicalExpr::semaPostNodeChild` pushes one only when the left
-  side yielded facts, and the other three push none. A fact recorded inside one would therefore
-  outlive the region that justifies it, so `notNullRunsUnconditionally` in
-  `Sema.Function.Flow.cpp` refuses to record anything there.
-- Cost: `p!` written in those positions teaches the compiler nothing, so a later `!` on the same
-  path is not reported and its runtime guard is still emitted. Measured on the 2026-09-15 sweep:
-  246 assertions were removed across `bin/`, and the paths left untouched are dominated by
-  sibling `case` bodies (which are correctly out of scope) and by these conditional operands.
-- Next: give each conditionally evaluated operand its own frame unconditionally — the `and`/`or`
-  right side whatever the left side yielded, both branches of `?:`, the `orelse` fallback, and
-  the `?.` chain tail — then drop the `notNullRunsUnconditionally` guard and let the frame pop
-  scope the fact. Measure sema time on `bin/std` before and after: this adds a frame push per
-  logical expression.
-- Done when: `p!` in an `and` right side proves the path for the rest of that operand and
-  for nothing beyond it, with a JIT case for each of the four forms in
-  `bin/unittests/jit/flow/nullable_narrow.swg` and the negative controls in
-  `bin/unittests/errors/sema/sema_err_notnull_already_proven.swg` still passing.
-
 ### compiler.core.038 — Measure the remaining semantic frame construction cost
 
 - Historical evidence: Release 0.1.425 pushed 41,573 frames for a 22,800-line file and

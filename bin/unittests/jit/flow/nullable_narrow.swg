@@ -209,6 +209,31 @@ func narrowNotNullShortCircuit(flag: bool, p: *NarrowNode?)->s32
     return p?.value orelse -1
 }
 
+func narrowNotNullInAnd(flag: bool, p: *NarrowNode?)->bool
+{
+    return flag and (p!.value > 0 and takesPtr(p) > 0)
+}
+
+func narrowNotNullInConditional(flag: bool, p: *NarrowNode?)->s32
+{
+    return flag ? p!.value + takesPtr(p) : 0
+}
+
+func narrowNotNullInOrelse(value, p: *NarrowNode?)->s32
+{
+    return value?.value orelse p!.value + takesPtr(p)
+}
+
+impl NarrowNode
+{
+    mtd sameNode(other: *NarrowNode)->bool => me == other
+}
+
+func narrowNotNullInOptionalChain(p: *NarrowNode?)->bool
+{
+    return p?.sameNode(p!) orelse false
+}
+
 // `Swag.assert` panics when its condition is false, so the statements after it are only
 // reachable with the condition true: its facts hold for the remainder of the block.
 func narrowAssert(p: *NarrowNode?)->s32
@@ -313,6 +338,14 @@ func narrowAssertScoped(p: *NarrowNode?)->s32
     Swag.assert(narrowNotNullKill(&node, &node2) == 50)
     Swag.assert(narrowNotNullShortCircuit(true, &node) == 42)
     Swag.assert(narrowNotNullShortCircuit(false, null) == -1)
+    Swag.assert(narrowNotNullInAnd(true, &node))
+    Swag.assert(not narrowNotNullInAnd(false, null))
+    Swag.assert(narrowNotNullInConditional(true, &node) == 84)
+    Swag.assert(narrowNotNullInConditional(false, null) == 0)
+    Swag.assert(narrowNotNullInOrelse(&node, null) == 42)
+    Swag.assert(narrowNotNullInOrelse(null, &node) == 84)
+    Swag.assert(narrowNotNullInOptionalChain(&node))
+    Swag.assert(not narrowNotNullInOptionalChain(null))
 
     Swag.assert(narrowAssert(&node) == 42)
     Swag.assert(narrowAssertAcrossStatements(&node) == 85)

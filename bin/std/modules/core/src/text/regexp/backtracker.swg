@@ -185,7 +185,7 @@ impl Backtracker
                 {
                     failed = true
                 }
-                elif slots![opening] == NoSlot or slots![closing] == NoSlot
+                elif slots![opening] == NoSlot or slots[closing] == NoSlot
                 {
                     // A group that did not take part in the match stands for the empty string,
                     // so a reference to a group behind a `{0}` or an unused branch still matches.
@@ -193,7 +193,7 @@ impl Backtracker
                 }
                 else
                 {
-                    let referenced   = Swag.makeSlice(data + slots![opening], slots[closing] - slots[opening])
+                    let referenced   = Swag.makeSlice(data + slots[opening], slots[closing] - slots[opening])
                     let matchedBytes = .matchReference(hay, referenced, pos)
                     if matchedBytes == NoSlot
                     {

@@ -9,8 +9,8 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
-- Updated: 2026-10-09 16:52 — Sema scopes come from a per-Sema arena; per-object hash tables that
-  most objects never fill are built on first use.
+- Updated: 2026-10-10 08:51 — Array and aggregate types intern from their parts; the remaining
+  items are the ordered maps and the cost of clearing a kept flat table.
 - Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
   and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
   escape state, code generation node and variable payloads, value numbering, loop rotation and
@@ -30,17 +30,27 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   to prove that the attempted function and the selected one (possibly a generic instance) agree.
   `TypeGen::processTypeInfo` keeps its `stackSet`: the stack it mirrors can be deep, so a scan of
   it is not provably cheaper than the set.
+- October 10: `TypeManager` interns array and aggregate types from their parts with the same
+  hash, placement and equality, building a `TypeInfo` only for a new type; a compile-time run's
+  buffers live in its pending entry (one allocation instead of two); flat tables replaced the
+  per-run node containers of mem2reg, constant folding's constant addresses, loop-invariant use
+  counts, register allocation and stack normalization label depths, the post-allocation peephole
+  backtracks, SLP's definition scan (now shared by both lane widths) and register values, loop
+  load forwarding, the native dependency closure, branch simplification's diamond label counts
+  and referenced labels (`FlatKey64Set`, 64-bit keys) and implied-branch label uses. Loop scans
+  start and stop at a natural loop's body span. Pre-emit listings of eight bench tasks in devmode
+  and release compare equal before and after.
 - These remain, each needing a design change:
-  - `TypeInfo::makeArray`, `makeArrayAfterFirstDimension` and the aggregate constructors build
-    vectors for every array type, literal and multi-dimensional index step, then usually find
-    the type already interned; avoiding it needs an intern lookup keyed by a view rather than by
-    a built `TypeInfo`.
-  - The sanitizer's sparse fact maps (`movedFrom`, `aliasPtrSlots`, ...) and branch
-    simplification's `DiamondScan` counts: the first are read in table order by alias classes
-    and moved-range reports, the second key labels by 64-bit values.
-  - `SemaJIT` allocates a shared payload and a shared pending entry for each compile-time run,
-    and the entry always owns the payload.
-- Next: the view-keyed intern lookup for array and aggregate types.
+  - Node maps whose iteration order reaches the output: the sanitizer's sparse fact maps
+    (`movedFrom`, `aliasPtrSlots`, ...), mem2reg's `slots`, SLP's `locations` and
+    `entryValues`, web renaming's `loads`, loop-invariant code motion's `hoistSet`, and the native
+    dependency walk's `rejected`. Each needs an order-preserving replacement.
+  - A worker-kept `FlatKeyMap` (branch simplification's `BranchScan` counts among them) clears
+    its whole table, so a rebuild costs the largest function the worker has seen rather than the
+    current one. Bounding it (stamped slots, or a list of the occupied ones) trades a per-insert
+    cost for the clear; that tradeoff needs the benchmark campaign.
+- Next: an order-preserving flat map for the sanitizer's sparse facts, or measure the kept-table
+  clear against a fresh table at the benchmark campaign's next milestone.
 - Complete when: each item is replaced with identical output and its owning suites green, or
   recorded here as not worth the change it needs.
 - Related: compiler.core.060.

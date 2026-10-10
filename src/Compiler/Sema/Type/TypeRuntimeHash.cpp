@@ -157,8 +157,12 @@ namespace
     // modules.
     uint32_t canonicalScopedNameHash(const TaskContext& ctx, const Symbol& symbol)
     {
-        const Utf8     fullName = symbol.getFullScopedName(ctx);
-        const uint32_t h        = Math::hash(fullName.view());
+        // The name is built afresh every time, but into the worker's buffer: the text and its
+        // hash are the same, without an allocation per call.
+        thread_local Utf8 fullName;
+        fullName.clear();
+        symbol.appendFullScopedName(ctx, fullName);
+        const uint32_t h = Math::hash(fullName.view());
         return h ? h : 1;
     }
 

@@ -181,7 +181,7 @@ size_t CodeGenStructHelpers::structLikeFieldCount(const TypeInfo& typeInfo)
     if (typeInfo.isStruct())
         return typeInfo.payloadSymStruct().fields().size();
 
-    SWC_ASSERT(typeInfo.isAggregateStruct());
+    SWC_ASSERT(typeInfo.isAggregateStruct() || typeInfo.isAggregateArray());
     return typeInfo.payloadAggregate().types.size();
 }
 
@@ -194,7 +194,7 @@ CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFiel
         return {.typeRef = fields[fieldIndex]->typeRef(), .offset = fields[fieldIndex]->offset()};
     }
 
-    SWC_ASSERT(typeInfo.isAggregateStruct());
+    SWC_ASSERT(typeInfo.isAggregateStruct() || typeInfo.isAggregateArray());
     const auto& fieldTypes = typeInfo.payloadAggregate().types;
     SWC_ASSERT(fieldIndex < fieldTypes.size());
 

@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
+#include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -392,6 +393,39 @@ namespace
 
             SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
             return codeGen.emitLifecycle(typeInfo.payloadArrayElemTypeRef(), lifecycleKind, addressReg, static_cast<uint32_t>(totalCount));
+        }
+
+        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        {
+            const size_t fieldCount = typeInfo.payloadAggregate().types.size();
+            if (!fieldCount)
+                return Result::Continue;
+
+            SmallVector<CodeGenStructHelpers::StructLikeFieldLayout, 4> fields;
+            fields.reserve(fieldCount);
+            CodeGenStructHelpers::StructLikeFieldLayoutCursor cursor;
+            for (size_t i = 0; i < fieldCount; ++i)
+                fields.push_back(CodeGenStructHelpers::structLikeFieldLayout(codeGen, cursor, typeInfo, i));
+
+            const auto emitFieldLifecycle = [&](const CodeGenStructHelpers::StructLikeFieldLayout& field) {
+                if (!codeGen.hasLifecycle(field.typeRef, lifecycleKind))
+                    return Result::Continue;
+
+                const MicroReg fieldAddressReg = field.offset ? codeGen.offsetAddressReg(addressReg, field.offset) : addressReg;
+                return codeGen.emitLifecycle(field.typeRef, lifecycleKind, fieldAddressReg);
+            };
+
+            if (lifecycleKind == CodeGenLifecycleKind::Drop)
+            {
+                for (size_t i = fields.size(); i != 0; --i)
+                    SWC_RESULT(emitFieldLifecycle(fields[i - 1]));
+            }
+            else
+            {
+                for (const auto& field : fields)
+                    SWC_RESULT(emitFieldLifecycle(field));
+            }
+            return Result::Continue;
         }
 
         if (!typeInfo.isStruct())

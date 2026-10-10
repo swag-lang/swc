@@ -85,11 +85,6 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.045 — Reduce repeated whole-function work in branch simplification
-
-- Evidence: many pattern-specific transforms still scan function layouts independently. Shared program-layout and relocation indexes remove some duplicate walks; recent source review also found repeated per-candidate arm checks and operand lookups that can be avoided from already available facts. Prompt 4 forbids profiling and timing for this campaign.
-- Next: audit the remaining high-ranked branch-simplification transforms for repeated traversals, lookups, or analyses that can be removed with a static equivalence proof; retain only candidates whose saving does not depend on measurement.
-- Done when: no concrete statically provable compiler saving remains under the prompt 4 no-measurement rule.
 ### compiler.optimization.024 — Make implicit register claims operand-precise
 
 - Evidence: the split allocator assigns full-instruction fixed intervals to remaining implicit operands such as variable shifts and compare-exchange. Those intervals can trigger avoidable register borrows; definition-only multiply outputs already use position-specific claims.
@@ -514,9 +509,13 @@ new language syntax.
   candidates backwards and uses only already accepted narrow-reader rewrites. The Release
   optimizer selection passes 275 tests, including every u16 input and wrapping mask chains.
   No compiler timing or memory comparison was made in this iteration.
-- Next: identify the remaining 404-instruction test during a standard-module validation
-  milestone, check whether it shares either resolved chain, and fix or bound its next blocker.
-  Do not repeat the completed constant-address or select-width chain work.
+- October 10: the combined Release standard-module suite completed 2,465 tests across twelve
+  modules without an unconverged optimization-loop diagnostic. The historical test identity
+  remains unrecovered; this run does not report per-function sweep counts, so it rules out the
+  old cap failure without establishing that every function stays within sixteen sweeps.
+- Next: reopen when a reproducible Release standard-module failure identifies the function and
+  remaining rewrite chain. Do not repeat the completed constant-address or select-width chain
+  work, or add convergence instrumentation to pursue an unlocated historical outlier.
 - Done when: no standard-module function, tests included, needs more than sixteen sweeps,
   or each longer chain is identified and bounded.
 - Related: compiler.optimization.029, compiler.core.004.

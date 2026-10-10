@@ -2539,12 +2539,22 @@ void MicroRegisterAllocationPass::rebuildCurrentConcreteLiveOutRegs()
     }
 }
 
-bool MicroRegisterAllocationPass::isCurrentConcreteLiveOut(MicroReg key) const
+bool MicroRegisterAllocationPass::isConcreteLiveOutAt(const MicroReg key, const uint32_t instructionIndex) const
 {
+    SWC_ASSERT(controlFlowGraph_ != nullptr);
+
     const uint32_t denseIndex = denseConcreteRegs_.find(key);
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
         return false;
-    return DenseBits::contains(tempOutConcrete_, denseIndex);
+
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    for (const uint32_t succIdx : successors)
+    {
+        SWC_ASSERT(succIdx < instructionCount_);
+        if (DenseBits::contains(DenseBits::row(liveInConcreteBits_, succIdx, denseConcreteRegs_.wordCount()), denseIndex))
+            return true;
+    }
+    return false;
 }
 
 bool MicroRegisterAllocationPass::isInstructionReachable(uint32_t instructionIndex) const
@@ -3892,7 +3902,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         markCurrentVirtualLiveOut(idx, stamp);
         advanceCurrentPositionCursors(idx);
-        bool concreteLiveOutReady     = false;
         bool concreteLiveOutRegsReady = false;
         const bool currentReachable = !hasControlFlow_ || isInstructionReachable(idx);
 
@@ -4101,25 +4110,20 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         addressSourceRegs.reserve(2);
         if (instOps)
         {
-            if ((it->op == MicroInstrOpcode::LoadAddrRegMem || it->op == MicroInstrOpcode::LoadAddrAmcRegMem) && !concreteLiveOutReady)
-            {
-                computeCurrentConcreteLiveOutBits(idx);
-                concreteLiveOutReady = true;
-            }
             if (it->op == MicroInstrOpcode::LoadAddrRegMem)
             {
                 const MicroReg baseReg = instOps[1].reg;
-                if ((baseReg.isInt() || baseReg.isFloat()) && isCurrentConcreteLiveOut(baseReg))
+                if ((baseReg.isInt() || baseReg.isFloat()) && isConcreteLiveOutAt(baseReg, idx))
                     appendUniqueReg(addressSourceRegs, baseReg);
             }
             else if (it->op == MicroInstrOpcode::LoadAddrAmcRegMem)
             {
                 const MicroReg baseReg = instOps[1].reg;
-                if ((baseReg.isInt() || baseReg.isFloat()) && isCurrentConcreteLiveOut(baseReg))
+                if ((baseReg.isInt() || baseReg.isFloat()) && isConcreteLiveOutAt(baseReg, idx))
                     appendUniqueReg(addressSourceRegs, baseReg);
 
                 const MicroReg mulReg = instOps[2].reg;
-                if ((mulReg.isInt() || mulReg.isFloat()) && isCurrentConcreteLiveOut(mulReg))
+                if ((mulReg.isInt() || mulReg.isFloat()) && isConcreteLiveOutAt(mulReg, idx))
                     appendUniqueReg(addressSourceRegs, mulReg);
             }
         }
@@ -4156,11 +4160,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                  (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
             if (defOnlyCopyFromConcrete && !concreteLiveOutRegsReady)
             {
-                if (!concreteLiveOutReady)
-                {
-                    computeCurrentConcreteLiveOutBits(idx);
-                    concreteLiveOutReady = true;
-                }
+                computeCurrentConcreteLiveOutBits(idx);
                 rebuildCurrentConcreteLiveOutRegs();
                 concreteLiveOutRegsReady = true;
             }

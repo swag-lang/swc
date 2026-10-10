@@ -183,10 +183,15 @@ namespace
         computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionConstant);
     }
 
-    void buildProgramLayout(ProgramLayout& outLayout, const MicroStorage& storage, const MicroOperandStorage& operands)
+    void buildProgramLayout(ProgramLayout& outLayout, const MicroStorage& storage, const MicroOperandStorage& operands,
+                            CountTable* outLabelReferences = nullptr, bool* outIndirectJump = nullptr)
     {
         outLayout.order.clear();
         outLayout.order.reserve(storage.count());
+        if (outLabelReferences)
+            outLabelReferences->clear();
+        if (outIndirectJump)
+            *outIndirectJump = false;
         // Only live jump references query this table, and every live slot is
         // overwritten below. Retain the unused slots across repeated scans.
         outLayout.ordinalByRef.resize(storage.slotCount());
@@ -201,6 +206,8 @@ namespace
         {
             outLayout.order.push_back(it.current);
             outLayout.ordinalByRef[it.current.get()] = ordinal;
+            if (outIndirectJump && (it->op == MicroInstrOpcode::JumpReg || it->op == MicroInstrOpcode::LoadLabelAddress))
+                *outIndirectJump = true;
 
             uint32_t labelId = 0;
             if (it->op == MicroInstrOpcode::Label)
@@ -212,6 +219,8 @@ namespace
             else if (it->op == MicroInstrOpcode::JumpCond)
             {
                 const MicroInstrOperand* ops = it->ops(operands);
+                if (outLabelReferences && tryGetJumpTargetLabelId(labelId, *it, ops))
+                    ++outLabelReferences->getOrInsert(labelId);
                 outLayout.hasConditionalJump |= ops && ops[0].cpuCond != MicroCond::Unconditional;
             }
             else if (it->op == MicroInstrOpcode::CmpRegImm)
@@ -282,7 +291,9 @@ namespace
         {
             if (!layoutBuilt)
             {
-                buildProgramLayout(scan.layout, storage, operands);
+                CountTable* labelReferences = countMentions ? nullptr : &scan.labelReferences;
+                bool*       indirectJump    = countMentions ? nullptr : &scan.indirectJump;
+                buildProgramLayout(scan.layout, storage, operands, labelReferences, indirectJump);
                 layoutBuilt = true;
             }
         }
@@ -375,6 +386,14 @@ namespace
             return nullptr;
         if (!cache.built)
         {
+            if (!cache.countMentions)
+            {
+                // The layout walk already decoded every direct jump target and
+                // recorded computed jumps, so the late scan has all its facts.
+                cache.built = true;
+                return scan.indirectJump ? nullptr : &scan;
+            }
+
             cache.built       = true;
             scan.indirectJump = false;
             scan.labelReferences.clear();

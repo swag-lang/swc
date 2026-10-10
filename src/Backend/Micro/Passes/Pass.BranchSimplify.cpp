@@ -2861,6 +2861,7 @@ namespace
 
         bool                      changed = false;
         std::optional<CountTable> insideCounts;
+        SmallVector<std::pair<size_t, MicroReg>, 8> insideDefs;
         for (size_t start = 1; start < count; ++start)
         {
             const MicroInstr* firstSet = instAt(start);
@@ -2921,12 +2922,15 @@ namespace
                         insideCounts.emplace();
                     auto& inside = *insideCounts;
                     inside.clear();
+                    insideDefs.clear();
                     for (size_t index = at; index <= link.merge; ++index)
                     {
                         const MicroInstr*        instruction    = instAt(index);
                         const MicroInstrOperand* instructionOps = instruction->ops(operands);
                         if (!instructionOps)
                             continue;
+                        if (!isChainCompare(instruction))
+                            insideDefs.push_back({index, instructionOps[0].reg});
                         const auto modes = MicroInstr::info(instruction->op).resolvedRegModes(instructionOps);
                         for (size_t operand = 0; operand < modes.size(); ++operand)
                         {
@@ -2936,12 +2940,10 @@ namespace
                     }
 
                     bool local = inside.getOrInsert(result.index()) == 1;
-                    for (size_t index = at; index <= link.merge && local; ++index)
+                    for (const auto& [index, defined] : insideDefs)
                     {
-                        const MicroInstr* inst = instAt(index);
-                        if (isChainCompare(inst))
-                            continue;
-                        const MicroReg defined = inst->ops(operands)[0].reg;
+                        if (!local)
+                            break;
                         if (defined == result && index == link.merge)
                             continue;
                         if (!defined.isVirtualInt() || defined == result || inside.getOrInsert(defined.index()) != mentions.getOrInsert(defined.index()))

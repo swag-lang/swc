@@ -4651,24 +4651,32 @@ namespace
 
             const MicroInstrRef fallCopyRef  = storage.findNextInstructionRef(it.current);
             const MicroInstr*   fallCopy     = storage.ptr(fallCopyRef);
-            const auto*         fallCopyOps  = fallCopy ? fallCopy->ops(operands) : nullptr;
+            if (!fallCopy || fallCopy->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const auto* fallCopyOps = fallCopy->ops(operands);
+            if (!fallCopyOps)
+                continue;
             const MicroInstrRef fallOpRef    = storage.findNextInstructionRef(fallCopyRef);
             const MicroInstr*   fallOp       = storage.ptr(fallOpRef);
-            const auto*         fallOpOps    = fallOp ? fallOp->ops(operands) : nullptr;
+            if (!fallOp || fallOp->op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+            const auto* fallOpOps = fallOp->ops(operands);
+            if (!fallOpOps || fallOpOps[0].reg != fallCopyOps[0].reg || fallOpOps[2].opBits != MicroOpBits::B8 ||
+                (fallOpOps[3].microOp != MicroOp::MultiplySigned && fallOpOps[3].microOp != MicroOp::MultiplyUnsigned))
+                continue;
             const MicroInstrRef fallMergeRef = storage.findNextInstructionRef(fallOpRef);
             const MicroInstr*   fallMerge    = storage.ptr(fallMergeRef);
-            const auto*         fallMergeOps = fallMerge ? fallMerge->ops(operands) : nullptr;
+            if (!fallMerge || fallMerge->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const auto* fallMergeOps = fallMerge->ops(operands);
+            if (!fallMergeOps || fallMergeOps[1].reg != fallOpOps[0].reg)
+                continue;
             const MicroInstrRef joinJumpRef  = storage.findNextInstructionRef(fallMergeRef);
             const MicroInstr*   joinJump     = storage.ptr(joinJumpRef);
-            const auto*         joinJumpOps  = joinJump ? joinJump->ops(operands) : nullptr;
-            if (!fallCopy || fallCopy->op != MicroInstrOpcode::LoadRegReg || !fallCopyOps ||
-                !fallOp || fallOp->op != MicroInstrOpcode::OpBinaryRegReg || !fallOpOps ||
-                fallOpOps[0].reg != fallCopyOps[0].reg || fallOpOps[2].opBits != MicroOpBits::B8 ||
-                (fallOpOps[3].microOp != MicroOp::MultiplySigned && fallOpOps[3].microOp != MicroOp::MultiplyUnsigned) ||
-                !fallMerge || fallMerge->op != MicroInstrOpcode::LoadRegReg || !fallMergeOps ||
-                fallMergeOps[1].reg != fallOpOps[0].reg ||
-                !joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
-                joinJumpOps[0].cpuCond != MicroCond::Unconditional)
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* joinJumpOps = joinJump->ops(operands);
+            if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
             const auto& labelReferences = labelCache.get(storage, operands);
             if (jumpLabelReferenceCount(labelReferences, armLabelId) != 1)
@@ -4680,28 +4688,36 @@ namespace
             const MicroInstrRef armLabelRef     = storage.findNextInstructionRef(joinJumpRef);
             const MicroInstr*   armLabel        = storage.ptr(armLabelRef);
             uint32_t            foundArmLabelId = 0;
-            if (!armLabel || !tryGetLabelId(foundArmLabelId, *armLabel, armLabel->ops(operands)) || foundArmLabelId != armLabelId)
+            if (!armLabel || armLabel->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(foundArmLabelId, *armLabel, armLabel->ops(operands)) || foundArmLabelId != armLabelId)
                 continue;
             const MicroInstrRef jumpCopyRef      = storage.findNextInstructionRef(armLabelRef);
             const MicroInstr*   jumpCopy         = storage.ptr(jumpCopyRef);
-            const auto*         jumpCopyOps      = jumpCopy ? jumpCopy->ops(operands) : nullptr;
+            if (!jumpCopy || jumpCopy->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const auto* jumpCopyOps = jumpCopy->ops(operands);
+            if (!jumpCopyOps || jumpCopyOps[1].reg != fallCopyOps[1].reg)
+                continue;
             const MicroInstrRef jumpOpRef        = storage.findNextInstructionRef(jumpCopyRef);
             const MicroInstr*   jumpOp           = storage.ptr(jumpOpRef);
-            const auto*         jumpOpOps        = jumpOp ? jumpOp->ops(operands) : nullptr;
+            if (!jumpOp || jumpOp->op != MicroInstrOpcode::OpBinaryRegReg)
+                continue;
+            const auto* jumpOpOps = jumpOp->ops(operands);
+            if (!jumpOpOps || jumpOpOps[0].reg != jumpCopyOps[0].reg || jumpOpOps[2].opBits != MicroOpBits::B8 ||
+                jumpOpOps[3].microOp != fallOpOps[3].microOp)
+                continue;
             const MicroInstrRef jumpMergeRef     = storage.findNextInstructionRef(jumpOpRef);
             const MicroInstr*   jumpMerge        = storage.ptr(jumpMergeRef);
-            const auto*         jumpMergeOps     = jumpMerge ? jumpMerge->ops(operands) : nullptr;
+            if (!jumpMerge || jumpMerge->op != MicroInstrOpcode::LoadRegReg)
+                continue;
+            const auto* jumpMergeOps = jumpMerge->ops(operands);
+            if (!jumpMergeOps || jumpMergeOps[0].reg != fallMergeOps[0].reg || jumpMergeOps[1].reg != jumpOpOps[0].reg)
+                continue;
             const MicroInstrRef joinLabelRef     = storage.findNextInstructionRef(jumpMergeRef);
             const MicroInstr*   joinLabel        = storage.ptr(joinLabelRef);
             uint32_t            foundJoinLabelId = 0;
-            if (!jumpCopy || jumpCopy->op != MicroInstrOpcode::LoadRegReg || !jumpCopyOps ||
-                jumpCopyOps[1].reg != fallCopyOps[1].reg ||
-                !jumpOp || jumpOp->op != MicroInstrOpcode::OpBinaryRegReg || !jumpOpOps ||
-                jumpOpOps[0].reg != jumpCopyOps[0].reg || jumpOpOps[2].opBits != MicroOpBits::B8 ||
-                jumpOpOps[3].microOp != fallOpOps[3].microOp ||
-                !jumpMerge || jumpMerge->op != MicroInstrOpcode::LoadRegReg || !jumpMergeOps ||
-                jumpMergeOps[0].reg != fallMergeOps[0].reg || jumpMergeOps[1].reg != jumpOpOps[0].reg ||
-                !joinLabel || !tryGetLabelId(foundJoinLabelId, *joinLabel, joinLabel->ops(operands)) ||
+            if (!joinLabel || joinLabel->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(foundJoinLabelId, *joinLabel, joinLabel->ops(operands)) ||
                 foundJoinLabelId != joinLabelId ||
                 !fallCopyOps[0].reg.isVirtualInt() || !jumpCopyOps[0].reg.isVirtualInt() ||
                 !fallMergeOps[0].reg.isVirtualInt() || !fallOpOps[1].reg.isVirtualInt() || !jumpOpOps[1].reg.isVirtualInt() ||
@@ -4785,10 +4801,11 @@ namespace
             const MicroInstr*   secondCmp    = storage.ptr(secondCmpRef);
             candidate.secondJumpRef          = storage.findNextInstructionRef(secondCmpRef);
             const MicroInstr* secondJump     = storage.ptr(candidate.secondJumpRef);
-            const auto*       secondJumpOps  = secondJump ? secondJump->ops(operands) : nullptr;
             if (!secondCmp || (secondCmp->op != MicroInstrOpcode::CmpRegReg && secondCmp->op != MicroInstrOpcode::CmpRegImm) ||
-                !secondJump || secondJump->op != MicroInstrOpcode::JumpCond || !secondJumpOps ||
-                secondJumpOps[0].cpuCond == MicroCond::Unconditional)
+                !secondJump || secondJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* secondJumpOps = secondJump->ops(operands);
+            if (!secondJumpOps || secondJumpOps[0].cpuCond == MicroCond::Unconditional)
                 continue;
             uint32_t secondTarget = 0;
             if (!tryGetJumpTargetLabelId(secondTarget, *secondJump, secondJumpOps) || secondTarget != falseLabelId ||
@@ -4811,9 +4828,10 @@ namespace
 
             candidate.joinJumpRef         = storage.findNextInstructionRef(candidate.oneRef);
             const MicroInstr* joinJump    = storage.ptr(candidate.joinJumpRef);
-            const auto*       joinJumpOps = joinJump ? joinJump->ops(operands) : nullptr;
-            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || !joinJumpOps ||
-                joinJumpOps[0].cpuCond != MicroCond::Unconditional)
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* joinJumpOps = joinJump->ops(operands);
+            if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
             uint32_t joinLabelId = 0;
             if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || jumpLabelReferenceCount(labelReferences, joinLabelId) != 1)
@@ -4822,7 +4840,8 @@ namespace
             candidate.falseLabelRef           = storage.findNextInstructionRef(candidate.joinJumpRef);
             const MicroInstr* falseLabel      = storage.ptr(candidate.falseLabelRef);
             uint32_t          foundFalseLabel = 0;
-            if (!falseLabel || !tryGetLabelId(foundFalseLabel, *falseLabel, falseLabel->ops(operands)) || foundFalseLabel != falseLabelId)
+            if (!falseLabel || falseLabel->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(foundFalseLabel, *falseLabel, falseLabel->ops(operands)) || foundFalseLabel != falseLabelId)
                 continue;
             candidate.zeroRef         = storage.findNextInstructionRef(candidate.falseLabelRef);
             const MicroInstr* zero    = storage.ptr(candidate.zeroRef);
@@ -4833,7 +4852,8 @@ namespace
             candidate.joinLabelRef           = storage.findNextInstructionRef(candidate.zeroRef);
             const MicroInstr* joinLabel      = storage.ptr(candidate.joinLabelRef);
             uint32_t          foundJoinLabel = 0;
-            if (!joinLabel || !tryGetLabelId(foundJoinLabel, *joinLabel, joinLabel->ops(operands)) || foundJoinLabel != joinLabelId ||
+            if (!joinLabel || joinLabel->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(foundJoinLabel, *joinLabel, joinLabel->ops(operands)) || foundJoinLabel != joinLabelId ||
                 !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, candidate.joinLabelRef, context.builder))
                 continue;
 

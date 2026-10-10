@@ -1080,8 +1080,11 @@ WORK IN ISOLATION
 Create a unique branch and worktree outside the main checkout from the current master commit.
 Preserve other working trees and uncommitted work. Use this worktree's compiler and outputs;
 follow load admission and the six-worker cap before every build or test. Keep SWC_BUILD_NUM
-unchanged. Keep review inventories, logs, and probes outside every checkout. Leave the result
-in the campaign worktree for review unless integration has been requested separately.
+unchanged. Keep review inventories, logs, and probes outside every checkout. Unless integration
+has been requested separately, leave the result in the campaign worktree for review. When the
+user requests commits in `master`, integrate each coherent validated batch into `master` and
+commit it there before continuing; synchronize the campaign worktree with the newly advanced
+`master` before starting the next batch. Preserve unrelated work in the target checkout.
 
 RESUME A PREVIOUS PASS
 

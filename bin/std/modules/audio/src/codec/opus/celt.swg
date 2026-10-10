@@ -520,7 +520,18 @@ internal impl CeltDecoder
 
     // Bit allocation, clause 4.3.3: interpolates between the static allocation rows that bracket
     // the budget and decides which bands are skipped or coded with intensity or dual stereo.
-    mtd computeAllocation(offsets, cap: const [*] s32, allocTrim: s32, intensity: *u32, dualStereo: *bool, totalBits: s32, balance: *s32, pulses, ebits, finePriority: [*] s32, lm: u32, dec: *RangeDecoder)->u32
+    mtd computeAllocation(offsets,
+                          cap: const [*] s32,
+                          allocTrim: s32,
+                          intensity: *u32,
+                          dualStereo: *bool,
+                          totalBits: s32,
+                          balance: *s32,
+                          pulses,
+                          ebits,
+                          finePriority: [*] s32,
+                          lm: u32,
+                          dec: *RangeDecoder)->u32
     {
         let C         = cast(s32, .streamChannels)
         let start     = .startBand
@@ -1037,7 +1048,16 @@ internal impl CeltDecoder
             x[i] = tmp[i]
     }
 
-    mtd computeTheta(ctx: *BandContext, sctx: *SplitContext, n: u32, b: *s32, bBlocks, b0: u32, lm: s32, stereo: bool, fill: *u32, dec: *RangeDecoder)
+    mtd computeTheta(ctx: *BandContext,
+                     sctx: *SplitContext,
+                     n: u32,
+                     b: *s32,
+                     bBlocks,
+                     b0: u32,
+                     lm: s32,
+                     stereo: bool,
+                     fill: *u32,
+                     dec: *RangeDecoder)
     {
         let i        = ctx.band
         let pulseCap = cast(s32, CeltLogN[i]) + lm * (1's32 << BitRes)
@@ -1158,7 +1178,16 @@ internal impl CeltDecoder
         return 1
     }
 
-    mtd quantPartition(ctx: *BandContext, x: [*] f32, n: u32, bBits: s32, b: u32, lowband: [*] f32?, lm: s32, gain: f32, fill: u32, dec: *RangeDecoder)->u32
+    mtd quantPartition(ctx: *BandContext,
+                       x: [*] f32,
+                       n: u32,
+                       bBits: s32,
+                       b: u32,
+                       lowband: [*] f32?,
+                       lm: s32,
+                       gain: f32,
+                       fill: u32,
+                       dec: *RangeDecoder)->u32
     {
         let i     = ctx.band
         var cm    = 0'u32
@@ -1266,7 +1295,18 @@ internal impl CeltDecoder
         return cm
     }
 
-    mtd quantBand(ctx: *BandContext, x: [*] f32, n: u32, bBits: s32, b: u32, lowbandIn: [*] f32?, lm: u32, lowbandOut: [*] f32?, gain: f32, useScratch: bool, fillIn: u32, dec: *RangeDecoder)->u32
+    mtd quantBand(ctx: *BandContext,
+                  x: [*] f32,
+                  n: u32,
+                  bBits: s32,
+                  b: u32,
+                  lowbandIn: [*] f32?,
+                  lm: u32,
+                  lowbandOut: [*] f32?,
+                  gain: f32,
+                  useScratch: bool,
+                  fillIn: u32,
+                  dec: *RangeDecoder)->u32
     {
         if n == 1 do
             return .quantBandN1(ctx, x, null, lowbandOut, dec)
@@ -1347,7 +1387,18 @@ internal impl CeltDecoder
         return cm & ((1'u32 << blocks) - 1)
     }
 
-    mtd quantBandStereo(ctx: *BandContext, x, y: [*] f32, n: u32, bBits: s32, b: u32, lowband: [*] f32?, lm: u32, lowbandOut: [*] f32?, useScratch: bool, fillIn: u32, dec: *RangeDecoder)->u32
+    mtd quantBandStereo(ctx: *BandContext,
+                        x,
+                        y: [*] f32,
+                        n: u32,
+                        bBits: s32,
+                        b: u32,
+                        lowband: [*] f32?,
+                        lm: u32,
+                        lowbandOut: [*] f32?,
+                        useScratch: bool,
+                        fillIn: u32,
+                        dec: *RangeDecoder)->u32
     {
         if n == 1 do
             return .quantBandN1(ctx, x, y, lowbandOut, dec)
@@ -1454,7 +1505,17 @@ internal impl CeltDecoder
     }
 
     // Decodes every band of the frame into the normalised spectrum, clause 4.3.4.
-    mtd quantAllBands(shortBlocks: bool, spread: u32, dualStereoIn: bool, intensity: u32, tfRes: const [*] s32, totalBits: s32, balanceIn: s32, dec: *RangeDecoder, lm: u32, codedBands: u32, collapseMasks: [*] u8)
+    mtd quantAllBands(shortBlocks: bool,
+                      spread: u32,
+                      dualStereoIn: bool,
+                      intensity: u32,
+                      tfRes: const [*] s32,
+                      totalBits: s32,
+                      balanceIn: s32,
+                      dec: *RangeDecoder,
+                      lm: u32,
+                      codedBands: u32,
+                      collapseMasks: [*] u8)
     {
         let C             = .streamChannels
         let M             = 1'u32 << lm
@@ -1720,12 +1781,15 @@ internal impl CeltDecoder
         {
             let x0 = past1[i + 4]
             let f  = CeltWindow[i] * CeltWindow[i]
-            y[i] = x[i] + (1.0 - f) * g00 * past0[i + 2] + (1.0 - f) * g01 * (past0[i + 3] + past0[i + 1]) + (1.0 - f) * g02 * (past0[i + 4] + past0[i]) + f * g10 * x2 + f * g11 * (x1 + x3) + f * g12 * (x0 + x4)
-            x4   = x3
-            x3   = x2
-            x2   = x1
-            x1   = x0
-            i    += 1
+            y[i] = x[i] + (1.0 - f) * g00 * past0[i + 2] +
+                   (1.0 - f) * g01 * (past0[i + 3] + past0[i + 1]) +
+                   (1.0 - f) * g02 * (past0[i + 4] + past0[i]) +
+                   f * g10 * x2 + f * g11 * (x1 + x3) + f * g12 * (x0 + x4)
+            x4 = x3
+            x3 = x2
+            x2 = x1
+            x1 = x0
+            i  += 1
         }
 
         if g1 == 0
@@ -1871,7 +1935,18 @@ internal impl CeltDecoder
         var fineQuant:    [CeltBandCount] s32
         var finePriority: [CeltBandCount] s32
         let pulses     = .pulses.storage()
-        let codedBands = .computeAllocation(&offsets[0], &cap[0], allocTrim, &intensity, &dualStereo, bits, &balance, pulses, &fineQuant[0], &finePriority[0], lm, dec)
+        let codedBands = .computeAllocation(&offsets[0],
+                                            &cap[0],
+                                            allocTrim,
+                                            &intensity,
+                                            &dualStereo,
+                                            bits,
+                                            &balance,
+                                            pulses,
+                                            &fineQuant[0],
+                                            &finePriority[0],
+                                            lm,
+                                            dec)
         .unquantFineEnergy(&fineQuant[0], dec)
 
         for c in CC
@@ -1882,7 +1957,17 @@ internal impl CeltDecoder
         }
 
         var collapseMasks: [2 * CeltBandCount] u8
-        .quantAllBands(shortBlocks, spread, dualStereo, intensity, &tfRes[0], len * (8's32 << BitRes) - antiCollapseRsv, balance, dec, lm, codedBands, &collapseMasks[0])
+        .quantAllBands(shortBlocks,
+                       spread,
+                       dualStereo,
+                       intensity,
+                       &tfRes[0],
+                       len * (8's32 << BitRes) - antiCollapseRsv,
+                       balance,
+                       dec,
+                       lm,
+                       codedBands,
+                       &collapseMasks[0])
 
         var antiCollapseOn = false
         if antiCollapseRsv > 0 do
@@ -1932,9 +2017,27 @@ internal impl CeltDecoder
             let outSyn = .decodeMemory[c].storage() + CeltDecodeBuffer - N
             .postfilterPeriod    = Math.max(.postfilterPeriod, CombMinPeriod)
             .postfilterPeriodOld = Math.max(.postfilterPeriodOld, CombMinPeriod)
-            .combFilter(outSyn, outSyn, .postfilterPeriodOld, .postfilterPeriod, CeltShortSize, .postfilterGainOld, .postfilterGain, .postfilterTapsetOld, .postfilterTapset, CeltOverlap)
+            .combFilter(outSyn,
+                        outSyn,
+                        .postfilterPeriodOld,
+                        .postfilterPeriod,
+                        CeltShortSize,
+                        .postfilterGainOld,
+                        .postfilterGain,
+                        .postfilterTapsetOld,
+                        .postfilterTapset,
+                        CeltOverlap)
             if lm != 0 do
-                .combFilter(outSyn + CeltShortSize, outSyn + CeltShortSize, .postfilterPeriod, postfilterPitch, N - CeltShortSize, .postfilterGain, postfilterGain, .postfilterTapset, postfilterTapset, CeltOverlap)
+                .combFilter(outSyn + CeltShortSize,
+                            outSyn + CeltShortSize,
+                            .postfilterPeriod,
+                            postfilterPitch,
+                            N - CeltShortSize,
+                            .postfilterGain,
+                            postfilterGain,
+                            .postfilterTapset,
+                            postfilterTapset,
+                            CeltOverlap)
         }
 
         .postfilterPeriodOld = .postfilterPeriod

@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 // See the header for the transformation. The proofs are local to one loop
@@ -50,9 +51,10 @@ namespace
         MicroPassContext*                      context  = nullptr;
         MicroStorage*                          storage  = nullptr;
         MicroOperandStorage*                   operands = nullptr;
-        std::unordered_map<uint32_t, RegDefs>  defs;
-        std::unordered_map<uint32_t, uint32_t> labelReferences;
-        std::unordered_set<uint32_t>           relocated;
+        // Keyed by packed register, by label id and by instruction slot; only looked up.
+        FlatKeyMap<RegDefs>  defs;
+        FlatKeyMap<uint32_t> labelReferences;
+        FlatKeySet           relocated;
         // Instructions before the first label or control transfer run once.
         uint32_t entryEnd = 0;
     };
@@ -69,18 +71,18 @@ namespace
             if (reg == fn.context->encoder->stackPointerReg())
             {
                 // Distinct snapshots of a moving stack pointer are not one root.
-                const auto stackDef = fn.defs.find(reg.packed);
-                if (stackDef != fn.defs.end() && stackDef->second.count)
+                const RegDefs* stackDef = fn.defs.find(reg.packed);
+                if (stackDef && stackDef->count)
                     return false;
                 outRoot   = reg;
                 outOffset = offset;
                 return true;
             }
 
-            const auto it = fn.defs.find(reg.packed);
-            if (!reg.isVirtual() || it == fn.defs.end() || it->second.count != 1)
+            const RegDefs* it = fn.defs.find(reg.packed);
+            if (!reg.isVirtual() || !it || it->count != 1)
                 return false;
-            const MicroInstr*        inst = fn.storage->ptr(it->second.ref);
+            const MicroInstr*        inst = fn.storage->ptr(it->ref);
             const MicroInstrOperand* ops  = inst ? inst->ops(*fn.operands) : nullptr;
             if (!ops)
                 return false;
@@ -97,7 +99,7 @@ namespace
             }
 
             // The register is the root: it must hold one value for the call.
-            if (it->second.pos >= fn.entryEnd)
+            if (it->pos >= fn.entryEnd)
                 return false;
             outRoot   = reg;
             outOffset = offset;
@@ -203,23 +205,27 @@ namespace
 
         // Registers the body defines, and where; the index candidates are
         // those defined once, by an immediate step.
-        std::unordered_map<uint32_t, uint32_t> defCount;
-        std::unordered_map<uint32_t, uint32_t> lastDef;
+        FlatKeyMap<uint32_t>                   defCount;
+        FlatKeyMap<uint32_t>                   lastDef;
         std::unordered_map<uint32_t, uint32_t> addrDefs;
         for (uint32_t i = 0; i < n; ++i)
         {
             for (const MicroReg def : loop.useDefs[i].defs)
             {
-                defCount[def.packed]++;
-                lastDef[def.packed] = i;
+                defCount.getOrInsert(def.packed)++;
+                lastDef.getOrInsert(def.packed) = i;
             }
         }
+        const auto definitionCount = [&](const MicroReg reg) {
+            const uint32_t* count = defCount.find(reg.packed);
+            return count ? *count : 0;
+        };
         for (uint32_t i = 0; i < n; ++i)
         {
             if (loop.insts[i]->op != MicroInstrOpcode::LoadAddrAmcRegMem)
                 continue;
             const MicroReg dst = loop.ops[i][0].reg;
-            if (defCount[dst.packed] == 1)
+            if (definitionCount(dst) == 1)
                 addrDefs[dst.packed] = i;
         }
 
@@ -244,9 +250,9 @@ namespace
 
             // The index: one definition in the body, `index += step`, after
             // every access through it; the base: no definition in the body.
-            if (defCount[consumer.base.packed] != 0 || defCount[consumer.index.packed] != 1)
+            if (definitionCount(consumer.base) != 0 || definitionCount(consumer.index) != 1)
                 continue;
-            const uint32_t           stepPos  = lastDef[consumer.index.packed];
+            const uint32_t           stepPos  = *lastDef.find(consumer.index.packed);
             const MicroInstr&        stepInst = *loop.insts[stepPos];
             const MicroInstrOperand* stepOps  = loop.ops[stepPos];
             if (stepInst.op != MicroInstrOpcode::OpBinaryRegImm || stepOps[1].opBits != MicroOpBits::B64 ||
@@ -466,12 +472,12 @@ namespace
 
             uint32_t target = 0;
             if (MicroLabelHelpers::tryGetJumpTargetLabelId(target, inst, ops))
-                fn.labelReferences[target]++;
+                fn.labelReferences.getOrInsert(target)++;
 
             const MicroInstrUseDef useDef = inst.collectUseDef(*fn.operands, context.encoder);
             for (const MicroReg def : useDef.defs)
             {
-                RegDefs& defs = fn.defs[def.packed];
+                RegDefs& defs = fn.defs.getOrInsert(def.packed);
                 defs.count++;
                 defs.ref = it.current;
                 defs.pos = position;
@@ -539,7 +545,8 @@ namespace
                 ++it;
             }
 
-            if (!closed || !fallsIn || fn.labelReferences[labelId] != 1 || loop.refs.empty())
+            const uint32_t* labelReferenceCount = fn.labelReferences.find(labelId);
+            if (!closed || !fallsIn || !labelReferenceCount || *labelReferenceCount != 1 || loop.refs.empty())
                 continue;
 
             LoopPlan plan;

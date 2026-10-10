@@ -13,8 +13,8 @@ impl TypeFace
     // selected font, and for a member of a collection that file is unusable: its
     // table directory still carries the offsets the member had inside the collection,
     // while the collection header those offsets were measured from is gone. Every
-    // table then lands short of where it is stated to be — `cmap` reads as a subtable
-    // count of tens of thousands, and parsing walks off the end of the buffer.
+        // Each table is read from the wrong offset; `cmap` can report tens of thousands of subtables,
+        // and parsing then runs past the end of the buffer.
     //
     // Asking for the `ttcf` table instead returns the collection itself, byte for
     // byte, which the face is then selected from. A font that belongs to no
@@ -69,10 +69,10 @@ impl TypeFace
 
     // Loads the face `family` names out of the font data GDI returned.
     //
-    // A collection's first face is whichever one the file happens to list first
-    // rather than the one that was asked for — `msgothic.ttc` leads with `MS Gothic`
-    // and holds `MS PGothic` last — so the family has to be matched by name. A member
-    // whose names cannot be read is skipped rather than allowed to fail the load, and
+    // The first face in a collection may differ from the requested family: for example,
+    // `msgothic.ttc` lists `MS Gothic` first and `MS PGothic` last. Match by name; skip faces
+    // whose names cannot be read, and fall back to the first face if no name matches (for example,
+    // when the system's localized names differ from the `name` table).
     // a collection stating no match falls back to its first face, which is what a
     // system whose enumerated names are localized away from the `name` table gets.
     func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face fail
@@ -103,9 +103,9 @@ impl TypeFace
 
         let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
 
-        // Everything that can fail runs before the cached value exists. Dropping a
-        // typeface destroys the face it holds, and a typeface built ahead of its face
-        // has no face to destroy — the failure path would read an unassigned pointer
+        // Everything that can fail runs before the cached value exists. Dropping a typeface
+        // destroys its face. Build the face first so a failure cannot read an unassigned pointer
+        // instead of reporting the original error.
         // instead of reporting the failure.
         var buffer = try readHfontData(hfont)
         let family = try readHfontFamily(hfont)

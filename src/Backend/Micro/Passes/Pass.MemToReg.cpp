@@ -1133,12 +1133,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
             std::ranges::sort(dataReads);
 
-            thread_local std::unordered_map<uint32_t, const SlotAccess*> accessOf;
-            accessOf.clear();
+            // By instruction slot, filled in the same order as before so a shared instruction keeps
+            // the same access; only looked up.
+            FlatKeyMap<const SlotAccess*> accessOf;
             for (const auto& [offset, slot] : slots)
             {
                 for (const SlotAccess& acc : slot.accesses)
-                    accessOf[acc.ref.get()] = &acc;
+                    accessOf.getOrInsert(acc.ref.get()) = &acc;
             }
 
             // The object a byte range lies in: a known variable's index, or
@@ -1210,10 +1211,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     unknownEscapedNow |= unknownFirstEscape == ref;
                 }
 
-                const auto found = accessOf.find(ref.get());
-                if (found != accessOf.end())
+                if (const SlotAccess* const* found = accessOf.find(ref.get()))
                 {
-                    const SlotAccess& acc       = *found->second;
+                    const SlotAccess& acc       = **found;
                     const uint64_t    accessLo  = acc.offset;
                     const uint64_t    accessHi  = acc.offset + getNumBytes(acc.bits);
                     const bool        pureStore = inst.op == MicroInstrOpcode::LoadMemReg ||

@@ -62,11 +62,9 @@ namespace
     {
         auto& storage  = *context.instructions;
         auto& operands = *context.operands;
-        // Membership only, so their order is never read; the worker keeps their buckets.
-        thread_local std::unordered_set<MicroReg> destructive;
-        thread_local std::unordered_set<MicroReg> excluded;
-        destructive.clear();
-        excluded.clear();
+        // Membership only, so their order is never read; keyed by the packed register.
+        FlatKeySet destructive;
+        FlatKeySet excluded;
         outHasVirtualFloat = false;
         for (const MicroInstr& inst : storage.view())
         {
@@ -84,9 +82,9 @@ namespace
                 outHasVirtualFloat = true;
                 if (!hasScalarDoubleWidth(inst, ops) || context.builder->virtualRegForbiddenPhysRegs().contains(reg) ||
                     context.builder->shouldPreserveVirtualCopy(reg))
-                    excluded.insert(reg);
+                    excluded.insert(reg.packed);
                 if (modes[i] == MicroInstrRegMode::UseDef)
-                    destructive.insert(reg);
+                    destructive.insert(reg.packed);
             }
         }
         if (destructive.empty())
@@ -127,7 +125,7 @@ namespace
             }
             if (it->op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
                 ops[0].reg.isVirtualFloat() && ops[1].reg.isVirtualInt() &&
-                destructive.contains(ops[0].reg) && !excluded.contains(ops[0].reg))
+                destructive.contains(ops[0].reg.packed) && !excluded.contains(ops[0].reg.packed))
             {
                 if (!frameDerived)
                     MicroPassHelpers::collectFrameDerivedRegs(frameDerived.emplace(), storage, operands, CallConv::get(context.callConvKind).stackPointer);

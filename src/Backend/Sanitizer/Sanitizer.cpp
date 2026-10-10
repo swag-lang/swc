@@ -1133,6 +1133,8 @@ void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const 
 void Sanitizer::appendAliasClass(SmallVector<int64_t>& out, const SanitizerState& state, const int64_t slot)
 {
     out.push_back(slot);
+    if (state.aliasPtrSlots.empty())
+        return;
 
     int64_t    root  = slot;
     const auto entry = state.aliasPtrSlots.find(slot);

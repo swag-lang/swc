@@ -1150,9 +1150,8 @@ Result NativeBackendBuilder::resolveConstantSourceRef(DataSegmentRef& outSourceR
 
 const NativeFunctionInfo* NativeBackendBuilder::tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept
 {
-    const auto it = functionBySymbol.find(&targetFunction);
-    if (it != functionBySymbol.end())
-        return it->second;
+    if (const NativeFunctionInfo* info = functionBySymbol.find(&targetFunction))
+        return info;
 
     if (!targetFunction.srcViewRef().isValid())
         return nullptr;

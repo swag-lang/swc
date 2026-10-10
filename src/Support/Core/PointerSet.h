@@ -336,6 +336,29 @@ public:
             rehash(slots_.size() * 2);
     }
 
+    // Inserts the key with the value unless the key is already there, like 'emplace'. The null
+    // key is never a key, so it is not inserted.
+    void emplace(const K* key, V* value)
+    {
+        if (key && !find(key))
+            set(key, value);
+    }
+
+    void clear() noexcept
+    {
+        slots_.clear();
+        count_ = 0;
+    }
+
+    void reserve(size_t count)
+    {
+        size_t capacity = INITIAL_CAPACITY;
+        while (count * 4 > capacity * 3)
+            capacity *= 2;
+        if (capacity > slots_.size())
+            rehash(capacity);
+    }
+
 private:
     struct Slot
     {

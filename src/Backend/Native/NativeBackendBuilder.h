@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Report/Diagnostic.h"
@@ -186,7 +187,7 @@ public:
     std::vector<uint32_t>                                                                runtimeDependencyInitOrder;
     std::vector<uint32_t>                                                                runtimeDependencyDropOrder;
     std::vector<NativeFunctionInfo>                                                      functionInfos;
-    std::unordered_map<const SymbolFunction*, const NativeFunctionInfo*>                 functionBySymbol;
+    PointerMap<SymbolFunction, const NativeFunctionInfo>                                 functionBySymbol;
     std::vector<std::unique_ptr<MachineCode>>                                            generatedMachineCodes;
     std::unique_ptr<NativeStartupInfo>                                                   startup;
     NativeSectionData                                                                    mergedRData;

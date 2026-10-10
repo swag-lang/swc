@@ -814,7 +814,12 @@ namespace
         };
         // By label id; only looked up.
         FlatKeyMap<LabelUse> labelUses;
-        SmallVector<uint32_t, 16> conditionalJumps;
+        struct ConditionalJump
+        {
+            uint32_t  ordinal   = 0;
+            MicroCond condition = MicroCond::Unconditional;
+        };
+        SmallVector<ConditionalJump, 16> conditionalJumps;
         for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
         {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -823,10 +828,10 @@ namespace
             if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::JumpCondImm || inst->op == MicroInstrOpcode::LoadLabelAddress ||
                 inst->op == MicroInstrOpcode::JumpTableData)
                 return false;
-            if (ordinal && inst->op == MicroInstrOpcode::JumpCond)
-                conditionalJumps.push_back(ordinal);
             uint32_t labelId = 0;
             const MicroInstrOperand* jumpOps = inst->op == MicroInstrOpcode::JumpCond ? inst->ops(operands) : nullptr;
+            if (ordinal && jumpOps)
+                conditionalJumps.push_back({.ordinal = ordinal, .condition = jumpOps[0].cpuCond});
             if (jumpOps && tryGetJumpTargetLabelId(labelId, *inst, jumpOps))
             {
                 LabelUse& use = labelUses.getOrInsert(labelId);
@@ -876,11 +881,10 @@ namespace
         thread_local FlatKeySet visitedLabels;
 
         constexpr uint32_t K_MAX_WALK = 256;
-        for (const uint32_t ordinal : conditionalJumps)
+        for (const ConditionalJump& candidate : conditionalJumps)
         {
-            const MicroInstr* jump = storage.ptr(layout.order[ordinal]);
-            const MicroInstrOperand* jumpOps = jump->ops(operands);
-            if (jumpOps[0].cpuCond == MicroCond::Unconditional)
+            const uint32_t ordinal = candidate.ordinal;
+            if (candidate.condition == MicroCond::Unconditional)
                 continue;
 
             MicroReg    reg  = MicroReg::invalid();
@@ -889,7 +893,7 @@ namespace
             if (!compareBefore(ordinal, reg, bits, imm))
                 continue;
             ValueIntervals tested;
-            if (!tryGetTakenValues(tested, jumpOps[0].cpuCond, imm, bits))
+            if (!tryGetTakenValues(tested, candidate.condition, imm, bits))
                 continue;
             const uint32_t valueId = ssaState.reachingValueId(reg, layout.order[ordinal - 1]);
             if (valueId == MicroSsaState::K_INVALID_VALUE)

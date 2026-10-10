@@ -134,7 +134,7 @@ impl Capture
         let countBefore = .forms.count
         .pushUndo(undo)
 
-        // Select added forms
+        // Select the forms added by this paste.
         .selection.clear()
         for i in undo.oldForms.count do
             .selection.add(countBefore + i)

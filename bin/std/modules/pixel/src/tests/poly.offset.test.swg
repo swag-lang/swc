@@ -69,7 +69,7 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
 // Growing a convex body by `d` adds a band equal to perimeter times `d`, plus one full disc of
 // radius `d`. The corner wedges of a closed contour sum to one full turn. A miter join
 // replaces each wedge with a kite whose area is `d^2 * tan(pi/n)` for a regular n-gon.
-// `d²·tan(π/n)` per corner. Shrinking removes the same band and disc.
+// Shrinking by `d` removes the same perimeter band and disc.
 //
 // This is what says an offset is the shape it claims to be. A join emitted on the wrong side, a
 // wedge swept the wrong way, or a union that keeps the offset's own self-intersections all move

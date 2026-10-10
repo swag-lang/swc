@@ -2251,8 +2251,9 @@ namespace
             uint32_t                 joinLabel = 0;
             uint32_t                 markId    = 0;
             if (skip->op != MicroInstrOpcode::JumpCond || !skipOps || skipOps[0].cpuCond != MicroCond::Unconditional ||
-                !tryGetJumpTargetLabelId(joinLabel, *skip, skipOps) || !tryGetLabelId(markId, *elseMark, elseMark->ops(operands)) ||
-                markId != elseLabel || labelReferences.getOrInsert(elseLabel) != 1 || !tryGetLabelId(markId, *joinMark, joinMark->ops(operands)) ||
+                !tryGetJumpTargetLabelId(joinLabel, *skip, skipOps) || elseMark->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(markId, *elseMark, elseMark->ops(operands)) || markId != elseLabel || labelReferences.getOrInsert(elseLabel) != 1 ||
+                joinMark->op != MicroInstrOpcode::Label || !tryGetLabelId(markId, *joinMark, joinMark->ops(operands)) ||
                 markId != joinLabel)
                 continue;
 
@@ -2882,7 +2883,7 @@ namespace
                     continue;
                 }
 
-                if (exit && hasEnd && tryGetLabelId(labelId, *exit, exit->ops(operands)) && labelId == endId)
+                if (exit && exit->op == MicroInstrOpcode::Label && hasEnd && tryGetLabelId(labelId, *exit, exit->ops(operands)) && labelId == endId)
                 {
                     links.push_back(link);
                     closed = true;
@@ -3034,7 +3035,8 @@ namespace
             const MicroInstr* negate  = negated ? instAt(at + 8) : nullptr;
             const MicroInstr* merge   = instAt(at + shapeSize - 2);
             const MicroInstr* endLbl  = instAt(at + shapeSize - 1);
-            if (!one || !skip || !elseLbl || !again || !set || !extend || (negated && !negate) || !merge || !endLbl)
+            if (!one || !skip || !elseLbl || elseLbl->op != MicroInstrOpcode::Label || !again || !set || !extend || (negated && !negate) || !merge ||
+                !endLbl || endLbl->op != MicroInstrOpcode::Label)
                 continue;
             if (one->op != MicroInstrOpcode::LoadRegImm || skip->op != MicroInstrOpcode::JumpCond || set->op != MicroInstrOpcode::SetCondReg ||
                 extend->op != MicroInstrOpcode::LoadZeroExtRegReg || (negated && negate->op != MicroInstrOpcode::OpUnaryReg) ||
@@ -5026,7 +5028,7 @@ namespace
         };
         const auto labelIdAt = [&](size_t ordinal, uint32_t& outId) {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
-            return inst && tryGetLabelId(outId, *inst, inst->ops(operands));
+            return inst && inst->op == MicroInstrOpcode::Label && tryGetLabelId(outId, *inst, inst->ops(operands));
         };
 
         bool changed = false;

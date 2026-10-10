@@ -22,6 +22,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Sanitizer joins intersect these must-facts. An empty incoming map clears all facts without
+    // a lookup for every key already stored in the destination.
+    template<typename TMap>
+    bool clearOnEmptyIntersection(TMap& into, const TMap& from, bool& changed)
+    {
+        if (!from.empty())
+            return false;
+
+        changed |= !into.empty();
+        into.clear();
+        return true;
+    }
+
     bool isPlainLoadInstruction(const MicroInstrOpcode op)
     {
         switch (op)
@@ -878,24 +891,27 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         }))
         changed = true;
 
-    for (auto it = into.movedFrom.begin(); it != into.movedFrom.end();)
+    if (!clearOnEmptyIntersection(into.movedFrom, from.movedFrom, changed))
     {
-        const auto f = from.movedFrom.find(it->first);
-        if (f == from.movedFrom.end() || f->second.size != it->second.size)
+        for (auto it = into.movedFrom.begin(); it != into.movedFrom.end();)
         {
-            it      = into.movedFrom.erase(it);
-            changed = true;
-        }
-        else
-        {
-            const SourceCodeRef& intoOrigin = it->second.origin;
-            const SourceCodeRef& fromOrigin = f->second.origin;
-            if (intoOrigin.isValid() && (intoOrigin.srcViewRef != fromOrigin.srcViewRef || intoOrigin.tokRef != fromOrigin.tokRef))
+            const auto f = from.movedFrom.find(it->first);
+            if (f == from.movedFrom.end() || f->second.size != it->second.size)
             {
-                it->second.origin = {};
-                changed           = true;
+                it      = into.movedFrom.erase(it);
+                changed = true;
             }
-            ++it;
+            else
+            {
+                const SourceCodeRef& intoOrigin = it->second.origin;
+                const SourceCodeRef& fromOrigin = f->second.origin;
+                if (intoOrigin.isValid() && (intoOrigin.srcViewRef != fromOrigin.srcViewRef || intoOrigin.tokRef != fromOrigin.tokRef))
+                {
+                    it->second.origin = {};
+                    changed           = true;
+                }
+                ++it;
+            }
         }
     }
 
@@ -908,16 +924,19 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         changed                                      = true;
     });
 
-    for (auto it = into.aliasPtrSlots.begin(); it != into.aliasPtrSlots.end();)
+    if (!clearOnEmptyIntersection(into.aliasPtrSlots, from.aliasPtrSlots, changed))
     {
-        const auto fromIt = from.aliasPtrSlots.find(it->first);
-        if (fromIt == from.aliasPtrSlots.end() || fromIt->second != it->second)
+        for (auto it = into.aliasPtrSlots.begin(); it != into.aliasPtrSlots.end();)
         {
-            it      = into.aliasPtrSlots.erase(it);
-            changed = true;
+            const auto fromIt = from.aliasPtrSlots.find(it->first);
+            if (fromIt == from.aliasPtrSlots.end() || fromIt->second != it->second)
+            {
+                it      = into.aliasPtrSlots.erase(it);
+                changed = true;
+            }
+            else
+                ++it;
         }
-        else
-            ++it;
     }
 
     if (into.freedPtrLocations && !from.freedPtrLocations)
@@ -925,7 +944,7 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         changed |= !into.freedPtrLocations->empty();
         into.freedPtrLocations.reset();
     }
-    else if (into.freedPtrLocations && from.freedPtrLocations)
+    else if (into.freedPtrLocations && from.freedPtrLocations && !clearOnEmptyIntersection(*into.freedPtrLocations, *from.freedPtrLocations, changed))
     {
         for (auto it = into.freedPtrLocations->begin(); it != into.freedPtrLocations->end();)
         {
@@ -947,47 +966,56 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         }
     }
 
-    for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
+    if (!clearOnEmptyIntersection(into.freedPtrSlots, from.freedPtrSlots, changed))
     {
-        const auto fromIt = from.freedPtrSlots.find(it->first);
-        if (fromIt == from.freedPtrSlots.end())
+        for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
         {
-            it      = into.freedPtrSlots.erase(it);
-            changed = true;
-        }
-        else
-        {
-            if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+            const auto fromIt = from.freedPtrSlots.find(it->first);
+            if (fromIt == from.freedPtrSlots.end())
             {
-                it->second = {};
-                changed    = true;
+                it      = into.freedPtrSlots.erase(it);
+                changed = true;
             }
-            ++it;
+            else
+            {
+                if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+                {
+                    it->second = {};
+                    changed    = true;
+                }
+                ++it;
+            }
         }
     }
 
-    for (auto it = into.aliasPtrRegs.begin(); it != into.aliasPtrRegs.end();)
+    if (!clearOnEmptyIntersection(into.aliasPtrRegs, from.aliasPtrRegs, changed))
     {
-        const auto fromIt = from.aliasPtrRegs.find(it->first);
-        if (fromIt == from.aliasPtrRegs.end() || it->second != fromIt->second)
+        for (auto it = into.aliasPtrRegs.begin(); it != into.aliasPtrRegs.end();)
         {
-            it      = into.aliasPtrRegs.erase(it);
-            changed = true;
+            const auto fromIt = from.aliasPtrRegs.find(it->first);
+            if (fromIt == from.aliasPtrRegs.end() || it->second != fromIt->second)
+            {
+                it      = into.aliasPtrRegs.erase(it);
+                changed = true;
+            }
+            else
+                ++it;
         }
-        else
-            ++it;
     }
 
-    for (auto it = into.aliasPtrLocations.begin(); it != into.aliasPtrLocations.end();)
+    if (!clearOnEmptyIntersection(into.aliasPtrLocations, from.aliasPtrLocations, changed))
     {
-        const auto fromIt = from.aliasPtrLocations.find(it->first);
-        if (fromIt == from.aliasPtrLocations.end() || it->second != fromIt->second)
+        for (auto it = into.aliasPtrLocations.begin(); it != into.aliasPtrLocations.end();)
         {
-            it      = into.aliasPtrLocations.erase(it);
-            changed = true;
+            const auto fromIt = from.aliasPtrLocations.find(it->first);
+            if (fromIt == from.aliasPtrLocations.end() || it->second != fromIt->second)
+            {
+                it      = into.aliasPtrLocations.erase(it);
+                changed = true;
+            }
+            else
+                ++it;
         }
-        else
-            ++it;
     }
     if (into.pendingReleaseLocation && into.pendingReleaseLocation != from.pendingReleaseLocation)
     {

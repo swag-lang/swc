@@ -406,8 +406,17 @@ namespace
         if (remapCandidates.empty())
             return false;
 
-        std::unordered_map<MicroReg, MicroReg> remap;
-        remap.reserve(remapCandidates.size() * 2 + 1);
+        // At most one entry per persistent register of the convention: a short list scanned
+        // in place, with the last replacement of a register winning as a map assignment would.
+        SmallVector<std::pair<MicroReg, MicroReg>, 8> remap;
+        const auto                                    findRemap = [&remap](const MicroReg reg) -> MicroReg* {
+            for (auto& [from, to] : remap)
+            {
+                if (from == reg)
+                    return &to;
+            }
+            return nullptr;
+        };
 
         for (const MicroReg persistentReg : remapCandidates)
         {
@@ -415,7 +424,10 @@ namespace
             if (!tryPickUnusedTransientIntReg(conv, usedRegs, replacementReg))
                 continue;
 
-            remap[persistentReg] = replacementReg;
+            if (MicroReg* known = findRemap(persistentReg))
+                *known = replacementReg;
+            else
+                remap.emplace_back(persistentReg, replacementReg);
             usedRegs |= physicalRegMask(replacementReg);
         }
 
@@ -427,9 +439,8 @@ namespace
         // resolve against the wrong register.
         if (context.debugStackBasePhysReg.isValid())
         {
-            const auto baseIt = remap.find(context.debugStackBasePhysReg);
-            if (baseIt != remap.end())
-                context.debugStackBasePhysReg = baseIt->second;
+            if (const MicroReg* base = findRemap(context.debugStackBasePhysReg))
+                context.debugStackBasePhysReg = *base;
         }
 
         bool  remapped = false;
@@ -449,11 +460,11 @@ namespace
                 if (!reg.isValid() || reg.isVirtual())
                     continue;
 
-                const auto mapIt = remap.find(reg);
-                if (mapIt == remap.end())
+                const MicroReg* mapped = findRemap(reg);
+                if (!mapped)
                     continue;
 
-                ops[i].reg = mapIt->second;
+                ops[i].reg = *mapped;
                 remapped   = true;
             }
         }

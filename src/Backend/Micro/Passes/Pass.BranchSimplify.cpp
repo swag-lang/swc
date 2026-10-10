@@ -6563,7 +6563,10 @@ namespace
 
             const MicroInstrRef flagsRef = storage.findPreviousInstructionRef(it.current);
             const MicroInstr*   flags    = flagsRef.isValid() ? storage.ptr(flagsRef) : nullptr;
-            if (!flags || scan.relocated->contains(flagsRef.get()) || !MicroPassHelpers::instructionActuallyDefinesCpuFlags(*flags, flags->ops(operands)))
+            if (!flags || scan.relocated->contains(flagsRef.get()))
+                continue;
+            const MicroInstrOperand* flagOps = MicroPassHelpers::instructionCpuFlagsDependOnOperands(*flags) ? flags->ops(operands) : nullptr;
+            if (!MicroPassHelpers::instructionActuallyDefinesCpuFlags(*flags, flagOps))
                 continue;
 
             const MicroInstrRef firstLoadRef = storage.findNextInstructionRef(it.current);

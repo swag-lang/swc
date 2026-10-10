@@ -121,7 +121,8 @@ namespace
         // independent: later scalar inserts can still depend on its upper
         // lanes.
         if (!info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) ||
-            !MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(operands)))
+            !MicroPassHelpers::instructionActuallyDefinesCpuFlags(
+                inst, MicroPassHelpers::instructionCpuFlagsDependOnOperands(inst) ? inst.ops(operands) : nullptr))
         {
             if (inst.op == MicroInstrOpcode::ClearReg)
             {

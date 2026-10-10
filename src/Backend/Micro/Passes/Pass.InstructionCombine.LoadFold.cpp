@@ -905,7 +905,8 @@ namespace InstructionCombine
                 }
 
                 if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                    MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(*ctx.operands)))
+                    MicroPassHelpers::instructionActuallyDefinesCpuFlags(
+                        inst, MicroPassHelpers::instructionCpuFlagsDependOnOperands(inst) ? inst.ops(*ctx.operands) : nullptr))
                     return true;
                 if (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || inst.op == MicroInstrOpcode::Label)
                     return true;

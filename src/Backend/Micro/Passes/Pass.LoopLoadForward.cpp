@@ -505,7 +505,7 @@ namespace
         {
             const MicroInstrRef labelRef = it.current;
             uint32_t            labelId  = 0;
-            if (!MicroLabelHelpers::tryGetLabelId(labelId, *it, it->ops(*fn.operands)))
+            if (it->op != MicroInstrOpcode::Label || !MicroLabelHelpers::tryGetLabelId(labelId, *it, it->ops(*fn.operands)))
             {
                 previousRef = it.current;
                 ++it;

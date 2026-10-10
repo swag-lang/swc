@@ -118,7 +118,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
 
 // A contoured dashed stroke keeps the dash pattern of the stroke itself.
 //
-// The pattern is measured in stroke widths, so widening a second pen to draw the contour lengthed
+// The pattern is measured in stroke widths, so widening a second pen to draw the contour lengthened
 // every dash with it and the two rows of dashes stopped lining up.
 #test
 {

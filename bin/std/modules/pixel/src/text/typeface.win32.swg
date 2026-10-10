@@ -9,12 +9,10 @@ impl TypeFace
 {
     // Reads the whole font file behind a device context.
     //
-    // `GetFontData` with no table tag returns a single-face file synthesized for the
-    // selected font, and for a member of a collection that file is unusable: its
-    // table directory still carries the offsets the member had inside the collection,
-    // while the collection header those offsets were measured from is gone. Every
-    // table then lands short of where it is stated to be — `cmap` reads as a subtable
-    // count of tens of thousands, and parsing walks off the end of the buffer.
+    // When called without a table tag, `GetFontData` synthesizes a single-face file for the selected font.
+    // A collection member cannot use that file: its table offsets refer to the collection, whose
+    // header is gone. Reading those offsets can make `cmap` report tens of thousands of
+    // subtables and send parsing past the end of the buffer.
     //
     // Asking for the `ttcf` table instead returns the collection itself, byte for
     // byte, which the face is then selected from. A font that belongs to no
@@ -69,12 +67,10 @@ impl TypeFace
 
     // Loads the face `family` names out of the font data GDI returned.
     //
-    // A collection's first face is whichever one the file happens to list first
-    // rather than the one that was asked for — `msgothic.ttc` leads with `MS Gothic`
-    // and holds `MS PGothic` last — so the family has to be matched by name. A member
-    // whose names cannot be read is skipped rather than allowed to fail the load, and
-    // a collection stating no match falls back to its first face, which is what a
-    // system whose enumerated names are localized away from the `name` table gets.
+    // The first face in a collection may differ from the requested family: for example,
+    // `msgothic.ttc` lists `MS Gothic` first and `MS PGothic` last. Match by name; skip faces
+    // whose names cannot be read, and fall back to the first face if no name matches (for example,
+    // when the system's localized names differ from the `name` table).
     func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face fail
     {
         let count = try Face.countFaces(bytes)
@@ -103,10 +99,9 @@ impl TypeFace
 
         let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
 
-        // Everything that can fail runs before the cached value exists. Dropping a
-        // typeface destroys the face it holds, and a typeface built ahead of its face
-        // has no face to destroy — the failure path would read an unassigned pointer
-        // instead of reporting the failure.
+        // Everything that can fail runs before the cached value exists. Dropping a typeface
+        // destroys its face. Build the face first so a failure cannot read an unassigned pointer
+        // instead of reporting the original error.
         var buffer = try readHfontData(hfont)
         let family = try readHfontFamily(hfont)
         let face   = try loadFaceForFamily(buffer.toSlice(), family, allocator)

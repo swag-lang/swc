@@ -120,6 +120,17 @@ namespace
                 useDef.uses.push_back(regs[i]);
         }
     }
+
+    CallFloatArgs callFloatArgsFromOperands(
+        const MicroInstr& inst, const MicroInstrDef& opcodeInfo, const MicroInstrOperand* ops)
+    {
+        SWC_ASSERT(opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction));
+        const uint32_t index = opcodeInfo.callConvIndex + 2;
+        CallFloatArgs  result(K_CALL_ARG_MASK_ALL);
+        if (inst.numOperands > index)
+            result.widths = static_cast<uint16_t>(ops[index].valueU32);
+        return result;
+    }
 }
 
 MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const
@@ -131,12 +142,8 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
 
 CallFloatArgs MicroInstr::callFloatArgs(const MicroOperandStorage& operands) const
 {
-    SWC_ASSERT(info(op).flags.has(MicroInstrFlagsE::IsCallInstruction));
-    const uint32_t index = info(op).callConvIndex + 2;
-    CallFloatArgs  result(K_CALL_ARG_MASK_ALL);
-    if (numOperands > index)
-        result.widths = static_cast<uint16_t>(ops(operands)[index].valueU32);
-    return result;
+    const MicroInstrDef& opcodeInfo = info(op);
+    return callFloatArgsFromOperands(*this, opcodeInfo, ops(operands));
 }
 
 void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStorage& operands, const Encoder* encoder) const
@@ -158,7 +165,7 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
         const CallConv& callConv = CallConv::get(useDef.callConv);
         // Every call stores its integer and float masks immediately after the convention.
         addMaskedCallArgRegs(useDef, callConv, resolveCallArgMask(*this, ops, opcodeInfo.callConvIndex + 1));
-        const CallFloatArgs floatArgs = callFloatArgs(operands);
+        const CallFloatArgs floatArgs = callFloatArgsFromOperands(*this, opcodeInfo, ops);
         SWC_ASSERT(std::ranges::all_of(callConv.floatArgRegs, &MicroReg::isFloat));
         for (uint32_t index = 0; index < std::min<size_t>(callConv.floatArgRegs.size(), 8); ++index)
         {

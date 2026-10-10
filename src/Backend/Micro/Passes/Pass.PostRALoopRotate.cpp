@@ -147,7 +147,8 @@ namespace
             const MicroInstr* branch     = storage.ptr(order[at + 1]);
             uint32_t          emptyId    = 0;
             uint32_t          matchId    = 0;
-            if (!emptyLabel || !matchLabel || !tryGetLabelId(emptyId, *emptyLabel, emptyLabel->ops(operands)) ||
+            if (!emptyLabel || emptyLabel->op != MicroInstrOpcode::Label || !matchLabel || matchLabel->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(emptyId, *emptyLabel, emptyLabel->ops(operands)) ||
                 !tryGetLabelId(matchId, *matchLabel, matchLabel->ops(operands)) ||
                 !isZeroCellCompare(compare) || !branch || branch->op != MicroInstrOpcode::JumpCond)
                 continue;
@@ -173,7 +174,8 @@ namespace
                     continue;
                 const MicroInstr* incoming = storage.ptr(order[predecessor]);
                 uint32_t          target   = 0;
-                if (!incoming || !tryGetJumpTargetLabelId(target, *incoming, incoming->ops(operands)) || target != matchId)
+                if (!incoming || incoming->op != MicroInstrOpcode::JumpCond ||
+                    !tryGetJumpTargetLabelId(target, *incoming, incoming->ops(operands)) || target != matchId)
                 {
                     directMatchEdges = false;
                     break;
@@ -260,7 +262,8 @@ namespace
 
             const MicroInstr* afterBranch = storage.ptr(order[at + 2]);
             uint32_t          fallthrough = 0;
-            const bool        needsLabel  = !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
+            const bool        needsLabel = afterBranch->op != MicroInstrOpcode::Label ||
+                                           !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
             if (needsLabel)
                 fallthrough = context.builder->createLabel().get();
             const uint32_t          zeroTarget    = branchOps[0].cpuCond == MicroCond::Equal ? branchTarget : fallthrough;
@@ -341,8 +344,10 @@ namespace
                 for (uint32_t labelOrdinal = 0; labelOrdinal < order.size(); ++labelOrdinal)
                 {
                     const MicroInstr* inst = storage.ptr(order[labelOrdinal]);
+                    if (!inst || inst->op != MicroInstrOpcode::Label)
+                        continue;
                     uint32_t          id   = 0;
-                    if (inst && tryGetLabelId(id, *inst, inst->ops(operands)))
+                    if (tryGetLabelId(id, *inst, inst->ops(operands)))
                         labelOrdinals[id] = labelOrdinal;
                 }
             }
@@ -690,7 +695,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     for (uint32_t ordinal = 0; ordinal + 3 < order.size(); ++ordinal)
     {
         const MicroInstr* labelInst = storage.ptr(order[ordinal]);
-        if (!labelInst)
+        if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
             continue;
         uint32_t labelId = 0;
         if (!tryGetLabelId(labelId, *labelInst, labelInst->ops(operands)))

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Store-to-load forwarding: when a plain scalar or vector load reads the
@@ -177,6 +178,20 @@ namespace InstructionCombine
                     return false;
             }
         }
+
+        bool instructionMayDefineRegister(const MicroInstrDef& info, const Encoder* encoder)
+        {
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)) || info.special != MicroInstrRegSpecial::None)
+                return true;
+
+            for (const MicroInstrRegMode mode : info.regModes)
+            {
+                if (mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef)
+                    return true;
+            }
+            return false;
+        }
     }
 
     void runStoreToLoadForwarding(Context& ctx)
@@ -210,10 +225,12 @@ namespace InstructionCombine
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+            const MicroInstr& inst = *it;
+            const bool isLoad = inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem;
+            const bool isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg;
+            const MicroInstrOperand* ops = isLoad || isStore ? inst.ops(*ctx.operands) : nullptr;
 
-            if ((inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem) && ops)
+            if (isLoad && ops)
             {
                 // A RIP-relative load participates through its relocation
                 // identity; one whose relocation cannot be found stays
@@ -271,7 +288,7 @@ namespace InstructionCombine
                 continue;
             }
 
-            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg) && ops)
+            if (isStore && ops)
             {
                 const MicroReg    base = ops[0].reg;
                 const MicroOpBits bits = ops[2].opBits;
@@ -321,6 +338,11 @@ namespace InstructionCombine
                 continue;
             }
 
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            const Encoder*        encoder = ctx.passContext ? ctx.passContext->encoder : nullptr;
+            if (!instructionMayDefineRegister(info, encoder))
+                continue;
+
             const auto* useDef = ctx.ssa->instrUseDef(it.current);
             if (useDef)
             {
@@ -352,12 +374,14 @@ namespace InstructionCombine
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+            const MicroInstr& inst = *it;
+            const bool isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm;
+            const bool isLoad = inst.op == MicroInstrOpcode::LoadRegMem;
+            const MicroInstrOperand* ops = isStore ? inst.ops(*ctx.operands) : nullptr;
 
             // A register and an immediate store alike: they differ only in
             // where the width and the offset sit.
-            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm) && ops)
+            if (isStore && ops)
             {
                 const bool        fromReg = inst.op == MicroInstrOpcode::LoadMemReg;
                 const MicroReg    base    = ops[0].reg;
@@ -389,8 +413,9 @@ namespace InstructionCombine
             if (pending.empty())
                 continue;
 
-            if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
+            if (isLoad)
             {
+                const MicroInstrOperand* ops = inst.ops(*ctx.operands);
                 // A read keeps only the stores it provably misses: the same
                 // base, and bytes that do not overlap. It also redefines its
                 // destination, which may be the base of a pending store.
@@ -411,6 +436,11 @@ namespace InstructionCombine
             }
 
             // A redefined base no longer names the address the store wrote.
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            const Encoder*        encoder = ctx.passContext ? ctx.passContext->encoder : nullptr;
+            if (!instructionMayDefineRegister(info, encoder))
+                continue;
+
             if (const auto* useDef = ctx.ssa->instrUseDef(it.current))
             {
                 for (const MicroReg def : useDef->defs)

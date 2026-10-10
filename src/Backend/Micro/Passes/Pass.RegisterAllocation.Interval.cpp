@@ -297,12 +297,20 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
                     copiedLastUse                = ops[0].reg.isVirtualInt() && ops[1].reg == outPoolRegs[poolIndex] && ops[2].opBits == MicroOpBits::B64;
                     if (copiedLastUse)
                     {
-                        for (const uint32_t successor : controlFlowGraph_->successors(idx))
+                        const auto successors = controlFlowGraph_->successors(idx);
+                        if (successors.size() == 1)
                         {
-                            if (liveInConcreteBits_[static_cast<size_t>(successor) * concreteWordCount + wordIndex] & bitMask)
+                            copiedLastUse = !(liveInConcreteBits_[static_cast<size_t>(successors.front()) * concreteWordCount + wordIndex] & bitMask);
+                        }
+                        else if (successors.size() > 1)
+                        {
+                            for (const uint32_t successor : successors)
                             {
-                                copiedLastUse = false;
-                                break;
+                                if (liveInConcreteBits_[static_cast<size_t>(successor) * concreteWordCount + wordIndex] & bitMask)
+                                {
+                                    copiedLastUse = false;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -675,6 +683,23 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // Per-register ownership among active/inactive is tracked through the
     // node's assignedReg; fixed intervals are consulted by pool index.
     const size_t poolCount = poolRegs.size();
+    SmallVector<size_t, 32> poolIndexByInt;
+    SmallVector<size_t, 32> poolIndexByFloat;
+    for (const MicroReg reg : poolRegs)
+    {
+        if (reg.isInt())
+            poolIndexByInt.resize(std::max(poolIndexByInt.size(), static_cast<size_t>(reg.index()) + 1), poolCount);
+        else if (reg.isFloat())
+            poolIndexByFloat.resize(std::max(poolIndexByFloat.size(), static_cast<size_t>(reg.index()) + 1), poolCount);
+    }
+    for (size_t poolIndex = 0; poolIndex < poolCount; ++poolIndex)
+    {
+        const MicroReg reg = poolRegs[poolIndex];
+        if (reg.isInt())
+            poolIndexByInt[reg.index()] = poolIndex;
+        else if (reg.isFloat())
+            poolIndexByFloat[reg.index()] = poolIndex;
+    }
 
     // The debug local-stack base lives in the register the ABI keeps outside
     // both pools for it, for its whole life and never split, exactly as
@@ -766,11 +791,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         refresh(walk.inactive, false);
 
         const auto poolIndexOf = [&](const MicroReg reg) -> size_t {
-            for (size_t i = 0; i < poolCount; ++i)
-            {
-                if (poolRegs[i] == reg)
-                    return i;
-            }
+            if (reg.isInt() && reg.index() < poolIndexByInt.size())
+                return poolIndexByInt[reg.index()];
+            if (reg.isFloat() && reg.index() < poolIndexByFloat.size())
+                return poolIndexByFloat[reg.index()];
             return poolCount;
         };
 
@@ -792,18 +816,21 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             freeUntilPos[poolIndex] = std::min(freeUntilPos[poolIndex],
                                                out.nodes[inactiveIndex].nextIntersection(out.nodes[currentIndex], position));
         }
+        size_t   bestFree           = poolCount;
+        uint32_t bestFreeFixedClash = std::numeric_limits<uint32_t>::max();
         for (size_t i = 0; i < poolCount; ++i)
         {
-            if (!freeUntilPos[i] || fixed[i].ranges.empty())
-                continue;
-            freeUntilPos[i] = std::min(freeUntilPos[i], fixed[i].nextIntersection(out.nodes[currentIndex], position));
-        }
-
-        size_t bestFree = poolCount;
-        for (size_t i = 0; i < poolCount; ++i)
-        {
+            uint32_t fixedClash = std::numeric_limits<uint32_t>::max();
+            if (freeUntilPos[i] && !fixed[i].ranges.empty())
+            {
+                fixedClash      = fixed[i].nextIntersection(out.nodes[currentIndex], position);
+                freeUntilPos[i] = std::min(freeUntilPos[i], fixedClash);
+            }
             if (freeUntilPos[i] && (bestFree == poolCount || freeUntilPos[i] > freeUntilPos[bestFree]))
-                bestFree = i;
+            {
+                bestFree           = i;
+                bestFreeFixedClash = fixedClash;
+            }
         }
 
         // The hint register wins ties, and wins outright when it serves the
@@ -859,7 +886,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             const uint32_t    blockIndex = bestFreeUntil / 2;
             const MicroInstr* blockInst  = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
             freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) &&
-                             fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == bestFreeUntil;
+                             bestFreeFixedClash == bestFreeUntil;
         }
         const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
@@ -1183,12 +1210,22 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     SWC_ASSERT(predecessors_.size() == instructionCount_);
 
     const auto locate = [&](const uint32_t denseIndex, const uint32_t pos) -> const LiveInterval* {
-        for (uint32_t n = result.valueNodesBegin[denseIndex]; n < result.valueNodesBegin[denseIndex + 1]; ++n)
-        {
-            if (result.nodes[n].covers(pos))
-                return &result.nodes[n];
-        }
-        return nullptr;
+        const uint32_t first = result.valueNodesBegin[denseIndex];
+        const uint32_t last  = result.valueNodesBegin[denseIndex + 1];
+        if (first == last)
+            return nullptr;
+        if (last == first + 1)
+            return result.nodes[first].covers(pos) ? &result.nodes[first] : nullptr;
+
+        // Split and parked nodes partition one value's ranges; the group table
+        // orders them by start, so only the last node starting before `pos`
+        // can cover it.
+        auto node = std::upper_bound(result.nodes.begin() + first, result.nodes.begin() + last, pos,
+                                     [](const uint32_t value, const LiveInterval& interval) { return value < interval.start(); });
+        if (node == result.nodes.begin() + first)
+            return nullptr;
+        --node;
+        return node->covers(pos) ? &*node : nullptr;
     };
 
     // Stack depth per instruction, propagated over the CFG (mid-body rsp
@@ -2414,8 +2451,28 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
 
         MicroReg          copyDst;
         MicroReg          copySrc;
-        const MicroInstr* inst   = instructions_->ptr(instrRefs[idx]);
-        const bool        isCopy = fullCopyOperands(copyDst, copySrc, inst, idx);
+        const bool        canBeCopy = defs.size() == 1 && uses.size() == 1;
+        const MicroInstr* inst      = nullptr;
+        bool              haveInst  = false;
+        const auto        getInst   = [&]() {
+            if (!haveInst)
+            {
+                inst     = instructions_->ptr(instrRefs[idx]);
+                haveInst = true;
+            }
+            return inst;
+        };
+        bool       haveCopy = false;
+        bool       isCopy   = false;
+        const auto isFullCopy = [&]() {
+            if (!haveCopy)
+            {
+                if (canBeCopy)
+                    isCopy = fullCopyOperands(copyDst, copySrc, getInst(), idx);
+                haveCopy = true;
+            }
+            return isCopy;
+        };
 
         // A value an instruction names outside its register operands (an
         // encoder-implied use or definition) cannot be renamed there.
@@ -2424,8 +2481,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         const auto namedByOperand = [&](const uint32_t dense) {
             if (!haveRegRefs)
             {
-                if (inst)
-                    inst->collectRegOperands(*operands_, regRefs, context_->encoder);
+                if (const MicroInstr* currentInst = getInst())
+                    currentInst->collectRegOperands(*operands_, regRefs, context_->encoder);
                 haveRegRefs = true;
             }
             return std::ranges::any_of(regRefs, [&](const MicroInstrRegOperandRef& ref) { return *ref.reg == virtualRegs[dense]; });
@@ -2488,7 +2545,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             const uint32_t partner = defDst ? c.src : c.dst;
             if (!DenseBits::contains(tempOutVirtual_, partner))
                 continue;
-            if (isCopy && copyDst == virtualRegs[defined] && copySrc == virtualRegs[partner])
+            if (isFullCopy() && copyDst == virtualRegs[defined] && copySrc == virtualRegs[partner])
                 continue;
             c.rejected = true;
             --activeCandidates;

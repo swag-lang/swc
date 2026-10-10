@@ -9,8 +9,8 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
-- Updated: 2026-10-10 10:20 — Fresh flat tables in the remaining per-run pass and linker paths; the
-  ordered maps and the kept-table clear remain.
+- Updated: 2026-10-10 17:43 — Replaced LICM's per-instruction node set with a flat membership table
+  and listing-order slots; the other order-sensitive maps and the kept-table clear remain.
 - Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
   and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
   escape state, code generation node and variable payloads, value numbering, loop rotation and
@@ -46,11 +46,14 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   Loop scans start and stop at a natural loop's body span. Pre-emit listings of eight bench tasks
   in devmode and release compare equal before and after, and single-core executables and
   `core.dll` keep identical code, unwind, debug, export and import sections.
+- October 10: loop-invariant code motion replaces its node-based `hoistSet` and temporary `keep`
+  set with `FlatKeySet` membership plus slots retained in listing order; emitted clones remain
+  sorted by slot. The DevMode C++ suite passes all 1,420 tests.
 - These remain, each needing a design change:
   - Node maps whose iteration order reaches the output: the sanitizer's sparse fact maps
     (`movedFrom`, `aliasPtrSlots`, ...), mem2reg's `slots`, SLP's `locations` and
-    `entryValues`, web renaming's `loads`, loop-invariant code motion's `hoistSet`, and the native
-    dependency walk's `rejected`. Each needs an order-preserving replacement.
+    `entryValues`, web renaming's `loads`, and the native dependency walk's `rejected`. Each needs
+    an order-preserving replacement.
   - A worker-kept `FlatKeyMap` (branch simplification's `BranchScan` counts among them) clears
     its whole table, so a rebuild costs the largest function the worker has seen rather than the
     current one. Bounding it (stamped slots, or a list of the occupied ones) trades a per-insert

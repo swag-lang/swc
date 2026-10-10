@@ -350,7 +350,8 @@ namespace InstructionCombine
                 // Once the flags are clobbered we can stop scanning: later
                 // instructions don't observe our cmp's flags.
                 if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                    MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(*ctx.operands)))
+                    MicroPassHelpers::instructionActuallyDefinesCpuFlags(
+                        inst, MicroPassHelpers::instructionCpuFlagsDependOnOperands(inst) ? inst.ops(*ctx.operands) : nullptr))
                     return true;
 
                 // Control flow other than a conditional jump we already
@@ -1177,7 +1178,8 @@ namespace InstructionCombine
             }
 
             if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, inst.ops(*ctx.operands)))
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(
+                    inst, MicroPassHelpers::instructionCpuFlagsDependOnOperands(inst) ? inst.ops(*ctx.operands) : nullptr))
             {
                 windowClosed = true;
                 break;

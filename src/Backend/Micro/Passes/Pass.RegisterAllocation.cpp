@@ -89,6 +89,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasExplicitRegisterOperands(const MicroInstrDef& info)
+    {
+        return info.special != MicroInstrRegSpecial::None ||
+               info.regModes[0] != MicroInstrRegMode::None || info.regModes[1] != MicroInstrRegMode::None ||
+               info.regModes[2] != MicroInstrRegMode::None;
+    }
+
     constexpr std::array<uint64_t, 10> K_LOOP_DEPTH_WEIGHTS = {
         1ull,
         10ull,
@@ -108,6 +115,11 @@ namespace
         for (const MicroInstr& inst : instructions.view())
         {
             const MicroInstrDef&     info = MicroInstr::info(inst.op);
+            const bool hasEncoderRegUseDef = encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
+            if (info.regModes[0] == MicroInstrRegMode::None && info.regModes[1] == MicroInstrRegMode::None &&
+                info.regModes[2] == MicroInstrRegMode::None && !hasEncoderRegUseDef)
+                continue;
+
             const MicroInstrOperand* ops  = inst.ops(operands);
             if (ops)
             {
@@ -119,10 +131,10 @@ namespace
                 }
             }
 
-            // Calls and encoder rules can name registers without a register-mode
-            // operand. Keep the probe equivalent to collectUseDef for these forms.
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            // Call ABI uses and clobbers are concrete registers; the call's
+            // explicit virtual operands were already checked through regModes.
+            // Encoder rules can add register effects outside those modes.
+            if (hasEncoderRegUseDef)
             {
                 inst.collectUseDef(useDef, operands, encoder);
                 for (const MicroReg reg : useDef.uses)
@@ -279,7 +291,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         for (auto scanIt = it; scanIt != endIt; ++scanIt)
         {
             const MicroInstrDef& info            = MicroInstr::info(scanIt->op);
-            MicroInstrOperand*   scanOps         = scanIt->ops(*operands_);
+            MicroInstrOperand*   scanOps         = hasExplicitRegisterOperands(info) ? scanIt->ops(*operands_) : nullptr;
             const auto           modes           = scanOps ? info.resolvedRegModes(scanOps) : info.regModes;
             bool                 redefined       = false;
             bool                 usesDestination = false;
@@ -729,6 +741,8 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
     // spanning many outer boundaries above one crossing a few innermost ones,
     // inverting the real cost.
     outBenefit.assign(denseVirtualRegs_.regs().size(), 0);
+    if (!hasControlFlow_)
+        return;
 
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
     uint32_t       idx       = 0;
@@ -2021,16 +2035,19 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
                 return false;
             defined = containsKey(useDef.defs, dstReg);
         }
-        else if (const MicroInstrOperand* ops = inst.ops(*operands_))
+        else if (hasExplicitRegisterOperands(info))
         {
-            const auto modes = info.resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
+            if (const MicroInstrOperand* ops = inst.ops(*operands_))
             {
-                if (modes[i] == MicroInstrRegMode::None || ops[i].reg != dstReg)
-                    continue;
-                if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
-                    return false;
-                defined |= modes[i] == MicroInstrRegMode::Def;
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None || ops[i].reg != dstReg)
+                        continue;
+                    if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
+                        return false;
+                    defined |= modes[i] == MicroInstrRegMode::Def;
+                }
             }
         }
         if (defined)
@@ -2289,16 +2306,48 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         }
     };
 
+    const auto computeAcyclicLiveIn = [&](const uint32_t instructionIndex) {
+        const auto& successors = controlFlowGraph.successors(instructionIndex);
+        auto        inVirtual  = DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount);
+        auto        inConcrete = DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount);
+        if (successors.size() == 1)
+        {
+            SWC_ASSERT(successors[0] < instructionCount_);
+            std::ranges::copy(DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount), inVirtual.begin());
+            std::ranges::copy(DenseBits::row(liveInConcreteBits_, successors[0], concreteWordCount), inConcrete.begin());
+        }
+        else
+        {
+            std::ranges::fill(inVirtual, 0);
+            std::ranges::fill(inConcrete, 0);
+            for (const uint32_t succIdx : successors)
+            {
+                SWC_ASSERT(succIdx < instructionCount_);
+                const auto succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
+                const auto succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, concreteWordCount);
+                for (size_t word = 0; word < virtualWordCount; ++word)
+                    inVirtual[word] |= succInVirtual[word];
+                for (size_t word = 0; word < concreteWordCount; ++word)
+                    inConcrete[word] |= succInConcrete[word];
+            }
+        }
+
+        for (const uint32_t bitIndex : defVirtualIndices_[instructionIndex])
+            DenseBits::clear(inVirtual, bitIndex);
+        for (const uint32_t bitIndex : useVirtualIndices_[instructionIndex])
+            DenseBits::set(inVirtual, bitIndex);
+        for (const uint32_t bitIndex : defConcreteIndices_[instructionIndex])
+            DenseBits::clear(inConcrete, bitIndex);
+        for (const uint32_t bitIndex : useConcreteIndices_[instructionIndex])
+            DenseBits::set(inConcrete, bitIndex);
+    };
+
     // Every edge in an acyclic instruction CFG points forward in listing order.
     // One reverse sweep therefore sees final successor rows without a worklist.
     if (!functionHasLoop_)
     {
         for (uint32_t idx = instructionCount_; idx != 0;)
-        {
-            computeLiveIn(--idx);
-            std::ranges::copy(tempOutVirtual_, DenseBits::row(liveInVirtualBits_, idx, virtualWordCount).begin());
-            std::ranges::copy(tempOutConcrete_, DenseBits::row(liveInConcreteBits_, idx, concreteWordCount).begin());
-        }
+            computeAcyclicLiveIn(--idx);
     }
     else
     {
@@ -2336,27 +2385,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         const bool    hotCall    = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
         const uint8_t weight     = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
         const auto&   successors = controlFlowGraph.successors(idx);
-        if (successors.size() == 1)
-        {
-            SWC_ASSERT(successors[0] < instructionCount_);
-            const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
-            std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
-        }
-        else
-        {
-            std::ranges::fill(tempOutVirtual_, 0);
-            for (const uint32_t succIdx : successors)
-            {
-                SWC_ASSERT(succIdx < instructionCount_);
-                const auto succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
-                for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
-                    tempOutVirtual_[word] |= succInVirtual[word];
-            }
-        }
-
-        for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
-        {
-            uint64_t wordBits = tempOutVirtual_[wordIndex];
+        const auto recordLiveOutWord = [&](const size_t wordIndex, uint64_t wordBits) {
             while (wordBits)
             {
                 const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -2372,6 +2401,26 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                     vregsLiveAcrossHotCall_[bitIndex] = static_cast<uint8_t>(std::min<uint32_t>(current + weight, 255u));
                 }
                 wordBits &= (wordBits - 1ull);
+            }
+        };
+        if (successors.size() == 1)
+        {
+            SWC_ASSERT(successors[0] < instructionCount_);
+            const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
+            for (size_t wordIndex = 0; wordIndex < succInVirtual.size(); ++wordIndex)
+                recordLiveOutWord(wordIndex, succInVirtual[wordIndex]);
+        }
+        else
+        {
+            for (size_t wordIndex = 0; wordIndex < virtualWordCount; ++wordIndex)
+            {
+                uint64_t wordBits = 0;
+                for (const uint32_t succIdx : successors)
+                {
+                    SWC_ASSERT(succIdx < instructionCount_);
+                    wordBits |= DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount)[wordIndex];
+                }
+                recordLiveOutWord(wordIndex, wordBits);
             }
         }
     }
@@ -2436,11 +2485,63 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
     }
 }
 
-void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t stamp)
+void MicroRegisterAllocationPass::computeCurrentConcreteLiveOutBits(const uint32_t instructionIndex)
 {
-    for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
+    SWC_ASSERT(controlFlowGraph_ != nullptr);
+
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    if (successors.size() == 1)
     {
-        uint64_t wordBits = tempOutVirtual_[wordIndex];
+        SWC_ASSERT(successors[0] < instructionCount_);
+        const auto succInConcrete = DenseBits::row(liveInConcreteBits_, successors[0], denseConcreteRegs_.wordCount());
+        std::ranges::copy(succInConcrete, tempOutConcrete_.begin());
+        return;
+    }
+
+    for (uint64_t& value : tempOutConcrete_)
+        value = 0;
+
+    for (const uint32_t succIdx : successors)
+    {
+        SWC_ASSERT(succIdx < instructionCount_);
+        const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, denseConcreteRegs_.wordCount());
+        for (size_t word = 0; word < tempOutConcrete_.size(); ++word)
+            tempOutConcrete_[word] |= succInConcrete[word];
+    }
+}
+
+void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t instructionIndex, const uint32_t stamp)
+{
+    SWC_ASSERT(controlFlowGraph_ != nullptr);
+
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    if (successors.size() == 1)
+    {
+        SWC_ASSERT(successors[0] < instructionCount_);
+        const std::span<const uint64_t> succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
+        for (size_t wordIndex = 0; wordIndex < succInVirtual.size(); ++wordIndex)
+        {
+            uint64_t wordBits = succInVirtual[wordIndex];
+            while (wordBits)
+            {
+                const uint32_t bitInWord = std::countr_zero(wordBits);
+                const size_t   bitIndex  = wordIndex * 64ull + bitInWord;
+                SWC_ASSERT(bitIndex < liveStampByDenseIndex_.size());
+                liveStampByDenseIndex_[bitIndex] = stamp;
+                wordBits &= (wordBits - 1ull);
+            }
+        }
+        return;
+    }
+
+    for (size_t wordIndex = 0; wordIndex < denseVirtualRegs_.wordCount(); ++wordIndex)
+    {
+        uint64_t wordBits = 0;
+        for (const uint32_t succIdx : successors)
+        {
+            SWC_ASSERT(succIdx < instructionCount_);
+            wordBits |= DenseBits::row(liveInVirtualBits_, succIdx, denseVirtualRegs_.wordCount())[wordIndex];
+        }
         while (wordBits)
         {
             const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -2470,12 +2571,22 @@ void MicroRegisterAllocationPass::rebuildCurrentConcreteLiveOutRegs()
     }
 }
 
-bool MicroRegisterAllocationPass::isCurrentConcreteLiveOut(MicroReg key) const
+bool MicroRegisterAllocationPass::isConcreteLiveOutAt(const MicroReg key, const uint32_t instructionIndex) const
 {
+    SWC_ASSERT(controlFlowGraph_ != nullptr);
+
     const uint32_t denseIndex = denseConcreteRegs_.find(key);
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
         return false;
-    return DenseBits::contains(tempOutConcrete_, denseIndex);
+
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    for (const uint32_t succIdx : successors)
+    {
+        SWC_ASSERT(succIdx < instructionCount_);
+        if (DenseBits::contains(DenseBits::row(liveInConcreteBits_, succIdx, denseConcreteRegs_.wordCount()), denseIndex))
+            return true;
+    }
+    return false;
 }
 
 bool MicroRegisterAllocationPass::isInstructionReachable(uint32_t instructionIndex) const
@@ -3821,10 +3932,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         }
         ++stamp;
 
-        computeCurrentLiveOutBits(idx);
-        markCurrentVirtualLiveOut(stamp);
-        rebuildCurrentConcreteLiveOutRegs();
+        markCurrentVirtualLiveOut(idx, stamp);
         advanceCurrentPositionCursors(idx);
+        bool concreteLiveOutRegsReady = false;
         const bool currentReachable = !hasControlFlow_ || isInstructionReachable(idx);
 
         if (it->op == MicroInstrOpcode::Label)
@@ -3933,12 +4043,14 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        MicroInstrOperand*        instOps = it->ops(*operands_);
-        SmallVector<MicroReg>     protectedKeys;
+        const MicroInstrDef&     info               = MicroInstr::info(it->op);
+        const bool               hasRegisterEffects = hasExplicitRegisterOperands(info) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
+        MicroInstrOperand*       instOps            = hasRegisterEffects ? it->ops(*operands_) : nullptr;
+        const auto               modes              = instOps ? info.resolvedRegModes(instOps) : info.regModes;
+        SmallVector<MicroReg>    protectedKeys;
         SmallVector<AllocRequest> allocRequests;
         if (instOps)
         {
-            const auto modes = MicroInstr::info(it->op).resolvedRegModes(instOps);
             for (size_t operand = 0; operand < modes.size(); ++operand)
             {
                 const MicroInstrRegMode mode = modes[operand];
@@ -4033,17 +4145,17 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (it->op == MicroInstrOpcode::LoadAddrRegMem)
             {
                 const MicroReg baseReg = instOps[1].reg;
-                if ((baseReg.isInt() || baseReg.isFloat()) && isCurrentConcreteLiveOut(baseReg))
+                if ((baseReg.isInt() || baseReg.isFloat()) && isConcreteLiveOutAt(baseReg, idx))
                     appendUniqueReg(addressSourceRegs, baseReg);
             }
             else if (it->op == MicroInstrOpcode::LoadAddrAmcRegMem)
             {
                 const MicroReg baseReg = instOps[1].reg;
-                if ((baseReg.isInt() || baseReg.isFloat()) && isCurrentConcreteLiveOut(baseReg))
+                if ((baseReg.isInt() || baseReg.isFloat()) && isConcreteLiveOutAt(baseReg, idx))
                     appendUniqueReg(addressSourceRegs, baseReg);
 
                 const MicroReg mulReg = instOps[2].reg;
-                if ((mulReg.isInt() || mulReg.isFloat()) && isCurrentConcreteLiveOut(mulReg))
+                if ((mulReg.isInt() || mulReg.isFloat()) && isConcreteLiveOutAt(mulReg, idx))
                     appendUniqueReg(addressSourceRegs, mulReg);
             }
         }
@@ -4078,6 +4190,12 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 ((it->op == MicroInstrOpcode::LoadRegReg && !instOps[1].reg.isVirtual()) ||
                  (it->op == MicroInstrOpcode::LoadSignedExtRegReg && !instOps[1].reg.isVirtual()) ||
                  (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
+            if (defOnlyCopyFromConcrete && !concreteLiveOutRegsReady)
+            {
+                computeCurrentConcreteLiveOutBits(idx);
+                rebuildCurrentConcreteLiveOutRegs();
+                concreteLiveOutRegsReady = true;
+            }
 
             SmallVector<MicroReg> forbiddenPhysRegs;
             forbiddenPhysRegs.reserve((defOnlyCopyFromConcrete ? currentConcreteLiveOut_.size() : 0) + addressSourceRegs.size() + mentionedConcreteRegs.size() + assignedPhysRegs.size());
@@ -4194,7 +4312,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         if (instOps)
         {
-            const auto modes = MicroInstr::info(it->op).resolvedRegModes(instOps);
             for (size_t operand = 0; operand < modes.size(); ++operand)
             {
                 if (modes[operand] == MicroInstrRegMode::None || !instOps[operand].reg.isVirtual())
@@ -4397,18 +4514,28 @@ namespace
         const MicroReg       stack    = CallConv::get(context.callConvKind).stackPointer;
 
         std::vector<MicroInstrRef> refs;
+        refs.reserve(storage.count());
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
             refs.push_back(it.current);
 
         // The frame release before a return: stack-pointer additions and pops up to the return.
+        size_t cachedReleaseBegin = refs.size();
+        size_t cachedReturnIndex  = refs.size();
         const auto releasesFrame = [&](size_t index) {
-            for (; index < refs.size(); ++index)
+            if (index >= cachedReleaseBegin && index < cachedReturnIndex)
+                return true;
+
+            for (size_t cursor = index; cursor < refs.size(); ++cursor)
             {
-                const MicroInstr* inst = storage.ptr(refs[index]);
+                const MicroInstr* inst = storage.ptr(refs[cursor]);
                 if (!inst)
                     return false;
                 if (inst->op == MicroInstrOpcode::Ret)
+                {
+                    cachedReleaseBegin = index;
+                    cachedReturnIndex  = cursor;
                     return true;
+                }
                 if (inst->op == MicroInstrOpcode::Pop)
                     continue;
                 const auto* ops = inst->ops(operands);
@@ -4431,14 +4558,20 @@ namespace
         MicroInstrRef        defRef   = MicroInstrRef::invalid();
         uint64_t             distance = 0;
         std::vector<BaseUse> uses;
+        MicroInstrUseDef     useDef;
         for (size_t index = 0; index < refs.size(); ++index)
         {
             MicroInstr* inst = storage.ptr(refs[index]);
             if (!inst)
                 return false;
-            const MicroInstrUseDef useDef    = inst->collectUseDef(operands, context.encoder);
-            const bool             defsBase  = std::ranges::find(useDef.defs, base) != useDef.defs.end();
-            const bool             defsStack = std::ranges::find(useDef.defs, stack) != useDef.defs.end();
+            inst->collectUseDef(useDef, operands, context.encoder);
+            bool defsBase  = false;
+            bool defsStack = false;
+            for (const MicroReg reg : useDef.defs)
+            {
+                defsBase  |= reg == base;
+                defsStack |= reg == stack;
+            }
             if (defsBase)
             {
                 const auto* ops = inst->ops(operands);
@@ -4461,7 +4594,10 @@ namespace
                     return false;
                 continue;
             }
-            if (std::ranges::find(useDef.uses, base) == useDef.uses.end())
+            size_t baseUseCount = 0;
+            for (const MicroReg reg : useDef.uses)
+                baseUseCount += reg == base;
+            if (!baseUseCount)
                 continue;
             if (!defRef.isValid())
                 return false;
@@ -4507,7 +4643,7 @@ namespace
                 uses.push_back(use);
                 ++explicitUses;
             }
-            if (explicitUses != static_cast<size_t>(std::ranges::count(useDef.uses, base)))
+            if (explicitUses != baseUseCount)
                 return false;
 
             // The stack pointer cannot be the index of an indexed address.

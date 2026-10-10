@@ -85,11 +85,11 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.105 — Prove lz77's signed remainder bounds
+### compiler.optimization.127 — Prove lz77's signed remainder bounds
 
 - Recorded: 2026-09-30 08:42
-- Updated: 2026-10-10 18:21 — Accepted low-bit-only signed remainder reduction;
-  the loop-counter range proof remains open.
+- Updated: 2026-10-10 19:04 — Allocated the next available file-scoped identifier after
+  merging newer optimization entries from master.
 - Area: compiler/backend, value ranges and signed remainder lowering.
 - Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
   fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
@@ -151,121 +151,78 @@ new language syntax.
   checksums and unrelated positive/negative coverage, with the candidate and byte
   loops retaining their instruction and memory counts without a loss elsewhere.
 
-### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
-
-- Recorded: 2026-10-10 11:07
-- Updated: 2026-10-10 16:37 — Rejected call-site nullable specialization when it
-  still cannot lower to a selected candidate.
-- Area: compiler/sema, automatic inlining and flow narrowing.
-- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
-  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
-  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
-  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
-  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
-  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
-  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
-- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
-  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
-  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
-  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
-- Rejected broad eligibility on the current revision: inlining both wrappers changed
-  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
-  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
-  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
-  This does not meet the sentinel no-loss rule; no timing was taken.
-- Rejected 2026-10-10 trial: removed the blanket nullable-formal rejection for
-  call-bearing auto-inline bodies, tracked postfix `!` separately, and required a
-  statically non-null source argument. A narrow public-wrapper allowance was also
-  tried. `Native.release` remained 19 O2 instructions and still called `benchFree`;
-  the nullable test fixture passed but both wrappers still emitted the call to
-  `nullableConsumer`. Binarytrees checksum was 674478 and Wordfreq checksum was
-  130489. The isolated builds stop at the known missing-`#main` artifact error, and
-  the Wordfreq micro selector did not match, so no sentinel micro comparison is
-  claimed. Reverted the trial.
-- Next: determine why parser finalization does not mark the `benchFree` body
-  eligible after recognizing its postfix `!`, and print the exact
-  `Wordfreq.__main_0` target before attempting another call-site rule.
-- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
-  per-iteration loss on any bench hot loop.
-- Related: compiler.optimization.094, compiler.optimization.117.
-
-### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
-
-- Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:22 — Defer register-reference collection to touched instructions.
-- Area: compiler/backend
-- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
-  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
-  the earlier scan, which also remains the fallback whenever a precondition fails or the
-  walk bails, and the C++ conformity cases run both.
-- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
-  fixed-claim interval arrays with direct default construction. The call sites pass empty
-  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
-  copied for every register. The Release `interval` selection passed two native tests; timing
-  and peak memory were not measured.
-- Taken on 2026-10-10: guarded-call parking after interval assignment now skips its entire call
-  loop when `guardedCallPositions_` is empty, and otherwise visits only entries in the existing
-  ordered `callPositions_` list rather than every instruction index. The guarded-position vector
-  is populated only after a valid region containing a call is found, and call positions retain
-  ascending instruction order, so node processing is unchanged. The Release build and focused
-  native `private_spill_cold_call.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `coalesceSameValueCopies` now checks its already-built dense use/definition
-  lists before fetching an instruction and decoding operands. Anything other than one virtual use
-  and one virtual definition cannot satisfy the full-register-copy matcher or its later assertion.
-  The Release build and focused native `physical_copy_intervals.swg` test passed; no timing claim
-  is made.
-- Taken on 2026-10-10: copy-join analysis now tracks the number of candidates still eligible for
-  renaming and ends its instruction scan as soon as each candidate has been rejected. It avoids
-  decoding remaining instructions after the result is fixed; no join decision changes. The Release
-  build and focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `buildLiveIntervals` now checks the existing dense use/definition lists
-  before fetching an instruction to find copy hints. A hint needs exactly one virtual destination
-  and at most one virtual source, including copies from physical registers. The Release build and
-  focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: the zero-high analysis in `coalesceSameValueCopies` skips instruction
-  lookup when all of an instruction's destinations already have a definition that disproves the
-  property. The state only changes from true to false. The Release build and focused native
-  `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `analyzeLiveness` now skips operand-width lookup for instructions with no
-  virtual uses or definitions; only virtual registers consume the resulting `wideFloat` marks.
-  It also uses the opcode's metadata to skip fetching operands when the opcode cannot carry a
-  variable 128-bit operand, or is fixed 128-bit. The Release build and focused native
-  `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: the final copy-join scan now collects explicit and encoder-implied register
-  references lazily, only if an instruction touches a candidate register. Untouched instructions
-  no longer perform this lookup. The Release build and focused native
-  `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Evidence: the walk describes every concrete claim by the position it occupies, except
-  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
-  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
-  instruction, so no operand of theirs can share it, and the second legalization sweep can
-  then need a short save/restore borrow from `tryBorrowReservedRegister`.
-- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
-  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
-  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
-  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
-  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
-  The user explicitly accepts such proof without a measurable runtime improvement.
-- Runtime evidence: the focused four-task Release A/B established no target gain and produced
-  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
-  Investigate that allocation/layout interaction separately; it is not an independently
-  confirmed regression, and no runtime gain is claimed for the retained rule.
-- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
-  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
-  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
-- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
-  longer fires on a whole-library build, and the suites stay green.
-- Related: compiler.optimization.016.
-
-
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 13:59 — Store equality-chain cleanup as a range and defer CFG flag-liveness checks.
+- Updated: 2026-10-10 18:21 — Skip operand lookup for impossible diamond-arm opcodes.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
+- Taken on 2026-10-10: `foldDecidedBooleans` now fetches operands only for `SetCondReg` instructions or opcodes whose metadata says they may define CPU flags. Other instructions cannot affect the tracked flag definition or boolean result. The Release build and focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
+- Taken on 2026-10-10: `foldImpliedBranches` now decodes operands only for `JumpCond` instructions in its label-use scan and candidate scan. The helper recognizes no other opcode, so non-conditional instructions skip operand lookup while unsupported indirect or table-jump forms still trigger the same fallback. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the implied-branch candidate pass now reuses the ascending `JumpCond` ordinals collected during its label-use scan instead of walking every layout instruction a second time. It still skips ordinal zero, unconditional conditions, and all candidates in the same order. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the backward implied-condition walk now decodes operands only at labels and conditional jumps, not for straight-line instructions whose reaching definitions come from SSA. `fallsIntoLabel` likewise fetches operands only when jump metadata says the previous instruction is conditional. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `ensureBranchScan` now fetches operands only for conditional jumps when its cache is configured not to count register mentions, as in the late-transform path. The full pre-RA cache still decodes all instructions because it builds those mention counts. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: InstructionCombine's store-to-load forwarding and dead-store scans now decode operands only for the load/store opcodes they analyze. Their other paths use opcode barriers and SSA definitions, so they retain the same clearing and alias decisions without operand lookup. The Release build and focused native store-filter (8 tests) and `global_load_forwarding.swg` (1 test) passed; no timing claim is made.
+- Taken on 2026-10-10: dead-store elimination now decodes a `LoadRegMem` only after confirming at least one earlier store is pending. A load with an empty pending set immediately continues, so its operands cannot affect any later decision. The Release build and focused native store-filter (8 tests) passed; no timing claim is made.
 - Taken on 2026-10-10: `convertEqualityChainsToBitTests` now records the matched body's last layout ordinal instead of pushing each instruction index into a temporary vector. Accepted links, including optional alias copies, are contiguous, so cleanup iterates the proven range and avoids the per-link index writes and dynamic body storage for longer chains. The Release build and focused `equality_chain_bit_test.swg` native test passed; no timing claim is made.
+- Taken on 2026-10-10: equality-chain closure now fetches a candidate's operands for `tryGetLabelId` only when the following instruction is a label. That helper rejects every other opcode, so failed candidate tails avoid the lookup. The Release build and focused native `equality_chain_bit_test.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `previousFlagChainInstruction` now returns immediately for a flag reader when its caller stops on flag use, before querying operands to check whether that instruction also defines flags. Either fact identifies the same nearest chain boundary. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: packed-switch matching now calls `tryGetLabelId` only on label opcodes for case arms, skip labels, and exits. Its bounded default-value lookback also reuses the decoded `LoadRegImm` operands for the following register-touch check, and the default tail shares one operand lookup between unconditional-condition and target checks. The Release build and 62 focused native `switch_` tests passed; no timing claim is made.
+- Taken on 2026-10-10: guarded-select diamond conversion now retrieves each comparison's operand pointer once before copying its fixed operands into the rewrite buffers, instead of repeating the lookup for each operand. The Release build and focused native `branch_simplification.swg` and `short_circuit_booleans.swg` tests passed; no timing claim is made.
+- Taken on 2026-10-10: packed-switch arm validation now passes the already-decoded unconditional-jump operands to `tryGetJumpTargetLabelId`, removing a second lookup of the same exit instruction. The Release build and 62 focused native `switch_` tests passed; no timing claim is made.
+- Taken on 2026-10-10: three branch-fold paths now call `tryGetLabelId` only when the next, continue, or fallthrough instruction is actually a label. Their non-label outcomes still insert the same derived label, and skip unnecessary operand decoding on those outcomes. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the shared-label diamond and float-select transforms now check candidate label opcodes before calling `tryGetLabelId`; non-label candidates avoid decoding operands. The Release build, 21 focused native `select` tests, and `branch_simplification.swg` passed; no timing claim is made.
+- Taken on 2026-10-10: `coalesceShortCircuitResults` now calls `tryGetJumpTargetLabelId` only for `JumpCond` instructions in its local label-reference scan. The helper rejects every other opcode, so unrelated instructions skip operand decoding while indirect-jump fallbacks remain unchanged. The Release build and focused native Release `short_circuit_booleans.swg` and `branch_simplification.swg` tests passed; no timing claim is made.
+- Taken on 2026-10-10: `isTargetInImmediateLabelRun` now checks that the next instruction is a `Label` before decoding operands for `tryGetLabelId`. Non-label instructions already return false, so they no longer incur an operand lookup. The Release build and focused native Release `branch_simplification.swg` test passed; no timing claim is made.
+- The cumulative Release native milestone passed all 3,690 tests after the five recent branch-scan edits. The three expected recovery probes also ran, and the tool reported exit code zero.
+- Taken on 2026-10-10: `matchIndexedRead` now rejects opcodes outside its six supported indexed and plain load forms before decoding operands. Its bounded straight-line search calls the matcher for each instruction, so other opcodes no longer pay for a lookup. The Release build succeeded; focused Release native `indexed_compare` (2 tests) and `memory_left_compare` (1 test) passed; no timing claim is made.
+- Taken on 2026-10-10: `tryGetTrampolineTarget` now skips consecutive `Label` instructions before decoding operands to check for an unconditional jump. Labels are skipped unchanged, and only the first non-label instruction needs operand access. The Release build and focused native Release `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `convertShortCircuitBooleans` now retains the matched `SetCondReg` operands while validating its result register and reading the condition. This removes the second operand lookup for the same instruction. The Release build and focused native Release `short_circuit_booleans.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `tryGetTrampolineTarget` now returns on the first non-label instruction unless it is `JumpCond`, the only direct-target opcode its label helper accepts. `instructionHasNoFallthrough` likewise returns true for jump opcodes not marked conditional without fetching operands; only a conditional jump needs its condition decoded. The Release build and focused native Release `branch_simplification.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: added `instructionCpuFlagsDependOnOperands` for the opcodes whose actual flag effect depends on the operation operand, and used it in branch flag scans. Flag-independent writers no longer decode operands just to be classified; tracked-register scans reuse one decoded operand array for both flag and definition checks. The Release build, focused native Release `branch_simplification.swg` and `short_circuit_booleans.swg`, the full native Release suite (3,690 tests), and the full JIT Release suite (1,534 tests) passed. No timing claim is made.
+- The cumulative native and JIT Release milestone also ran all three expected native recovery probes; the test tool returned exit code zero.
+- Taken on 2026-10-10: applied the same operand-dependency classification to flag-clobber windows in ConstProp and LoadFold, dead-code side-effect classification, loop-invariant motion, and adjacent-load diamond validation. Flag-independent writers pass a null operand pointer to the conservative helper, avoiding operand decoding without changing its answer. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
+- Taken on 2026-10-10: `PostRALoopRotate` now checks label opcodes before decoding candidate labels, fallthrough instructions, and instructions in its lazily built label-ordinal map. Non-label entries no longer incur label-operand lookup. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
+- Taken on 2026-10-10: `LoopLoadForward` now checks the opcode before probing each instruction as a loop-entry label, and `ColdBlockLayout` checks the fallthrough opcode before reading its label operand. Their non-label candidates avoid the helper lookup. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
+- Taken on 2026-10-10: `PostRALoopRotate` now checks that incoming edges are `JumpCond` before decoding a target, and that each loop-header candidate is a `Label` before reading its id. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
+- Taken on 2026-10-10: guarded-select diamond qualification now checks the result and up to seven distinct fallthrough definitions in one walk of the jump arm's SSA use/def records, instead of rescanning that arm once per register. The existing per-register path remains for larger sets, avoiding added dynamic storage. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `coalesceShortCircuitResults` now checks whether a register's use or definition ordinals all fall in a candidate interval from the list's endpoints. `RegSites` appends them during an ascending layout walk, so this replaces a full list traversal without extra storage. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `collectDiamondArm` now classifies the opcode before retrieving operands. Opcodes outside the speculatable-arm set terminate the scan immediately, avoiding operand lookup for those arm boundaries; supported instructions retain their previous null-operand and micro-op checks, and `collectReturnPath` reuses its existing operand pointer. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the later-sweep register-allocation probe skips operand decoding when opcode metadata has no explicit register modes or encoder register effects. It also no longer calls `collectUseDef` for calls after checking explicit modes: the remaining ABI argument uses and clobbers are concrete physical registers, so they cannot affect whether the function still has a virtual register. Encoder-specific effects remain checked. `foldLocalStackBaseIntoStackPointer` also reserves its complete instruction-reference snapshot from the known instruction count, avoiding vector growth and reference copies. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `MicroInstr::collectUseDef` now reads call float-argument widths from the operand block it already decoded, rather than performing a second `ops()` lookup through `callFloatArgs`. The standalone accessor still decodes its own operands once. The Release build, four focused `call_float_arg` native tests, and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `foldLocalStackBaseIntoStackPointer` now reuses one `MicroInstrUseDef` across its instruction scan. Its small-vector capacity survives between instructions, avoiding repeated heap allocation and release for call effects while each result is consumed before the next refill. The storage remains bounded by the largest call-convention use/def lists in that function. The Release build and all 3,690 native Release tests passed; the three recovery probes ran and the suite returned zero; no timing claim is made.
+- Taken on 2026-10-10: the same frame-fold scan now caches each validated stack-restore suffix through its first `Ret`. Later `Pop` and stack-adjustment definitions within that already-checked run avoid rewalking the same instructions. A non-restore instruction still rejects the fold, and the cached interval ends at the same return as the original check. The Release build and all 3,690 native Release tests passed; the three recovery probes ran and the suite returned zero; no timing claim is made.
+- Taken on 2026-10-10: `foldLocalStackBaseIntoStackPointer` now finds both tracked definitions in one pass over `useDef.defs`, and counts base uses in one pass over `useDef.uses`. This avoids the second vector scan for matching entries, including call clobber/use lists, while preserving duplicate-use validation. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the late branch-simplification layout walk now also records direct jump-label counts and computed-jump presence. Its branch scan consumes those facts directly instead of traversing the full instruction list again; the pre-allocation scan still makes its separate pass to collect register mentions. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: diamond if-conversion now borrows jump-reference counts from a current, complete pre-allocation branch scan, including a small separate table for `JumpCondImm` targets. The diamond scan still runs when that cache is absent, stale, interrupted by a computed jump, or cannot validate target operands; rewrites clear the borrowed source before another query. The Release build, focused native `branch_simplification.swg` test, and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `foldRangeChecks` now advances a four-instruction iterator window instead of resolving the next three references and validating them again with `storage.ptr`. The storage view already guarantees those adjacent references are live, and no mutation occurs until after the scan; candidate order and boundary checks remain unchanged. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `forwardRepeatedMemoryCompareInShortCircuit` reuses the valid branch scan's exact virtual-register mention count for its loaded comparison value, skipping the function-wide operand/mode scan. It keeps the original scan when the cache is absent, interrupted by a computed jump, or the value is not a virtual integer. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: InstructionCombine's store-to-load forwarding and dead-store scans now skip SSA use/def lookups for instructions whose static register modes cannot define registers. Calls, special register-mode opcodes, and encoder-defined effects stay on the full query path. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: InstructionCombine's global float-read-width check now skips SSA lookups and operand decoding for instructions whose metadata cannot contain register reads. Calls, special modes, and opcodes with possible encoder effects keep the full query path. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: RegisterAllocation's local-copy coalescing and copy-erasure scans now skip operand decoding when static register modes are all `None` and no special mode can resolve additional operands. Calls and encoder register effects still use `collectUseDef`, and special register modes still decode operands. The Release build, all 299 native optimizer tests, and the repository validator passed; no timing claim is made.
+- Taken on 2026-10-10: the main register-allocation rewrite walk now decodes operands only for instructions with explicit register modes, special modes, or encoder register effects. This avoids a second lookup for direct calls and other non-register instructions while ABI call effects continue to come from the prepared use/def data. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the main register-allocation rewrite walk now resolves each instruction's register modes once and reuses that array to build allocation requests and rewrite assigned operands. Allocation only changes register fields; special-mode selection reads the separate micro-operation field. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: register allocation now materializes its concrete live-out `MicroReg` list only when a definition-only copy from a concrete register needs it. Other instructions no longer scan and expand the concrete live-out bitset. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the main allocation rewrite now computes concrete live-out bits only for address loads and definition-only copies from concrete registers; virtual live-out bits remain computed for every instruction. The liveness fixed-point path keeps its original combined routine. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the allocation rewrite now marks virtual live-outs directly from CFG successor rows. A single-successor instruction scans that row once; multi-successor instructions combine words in a local accumulator. This removes a full bitset copy/clear and scratch-buffer read on the linear path without changing the live-out union. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: address-load allocation now queries each concrete base/index register directly in the successor live-in rows instead of building the complete concrete live-out bitset. Full concrete live-outs are still built for definition-only copies that inspect the entire set. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the acyclic liveness sweep now unions successor rows directly into each destination live-in row, then applies that instruction's defs and uses. The single-successor case copies directly to the destination. This removes the temporary live-out row and its subsequent copy for every virtual and concrete row in functions without loops; the iterative loop path is unchanged. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: call-crossing summaries now mark values directly from successor live-in rows, combining multiple successors a word at a time. They no longer copy or clear a temporary live-out bitset for each call. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `threadInlinedBooleanBranches` now uses the current branch scan's explicit register-mention counts as a fast proof when each distinct boolean has exactly its two expected mentions (definition and sole reader). It retains the original full use scan when counts differ or the scan is stale, and only uses cached counts after preceding rewrites are ruled out. The Release build, focused `branch_simplification` test, and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `foldImpliedBranches` now stores a conditional jump's condition with its label-use record during the initial scan and reuses it when backward walks reach that label. It removes repeated operand decoding of the same unique incoming jump. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `foldImpliedBranches` now carries each candidate conditional jump's condition beside its ordinal from the initial scan. The later candidate pass no longer re-fetches the instruction or decodes its operands just to reject an unconditional jump and read the comparison condition. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Rejected on 2026-10-10: lazily memoizing `fallsIntoLabel` can avoid a predecessor lookup and conditional-jump decode only when another backward candidate revisits that label; a first visit adds cache-state checks, and source inspection does not establish enough reuse to prove a net saving. No code was retained.
+- Taken on 2026-10-10: `coalesceShortCircuitResults` now merges the sorted use and definition ordinals for register E and rewrites each instruction once. A use-def or repeated-operand instruction no longer triggers multiple operand lookups and mode scans during the same coalescing rewrite. The Release compiler build, focused native Release `short_circuit_booleans.swg` test, all 299 native optimizer tests, and repository validator passed; no timing claim is made.
+- Taken on 2026-10-10: `fuseMaterializedBoolBranches` now checks static register modes before decoding operands during its backward definition search. Instructions with only register reads avoid an operand lookup and mode scan; special modes, encoder effects, and operand-dependent flag definitions retain the existing full checks. The Release build, focused native Release `branch_simplification.swg` test, and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: `convertSwitchesToPackedTables` now reuses its case and chain-target buffers across candidate starts. A long compare chain exposes overlapping suffix candidates, whose case lists can exceed inline capacity; later suffixes no longer allocate and free both vectors again. The Release build, all 62 focused native `switch_` tests, and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: after verifying that the first `CmpRegImm` is followed by `JumpCond`, the packed-switch matcher carries its operand decode from the key/width prefilter into the first chain step, removing both repeat lookups without decoding compares that fail the successor-opcode filter. The Release build and all 62 focused native `switch_` tests passed; no timing claim is made.
+- Rejected on 2026-10-10: replacing the packed-switch arm `unordered_map` with `FlatKeyMap` removes per-arm nodes but allocates 64 full `Arm` slots even for the minimum three-arm case. Without timing or memory measurement, the denser storage is an unjustified tradeoff; no code was retained.
+- Taken on 2026-10-10: the packed-switch matcher now updates the minimum and maximum case values while it collects cases, eliminating a separate traversal of every collected pair before computing the span. The Release build and all 62 focused native `switch_` tests passed; no timing claim is made.
+- Taken on 2026-10-10: `convertEqualityChainsToBitTests` now carries the candidate compare pointer through alias detection and matching instead of resolving the same layout ordinal twice. Its first link also reuses the pointer already obtained by the start prefilter. The Release build, focused native `equality_chain_bit_test` test, and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the equality-chain matcher now computes the tested-width bit mask once from its first accepted link and reuses it for each later constant. Link validation already requires every compare to have that same width, so the per-link width conversions and mask construction are removed. The Release build and focused native `equality_chain_bit_test` test passed; no timing claim is made.
+- Taken on 2026-10-10: the equality-chain matcher now tracks the minimum and maximum masked constants while collecting links, removing a later traversal of the link vector. The Release build and focused native `equality_chain_bit_test` test passed; no timing claim is made.
+- Taken on 2026-10-10: each equality-chain link now stores only its constant value. Its compare ordinal was used only to locate the first compare for emitted instructions; the first link is always at the candidate start because an alias before any link is rejected. The Release build, focused native `equality_chain_bit_test` test, and all 299 native optimizer tests passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -469,6 +426,138 @@ new language syntax.
 - Related: compiler.optimization.029, compiler.optimization.039.
 
 
+### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
+
+- Recorded: 2026-10-10 11:07
+- Updated: 2026-10-10 16:37 — Rejected call-site nullable specialization when it
+  still cannot lower to a selected candidate.
+- Area: compiler/sema, automatic inlining and flow narrowing.
+- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
+  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
+  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
+  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
+  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
+  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
+  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
+- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
+  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
+  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
+  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
+- Rejected broad eligibility on the current revision: inlining both wrappers changed
+  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
+  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
+  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
+  This does not meet the sentinel no-loss rule; no timing was taken.
+- Rejected 2026-10-10 trial: removed the blanket nullable-formal rejection for
+  call-bearing auto-inline bodies, tracked postfix `!` separately, and required a
+  statically non-null source argument. A narrow public-wrapper allowance was also
+  tried. `Native.release` remained 19 O2 instructions and still called `benchFree`;
+  the nullable test fixture passed but both wrappers still emitted the call to
+  `nullableConsumer`. Binarytrees checksum was 674478 and Wordfreq checksum was
+  130489. The isolated builds stop at the known missing-`#main` artifact error, and
+  the Wordfreq micro selector did not match, so no sentinel micro comparison is
+  claimed. Reverted the trial.
+- Next: determine why parser finalization does not mark the `benchFree` body
+  eligible after recognizing its postfix `!`, and print the exact
+  `Wordfreq.__main_0` target before attempting another call-site rule.
+- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
+  per-iteration loss on any bench hot loop.
+- Related: compiler.optimization.094, compiler.optimization.117.
+
+### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
+
+- Recorded: 2026-08-29 15:41
+- Updated: 2026-10-10 14:51 — Index register pools directly during interval walks.
+- Area: compiler/backend
+- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
+  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
+  the earlier scan, which also remains the fallback whenever a precondition fails or the
+  walk bails, and the C++ conformity cases run both.
+- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
+  fixed-claim interval arrays with direct default construction. The call sites pass empty
+  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
+  copied for every register. The Release `interval` selection passed two native tests; timing
+  and peak memory were not measured.
+- Taken on 2026-10-10: guarded-call parking after interval assignment now skips its entire call
+  loop when `guardedCallPositions_` is empty, and otherwise visits only entries in the existing
+  ordered `callPositions_` list rather than every instruction index. The guarded-position vector
+  is populated only after a valid region containing a call is found, and call positions retain
+  ascending instruction order, so node processing is unchanged. The Release build and focused
+  native `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `coalesceSameValueCopies` now checks its already-built dense use/definition
+  lists before fetching an instruction and decoding operands. Anything other than one virtual use
+  and one virtual definition cannot satisfy the full-register-copy matcher or its later assertion.
+  The Release build and focused native `physical_copy_intervals.swg` test passed; no timing claim
+  is made.
+- Taken on 2026-10-10: copy-join analysis now tracks the number of candidates still eligible for
+  renaming and ends its instruction scan as soon as each candidate has been rejected. It avoids
+  decoding remaining instructions after the result is fixed; no join decision changes. The Release
+  build and focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `buildLiveIntervals` now checks the existing dense use/definition lists
+  before fetching an instruction to find copy hints. A hint needs exactly one virtual destination
+  and at most one virtual source, including copies from physical registers. The Release build and
+  focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the zero-high analysis in `coalesceSameValueCopies` skips instruction
+  lookup when all of an instruction's destinations already have a definition that disproves the
+  property. The state only changes from true to false. The Release build and focused native
+  `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `analyzeLiveness` now skips operand-width lookup for instructions with no
+  virtual uses or definitions; only virtual registers consume the resulting `wideFloat` marks.
+  It also uses the opcode's metadata to skip fetching operands when the opcode cannot carry a
+  variable 128-bit operand, or is fixed 128-bit. The Release build and focused native
+  `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the final copy-join scan now collects explicit and encoder-implied register
+  references lazily, only if an instruction touches a candidate register. Untouched instructions
+  no longer perform this lookup. The Release build and focused native
+  `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `computeGlobalBenefits` returns its already-zeroed result without scanning
+  instructions when `hasControlFlow_` is false; `isFlushBoundary` rejects every instruction in
+  that state. The Release build and focused native `physical_copy_intervals.swg` test passed; no
+  timing claim is made.
+- Taken on 2026-10-10: the final copy-join scan now delays instruction lookup and full-copy
+  decoding until a candidate register is touched, and only checks copy shapes with one dense use
+  and definition. Untouched instructions avoid both operations. The Release build and focused
+  native `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: interval register election now chooses the best free register while it
+  computes fixed-register intersections, retaining the winning intersection for the call-boundary
+  check. This removes a second pool traversal and one repeated interval-intersection search for a
+  free register ending at a call. The Release build and focused native
+  `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: edge resolution now locates a split or parked value node by binary search
+  in its already sorted, disjoint per-value node group, with a direct check for unsplit values.
+  The Release build and focused native `physical_copy_intervals.swg` and
+  `private_spill_cold_call.swg` tests passed; no timing claim is made.
+- Taken on 2026-10-10: fixed-interval construction now checks concrete-source liveness directly
+  for the usual zero- or one-successor copy case, keeping the general scan for multiple successors.
+  The Release build, focused `physical_copy_intervals.swg`, and complete native Release suite
+  (3,690 tests) passed; no timing claim is made.
+- Taken on 2026-10-10: interval election now builds per-class physical-register-to-pool-index
+  tables once, replacing repeated linear pool searches for active and inactive nodes. The Release
+  build and focused native `physical_copy_intervals.swg` and `private_spill_cold_call.swg` tests
+  passed; no timing claim is made.
+- Evidence: the walk describes every concrete claim by the position it occupies, except
+  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
+  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
+  instruction, so no operand of theirs can share it, and the second legalization sweep can
+  then need a short save/restore borrow from `tryBorrowReservedRegister`.
+- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
+  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
+  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
+  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
+  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
+  The user explicitly accepts such proof without a measurable runtime improvement.
+- Runtime evidence: the focused four-task Release A/B established no target gain and produced
+  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
+  Investigate that allocation/layout interaction separately; it is not an independently
+  confirmed regression, and no runtime gain is claimed for the retained rule.
+- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
+  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
+  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
+- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
+  longer fires on a whole-library build, and the suites stay green.
+- Related: compiler.optimization.016.
+
+
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Recorded: 2026-09-30 08:42
@@ -549,6 +638,18 @@ new language syntax.
 - Complete when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
+
+### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
+
+- Recorded: 2026-09-25 11:15
+- Updated: 2026-10-06 20:59 — Private-global hoisting and value numbering landed after the last qsort dump; re-dump before further work.
+- Area: compiler/backend, loop-invariant code motion and call effects
+- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
+- Current evidence: the new loop-guided wrapper rule inlines both `less` calls in `qsort`. Its optimized body grows from 72 to 132 Micro instructions, while each unequal-count comparison now reads the retained `g_Idx` and `g_Cnt` pointers without a `less` call or a global reload. The tie path still calls `memcmp`, and the second comparator loop reloads both global pointers on entry. LDC also retains its pointers during the unequal-count loop and reloads after a call. Wordfreq's checksum is 130489; csvagg's selected function counts and checksum are unchanged. No timing sample informed the rule.
+- A value-numbering trial preserved mutable global loads across a direct `ReadOnly` call. It removed four instructions from `qsort` as a whole (132 to 128), including a repeated global pointer load after `memcmp`, and kept checksum 130489. The extra live value changed allocation in the first comparator loop: each increment path acquired a stack reload of the count pointer and an unconditional back-edge jump. That hot-path regression outweighed the colder tie-path saving, so the trial was reverted without timing it. A direct-call regression test for this trial was reverted with the rule.
+- Since that dump: LICM hoists a load of a private global (one no other module names and whose address no use binds) past pointer stores, but only out of an innermost loop (`ba4e255d4`, then `baedb50db` after a 22% wordfreq regression when the hoisted `g_Text` had to outlive nested loops), and value numbering reuses unmodified private globals across disjoint writes (`a172a3428`). `g_Idx` and `g_Cnt` are file-level `late var` globals in `bench/src/swag/wordfreq.swg`; no `qsort` dump has been taken since these changes.
+- Next: dump the current Release `qsort`. If the post-call and second-loop reloads are gone, retire the entry; otherwise compare the tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to decide whether the remaining reloads warrant a focused allocation change.
+- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
 
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 
@@ -1090,7 +1191,7 @@ new language syntax.
 - Complete when: a third-party readonly helper preserves an unrelated load without being inlined;
   transitive writers/callbacks invalidate it; recursion converges; summary-only imports help callers
   even when their bodies are not imported.
-- Related: compiler.optimization.108, compiler.optimization.109,
+- Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.055,
   compiler.optimization.020.
 
 ### compiler.optimization.111 — Inline ordinary functions across module boundaries
@@ -1214,7 +1315,7 @@ new language syntax.
   optimization; overlap, changing lengths, overflow, and guarded fallback cases remain correct.
   Existing local gaps remain with their existing entries.
 - Related: compiler.optimization.110, compiler.optimization.111, compiler.optimization.112,
-  compiler.optimization.020, compiler.optimization.105, compiler.safety.008.
+  compiler.optimization.020, compiler.optimization.127, compiler.safety.008.
 
 ### compiler.optimization.117 — Inline fast paths while sharing cold continuations
 

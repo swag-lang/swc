@@ -691,7 +691,8 @@ namespace
                 return dc && dc->count == it->second.defSlots.size() ? &it->second : nullptr;
             };
 
-            std::unordered_set<uint32_t>              hoistSet;
+            FlatKeySet                               hoistSet;
+            std::vector<uint32_t>                    hoistOrder;
             thread_local FlatKeySet banned; // registers by packed form
             banned.clear();
 
@@ -711,6 +712,7 @@ namespace
 
             const auto runAcceptance = [&]() {
                 hoistSet.clear();
+                hoistOrder.clear();
                 bool progress = true;
                 while (progress)
                 {
@@ -755,7 +757,8 @@ namespace
                         // a continuation may write flags. Floating arithmetic
                         // and XMM clears preserve them despite sharing opcodes.
                         if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                            MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, inst->ops(operands)) &&
+                            MicroPassHelpers::instructionActuallyDefinesCpuFlags(
+                                *inst, MicroPassHelpers::instructionCpuFlagsDependOnOperands(*inst) ? inst->ops(operands) : nullptr) &&
                             (!preheaderFlagsDead || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref, context.builder)))
                             continue;
 
@@ -909,8 +912,11 @@ namespace
                                 continue;
                         }
 
-                        hoistSet.insert(i);
-                        progress = true;
+                        if (hoistSet.insert(i))
+                        {
+                            hoistOrder.push_back(i);
+                            progress = true;
+                        }
                     }
                 }
             };
@@ -966,9 +972,9 @@ namespace
                         countedLoopUses = true;
                     }
 
-                    std::unordered_set<uint32_t> keep;
-                    std::vector<uint32_t>        worklist;
-                    for (const uint32_t i : hoistSet)
+                    FlatKeySet           keep;
+                    std::vector<uint32_t> worklist;
+                    for (const uint32_t i : hoistOrder)
                     {
                         const MicroInstr*       inst = storage.ptr(instrRefs[i]);
                         const MicroInstrUseDef* ud   = &useDefs[i];
@@ -1010,7 +1016,7 @@ namespace
                                                    nestedLoopUses.contains(ud->defs[0].packed);
                         if (opcodeReadsMemory(inst->op) || ((multiplyUsed || nestedAddress) && runsEveryIteration) || isCostlyMaterialization(*inst, instOps))
                         {
-                            if (keep.insert(i).second)
+                            if (keep.insert(i))
                                 worklist.push_back(i);
                         }
                     }
@@ -1031,7 +1037,7 @@ namespace
                                 return;
                             for (const uint32_t defSlot : webIt->second.defSlots)
                             {
-                                if (hoistSet.contains(defSlot) && keep.insert(defSlot).second)
+                                if (hoistSet.contains(defSlot) && keep.insert(defSlot))
                                     worklist.push_back(defSlot);
                             }
                         };
@@ -1041,12 +1047,13 @@ namespace
                             pullWeb(use);
                     }
 
+                    std::erase_if(hoistOrder, [&keep](const uint32_t i) { return !keep.contains(i); });
                     hoistSet = std::move(keep);
                 }
 
                 SmallVector<MicroReg>                  violations;
                 std::unordered_map<MicroReg, uint32_t> keptDefsOf;
-                for (const uint32_t i : hoistSet)
+                for (const uint32_t i : hoistOrder)
                     ++keptDefsOf[slotDefReg[i]];
                 for (const auto& [reg, count] : keptDefsOf)
                 {
@@ -1140,7 +1147,7 @@ namespace
 
             // Listing order is the dependency order: every hoisted member sits
             // in one loop body, and its operands are produced above it there.
-            std::vector<uint32_t> order(hoistSet.begin(), hoistSet.end());
+            std::vector<uint32_t> order = std::move(hoistOrder);
             std::ranges::sort(order);
 
             HoistPlan plan;

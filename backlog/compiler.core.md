@@ -5,6 +5,69 @@ This backlog covers the compiler front end, back end, and workspace build engine
 Items are ordered from the most recently updated down. Every completion condition is intended to be testable. Measurements below are a dated baseline, not permanent product claims.
 
 
+### compiler.core.069 — Measure where a module build loses its workers beyond six cores
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-10 15:48 — Keep only the unresolved serial and starvation shares.
+- Evidence: a quiet 16-worker GUI rebuild attributed 7.4% of worker time to sema starvation, 7.0% to code-generation starvation, 2.2% to serial code generation, 3.3% to other serial native-backend work, 3.2% to deferred-link waits, and 1.3% to API export. The 6-to-16-worker comparison showed increased starvation; detailed timings are a dated baseline.
+- Next: identify the remaining serial work in NativeBackendBuilder::prepare/rebuildFunctionInfos and the long semantic tail; give each worthwhile bottleneck its own lead.
+- Complete when: each material serial or starvation share has an owner or is shown negligible.
+- Related: compiler.optimization.128, compiler.core.072, compiler.core.073, compiler.core.065, compiler.core.068, compiler.core.007
+
+### compiler.core.007 — Workspace front ends and code generation run serially
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-10 15:48 — Reduce the workspace scheduling proposal to its blocking constraints.
+- Evidence: runWorkspace compiles modules in dependency order and keeps at most one link in flight, so independent ready modules do not overlap front-end or code-generation work. Logger stage scopes and process-wide Stats are shared, and blocking waitAll calls inside workers could exhaust the pool.
+- Next: give each in-flight module isolated log/metric state and use a coordinator that never blocks its own worker pool; keep compiler lifetime through publication/link and bound concurrency by CPU and memory.
+- Complete when: independent siblings overlap, dependency artifacts remain deterministic, and workspace tests cover diamond graphs, failures, cancellation, and repeated builds.
+- Related: compiler.core.004, compiler.core.005.
+
+### compiler.core.061 — Type-info graph publication uses one serialization domain
+
+- Recorded: 2026-09-30 08:34
+- Updated: 2026-10-10 15:48 — Keep the canonical-identity and recursive-publication constraints.
+- Evidence: reflected types share constant shard zero to preserve one runtime address, and TypeGen currently owns that segment exclusively through payload and back-reference publication. Independent roots cannot progress concurrently; splitting ownership risks duplicate identities or exposing partial recursive graphs.
+- Next: separate canonical registration from payload generation and define ownership/completion for recursive components before reducing the exclusive section.
+- Complete when: independent components progress concurrently while recursive graphs remain complete and reflection/interface identity tests pass.
+- Related: compiler.core.020, compiler.core.007.
+
+### compiler.core.072 — Link preparation still resolves and places the native image serially
+
+- Recorded: 2026-10-01 14:25
+- Updated: 2026-10-10 15:48 — Keep the remaining serial linker boundary after parallel description building.
+- Evidence: object descriptions now build text, relocations, and unwind data in parallel and are placed in stable order; section placement, symbol/relocation resolution, symbol-table merge, and image finish remain serial. A six-description module caps the current parallel stage at six jobs.
+- Next: measure link preparation in a 16-worker GUI rebuild and decide whether placement or archive resolution warrants parallel work.
+- Complete when: link preparation no longer has material serial time and linker/PDB C++ tests plus native consumers pass.
+- Related: compiler.core.069.
+
+### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
+
+- Recorded: 2026-10-01 14:25
+- Updated: 2026-10-10 15:48 — Keep the artifact-use boundary and current workspace wait cost.
+- Evidence: workspace builds join a dependency's native link before compiling its consumer. In GUI rebuilds, link waits consumed 2.8 to 4.8% of worker time, mostly starvation while one NativeLink job ran.
+- Next: identify when a consumer needs only the generated API/setup and defer waiting for the DLL until a compile-time call requires it.
+- Complete when: consumer sema overlaps dependency linking and workspace/std tests pass under both compiler executables.
+- Related: compiler.core.069, compiler.core.007.
+
+### compiler.core.065 — Remaining sema barrier rounds drain the whole module
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-10 15:48 — Summarize the remaining wait kinds and park races.
+- Evidence: identifier, impl-registration, and type-completion waits can park on specific events, but publication races, compiler-defined names, concrete layouts, using scopes, and abandoned lazy-body runs still rely on barrier-wide wakeups. Each barrier drains the client and serializes the next round.
+- Next: count rounds and re-parked jobs by wait kind; give the dominant waits recheckable publication, such as per-name generations for identifiers.
+- Complete when: sema no longer needs barrier rounds for forward-name or type-completion dependencies, with sema, scheduler, and std tests green.
+- Related: compiler.core.069, compiler.core.007.
+
+### compiler.core.068 — The job scheduler serializes every transition on one mutex
+
+- Recorded: 2026-10-01 07:35
+- Updated: 2026-10-10 15:48 — Keep the measured lock cost and defer queue redesign until it matters.
+- Evidence: one mutex protects ready queues, counters, waiters, and workers; the global FIFO can resume work on a cold worker. At 16 workers, lock waits were under 1% of worker time, so this is not today's ceiling.
+- Next: revisit after serial phases and starvation shrink; then evaluate per-worker deques, separate waiter/counter locks, and spawning workers outside the queue lock.
+- Complete when: contention is negligible in a 16-worker std build and scheduler tests pass under both compiler executables.
+- Related: compiler.core.069.
+
 ### compiler.core.080 — Published generic bodies call omitted helper declarations
 
 - Recorded: 2026-10-08 16:26
@@ -198,26 +261,6 @@ Items are ordered from the most recently updated down. Every completion conditio
 - Complete when: every structure has one definition per distinct layout in a linked PDB, the
   `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
 
-### compiler.core.072 — Link preparation resolves and places the native image on one thread
-
-- Recorded: 2026-10-01 14:25
-- Updated: 2026-10-06 09:49 — Description sections are now built in parallel; placement and resolution remain serial.
-- Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
-  jobs. On 2026-10-01, probed phases in a 16-worker DevMode `gui` rebuild gave image lowering
-  about 0.6 s and resolution 0.2 s of wall time over the five native modules. Since 2026-10-06,
-  `buildNativeImage` builds each object description's text bytes, code relocations and unwind
-  sections as an indexed parallel loop, then places them in description order on the driver; an
-  in-process comparison against the sequential order produced identical sections, relocations
-  and symbols for `core`, `ogl`, `truetype`, `pixel`, `gui` and `gui2`. A module has only six
-  descriptions, so that loop is at most six-way. Placement (`placeNativeSection`, the symbol and
-  relocation tables), `resolveSymbols`, `appendSymbolTable`, and `finishImage` are still serial.
-- Next: measure `link prepare` in a 16-worker `gui` rebuild with `--dev-sched-stats` and decide
-  whether the remaining serial time justifies splitting descriptions further or resolving
-  archive members in parallel.
-- Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
-  linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
-- Related: compiler.core.069
-
 ### compiler.core.075 — Aligned node references collapse semantic metadata partitions
 
 - Recorded: 2026-10-03 16:28
@@ -239,148 +282,6 @@ Items are ordered from the most recently updated down. Every completion conditio
   size. Compare one-worker and parallel rebuilds on both modules under stable load.
 - Complete when: the partitioning improvement has concurrent read/write coverage
   and a measured compilation-time benefit with its memory cost explicitly bounded.
-
-### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
-
-- Recorded: 2026-10-01 14:25
-- Evidence: `CompilerInstance::runWorkspace` keeps one deferred link in flight, but joins it before
-  compiling any module that depends on the linked one. The `std` chain is nearly linear
-  (`core` → `ogl`/`truetype` → `pixel` → `gui`), so most links become a wait: in 16-worker DevMode
-  `gui` rebuilds, `--dev-sched-stats` charges 2.8–4.8% of worker time to the
-  `workspace link wait` phase, nearly all of it starvation while the single `NativeLink` job
-  (0.4–1.2 s per module) runs.
-- Next: list what a dependent actually needs from its dependency before code generation (the
-  module API and setup files, the DLL only for compile-time calls into it) and join the link at
-  the first use that needs the binary instead of before the module starts.
-- Complete when: a dependent's semantic analysis overlaps its dependency's link in a `gui`
-  rebuild, with the workspace suite and `std` tests green under both compiler executables.
-- Related: compiler.core.069, compiler.core.007
-
-### compiler.core.069 — Measure where a module build loses its workers beyond six cores
-
-- Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 13:40 — break the losses down by driver phase
-- Evidence: `--dev-sched-stats` (DevMode compiler) splits worker time into running jobs, serial
-  phases (no job running), scheduler lock waits, and starvation (jobs run elsewhere, nothing is
-  ready), and reports per job kind its work, its longest slice with what it worked on, and the
-  starvation charged to it. `std.swgs dm build gui --rebuild`, 2026-10-01, DevMode compiler:
-  - 6 workers, loaded machine: 70 s, 81% running, 11% serial, 0.3% lock, 7.5% starved.
-  - 16 workers: 26–54 s depending on load, 58–66% running, 13–16% serial, 0.5–0.9% lock,
-    20–25% starved. CodeGen alone causes 10–12% starvation: `Pixel.Webp.decodeLossy` is one job
-    of 6.6–8.2 s. Sema's longest slice is 1–2.6 s; the five native links cost 4% together.
-  - Barrier rounds no longer matter: 65 rounds moved about 500 sleepers, against 78 000–91 000
-    dependency wakes.
-- Per phase (the report now charges serial and starved time to driver phases): a quiet 16-worker
-  run (26 s) loses 7.4% of worker time starved in semantic analysis, 7.0% starved and 2.2% serial
-  in code generation, 3.3% serial and 2.4% starved in the rest of the native backend (collecting
-  functions and dependencies before and after code generation), 3.2% starved waiting for deferred
-  links, and 1.3% serial in module API export. Code generation runs two or three dependency
-  rounds per module; only the first costs anything.
-- Next: find what the backend does serially around code generation (`NativeBackendBuilder::prepare`
-  and `rebuildFunctionInfos`) and what the semantic tail waits on (its longest job is 1.5–4 s);
-  each becomes its own entry once named.
-- Complete when: each share above has an owning entry.
-- Related: compiler.optimization.128, compiler.core.072, compiler.core.073, compiler.core.065, compiler.core.068, compiler.core.007
-
-### compiler.core.068 — The job scheduler serializes every transition on one mutex
-
-- Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 13:08 — measured: lock waits cost under 1% of worker time at 16 workers
-- Evidence: `JobManager` keeps one `mtx_` for the three ready deques, the client counters, the
-  waiter map, and the worker list. Jobs are fine-grained (one per top-level declaration, one per
-  function in code generation) and every enqueue, dequeue, park, and wake takes that lock.
-  `growWorkersForLoadLocked` still creates threads while holding it. The queue is a global FIFO:
-  a resumed job lands on any worker with a cold cache. The default worker count is
-  `hardware_concurrency()`, which on a hybrid CPU includes efficiency cores and SMT siblings, so
-  critical-path jobs can run on the slowest cores.
-- Measured: `--dev-sched-stats` on a 16-worker DevMode `gui` rebuild charges 0.5–0.9% of worker
-  time to waiting for this lock (compiler.core.069). It is not the ceiling today; revisit when
-  starvation and serial phases shrink.
-- Next: prototype per-worker deques with stealing behind the same `JobManager` interface, keeping
-  the waiter map and client counters under their own lock, and spawn workers outside it.
-- Complete when: a std module build at 16 workers spends no measurable time waiting on the
-  scheduler lock (VTune or ETW contention view), with the scheduler unit tests and both compiler
-  executables green.
-- Related: compiler.core.069
-
-### compiler.core.065 — Remaining barrier rounds still drain the whole module
-
-- Recorded: 2026-10-01 07:35
-- Updated: 2026-10-01 09:53 — add paused lazy bodies as a barrier source
-- Evidence: `SemaWaitIdentifier` and `SemaWaitImplRegistrations` now park on the name and are
-  woken by symbol-map insertion and by the last impl registration; `SemaWaitTypeCompleted` parks
-  on its blocking symbol and is woken by `setSemaCompleted`. Those producers have no flag to
-  recheck at registration, so a publication racing the park still waits for the `wakeAll` in
-  `Sema::waitDone`; so do `SemaWaitCompilerDefined`, a type completed by its concrete layout after
-  `setSemaCompleted`, and a name made visible by a new `using` rather than an insertion. That
-  barrier first drains the client: the tail of each wave runs on a few workers, then the driver
-  does serial work before the next one. Any symbol transition still sets `changed_`, so most
-  rounds end in a full `wakeAll`. The same barrier separates the declaration pass from the full
-  pass and closes native code generation (`scheduleCodeGen`). A paused lazy function body is
-  normally resumed by the job that paused it; when that job does not come back to it, its other
-  callers stay parked on `SemaCompleted` until `hasPausedLazyBodyWait` wakes them in a barrier
-  round so one can adopt the run. How often that fallback fires is unknown.
-- Next: count rounds and re-parked sleepers per wait kind (compiler.core.069) on a std module, then
-  give the dominant remaining kind a recheckable publication (a per-name generation counter for
-  identifier waits closes the park race) so it no longer needs the barrier.
-- Complete when: a std module build needs no barrier round to resolve forward identifier and
-  type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
-  green under both compiler executables.
-- Related: compiler.core.069, compiler.core.007
-
-### compiler.core.061 — Type-info graph publication uses one serialization domain
-
-- Recorded: 2026-09-30 08:34
-- Updated: 2026-09-30 13:48 — narrow the remaining boundary to canonical graph ownership
-- Evidence: `ConstantManager::makeTypeInfo` deliberately sends all reflected types to constant
-  shard zero, so shared dependencies have one canonical runtime identity. `TypeGen::makeTypeInfo`
-  retains exclusive ownership of that segment across `processTypeInfo` and back-reference
-  publication. Contention now records the exact storage and owner generation, and every ownership
-  release wakes its registered jobs, including semantic pauses. Independent reflection roots still
-  cannot generate their metadata concurrently. This is a static concurrency boundary, not an
-  attribution of a measured fraction of cold-build time.
-- Safety boundary: hashing roots into separate stores would duplicate common dependencies and
-  break pointer identity. Publishing an entry before all required payloads and back references
-  are ready would expose partial recursive metadata.
-- Next: separate canonical graph registration from payload generation, identify independently
-  publishable components, and define ownership and completion for recursive components before
-  shortening or dividing the exclusive section. Preserve one address per reflected type.
-- Complete when: independent components can progress on different workers, mutually recursive
-  graphs publish no partial data, and identity, interface, and reflection tests pass under
-  repeated parallel cold compilation.
-- Related: compiler.core.020, compiler.core.007.
-
-### compiler.core.007 — Workspace front ends and code generation run serially
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-09-30 07:58 — Located the shared state that must be isolated before scheduling module front ends concurrently.
-
-**Evidence.** The workspace computes dependency order, but module front-end and code-generation work is still consumed serially. The current depth-one pipeline can overlap one background link with compilation of the next module; it does not schedule independent ready modules concurrently.
-
-**Architecture audit (2026-09-30).** `CompilerInstance::runWorkspace` still calls
-`runWorkspaceModule` synchronously for each item in `buildOrder`; only one
-`WorkspaceModuleLink` can remain in flight. Increasing `--num-cores` therefore cannot overlap
-two independent module front ends. `Logger::ScopedStagesDetailed` and `Logger::ScopedStageMute`
-change shared logger state, and command metrics live in the process-wide `Stats` singleton.
-Dispatching the existing module loop as worker jobs would also let its blocking
-`waitAll(clientId)` calls exhaust the same worker pool they need to finish.
-
-**Next.** Give each in-flight module its own log/metric scope and drive module stages from a
-coordinator that never blocks a compiler worker on its own pool. Preserve the lifetime of each
-compiler through artifact publication and linking, then admit independent ready modules within
-the shared memory budget.
-
-**Intent.** Schedule ready modules concurrently on the dependency DAG through a shared worker pool with explicit memory and CPU limits.
-
-**Complete when.**
-
-- Independent sibling modules overlap front-end and code-generation work, while consumers wait for the required interface or link artifact.
-- Compiler and linker work share a bounded concurrency policy and do not oversubscribe the host.
-- Logs, manifests, diagnostics, and emitted artifacts remain deterministic.
-- The concurrency cap accounts for the memory measurements and budget from compiler.core.005.
-- Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
-
-**Related:** compiler.core.004, compiler.core.005.
 
 ### compiler.core.057 — The lazy-body completion race has no deterministic regression
 

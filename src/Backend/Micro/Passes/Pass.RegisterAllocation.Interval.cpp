@@ -792,18 +792,21 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             freeUntilPos[poolIndex] = std::min(freeUntilPos[poolIndex],
                                                out.nodes[inactiveIndex].nextIntersection(out.nodes[currentIndex], position));
         }
+        size_t   bestFree           = poolCount;
+        uint32_t bestFreeFixedClash = std::numeric_limits<uint32_t>::max();
         for (size_t i = 0; i < poolCount; ++i)
         {
-            if (!freeUntilPos[i] || fixed[i].ranges.empty())
-                continue;
-            freeUntilPos[i] = std::min(freeUntilPos[i], fixed[i].nextIntersection(out.nodes[currentIndex], position));
-        }
-
-        size_t bestFree = poolCount;
-        for (size_t i = 0; i < poolCount; ++i)
-        {
+            uint32_t fixedClash = std::numeric_limits<uint32_t>::max();
+            if (freeUntilPos[i] && !fixed[i].ranges.empty())
+            {
+                fixedClash      = fixed[i].nextIntersection(out.nodes[currentIndex], position);
+                freeUntilPos[i] = std::min(freeUntilPos[i], fixedClash);
+            }
             if (freeUntilPos[i] && (bestFree == poolCount || freeUntilPos[i] > freeUntilPos[bestFree]))
-                bestFree = i;
+            {
+                bestFree           = i;
+                bestFreeFixedClash = fixedClash;
+            }
         }
 
         // The hint register wins ties, and wins outright when it serves the
@@ -859,7 +862,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
             const uint32_t    blockIndex = bestFreeUntil / 2;
             const MicroInstr* blockInst  = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
             freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) &&
-                             fixed[bestFree].nextIntersection(out.nodes[currentIndex], position) == bestFreeUntil;
+                             bestFreeFixedClash == bestFreeUntil;
         }
         const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];

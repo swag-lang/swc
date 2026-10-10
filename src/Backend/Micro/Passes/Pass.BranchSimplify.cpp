@@ -3233,7 +3233,8 @@ namespace
                     const MicroInstr* arm   = instAt(at + 2);
                     uint32_t          armId = 0;
                     if (cmpOps[0].reg != key || cmpOps[1].opBits != keyBits || cmpOps[2].hasWideImmediateValue() || !arm ||
-                        !tryGetLabelId(armId, *arm, arm->ops(operands)) || !tryGetJumpTargetLabelId(fallDefaultId, *jump, jumpOps))
+                        arm->op != MicroInstrOpcode::Label || !tryGetLabelId(armId, *arm, arm->ops(operands)) ||
+                        !tryGetJumpTargetLabelId(fallDefaultId, *jump, jumpOps))
                         break;
                     cases.push_back({cmpOps[2].valueU64 & getBitsMask(keyBits), armId});
                     fallsIntoCase = true;
@@ -3248,7 +3249,8 @@ namespace
                     uint32_t          skipId   = 0;
                     uint32_t          placedId = 0;
                     if (!highCmp || !highJump || !skip || highCmp->op != MicroInstrOpcode::CmpRegImm || highJump->op != MicroInstrOpcode::JumpCond ||
-                        !tryGetJumpTargetLabelId(skipId, *jump, jumpOps) || !tryGetLabelId(placedId, *skip, skip->ops(operands)) || placedId != skipId ||
+                        !tryGetJumpTargetLabelId(skipId, *jump, jumpOps) || skip->op != MicroInstrOpcode::Label ||
+                        !tryGetLabelId(placedId, *skip, skip->ops(operands)) || placedId != skipId ||
                         labelReferences.getOrInsert(skipId) != 1)
                         break;
                     const MicroInstrOperand* highOps     = highCmp->ops(operands);
@@ -3280,8 +3282,12 @@ namespace
             const size_t      tailAt    = at;
             const MicroInstr* tail      = instAt(tailAt);
             uint32_t          defaultId = fallDefaultId;
-            if (!fallsIntoCase && (!isUnconditionalJump(tail) || !tryGetJumpTargetLabelId(defaultId, *tail, tail->ops(operands))))
-                continue;
+            if (!fallsIntoCase)
+            {
+                const MicroInstrOperand* tailOps = tail && tail->op == MicroInstrOpcode::JumpCond ? tail->ops(operands) : nullptr;
+                if (!tailOps || tailOps[0].cpuCond != MicroCond::Unconditional || !tryGetJumpTargetLabelId(defaultId, *tail, tailOps))
+                    continue;
+            }
 
             if (!tableScratch)
                 tableScratch.emplace();
@@ -3340,7 +3346,7 @@ namespace
                     if (!tryGetJumpTargetLabelId(exitId, *exit, exit->ops(operands)))
                         return false;
                 }
-                else if (tryGetLabelId(exitId, *exit, exit->ops(operands)))
+                else if (exit->op == MicroInstrOpcode::Label && tryGetLabelId(exitId, *exit, exit->ops(operands)))
                     arm.falls = true;
                 else
                     return false;
@@ -3385,10 +3391,11 @@ namespace
                     if (inst->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                         flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
                         break;
+                    const MicroInstrOperand* ops = nullptr;
                     if (inst->op == MicroInstrOpcode::LoadRegImm)
                     {
-                        const MicroInstrOperand* ops = inst->ops(operands);
-                        if (ops[0].reg == result && ops[1].opBits == resultBits && !ops[2].hasWideImmediateValue())
+                        ops = inst->ops(operands);
+                        if (ops && ops[0].reg == result && ops[1].opBits == resultBits && !ops[2].hasWideImmediateValue())
                         {
                             defaultValue = ops[2].valueU64 & getBitsMask(resultBits);
                             found        = true;
@@ -3396,7 +3403,9 @@ namespace
                         }
                     }
                     bool touches = false;
-                    if (const MicroInstrOperand* ops = inst->ops(operands))
+                    if (!ops)
+                        ops = inst->ops(operands);
+                    if (ops)
                     {
                         const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
                         for (size_t operand = 0; operand < modes.size(); ++operand)

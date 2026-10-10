@@ -180,7 +180,7 @@ impl IForm for FormDraw
         painter.drawPath(&pl, pen)
     }
 
-    mtd impl setup(capt: *Capture)
+    mtd impl setup(capt: *Capture?)
     {
         .capture = capt
     }

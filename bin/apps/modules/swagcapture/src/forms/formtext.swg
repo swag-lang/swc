@@ -345,7 +345,7 @@ impl IForm for FormText
         }
     }
 
-    mtd impl setup(capt: *Capture)
+    mtd impl setup(capt: *Capture?)
     {
         .capture = capt
         .gizmo.setupForForm(me)

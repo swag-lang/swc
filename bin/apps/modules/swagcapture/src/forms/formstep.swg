@@ -197,7 +197,7 @@ impl IForm for FormStep
         }
     }
 
-    mtd impl setup(capt: *Capture)
+    mtd impl setup(capt: *Capture?)
     {
         .capture = capt
         .gizmo.setupForForm(me)

@@ -376,6 +376,7 @@ an asterisk in the report, because its commit alone will not reproduce it.
 | `campaign.py` | rebuild, measure, report |
 | `driver.py` | the sweep itself |
 | `compile.py` | the edit-build loop alone, on one compiler or A/B between two; records nothing |
+| `microdiff.py` | the final code of every task under two compilers: changed functions and loops, LOSS where one grew, checksums; records nothing |
 | `allocbench.py`, `allocator/` | the allocator against mimalloc and the C heap; `allocator/run.py` records nothing |
 | `toolchains.py` | where each toolchain lives and how it builds a task |
 | `winproc.py` | process timing, peak memory, core pinning, and how busy the machine is |

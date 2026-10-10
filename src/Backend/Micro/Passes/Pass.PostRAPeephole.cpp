@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 // Post-RA peephole optimization on physical registers.
@@ -161,7 +162,7 @@ namespace
             // temporarily; track it rather than rejecting every call frame.
             const auto proveDelayedJump = [&](uint32_t jumpIndex) {
                 std::vector<std::pair<uint32_t, int64_t>> pending = {{jumpIndex, 0}};
-                std::unordered_map<uint32_t, int64_t>     seen;
+                FlatKeyMap<int64_t>                       seen;
                 while (!pending.empty())
                 {
                     const auto [index, delta] = pending.back();
@@ -172,13 +173,13 @@ namespace
                             return false;
                         continue;
                     }
-                    const auto [it, inserted] = seen.emplace(index, delta);
-                    if (!inserted)
+                    if (const int64_t* seenDelta = seen.find(index))
                     {
-                        if (it->second != delta)
+                        if (*seenDelta != delta)
                             return false;
                         continue;
                     }
+                    seen.emplace(index, delta);
                     if (seen.size() > K_MAX_BACKTRACK)
                         return false;
                     const MicroInstr* inst = storage.ptr(refs[index]);
@@ -283,13 +284,13 @@ namespace
                 // Every backward path must reach a matching frame store (or
                 // reload) before a register change or a memory write. The
                 // bounded walk deliberately rejects complicated joins.
-                std::vector<uint32_t>        pending = {jumpIndex};
-                std::unordered_set<uint32_t> visited;
+                std::vector<uint32_t> pending = {jumpIndex};
+                FlatKeySet            visited;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    if (!visited.insert(index).second)
+                    if (!visited.insert(index))
                     {
                         valid = false;
                         break;
@@ -612,13 +613,13 @@ namespace
                 // slot's last value. A later loop-latch store is also a valid
                 // source; the store we move is the source on the first trip.
                 pending.assign(1, branchIndex);
-                std::unordered_set<uint32_t> visited;
-                bool                         valid = true;
+                FlatKeySet visited;
+                bool       valid = true;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    if (!visited.insert(index).second || visited.size() > 256)
+                    if (!visited.insert(index) || visited.size() > 256)
                     {
                         valid = false;
                         break;

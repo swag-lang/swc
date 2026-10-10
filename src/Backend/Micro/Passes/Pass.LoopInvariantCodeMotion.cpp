@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -927,9 +928,9 @@ namespace
             // preserves; reads between defs see an intermediate, which it does
             // not. A violating register is banned and the whole pipeline reruns
             // without it, cascading until stable.
-            thread_local std::unordered_map<MicroReg, uint32_t> inLoopUse;
-            std::unordered_set<MicroReg>                        nestedLoopUses;
-            inLoopUse.clear();
+            // Both keyed by the register's packed form, and only looked up.
+            FlatKeyMap<uint32_t> inLoopUse;
+            FlatKeySet           nestedLoopUses;
             bool countedLoopUses = false;
             for (;;)
             {
@@ -956,9 +957,9 @@ namespace
                         {
                             for (const MicroReg use : useDefs[i].uses)
                             {
-                                ++inLoopUse[use];
+                                ++inLoopUse.getOrInsert(use.packed);
                                 if (innermostLoopSizes[i] < loop->bodySize)
-                                    nestedLoopUses.insert(use);
+                                    nestedLoopUses.insert(use.packed);
                             }
                         }
                         countedLoopUses = true;
@@ -972,8 +973,8 @@ namespace
                         const MicroInstrUseDef* ud   = &useDefs[i];
                         if (!inst || ud->defs.size() != 1)
                             continue;
-                        const auto               uc           = inLoopUse.find(ud->defs[0]);
-                        const bool               multiplyUsed = uc != inLoopUse.end() && uc->second >= 2;
+                        const uint32_t*          uc           = inLoopUse.find(ud->defs[0].packed);
+                        const bool               multiplyUsed = uc && *uc >= 2;
                         const MicroInstrOperand* instOps      = inst->ops(operands);
 
                         if (inst->op == MicroInstrOpcode::ClearReg && loopHasCall)
@@ -1005,7 +1006,7 @@ namespace
                         // calls still make the longer lifetime too costly.
                         const bool nestedAddress = !loopHasCall && !loopHasReadOnlyCall &&
                                                    (inst->op == MicroInstrOpcode::LoadAddrRegMem || inst->op == MicroInstrOpcode::LoadAddrAmcRegMem) &&
-                                                   nestedLoopUses.contains(ud->defs[0]);
+                                                   nestedLoopUses.contains(ud->defs[0].packed);
                         if (opcodeReadsMemory(inst->op) || ((multiplyUsed || nestedAddress) && runsEveryIteration) || isCostlyMaterialization(*inst, instOps))
                         {
                             if (keep.insert(i).second)

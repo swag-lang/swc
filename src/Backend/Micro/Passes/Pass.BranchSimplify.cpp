@@ -5210,12 +5210,15 @@ namespace
             if (!floatCopy(storage.ptr(layout.order[ordinal + 1]), bits, fallDst, fallSrc))
                 continue;
             const MicroInstr* skip = storage.ptr(layout.order[ordinal + 2]);
-            if (!skip || skip->op != MicroInstrOpcode::JumpCond || skip->ops(operands)[0].cpuCond != MicroCond::Unconditional)
+            if (!skip || skip->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* skipOps = skip->ops(operands);
+            if (!skipOps || skipOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
             uint32_t joinLabelId = 0;
             uint32_t armLabelId  = 0;
             uint32_t endLabelId  = 0;
-            if (!tryGetJumpTargetLabelId(joinLabelId, *skip, skip->ops(operands)) || !labelIdAt(ordinal + 3, armLabelId) ||
+            if (!tryGetJumpTargetLabelId(joinLabelId, *skip, skipOps) || !labelIdAt(ordinal + 3, armLabelId) ||
                 armLabelId != elseLabelId || !floatCopy(storage.ptr(layout.order[ordinal + 4]), bits, jumpDst, jumpSrc) ||
                 !labelIdAt(ordinal + 5, endLabelId) || endLabelId != joinLabelId)
                 continue;

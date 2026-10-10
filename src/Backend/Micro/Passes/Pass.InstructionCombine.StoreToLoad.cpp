@@ -357,7 +357,7 @@ namespace InstructionCombine
             const MicroInstr& inst = *it;
             const bool isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm;
             const bool isLoad = inst.op == MicroInstrOpcode::LoadRegMem;
-            const MicroInstrOperand* ops = isStore || isLoad ? inst.ops(*ctx.operands) : nullptr;
+            const MicroInstrOperand* ops = isStore ? inst.ops(*ctx.operands) : nullptr;
 
             // A register and an immediate store alike: they differ only in
             // where the width and the offset sit.
@@ -393,8 +393,9 @@ namespace InstructionCombine
             if (pending.empty())
                 continue;
 
-            if (isLoad && ops)
+            if (isLoad)
             {
+                const MicroInstrOperand* ops = inst.ops(*ctx.operands);
                 // A read keeps only the stores it provably misses: the same
                 // base, and bytes that do not overlap. It also redefines its
                 // destination, which may be the base of a pending store.

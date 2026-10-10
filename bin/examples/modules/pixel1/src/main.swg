@@ -120,7 +120,12 @@ var g_RC:          Pixel.RenderContext
 
 #main
 {
-    g_Window = try Env.createWindow({identifier: "pixel1", title: "Pixel example - antialiasing comparison", width: W, height: H, flags: .Minimizable})
+    g_Window = try Env.createWindow({
+        identifier: "pixel1",
+        title: "Pixel example - antialiasing comparison",
+        width: W,
+        height: H,
+        flags: .Minimizable})
     defer catch g_Window.close()
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer

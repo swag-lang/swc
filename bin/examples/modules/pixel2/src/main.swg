@@ -33,7 +33,11 @@ func loadFonts() fail
     let face = try Face.load(g_FontBytes.toSlice())
     g_Face = face
 
-    g_FontInfo = Format.toString("% % | % glyphs | % bytes", face.familyName, face.styleName, face.glyphCount, g_FontBytes.count)
+    g_FontInfo = Format.toString("% % | % glyphs | % bytes",
+                                 face.familyName,
+                                 face.styleName,
+                                 face.glyphCount,
+                                 g_FontBytes.count)
 
     g_TypeFace  = try TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace, 54)
@@ -100,7 +104,12 @@ func onResize(window: *Env.Window, width, height: s32)
 
 #main
 {
-    g_Window = try Env.createWindow({identifier: "pixel2", title: "Pixel TrueType example", width: W, height: H, flags: .Minimizable})
+    g_Window = try Env.createWindow({
+        identifier: "pixel2",
+        title: "Pixel TrueType example",
+        width: W,
+        height: H,
+        flags: .Minimizable})
     defer catch g_Window.close()
     try g_Window.setClientSize(W, H)
     g_Render  = &g_Renderer

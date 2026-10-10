@@ -1378,9 +1378,13 @@ namespace
             // it per reader when several read it - which is exactly the shape
             // a condition named once and used by three selects takes.
             MicroReg trackedBool = boolReg;
+            MicroInstrRef processedDefRef = MicroInstrRef::invalid();
+            const MicroInstrOperand* processedDefOps = nullptr;
             for (uint32_t hop = 0; defInst && hop < 4; ++hop)
             {
                 const MicroInstrOperand* stepOps = defInst->ops(operands);
+                processedDefRef                = defRef;
+                processedDefOps                = stepOps;
                 if (!stepOps)
                     break;
 
@@ -1408,7 +1412,7 @@ namespace
 
             if (defInst->op != MicroInstrOpcode::SetCondReg)
                 continue;
-            const MicroInstrOperand* setOps = defInst->ops(operands);
+            const MicroInstrOperand* setOps = processedDefRef == defRef ? processedDefOps : defInst->ops(operands);
             if (!setOps || setOps[0].reg != trackedBool)
                 continue;
 

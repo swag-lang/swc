@@ -297,12 +297,20 @@ void MicroRegisterAllocationPass::buildFixedIntervals(std::vector<LiveInterval>&
                     copiedLastUse                = ops[0].reg.isVirtualInt() && ops[1].reg == outPoolRegs[poolIndex] && ops[2].opBits == MicroOpBits::B64;
                     if (copiedLastUse)
                     {
-                        for (const uint32_t successor : controlFlowGraph_->successors(idx))
+                        const auto successors = controlFlowGraph_->successors(idx);
+                        if (successors.size() == 1)
                         {
-                            if (liveInConcreteBits_[static_cast<size_t>(successor) * concreteWordCount + wordIndex] & bitMask)
+                            copiedLastUse = !(liveInConcreteBits_[static_cast<size_t>(successors.front()) * concreteWordCount + wordIndex] & bitMask);
+                        }
+                        else if (successors.size() > 1)
+                        {
+                            for (const uint32_t successor : successors)
                             {
-                                copiedLastUse = false;
-                                break;
+                                if (liveInConcreteBits_[static_cast<size_t>(successor) * concreteWordCount + wordIndex] & bitMask)
+                                {
+                                    copiedLastUse = false;
+                                    break;
+                                }
                             }
                         }
                     }

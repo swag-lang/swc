@@ -55,13 +55,18 @@ func buildTransformCards(source: Image)
     setImageCard(&g_TransformCards[3], "Flip", "flip()", buildFlippedImage(source))
     setImageCard(&g_TransformCards[4], "Rotate 90", "rotated(.Clockwise90)", buildRotatedImage(source, .Clockwise90))
     setImageCard(&g_TransformCards[5], "Rotate 180", "rotated(.HalfTurn)", buildRotatedImage(source, .HalfTurn))
-    setImageCard(&g_TransformCards[6], "Rotate 270", "rotated(.Clockwise270)", buildRotatedImage(source, .Clockwise270))
+    setImageCard(&g_TransformCards[6],
+                 "Rotate 270",
+                 "rotated(.Clockwise270)",
+                 buildRotatedImage(source, .Clockwise270))
     setImageCard(&g_TransformCards[7], "Expand frame", "expand(30, 18, 30, 18)", buildExpandedImage(source))
 }
 
 func drawTransformPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel image transforms", "Page 3 : crop, mirror, flip, turn and expand done directly on image buffers.")
+    drawPageHeader(painter,
+                   "Pixel image transforms",
+                   "Page 3 : crop, mirror, flip, turn and expand done directly on image buffers.")
     for i in CardsPerPage do
         drawCard(painter, getCardRect(i), g_TransformCards[i])
 }

@@ -150,7 +150,11 @@ impl IWnd for MotionField
         {
             let font = .theme().createDefaultFont(14)
             let text = "Click anywhere. Click again before it lands."
-            painter.drawStringCenter(rect.horzCenter(), rect.vertCenter() + PuckSize + 26, text, font, colors.label_TextLight)
+            painter.drawStringCenter(rect.horzCenter(),
+                                     rect.vertCenter() + PuckSize + 26,
+                                     text,
+                                     font,
+                                     colors.label_TextLight)
         }
     }
 }

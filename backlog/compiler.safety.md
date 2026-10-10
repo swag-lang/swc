@@ -1,26 +1,47 @@
-### compiler.safety.026 — Reduce a suspected nested-owner release false positive
+# Safety Backlog
 
-- Recorded: 2026-10-07 10:42
-- Updated: 2026-10-10 15:46 — Move the unproven release-summary lead to the safety backlog.
-- Evidence: a discarded OpenGL/DirectComposition prototype released a separately allocated composition field from a by-value cleanup callee, then released its enclosing context. The compiler reported the context as already freed. Embedding the field avoided the report but changed the ownership shape; no standalone reproducer establishes whether the diagnostic is wrong.
-- Next: reduce a heap carrier with a separately allocated field, by-value cleanup, and subsequent carrier release; inspect whether the summary confuses the pointee with the enclosing allocation.
-- Complete when: a safety-suite case proves the diagnostic valid or protects the corrected ownership summary without GUI dependencies.
+What the language guarantees about memory, and where it stops guaranteeing.
 
-### compiler.safety.027 — A proof inside a removable assertion can outlive its runtime guard
+Four layers carry that today, and they are not interchangeable:
 
-- Recorded: 2026-09-15 12:47
-- Updated: 2026-10-10 15:46 — Move the removable-intrinsic proof question to the safety backlog.
-- Evidence: postfix non-null proof inside Swag.assert's argument survives semantic analysis when Swag.Safety(.Assert, false) or Release removes the assertion, so later code can lack the runtime guard that justified the proof. The same source currently relies on this behavior in 89 bin assertions.
-- Next: decide whether assert arguments contribute flow proofs; either reject their use there and compile every bin test source, or document the rule beside the existing assert precondition guidance.
-- Complete when: the rule is implemented or documented and a test shows the result with Assert safety disabled.
+| Layer | Spelling | On in `release` | Cost |
+| --- | --- | --- | --- |
+| Borrow rules | none — part of the language | yes | none |
+| Static sanity proofs | `#[Swag.Sanity]`, `buildCfg.sanityGuards` | yes | none |
+| Runtime guards | `#[Swag.Safety]`, `buildCfg.safetyGuards` | no | measured per guard |
+| Runtime poison | `.Lifecycle` half of `#[Swag.Safety]` | no | stores on abandoned storage |
 
-### compiler.safety.028 — Conditional operands cannot retain their own non-null proof
+The reference states the line between them
+([013_000](../bin/reference/modules/language/src/013_000_error_management_and_safety.swg),
+[013_004_borrowing.swg](../bin/reference/modules/language/src/013_004_borrowing.swg)): the borrow
+rules are the language and no attribute turns them off; everything else is tooling a caller can
+switch off, and a guarantee a caller can switch off is not a guarantee.
 
-- Recorded: 2026-09-15 12:47
-- Updated: 2026-10-10 15:46 — Move the conditional-flow proof limitation to the safety backlog.
-- Evidence: the right side of and/or, branches of ?:, the orelse fallback, and the tail of a ?. chain have no independent flow frame. Recording a postfix ! fact in the live frame could leak it beyond the conditional path, so sema currently ignores the proof; a later ! is not diagnosed as redundant and keeps its runtime guard.
-- Next: give each conditional operand a scoped frame, then measure the added sema cost and cover all four forms plus negative controls.
-- Complete when: each proof holds only through its conditional operand, with JIT and sema regression cases passing.
+The runtime guards are deliberately absent from `release`, and no entry here proposes putting one
+back by default. `release` is the configuration that costs nothing, a build that wants the guards
+turns them on — `buildCfg.safetyGuards`, or a target of its own — and a fix that adds an
+instruction to a guard-free build is not a fix. What the entries below ask for instead is more
+proof at compile time, where the cost is the compiler's rather than the program's.
+
+Measured against that line, the frame is in good shape and the heap is catching up. Escapes, view
+invalidation, iterator invalidation, definite initialization, non-null types and mandatory error
+handling are all enforced without a single annotation, and a value that owns a release now states
+no copy without being annotated either. The use-after-free proof reaches the storage a program
+actually keeps a pointer in — a parameter, an element of a local table, a field, a copy into
+another local — and survives an ordinary call: what a function never hands an address to, no callee
+can reassign. What is left on the heap side is the shape nothing marks as an owner at all, a
+release proven on only one path, storage whose address the function does hand over, a release
+reached through a field of a receiver, and the operations that forge a pointer out of nothing being
+spelled like ordinary code. The entries below are ordered from the most recently updated down.
+
+The fault-class entries use [bin/unittests/safety/corpus](../bin/unittests/safety/corpus):
+one file per CWE, a fault half that names the diagnostic it expects and a sound half that must
+stay silent. Unsafe gap examples are commented out and tagged with their owning entry; safe
+wrong-value probes may remain executable. Analysis, API, performance, and documentation entries
+also name their own evidence below; they do not all have a CWE reproducer. `rg "GAP " bin/unittests/safety/corpus`
+is the current scorecard.
+
+[README.md](README.md) defines the shared backlog conventions.
 
 ### compiler.safety.025 — The box-content release summary stops at the module boundary
 

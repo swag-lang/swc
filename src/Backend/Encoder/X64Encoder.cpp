@@ -4278,6 +4278,28 @@ void X64Encoder::encodeOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, Micro
         return;
     }
 
+    ///////////////////////////////////////////
+    // rorx r32/64, r/m, imm8 (VEX.LZ.F2.0F3A.W0/W1 F0 /r ib): a rotate by a constant that
+    // names its destination separately and leaves the flags alone. A left rotate is the right
+    // rotate by the complementary count.
+    if ((op == MicroOp::RotateRight || op == MicroOp::RotateLeft) && regDst.isInt())
+    {
+        SWC_ASSERT(regSrc.isInt());
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+        const uint64_t width  = opBits == MicroOpBits::B64 ? 64 : 32;
+        const uint64_t count  = (op == MicroOp::RotateRight ? value : width - (value & (width - 1))) & (width - 1);
+        const auto     x64Dst = microRegToX64Reg(regDst);
+        const auto     x64Src = microRegToX64Reg(regSrc);
+
+        store_.pushU8(0xC4);
+        store_.pushU8(static_cast<uint8_t>((isExtendedReg(x64Dst) ? 0 : 0x80) | 0x40 | (isExtendedReg(x64Src) ? 0 : 0x20) | VEX_MAP_0F3A));
+        store_.pushU8(static_cast<uint8_t>((opBits == MicroOpBits::B64 ? 0x80 : 0x00) | (0x0F << 3) | 0b11));
+        emitCpuOp(store_, 0xF0);
+        emitModRm(store_, regDst, regSrc);
+        emitValue(store_, count, MicroOpBits::B8);
+        return;
+    }
+
     SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
     SWC_ASSERT(value <= 0xFF);
 

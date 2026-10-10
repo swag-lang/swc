@@ -1350,6 +1350,88 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A rotate by a constant names its destination separately too:
+    //
+    //     mov r8d, r13d ; ror r8d, 6    ->    rorx r8d, r13d, 6
+    //
+    // The copy the two-address form needs goes, as in every SHA-256 round clang
+    // compiles for a BMI2 target. RORX leaves the flags alone, so the rotate's
+    // flags must be dead.
+    bool tryFoldCopyIntoRotateImm(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        constexpr uint32_t K_MAX_SCAN = 8;
+
+        if (copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+        const MicroOpBits copyBits = copyOps[2].opBits;
+        if (copyBits != MicroOpBits::B32 && copyBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg dst = copyOps[0].reg;
+        const MicroReg src = copyOps[1].reg;
+        if (!dst.isInt() || !src.isInt() || dst == src || ctx.isPrivateFrameBase(dst) || ctx.isPrivateFrameBase(src))
+            return false;
+
+        // The rotate that consumes the copy, with nothing in between that touches either register.
+        MicroInstrRef opRef = ctx.nextRef(copyRef);
+        for (uint32_t step = 0;; ++step)
+        {
+            if (step == K_MAX_SCAN)
+                return false;
+            const MicroInstr* candidate = ctx.instruction(opRef);
+            if (!candidate || candidate->op == MicroInstrOpcode::Label)
+                return false;
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegImm && candidate->numOperands >= 4)
+            {
+                const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
+                if (candidateOps && candidateOps[0].reg == dst)
+                    break;
+            }
+
+            const MicroInstrFlags flags = MicroInstr::info(candidate->op).flags;
+            if (flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg == dst)
+                    return false;
+            }
+            opRef = ctx.nextRef(opRef);
+        }
+
+        if (ctx.isClaimed(opRef))
+            return false;
+        const MicroInstrOperand* rotOps = ctx.operandsFor(opRef);
+        if (!rotOps || (rotOps[2].microOp != MicroOp::RotateRight && rotOps[2].microOp != MicroOp::RotateLeft) ||
+            rotOps[1].opBits != copyBits || rotOps[3].hasWideImmediateValue())
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder))
+            return false;
+        if (!ctx.claimAll({copyRef, opRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        newOps[0].reg               = dst;
+        newOps[1].reg               = src;
+        newOps[2].opBits            = copyBits;
+        newOps[3].microOp           = rotOps[2].microOp;
+        newOps[4].valueU64          = rotOps[3].valueU64;
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegImm, std::span{newOps, 5}, true);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // The result of a multiply by a constant can be named where it is wanted,
     // the other way round:
     //

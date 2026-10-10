@@ -1811,13 +1811,9 @@ namespace
             return *sites;
         };
 
+        // Site ordinals are appended during an ascending layout walk, so both endpoints bound the list.
         const auto allWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
-            for (const uint32_t ordinal : list)
-            {
-                if (ordinal < lo || ordinal >= hi)
-                    return false;
-            }
-            return true;
+            return list.empty() || (list.front() >= lo && list.back() < hi);
         };
         const auto noneWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
             for (const uint32_t ordinal : list)

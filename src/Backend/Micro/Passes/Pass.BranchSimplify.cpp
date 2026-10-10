@@ -4191,10 +4191,13 @@ namespace
                 continue;
             const MicroInstrRef setRef = storage.findPreviousInstructionRef(copyRef);
             const MicroInstr*   set    = setRef.isValid() ? storage.ptr(setRef) : nullptr;
-            if (!set || set->op != MicroInstrOpcode::SetCondReg || set->ops(operands)[0].reg != copyOps[1].reg)
+            if (!set || set->op != MicroInstrOpcode::SetCondReg)
+                continue;
+            const MicroInstrOperand* setOps = set->ops(operands);
+            if (!setOps || setOps[0].reg != copyOps[1].reg)
                 continue;
 
-            const MicroCond leftCond = set->ops(operands)[1].cpuCond;
+            const MicroCond leftCond = setOps[1].cpuCond;
             MicroCond       inverted = MicroCond::Unconditional;
             if (!MicroPassHelpers::invertCondition(inverted, leftCond))
                 continue;

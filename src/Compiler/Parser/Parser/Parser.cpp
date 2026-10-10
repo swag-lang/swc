@@ -1,13 +1,42 @@
 #include "pch.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    std::string_view autoInlineCallName(const Ast& ast, AstNodeRef nodeRef)
+    // A function or callee name with its content hash. An identifier token carries the hash the
+    // lexer already computed, so the module-wide walk below keys its tables without hashing the
+    // bytes of every name it meets again.
+    struct AutoInlineName
+    {
+        std::string_view text;
+        uint32_t         hash = 0;
+
+        bool empty() const noexcept { return text.empty(); }
+        bool operator==(const AutoInlineName& other) const noexcept { return text == other.text; }
+    };
+
+    struct AutoInlineNameHash
+    {
+        size_t operator()(const AutoInlineName& name) const noexcept { return name.hash; }
+    };
+
+    using AutoInlineNameSet = std::unordered_set<AutoInlineName, AutoInlineNameHash>;
+    template<typename V>
+    using AutoInlineNameMap = std::unordered_map<AutoInlineName, V, AutoInlineNameHash>;
+
+    AutoInlineName autoInlineName(const SourceView& srcView, const TokenRef tokRef)
+    {
+        const Token&           token = srcView.token(tokRef);
+        const std::string_view text  = token.string(srcView);
+        return {.text = text, .hash = token.id == TokenId::Identifier ? token.crc(srcView) : Math::hash(text)};
+    }
+
+    AutoInlineName autoInlineCallName(const Ast& ast, AstNodeRef nodeRef)
     {
         while (nodeRef.isValid() && ast.hasNode(nodeRef))
         {
@@ -18,7 +47,7 @@ namespace
                 continue;
             }
             if (node.is(AstNodeId::Identifier))
-                return ast.srcView().tokenString(node.tokRef());
+                return autoInlineName(ast.srcView(), node.tokRef());
             if (const auto* member = node.safeCast<AstMemberAccessExpr>())
             {
                 nodeRef = member->nodeRightRef;
@@ -56,10 +85,10 @@ namespace
         {
             if (decl.tokNameRef.isInvalid())
                 return K_NO_FUNCTION;
-            return indexOf(ast.srcView().tokenString(decl.tokNameRef));
+            return indexOf(autoInlineName(ast.srcView(), decl.tokNameRef));
         }
 
-        void addCall(const uint32_t sourceIndex, const std::string_view targetName)
+        void addCall(const uint32_t sourceIndex, const AutoInlineName& targetName)
         {
             const uint32_t targetIndex = indexOf(targetName);
             if (std::ranges::find(edges_[sourceIndex], targetIndex) == edges_[sourceIndex].end())
@@ -79,7 +108,7 @@ namespace
             }
         }
 
-        void findBlockedCalls(const std::unordered_set<std::string_view>& metaNames, const std::unordered_set<std::string_view>* unsupportedNames)
+        void findBlockedCalls(const AutoInlineNameSet& metaNames, const AutoInlineNameSet* unsupportedNames)
         {
             blockedCalls_.clear();
             if (metaNames.empty() && (!unsupportedNames || unsupportedNames->empty()))
@@ -107,7 +136,7 @@ namespace
             }
         }
 
-        InlineConstraint inlineConstraint(const std::string_view name) const
+        InlineConstraint inlineConstraint(const AutoInlineName& name) const
         {
             const auto it = nameIndices_.find(name);
             if (it == nameIndices_.end())
@@ -122,7 +151,7 @@ namespace
         static constexpr uint8_t BLOCKED_TARGET = 1;
         static constexpr uint8_t BLOCKED_CALLER = 2;
 
-        uint32_t indexOf(const std::string_view name)
+        uint32_t indexOf(const AutoInlineName& name)
         {
             const auto [it, inserted] = nameIndices_.try_emplace(name, static_cast<uint32_t>(edges_.size()));
             if (inserted)
@@ -166,7 +195,7 @@ namespace
             }
         }
 
-        std::unordered_map<std::string_view, uint32_t> nameIndices_;
+        AutoInlineNameMap<uint32_t>                    nameIndices_;
         std::vector<SmallVector<uint32_t>>             edges_;
         std::vector<uint32_t>                          indices_;
         std::vector<uint32_t>                          lowLinks_;
@@ -193,7 +222,7 @@ namespace
         });
     }
 
-    void collectMetaFunctionName(const Ast& ast, const AstNode& node, std::unordered_set<std::string_view>& outNames)
+    void collectMetaFunctionName(const Ast& ast, const AstNode& node, AutoInlineNameSet& outNames)
     {
         const auto* attributes = node.safeCast<AstAttributeList>();
         if (!attributes || attributes->nodeBodyRef.isInvalid() || !ast.hasNode(attributes->nodeBodyRef))
@@ -213,10 +242,10 @@ namespace
             if (!attribute)
                 continue;
 
-            const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef);
+            const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef).text;
             if (attributeName == "Macro" || attributeName == "Mixin")
             {
-                outNames.insert(ast.srcView().tokenString(decl->tokNameRef));
+                outNames.insert(autoInlineName(ast.srcView(), decl->tokNameRef));
                 break;
             }
         }
@@ -225,12 +254,12 @@ namespace
 
 void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts)
 {
-    std::unordered_set<std::string_view>                                 metaFunctionNames;
-    std::unordered_map<std::string_view, uint32_t>                       callCounts;
-    std::unordered_map<std::string_view, uint32_t>                       hotCallCounts;
-    std::unordered_map<std::string_view, uint32_t>                       useCounts;
-    std::unordered_map<const Ast*, AutoInlineCallGraph>                  callGraphs;
-    std::unordered_map<const Ast*, std::unordered_set<std::string_view>> unsupportedFunctionNames;
+    AutoInlineNameSet                                     metaFunctionNames;
+    AutoInlineNameMap<uint32_t>                           callCounts;
+    AutoInlineNameMap<uint32_t>                           hotCallCounts;
+    AutoInlineNameMap<uint32_t>                           useCounts;
+    std::unordered_map<const Ast*, AutoInlineCallGraph>   callGraphs;
+    std::unordered_map<const Ast*, AutoInlineNameSet>     unsupportedFunctionNames;
     // Every function declaration this walk meets, per Ast. The decisions below are taken
     // declaration by declaration, so they read this list instead of walking each tree again.
     std::vector<std::vector<AstNodeRef>> functionDecls(moduleAsts.size());
@@ -276,16 +305,16 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 ownIndex       = callGraph->addFunction(*ast, *decl);
                 ownBodyRef     = decl->nodeBodyRef;
                 if (decl->autoInlineCost == UINT32_MAX && decl->tokNameRef.isValid())
-                    unsupportedFunctionNames[ast].insert(ast->srcView().tokenString(decl->tokNameRef));
+                    unsupportedFunctionNames[ast].insert(autoInlineName(ast->srcView(), decl->tokNameRef));
             }
 
             if (node.is(AstNodeId::Identifier))
-                useCounts[ast->srcView().tokenString(node.tokRef())]++;
+                useCounts[autoInlineName(ast->srcView(), node.tokRef())]++;
 
             const auto* call = node.safeCast<AstCallExpr>();
             if (call)
             {
-                const std::string_view name = autoInlineCallName(*ast, call->nodeExprRef);
+                const AutoInlineName name = autoInlineCallName(*ast, call->nodeExprRef);
                 if (!name.empty())
                 {
                     callCounts[name]++;
@@ -330,7 +359,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             if (!decl || decl->autoInlineCost > K_AUTO_INLINE_LAST_CALL_COST || decl->tokNameRef.isInvalid())
                 continue;
 
-            const std::string_view name        = ast->srcView().tokenString(decl->tokNameRef);
+            const AutoInlineName   name        = autoInlineName(ast->srcView(), decl->tokNameRef);
             auto*                  mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
             const bool             bodyHasCall = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
             // Calls to macros and mixins keep their existing expansion context. Re-sema of an

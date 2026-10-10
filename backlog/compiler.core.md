@@ -5,6 +5,91 @@ This backlog covers the compiler front end, back end, and workspace build engine
 Items are ordered from the most recently updated down. Every completion condition is intended to be testable. Measurements below are a dated baseline, not permanent product claims.
 
 
+### compiler.core.001 — Dependencies cross the module boundary as regenerated source
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-10-10 15:50 — Keep the interface contract and one dated import-cost baseline.
+- Evidence: a September 2026 Prism snippet spent about 172 ms lexing, parsing, and analyzing Core's generated API (115,000 tokens); this fixed cost dominates the user's source.
+- Next: replace generated dependency API source with a versioned binary interface that supports lazy symbol lookup and preserves exported types, constants, attributes, ABI, and required bodies/metadata.
+- Complete when: workspace imports skip API source parsing, the human-readable export remains available, all relevant inputs invalidate the interface, and fresh/reused imports produce identical diagnostics and artifacts.
+- Related: compiler.core.002, compiler.core.006, compiler.language.service.001, compiler.language.service.003, compiler.core.030.
+
+### compiler.core.002 — Front-end invalidation is module-wide
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-10-10 15:50 — Keep the per-file cache key and observable edit behavior.
+- Intent: persist lexical, parsed, and semantic state per source, keyed by content, relevant configuration, and imported public symbols actually observed.
+- Evidence: core_touch still rebuilds every file of the module.
+- Complete when: private edits reanalyze only affected files; public API, file-set, configuration, and compiler changes invalidate the right dependents; clean and incremental workspace results match.
+- Related: compiler.core.001, compiler.core.003, compiler.core.004, compiler.core.016.
+
+### compiler.core.006 — Every process rebuilds the prelude state
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-10-10 15:50 — Keep prelude reuse within the shared module-interface design.
+- Evidence: a September 2026 Prism snippet spent about 52 ms analyzing the unchanged runtime prelude after process startup and module setup.
+- Intent: reuse the prelude through the same module-interface mechanism as dependencies; do not add a separate prelude cache.
+- Complete when: warm builds and scripts load the interface without lexing/parsing/sema, source/compiler/target/configuration changes invalidate it, and fresh/reused outputs match.
+- Related: compiler.core.001, compiler.core.004, compiler.core.016.
+
+### compiler.core.016 — Tool scripts recompile on every invocation
+
+- Recorded: 2026-08-09 20:16
+- Updated: 2026-10-10 15:50 — Reduce the script cache contract to its inputs and process behavior.
+- Intent: persist compiled scripts using a key over loaded sources, imported public interfaces, compiler version, target, and relevant configuration.
+- Complete when: unchanged runs skip compilation; source, load, import, target, or configuration changes invalidate the cache; fresh and cached launches preserve diagnostics, arguments, environment, output, exit code, and concurrent/corrupt-cache behavior.
+- Related: compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
+
+### compiler.core.079 — Tuple values never drop the owning fields they hold
+
+- Recorded: 2026-10-07 20:33
+- Updated: 2026-10-10 15:49 — Retain the ownership bug and the two producer cases.
+- Evidence: tuples have no lifecycle handling in CodeGen. A tuple field initialized by a casted owning value is adopted but never dropped; a field initialized by a call result can be dropped as a temporary while the tuple retains it. Both leak or leave dangling ownership.
+- Next: define field-wise tuple lifecycle behavior or reject owning fields, then cover both initializers in native tests.
+- Complete when: the owning field drops exactly once or the declaration is rejected with a diagnostic.
+
+### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
+
+- Recorded: 2026-08-12 18:01
+- Updated: 2026-10-10 15:49 — Keep the remaining plain-TLS leak after fiber-slot cleanup.
+- Evidence: DevMode poisoning exposed a fiber-local cleanup callback reading a destroyed compiler instance. JIT FlsAlloc/FlsFree calls now use host wrappers that run owned callbacks before instance destruction. Plain TlsAlloc indexes have no callback and remain allocated for the process; an allocator-using instance takes at least one.
+- Next: count TLS indexes across a long workspace run; if counts scale with compiler instances, track and free their indexes at destruction.
+- Complete when: repeated compiler-instance creation keeps TLS usage bounded and workspace tests pass under poisoning.
+
+### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
+
+- Recorded: 2026-09-17 08:42
+- Updated: 2026-10-10 15:49 — Keep the remaining linked-debug-archive check.
+- Evidence: TypeTableBuilder now hash-conses identical CodeView records and points structures to forward declarations. A 60-structure probe reduced TPI records from 1,253 to 913, and each type kept one forward declaration and one definition; DebugInfo and PDB tests passed.
+- Next: build Swag Scope with debug archives and compare linked PDB size and structure records by name.
+- Complete when: linked programs keep one definition per distinct layout, focused debug tests pass, and the PDB shrinks.
+
+### compiler.core.075 — Aligned node references collapse semantic metadata partitions
+
+- Recorded: 2026-10-03 16:28
+- Updated: 2026-10-10 15:49 — Keep the measured memory cost and the remaining storage-design question.
+- Evidence: node references are aligned, so selecting 16 payload shards with reference modulo 16 uses only two. Hashing the reference distributed access and preserved outputs, but raised peak committed memory by 17% for Core and 3% for GUI; timing was noisy and a single-worker Core build slowed about 6%. The experiment was not retained.
+- Next: separate sparse side-table distribution from payload-page allocation, then measure serial and parallel builds with bounded memory cost.
+- Complete when: concurrent publication/readback stays correct and the revised layout has a repeatable compile-time benefit.
+
+### compiler.core.057 — The lazy-body completion race has no deterministic regression
+
+- Recorded: 2026-09-24 14:07
+- Updated: 2026-10-10 15:49 — Retain the fixed ownership rule and the missing stress-test seam.
+- Evidence: semaPostNode could complete a lazy body while its runner was starting, then publish it before symbol resolution finished. The declaration walk now leaves delegated bodies to the runner. A temporary 3 ms delay exposed six premature completions before the fix; three delayed and ten normal post-fix runs passed.
+- Boundary: the race window is only a few instructions, so ordinary source and C++ tests cannot place another task there.
+- Next: add a DevMode stress hook that delays lazy-body post-node handling; check whether compiler.core.047's imported generic binding failure shares the race.
+- Complete when: the deterministic stress case fails without the ownership fix and passes with it.
+
+### compiler.core.038 — Measure the remaining semantic frame construction cost
+
+- Recorded: 2026-09-09 15:04
+- Updated: 2026-10-10 15:49 — Keep current frame members and defer changes until they are measured.
+- Evidence: Sema now copies frames only when entering syntax, compile-time, or generated-top-level context; attribute safety/sanity overrides use masks. Frames still own namespace, binding, borrow, hidden-symbol, and narrowing collections, but their current construction/destruction cost is unknown. A previous copy-only change showed no paired timing gain and predates these reductions.
+- Next: profile current frame pushes, populated members, and constructor/destructor cost on a large file and an imported-Core snippet; change only a measured hotspot.
+- Complete when: a current paired measurement identifies a worthwhile change or rules out the remaining cost.
+- Related: compiler.core.001, compiler.core.005, compiler.core.006.
+
 ### compiler.core.069 — Measure where a module build loses its workers beyond six cores
 
 - Recorded: 2026-10-01 07:35
@@ -190,222 +275,6 @@ Items are ordered from the most recently updated down. Every completion conditio
 - Next: reduce and attribute per-worker retained scratch without reducing parallelism; share JIT code pages when patching no longer requires page-sized allocations.
 - Complete when: Core and hello builds stay below 250 MB and 40 MB on the campaign host, workloads remain within twice the best comparable implementation or record a reviewed exception, and campaign thresholds and variance are explicit.
 - Related: compiler.core.004, compiler.core.007, runtime.allocator.017.
-
-### compiler.core.079 — Tuple values never drop the owning fields they hold
-
-- Recorded: 2026-10-07 20:33
-- Found while: fixing the ownership of values an implicit `opSet` builds inside literal fields.
-- Evidence: a struct-literal type (a tuple) has no lifecycle: `resolveEffectiveLifecycleFunction`
-  and `tryBuildLifecycleActionRec` in `CodeGen.cpp` only answer for structs and arrays, so
-  `functionHasImplicitDrops` and `registerImplicitDrop` see nothing to drop in a tuple local.
-  With a field type that counts its `opDrop` calls, `let t = {owned: cast(Owned, name())}`
-  adopts the value with `opPostMove` and never drops it (one set, zero drops), and
-  `let t = {owned: mk()}` with `mk()->Owned` moves the call result into the tuple while the
-  call temporary is dropped at the end of the statement, so the tuple keeps a released value.
-  Every owning type held in a tuple local, such as `Core.String`, leaks or dangles the same way.
-- Next: decide whether a tuple owns its fields like a struct (field-wise drop, post-copy and
-  post-move derived from the field types) or rejects owning field types; then implement that
-  rule in the lifecycle resolution and cover both producers above in the `native` suite.
-- Complete when: a tuple local holding an owning field drops it exactly once at scope end, or
-  the declaration is rejected with a diagnostic, and the two reproducers above are suite tests.
-
-### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
-
-- Recorded: 2026-08-12 18:01
-- Updated: 2026-10-06 16:12 — Destroyed instances are now poisoned and release their fiber-local slots; thread-local indexes remain.
-- Area: compiler, JIT runtime hosting
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
-  --rebuild`: imported native modules kept `Swag.processInfos().args` slices into the storage of a
-  destroyed dependency-build instance. That storage is interned for the process since.
-- Done (2026-10-06): a DevMode `~CompilerInstance` fills its global zero, initialized and compiler
-  segments with `0xCD`, so a stale reference into a destroyed instance reads the pattern instead
-  of plausible old bytes. The first thing it caught was `retireAllocatorThreadHeap`, the cleanup
-  callback the JIT-compiled runtime allocator registers through `FlsAlloc`: Windows ran it at
-  thread exit, after the instance was gone, and it read `Swag.g_AllocatorThreadHeapTlsId` from the
-  dead segment (`import_core_without_using.swgs` exited with a failure code after reporting
-  `clean`). JIT calls to `FlsAlloc` and `FlsFree` now resolve to host wrappers that record each
-  slot and its callback, and an instance frees the slots whose callback is its own JIT code before
-  it is destroyed; `FlsFree` runs the callbacks while their code and data are still valid.
-- What remains: JIT code also takes plain thread-local indexes through `TlsAlloc` (the allocator's
-  fast heap slot, for example). They have no callback, so nothing reads them after the instance
-  dies, but each instance that ran its allocator keeps one index allocated for the rest of the
-  process, and Windows has 1,088 of them.
-- Next: count the indexes a long workspace run (`tools/std.swgs dm test`) leaves allocated, and if
-  the count grows with the number of instances, record the `TlsAlloc` indexes per instance the
-  same way and free them at destruction.
-- Complete when: a process that creates and destroys many compiler instances keeps a bounded
-  number of thread-local indexes, with the workspace suite green under the poisoning.
-
-### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
-
-- Recorded: 2026-09-17 08:42
-- Updated: 2026-10-06 14:55 — One type table no longer repeats a record; a linked program remains to be measured.
-- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
-- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) wrote a 12.2 MB PDB
-  whose TPI stream held 38,154 records, 5,178 of them `LF_STRUCTURE`, with `Surface` defined 28
-  times, `interface` 26, `Wnd` 24 and `Application` 22.
-- Done (2026-10-06): `TypeTableBuilder` now hash-conses every record it emits, so a record
-  identical to an earlier one returns the earlier index, and a pointer to a structure names its
-  forward declaration, as MSVC does, so a structure's records no longer depend on whether its
-  definition was complete when they were emitted. On a 60-structure probe compiled with
-  `--debug`, the TPI stream went from 1,253 to 913 records (procedures 296 to 200, argument
-  lists 296 to 154), `interface` from five structure records to one and `string` from four to
-  one; each structure keeps one forward declaration and one definition. The `DebugInfo_*` and
-  `Pdb_*` tests pass.
-- What remains: `LinkDebugMerger` already keeps one copy of each record once remapped, so the
-  copies archive members brought came from records that differed only by which index a pointer
-  named. With pointers now naming forward declarations those records should coincide, but no
-  linked `--debug` program with debug archives has been measured yet.
-- Next: build swagscope with `--debug` before and after this change and compare the PDB size,
-  the TPI record count and the number of `LF_STRUCTURE` records per name.
-- Complete when: every structure has one definition per distinct layout in a linked PDB, the
-  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
-
-### compiler.core.075 — Aligned node references collapse semantic metadata partitions
-
-- Recorded: 2026-10-03 16:28
-- Evidence: `NodePayload` selects each of its 16 shards with `nodeRef.get() % 16`.
-  The reference contains an AST byte offset aligned to at least eight bytes, so only
-  two shards can receive payload storage or side-table entries. Readers of a sparse
-  side table also lose most of the intended empty-shard early exits.
-- Experiment: replacing all 22 selectors with `Math::hash(nodeRef.get()) % 16`
-  passed concurrent publication/readback coverage, both JIT suites, and semantic
-  tests; all 116 benchmark functions retained identical normalized pre-emit code.
-  Five paired six-worker Release rebuilds increased peak committed memory by a
-  median 17% on `core` and 3% on `gui`. Wall-time medians moved by +3% and -6%,
-  respectively, on a machine with substantial background-load variation. A quieter
-  single-worker pair also made `core` about 6% slower. The change was not retained:
-  distributing every file's small payloads over more 16 KiB pages has a definite
-  cost, without a sufficiently clear overall compilation-time win.
-- Next: separate sparse side-table distribution from payload-page allocation, or
-  reduce initial storage without reducing the supported contiguous symbol-list
-  size. Compare one-worker and parallel rebuilds on both modules under stable load.
-- Complete when: the partitioning improvement has concurrent read/write coverage
-  and a measured compilation-time benefit with its memory cost explicitly bounded.
-
-### compiler.core.057 — The lazy-body completion race has no deterministic regression
-
-- Recorded: 2026-09-24 14:07
-- Updated: 2026-09-29 14:26 — Root cause fixed; only the regression seam remains.
-- Area: compiler/semantic analysis, lazy bodies of generic-instance, imported and runtime functions.
-- Evidence: `Core.HashTable.find` (`hashtable.swg:594`, `.tryFind(key)`) intermittently reached
-  `resolveSelectedCallFunction` with no bound function symbol, once in a six-worker
-  `std/core --rebuild` comparison on 2026-09-24 and once in
-  `tools/std.swgs dm test core -bc release` on 2026-09-29. The declaration walk that hands a
-  body to the lazy runner could still complete the function in `AstFunctionDecl::semaPostNode`:
-  it read `LazyBodyRunning` twice, and a runner starting between the two reads made the walk
-  publish the function and schedule its code generation while the runner was still resolving
-  the body. `semaPostNode` now leaves a delegated body to its runner. A temporary 3 ms delay
-  between the two reads made one core release test report six premature completions
-  (`Core.Array.grow`, `Swag.panic`, `Core.HashTable.tablePtr`, `__ftoa`) and stop on a missing
-  identifier symbol in code generation; with the fix, three delayed runs and ten undelayed runs
-  passed with none.
-- Why no suite test: the failure needs another task to start the lazy run inside a window of a
-  few instructions in the declaration walk. No suite source or C++ test can place a thread there.
-- Next: add a DevMode scheduling-stress option that delays the declaration walk's post-node
-  when its function has a lazy body, and run `tools/std.swgs dm test core -bc release` with it
-  from the `cpp` or `workspace` campaign. Check whether `compiler.core.047` (a generic local
-  defined twice in `HashTable`) reproduces under the same stress before attributing it here.
-- Complete when: a repeatable test fails without the post-node ownership check and passes with it.
-
-### compiler.core.038 — Measure the remaining semantic frame construction cost
-
-- Recorded: 2026-09-09 15:04
-- Updated: 2026-09-14 06:24 — narrowed the investigation after conditional frame copies and compact safety state landed
-- Historical evidence: Release 0.1.425 pushed 41,573 frames for a 22,800-line file and
-  259,030 for a snippet importing `core`; `SemaFrame` then occupied 1,376 bytes. Removing
-  one copy at 42 push sites was tried and reverted after three paired runs measured
-  100.0%, 102.6%, and 103.8% of baseline processor time. The earlier attribute-list shrink
-  had removed non-trivial string-vector construction and destruction, not just copy bytes.
-  Those counts and sizes describe that build, not the current implementation.
-- Current evidence: `Sema::preNode` now copies a frame only when a node introduces syntax,
-  compiler-evaluation, or generated-top-level context, directly into the scoped destination.
-  `AttributeList` now summarizes sanity and runtime-safety overrides with masks instead of
-  copying override histories (`ab595100b`, `55a30fbbf`). `SemaFrame` still owns non-trivial
-  collections for namespaces, bindings, iteration borrows, hidden symbols, and narrowing
-  facts, and `AttributeList::attributes` still stores attribute instances. The
-  [September 13 report](../bench/results/compilation/20260913-sema-codegen/README.md)
-  records the implemented reductions and their validation; it does not establish how much
-  these remaining members cost or attribute a timing gain to this entry alone.
-- Next: remeasure frame-push counts, populated-member frequency, and constructor/destructor
-  samples on the current compiler for both original workload shapes. Only select a member
-  for deferred storage or a call site for reuse if that measurement shows a material cost;
-  the reverted copy-only experiment is not evidence that the current cost is zero.
-- Complete when: current measurements either identify a bounded, worthwhile change with a
-  reproducible A/B comparison, or show that the residual cost does not justify further work.
-- Related: compiler.core.001, compiler.core.005, compiler.core.006.
-
-### compiler.core.006 — Every process rebuilds the prelude state
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-09 12:34 — remeasured on 0.1.422 against the Swag Prism edit loop
-
-**Evidence.** On 2026-09-05 (Release 0.1.369, six worker cores, quiet machine): `swc help` 34 ms, `swc syntax` on an empty file 35 ms, `swc sema` on the same 165 ms. The prelude is 14 files and 32 948 tokens; its semantic pass, including the JIT run compiler.core.030 describes, is what separates the last two numbers, and every module setup used to pay it once more until the setup cache of 0.1.367 kept the result.
-
-**Evidence (2026-09-09, Release 0.1.422, twelve workers).** Measured against the Swag Prism edit loop, which compiles one snippet per keystroke: a snippet module that imports nothing takes 116 ms, of which 16 ms is process start and 48 ms is lowering the runtime (compiler.core.030). The remaining 52 ms is this entry — the prelude analyzed again for a snippet that never changes it.
-
-**Intent.** Serialize and reuse the prelude through the same module-interface mechanism as ordinary dependencies, rather than maintaining a special prelude cache.
-
-**Complete when.**
-
-- A warm hello-world build and a warm script launch load the prelude interface without lexing, parsing, or semantically rebuilding the prelude.
-- Prelude source, compiler version, target, and relevant configuration changes invalidate the interface.
-- Fresh and reused prelude paths produce identical diagnostics and artifacts.
-- The compiler.core.004 campaign demonstrates the reduced fixed startup floor.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.016.
-
-### compiler.core.001 — Dependencies cross the module boundary as regenerated source
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-09 12:21 — measured what the regenerated API costs an interactive consumer
-
-**Evidence.** Swag Prism compiles one snippet per keystroke through a `swc build`, and on 2026-09-09 (Release 0.1.421, quiet machine, minimum of nine interleaved runs) that compilation cost 294 ms of which the user's code was 1 ms: a five-line snippet took 400 ms and a 1 400-line one 421 ms. The fixed cost decomposes into 17 ms of process start, 32 ms for the runtime prelude, 14 ms for the module setup, 60 ms to lower and link the runtime, and **172 ms to lex, parse, and analyze `core`'s generated API again** — 32 files and 115 000 tokens, on every keystroke. The heavier viewers pay the same cost scaled by their dependency: `pixel` 248 000 tokens and 672 ms, `gui` 365 000 tokens and 986 ms. A binary module interface is what removes that term; nothing else in the budget is large enough to reach a realtime edit loop.
-
-**Intent.** Replace generated dependency API source with a versioned binary module interface. The interface must preserve exported symbols, types, constants, attributes, ABI information, and any bodies or metadata required by downstream optimization, while allowing lazy lookup by symbol.
-
-**Complete when.**
-
-- Workspace imports no longer add generated API `.swg` files to the lexer and parser.
-- `--export-api-dir` still emits a human-readable `.swg` representation for inspection and tooling.
-- Cache invalidation covers compiler version, build configuration, public declarations, exported constants, ABI-relevant attributes, and serialized inlinable bodies.
-- Workspace tests prove that fresh and reused interfaces produce identical diagnostics and artifacts.
-- One snippet compilation that imports `core` no longer spends its time in the front end of that import.
-
-**Related:** compiler.core.002, compiler.core.006, compiler.language.service.001, compiler.language.service.003, compiler.core.030.
-
-### compiler.core.002 — Front-end invalidation is module-wide
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-05 22:11 — git: Measure the edit-build loop in the benchmark campaign
-
-**Intent.** Persist lexical, parsed, and semantic state per source file. Cache keys must include the source content, relevant build configuration, and fingerprints of imported public symbols actually observed by the file.
-
-**Complete when.**
-
-- Editing a private body reanalyzes only the changed file and its semantic dependents.
-- Changing a public signature invalidates every consumer that observed it.
-- Adding, removing, or renaming a file, changing relevant configuration, and changing compiler versions invalidate the correct state.
-- The compiler.core.004 `core_touch` workload lands far below `core_rebuild`, which today it does not: one saved file rebuilds every file of the module.
-- Clean and incremental workspace builds are covered by equivalent-result tests.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.003, compiler.core.016.
-
-### compiler.core.016 — Tool scripts recompile on every invocation
-
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-
-**Intent.** Persist compiled script artifacts using a dependency-complete key over loaded source files, imported public interfaces, compiler version, target, and relevant build configuration.
-
-**Complete when.**
-
-- A second unchanged invocation skips script lexing, parsing, semantic analysis, and code generation before launching the cached artifact.
-- Changes in the main script, `#load` inputs, imported public APIs, compiler version, target, or relevant configuration invalidate the artifact.
-- Cached and fresh paths preserve diagnostics, forwarded arguments, environment handling, output, and exit code.
-- Tests cover direct source changes, transitive loads, imports, configuration changes, corrupt entries, and concurrent cache population.
-
-**Related:** compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
 
 ## Deliberately out of scope
 

@@ -35,7 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-10 15:48 |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-10 15:50 |
 | [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-10 15:46 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-10 15:46 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-09 17:16 |

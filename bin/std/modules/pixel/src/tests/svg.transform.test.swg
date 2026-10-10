@@ -76,7 +76,6 @@ private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY
     // A rounded rectangle keeps its area under a quarter turn, including its corners. The curves
     // are written out rather than reduced to an axis-aligned stand-in. Because the source and
     // rotated forms use different primitives, their areas agree within a few pixels, not exactly.
-    // within the handful of pixels that difference is worth, not to the pixel.
     let plain   = inkBounds("<svg viewBox='0 0 100 100'><rect x='20' y='30' width='60' height='40' rx='10' ry='10' fill='#000'/></svg>")
     let rotated = inkBounds("<svg viewBox='0 0 100 100'><g transform='rotate(90 50 50)'><rect x='20' y='30' width='60' height='40' rx='10' ry='10' fill='#000'/></g></svg>")
     Swag.assert(rotated.minX == 30 and rotated.maxX == 69)

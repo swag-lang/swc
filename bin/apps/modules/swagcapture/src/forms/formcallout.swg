@@ -178,7 +178,7 @@ impl IForm for FormCallout
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = (catch cast(*FormCallout?, ptr))
+        let other = catch cast(*FormCallout?, ptr)
         if not other do
             return false
         return .isSameBase(ptr) and

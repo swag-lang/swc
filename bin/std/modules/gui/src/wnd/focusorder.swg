@@ -252,7 +252,7 @@ private impl FocusOrder
     // checked, and the arrow keys move the selection inside it.
     func groupRepresentative(wnd: *Wnd)->*Wnd?
     {
-        let radio = (catch cast(*RadioButton?, wnd))
+        let radio = catch cast(*RadioButton?, wnd)
         if radio == null do
             return null
         if radio.groupId.count == 0 or not radio.parent do
@@ -261,7 +261,7 @@ private impl FocusOrder
         var first: *Wnd?
         for sibling in radio.parent.children
         {
-            let other = (catch cast(*RadioButton?, sibling))
+            let other = catch cast(*RadioButton?, sibling)
             if other == null do
                 continue
             if other.groupId != radio.groupId do

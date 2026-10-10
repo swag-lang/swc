@@ -673,8 +673,10 @@ namespace InstructionCombine
                 inst = ctx.storage->ptr(projectionRef);
                 ops  = inst ? inst->ops(*ctx.operands) : nullptr;
             }
+            // The field may land in a physical register directly: an interface's receiver goes
+            // straight to its argument register.
             if (!inst || !ops || inst->op != MicroInstrOpcode::LoadRegReg ||
-                !ops[0].reg.isVirtualInt() || ops[1].reg != source || ops[2].opBits != MicroOpBits::B64)
+                !ops[0].reg.isAnyInt() || ops[1].reg != source || ops[2].opBits != MicroOpBits::B64)
                 return false;
             projections.push_back({projectionRef, lane});
             needed[lane] = true;

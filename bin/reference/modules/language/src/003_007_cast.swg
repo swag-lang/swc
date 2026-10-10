@@ -97,7 +97,7 @@ struct CastButton
 {
     var button: CastButton
     let node:   *CastNode = &button
-    let found = (catch cast(*CastButton?, node))
+    let found = catch cast(*CastButton?, node)
     if found != null do
         Swag.assert(found.label == "Apply")
     Swag.assert(found != null)

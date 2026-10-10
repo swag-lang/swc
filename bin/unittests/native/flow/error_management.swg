@@ -563,9 +563,9 @@ func errIsAsFailureInfo()->ErrCastInfo
     var result: ErrCastInfo
     catch alwaysFailTypedVoid(86) as err7
 
-    let exactErr = (catch cast(*ErrValue?, err7))
-    let baseErr  = (catch cast(*Swag.BaseError?, err7))
-    let otherErr = (catch cast(*OtherErrValue?, err7))
+    let exactErr = catch cast(*ErrValue?, err7)
+    let baseErr  = catch cast(*Swag.BaseError?, err7)
+    let otherErr = catch cast(*OtherErrValue?, err7)
 
     result.exactType     = (err7 is ErrValue)
     result.baseType      = (err7 is Swag.BaseError)

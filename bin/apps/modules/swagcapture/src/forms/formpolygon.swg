@@ -30,7 +30,7 @@ impl IForm for FormPolygon
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = (catch cast(*FormPolygon?, ptr))
+        let other = catch cast(*FormPolygon?, ptr)
         if not other do
             return false
         return .isSameBase(ptr) and .bezier == other.bezier

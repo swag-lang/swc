@@ -5982,6 +5982,44 @@ SWC_TEST_BEGIN(InstCombine_ScalarVectorProjectionsKeepUnsupportedShapes)
 }
 SWC_TEST_END()
 
+// An interface copied through a vector register hands its receiver straight to an
+// argument register: that projection is a field read too.
+SWC_TEST_BEGIN(InstCombine_ScalarVectorProjectionsFeedPhysicalRegisters)
+{
+    constexpr MicroReg base    = MicroReg::virtualIntReg(1);
+    constexpr MicroReg table   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg whole   = MicroReg::virtualFloatReg(1);
+    constexpr MicroReg shifted = MicroReg::virtualFloatReg(2);
+    MicroBuilder       builder(ctx);
+    builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitLoadRegMem(whole, base, 0, MicroOpBits::B128);
+    builder.emitVecShuffleRegRegImm(shifted, whole, 0xEE, MicroOpBits::B128);
+    builder.emitLoadRegReg(table, shifted, MicroOpBits::B64);
+    builder.emitLoadRegReg(MicroReg::intReg(2), whole, MicroOpBits::B64);
+    const auto receiver = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(base, 32, table, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runInstCombinePass(builder));
+
+    uint32_t loads = 0;
+    for (const auto& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::VecShuffleRegRegImm)
+            return Result::Error;
+        if (inst.op == MicroInstrOpcode::LoadRegMem)
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (ops[2].opBits != MicroOpBits::B64 || ops[1].reg != base || (ops[3].valueU64 != 0 && ops[3].valueU64 != 8))
+                return Result::Error;
+            ++loads;
+        }
+    }
+    const auto* copy = builder.instructions().ptr(receiver);
+    if (loads != 2 || !copy || copy->op != MicroInstrOpcode::LoadRegReg || !copy->ops(builder.operands())[1].reg.isVirtualInt())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_ScalarVectorProjectionsPreserveLiveLoopJoins)
 {
     constexpr MicroReg base  = MicroReg::virtualIntReg(1);

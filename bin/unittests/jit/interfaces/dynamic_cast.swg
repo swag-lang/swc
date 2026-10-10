@@ -47,12 +47,12 @@ func runDynamicStructCast()->bool
     var base        = Base{value: 77}
     var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
-    let wrappedBase = (catch cast(*Base?, wrapperPtr))
+    let wrappedBase = catch cast(*Base?, wrapperPtr)
     if not (wrapperPtr is Base) or wrappedBase != &base do
         return false
 
     let itf: INode = derived
-    let itfBase    = (catch cast(*Base?, itf))
+    let itfBase    = catch cast(*Base?, itf)
     if not (itf is Derived) or not (itf is Mid) or not (itf is Base) do
         return false
     if (itf is PointerWrapper) do
@@ -63,7 +63,7 @@ func runDynamicStructCast()->bool
         return false
 
     let dyn: any = derived
-    let dynBase  = (catch cast(*Base?, dyn))
+    let dynBase  = catch cast(*Base?, dyn)
     if not (dyn is Derived) or not (dyn is Base) do
         return false
     if (dyn is PointerWrapper) do
@@ -96,16 +96,16 @@ func runRuntimeTargetCasts()->bool
     if intType is stringType do
         return false
 
-    let intView = (catch cast(any?, cast(intType, &number)))
+    let intView = catch cast(any?, cast(intType, &number))
     if intView == null do
         return false
 
-    let baseView = (catch cast(any?, cast(baseType, &derived)))
+    let baseView = catch cast(any?, cast(baseType, &derived))
     if baseView == null do
         return false
 
-    let intPtr  = (catch cast(*s32?, intView))
-    let basePtr = (catch cast(*Base?, baseView))
+    let intPtr  = catch cast(*s32?, intView)
+    let basePtr = catch cast(*Base?, baseView)
     if intPtr == null or intPtr != &number or intPtr[] != 45 do
         return false
     let boolType: typeinfo = bool

@@ -77,7 +77,7 @@ const RuntimeS64: typeinfo = s64
 
 func readRuntimeTarget(target: typeinfo, source: any)->s32
 {
-    let view = (catch cast(any?, cast(target, source)))
+    let view = catch cast(any?, cast(target, source))
     if view is RuntimeTargetBase as object do
         return object.value
     return -1
@@ -89,8 +89,8 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     Swag.assert(readRuntimeTarget(RuntimeTargetBase, &value) == 42)
     Swag.assert(readRuntimeTarget(string, &value) == -1)
     var target: typeinfo = IRuntimeTarget
-    let view = (catch cast(any?, cast(target, &value)))
-    let itf  = (catch cast(IRuntimeTarget?, view))
+    let view = catch cast(any?, cast(target, &value))
+    let itf  = catch cast(IRuntimeTarget?, view)
     Swag.assert(itf != null)
     Swag.assert(itf.read() == 42)
     target = RuntimeTargetChild
@@ -107,7 +107,7 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     fake.sizeof   = 4
     let target: typeinfo = &fake
     var value            = 42's32
-    let castResult1      = (catch cast(any?, cast(target, value)))
+    let castResult1      = catch cast(any?, cast(target, value))
     Swag.assert(castResult1 == null)
     Swag.assert(not compatible(target, s32))
 }
@@ -117,7 +117,7 @@ func readRuntimeTarget(target: typeinfo, source: any)->s32
     var copy = assume cast(const *Swag.TypeInfoNative, s32)[]
     let target: typeinfo = &copy
     Swag.assert(not compatible(target, s32))
-    let castResult2 = (catch cast(any?, cast(target, 42's32)))
+    let castResult2 = catch cast(any?, cast(target, 42's32))
     Swag.assert(castResult2 == null)
 }
 
@@ -135,16 +135,16 @@ func runtimeTargetType()->typeinfo => RuntimeTargetBase
     let boolTarget: typeinfo = bool
     Swag.assert(&falseValue is boolTarget)
     Swag.assert(not assume cast(bool, (catch cast(any?, cast(boolTarget, &falseValue)))))
-    let fromCall = (catch cast(any?, cast(runtimeTargetType(), &value)))
+    let fromCall = catch cast(any?, cast(runtimeTargetType(), &value))
     Swag.assert((catch cast(*RuntimeTargetBase?, fromCall)) == &value.base)
 
     let target: typeinfo = #type const IRuntimeTarget
-    let view = (catch cast(any?, cast(target, &value)))
+    let view = catch cast(any?, cast(target, &value))
     Swag.assert(view != null)
     Swag.assert((catch cast(const *RuntimeTargetChild?, view)) == &value)
-    let castResult3 = (catch cast(*RuntimeTargetChild?, view))
+    let castResult3 = catch cast(*RuntimeTargetChild?, view)
     Swag.assert(castResult3 == null)
-    let itf = (catch cast(const IRuntimeTarget?, view))
+    let itf = catch cast(const IRuntimeTarget?, view)
     Swag.assert(itf != null)
     Swag.assert(itf.read() == 42)
 }

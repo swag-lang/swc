@@ -169,7 +169,7 @@ public impl MessageDlg
                 .messageScroll     = scroll
                 scroll.hookOnEvent = func(wnd, evt)
                 {
-                    let key = (catch cast(*KeyEvent?, evt))
+                    let key = catch cast(*KeyEvent?, evt)
                     if not key or key.kind != .Pressed or key.modifiers != .None do
                         return false
                     let scroll = assume cast (*ScrollWnd, wnd)

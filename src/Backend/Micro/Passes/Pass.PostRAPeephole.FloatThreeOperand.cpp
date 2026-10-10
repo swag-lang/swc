@@ -510,6 +510,58 @@ namespace PostRaPeephole
         }
     }
 
+    namespace
+    {
+        // A product and the accumulation that consumes it are often separated by the load of
+        // the accumulator, which the allocator schedules right before its use: `p = a * b`,
+        // `v = [m]`, `v -= p`. The pair still contracts when nothing in between reads or writes
+        // the product or writes either factor - the fused form reads the factors where the
+        // accumulation stands. Look a few instructions back for such a product.
+        constexpr uint32_t K_MAX_PRODUCT_GAP = 6;
+
+        bool findSeparatedProduct(Context& ctx, std::span<const MicroInstrRef> refs, uint32_t blockBegin, uint32_t accumulateIndex, uint32_t& outMultiplyIndex)
+        {
+            ScalarFloatBinary accumulate;
+            if (!scalarFloatBinary(accumulate, *ctx.storage->ptr(refs[accumulateIndex]), *ctx.operands) ||
+                (accumulate.op != MicroOp::FloatAdd && accumulate.op != MicroOp::FloatSubtract))
+                return false;
+
+            MicroInstrUseDef useDef;
+            for (uint32_t back = 2; back <= K_MAX_PRODUCT_GAP && accumulateIndex >= blockBegin + back; ++back)
+            {
+                const uint32_t    candidateIndex = accumulateIndex - back;
+                const MicroInstr* candidate      = ctx.storage->ptr(refs[candidateIndex]);
+                ScalarFloatBinary multiply;
+                if (!candidate || ctx.isClaimed(refs[candidateIndex]) || !scalarFloatBinary(multiply, *candidate, *ctx.operands) ||
+                    multiply.op != MicroOp::FloatMultiply || (multiply.dst != accumulate.left && multiply.dst != accumulate.right))
+                    continue;
+
+                for (uint32_t gap = candidateIndex + 1; gap < accumulateIndex; ++gap)
+                {
+                    const MicroInstr* inst = ctx.storage->ptr(refs[gap]);
+                    if (!inst || ctx.isClaimed(refs[gap]))
+                        return false;
+                    const auto flags = MicroInstr::info(inst->op).flags;
+                    if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
+                        return false;
+                    inst->collectUseDef(useDef, *ctx.operands, ctx.encoder);
+                    if (std::ranges::find(useDef.uses, multiply.dst) != useDef.uses.end())
+                        return false;
+                    for (const MicroReg def : useDef.defs)
+                    {
+                        if (def == multiply.dst || def == multiply.left || def == multiply.right)
+                            return false;
+                    }
+                }
+
+                outMultiplyIndex = candidateIndex;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
     // MOVSS/MOVSD retain the old destination's upper lanes. A complete copy
     // removes that dependency whenever no reachable consumer needs those lanes.
     // Solve demands over straight-line blocks so a scalar use beyond a branch
@@ -567,6 +619,12 @@ namespace PostRaPeephole
                     --i;
                     continue;
                 }
+                // The instructions between a separated product and its accumulation stay in
+                // place and are walked next; the claimed product is erased.
+                uint32_t multiplyIndex = 0;
+                if (allowFusion && findSeparatedProduct(ctx, refs, block.begin, i, multiplyIndex) &&
+                    tryFuseScalarFloatProduct(ctx, demand, refs[multiplyIndex], ref))
+                    continue;
                 bool widen = false;
                 if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
                     ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
@@ -1287,6 +1345,88 @@ namespace PostRaPeephole
         newOps[2].opBits            = copyBits;
         newOps[3].microOp           = MicroOp::MultiplySigned;
         newOps[4].valueU64          = value;
+        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegImm, std::span{newOps, 5}, true);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
+    // A rotate by a constant names its destination separately too:
+    //
+    //     mov r8d, r13d ; ror r8d, 6    ->    rorx r8d, r13d, 6
+    //
+    // The copy the two-address form needs goes, as in every SHA-256 round clang
+    // compiles for a BMI2 target. RORX leaves the flags alone, so the rotate's
+    // flags must be dead.
+    bool tryFoldCopyIntoRotateImm(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        constexpr uint32_t K_MAX_SCAN = 8;
+
+        if (copyInst.numOperands < 3)
+            return false;
+
+        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+        if (!copyOps)
+            return false;
+        const MicroOpBits copyBits = copyOps[2].opBits;
+        if (copyBits != MicroOpBits::B32 && copyBits != MicroOpBits::B64)
+            return false;
+
+        const MicroReg dst = copyOps[0].reg;
+        const MicroReg src = copyOps[1].reg;
+        if (!dst.isInt() || !src.isInt() || dst == src || ctx.isPrivateFrameBase(dst) || ctx.isPrivateFrameBase(src))
+            return false;
+
+        // The rotate that consumes the copy, with nothing in between that touches either register.
+        MicroInstrRef opRef = ctx.nextRef(copyRef);
+        for (uint32_t step = 0;; ++step)
+        {
+            if (step == K_MAX_SCAN)
+                return false;
+            const MicroInstr* candidate = ctx.instruction(opRef);
+            if (!candidate || candidate->op == MicroInstrOpcode::Label)
+                return false;
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegImm && candidate->numOperands >= 4)
+            {
+                const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
+                if (candidateOps && candidateOps[0].reg == dst)
+                    break;
+            }
+
+            const MicroInstrFlags flags = MicroInstr::info(candidate->op).flags;
+            if (flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                if (reg == dst || reg == src)
+                    return false;
+            }
+            for (const MicroReg reg : useDef.uses)
+            {
+                if (reg == dst)
+                    return false;
+            }
+            opRef = ctx.nextRef(opRef);
+        }
+
+        if (ctx.isClaimed(opRef))
+            return false;
+        const MicroInstrOperand* rotOps = ctx.operandsFor(opRef);
+        if (!rotOps || (rotOps[2].microOp != MicroOp::RotateRight && rotOps[2].microOp != MicroOp::RotateLeft) ||
+            rotOps[1].opBits != copyBits || rotOps[3].hasWideImmediateValue())
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder))
+            return false;
+        if (!ctx.claimAll({copyRef, opRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        newOps[0].reg               = dst;
+        newOps[1].reg               = src;
+        newOps[2].opBits            = copyBits;
+        newOps[3].microOp           = rotOps[2].microOp;
+        newOps[4].valueU64          = rotOps[3].valueU64;
         ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegImm, std::span{newOps, 5}, true);
         ctx.emitErase(copyRef);
         return true;

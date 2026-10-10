@@ -79,7 +79,7 @@ impl IForm for FormLine
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = (catch cast(*FormLine?, ptr))
+        let other = catch cast(*FormLine?, ptr)
         if not other do
             return false
         return .isSameBase(ptr) and

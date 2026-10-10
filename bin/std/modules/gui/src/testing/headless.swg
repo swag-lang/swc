@@ -834,7 +834,7 @@ impl HeadlessHost
     // Returns the popup menu holding the pointer capture, or `null` when none does.
     mtd capturedPopupMenu()->*MenuCtrl?
     {
-        let menu = (catch cast(*MenuCtrl?, .app.mouseCaptureWnd))
+        let menu = catch cast(*MenuCtrl?, .app.mouseCaptureWnd)
         if not menu do
             return null
         if menu.bar do

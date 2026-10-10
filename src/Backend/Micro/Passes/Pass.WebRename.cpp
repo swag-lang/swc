@@ -189,7 +189,8 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         uint32_t value;
     };
     std::unordered_map<MicroReg, std::unordered_map<uint64_t, StoredValue>> storedValues;
-    std::unordered_set<MicroReg>                                            candidates;
+    // Keyed by the packed register; only looked up.
+    FlatKeySet candidates;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         const auto flags = MicroInstr::info(it->op).flags;
@@ -213,7 +214,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
                 continue;
             const auto stored = base->second.find(offset);
             if (stored != base->second.end() && ssa->reachingValueId(stored->second.source, it.current) != stored->second.value)
-                candidates.insert(stored->second.source);
+                candidates.insert(stored->second.source.packed);
         }
     }
     if (candidates.empty())
@@ -228,7 +229,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
     {
         // A web only connects versions of its own register. Other registers
         // cannot affect the names of the stored-value candidates.
-        if (!phi.reg.isVirtualFloat() || !candidates.contains(phi.reg) || !ssa->transitiveInstructionUseCount(phi.resultValueId, 1))
+        if (!phi.reg.isVirtualFloat() || !candidates.contains(phi.reg.packed) || !ssa->transitiveInstructionUseCount(phi.resultValueId, 1))
             continue;
         for (const uint32_t incoming : phi.incomingValueIds)
         {
@@ -247,7 +248,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         const auto modes = MicroInstr::info(it->op).resolvedRegModes(ops);
         for (size_t operand = 0; operand < modes.size(); ++operand)
         {
-            if (modes[operand] == MicroInstrRegMode::None || !ops[operand].reg.isVirtualFloat() || !candidates.contains(ops[operand].reg))
+            if (modes[operand] == MicroInstrRegMode::None || !ops[operand].reg.isVirtualFloat() || !candidates.contains(ops[operand].reg.packed))
                 continue;
             const MicroReg reg = ops[operand].reg;
             if (!hasScalarDoubleWidth(*it, ops))
@@ -287,7 +288,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
     for (uint32_t id = 0; id < values.size(); ++id)
     {
         const auto& value = values[id];
-        if (!candidates.contains(value.reg) || excluded.contains(value.reg) || value.isPhi())
+        if (!candidates.contains(value.reg.packed) || excluded.contains(value.reg) || value.isPhi())
             continue;
         const uint32_t web          = webs.root(id);
         const auto [name, inserted] = names.try_emplace(web, value.reg);
@@ -324,7 +325,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
             if (modes[operand] == MicroInstrRegMode::None)
                 continue;
             const MicroReg reg = ops[operand].reg;
-            if (!candidates.contains(reg) || excluded.contains(reg))
+            if (!candidates.contains(reg.packed) || excluded.contains(reg))
                 continue;
             uint32_t id = MicroSsaState::K_INVALID_VALUE;
             if (modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef)

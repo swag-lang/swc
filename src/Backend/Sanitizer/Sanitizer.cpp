@@ -152,7 +152,7 @@ bool Sanitizer::frameObjectReachable(const SanitizerState& state, const int64_t 
     // A compiler temporary has no extent to bound, so nothing says which writes land in
     // it: only the storage of a declared variable can be proven out of reach.
     const LocalSlotExtent* extent = findLocalSlot(slot);
-    return !extent || (state.escapedFrameObjects && state.escapedFrameObjects->contains(extent->start));
+    return !extent || state.escapedFrameObjects.find(extent->start);
 }
 
 void Sanitizer::markFrameObjectEscaped(SanitizerState& state, const SanitizerValue& value) const
@@ -166,11 +166,7 @@ void Sanitizer::markFrameObjectEscaped(SanitizerState& state, const SanitizerVal
     const int64_t          offset = value.hasStackOrigin() ? value.stackOrigin : value.stackOffset;
     const LocalSlotExtent* extent = findLocalSlot(offset);
     if (extent)
-    {
-        if (!state.escapedFrameObjects)
-            state.escapedFrameObjects.emplace();
-        state.escapedFrameObjects->insert(extent->start);
-    }
+        state.escapedFrameObjects.getOrInsert(extent->start) = 1;
 }
 
 void Sanitizer::markEscapesFromValueOperands(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
@@ -905,16 +901,12 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
 
     // The one MAY fact of the state: an address that escaped on either incoming path has
     // escaped here, so this set grows where every other one shrinks.
-    if (from.escapedFrameObjects && !from.escapedFrameObjects->empty())
-    {
-        if (!into.escapedFrameObjects)
-            into.escapedFrameObjects.emplace();
-        for (const int64_t object : *from.escapedFrameObjects)
-        {
-            if (into.escapedFrameObjects->insert(object).second)
-                changed = true;
-        }
-    }
+    from.escapedFrameObjects.forEach([&](const int64_t object, uint8_t) {
+        if (into.escapedFrameObjects.find(object))
+            return;
+        into.escapedFrameObjects.getOrInsert(object) = 1;
+        changed                                      = true;
+    });
 
     for (auto it = into.aliasPtrSlots.begin(); it != into.aliasPtrSlots.end();)
     {

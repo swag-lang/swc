@@ -89,6 +89,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool hasExplicitRegisterOperands(const MicroInstrDef& info)
+    {
+        return info.special != MicroInstrRegSpecial::None ||
+               info.regModes[0] != MicroInstrRegMode::None || info.regModes[1] != MicroInstrRegMode::None ||
+               info.regModes[2] != MicroInstrRegMode::None;
+    }
+
     constexpr std::array<uint64_t, 10> K_LOOP_DEPTH_WEIGHTS = {
         1ull,
         10ull,
@@ -284,7 +291,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         for (auto scanIt = it; scanIt != endIt; ++scanIt)
         {
             const MicroInstrDef& info            = MicroInstr::info(scanIt->op);
-            MicroInstrOperand*   scanOps         = scanIt->ops(*operands_);
+            MicroInstrOperand*   scanOps         = hasExplicitRegisterOperands(info) ? scanIt->ops(*operands_) : nullptr;
             const auto           modes           = scanOps ? info.resolvedRegModes(scanOps) : info.regModes;
             bool                 redefined       = false;
             bool                 usesDestination = false;
@@ -2028,16 +2035,19 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
                 return false;
             defined = containsKey(useDef.defs, dstReg);
         }
-        else if (const MicroInstrOperand* ops = inst.ops(*operands_))
+        else if (hasExplicitRegisterOperands(info))
         {
-            const auto modes = info.resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
+            if (const MicroInstrOperand* ops = inst.ops(*operands_))
             {
-                if (modes[i] == MicroInstrRegMode::None || ops[i].reg != dstReg)
-                    continue;
-                if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
-                    return false;
-                defined |= modes[i] == MicroInstrRegMode::Def;
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::None || ops[i].reg != dstReg)
+                        continue;
+                    if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
+                        return false;
+                    defined |= modes[i] == MicroInstrRegMode::Def;
+                }
             }
         }
         if (defined)

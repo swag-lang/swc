@@ -683,6 +683,23 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // Per-register ownership among active/inactive is tracked through the
     // node's assignedReg; fixed intervals are consulted by pool index.
     const size_t poolCount = poolRegs.size();
+    SmallVector<size_t, 32> poolIndexByInt;
+    SmallVector<size_t, 32> poolIndexByFloat;
+    for (const MicroReg reg : poolRegs)
+    {
+        if (reg.isInt())
+            poolIndexByInt.resize(std::max(poolIndexByInt.size(), static_cast<size_t>(reg.index()) + 1), poolCount);
+        else if (reg.isFloat())
+            poolIndexByFloat.resize(std::max(poolIndexByFloat.size(), static_cast<size_t>(reg.index()) + 1), poolCount);
+    }
+    for (size_t poolIndex = 0; poolIndex < poolCount; ++poolIndex)
+    {
+        const MicroReg reg = poolRegs[poolIndex];
+        if (reg.isInt())
+            poolIndexByInt[reg.index()] = poolIndex;
+        else if (reg.isFloat())
+            poolIndexByFloat[reg.index()] = poolIndex;
+    }
 
     // The debug local-stack base lives in the register the ABI keeps outside
     // both pools for it, for its whole life and never split, exactly as
@@ -774,11 +791,10 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         refresh(walk.inactive, false);
 
         const auto poolIndexOf = [&](const MicroReg reg) -> size_t {
-            for (size_t i = 0; i < poolCount; ++i)
-            {
-                if (poolRegs[i] == reg)
-                    return i;
-            }
+            if (reg.isInt() && reg.index() < poolIndexByInt.size())
+                return poolIndexByInt[reg.index()];
+            if (reg.isFloat() && reg.index() < poolIndexByFloat.size())
+                return poolIndexByFloat[reg.index()];
             return poolCount;
         };
 

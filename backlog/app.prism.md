@@ -16,22 +16,18 @@ in their viewer, and the readouts report measured compilation and frame renderin
 
 ### app.prism.004 — Inspect a library function from Prism
 
-- Recorded: 2026-09-08 21:53
-- Updated: 2026-10-06 09:07 — The compiler selector exists; only the Prism workflow remains.
 - Evidence: `MicrocodeViewer` builds a source snippet through `BuildRequest`. It has no library
   symbol request or symbol selector. The compiler now selects unedited functions from the
   command line: `--print-micro <pattern>[:<stage>]` matches a scoped name or its trailing part,
   `*` matches any run of characters, and a pattern matching nothing prints nothing.
 - Next: carry library/workspace identity, symbol pattern and requested stage in the build request,
   then pass them to the compiler as `--print-micro` without modifying library files.
-- Complete when: selecting a library function displays its requested microcode stage, ambiguous
+- Done when: selecting a library function displays its requested microcode stage, ambiguous
   or absent matches are explained, and the library working tree remains unchanged.
 - Related: app.prism.002
 
 ### app.prism.002 — Read the pipeline instead of printing it
 
-- Recorded: 2026-09-08 21:53
-- Updated: 2026-09-27 17:52 — define observable pipeline navigation and comparison acceptance.
 
 The output pane retains the compiler's terminal colors while displaying plain selectable text. The compiler knows
 much more than that text: `MicroPassManager` prints a header naming the stage, the optimization
@@ -46,39 +42,35 @@ emits the same categories as tags rather than as escapes, which is the stream to
 Next: parse the `[micro]` header and instruction block, map the categories onto the theme palette,
 and show the count and the gain beside the stage selector.
 
-- Complete when: The viewer groups parsed `[micro]` stages, shows each stage's instruction counts and gain, distinguishes changed passes, and renders a selectable before/after diff with category colors across shipped themes; malformed or incomplete compiler output remains readable and has focused coverage.
+- Done when: The viewer groups parsed `[micro]` stages, shows each stage's instruction counts and gain, distinguishes changed passes, and renders a selectable before/after diff with category colors across shipped themes; malformed or incomplete compiler output remains readable and has focused coverage.
 
 ### app.prism.003 — Forward continuous input to the running preview
 
-- Recorded: 2026-09-08 21:53
-- Updated: 2026-09-11 22:14 — Separate input delivery from resolution negotiation and frame export.
 - Evidence: `previewcanvas.swg` forwards clicks; `FrameHeader` has one acknowledged click mailbox
   and `previewhost.swg` calls `HeadlessHost.click`. Keyboard, pointer movement, drag and wheel
   events have no transport. Existing native preview tests cover clicks, pause, recovery and cancellation.
 - Next: add a bounded ordered event queue with focus and cancellation rules, then route keyboard,
   movement, button transitions and wheel events to the child controls.
-- Complete when: event order and coordinates survive fitted previews, dragging and key sequences
+- Done when: event order and coordinates survive fitted previews, dragging and key sequences
   work, replacing a preview clears pending input, and saturation has an explicit policy.
 - Related: app.prism.006
 
 ### app.prism.006 — Negotiate preview resolution with the panel
 
-- Recorded: 2026-09-11 22:14
 - Evidence: split from app.prism.003. `FrameChannel` fixes frames at 640 by 400 pixels;
   `PreviewCanvas` scales that image into the panel and the child sets up a fixed-size host.
 - Next: version the frame transport to negotiate dimensions and DPI with bounded allocation and
   an acknowledgement before either side changes the shared buffer layout.
-- Complete when: resizing and DPI changes produce correctly sized frames, input coordinates stay
+- Done when: resizing and DPI changes produce correctly sized frames, input coordinates stay
   aligned, allocation remains bounded, and cancellation cannot race a buffer replacement.
 - Related: app.prism.003
 
 ### app.prism.007 — Save a completed preview frame as a golden candidate
 
-- Recorded: 2026-09-11 22:14
 - Evidence: split from app.prism.003. `PreviewViewer` receives complete BGRA images, but its
   commands cannot export the displayed frame; test goldens are authored through separate tests.
 - Next: export one acknowledged frame with source/build/options and dimensions as provenance,
   leaving golden acceptance to the existing review workflow.
-- Complete when: the saved image is a complete frame, reproducing its source and options is
+- Done when: the saved image is a complete frame, reproducing its source and options is
   possible, export cannot race frame publication, and existing golden files are not overwritten
   without an explicit destination choice.

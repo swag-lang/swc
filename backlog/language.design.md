@@ -7,8 +7,6 @@ The compiler that implements it is [compiler.core.md](compiler.core.md).
 Compiler defects stay in [compiler.core.md](compiler.core.md). This file keeps deliberate language design,
 surprising but specified rules, their comparative evidence, and their next decisions together.
 
-Entries are ordered from the most recently updated down. An entry disappears when it
-ships; history lives in git, not here.
 
 The design pass distinguishes missing capabilities from changes to an existing policy.
 The following are already available and are not new feature requests:
@@ -39,7 +37,6 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.038 — Flag side effects inside a disabled-by-configuration assertion
 
-- Recorded: 2026-10-08 23:15
 - Evidence: `Swag.assert(re.match(l[]))` in `bin/examples/modules/aoc2017/src/8A.swg` and
   `8B.swg` passed every DevMode run and the release build, then failed the release examples smoke:
   release disables `.Assert` outside `swc test`, the argument is not evaluated, so the regex never
@@ -52,12 +49,10 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: reduce the rule to the sema boundary (`errors/sema` case for a mutating call inside
   `Swag.assert`), measure how many existing assertions in `bin/` it would flag, and pick the
   severity from that count.
-- Complete when: a mutating call inside an assertion argument is diagnosed and `bin/` is clean.
+- Done when: a mutating call inside an assertion argument is diagnosed and `bin/` is clean.
 
 ### language.design.032 — Produce values directly from a switch
 
-- Recorded: 2026-09-16 16:06
-- Updated: 2026-10-07 07:03 — removed the dependency on the now-implemented terminal expect contract
 - Evidence: the [switch reference](../bin/reference/modules/language/src/005_005_switch.swg)
   and [statement parser](../src/Compiler/Parser/Parser/Parser.Stmt.cpp) expose a statement;
   [expression parsing](../src/Compiler/Parser/Parser/Parser.Expression.cpp) does not introduce
@@ -79,15 +74,13 @@ in its module backlog; a general request for better names is not a missing langu
   result using existing cases. Verify side-effect counters, a failing arm, a non-returning arm,
   and source lifetime before migrating real helpers. Coordinate exhaustiveness with
   language.design.001; use the terminal failure contract of `expect` for non-returning arms.
-- Complete when: a local initializer and a function return can use a total multi-arm expression
+- Done when: a local initializer and a function return can use a total multi-arm expression
   without a mutable relay; JIT/native tests cover type inference, evaluation order, cleanup and
   borrowed-result escapes, and the formatter/reference/editor agree on the chosen syntax.
 - Related: language.design.001, language.design.002, language.design.006.
 
 ### language.design.035 — Move a non-defaultable owner without resetting its consumed source
 
-- Recorded: 2026-09-16 16:06
-- Updated: 2026-10-07 07:03 — removed the dependency on the now-implemented terminal expect contract
 - Evidence: safe definite initialization and non-defaultable fields already exist. The remaining
   obstacle is [sema_err_nonull_move_source_no_default.swg](../bin/unittests/errors/sema/sema_err_nonull_move_source_no_default.swg):
   an owner with opDrop and a required non-null field rejects assignment, initialization and call
@@ -111,15 +104,13 @@ in its module backlog; a general request for better names is not a missing langu
   accepted/rejected cases before changing it. Prototype whole-local transfers with a required
   non-null field and a counted resource; cover reinitialization, a conditional move, deferred
   observations, a throwing later operand and outstanding borrows in JIT and native execution.
-- Complete when: a valid non-defaultable owner can be transferred without a dummy default,
+- Done when: a valid non-defaultable owner can be transferred without a dummy default,
   consumed storage cannot be read/dropped twice, and failures/branch merges preserve ownership.
 - Related: language.design.024 owns implicit copies at consuming boundaries. `expect` already
   accepts non-defaultable results; this entry concerns resetting consumed sources.
 
 ### language.design.010 — `catch` without a capture substitutes the type default and says nothing
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-10-07 07:03 — removed the dependency on the now-implemented terminal expect contract
 - Area: language
 - Found while: the same pass
 - Observation: `catch f()` handles the error, drops it, and yields the default value for the result
@@ -143,12 +134,11 @@ in its module backlog; a general request for better names is not a missing langu
   Define owned-result adoption and failed-path cleanup, including non-defaultable results.
   Coordinate local capture scope with language.design.025 and preserve the terminal failure
   contract of `expect`.
-- Complete when: fallback, propagation, termination and explicit discard cannot be confused, a successful
+- Done when: fallback, propagation, termination and explicit discard cannot be confused, a successful
   result never requires a fabricated failure value, and side effects/lifetimes are tested.
 
 ### language.design.037 — A struct parameter is documented as a private value and used as a live reference
 
-- Recorded: 2026-09-30 10:20
 - Area: language semantics, parameter passing
 - Evidence: the reference page `006_001_declaration.swg` states that a function takes a struct
   argument as an immutable value and that "the code behaves as if a private copy had been
@@ -166,13 +156,12 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: decide which one the language means. List the `bin/` signatures that read a by-value
   struct parameter across a call or a wait while something else writes the object, starting
   with thread and task bodies.
-- Complete when: the reference, the standard library and the backend agree, and the test above
+- Done when: the reference, the standard library and the backend agree, and the test above
   either states the chosen rule or is replaced by its opposite.
 - Related: compiler.optimization.104
 
 ### language.design.036 — Struct equality compares float members by their bytes
 
-- Recorded: 2026-09-18 14:05
 - Evidence: the [operators reference](../bin/reference/modules/language/src/003_006_operators.swg)
   says that `==` on a struct compares member by member, and that the compiler compares the bytes
   only when every member gives the answer its bytes give, "which is what a struct of numbers
@@ -188,12 +177,11 @@ in its module backlog; a general request for better names is not a missing langu
   answers IEEE equality sixteen bytes at a time), and it makes a byte hash disagree with `==` for
   `-0.0` and NaN keys, as it does in C++.
 - Next: decide the contract, then align the reference, the constant fold, and codegen together.
-- Complete when: the reference and every compile-time and run-time comparison of a float-bearing
+- Done when: the reference and every compile-time and run-time comparison of a float-bearing
   struct or array give the same answer, with JIT and native tests for `-0.0` and NaN members.
 
 ### language.design.033 — Choose one canonical instance-method declaration
 
-- Recorded: 2026-09-16 16:06
 - Evidence: the [impl reference](../bin/reference/modules/language/src/006_002_impl.swg)
   explicitly equates mtd f() with func f(me), and mtd const with an explicit const receiver.
   [FileStream](../bin/std/modules/core/src/filesystem/filestream.swg) uses func isOpen(const me)
@@ -214,13 +202,12 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: inventory both spellings and translate representative FileStream, collection and GUI
   methods into each candidate. Choose one complete declaration grammar and a semantic migration
   which preserves overloads, visibility, receiver mutability and method reflection.
-- Complete when: one receiver grammar is selected and applied across compiler/reference/editor
+- Done when: one receiver grammar is selected and applied across compiler/reference/editor
   and bin/ without a permanent synonym, or a measured comparison rejects the simplification and
   this entry is removed rather than left as an indefinite style preference.
 
 ### language.design.034 — Make custom iteration independent of manual control-flow injection
 
-- Recorded: 2026-09-16 16:06
 - Evidence: [Array.opVisit](../bin/std/modules/core/src/collections/array.swg) is a macro with
   #code bindings and pointer stepping specifically arranged to preserve continue. The
   [list visitor](../bin/std/modules/core/src/collections/list.swg) supplies #scope labels and
@@ -243,15 +230,13 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: implement equivalent experimental providers for Array, List and a fallible decoder.
   Compare inlining, allocations and generated loops with opVisit. Test nested break/continue,
   enclosing-function return, defer, failure and source invalidation before choosing a replacement.
-- Complete when: a custom collection needs no manual loop-keyword remapping, the existing
+- Done when: a custom collection needs no manual loop-keyword remapping, the existing
   consumer loop forms still behave correctly, and owning/borrowed/fallible providers have a
   tested lifetime and cost contract with a migration path for opVisit.
 - Related: language.design.018; compiler.safety.014 in [compiler.safety.md](compiler.safety.md).
 
 ### language.design.006 — Positional destructuring binds by position even when every name matches a field
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: a reading pass over the whole language reference
 - Observation: `let {a, b} = tuple` is positional, and the reference says so
@@ -278,7 +263,7 @@ in its module backlog; a general request for better names is not a missing langu
   expressions, one-element tuples, ignored fields, renaming and rest patterns. Inventory the
   migration of {a, b}, including inferred field names; settle equality, assignment and parameter
   compatibility before choosing syntax. Preserve evaluation and binding order.
-- Complete when: named and positional construction, assignment and destructuring have separate predictable
+- Done when: named and positional construction, assignment and destructuring have separate predictable
   contracts, and reordered-name tests cannot silently select the wrong fields.
 - Related: the same pattern syntax is what `let {r, g, b} = getWhite()` uses in
   [007_008_retval.swg](../bin/reference/modules/language/src/007_008_retval.swg), where the
@@ -286,8 +271,6 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.001 — Enum switches are silently non-exhaustive
 
-- Recorded: 2026-08-08 06:23
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Evidence: a `switch` over a three-value enum that handles two of them compiles with no error, no warning,
   and no `default`; the third value simply falls through to nothing. Exhaustiveness exists but is
   opt-in through `switch #complete`
@@ -302,7 +285,7 @@ in its module backlog; a general request for better names is not a missing langu
   and distinguish deliberate ignore arms from accidentally omitted cases. Reuse the current
   #complete diagnostics and coverage analysis; define the treatment of aliases and duplicate enum
   values. Value-producing switches are a separate outcome in language.design.032.
-- Complete when: adding a closed enum member exposes incomplete consumers, deliberate partial handling
+- Done when: adding a closed enum member exposes incomplete consumers, deliberate partial handling
   remains explicit, and guarded, aliased, flags, and open-type switches have executable rules.
 - Related: compiler.safety.010 owns forged enum values, including fall-through past `switch #complete`
   when the runtime Switch guard is disabled, independently of this default. language.design.002
@@ -310,8 +293,6 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.002 — There is no tagged union
 
-- Recorded: 2026-08-08 06:23
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Evidence: `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
   one written has no active-member check
   ([004_006_union.swg](../bin/reference/modules/language/src/004_006_union.swg)). `any` covers the dynamic
@@ -395,7 +376,7 @@ in its module backlog; a general request for better names is not a missing langu
   Show construction, a shared-field update, an owning-payload transition, and borrowed matching.
   Decide whether matching consumes or borrows, when case changes invalidate views, and what a
   failed payload construction leaves behind. Prototype the smallest POD case before owning ones.
-- Complete when: a closed choice has atomic construction, exhaustive matching and correct copy/move/drop
+- Done when: a closed choice has atomic construction, exhaustive matching and correct copy/move/drop
   behavior; tests reject inactive payload reads and stale payload borrows in JIT and native code.
   C ABI unions keep an explicitly separate unchecked representation.
 - Related: language.design.001 — a tagged union is where exhaustive matching earns its keep, and the two
@@ -413,8 +394,6 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.008 — Mixing a signed and an unsigned operand of the same width converts the signed one
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: when two integer operands have the same width and differ in signedness, "the
@@ -440,13 +419,11 @@ in its module backlog; a general request for better names is not a missing langu
   bin/ callers. Cover arithmetic, ordering, bitwise operators and compound assignment separately;
   specify the destination check for compound assignment. Coordinate literal defaulting with
   language.design.021 and language.design.022 and conversion categories with language.design.023.
-- Complete when: one promotion/comparison table is selected and tested at constant, JIT, guarded native
+- Done when: one promotion/comparison table is selected and tested at constant, JIT, guarded native
   and release boundaries, without configuration-dependent changes to signedness meaning.
 
 ### language.design.030 — Inside `#test`, `try` means `expect`
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Evidence: the error-management reference explicitly defines `try` inside `#test` as `expect`.
   Success returns the same value; failure terminates the test instead of propagating to a caller.
   Moving the expression into a fallible helper therefore changes its failure path.
@@ -458,13 +435,11 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: Prototype the fallible test boundary on direct, helper and inline-helper calls. Compare
   failure attribution and cleanup with the existing alias, including non-defaultable results
   that try already supports outside tests. Update the documented alias only with runner coverage.
-- Complete when: try has the same propagation meaning inside and outside tests, the runner reports its
+- Done when: try has the same propagation meaning inside and outside tests, the runner reports its
   failures with source context, and cleanup and successful result types remain unchanged.
 
 ### language.design.019 — `if let` combines binding with an implicit truthiness test
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: the declaration in an `if` is converted to a boolean — non-zero, non-null — and the
@@ -486,13 +461,11 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: Inventory if/while/case bindings by source type and distinguish ordinary boolean conditions
   from binding syntax. Migrate nonzero scalar bindings to explicit predicates and preserve
   where short-circuiting. Reuse existing is/as dynamic patterns rather than inventing them again.
-- Complete when: bindings distinguish absence from zero/false/empty payloads, evaluate once, scope names
+- Done when: bindings distinguish absence from zero/false/empty payloads, evaluate once, scope names
   to successful branches, and preserve those rules through guards and nested patterns.
 
 ### language.design.023 — A contextual `cast(value)` performs whatever conversion the target turns out to need
 
-- Recorded: 2026-08-10 07:44
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: `cast(value)` with no type "allows the compiler to infer the target type"
@@ -526,13 +499,11 @@ in its module backlog; a general request for better names is not a missing langu
   narrowing, truncation and saturation. Reuse existing bit reinterpretation. Specify NaN,
   infinity, negative-to-unsigned, boundary overflow and whether failure is recoverable; these
   semantics must remain defined when optional safety guards are disabled.
-- Complete when: numeric conversion categories and failure policies are explicit and tested, target
+- Done when: numeric conversion categories and failure policies are explicit and tested, target
   inference cannot silently choose another category, and no existing dynamic/bit cast is duplicated.
 
 ### language.design.011 — The apostrophe carries three unrelated roles
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: `'` opens a character literal, introduces a literal suffix, and introduces a generic
@@ -559,13 +530,11 @@ in its module backlog; a general request for better names is not a missing langu
   at'1() into each candidate. Test nesting, comparisons/shifts next to generic calls, inferred
   arguments, formatting and incomplete editor input. Select one spelling and an AST-based
   migration; literal suffixes and character literals must retain an independent grammar.
-- Complete when: one generic syntax is chosen from a measured corpus and parser, formatter, reference and
+- Done when: one generic syntax is chosen from a measured corpus and parser, formatter, reference and
   editor grammar agree, including value arguments and incomplete code; no competing alias remains.
 
 ### language.design.021 — The base a number is written in decides its signedness
 
-- Recorded: 2026-08-10 07:44
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: a second reading pass over the reference, checking what the type of a literal depends
   on
@@ -613,15 +582,13 @@ in its module backlog; a general request for better names is not a missing langu
   declarations and overload choices. Specify the default width and behavior above the signed
   maximum, including bit masks and enum values. Coordinate with language.design.008 so changing
   the default does not merely move a surprising promotion to a different boundary.
-- Complete when: equal unsuffixed values share a base-independent default policy, explicit suffixes stay
+- Done when: equal unsuffixed values share a base-independent default policy, explicit suffixes stay
   stable, and named constants, bare contextual literals, masks and boundary values are tested.
 - Related: [language.design.008](#languagedesign008--mixing-a-signed-and-an-unsigned-operand-of-the-same-width-converts-the-signed-one)
   is what turns the difference into arithmetic.
 
 ### language.design.014 — Choose a consistent half-open convention for collection APIs
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: `str[1 to 3]` is three elements, `str[1 until 3]` is two
@@ -645,13 +612,11 @@ in its module backlog; a general request for better names is not a missing langu
   coherent API families to until where they already operate on lengths or exclusive endpoints.
   Do not mechanically replace to: converting an inclusive last index to an exclusive endpoint
   can overflow at the maximum integer. Change grammar only if this audit finds a real gap.
-- Complete when: the collection convention is documented and represented consistently in examples and
+- Done when: the collection convention is documented and represented consistently in examples and
   APIs, with empty, adjacent, inverted and maximum-endpoint cases covered using existing syntax.
 
 ### language.design.015 — `#[Swag.EnumFlags]` changes implicitly assigned member values
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: adding the attribute changes `A` from 0 to 1, `B` from 1 to 2, `C` from 2 to 4
@@ -673,13 +638,11 @@ in its module backlog; a general request for better names is not a missing langu
   and serialized types. Specify zero, automatic bit allocation, combined constants, masks and
   explicit ABI values. A source edit that changes representation must be visible in the schema
   or API review; choose whether stable representations require explicit values.
-- Complete when: the selected declaration and representation contract is documented and migrated, and
+- Done when: the selected declaration and representation contract is documented and migrated, and
   tests cover empty sets, combinations, reflection, serialization and public numeric stability.
 
 ### language.design.017 — Mixins resolve their body in the caller's scope
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: a mixin body names variables that do not exist where it is written and are expected
@@ -702,15 +665,13 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: Classify free-name mixins and rewrite representative cases with current parameters and
   block bindings. Specify any capture capability those cannot express. Test helper imports,
   shadowing and caller-local renames, and diagnose undeclared free names at the definition.
-- Complete when: a mixin cannot silently depend on an unrelated caller identifier, intentional captures
+- Done when: a mixin cannot silently depend on an unrelated caller identifier, intentional captures
   are declared, and definition/call-site diagnostics preserve useful expansion provenance.
 - Related: `#uniq0`..`#uniq9` exist precisely to work around the collisions this creates, and there
   are exactly ten of them.
 
 ### language.design.018 — A macro can redefine `break` and `continue` inside the block the caller wrote
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: `#inject(what, break = break to Outer, continue = break)` rewrites the meaning of
@@ -731,13 +692,11 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: Specify explicit control-flow capabilities for arbitrary #code blocks and classify current
   remaps as loop implementation or intentional interception. Coordinate the former with
   language.design.034; test nested loops, labeled exits, early return, fail and defer for both.
-- Complete when: callers can identify any nonlexical control-flow interception, ordinary iteration needs
+- Done when: callers can identify any nonlexical control-flow interception, ordinary iteration needs
   no hand-authored remapping, and regression tests observe the exact exit and cleanup targets.
 
 ### language.design.020 — There are two metaprogramming systems and they do not meet
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: `#ast` generates code by returning a *string* of Swag source, built with `+` or a
@@ -764,13 +723,11 @@ in its module backlog; a general request for better names is not a missing langu
   reflected-field example. Prototype one typed field-generation operation
   expressing that same transformation without a StringBuilder. Specify lexical lookup, duplicate
   names, source locations, generated docs and visibility before generalizing to all syntax.
-- Complete when: the reflected-field transformation uses checked declarations, errors identify both the
+- Done when: the reflected-field transformation uses checked declarations, errors identify both the
   generator and source member, and the implementation does not add a competing macro language.
 
 ### language.design.024 — Make nontrivial copies explicit at owning call boundaries
 
-- Recorded: 2026-08-10 07:44
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: `#move` in a parameter position is documented as part of the signature — "they select
@@ -799,13 +756,11 @@ in its module backlog; a general request for better names is not a missing langu
   initialization and consuming parameters. Use String, Array and a copy-counting fixture; include
   callbacks, interfaces and deferred observations. Choose one rule, measure migration, and never
   auto-insert #move merely to silence a warning. Non-defaultable source reset is language.design.035.
-- Complete when: the selected owning-call contract exposes every nontrivial duplication and intentional
+- Done when: the selected owning-call contract exposes every nontrivial duplication and intentional
   transfer, without making ordinary borrowed struct calls consume or allocate.
 
 ### language.design.025 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
 
-- Recorded: 2026-08-10 07:44
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Area: language
 - Found while: the same pass
 - Observation: `as err` "binds a fresh local ... visible in the enclosing scope, after the catch, so
@@ -831,14 +786,12 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: Count later reads and deferred captures of catch-as locals. Specify a migration to scoped
   handlers for local recovery and explicit stored outcomes for delayed inspection. Test two
   handlers using the same error name, shadowing, success paths, borrowed payloads and cleanup.
-- Complete when: handler-only errors cannot leak into the enclosing block, intentionally stored errors
+- Done when: handler-only errors cannot leak into the enclosing block, intentionally stored errors
   have an explicit owner/lifetime, and the migration preserves delayed inspection.
 - Related: [language.design.010](#languagedesign010--catch-without-a-capture-substitutes-the-type-default-and-says-nothing)
 
 ### language.design.022 — The cost of value-dependent float inference is unmeasured
 
-- Recorded: 2026-08-10 07:44
-- Updated: 2026-09-16 16:04 — separated existing capabilities from the remaining design contract
 - Evidence: `ApFloat::minBits` and scalar concretization select `f32` when the parsed value fits
   without further rounding, otherwise `f64`. The number-literals reference now states that rule
   and tests `1.5`, `0.1`, `16777216.0`, `16777217.0` and an explicitly rounded `f32`.
@@ -849,13 +802,11 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: Compare the resulting types, overloads, storage and arithmetic for 1.5, 0.1, 16777216.0
   and 16777217.0 under a fixed default. Measure bin/ numeric kernels and serialized/public fields;
   migrate intentional f32 data explicitly and define rounding at contextual conversion.
-- Complete when: the default no longer depends on the literal's exact representability, its cost and
+- Done when: the default no longer depends on the literal's exact representability, its cost and
   migration are recorded, and contextual/suffixed/defaulted literals have executable rules.
 
 ### language.design.027 — Loop index types follow different count, range, and collection rules
 
-- Recorded: 2026-08-10 07:53
-- Updated: 2026-09-06 17:53 — the reference now carries executable assertions for the count/range distinction
 - Evidence: `SemaHelpers::resolveCountOfResult` concretizes unsized integer counts with an
   unsigned preference but preserves a runtime integer's type. `AstForStmt` uses that count type
   or the range expression's type. `foreachElementTypes` ordinarily supplies `u64`, but an
@@ -873,14 +824,12 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: measure whether the existing count/range rules cause real migration or arithmetic
   problems before proposing a common type. Include typed counts, large constants, enum-indexed
   arrays, and custom iterators rather than extrapolating from three small literals.
-- Complete when: a measured policy decision retains or changes these rules and compiler and
+- Done when: a measured policy decision retains or changes these rules and compiler and
   reference tests cover each selected boundary.
 - Related: language.design.008.
 
 ### language.design.007 — One default in a grouped declaration silently defaults every name in the group
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: `x, y: s32 = 0` declares two parameters and gives *both* the default `0`. The
@@ -902,13 +851,11 @@ in its module backlog; a general request for better names is not a missing langu
   are deliberate. If the honest answer is "almost none", the rule to consider is that a default in a
   grouped declaration applies to the last name only, or is rejected outright — both are mechanical
   migrations. Decide it before the surface grows further.
-- Complete when: grouped defaults have a measured compatibility cost and one documented rule, with
+- Done when: grouped defaults have a measured compatibility cost and one documented rule, with
   reference and compiler tests covering named calls that omit each member of the group.
 
 ### language.design.013 — A `switch` accepts several `default` clauses
 
-- Recorded: 2026-08-07 07:43
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: a `default` can carry a `where`, and once it can, a switch can hold several of them
@@ -928,13 +875,11 @@ in its module backlog; a general request for better names is not a missing langu
   `switch` ([005_005_switch.swg](../bin/reference/modules/language/src/005_005_switch.swg)).
   Check whether `default where` can be spelled that way instead and `default` restored to exactly
   one unguarded arm — a small change with a mechanical migration, if `bin/` does not lean on it.
-- Complete when: a switch has one unmistakable fallback form, guarded fallback usage has been
+- Done when: a switch has one unmistakable fallback form, guarded fallback usage has been
   measured and migrated or retained deliberately, and duplicate-arm tests protect the rule.
 
 ### language.design.026 — `[2, 2] T` and `[2][2] T` are different types indexed the same way
 
-- Recorded: 2026-08-10 07:44
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: the same pass
 - Observation: the two spellings produce unrelated types that do not convert to each other, and the
@@ -954,13 +899,11 @@ in its module backlog; a general request for better names is not a missing langu
   `bin/`. If one form is vestigial, deleting it is better than documenting it. If both are used, the
   cheap guard is a warning when the two appear in one module's public surface, since the cost lands
   on the consumer who cannot see the declarations side by side.
-- Complete when: both multidimensional-array forms are measured in implementation and public APIs,
+- Done when: both multidimensional-array forms are measured in implementation and public APIs,
   and their compatibility or intentionally distinct use-site contract is documented and enforced.
 
 ### language.design.029 — '.buffer' answers a non-null pointer for a payload that can be absent
 
-- Recorded: 2026-08-23 09:26
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Found while: widening the never-null condition rule. The `bin/` sweep it forced stopped
   on `if (ptrAny[]).buffer` in `convertAny`, which reads as "does this value carry a payload" and
@@ -986,7 +929,7 @@ in its module backlog; a general request for better names is not a missing langu
   migration; the eventual sweep may require `cast(*T, itf.buffer!)` at affected sites. Also consider
   whether a non-null `any` should instead
   be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `?`.
-- Complete when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
+- Done when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
   contract is documented, and the resulting migration plus compiler and module tests agree.
 
 ---

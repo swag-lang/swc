@@ -19,8 +19,6 @@ replace the allocator; a similar architecture alone does not establish comparabl
 
 ### runtime.allocator.018 — Diagnostic allocation does not intercept a stale heap read
 
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-10-06 21:14 — Moved from compiler.safety.004 to the allocator that owns the work.
 - Area: runtime/allocator, `bin/runtime`
 - Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
   allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
@@ -32,14 +30,12 @@ replace the allocator; a similar architecture alone does not establish comparabl
 - Next: evaluate a diagnostic mode that makes a freed payload inaccessible while retaining enough
   metadata to diagnose release errors, or instrument reads. Measure its cost on an application
   workload and specify how it composes with the existing electric/quarantine modes.
-- Complete when: a stale read through an alias is detected at the read in the selected diagnostic
+- Done when: a stale read through an alias is detected at the read in the selected diagnostic
   mode, with its limits and measured cost documented; Release defaults remain unchanged.
 - Related: runtime.allocator.010.
 
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-10-05 11:56 — Re-measure the integrated allocator and narrow the remaining dispatch and thread-lifecycle costs.
 - Current evidence: October 5, `ce481db14`, release `bench/allocator`, eleven rotating rounds
   per workload, pinned to the benchmark's performance cores. The session-start executable is
   measured twice as an A/A control. CPU was at most 15% at admission and after each accepted
@@ -100,13 +96,11 @@ replace the allocator; a similar architecture alone does not establish comparabl
   (runtime.allocator.001), then reduce free-request/dispatch cost with preserved lifetime
   semantics. Retain only improvements that exceed A/A variation on repeated allocator and
   application measurements; preserve custom allocators, diagnostic modes, and failure behavior.
-- Complete when: generated-code attribution and comparable application/allocator measurements
+- Done when: generated-code attribution and comparable application/allocator measurements
   establish the remaining policy under runtime.allocator.001's throughput and retention gate.
 
 ### runtime.allocator.001 — Complete comparable allocator workload and retention measurements
 
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-05 11:56 — Separate spread workload execution from thread lifecycle and remove completed benchmark scope.
 - `bench/allocator/src/allocbench.swg` and `allocbench.c` provide fourteen single-thread and
   concurrent workloads, including live-set growth without frees. The harness records medians,
   peak working set, and peak commit in fresh pinned processes and rotates implementation order.
@@ -156,13 +150,11 @@ replace the allocator; a similar architecture alone does not establish comparabl
   allocator change. Then add latency percentiles and the missing retention/alignment workloads.
 - Parity gate: geometric-mean throughput within 10% of mimalloc, no representative workload
   more than 25% slower, and no unbounded retained-memory case.
-- Complete when: repeated comparable results cover the listed workloads and parity gate, with
+- Done when: repeated comparable results cover the listed workloads and parity gate, with
   application time, latency tails, retention, build settings, and measurement limits recorded.
 
 ### runtime.allocator.010 — Decide what the security properties are, and write them down
 
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-10-03 19:22 — The checks now run only under memory safety: devmode by default, release on request.
 - Free-list heads are plain addresses in the page metadata and every stored link is keyed, the
   end of a list included, and a block handed out has its first word cleared. A free block
   therefore reads as one from its first word: `looksFree` tests it on every free, and only a
@@ -201,14 +193,12 @@ replace the allocator; a similar architecture alone does not establish comparabl
 - Next: aligned guard slack and write-after-free inside the payload; choose the supported
   guarantees, then make comments and public documentation distinguish detection, mitigation,
   optional diagnostics and unsupported cases.
-- Complete when: every claimed guarantee has a focused regression and accurate documentation,
+- Done when: every claimed guarantee has a focused regression and accurate documentation,
   with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
 - Related: runtime.allocator.018, runtime.allocator.001.
 
 ### runtime.allocator.003 — Return idle memory without being asked
 
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 09:36 — Idle pages and old cached blocks are purged 500 ms after a slow path first sees them.
 - An emptied page now returns to its segment still committed while the process-wide idle budget
   allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
   system call; past the budget it is decommitted. `trim()` decommits the idle pages of every
@@ -228,14 +218,12 @@ replace the allocator; a similar architecture alone does not establish comparabl
   thread); an inactive live owner keeps its remotely returned blocks uncollected.
 - Next: measure burst/idle with an owner kept alive, and decide whether the delay should follow
   the memory pressure the host reports.
-- Complete when: the current pages, remote returns, abandoned pages and header cache have tested
+- Done when: the current pages, remote returns, abandoned pages and header cache have tested
   idle/trim behavior and documented bounds.
 - Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
 
 ### runtime.allocator.005 — Scale the large-block cache with threads
 
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 08:56 — Alignments up to 64 bytes are now served from pages; the large-block cache's single lock remains.
 - Header-path blocks are reserved at one of eight sizes per power of two and commit only what the
   request reaches; freed ones go to a best-fit cache (up to twice the request) indexed in the
   allocator, a cached block that committed less gets the missing pages, and a reallocation inside
@@ -251,14 +239,12 @@ replace the allocator; a similar architecture alone does not establish comparabl
   almost twice the memory.
 - Next: measure a small per-thread front for the cache, and a header list that does not need the
   allocator-wide lock outside the diagnostic modes.
-- Complete when: four threads cycling large buffers are within the parity gate of
+- Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
 
 ### runtime.allocator.004 — Make remote frees batched rather than one atomic each
 
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-10-03 08:24 — Remote frees are now one compare-exchange from the inline path; batching not attempted.
 - `pushRemote` links the block and publishes it with one compare-exchange; the owner takes the
   whole list with one exchange, so no ABA case exists (nothing is ever popped singly). The
   per-block `remoteCount` atomic is gone: `stats()` counts the list on demand under the page's
@@ -269,27 +255,23 @@ replace the allocator; a similar architecture alone does not establish comparabl
   C heap.
 - Next: measure whether a per-thread batch of remote blocks (one publication per batch) closes
   the remaining distance to mimalloc, and bound the owner's drain.
-- Complete when: the selected synchronization policy has contention and p99 evidence plus
+- Done when: the selected synchronization policy has contention and p99 evidence plus
   concurrent retirement/adoption regression coverage.
 - Related: runtime.allocator.001, runtime.allocator.003.
 
 ### runtime.allocator.017 — Medium pages commit all eight units for their first block
 
-- Recorded: 2026-09-29 16:26
-- Updated: 2026-09-29 21:24 — Loop headers are now 16-byte aligned; csvagg no longer depends on placement
 
 **Evidence.** `acquirePage` commits a whole page before carving it: 64 KiB for a small class, 512 KiB for a medium one. A program holding two 48 KB blocks therefore pays for 512 KiB. On the bench, Swag leven commits 2.5 MB against 2.1 MB for C++ and wordfreq 26.2 MB against 25.7 MB. A candidate that commits a medium page one 64 KiB unit at a time — a carving limit set to the committed part, raised by the allocation slow path when the page looks exhausted, so the inlined fast path stays unchanged — brought leven to 2.1 MB and wordfreq to 25.5 MB. It was not landed: pinned, order-alternated runs showed csvagg 12-28% slower, although csvagg's timed section only makes eight small allocations. A control that only added dead code to `acquireBlockSlow` slowed csvagg by 12% too, and an A/A run gives 1.000, so csvagg's hot loop is sensitive to where the runtime code places it rather than to the allocator.
 
 **Next.** The optimizing backend now starts every loop header on a 16-byte boundary, as LLVM does, so csvagg's scan loops no longer straddle a cache line when the code before them grows: its time is the same for every function order the compiler produces. Re-measure the medium-page design described above against that compiler.
 
-**Complete when.** Every bench task commits no more than its C++ port, with pinned execution-time ratios within noise.
+**Done when.** Every bench task commits no more than its C++ port, with pinned execution-time ratios within noise.
 
 **Related:** compiler.core.005.
 
 ### runtime.allocator.008 — Add allocator OS-failure injection
 
-- Recorded: 2026-08-06 06:22
-- Updated: 2026-09-27 17:52 — define failure-injection acceptance at OS transitions.
 - `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
   obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
   through the FLS destructor, and a 32-thread abandon/remote-free/trim stress. What it does not
@@ -299,24 +281,20 @@ replace the allocator; a similar architecture alone does not establish comparabl
   half-built page.
 - Related: platform.portability.089, platform.portability.004
 
-- Complete when: Focused native tests force each reserve and commit failure path, verify page masks, segment and abandoned lists stay valid, and confirm allocation returns null without leaked or partially published pages.
+- Done when: Focused native tests force each reserve and commit failure path, verify page masks, segment and abandoned lists stay valid, and confirm allocation returns null without leaked or partially published pages.
 
 ### runtime.allocator.006 — Huge allocations have no separately measured policy
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 17:52 — define a measurable huge-allocation contract.
 
 Define the threshold and reserve/commit/release behavior for genuinely huge allocations after the
 medium tier is separated. Benchmark large growth and release independently of size-class caching.
 
 - Related: runtime.allocator.001, runtime.allocator.005
 
-- Complete when: The huge-allocation threshold and reserve/commit/release policy are documented and tested, and isolated large-growth and release benchmarks report latency and memory retention separately from size-class caching.
+- Done when: The huge-allocation threshold and reserve/commit/release policy are documented and tested, and isolated large-growth and release benchmarks report latency and memory retention separately from size-class caching.
 
 ### runtime.allocator.007 — Tune size classes from traces rather than from the table
 
-- Recorded: 2026-08-05 10:27
-- Updated: 2026-09-11 16:29 — State the fragmentation denominator and the jemalloc comparison.
 - Classes split each power of two into four above 128 bytes, which bounds the step at a fifth of
   the class it lands in. Eight-way splitting would halve that at the cost of doubling the class
   count and the per-heap page queues.
@@ -328,6 +306,6 @@ medium tier is separated. Benchmark large growth and release independently of si
   nothing about real application fragmentation.
 - Next: record requested bytes, class-rounded bytes and resident/committed page occupancy on
   identical traces before changing the class table.
-- Complete when: a trace-backed decision covers both internal fragmentation and per-thread
+- Done when: a trace-backed decision covers both internal fragmentation and per-thread
   page retention, including very small and aligned allocations.
 - Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.005.

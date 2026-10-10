@@ -4,7 +4,7 @@ Intermodule and backend optimization, register allocation, final image layout, a
 of the code `swc` generates.
 Frontend and lowering defects are [compiler.core.md](compiler.core.md).
 
-Entries are ordered from the most recently updated down. [README.md](README.md) defines
+Entries form one flat list. [README.md](README.md) defines
 the shared backlog conventions. Instruction counts, runtime winners, and timing results describe
 the cited revision or the entry's last measurement; they must be remeasured before guiding a new
 optimization. A campaign called the latest below was the latest at that measurement, not a moving
@@ -85,287 +85,13 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
+### compiler.optimization.045 — Reduce repeated whole-function work in branch simplification
 
-- Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 18:24 — Gate triangle and early-return boundary lookups.
-- Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
-- Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
-- Taken on 2026-10-10: `foldDecidedBooleans` now fetches operands only for `SetCondReg` instructions or opcodes whose metadata says they may define CPU flags. Other instructions cannot affect the tracked flag definition or boolean result. The Release build and focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
-- Taken on 2026-10-10: `foldImpliedBranches` now decodes operands only for `JumpCond` instructions in its label-use scan and candidate scan. The helper recognizes no other opcode, so non-conditional instructions skip operand lookup while unsupported indirect or table-jump forms still trigger the same fallback. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: the implied-branch candidate pass now reuses the ascending `JumpCond` ordinals collected during its label-use scan instead of walking every layout instruction a second time. It still skips ordinal zero, unconditional conditions, and all candidates in the same order. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: the backward implied-condition walk now decodes operands only at labels and conditional jumps, not for straight-line instructions whose reaching definitions come from SSA. `fallsIntoLabel` likewise fetches operands only when jump metadata says the previous instruction is conditional. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `ensureBranchScan` now fetches operands only for conditional jumps when its cache is configured not to count register mentions, as in the late-transform path. The full pre-RA cache still decodes all instructions because it builds those mention counts. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: InstructionCombine's store-to-load forwarding and dead-store scans now decode operands only for the load/store opcodes they analyze. Their other paths use opcode barriers and SSA definitions, so they retain the same clearing and alias decisions without operand lookup. The Release build and focused native store-filter (8 tests) and `global_load_forwarding.swg` (1 test) passed; no timing claim is made.
-- Taken on 2026-10-10: dead-store elimination now decodes a `LoadRegMem` only after confirming at least one earlier store is pending. A load with an empty pending set immediately continues, so its operands cannot affect any later decision. The Release build and focused native store-filter (8 tests) passed; no timing claim is made.
-- Taken on 2026-10-10: `convertEqualityChainsToBitTests` now records the matched body's last layout ordinal instead of pushing each instruction index into a temporary vector. Accepted links, including optional alias copies, are contiguous, so cleanup iterates the proven range and avoids the per-link index writes and dynamic body storage for longer chains. The Release build and focused `equality_chain_bit_test.swg` native test passed; no timing claim is made.
-- Taken on 2026-10-10: equality-chain closure now fetches a candidate's operands for `tryGetLabelId` only when the following instruction is a label. That helper rejects every other opcode, so failed candidate tails avoid the lookup. The Release build and focused native `equality_chain_bit_test.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `previousFlagChainInstruction` now returns immediately for a flag reader when its caller stops on flag use, before querying operands to check whether that instruction also defines flags. Either fact identifies the same nearest chain boundary. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: packed-switch matching now calls `tryGetLabelId` only on label opcodes for case arms, skip labels, and exits. Its bounded default-value lookback also reuses the decoded `LoadRegImm` operands for the following register-touch check, and the default tail shares one operand lookup between unconditional-condition and target checks. The Release build and 62 focused native `switch_` tests passed; no timing claim is made.
-- Taken on 2026-10-10: guarded-select diamond conversion now retrieves each comparison's operand pointer once before copying its fixed operands into the rewrite buffers, instead of repeating the lookup for each operand. The Release build and focused native `branch_simplification.swg` and `short_circuit_booleans.swg` tests passed; no timing claim is made.
-- Taken on 2026-10-10: packed-switch arm validation now passes the already-decoded unconditional-jump operands to `tryGetJumpTargetLabelId`, removing a second lookup of the same exit instruction. The Release build and 62 focused native `switch_` tests passed; no timing claim is made.
-- Taken on 2026-10-10: three branch-fold paths now call `tryGetLabelId` only when the next, continue, or fallthrough instruction is actually a label. Their non-label outcomes still insert the same derived label, and skip unnecessary operand decoding on those outcomes. The Release build and focused native `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: the shared-label diamond and float-select transforms now check candidate label opcodes before calling `tryGetLabelId`; non-label candidates avoid decoding operands. The Release build, 21 focused native `select` tests, and `branch_simplification.swg` passed; no timing claim is made.
-- Taken on 2026-10-10: `coalesceShortCircuitResults` now calls `tryGetJumpTargetLabelId` only for `JumpCond` instructions in its local label-reference scan. The helper rejects every other opcode, so unrelated instructions skip operand decoding while indirect-jump fallbacks remain unchanged. The Release build and focused native Release `short_circuit_booleans.swg` and `branch_simplification.swg` tests passed; no timing claim is made.
-- Taken on 2026-10-10: `isTargetInImmediateLabelRun` now checks that the next instruction is a `Label` before decoding operands for `tryGetLabelId`. Non-label instructions already return false, so they no longer incur an operand lookup. The Release build and focused native Release `branch_simplification.swg` test passed; no timing claim is made.
-- The cumulative Release native milestone passed all 3,690 tests after the five recent branch-scan edits. The three expected recovery probes also ran, and the tool reported exit code zero.
-- Taken on 2026-10-10: `matchIndexedRead` now rejects opcodes outside its six supported indexed and plain load forms before decoding operands. Its bounded straight-line search calls the matcher for each instruction, so other opcodes no longer pay for a lookup. The Release build succeeded; focused Release native `indexed_compare` (2 tests) and `memory_left_compare` (1 test) passed; no timing claim is made.
-- Taken on 2026-10-10: `tryGetTrampolineTarget` now skips consecutive `Label` instructions before decoding operands to check for an unconditional jump. Labels are skipped unchanged, and only the first non-label instruction needs operand access. The Release build and focused native Release `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `convertShortCircuitBooleans` now retains the matched `SetCondReg` operands while validating its result register and reading the condition. This removes the second operand lookup for the same instruction. The Release build and focused native Release `short_circuit_booleans.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `tryGetTrampolineTarget` now returns on the first non-label instruction unless it is `JumpCond`, the only direct-target opcode its label helper accepts. `instructionHasNoFallthrough` likewise returns true for jump opcodes not marked conditional without fetching operands; only a conditional jump needs its condition decoded. The Release build and focused native Release `branch_simplification.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: added `instructionCpuFlagsDependOnOperands` for the opcodes whose actual flag effect depends on the operation operand, and used it in branch flag scans. Flag-independent writers no longer decode operands just to be classified; tracked-register scans reuse one decoded operand array for both flag and definition checks. The Release build, focused native Release `branch_simplification.swg` and `short_circuit_booleans.swg`, the full native Release suite (3,690 tests), and the full JIT Release suite (1,534 tests) passed. No timing claim is made.
-- The cumulative native and JIT Release milestone also ran all three expected native recovery probes; the test tool returned exit code zero.
-- Taken on 2026-10-10: applied the same operand-dependency classification to flag-clobber windows in ConstProp and LoadFold, dead-code side-effect classification, loop-invariant motion, and adjacent-load diamond validation. Flag-independent writers pass a null operand pointer to the conservative helper, avoiding operand decoding without changing its answer. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
-- Taken on 2026-10-10: `PostRALoopRotate` now checks label opcodes before decoding candidate labels, fallthrough instructions, and instructions in its lazily built label-ordinal map. Non-label entries no longer incur label-operand lookup. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
-- Taken on 2026-10-10: `LoopLoadForward` now checks the opcode before probing each instruction as a loop-entry label, and `ColdBlockLayout` checks the fallthrough opcode before reading its label operand. Their non-label candidates avoid the helper lookup. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
-- Taken on 2026-10-10: `PostRALoopRotate` now checks that incoming edges are `JumpCond` before decoding a target, and that each loop-header candidate is a `Label` before reading its id. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
-- Taken on 2026-10-10: guarded-select diamond qualification now checks the result and up to seven distinct fallthrough definitions in one walk of the jump arm's SSA use/def records, instead of rescanning that arm once per register. The existing per-register path remains for larger sets, avoiding added dynamic storage. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `coalesceShortCircuitResults` now checks whether a register's use or definition ordinals all fall in a candidate interval from the list's endpoints. `RegSites` appends them during an ascending layout walk, so this replaces a full list traversal without extra storage. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `collectDiamondArm` now classifies the opcode before retrieving operands. Opcodes outside the speculatable-arm set terminate the scan immediately, avoiding operand lookup for those arm boundaries; supported instructions retain their previous null-operand and micro-op checks, and `collectReturnPath` reuses its existing operand pointer. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `tryMatchDiamondShape` now checks the join jump and both expected labels by opcode before retrieving operands. Nonmatching arm boundaries avoid the lookup; accepted shapes retain the same target and label-id checks. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: triangle matching checks its join-label opcode before lookup, and early-return collection recognizes `Ret` and the only stack-restore opcode before retrieving operands. Other early-return arm instructions use the speculatable-opcode filter directly, so rejected opcodes skip operand access. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: the later-sweep register-allocation probe skips operand decoding when opcode metadata has no explicit register modes or encoder register effects. It also no longer calls `collectUseDef` for calls after checking explicit modes: the remaining ABI argument uses and clobbers are concrete physical registers, so they cannot affect whether the function still has a virtual register. Encoder-specific effects remain checked. `foldLocalStackBaseIntoStackPointer` also reserves its complete instruction-reference snapshot from the known instruction count, avoiding vector growth and reference copies. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `MicroInstr::collectUseDef` now reads call float-argument widths from the operand block it already decoded, rather than performing a second `ops()` lookup through `callFloatArgs`. The standalone accessor still decodes its own operands once. The Release build, four focused `call_float_arg` native tests, and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `foldLocalStackBaseIntoStackPointer` now reuses one `MicroInstrUseDef` across its instruction scan. Its small-vector capacity survives between instructions, avoiding repeated heap allocation and release for call effects while each result is consumed before the next refill. The storage remains bounded by the largest call-convention use/def lists in that function. The Release build and all 3,690 native Release tests passed; the three recovery probes ran and the suite returned zero; no timing claim is made.
-- Taken on 2026-10-10: the same frame-fold scan now caches each validated stack-restore suffix through its first `Ret`. Later `Pop` and stack-adjustment definitions within that already-checked run avoid rewalking the same instructions. A non-restore instruction still rejects the fold, and the cached interval ends at the same return as the original check. The Release build and all 3,690 native Release tests passed; the three recovery probes ran and the suite returned zero; no timing claim is made.
-- Taken on 2026-10-10: `foldLocalStackBaseIntoStackPointer` now finds both tracked definitions in one pass over `useDef.defs`, and counts base uses in one pass over `useDef.uses`. This avoids the second vector scan for matching entries, including call clobber/use lists, while preserving duplicate-use validation. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: the late branch-simplification layout walk now also records direct jump-label counts and computed-jump presence. Its branch scan consumes those facts directly instead of traversing the full instruction list again; the pre-allocation scan still makes its separate pass to collect register mentions. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: diamond if-conversion now borrows jump-reference counts from a current, complete pre-allocation branch scan, including a small separate table for `JumpCondImm` targets. The diamond scan still runs when that cache is absent, stale, interrupted by a computed jump, or cannot validate target operands; rewrites clear the borrowed source before another query. The Release build, focused native `branch_simplification.swg` test, and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `foldRangeChecks` now advances a four-instruction iterator window instead of resolving the next three references and validating them again with `storage.ptr`. The storage view already guarantees those adjacent references are live, and no mutation occurs until after the scan; candidate order and boundary checks remain unchanged. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `forwardRepeatedMemoryCompareInShortCircuit` reuses the valid branch scan's exact virtual-register mention count for its loaded comparison value, skipping the function-wide operand/mode scan. It keeps the original scan when the cache is absent, interrupted by a computed jump, or the value is not a virtual integer. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: InstructionCombine's store-to-load forwarding and dead-store scans now skip SSA use/def lookups for instructions whose static register modes cannot define registers. Calls, special register-mode opcodes, and encoder-defined effects stay on the full query path. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: InstructionCombine's global float-read-width check now skips SSA lookups and operand decoding for instructions whose metadata cannot contain register reads. Calls, special modes, and opcodes with possible encoder effects keep the full query path. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: RegisterAllocation's local-copy coalescing and copy-erasure scans now skip operand decoding when static register modes are all `None` and no special mode can resolve additional operands. Calls and encoder register effects still use `collectUseDef`, and special register modes still decode operands. The Release build, all 299 native optimizer tests, and the repository validator passed; no timing claim is made.
-- Taken on 2026-10-10: the main register-allocation rewrite walk now decodes operands only for instructions with explicit register modes, special modes, or encoder register effects. This avoids a second lookup for direct calls and other non-register instructions while ABI call effects continue to come from the prepared use/def data. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: the main register-allocation rewrite walk now resolves each instruction's register modes once and reuses that array to build allocation requests and rewrite assigned operands. Allocation only changes register fields; special-mode selection reads the separate micro-operation field. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: register allocation now materializes its concrete live-out `MicroReg` list only when a definition-only copy from a concrete register needs it. Other instructions no longer scan and expand the concrete live-out bitset. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: the main allocation rewrite now computes concrete live-out bits only for address loads and definition-only copies from concrete registers; virtual live-out bits remain computed for every instruction. The liveness fixed-point path keeps its original combined routine. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: the allocation rewrite now marks virtual live-outs directly from CFG successor rows. A single-successor instruction scans that row once; multi-successor instructions combine words in a local accumulator. This removes a full bitset copy/clear and scratch-buffer read on the linear path without changing the live-out union. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: address-load allocation now queries each concrete base/index register directly in the successor live-in rows instead of building the complete concrete live-out bitset. Full concrete live-outs are still built for definition-only copies that inspect the entire set. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: the acyclic liveness sweep now unions successor rows directly into each destination live-in row, then applies that instruction's defs and uses. The single-successor case copies directly to the destination. This removes the temporary live-out row and its subsequent copy for every virtual and concrete row in functions without loops; the iterative loop path is unchanged. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: call-crossing summaries now mark values directly from successor live-in rows, combining multiple successors a word at a time. They no longer copy or clear a temporary live-out bitset for each call. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `threadInlinedBooleanBranches` now uses the current branch scan's explicit register-mention counts as a fast proof when each distinct boolean has exactly its two expected mentions (definition and sole reader). It retains the original full use scan when counts differ or the scan is stale, and only uses cached counts after preceding rewrites are ruled out. The Release build, focused `branch_simplification` test, and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `foldImpliedBranches` now stores a conditional jump's condition with its label-use record during the initial scan and reuses it when backward walks reach that label. It removes repeated operand decoding of the same unique incoming jump. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `foldImpliedBranches` now carries each candidate conditional jump's condition beside its ordinal from the initial scan. The later candidate pass no longer re-fetches the instruction or decodes its operands just to reject an unconditional jump and read the comparison condition. The Release build and all 299 native optimizer tests passed; no timing claim is made.
-- Rejected on 2026-10-10: lazily memoizing `fallsIntoLabel` can avoid a predecessor lookup and conditional-jump decode only when another backward candidate revisits that label; a first visit adds cache-state checks, and source inspection does not establish enough reuse to prove a net saving. No code was retained.
-- Taken on 2026-10-10: `coalesceShortCircuitResults` now merges the sorted use and definition ordinals for register E and rewrites each instruction once. A use-def or repeated-operand instruction no longer triggers multiple operand lookups and mode scans during the same coalescing rewrite. The Release compiler build, focused native Release `short_circuit_booleans.swg` test, all 299 native optimizer tests, and repository validator passed; no timing claim is made.
-- Taken on 2026-10-10: `fuseMaterializedBoolBranches` now checks static register modes before decoding operands during its backward definition search. Instructions with only register reads avoid an operand lookup and mode scan; special modes, encoder effects, and operand-dependent flag definitions retain the existing full checks. The Release build, focused native Release `branch_simplification.swg` test, and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: `convertSwitchesToPackedTables` now reuses its case and chain-target buffers across candidate starts. A long compare chain exposes overlapping suffix candidates, whose case lists can exceed inline capacity; later suffixes no longer allocate and free both vectors again. The Release build, all 62 focused native `switch_` tests, and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: after verifying that the first `CmpRegImm` is followed by `JumpCond`, the packed-switch matcher carries its operand decode from the key/width prefilter into the first chain step, removing both repeat lookups without decoding compares that fail the successor-opcode filter. The Release build and all 62 focused native `switch_` tests passed; no timing claim is made.
-- Rejected on 2026-10-10: replacing the packed-switch arm `unordered_map` with `FlatKeyMap` removes per-arm nodes but allocates 64 full `Arm` slots even for the minimum three-arm case. Without timing or memory measurement, the denser storage is an unjustified tradeoff; no code was retained.
-- Taken on 2026-10-10: the packed-switch matcher now updates the minimum and maximum case values while it collects cases, eliminating a separate traversal of every collected pair before computing the span. The Release build and all 62 focused native `switch_` tests passed; no timing claim is made.
-- Taken on 2026-10-10: `convertEqualityChainsToBitTests` now carries the candidate compare pointer through alias detection and matching instead of resolving the same layout ordinal twice. Its first link also reuses the pointer already obtained by the start prefilter. The Release build, focused native `equality_chain_bit_test` test, and all 299 native optimizer tests passed; no timing claim is made.
-- Taken on 2026-10-10: the equality-chain matcher now computes the tested-width bit mask once from its first accepted link and reuses it for each later constant. Link validation already requires every compare to have that same width, so the per-link width conversions and mask construction are removed. The Release build and focused native `equality_chain_bit_test` test passed; no timing claim is made.
-- Taken on 2026-10-10: the equality-chain matcher now tracks the minimum and maximum masked constants while collecting links, removing a later traversal of the link vector. The Release build and focused native `equality_chain_bit_test` test passed; no timing claim is made.
-- Taken on 2026-10-10: each equality-chain link now stores only its constant value. Its compare ordinal was used only to locate the first compare for emitted instructions; the first link is always at the candidate start because an alias before any link is rejected. The Release build, focused native `equality_chain_bit_test` test, and all 299 native optimizer tests passed; no timing claim is made.
-- Area: compiler/backend, compilation time
-- Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
-  --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
-  branch simplification alone is 16.2 s of it, **24.8%**, across 72,546 runs of which 38.6%
-  rewrite something. The next pass is register allocation at 11.3%, then instruction combine
-  at 7.9%. A six-worker stack profile of the same build puts the pass at 12.9% of busy CPU,
-  spread over some twenty sub-transforms none of which reaches 1.5% — there is no hot spot,
-  only a battery of scans.
-- How it got there: the cold release rebuild of the big modules slowed by half in one week at
-  unchanged sources. Paired, order-alternated rebuilds give gui 12.3 s → 18.4 s and pixel
-  6.5 s → 11.1 s between 0.1.684 (2026-09-16) and 0.1.1035 (2026-09-21), while gui's sources
-  moved from 105,315 to 105,483 lines. Bisecting the same measurement puts 0.1.823
-  (2026-09-17 01:33) still at the old speed and 0.1.885 (2026-09-17 13:29) already at the new
-  one — the window that added some fifty narrowing, diamond and short-circuit patterns.
-- Taken in 0.1.1046: seven transforms opened on the same walk of the function and ten more
-  rebuilt the same jump-target counts and relocation set; one shared walk now serves a run and
-  is dropped when a transform rewrites the stream. Single-core, alternated: core 0.97, pixel
-  0.93, gui 0.95, video 0.92, seven of eight pairs favourable. `buildProgramLayout` fell from
-  1.67% to 0.73% of busy CPU.
-- What remains: the pass still runs about thirty-seven transforms, and each one scans the whole
-  function looking for a shape most functions do not hold. The cost is therefore the number of
-  patterns times the size of every function compiled, which is why a pattern campaign shows up
-  as a compile-time regression with no single culprit.
-- Measured, and the obvious gate is not worth it: instrumenting the pass over the same rebuild,
-  38 592 runs land on a function holding no conditional jump at all and cost 2.42 s of the pass's
-  33.1 s — **7.3%**, about 0.9% of the compilation. Gating them would also have to spare the
-  structural loop, which threads unconditional jump chains and erases unreachable code in exactly
-  those functions, so the reachable share is smaller still. Do not spend a gate on it.
-- What the same probe does say: a run on a 28-instruction branchless function still costs 63 us,
-  against 485 us for a 126-instruction branchy one. The pass has a large **fixed** cost per run —
-  entering some thirty-seven transforms, each with its own scratch containers — that does not
-  scale with the function. That, not the scanning, is what a pattern campaign multiplies.
-- Where the fixed cost was (timed per transform, 0.1.1047): fourteen transforms opened by asking
-  for the next free virtual integer register index, which walks every instruction and collects
-  every register operand, and then used it only when the transform actually rewrote something;
-  the short-circuit coalescer opened with a use/def query per instruction and a pair of ordinal
-  lists per register, read only after three filters had matched. Collecting both on first request
-  took the pass from 16.7 s to 9.1 s of summed worker time over a bin/std release rebuild.
-- The same shape again, taken in 0.1.1048: `areCpuFlagsDeadAfterInCfg` mapped an instruction
-  reference back to its graph index with a linear search of the graph's instruction list, and
-  eleven sites ask it once per candidate they examine - quadratic in the function.
-  `MicroControlFlowGraph::indexOf` now answers from a table built on first request.
-- Ranking at 0.1.1048, as a share of the pass: `fuseMaterializedBoolBranches` 10.6%, rebuilding
-  SSA through `MicroSsaState::ensureFor` 10.3%, `convertEqualityChainsToBitTests` 9.9%,
-  `convertGuardedSelectDiamonds` 8.9% (which rebuilds SSA of its own), `coalesceShortCircuitResults`
-  7.2%, and a tail of thirty-odd transforms under 4% each. The measured quadratic and virtual-register
-  prologues were removed; what remains is the cost of asking thirty-seven questions about every function.
-- Taken in 0.1.1136: equality-chain bit tests, packed switches, three-way signs and repeated memory
-  compares had each built a hash set from the same relocation list. They now share one index while
-  the instruction stream is unchanged and rebuild it after a rewrite. A run without rewrites makes
-  one relocation walk instead of four; the transforms consult the same instruction references as
-  before. Four focused native Release tests and one rotating JIT test passed. Five order-alternated
-  pairs against the same master source gave candidate/baseline wall and CPU ratios of 0.836/0.763
-  for core rebuild, 0.968/0.969 for core touch and 0.860/0.955 for hello build; the no-op guardrail
-  stayed below 100 ms. Rebuild times drifted from 1.8 to 3.4 s during the run, so this is a
-  correctness-certified structural saving, below the measurement floor rather than a claimed
-  percentage speedup. Peak working-set ratios were 0.992, 1.000 and 0.983 for those three builds.
-- Taken in 0.1.1138: `coalesceShortCircuitResults` and `threadShortCircuitExits` each rebuilt the
-  program layout in every short-circuit round. They now use the same layout when coalescing makes
-  no change, and rebuild it when coalescing rewrites the stream. This removes one full instruction
-  walk from each unchanged round, with no change to either transformation. The prior profile put
-  all `buildProgramLayout` calls at 0.73% of busy CPU, so this is expected below the whole-build
-  timing floor. The focused `short_circuit_booleans` and `short_circuit_past_join` native Release
-  tests passed; the rotating `std/core` TweakFile file ran four passing tests. On the rebased master,
-  five order-alternated pairs gave candidate/baseline core-touch ratios of 1.013 wall and 0.989
-  CPU. Hello-build ratios of 1.126 wall and 1.150 CPU reversed in a second seven-pair run with
-  A/B roles swapped: 0.995 wall and 0.857 CPU. The series therefore supports no percentage claim.
-  Peak working-set ratios were 1.014 for core touch and 1.034 for hello build in the five-pair run.
-- Ruled out on 2026-09-24: recording whether each function has `SetCondReg` in the shared branch
-  scan and using it to skip the equality-chain, branchless-or and three-way-sign transforms when
-  none exists. This requires one extra opcode comparison per instruction in every branch scan.
-  The three focused native Release tests and a rotating JIT test passed, but five alternated pairs
-  measured candidate/baseline at 1.090 wall and 1.030 CPU for core rebuild, and 1.144 wall and
-  1.190 CPU for hello build. Peak working-set ratios were 1.010 and 0.993. An earlier sweep was
-  discarded when unrelated machine load stretched one rebuild to 29.5 s. The completed sweep still
-  shows the always-paid scan cost outweighing the scans avoided here; the gate was reverted.
-- Taken in 0.1.1140: the early unused-label sweep reused the pass's relocation-reference index
-  instead of walking the same relocation list and allocating another hash set. A run without
-  rewrites now builds this index once for the early sweep and the later equality-chain, packed-switch,
-  three-way-sign and repeated-memory-compare transforms. The index is invalidated after a rewrite.
-  The focused native Release branch-simplification and packed-switch files passed, as did four
-  tests in the rotating JIT `defer.catch` file. Three order-alternated pairs against the same
-  master source gave candidate/baseline core-rebuild ratios of 0.985 wall, 0.944 CPU and 1.005
-  peak working set. Hello-build ratios of 1.198 wall and 1.244 CPU reversed in a seven-pair run
-  with A/B roles swapped: baseline/candidate 0.999 wall and 1.036 CPU. Other attempted pairs
-  were discarded when shared-machine load stretched individual builds to 26-35 seconds. The
-  saving is therefore below the measurement floor, with no percentage speedup claim or stable
-  memory regression.
-- Ruled out on 2026-09-24: returning an unusable diamond scan when its existing label-reference
-  map is empty. This skips the diamond transform family for functions with no direct jumps,
-  without adding an opcode check to the instruction walk. Two focused native Release tests and
-  the rotating JIT `move_value_expression` file (15 tests) passed. Five alternated pairs gave
-  candidate/baseline ratios of 1.058 wall and 1.044 CPU for core rebuild, and 1.041 wall and
-  1.038 CPU for hello build; peak working-set ratios were 0.998 and 1.014. A reverse series
-  became unusable when unrelated load stretched a baseline rebuild to 42.8 seconds. With no
-  observed gain and a possible guardrail regression, the gate was reverted.
-- Final validation on 2026-09-24: the Release campaign passed 1,500 JIT tests and 3,478 native
-  tests, then stopped on a semantic error in `std/gui`, since fixed by preserving the source view of generated `is`
-  casts. The pre-campaign compiler build 1131 reproduced that error on unchanged GUI sources.
-  A final five-run four-workload timing attempt was stopped after three runs:
-  unrelated machine load moved a core rebuild from 4.8 to 7.3 seconds and a touched-file
-  build from 3.0 to 9.2 seconds. These samples support no final percentage speedup claim.
-- A final three-pair, order-alternated comparison of build 1131 with build 1140 on the same
-  checkout measured final/initial ratios of 1.035 wall, 1.051 CPU and 1.010 peak working set
-  for core rebuild; hello build measured 1.005 wall, 1.000 CPU and 1.011 peak working set.
-  Several other compiler changes landed between those versions, and the shared machine drifted
-  during the campaign. This end-to-end comparison neither proves a speedup nor attributes the
-  small slowdown to one batch. The remaining distance to the subsecond core target is large.
-- A separate final three-run check of build 1140 gave a warm no-op median of 78.1 ms
-  (all three runs below the 100 ms guardrail) and a touched-file median of 3,241.7 ms.
-  In the paired comparison above, the final compiler's core-rebuild median was 4,890.1 ms
-  and hello-build median was 244.0 ms. These are noisy three-run observations, not the
-  five-run quiet-machine baseline required for a stable target claim.
-- Ruled out on 2026-09-25: tracking changes since the last graph invalidation instead of using
-  the pass-wide `changed` flag at each synchronization point. A Release 1142 core profile put
-  `MicroBranchSimplifyPass::run` at 10.27% and `MicroControlFlowGraph::build` at 3.35% of
-  sampled worker CPU, so the predicted whole-build saving was below 1%. The Release 1143 trial
-  passed two focused native files and a randomly drawn JIT file (12 tests), but five loaded
-  A/B pairs gave `core_rebuild` candidate/baseline ratios of 1.249 wall and 1.234 CPU, while
-  `core_touch` gave 0.808 wall and 0.872 CPU. A follow-up candidate core rebuild took 39.7 and
-  39.9 seconds, yet the restored baseline also took 49.5 seconds during the complete Release
-  suite. Five A/A pairs of byte-identical binaries gave 1.000 wall and 1.044 CPU, with individual
-  builds between 2.7 and 5.8 seconds. The evidence does not isolate the candidate from shared
-  machine load or establish a repeatable benefit. The change and version bump were reverted;
-  the [campaign summary](../bench/results/compilation/20260925-speed/README.md) records the outcome.
-- Taken on 2026-09-26 under prompt 4: the existing program-layout scan now also records whether
-  any label exists. The branch pass skips jump-threading, immediate-label, inverted-jump, CFG
-  reachability and unused-label sweeps when their required label is absent; it skips the diamond
-  family when the current layout has no conditional jump. Each guard uses already collected layout
-  state and falls back to the original path after a rewrite. Focused native Release tests passed,
-  as did the full 3,480 native and 1,500 JIT test suites. Five order-alternated four-workload pairs
-  against the earlier campaign binary were too variable for a speedup claim: candidate medians were
-  2,366 ms core rebuild, 53 ms no-op, 2,571 ms core touch and 144 ms hello; baseline medians were
-  2,299, 41, 2,224 and 129 ms. The full Release campaign reached the known `std/gui` semantic
-  error, since fixed by preserving generated `is` cast source views; the
-  pre-campaign master compiler also reproduced it.
-- A second prompt-4 group on the merged master uses that same layout to skip range-check,
-  range-and, branch-to-cmov and repeated-memory-compare scans when their required conditional
-  jump or setcc is absent. The 3,480 native and 1,500 JIT Release tests passed. A five-pair A/B
-  sweep was disrupted by shared load: core rebuilds grew from about 2 to 5-7 seconds during it.
-  Candidate/baseline medians were 2,067/2,082 ms for core rebuild, 44/49 ms for no-op,
-  1,830/1,929 ms for core touch and 126/120 ms for hello. This supports no percentage claim.
-- A third prompt-4 group skips rich branch-reference scans for float selects, equality chains and
-  packed switches when their required opcodes are absent. It also skips implied-branch label maps
-  without an immediate compare and stores each label's reference count and jump position in one
-  map instead of two. Focused tests, 3,480 native and 1,500 JIT Release tests passed. Five paired
-  core rebuild medians were 3,151 ms candidate and 2,996 ms baseline under variable load; hello
-  medians were 167 and 189 ms, but a seven-pair role-reversed hello series gave 181 and 187 ms
-  with slightly higher candidate CPU. No speedup percentage is established. The full Release
-  campaign again reached the `std/gui` error later fixed by preserving generated `is` cast
-  source views.
-- A fourth prompt-4 group skips settled register-allocation sweeps after checking for remaining
-  virtual operands, defers implied-branch and jump-chain cycle sets, builds packed-switch jump
-  counts only for qualifying chains, delays range-check used-set work until the opcode shape
-  matches, and constructs short-circuit scratch maps only on paths that use them. Focused Release
-  tests passed; after merging master `f196225e0`, 3,481 native and 1,500 JIT tests passed. The
-  full Release campaign compiled `std/gui` and stopped in `std/video` because
-  `Slice.predictIntraPlane` still changed after 24 pre-RA sweeps. The unmodified master compiler
-  at `f196225e0` reproduced that exact failure with a video rebuild. Five order-alternated
-  four-workload pairs against that master gave candidate/baseline medians of 3,357/3,426 ms
-  core rebuild, 89/65 ms no-op, 2,734/2,576 ms core touch, and 245/242 ms hello. One touch
-  took 35 seconds and one no-op 1.55 seconds under shared load; these samples establish no
-  speedup percentage or stable regression.
-- A fifth prompt-4 group defers the short-circuit fallthrough-label map and boolean-guard
-  claimed-reference set, skips two diamond reference scans without a conditional jump, and uses
-  existing layout flags to skip range and boolean-threading scans without their required
-  immediate compare or setcc. Focused tests, 3,481 native and 1,500 JIT Release tests passed,
-  including after merging master `0308e681d`. Five order-alternated pairs against the preceding
-  integrated master `43766f77f` gave candidate/baseline medians of 2,269/2,304 ms core rebuild,
-  46/57 ms no-op, 2,460/1,904 ms core touch and 152/145 ms hello. Paired rebuild and touch
-  ratios were near one, individual touch runs ranged from 1.8 to 4.0 seconds, and the samples
-  establish no percentage speedup. A fresh `std/video` rebuild still stops at the 24-sweep
-  `Slice.predictIntraPlane` error; compiler `01e0d9e59`, before both recent master changes and
-  these two prompt-4 groups, reproduces the same error.
-- The 2026-09-28 prompt-4 continuation reuses the current branch scan's register-mention counts
-  in short-circuit and range-AND folding, avoiding their separate whole-function counts when no
-  preceding rewrite invalidated the scan. OR-chain and packed-switch candidate maps also reuse
-  buckets within a run. Focused Release checks and the full 3,483 native and 1,500 JIT suites
-  passed; elapsed time, CPU, and retained-memory effects remain unmeasured.
-- The October 7 prompt-4 pass removes late branch scans' unused register-mention counts and
-  shares layout with short-circuit return threading. Related backend work initializes combiner
-  temporary indices once, defers boolean-merge facts and memory/flag proofs until a candidate
-  needs them, sorts the initial interval queue once, and skips edge and rematerialization
-  analysis for unsplit values. Definition indexing starts only when a rematerialization candidate
-  needs it; address shapes precede SSA-use counting, and comparison patterns stop their neighbor
-  walks at the first mismatched opcode. Release `swc.exe` passed the 293 native optimizer tests
-  in the Release program configuration throughout. The final revision passed 3,651 native tests
-  in the guarded program configuration; a preceding milestone, already incorporating the
-  unused-binding syntax change, passed 1,515 JIT tests. Static instruction
-  comparisons retained the tested function bodies; optional constant-call folding and the
-  imported test-source edits changed some test wrappers. No elapsed-time, CPU or peak-memory
-  measurements were taken. Reprofile before attributing a new pass share or claiming the threshold
-  below.
-- Next: two of the five now pay for an SSA rebuild, which is compiler.optimization.029's subject
-  rather than this entry's. For this entry, the remaining lever is structural — running the
-  pattern battery once on the converged IR instead of in every sweep of the pre-RA loop, the way
-  `lateBranchSimplifyPass_` already does for three transforms. That changes what the optimizer
-  produces, so it needs the benchmark, not just a compile-time measurement.
-- Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
-  drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
-- Related: compiler.optimization.029, compiler.optimization.039.
-
-
+- Evidence: the pass still runs many pattern-specific transforms over each function. Shared program-layout and relocation indexes remove some duplicate walks, but independent transforms continue to scan for their own shapes.
+- Next: profile the current Release pass on a representative `bin/std` rebuild, identify the largest repeated traversal, and merge it with an existing walk or skip it using facts already available without adding a costly unconditional scan.
+- Done when: one measured repeated traversal is removed with equivalent generated code and no repeatable compile-time or memory regression; delete the entry if current profiling finds no useful target.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
-- Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:51 — Index register pools directly during interval walks.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -451,15 +177,13 @@ new language syntax.
 - Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
   multiply output rule and diagnose remaining borrow sites on a whole-library build. The
   global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
-- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
+- Done when: the three forms carry position-precise fixed intervals, the borrow path no
   longer fires on a whole-library build, and the suites stay green.
 - Related: compiler.optimization.016.
 
 
 ### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
 
-- Recorded: 2026-10-10 11:07
-- Updated: 2026-10-10 13:53 — Keep the inline proof-boundary repair and reject broad eligibility after sentinel frame traffic grows.
 - Area: compiler/sema, automatic inlining and flow narrowing.
 - Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
   site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
@@ -479,15 +203,13 @@ new language syntax.
   This does not meet the sentinel no-loss rule; no timing was taken.
 - Next: make eligibility depend on the actual call-site type and body flow, then prove a hot-path
   gain without volunteering one-time setup or adding frame traffic to sentinel loops.
-- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
+- Done when: single-call wrappers with `!` or nullable signatures auto-inline with no static
   per-iteration loss on any bench hot loop.
 - Related: compiler.optimization.094, compiler.optimization.117.
 
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-10 11:07 — Contracted products separated by a load; recorded the rotation copies and a rejected position-loop unroll.
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
 - Comparison: accepted campaign `20261001-103647`, built from `49f7e665d`, reports
   native at 23.5431 ms, JIT at 25.9971 ms and Zig 0.15.2 at 16.45 ms, with
@@ -561,26 +283,22 @@ new language syntax.
 - Next: compare each interaction region against the winner and design shared producer
   ownership before another SLP rewrite. Keep historical timing attribution separate from
   the static optimization loop; a stable controlled cohort is still required for it.
-- Complete when: the step retains or packs body state with no redundant pair work and
+- Done when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
 
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 
-- Recorded: 2026-09-25 11:15
-- Updated: 2026-10-06 20:59 — Private-global hoisting and value numbering landed after the last qsort dump; re-dump before further work.
 - Area: compiler/backend, loop-invariant code motion and call effects
 - Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
 - Current evidence: the new loop-guided wrapper rule inlines both `less` calls in `qsort`. Its optimized body grows from 72 to 132 Micro instructions, while each unequal-count comparison now reads the retained `g_Idx` and `g_Cnt` pointers without a `less` call or a global reload. The tie path still calls `memcmp`, and the second comparator loop reloads both global pointers on entry. LDC also retains its pointers during the unequal-count loop and reloads after a call. Wordfreq's checksum is 130489; csvagg's selected function counts and checksum are unchanged. No timing sample informed the rule.
 - A value-numbering trial preserved mutable global loads across a direct `ReadOnly` call. It removed four instructions from `qsort` as a whole (132 to 128), including a repeated global pointer load after `memcmp`, and kept checksum 130489. The extra live value changed allocation in the first comparator loop: each increment path acquired a stack reload of the count pointer and an unconditional back-edge jump. That hot-path regression outweighed the colder tie-path saving, so the trial was reverted without timing it. A direct-call regression test for this trial was reverted with the rule.
 - Since that dump: LICM hoists a load of a private global (one no other module names and whose address no use binds) past pointer stores, but only out of an innermost loop (`ba4e255d4`, then `baedb50db` after a 22% wordfreq regression when the hoisted `g_Text` had to outlive nested loops), and value numbering reuses unmodified private globals across disjoint writes (`a172a3428`). `g_Idx` and `g_Cnt` are file-level `late var` globals in `bench/src/swag/wordfreq.swg`; no `qsort` dump has been taken since these changes.
 - Next: dump the current Release `qsort`. If the post-call and second-loop reloads are gone, retire the entry; otherwise compare the tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to decide whether the remaining reloads warrant a focused allocation change.
-- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
+- Done when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
 
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 
-- Recorded: 2026-08-24 13:31
-- Updated: 2026-10-06 20:59 — Removed the pointer to the resolved Inflate cursor lead.
 - Area: compiler/backend
 - Found while: std.video.001, after mem2reg was taught the vector load and store and the memory traffic
   of the motion-compensation path fell by a quarter.
@@ -639,14 +357,12 @@ new language syntax.
   shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
   gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
   first shows an invariant value with a reusable destination.
-- Complete when: current dumps and alternating timings establish the remaining allocation cost
+- Done when: current dumps and alternating timings establish the remaining allocation cost
   on both large kernels and identify a specific next change or retire this lead.
 - Related: compiler.optimization.024.
 
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 17:31 — Reuse the prologue's saved SIMD registers across calls.
 - Area: compiler/backend
 - Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
   in a caller-saved XMM register free across a call-free loop. Every matching load/store
@@ -688,15 +404,13 @@ new language syntax.
   Caches clobbered on every trip are still excluded, even when a home has several
   reads between calls. Any extension should prove reuse within each call-delimited
   path; counting reads on mutually exclusive arms can overstate the avoided work.
-- Complete when: current codec dumps identify and resolve the remaining promotion boundary
+- Done when: current codec dumps identify and resolve the remaining promotion boundary
   with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
   64-bit multi-access rewrite.
 - Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
 
 ### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
 
-- Recorded: 2026-09-07 10:46
-- Updated: 2026-10-06 16:37 — Close redundant private-global reads and isolate the selected-child reload.
 - Area: compiler/backend, memory optimization
 - Current evidence: the Release sift-up loop already retains its private heap
   pointers and uses eight heap memory operations on a swapping iteration.
@@ -710,13 +424,11 @@ new language syntax.
 - Next: carry the available child value through the selection while preserving
   the one-child path, bounds, intervening alias writes and register pressure.
   The historical private-global pointer-reload diagnosis is closed.
-- Complete when: the selected-child reload disappears with sound path availability,
+- Done when: the selected-child reload disappears with sound path availability,
   or a focused experiment identifies the register-residency constraint.
 
 ### compiler.optimization.035 — Improve spill choices after register and memory promotion
 
-- Recorded: 2026-09-12 11:40
-- Updated: 2026-10-06 16:03 — Isolate the remaining CSV setup allocation cost after packed promotion.
 - Area: compiler/backend, register allocation and live ranges
 - Evidence: after removing the permanent integer legalization reserve,
   `Slice.parsePlaneResidualCabac` gained one memory operation and
@@ -735,12 +447,10 @@ new language syntax.
   claims in CSV setup, and compare the two H.264 functions' interval choices.
   Preserve the extra register and legal packed promotion while correcting these
   local allocation costs. No elapsed-time regression is inferred.
-- Complete when: these local increases are removed or explained by a necessary tradeoff.
+- Done when: these local increases are removed or explained by a necessary tradeoff.
 
 ### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
 
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-10-06 14:54 — Share LICM and SLP privacy and retain the remaining consumers.
 - Area: compiler/backend, memory alias analysis
 - Current boundary: LICM and SLP consume MicroPassHelpers::analyzeFramePrivacy.
   SLP additionally checks escape reachability so an escape after a loop does not
@@ -752,14 +462,12 @@ new language syntax.
   numbering. Inspect the four H.264 allocation changes caused by the necessary SP
   alias repair: applyMotion, deriveDirectTemporal, deriveDirectSpatial, parseSubMvs
   together add four instructions and five memory operands; preserve the repair.
-- Complete when: shared facts cover those consumers, forwarding crosses a proven
+- Done when: shared facts cover those consumers, forwarding crosses a proven
   disjoint store in a real codec loop, and remaining local allocation costs are resolved.
 - Related: compiler.optimization.015.
 
 ### compiler.optimization.032 — Control register pressure in wider partial unrolling
 
-- Recorded: 2026-09-06 14:53
-- Updated: 2026-10-06 11:04 — Retain two-round grouping with no hot frame traffic.
 - Area: compiler/backend
 - Current boundary: exact even loops too large to fully unroll can group two straight-line
   bodies, reusing the full unroller's temporary renaming and retaining counter updates and
@@ -778,14 +486,12 @@ new language syntax.
 - Next: trace the remaining register-copy and store placement across four-round groups,
   and the six additional outer-loop frame accesses in the retained two-round form. Extend
   only with a joint allocation plan that preserves the now spill-free compression loop.
-- Complete when: wider grouping reduces per-round work without reintroducing hot frame
+- Done when: wider grouping reduces per-round work without reintroducing hot frame
   traffic, and the retained two-round form's outer spill cost is resolved.
 - Related: compiler.optimization.005, compiler.optimization.015, compiler.optimization.016.
 
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
-- Recorded: 2026-08-28 15:42
-- Updated: 2026-10-06 10:45 — Retain pure leaf array borrowing; broader bodies remain.
 - Area: compiler/sema
 - Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
 - Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
@@ -808,13 +514,11 @@ new language syntax.
 - Next: extend the stability proof to larger/non-leaf bodies and argument evaluations that
   currently fail the conservative leaf/constant-or-variable boundary. Revisit the SIMD
   transpose with evidence from its actual caller, preserving copy/drop and alias semantics.
-- Complete when: the value-returning block transform is as cheap as its in-place shape on
+- Done when: the value-returning block transform is as cheap as its in-place shape on
   the video corpus, including bodies outside the retained pure-leaf boundary.
 
 ### compiler.optimization.005 — Investigate the remaining Levenshtein outer-loop allocation costs
 
-- Recorded: 2026-08-07 08:30
-- Updated: 2026-10-06 10:16 — retire the stale SHA-256 spill diagnosis and retain the outer-loop cost.
 - Area: compiler/backend
 - Current evidence: Levenshtein carries both adjacent row values between iterations.
   Its inner loop has 19 instructions and three memory operations, with no frame access
@@ -828,13 +532,11 @@ new language syntax.
 - Next: trace the four added Levenshtein frame accesses outside its inner loop and decide
   whether narrower carry residency or allocation can remove them without restoring the
   two per-iteration row reads.
-- Complete when: the outer-region accesses are eliminated or attributed to unavoidable
+- Done when: the outer-region accesses are eliminated or attributed to unavoidable
   carry initialization/lifetime costs with the inner-loop gain preserved.
 
 ### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
 
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-10-06 10:00 — reuse SSA dominance intervals in five optimization analyses.
 - Area: compiler/backend, compilation time
 - Evidence: the Sep 23 Release profile measured 300,712 SSA builds over 33,062 functions,
   about nine per function, and 7.05% of busy CPU in SSA construction. These counts predate
@@ -866,14 +568,12 @@ new language syntax.
   discarded. Revisit with the SSA rename work, not another pass-local liveness substitute.
   Likewise, queue-time visit marking was withdrawn on Oct 4: changing depth-first priority
   can delay early exits. Keep visit order when removing duplicate work.
-- Complete when: the remaining rebuild reduction preserves generated code and a repeatable
+- Done when: the remaining rebuild reduction preserves generated code and a repeatable
   compiler gain is resolved against the measurement floor at a later milestone.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
 
 ### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
 
-- Recorded: 2026-09-12 13:05
-- Updated: 2026-10-06 09:18 — fold single-use address bases after vectorization and retain the local spill lead.
 - Area: compiler/backend
 - Resolved: late pre-allocation scheduling folds a single-use constant-offset address into
   indexed and ordinary memory operands. Cross-block candidates require an SSA proof that the
@@ -891,13 +591,11 @@ new language syntax.
 - Next: attribute `parsePartitions`' new spill choice, and consider shared-base substitution
   only when every use preserves the base and removing the address does not extend pressure.
   Keep the late stage so array promotion/vectorization retain their input shape.
-- Complete when: the local allocation cost is resolved or explained and profitable shared
+- Done when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
 
 ### compiler.optimization.105 — Prove lz77's signed remainder bounds
 
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-06 08:54 — remove the resolved XMM index transfer from the remaining LZ77 scope.
 - Area: compiler/backend, value ranges and signed remainder lowering.
 - Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
   fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
@@ -936,14 +634,12 @@ new language syntax.
 - Next: follow the loop-carried counters through SSA ranges and exit conditions.
   Establish nonnegativity before replacing sign correction; retain negative-input
   controls and do not infer a bound merely from this benchmark's current inputs.
-- Complete when: each removable sign correction has a sound range proof, exact
+- Done when: each removable sign correction has a sound range proof, exact
   checksums and unrelated positive/negative coverage, with the candidate and byte
   loops retaining their instruction and memory counts without a loss elsewhere.
 
 ### compiler.optimization.039 — Locate the remaining optimization sweep-budget outliers
 
-- Recorded: 2026-09-16 12:12
-- Updated: 2026-10-06 07:49 — reduce expectedCountOnes16 from twenty Release sweeps to six.
 - Area: compiler/backend, compilation time
 - Evidence: the pre-RA loop has a twenty-four-sweep cap. The Sep 30 standard-module test
   campaign found a 404-instruction `#test` at that cap; its current source identity and
@@ -956,14 +652,12 @@ new language syntax.
 - Next: identify the remaining 404-instruction test during a standard-module validation
   milestone, check whether it shares either resolved chain, and fix or bound its next blocker.
   Do not repeat the completed constant-address or select-width chain work.
-- Complete when: no standard-module function, tests included, needs more than sixteen sweeps,
+- Done when: no standard-module function, tests included, needs more than sixteen sweeps,
   or each longer chain is identified and bounded.
 - Related: compiler.optimization.029, compiler.core.004.
 
 ### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
 
-- Recorded: 2026-10-05 17:55
-- Updated: 2026-10-06 07:37 — consistently encode XMM operations with VEX and narrow the remaining audit.
 - Evidence: native, JIT, foreign-return and callback dirty-state probes now match clean-state
   numerical results and performance. Release dirty-state nbody falls from about 23 ms to 0.17 ms.
   Ordinary Release sentinels do not establish a general speedup or a reproducible regression;
@@ -971,13 +665,11 @@ new language syntax.
 - Next: at a later measurement milestone, check compiler cost and establish which AVX state
   reaches the unmodified benchmark from the Oct 5 investigation. The boundary fix does not
   establish the cause of that historical timing change. Do not repeat the completed encoding work.
-- Complete when: the unmodified caller-state question is resolved and compiler cost is assessed.
+- Done when: the unmodified caller-state question is resolved and compiler cost is assessed.
 - Related: compiler.optimization.121, cpu.simd.001.
 
 ### compiler.optimization.121 — Optimize final code and data layout with retained structure
 
-- Recorded: 2026-10-04 16:08
-- Updated: 2026-10-05 17:55 — retain the reproduced layout regression and the unaccepted alignment candidate.
 - Evidence: local cold-block placement and loop alignment exist; the integrated linker owns final
   symbols/relocations. It can retain function/block boundaries and profile edges instead of
   reconstructing them from an executable.
@@ -1004,7 +696,7 @@ new language syntax.
 - Elsewhere: [BOLT](https://github.com/llvm/llvm-project/blob/main/bolt/README.md) demonstrates
   profile-guided post-link layout. Its ELF implementation is a design reference, not a drop-in
   replacement for Swag's PE backend.
-- Complete when: large modular consumers have reproducible valid images and measured locality gains,
+- Done when: large modular consumers have reproducible valid images and measured locality gains,
   stack-walking/debug fixtures pass, unprofiled builds retain useful placement, and runtime, size,
   startup, and build costs are evaluated separately.
 - Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
@@ -1012,8 +704,6 @@ new language syntax.
 
 ### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
 
-- Recorded: 2026-10-04 16:08
-- Updated: 2026-10-04 18:18 — Distinguish automatic inline eligibility from the shared static-storage guard.
 - Evidence: ordinary inlining clones and re-analyzes syntax in `SemaInline.cpp`. Automatic selection
   excludes generic and fallible functions and most aggregate signatures; all ordinary inline modes
   reject bodies declaring static storage.
@@ -1029,15 +719,13 @@ new language syntax.
   nullable facts, receivers, closures, and variadics before admitting each shape. Macros/mixins and
   compile-time constructs retain their semantic expansion rules; optimize their resolved runtime
   result without replaying expansion in the consumer.
-- Complete when: body round trips and cross-module cloning preserve behavior and locations, static
+- Done when: body round trips and cross-module cloning preserve behavior and locations, static
   storage has one identity, unsupported shapes fall back cleanly, and existing Micro lowering
   consumes bodies without a second semantic analysis of ordinary function syntax.
 - Related: compiler.optimization.106, compiler.optimization.108.
 
 ### compiler.optimization.123 — Generate profitable CPU variants across source modules
 
-- Recorded: 2026-10-04 16:08
-- Updated: 2026-10-04 18:18 — Keep optional-feature dispatch with cpu.simd.001 and bound the intermodule variant work.
 - Evidence: a final application may target a known CPU or a baseline with optional extensions.
   Source-visible dependency kernels can follow the same target policy as their callers instead of
   being limited to a separately built library's instruction selection.
@@ -1052,7 +740,7 @@ new language syntax.
 - Policy: bound variant count and code growth, key profiles/caches by feature sets, and omit dispatch
   for fixed-target builds. This is ahead-of-time multiversioning; deploying the compiler's JIT
   inside applications would require a separate runtime/deployment decision.
-- Complete when: a third-party kernel has a measured faster variant on supporting hardware, the
+- Done when: a third-party kernel has a measured faster variant on supporting hardware, the
   baseline runs on the declared minimum target, dispatch is correctly gated/amortized, and build
   cost plus artifact growth justify the chosen variants.
 - Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.120,
@@ -1060,8 +748,6 @@ new language syntax.
 
 ### compiler.optimization.106 — Resolve local implementations and optimization boundaries
 
-- Recorded: 2026-10-04 16:08
-- Updated: 2026-10-04 16:18 — Identify the existing dependency snapshots and the API/native publication handoff.
 - Evidence: `shouldAutoInline` in
   [SemaInline.cpp](../src/Compiler/Sema/Helpers/SemaInline.cpp) rejects another module namespace.
   [ModuleApiExport.Generate.cpp](../src/Compiler/ModuleApi/ModuleApiExport.Generate.cpp) normally
@@ -1095,14 +781,13 @@ new language syntax.
   the same module name at different versions; and shared/static alternatives of one dependency.
   Capture generated and compile-time-dependent implementation context through the build model;
   source-file hashes alone cannot reconstruct a resolved body or authorize its reuse.
-- Complete when: equivalent local, vendored, and third-party implementations expose equivalent
+- Done when: equivalent local, vendored, and third-party implementations expose equivalent
   eligible bodies; mismatched and opaque imports stay correct; shared exports retain their required
   binding; decision records identify the exact eligibility reason.
 - Related: compiler.optimization.107, compiler.optimization.109.
 
 ### compiler.optimization.108 — Build a bounded global call index and optimization driver
 
-- Recorded: 2026-10-04 16:08
 - Evidence: [MicroPassManager.cpp](../src/Backend/Micro/MicroPassManager.cpp) operates on individual
   functions; semantic automatic inlining has a limited call graph; the linker resolves emitted
   symbols. These are not a general selective importer and interprocedural transformation driver.
@@ -1118,14 +803,13 @@ new language syntax.
   publication barriers that require every dependency to finish native linking first.
 - Elsewhere: [ThinLTO](https://clang.llvm.org/docs/ThinLTO.html) combines compact summaries, selective
   function importing, parallel backends, and incremental reuse.
-- Complete when: recursive, diamond, and large sparse graphs converge deterministically with bounded
+- Done when: recursive, diamond, and large sparse graphs converge deterministically with bounded
   imported memory; newly direct/dead edges trigger targeted reanalysis; unrelated partitions stay
   reusable; instrumentation accounts for time and memory by phase.
 - Related: compiler.optimization.107, compiler.optimization.109, compiler.core.073.
 
 ### compiler.optimization.109 — Cache bodies and the assumptions used by callers
 
-- Recorded: 2026-10-04 16:08
 - Evidence: [NativeBackendBuilder.cpp](../src/Backend/Native/NativeBackendBuilder.cpp) fingerprints
   Micro for its native function cache and currently excludes bodies with relocations. Importing
   implementations creates dependencies that public API fingerprints alone cannot describe.
@@ -1139,14 +823,13 @@ new language syntax.
   cancellation-safe writes, and consumer-owned writable caches for read-only packages. Logical
   identity should allow harmless path relocation without confusing distinct builds. Track generated
   and compile-time inputs through the build model; untracked environmental dependencies prevent reuse.
-- Complete when: private edits invalidate affected callers/variants, unrelated edits retain hits,
+- Done when: private edits invalidate affected callers/variants, unrelated edits retain hits,
   target/configuration/summary/profile changes cannot reuse stale code, and interrupted concurrent
   builds cannot publish partial artifacts. Measure cold, warm, and edit/rebuild costs separately.
 - Related: compiler.optimization.106, compiler.optimization.108, compiler.core.030.
 
 ### compiler.optimization.110 — Infer interprocedural memory and value summaries
 
-- Recorded: 2026-10-04 16:08
 - Evidence: `SymbolFunction` already carries borrow/escape/release summaries; API publication exports
   `BorrowSummary` and `ReadOnly`; LICM and selected post-allocation passes consume direct readonly
   calls. Extend this foundation instead of introducing a separate incompatible effect system.
@@ -1160,7 +843,7 @@ new language syntax.
 - Proof: deleting an unused call also needs termination/error and other observable effects to permit
   removal; readonly alone is insufficient. Reuse existing borrow proofs where their meaning matches,
   without treating a lifetime guarantee as a stronger alias guarantee.
-- Complete when: a third-party readonly helper preserves an unrelated load without being inlined;
+- Done when: a third-party readonly helper preserves an unrelated load without being inlined;
   transitive writers/callbacks invalidate it; recursion converges; summary-only imports help callers
   even when their bodies are not imported.
 - Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.055,
@@ -1168,7 +851,6 @@ new language syntax.
 
 ### compiler.optimization.111 — Inline ordinary functions across module boundaries
 
-- Recorded: 2026-10-04 16:08
 - Evidence: the namespace guard in `shouldAutoInline` in `SemaInline.cpp` prevents automatic
   intermodule inlining. Its signature/body exclusions are correctness boundaries; deleting the guard
   or marking every export `Inline` does not implement general importing.
@@ -1182,7 +864,7 @@ new language syntax.
 - Semantics: retain effective callee contracts, evaluation order, cleanup, and unique storage.
   Preserve canonical bodies for remaining calls/observed addresses. Honor `Never` and `NoInline`;
   define interaction with explicit `Inline` without incidentally changing its semantics.
-- Complete when: profitable unannotated helpers and private helper chains in unrelated packages
+- Done when: profitable unannotated helpers and private helper chains in unrelated packages
   inline automatically, forbidden/oversized cases remain calls, and runtime, size, compile-time,
   and memory results justify the default policy. Import visibility never changes source validity.
 - Related: compiler.optimization.107, compiler.optimization.108, compiler.optimization.110,
@@ -1190,7 +872,6 @@ new language syntax.
 
 ### compiler.optimization.112 — Specialize ordinary calls on constants and known callbacks
 
-- Recorded: 2026-10-04 16:08
 - Evidence: separately compiled functions lose call-site constants and callback identities. Existing
   generics and constant folding do not constitute a general intermodule residual-function pipeline.
 - Next: clone an ordinary function for a proven constant scalar/enum/mode argument, simplify it,
@@ -1203,7 +884,7 @@ new language syntax.
   and general fallback; proven constants do not. Avoid cloning for large or rare constant domains.
 - Elsewhere: [GCC interprocedural options](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)
   describe constant propagation and cloning.
-- Complete when: consumers share useful mode-specific variants with dead branches removed, known
+- Done when: consumers share useful mode-specific variants with dead branches removed, known
   comparators become direct calls, general callers remain correct, and bounded clone families show
   measured value beyond merely removing call instructions.
 - Related: compiler.optimization.109, compiler.optimization.110, compiler.optimization.111,
@@ -1211,7 +892,6 @@ new language syntax.
 
 ### compiler.optimization.113 — Devirtualize interfaces, callbacks, and stable context regions
 
-- Recorded: 2026-10-04 16:08
 - Evidence: `SemaInline::tryInlineCall` leaves dynamic interface dispatch intact. Global value flow
   can establish targets more precisely than an interface type; local source availability alone does
   not prove a closed implementation set.
@@ -1226,14 +906,13 @@ new language syntax.
   frequency never proves that other targets are impossible.
 - Elsewhere: [LLVM WholeProgramDevirt](https://llvm.org/docs/doxygen/WholeProgramDevirt_8cpp_source.html)
   demonstrates whole-program virtual-call reasoning.
-- Complete when: a third-party interface pipeline becomes direct where proven, dynamic implementations
+- Done when: a third-party interface pipeline becomes direct where proven, dynamic implementations
   still work, new reachable targets invalidate cached proofs, and context mutation/reentrancy defeats
   invalid region specialization.
 - Related: compiler.optimization.108, compiler.optimization.110, compiler.optimization.112.
 
 ### compiler.optimization.114 — Specialize aggregate transport and internal signatures
 
-- Recorded: 2026-10-04 16:08
 - Evidence: compiler.optimization.022 owns a local aggregate-copy gap. Cross-module body/use
   information additionally permits changing internal calls instead of transporting the entire
   public ABI representation.
@@ -1246,14 +925,13 @@ new language syntax.
 - Expansion: scalarize short-lived aggregates through module boundaries and feed existing
   memory-to-register/vectorization passes. Keep the existing local copy-materialization entry as
   the owner of that defect rather than duplicating its work here.
-- Complete when: eligible third-party aggregate round trips lose redundant copies/hidden return
+- Done when: eligible third-party aggregate round trips lose redundant copies/hidden return
   storage, external wrappers retain their ABI, and alias/lifecycle regressions prove value semantics.
   Report throughput, frame size, and code size.
 - Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.022.
 
 ### compiler.optimization.115 — Eliminate proven temporary allocations across calls
 
-- Recorded: 2026-10-04 16:08
 - Evidence: borrowing, escape, release, and ownership analysis already exists; imported bodies can
   expose producer/consumer lifetimes hidden by module calls. Nonescape alone does not permit
   suppressing allocations with observable behavior.
@@ -1265,14 +943,13 @@ new language syntax.
   scoped explicit contract rather than silently changing those semantics.
 - Expansion: eliminate redundant ownership transfers/copies along the same lifetime and fuse
   construction/consumption where effects allow it. Bound stack growth; reject unbounded promotion.
-- Complete when: an ordinary dependency pipeline loses a measured temporary allocation while escapes,
+- Done when: an ordinary dependency pipeline loses a measured temporary allocation while escapes,
   observable allocators, failures, and cleanup ordering retain their behavior. Report allocation count,
   stack footprint, compilation cost, and runtime.
 - Related: compiler.optimization.110, compiler.optimization.113, compiler.optimization.114.
 
 ### compiler.optimization.116 — Carry intermodule proofs into loop and vector optimization
 
-- Recorded: 2026-10-04 16:08
 - Evidence: Micro already has LICM, induction analysis, unrolling, and SLP. Existing leads identify
   lost alias/range facts; imported bodies can expose simpler loops and stronger facts to these passes.
 - Next: propagate proven lengths, strides, alignment, disjoint regions, and return ranges through
@@ -1283,7 +960,7 @@ new language syntax.
   general path when a runtime precondition fails; coordinate growth with inlining and unrolling.
 - Semantics: respect signed arithmetic/overflow, configured FP behavior, traps/error order, zero-trip
   loops, atomics, and observable memory. This work does not change safety-guard defaults.
-- Complete when: loops crossing third-party helper boundaries retain facts and gain demonstrated
+- Done when: loops crossing third-party helper boundaries retain facts and gain demonstrated
   optimization; overlap, changing lengths, overflow, and guarded fallback cases remain correct.
   Existing local gaps remain with their existing entries.
 - Related: compiler.optimization.110, compiler.optimization.111, compiler.optimization.112,
@@ -1291,7 +968,6 @@ new language syntax.
 
 ### compiler.optimization.117 — Inline fast paths while sharing cold continuations
 
-- Recorded: 2026-10-04 16:08
 - Evidence: `MicroColdBlockLayoutPass` already moves selected cold blocks within functions.
   Whole-body inlining can still duplicate refill/allocation/error paths; rejecting the whole body
   also loses profitable small fast paths.
@@ -1303,14 +979,13 @@ new language syntax.
   path for cold-only frame/register requirements where feasible.
 - Cost: account for new marshaling/spills as well as saved bytes. Share equivalent continuations
   only when state, effects, and identity permit.
-- Complete when: a package-local refill or checked-operation pattern gains an inlined fast path
+- Done when: a package-local refill or checked-operation pattern gains an inlined fast path
   and one correct shared slow path, measured growth is bounded, and failure/cleanup/stack-walking
   coverage remains green.
 - Related: compiler.optimization.111, compiler.optimization.114, compiler.optimization.120.
 
 ### compiler.optimization.118 — Use precise callee register contracts for internal calls
 
-- Recorded: 2026-10-04 16:08
 - Evidence: `ABICall`, `CallConv`, and register allocation represent concrete ABI register effects.
   A known direct implementation may clobber fewer registers than its ABI permits, even when
   inlining is undesirable.
@@ -1325,13 +1000,12 @@ new language syntax.
   compilation serialization introduced by bottom-up lowering.
 - Elsewhere: [GCC interprocedural register allocation](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#index-fipa-ra)
   exploits registers known not to be clobbered by callees.
-- Complete when: noninlined third-party helpers permit fewer caller spills under verified contracts,
+- Done when: noninlined third-party helpers permit fewer caller spills under verified contracts,
   recursive/opaque cases remain sound, and runtime savings justify code-size and scheduling costs.
 - Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.114.
 
 ### compiler.optimization.119 — Recompute whole-image liveness after specialization
 
-- Recorded: 2026-10-04 16:08
 - Evidence: `partitionArchiveObjects` already emits one function/read-only allocation per archive
   member; `PELinker::resolveSymbols` extracts demanded members and folds some identical functions/
   data. Transformations can create new dead code/data and reveal equivalence before machine emission.
@@ -1346,14 +1020,13 @@ new language syntax.
 - Boundaries: reflection and dynamic lookup contribute roots under their actual contracts.
   Unknown external behavior stays conservative. Debug provenance must not unnecessarily retain
   executable code, and unused globals do not imply effect-free initializers.
-- Complete when: specialized third-party features lose their unused implementation/data closure,
+- Done when: specialized third-party features lose their unused implementation/data closure,
   registered callbacks and reflection survive, initialization order/effects remain correct, and
   text/data/startup gains are measured against the existing linker.
 - Related: compiler.optimization.108, compiler.optimization.112, compiler.optimization.113.
 
 ### compiler.optimization.120 — Collect and consume stable application profiles
 
-- Recorded: 2026-10-04 16:08
 - Evidence: no general profile-feedback pipeline was found in the inspected optimization/linking
   paths. Call frequency, branch bias, and target/value distributions can distinguish profitable
   specialization from harmful code growth.
@@ -1366,7 +1039,7 @@ new language syntax.
 - Consumption: feed inlining, specialization, devirtualization, loop decisions, and cold paths.
   Missing/partial/stale profiles fall back predictably with decision records. Profiles guide
   profitability; they never prove an unobserved branch/target impossible.
-- Complete when: training and held-out workloads show repeatable benefit, collection overhead and
+- Done when: training and held-out workloads show repeatable benefit, collection overhead and
   storage are measured, profile changes correctly affect variants/caches, and unprofiled or changed
   dependencies compile correctly.
 - Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.113,
@@ -1374,7 +1047,6 @@ new language syntax.
 
 ### compiler.optimization.122 — Partially evaluate dependency code and freeze eligible data
 
-- Recorded: 2026-10-04 16:08
 - Evidence: Swag already has compile-time execution and purity analysis. Imported resolved bodies
   could extend constant reasoning to ordinary functions with partly static inputs without explicit
   compile-time annotations at every call.
@@ -1387,7 +1059,7 @@ new language syntax.
 - Proof: preserve observable I/O/state, nondeterminism, allocation effects, and failure timing.
   Respect target integer/FP semantics and configuration. Bound steps, recursion, memory, and output
   size; exhaustion retains the runtime computation.
-- Complete when: ordinary third-party computations lose proven static work, partial inputs yield
+- Done when: ordinary third-party computations lose proven static work, partial inputs yield
   bounded reusable residual bodies, host/target differences are respected, and unsupported/effectful/
   expensive computations reliably remain at runtime.
 - Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.112,
@@ -1395,7 +1067,6 @@ new language syntax.
 
 ### compiler.optimization.124 — Evaluate private data representation specialization
 
-- Recorded: 2026-10-04 16:08
 - Evidence: global use/escape facts can expose internal data, but source availability alone does
   not allow changing Swag layout, reflection, addresses, or serialized representations. This is
   an exploratory outcome after the shared proof infrastructure.
@@ -1409,7 +1080,7 @@ new language syntax.
 - Decision: determine whether current semantics admit useful cases or a narrowly scoped explicit
   representation-freedom contract is needed. Any language/API change follows its own syntax,
   documentation, and compatibility workflow; this plan does not preselect one.
-- Complete when: the investigation delivers a legal measured prototype and bounded implementation
+- Done when: the investigation delivers a legal measured prototype and bounded implementation
   decision, or establishes why the benefit does not justify the required semantic freedom.
   Speculative transformations must not become default behavior without that evidence.
 - Related: compiler.optimization.110, compiler.optimization.114, compiler.optimization.115,
@@ -1417,8 +1088,6 @@ new language syntax.
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 
-- Recorded: 2026-09-28 09:58
-- Updated: 2026-09-30 19:55 — Closed the focused round with retained-code validation.
 - Area: compiler/backend, register allocation, prologue and unwind information
 - Evidence: The latest accepted campaign (`20260928-105618`) names C++/MSVC as raytrace's fastest other runtime (9.249 ms versus Swag's 10.469 ms; ratio 1.132). In `trace`, Swag saves XMM6–XMM15 before its first `intersect` call and reloads all ten on the no-hit return. MSVC saves six XMM registers before that call; after `g_HitI >= 0` it saves XMM9 and XMM13–XMM15, which the no-hit path never touches. The no-hit path therefore avoids four stores and four loads in MSVC. Swag's frame reserves `0x168` bytes and MSVC's `0x128`, though allocation size alone does not measure the path cost.
 - Unwind evidence: `dumpbin /unwindinfo` on the accepted MSVC executable shows a primary `trace` range `0x1440–0x14DA` with six `SAVE_XMM128` records and a chained range `0x14DA–0x16F0` with saves for XMM9/XMM13/XMM14/XMM15 plus RBX/RDI. The no-hit return at object offset `0x74` lies in the primary range; the four later saves begin at offset `0xB4`. Two further chained ranges describe later control-flow regions. Swag currently builds one `UNWIND_INFO` blob in `X64UnwindWindows`, one native `.pdata` entry per function in `DebugInfoCodeView`, and one JIT `RUNTIME_FUNCTION` per allocation in `Os.Windows`. Those three interfaces must represent multiple code ranges before a delayed save can be correct under Windows unwinding.
@@ -1442,12 +1111,10 @@ new language syntax.
   repository checks and all five inspected benchmark checksums pass. Restoring the failed
   prototypes restores the accepted instruction counts. No new timing campaign was run.
 - Next: represent unwind ranges and parent links in `MachineCode`, emit them from the final physical instruction stream, and publish all ranges in native `.pdata` and the JIT function table. Then move only saves for registers first defined below the guard, with a proof for each path to a restore. Test both arms, nested calls and exceptional unwinding before and after the delayed saves in native and JIT output; compare no-hit and hit paths against MSVC.
-- Complete when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
+- Done when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
 
 ### compiler.optimization.016 — General value-web normalization still extends live ranges too far
 
-- Recorded: 2026-08-27 07:57
-- Updated: 2026-09-30 18:31 — Rechecked scalar-double web splitting with the current interval allocator.
 - Intent: give independent def-use webs separate virtual registers so LICM, value numbering
   and memory forwarding can distinguish computations that lowering gave the same name.
   Live phi joins and destructive updates must retain a common name. Dead phi cycles must not
@@ -1470,14 +1137,12 @@ new language syntax.
 - Next: attribute the extra floating interference and improve residency before expanding
   eligibility beyond a concrete store-to-load forwarding opportunity. Recheck the deblock
   consumer and raytrace alongside any broader rule; do not infer a win from renaming alone.
-- Complete when: independent webs expose the intended hoisting and forwarding without
+- Done when: independent webs expose the intended hoisting and forwarding without
   worsening the affected hot paths through additional transfers or spill traffic.
 - Related: compiler.optimization.015, compiler.optimization.104.
 
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
-- Recorded: 2026-09-29 15:48
-- Updated: 2026-09-29 16:02 — Reject branched-body renaming without zero reuse.
 - Area: compiler/backend, value numbering and register allocation
 - Evidence: the accepted raytrace winner is C++/MSVC. Its unrolled four-sphere `intersect` clears
   XMM5 once and compares each discriminant against that retained zero. Swag's corresponding
@@ -1503,13 +1168,11 @@ new language syntax.
   retain a single zero only where that saves executed clears without adding copies, spills, or
   saved registers. Compare an unrelated unrolled floating loop and a case with intervening calls
   before changing general value numbering or allocation.
-- Complete when the repeated clears disappear with no new spill traffic in `intersect`, an
+- Done when the repeated clears disappear with no new spill traffic in `intersect`, an
   unrelated case improves under the same rule, and native/JIT behavior remains correct.
 
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
-- Recorded: 2026-09-26 12:46
-- Updated: 2026-09-29 15:37 — Inspect csvagg's executed hash and digit loops.
 - Area: compiler/backend, LICM and register allocation
 - Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
 - Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
@@ -1545,23 +1208,19 @@ new language syntax.
 - Next: compare wordfreq's complete probe paths and measure its retained mask at a clean paired
   campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot update with
   Zig's executed path; focus on register and frame traffic rather than its absent collisions.
-- Complete when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
+- Done when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
 ### compiler.optimization.095 — Keep loop values off the stack on the common branch
 
-- Recorded: 2026-09-28 14:04
-- Updated: 2026-09-28 15:18 — Move the index spill store to the cold branch and remove the loop-latch store.
 - Area: compiler/backend, path-sensitive spill placement
 - Evidence: In wordfreq's character scan, the alphabetic path reaches a join where `r12` still holds the index, while token processing may reuse `r12`. The interval allocator had put the reload from `[rsp+0x210]` at that join, so every alphabetic character read the index from the stack. A post-allocation rule now moves the reload to the join's fallthrough edge only when every direct jump into the join can trace the same register value back to a matching frame store or reload without an intervening register definition, memory write, or call. It rejects a cyclic proof through the reload being moved. The common path loses one memory read; `main` grows from 448 to 450 static Micro instructions because subsequent branch layout changes, with no new instruction on that path. The checksum remains 130489; the other six benchmark checksums and selected function counts are unchanged. C++ (1,154), native Release (3,483), and JIT Release (1,500) tests pass. No timing sample was taken for this edit.
 - A second post-allocation rule now moves a private spill store to the cold branch that dominates its sole read. It checks every explicit access to the eight-byte slot, rejects overlapping or indexed accesses, proves that the register still equals the slot on every incoming path, and tracks balanced stack-pointer adjustments along paths to the read. It removes later writes only when the new store lies on every route to the read. It applies only when at least one redundant write is removed: wordfreq's header and latch stores become one cold-entry store. The common alphabetic path now avoids the header store, join reload, and latch store, while `main` has 448 static Micro instructions and checksum 130489. A wider version moved a store in Leven without removing another write and raised its `main` from 474 to 478 instructions; the narrower rule restores 474 and checksum 67441. The other five benchmark checksums and selected function counts are unchanged. C++ (1,155), native Release (3,483), and JIT Release (1,500) tests pass with the final rule, as do all seven benchmark checksums. No timing sample was taken for this edit.
 - The bound reload is placed the same way: once on the cold edge before the join and once after loop exit.
 - Next: obtain a clean paired measurement at a campaign milestone.
-- Complete when: the common character path has no index or bound spill traffic without adding costs to the token-processing path or changing JIT/native behavior; otherwise retain only the proven reload placement.
+- Done when: the common character path has no index or bound spill traffic without adding costs to the token-processing path or changing JIT/native behavior; otherwise retain only the proven reload placement.
 
 ### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
 
-- Recorded: 2026-09-28 09:14
-- Updated: 2026-09-28 10:42 — Separate address materialization from the AVX memory-fold tradeoff.
 - Area: compiler/backend, constant-address relocation and indexed loads
 - Evidence: In the latest accepted full campaign (`20260928-051818`), raytrace's fastest other runtime is C++/MSVC (9.601 ms versus Swag's 10.742 ms; ratio 1.119). Its `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
 - A post-allocation rewrite that keeps the first array pointer and adds source-address differences to later loads is invalid for native artifacts: `NativeRDataCollector` emits only reachable allocations and may compact the gaps between them. JIT constants are resolved from shard and offset at patch time. Each indexed consumer therefore needs a relocation relative to a reusable segment or image base, or an equivalent layout contract that survives both backends. The existing emitter binds only RIP-relative scalar accesses, not indexed displacements.
@@ -1569,33 +1228,28 @@ new language syntax.
 - Folding a scalar indexed load into each floating operation is not an independent instruction saving here. Swag's load plus AVX three-register `fsub`/`fmul` is two encoded instructions; MSVC's copy plus memory-form SSE operation is also two in the corresponding `SCX`/`SCY`/`SCZ` and colour paths. The existing post-RA fold requires the destination to hold the left operand because the memory-form SSE instruction overwrites it. Adding a copy to force that fold would leave the instruction count unchanged and add a copy dependency.
 - A separate check of `trace`'s missing `refl > 0` branch found no correctness defect: all four benchmark reflectivities are positive. A scratch function with a variable float retained both tests and produced `0,1,0` for negative, positive, and depth-limited inputs; changing one reflectivity to a negative value in an external source copy restored the floating compare in `trace`.
 - Next: design and validate a relocation-aware indexed displacement against one reusable base in JIT and native output. Compare eight-array code with MSVC; include unrelated arrays in different allocations and shards, a library artifact, and a negative case whose address cannot share the base. Account for register lifetime across the intervening call and JIT arena exhaustion before selecting the base.
-- Complete when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and close the eight-materialization gap without extra spills.
+- Done when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and close the eight-materialization gap without extra spills.
 
 ### compiler.optimization.093 — Keep unsigned 64-bit float conversion branchless in hot loops
 
-- Recorded: 2026-09-28 09:31
 - Area: compiler/codegen, integer-to-float conversion
 - Evidence: The latest accepted campaign names C++/MSVC as csvagg's fastest other runtime (17.340 ms versus Swag's 18.304 ms; ratio 1.056). MSVC lowers each `u64` to `f64` price conversion with a signed conversion on the common lower half and a shift/or/double fallback for values with the high bit set. Swag instead uses a branchless packed low/high-32-bit conversion with two vector constants. Both have five instructions on the common path, but the operations and register pressure differ.
 - A scratch compiler change used MSVC's general signed-fast-path formula. The 15 native boundary cases and a new JIT boundary case passed; 200,000 pseudo-random values and neighborhoods of powers of two agreed with the existing conversion. Csvagg's checksum stayed 24828641; all six other task checksums and selected function sizes were unchanged. The complete native Release suite passed 3,483 tests, JIT Release passed 1,501, and scripts passed.
 - The emitted csvagg `main` grew from 993 to 1,022 Micro instructions. Its XMM saves fell from five to three and the saved area from `0x50` to `0x30`, but the timed row loop still had 13 frame operands and gained eight static jumps (34 to 42). Each common conversion still executed five instructions, now including a conditional and an unconditional jump. The two saves are paid once; the extra branches run for every row. This is a concrete hot-loop code-quality loss, so the trial and its JIT-only test were reverted without timing.
 - Next: find a range proof that a conversion input stays below `2^63`, or a branchless lowering that uses fewer operations and less XMM pressure than the current packed conversion. Compare both sides of the range and an unrelated cast before revisiting the lowering.
-- Complete when: a general rule improves the complete hot conversion path without extra branches or spills, and preserves full-range nearest-even results in native and JIT output; otherwise retain the current branchless algorithm.
+- Done when: a general rule improves the complete hot conversion path without extra branches or spills, and preserves full-range nearest-even results in native and JIT output; otherwise retain the current branchless algorithm.
 
 ### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
 
-- Recorded: 2026-09-25 23:43
-- Updated: 2026-09-28 00:30 — Thread the inlined probe's proven empty and occupied return paths.
 - Area: compiler/backend, post-allocation branch threading and private-frame load elimination
 - Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
 - Before branch threading, the loop-guided wrapper rule inlined both `mapProbe` call sites in wordfreq `main`, which grew from 327 to 451 optimized Micro instructions. Both paths still tested the `used[idx]` byte after the inlined probe's empty-slot exit; the probe could also return an occupied matching key after `memcmp`, so deleting the second test required a proof over the predecessor paths. The checksum was 130489. The other six benchmark tasks kept their optimized function counts and checksums. No timing sample informed that change.
 - The post-allocation loop-layout pass now proves the indexed byte's zero/nonzero state backward along every incoming edge of the two adjacent return labels. It stops at a memory write, an address-register definition, an unannotated call, an unsupported edge, or a cycle; direct `ReadOnly` calls preserve the fact. It also keeps a label when an indirect jump targets it, since that jump cannot be retargeted here. Proven direct incoming jumps go straight to the caller's empty or occupied arm, and the repeated compare and branch disappear. Both wordfreq token-finalization paths make this change: `main` falls from 451 to 443 instructions, and an occupied key found by `memcmp` now branches directly to the value increment. LDC's winning `main` also follows its successful `memcmp` with a collision branch and a direct value increment, without a second `used` comparison. Csvagg's corresponding row path falls from 996 to 993 instructions; Odin's winner similarly goes straight from successful `memcmp` to its occupied update. The collision loop has no extra hot-path instruction. Checksums remain 130489 and 24828641 with `--validate-micro`; the other five tasks retain their selected function counts and checksums. A C++ regression covers both branch directions, a writable call, an intervening memory write, an index change, a different cell, and an indirect incoming jump. All 1,149 C++, 3,483 native Release, and 1,500 JIT Release tests pass. No timing sample informed the change.
 - Next: recheck a full accepted benchmark campaign when the shared machine stays quiet.
-- Complete when: broad validation and a clean full campaign confirm the generated-code gain without a runtime regression; retire the entry if no further path gap remains.
+- Done when: broad validation and a clean full campaign confirm the generated-code gain without a runtime regression; retire the entry if no further path gap remains.
 
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 
-- Recorded: 2026-09-27 08:13
-- Updated: 2026-09-27 21:13 — Retained the mixed-call measurement gate after changing float lanes
 - Area: compiler/backend, Swag calling convention and register allocation
 - Evidence: with the independent six-integer/six-float Swag argument banks, a release
   executable making 20 million no-inline calls with alternating six `u64` and six `f64`
@@ -1637,14 +1291,12 @@ new language syntax.
   unreachable and was removed. No elapsed-time sample informed the choice.
 - Next: compare the mixed-call signatures and the seven tasks in a paired campaign with
   the new float bank; isolate any signature or task that regresses before closing this entry.
-- Complete when: repeated paired runs put the mixed calls at parity or better and
+- Done when: repeated paired runs put the mixed calls at parity or better and
   the six-integer and six-float gains remain.
 
 ### compiler.optimization.085 — Measure short-key comparison cost against LDC
 
-- Recorded: 2026-09-26 13:10
-- Updated: 2026-09-27 17:44 — Retain the unmeasured short-key performance comparison after the completed runtime change.
 - Area: generated runtime code, wordfreq byte-map keys and comparators
 - Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
 - Next: compare the issued short-key path against the C runtime used by LDC and recheck the wordfreq ratio only after further static gains, since the larger generic fallback alone does not establish a benchmark speedup.
-- Complete when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.
+- Done when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.

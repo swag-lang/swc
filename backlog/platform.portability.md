@@ -38,8 +38,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.004 — Linux page-allocation primitives do not exist
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-10-08 21:29 — Correct the stale claim that `allocatorOsCommit` is gone; it now wraps the host hook.
 
 The allocator now calls `__hostPageReserve`, `__hostPageCommit`, `__hostPageDecommit`, and
 `__hostPageRelease`; the old `Swag.alloc` reserve/commit fallback is gone, and
@@ -48,173 +46,143 @@ counter-keeping wrappers over those hooks. Only the Windows leaf supplies the cu
 
 - Next: implement Linux reserve, commit/protection, decommit, release, and thread-exit cleanup
   with the same lifetime and failure contracts before enabling the allocator on Linux.
-- Complete when: Linux tests cover reserved-but-inaccessible memory, committed pages,
+- Done when: Linux tests cover reserved-but-inaccessible memory, committed pages,
   decommit/recommit, guard-page protection, release, and thread-storage cleanup without
   reporting counters for work the host did not perform.
 - Related: runtime.allocator.008, platform.portability.003
 
 ### platform.portability.041 — Hardware discovery has no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host hardware-discovery acceptance.
 
 Implement the portable CPU, memory, display-adjacent, and machine capability queries currently
 provided only by Windows.
 
-- Complete when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
+- Done when: The chosen second host supplies CPU, memory, display-adjacent, and machine capability queries through the portable API, with documented units and explicit unavailable values verified on that host.
 
 ### platform.portability.042 — Console I/O has no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host console acceptance.
 
 Implement terminal encoding, capability, color, prompt, and byte output for the chosen second
 platform behind the existing common formatting layer.
 
-- Complete when: The chosen second host passes common terminal encoding, color/capability, prompt, and raw-byte output tests, including redirected output and a terminal without color support.
+- Done when: The chosen second host passes common terminal encoding, color/capability, prompt, and raw-byte output tests, including redirected output and a terminal without color support.
 
 ### platform.portability.043 — Stack capture has no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host stack-capture acceptance.
 
 Provide address capture and current-image discovery for the chosen second platform behind the
 runtime host boundary.
 
 - Related: platform.portability.003, platform.portability.045, platform.portability.044
 
-- Complete when: A stack captured on the chosen second host returns ordered addresses and their owning images for native and generated frames, with deterministic behavior when frames or images cannot be resolved.
+- Done when: A stack captured on the chosen second host returns ordered addresses and their owning images for native and generated frames, with deterministic behavior when frames or images cannot be resolved.
 
 ### platform.portability.044 — Debug-symbol access has no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host symbol-access acceptance.
 
 Locate and read the target's debug information for captured addresses, leaving parsing and
 presentation in the existing common layer.
 
 - Related: platform.portability.043
 
-- Complete when: The chosen second host resolves captured addresses from its debug information to function and source locations when symbols are present, and reports missing or stripped symbols without losing the raw addresses.
+- Done when: The chosen second host resolves captured addresses from its debug information to function and source locations when symbols are present, and reports missing or stripped symbols without losing the raw addresses.
 
 ### platform.portability.045 — Debugger integration has no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host debugger acceptance.
 
 Implement debugger detection, break/attach behavior, and any debugger-facing host operations
 independently of stack-symbol presentation.
 
 - Related: platform.portability.003, platform.portability.043
 
-- Complete when: Debugger presence, break, and attach operations on the chosen second host follow an explicit success/failure contract, with tests for attached and unattached behavior independent of stack-symbol formatting.
+- Done when: Debugger presence, break, and attach operations on the chosen second host follow an explicit success/failure contract, with tests for attached and unattached behavior independent of stack-symbol formatting.
 
 ### platform.portability.046 — Input devices have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host device-input acceptance.
 
 Implement keyboard and gamepad acquisition for the chosen second platform while keeping normalized
 state and policy in common code.
 
-- Complete when: The chosen second host acquires keyboard and gamepad state into the normalized input model, including connect/disconnect and focus loss, with platform tests that keep native device identifiers out of common callers.
+- Done when: The chosen second host acquires keyboard and gamepad state into the normalized input model, including connect/disconnect and focus loss, with platform tests that keep native device identifiers out of common callers.
 
 ### platform.portability.053 — No second-platform text-input routing
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host committed-text acceptance.
 
 Translate committed native text input into the portable text event independently of IME
 composition.
 
 - Related: platform.portability.049, platform.portability.052, platform.portability.061
 
-- Complete when: The chosen second-platform GUI emits committed Unicode text through the portable text event for ordinary, dead-key, and multi-codepoint input without confusing it with physical key events or IME composition.
+- Done when: The chosen second-platform GUI emits committed Unicode text through the portable text event for ordinary, dead-key, and multi-codepoint input without confusing it with physical key events or IME composition.
 
 ### platform.portability.055 — No second-platform clipboard integration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host clipboard acceptance.
 
 Implement clipboard ownership and platform-format conversion behind the portable typed-value
 contract.
 
 - Related: platform.portability.050
 
-- Complete when: The chosen second-platform GUI reads and writes the supported typed clipboard values with clear ownership and format conversion, and round-trip tests cover text, empty data, and owner shutdown.
+- Done when: The chosen second-platform GUI reads and writes the supported typed clipboard values with clear ownership and format conversion, and round-trip tests cover text, empty data, and owner shutdown.
 
 ### platform.portability.057 — No second-platform GUI packaging
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host GUI-package acceptance.
 
 Package the GUI runtime and native dependencies for the chosen second platform.
 
 - Related: platform.portability.050, platform.portability.058, platform.portability.059
 
-- Complete when: A packaged GUI application on the chosen second platform launches on a clean target with its renderer, fonts, and native dependencies present, and a packaging smoke exercises open, render, and close.
+- Done when: A packaged GUI application on the chosen second platform launches on a clean target with its renderer, fonts, and native dependencies present, and a packaging smoke exercises open, render, and close.
 
 ### platform.portability.058 — No second-platform GUI font integration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host GUI-font acceptance.
 
 Connect GUI font selection and fallback to the installed-font catalog for the chosen platform.
 
 - Related: platform.portability.016, platform.portability.057
 
-- Complete when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
+- Done when: The chosen second-platform GUI selects installed faces and fallback families through the portable font catalog, and renders a mixed-script sample without relying on Windows font descriptors.
 
 ### platform.portability.059 — No second-platform file-dialog integration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host file-dialog acceptance.
 
 Connect the toolkit-owned file dialog to the target filesystem and native path expectations.
 
 - Related: platform.portability.033, platform.portability.057
 
-- Complete when: The toolkit file dialog on the chosen second host opens and saves paths using native filesystem rules, reports cancellation and failure distinctly, and retains its common selection behavior in tests.
+- Done when: The toolkit file dialog on the chosen second host opens and saves paths using native filesystem rules, reports cancellation and failure distinctly, and retains its common selection behavior in tests.
 
 ### platform.portability.060 — Accessibility has no second-platform integration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host accessibility acceptance.
 
 Map the platform's native assistive-technology service to the accessibility contract from platform.portability.048.
 
 - Related: platform.portability.048, platform.portability.050, platform.portability.061, platform.portability.062
 
-- Complete when: The chosen second-platform assistive-technology adapter exposes the common control tree, names, states, focus, and actions, with an integration test that inspects and operates supported controls.
+- Done when: The chosen second-platform assistive-technology adapter exposes the common control tree, names, states, focus, and actions, with an integration test that inspects and operates supported controls.
 
 ### platform.portability.061 — IME has no second-platform integration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define second-host IME acceptance.
 
 Map the platform's composition and candidate-window service to the input-method contract from
 platform.portability.049.
 
 - Related: platform.portability.049, platform.portability.050
 
-- Complete when: The chosen second-platform GUI displays composition and candidates, commits or cancels text correctly, and preserves caret and focus state in an integration test using the common input-method contract.
+- Done when: The chosen second-platform GUI displays composition and candidates, commits or cancels text correctly, and preserves caret and focus state in an integration test using the common input-method contract.
 
 ### platform.portability.076 — Crash-dump exclusion has only a Windows-specific design
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-27 18:06 — define cross-host dump-exclusion acceptance.
 - Owner: Swag Vault
 - Define the portable security capability and its unsupported behavior, register key regions with
   Windows Error Reporting as the first backend, and verify the configured dump policy. Add target
   adapters only where the OS offers an enforceable equivalent.
 - Related: platform.portability.075
 
-- Complete when: Swag Vault reports whether dump exclusion is enforceable on the host; Windows registers key regions with the configured crash-dump policy and a controlled dump inspection proves protected bytes are absent, while unsupported hosts fail explicitly.
+- Done when: Swag Vault reports whether dump exclusion is enforceable on the host; Windows registers key regions with the configured crash-dump policy and a controlled dump inspection proves protected bytes are absent, while unsupported hosts fail explicitly.
 
 ### platform.portability.077 — Release signing and elevation policy are Windows-only
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-27 18:06 — define target signing and elevation acceptance.
 - Owner: release process
 - Problem: the application requests UAC elevation to start the driver. Unsigned, the consent dialog
   reads "Unknown publisher" for an encryption tool. This is a larger adoption obstacle than any
@@ -227,34 +195,28 @@ platform.portability.049.
   and skip the guardian entirely, which is also what allows an automated end-to-end test loop
   without a consent dialog on every run.
 
-- Complete when: Each shipped Swag Vault target has documented signing, verification, packaging, and elevation policy; the Windows release verifies a signed publisher in the elevation flow, and macOS/Linux packages meet their declared verification gates.
+- Done when: Each shipped Swag Vault target has documented signing, verification, packaging, and elevation policy; the Windows release verifies a signed publisher in the elevation flow, and macOS/Linux packages meet their declared verification gates.
 
 ### platform.portability.079 — No macOS filesystem backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:06 — define macOS mount-backend acceptance.
 - Owner: Swag Vault
 - Add the macOS mount backend and packaging independently of Linux, choosing the supported FUSE or
   native filesystem mechanism explicitly.
 - Related: platform.portability.078
 
-- Complete when: A packaged macOS Swag Vault mount passes the common filesystem and lifecycle tests, including failed mount, open-handle unmount, and shutdown under active I/O, through a documented supported filesystem mechanism.
+- Done when: A packaged macOS Swag Vault mount passes the common filesystem and lifecycle tests, including failed mount, open-handle unmount, and shutdown under active I/O, through a documented supported filesystem mechanism.
 
 ### platform.portability.023 — System-icon retrieval and caching are coupled in native GUI code
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:05 — define portable system-icon cache acceptance.
 
 Split `Application`'s system-icon code into a native operation that obtains one image and common
   Swag that caches it, resizes it, appends it to an atlas, and returns a GUI `Icon`. Do the same for
   each cache consumer without making unrelated shell behavior part of this entry.
 
-- Complete when: Native code obtains one requested icon image; common Swag owns resize, atlas insertion, reuse, and eviction for every system-icon consumer, with a test proving repeated requests reuse one cached result.
+- Done when: Native code obtains one requested icon image; common Swag owns resize, atlas insertion, reuse, and eviction for every system-icon consumer, with a test proving repeated requests reuse one cached result.
 
 ### platform.portability.026 — Portable surface policy remains in native leaves
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:05 — define common surface-policy acceptance.
 
 Keep `Surface` position clamping, headless fallbacks, state updates, and command posting common.
   A native surface backend should only create/destroy/show/move the host window, translate input
@@ -263,12 +225,10 @@ Keep `Surface` position clamping, headless fallbacks, state updates, and command
 
 - Related: platform.portability.050
 
-- Complete when: Position clamping, headless fallback, state transitions, and command posting run from common Surface code on Windows and the chosen second host; native leaves only operate host windows and integrations, with lifecycle tests on both backends.
+- Done when: Position clamping, headless fallback, state transitions, and command posting run from common Surface code on Windows and the chosen second host; native leaves only operate host windows and integrations, with lifecycle tests on both backends.
 
 ### platform.portability.027 — Audio backend selection is repeated compile-time dispatch
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:05 — define audio backend-interface acceptance.
 
 Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a backend interface or
   operation table. Driver selection, validation, voice/bus lifecycle, streaming-buffer rotation,
@@ -276,113 +236,93 @@ Replace the repeated `#os == Windows` dispatch in `driver/backend.swg` with a ba
 
 - Related: platform.portability.065
 
-- Complete when: Engine, voice, bus, streaming, gain, and state operations dispatch through one backend interface instead of repeated OS branches, and the NoSound and XAudio2 contract suites retain the same observable behavior.
+- Done when: Engine, voice, bus, streaming, gain, and state operations dispatch through one backend interface instead of repeated OS branches, and the NoSound and XAudio2 contract suites retain the same observable behavior.
 
 ### platform.portability.032 — Process services have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host process-service acceptance.
 
 Add process creation, waiting, termination, pipes, exit status, and resource semantics for the
 chosen second platform. The common-policy extraction is tracked separately in platform.portability.008 and platform.portability.009.
 
 - Related: platform.portability.008, platform.portability.009, platform.portability.011
 
-- Complete when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
+- Done when: The chosen second host creates, waits for, and terminates processes with pipes, exit status, and declared resource capabilities through the common process API, including timeout and child-lifetime tests.
 
 ### platform.portability.033 — Filesystem services have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host filesystem acceptance.
 
 Implement directory, file, stream, metadata, path-state, and mutation primitives for the chosen
 second platform behind the existing common orchestration and path contracts.
 
-- Complete when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
+- Done when: The chosen second host passes the common directory, file, stream, metadata, path-state, and mutation contract suite, including partial I/O, links, permissions, and error mapping.
 
 ### platform.portability.034 — Threads have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host thread acceptance.
 
 Implement thread creation, start, join, yield, sleep, identity, and priority for the chosen second
 platform without copying common lifecycle policy into the native leaf.
 
 - Related: platform.portability.035
 
-- Complete when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
+- Done when: The chosen second host passes common creation, join, yield, sleep, identity, and priority tests, including failed start and orderly shutdown, without duplicating lifecycle policy in its native leaf.
 
 ### platform.portability.036 — Clocks have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host clock acceptance.
 
 Implement wall-clock fields and monotonic ticks for the chosen second platform.
 
 - Related: platform.portability.037
 
-- Complete when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
+- Done when: The chosen second host returns wall-clock fields and monotonic ticks in documented units; tests cover conversion, monotonic ordering, and elapsed time across scheduler sleeps.
 
 ### platform.portability.037 — Timers have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host timer acceptance.
 
 Implement native timer wait/wake mechanisms for the chosen second platform behind the common
 scheduler in platform.portability.029.
 
 - Related: platform.portability.036, platform.portability.029
 
-- Complete when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
+- Done when: The chosen second host passes the common one-shot, periodic, cancellation, wake, and shutdown timer tests while keeping scheduling policy in common code.
 
 ### platform.portability.038 — Environment services have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host environment acceptance.
 
 Implement environment variables, arguments, locale, special directories, and generic desktop
 actions for the chosen second platform.
 
 - Related: platform.portability.005, platform.portability.010, platform.portability.015
 
-- Complete when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
+- Done when: The chosen second host provides argument, environment-variable, locale, special-directory, and generic desktop-action operations through the portable API, with explicit unsupported results and focused contract tests.
 
 ### platform.portability.039 — Native errors have no second-platform mapping
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host native-error acceptance.
 
 Map the second platform's error domain into the portable `core` failure contract, preserving native
 detail without leaking native codes into portable callers.
 
-- Complete when: Representative filesystem and process failures on the chosen second host map to portable core failures while retaining inspectable native detail, and common callers branch only on portable errors.
+- Done when: Representative filesystem and process failures on the chosen second host map to portable core failures while retaining inspectable native detail, and common callers branch only on portable errors.
 
 ### platform.portability.040 — The sandbox has no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:05 — define second-host sandbox acceptance.
 
 Implement the sandbox's platform enforcement and early-startup behavior for the chosen second
 platform independently of general environment services.
 
 - Related: platform.portability.038, platform.portability.010
 
-- Complete when: The chosen second host applies sandbox restrictions before user code and imported native modules run, rejects forbidden filesystem and process actions in integration tests, and reports unsupported enforcement explicitly.
+- Done when: The chosen second host applies sandbox restrictions before user code and imported native modules run, rejects forbidden filesystem and process actions in integration tests, and reports unsupported enforcement explicitly.
 
 ### platform.portability.001 — No build-only non-Windows portability configuration
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define non-Windows build-only acceptance.
 
 Prove the boundary with a build-only non-Windows configuration as early as possible. It may use
   no-sound and headless implementations at first, but it must compile every platform-neutral file.
 
-- Complete when: A non-Windows configuration compiles every neutral runtime and bin source with headless/no-sound stubs where needed, and its build fails on an accidental native Windows import.
+- Done when: A non-Windows configuration compiles every neutral runtime and bin source with headless/no-sound stubs where needed, and its build fails on an accidental native Windows import.
 
 ### platform.portability.002 — Portability progress has no capability inventory
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define capability-inventory acceptance.
 
 Track both native source lines and, more importantly, native capabilities a new backend must
   implement. Moving 200 lines of orchestration to common Swag is valuable; compressing 200 required
@@ -390,12 +330,10 @@ Track both native source lines and, more importantly, native capabilities a new 
 
 - Related: platform.portability.001
 
-- Complete when: The inventory names each host capability and its owning adapter, states availability for Windows and the chosen next target, and is updated by the same review that changes an adapter or public portability boundary.
+- Done when: The inventory names each host capability and its owning adapter, states availability for Windows and the chosen next target, and is updated by the same review that changes an adapter or public portability boundary.
 
 ### platform.portability.005 — Runtime startup cannot accept an argument vector
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define argument-vector startup acceptance.
 
 Give startup a host ABI that can accept an argument vector directly. Windows may continue to
   parse its process command line, while a Unix entry point supplies `argc`/`argv`; the rest of the
@@ -403,12 +341,10 @@ Give startup a host ABI that can accept an argument vector directly. Windows may
 
 - Related: platform.portability.003, platform.portability.008, platform.portability.010
 
-- Complete when: A Unix host entry point passes argc/argv directly to runtime startup, Windows retains its command-line parser, and the same argument-order, quoting, and empty-argument tests pass through Swag.args on both hosts.
+- Done when: A Unix host entry point passes argc/argv directly to runtime startup, Windows retains its command-line parser, and the same argument-order, quoting, and empty-argument tests pass through Swag.args on both hosts.
 
 ### platform.portability.007 — Hosted runtime library dependencies have no target matrix
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define hosted-runtime dependency-matrix acceptance.
 
 Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm where required, and
   any future freestanding runtime. A Linux port is not improved by replacing a stable libc call
@@ -416,23 +352,19 @@ Record a target matrix for hosted builds: Windows UCRT, Linux libc plus libm whe
 
 - Related: platform.portability.031
 
-- Complete when: A checked target matrix names required hosted libraries and link inputs for Windows and the chosen Linux target, distinguishes any freestanding contract, and both targets build without hidden platform-library assumptions.
+- Done when: A checked target matrix names required hosted libraries and link inputs for Windows and the chosen Linux target, distinguishes any freestanding contract, and both targets build without hidden platform-library assumptions.
 
 ### platform.portability.008 — Make process launch argv-first
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define argv-first process-launch acceptance.
 - `StartInfo.arguments` is one already-quoted string, which makes Windows command-line quoting the
   public contract. Make an argument slice the normal API. Windows alone serializes it with the
   backslash-before-quote rules; Unix passes the vector unchanged. Keep a clearly named raw native
   command-line escape hatch only if an actual caller needs it.
 
-- Complete when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix direct argv preserve empty, spaced, quoted, and backslash-containing arguments in child-process tests, with any raw command-line form explicitly named.
+- Done when: StartInfo accepts an argument vector as its normal API; Windows quoting and Unix direct argv preserve empty, spaced, quoted, and backslash-containing arguments in child-process tests, with any raw command-line form explicitly named.
 
 ### platform.portability.011 — Process-tree resource accounting has no portable capability contract
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define process-tree accounting acceptance.
 
 Preserve the stronger resource contract deliberately. Windows Job Objects account a process
   tree; a Linux implementation needs an explicit process-group/cgroup strategy or must report that
@@ -440,24 +372,20 @@ Preserve the stronger resource contract deliberately. Windows Job Objects accoun
 
 - Related: platform.portability.032, platform.portability.009
 
-- Complete when: A process-resource query reports whether tree accounting is supported, and tests with a child that spawns another process prove supported totals include descendants or return an explicit unavailable result.
+- Done when: A process-resource query reports whether tree accounting is supported, and tests with a child that spawns another process prove supported totals include descendants or return an explicit unavailable result.
 
 ### platform.portability.012 — Filesystems have no cross-host conformance suite
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:04 — define cross-host filesystem acceptance.
 
 Add filesystem conformance tests on each host for Unicode names, links, permissions, partial I/O,
 and recursive traversal.
 
 - Related: platform.portability.033, platform.portability.013
 
-- Complete when: The same filesystem contract suite runs on Windows and the chosen second host for Unicode names, links, permissions, partial I/O, and recursive traversal, with host-specific expected capabilities stated explicitly.
+- Done when: The same filesystem contract suite runs on Windows and the chosen second host for Unicode names, links, permissions, partial I/O, and recursive traversal, with host-specific expected capabilities stated explicitly.
 
 ### platform.portability.015 — Desktop actions and application registration share one environment API
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define desktop-action and registration separation.
 
 Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, locale, special
   directories) from platform registration (`registerApplication`, file associations, native
@@ -466,47 +394,39 @@ Separate generic desktop actions (`openUrl`, reveal a path, enumerate monitors, 
 
 - Related: platform.portability.038
 
-- Complete when: Common environment APIs expose desktop actions without registration or native window types; a separate application-integration API reports support and failures for registration, and current Windows callers migrate with focused tests.
+- Done when: Common environment APIs expose desktop actions without registration or native window types; a separate application-integration API reports support and failures for registration, and current Windows callers migrate with focused tests.
 
 ### platform.portability.016 — Replace the native installed-font descriptor
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define portable installed-font descriptor acceptance.
 - `SystemFontFaceInfo` currently stores `LOGFONTW`, so Pixel's public system-font model is a Windows
   descriptor. Replace it with family/subfamily names, normalized style properties, file path, and
   face index. The platform hook should enumerate font files or configured font directories, not
   manufacture a native font handle.
 
-- Complete when: The public installed-font descriptor contains normalized family, subfamily, style, path, and face index without LOGFONTW or native handles, while Windows enumeration still loads and selects the same installed faces.
+- Done when: The public installed-font descriptor contains normalized family, subfamily, style, path, and face index without LOGFONTW or native handles, while Windows enumeration still loads and selects the same installed faces.
 
 ### platform.portability.017 — Installed-font scanning is not common Swag
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:04 — define common installed-font scanning acceptance.
 
 Use the existing TrueType/OpenType readers (`Face.countFaces`, `familyNameAt`, style/name tables,
   and `Face.loadAt`) to scan configured files and collections into portable face descriptors.
 
 - Related: platform.portability.016, platform.portability.019, platform.portability.020, platform.portability.018
 
-- Complete when: Common Swag code scans font files and collections with the existing TrueType/OpenType reader into portable face descriptors, and a host-supplied file list produces the same catalog independently of enumeration backend.
+- Done when: Common Swag code scans font files and collections with the existing TrueType/OpenType reader into portable face descriptors, and a host-supplied file list produces the same catalog independently of enumeration backend.
 
 ### platform.portability.018 — Installed-font family grouping is not common Swag
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:04 — define common font-family grouping acceptance.
 
 Group scanned descriptors into families, select regular/bold/italic fallbacks, sort, and cache the
 catalog independently of platform enumeration.
 
 - Related: platform.portability.016, platform.portability.017
 
-- Complete when: One common catalog groups scanned faces by family, selects regular/bold/italic fallbacks, and sorts and caches results identically for equivalent Windows and synthetic second-host font lists.
+- Done when: One common catalog groups scanned faces by family, selects regular/bold/italic fallbacks, and sorts and caches results identically for equivalent Windows and synthetic second-host font lists.
 
 ### platform.portability.020 — Linux has no installed-font source
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:04 — define Linux font-source acceptance.
 
 A first Linux backend may provide conventional directories. Fontconfig can be added later for
   aliases, user configuration and substitutions without making basic parsing and grouping depend
@@ -514,12 +434,10 @@ A first Linux backend may provide conventional directories. Fontconfig can be ad
 
 - Related: platform.portability.017
 
-- Complete when: A Linux backend discovers installed fonts from documented system and user directories and feeds the common scanner, with tests for collections, missing directories, duplicates, and readable fallback families.
+- Done when: A Linux backend discovers installed fonts from documented system and user directories and feeds the common scanner, with tests for collections, missing directories, duplicates, and readable fallback families.
 
 ### platform.portability.006 — `Crypto.secureClear` has no portable no-elide primitive
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define portable secure-clear acceptance.
 
 `crypto/security.win32.swg` already calls the foreign `RtlZeroMemory` routine; the shipped
 implementation is no longer a plain Swag loop. Give the same public operation a runtime/compiler
@@ -527,12 +445,10 @@ primitive or narrow host implementations on other targets, preserving its no-eli
 
 - Related: platform.portability.075
 
-- Complete when: Crypto.secureClear is available on Windows and the chosen second target, clears every requested byte, and optimized-code inspection or an equivalent no-elide check proves the wipe survives optimization.
+- Done when: Crypto.secureClear is available on Windows and the chosen second target, clears every requested byte, and optimized-code inspection or an equivalent no-elide check proves the wipe survives optimization.
 
 ### platform.portability.009 — Process orchestration remains in the Windows backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define common process-orchestration acceptance.
 
 The process value, environment map, recorded-status accessors, and convenience
 `startProcess`/`runProcess` overloads already live in common `process.swg`. Move the remaining
@@ -542,12 +458,10 @@ leaf should spawn, poll/wait, terminate, and read/write/close one native endpoin
 
 - Related: platform.portability.032, platform.portability.008, platform.portability.011
 
-- Complete when: Redirection ownership, concurrent stdout/stderr draining, timeout, and cleanup live in common code; Windows and the chosen second host pass the same process contract tests while native leaves only spawn, wait, terminate, and operate endpoints.
+- Done when: Redirection ownership, concurrent stdout/stderr draining, timeout, and cleanup live in common code; Windows and the chosen second host pass the same process contract tests while native leaves only spawn, wait, terminate, and operate endpoints.
 
 ### platform.portability.013 — Paths have no target-independent lexical conformance suite
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:03 — define dual-policy path conformance acceptance.
 
 `core/src/tests/filesystem/path.test.swg` already tests lexical Windows path behavior without
 touching the filesystem. Extend that coverage to independent target-policy tables for Windows
@@ -556,12 +470,10 @@ normalization. A host must be able to exercise both policies without running ano
 
 - Related: platform.portability.012
 
-- Complete when: One test run on either host exercises Windows and Unix lexical policy tables for root, case, separators, dot segments, invalid names, and normalization, without filesystem access or host-dependent expectations.
+- Done when: One test run on either host exercises Windows and Unix lexical policy tables for root, case, separators, dot segments, invalid names, and normalization, without filesystem access or host-dependent expectations.
 
 ### platform.portability.054 — Native input has no portable mouse, touch, and pen adapter
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-27 18:03 — define cross-platform pointer-adapter acceptance.
 
 Implement native adapters for the pointer contract in std.gui.011. The current Windows backend
 polls mouse state but does not translate `WM_POINTER`, `WM_TOUCH`, or `WM_GESTURE` into contacts.
@@ -571,47 +483,39 @@ arbitration in the portable GUI layer.
 
 - Related: std.gui.011, platform.portability.052
 
-- Complete when: Windows and the chosen second platform deliver stable pointer identity and contact lifetimes for mouse, touch, and pen through the common event model; cancellation and capture release are tested, and compatibility mouse messages do not duplicate touch or pen actions.
+- Done when: Windows and the chosen second platform deliver stable pointer identity and contact lifetimes for mouse, touch, and pen through the common event model; cancellation and capture release are tested, and compatibility mouse messages do not duplicate touch or pen actions.
 
 ### platform.portability.051 — No second-platform monitor and DPI integration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define monitor and DPI acceptance on a second host.
 
 Implement monitor enumeration and per-monitor scale for the platform whose surface exists under
 platform.portability.050.
 
 - Related: platform.portability.050, platform.portability.084, platform.portability.052, platform.portability.055, platform.portability.056
 
-- Complete when: The chosen second-platform surface enumerates active monitors, uses the correct per-monitor scale during open, move, and resize, and updates placement after topology or scale changes without exposing native monitor handles.
+- Done when: The chosen second-platform surface enumerates active monitors, uses the correct per-monitor scale during open, move, and resize, and updates placement after topology or scale changes without exposing native monitor handles.
 
 ### platform.portability.052 — No second-platform keyboard routing
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define keyboard-routing acceptance on a second host.
 
 Translate native key identity, modifier, repeat, and layout state into the portable keyboard
 events.
 
 - Related: platform.portability.050, platform.portability.085, platform.portability.053, platform.portability.054
 
-- Complete when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.
+- Done when: The chosen second-platform backend reports physical key, modifier, repeat, and layout changes through portable keyboard events, with tests covering key-down/up, repeated keys, and text input independently.
 
 ### platform.portability.056 — No second-platform system-theme notifications
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define second-host theme-notification acceptance.
 
 Translate the platform's live theme and high-contrast changes into the portable settings event.
 
 - Related: platform.portability.082, platform.portability.050, platform.portability.083
 
-- Complete when: Changing light/dark or high-contrast settings while the chosen second-platform GUI runs updates its portable settings event and visible palette without a restart, with platform integration coverage.
+- Done when: Changing light/dark or high-contrast settings while the chosen second-platform GUI runs updates its portable settings event and visible palette without a restart, with platform integration coverage.
 
 ### platform.portability.082 — System theme changes are ignored
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define live Windows theme-refresh acceptance.
 - Owner: std/gui
 - Evidence: `gui/src/surface.win32.swg` handles `WM_SETTINGCHANGE` only by calling `refreshSystemMotionPreference`; it does not refresh theme policy.
 
@@ -620,12 +524,10 @@ restarting the application.
 
 - Related: platform.portability.083
 
-- Complete when: A Windows light/dark setting change refreshes active surface and widget theme policy without restarting or discarding the current document, with an integration test for the settings notification.
+- Done when: A Windows light/dark setting change refreshes active surface and widget theme policy without restarting or discarding the current document, with an integration test for the settings notification.
 
 ### platform.portability.083 — System high-contrast changes are ignored
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define live high-contrast acceptance.
 - Owner: std/gui
 - Evidence: `gui/src/surface.win32.swg` handles settings changes for reduced motion, but neither that handler nor `application.swg` refreshes high-contrast policy.
 
@@ -634,12 +536,10 @@ theme choices as required for accessibility.
 
 - Related: platform.portability.048, platform.portability.082
 
-- Complete when: A Windows high-contrast change updates active surfaces and controls immediately, overrides conflicting theme choices, and restores the prior user theme when high contrast is disabled; an integration test covers both transitions.
+- Done when: A Windows high-contrast change updates active surfaces and controls immediately, overrides conflicting theme choices, and restores the prior user theme when high contrast is disabled; an integration test covers both transitions.
 
 ### platform.portability.084 — Display-topology changes are ignored
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define display-topology refresh acceptance.
 - Owner: std/gui
 - Evidence: `gui/src/surface.win32.swg` has no `WM_DISPLAYCHANGE` route; monitor enumeration is not refreshed from a topology notification.
 
@@ -648,12 +548,10 @@ is added, removed, or rearranged.
 
 - Related: platform.portability.071, platform.portability.051
 
-- Complete when: Adding, removing, or rearranging a monitor refreshes enumeration and placement constraints, leaves visible application windows reachable, and has a reproducible Windows integration check.
+- Done when: Adding, removing, or rearranging a monitor refreshes enumeration and placement constraints, leaves visible application windows reachable, and has a reproducible Windows integration check.
 
 ### platform.portability.085 — Input-language changes are ignored
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define input-language refresh acceptance.
 - Owner: std/gui
 - Evidence: `gui/src/surface.win32.swg` handles key and character messages but has no `WM_INPUTLANGCHANGE` route.
 
@@ -661,12 +559,10 @@ Handle the platform input-language notification and update keyboard-layout-depen
 
 - Related: platform.portability.049
 
-- Complete when: A Windows input-language change updates layout-dependent keyboard state before the next key event, keeps key identity distinct from produced text, and is covered by a layout-switch integration test.
+- Done when: A Windows input-language change updates layout-dependent keyboard state before the next key event, keeps key identity distinct from produced text, and is covered by a layout-switch integration test.
 
 ### platform.portability.086 — No printer discovery or native print-job backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:03 — define native printing acceptance.
 - Owner: std/gui
 - Evidence: `bin/std/modules/gui/src` has no printer enumeration or print-job backend; the portable pagination contract remains std.gui.030.
 
@@ -676,24 +572,20 @@ not depend on an installed driver.
 
 - Related: std.gui.030, std.gui.033, std.gui.032
 
-- Complete when: Printer discovery and capability reporting drive a native job that spools all pages from the portable pagination model; tests cover unavailable printers, start/page/end failures, and cancellation without requiring a permanently installed driver.
+- Done when: Printer discovery and capability reporting drive a native job that spools all pages from the portable pagination model; tests cover unavailable printers, start/page/end failures, and cancellation without requiring a permanently installed driver.
 
 ### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:01 — define instrumented allocator-stress acceptance.
 
 Run the allocator stress suite under Windows Application Verifier and page heap, and make the
 invocation reproducible without folding it into failure injection.
 
 - Related: runtime.allocator.001, runtime.allocator.008
 
-- Complete when: A documented repeatable command runs the allocator stress suite under Windows Application Verifier and page heap, checks the tool's reported failures and test exit status, and leaves allocator failure-injection coverage with runtime.allocator.008.
+- Done when: A documented repeatable command runs the allocator stress suite under Windows Application Verifier and page heap, checks the tool's reported failures and test exit status, and leaves allocator failure-injection coverage with runtime.allocator.008.
 
 ### platform.portability.021 — Application-message payloads have no ownership contract
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:01 — define owned application-message payload acceptance.
 
 Application-message identifiers are platform-neutral, but `SysUserEvent.param` carries
 one opaque `u64` by value. It supplies no ownership or lifetime contract for any data the
@@ -702,12 +594,10 @@ lifetime independently of tray interaction.
 
 - Related: platform.portability.022
 
-- Complete when: A sender can release or mutate its source buffer after posting a message without changing the payload observed during dispatch, and tests cover queued delivery, cancellation or target destruction, and payload cleanup without exposing native handles in the common event API.
+- Done when: A sender can release or mutate its source buffer after posting a message without changing the payload observed during dispatch, and tests cover queued delivery, cancellation or target destruction, and payload cleanup without exposing native handles in the common event API.
 
 ### platform.portability.035 — Synchronization primitives have no second-platform backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:01 — define second-platform synchronization acceptance.
 
 Implement mutexes, read-write locks, conditions, and events for the chosen second platform behind
 the existing portable contracts. `bin/runtime` reaches them through its `__hostLock*`,
@@ -719,24 +609,20 @@ lifetimes without exposing Windows handles or the `Local\` namespace to common c
 
 - Related: platform.portability.034, language.parallelism.003
 
-- Complete when: The chosen second platform passes runtime lock, read-write lock, condition, thread, and event contract tests, including concurrent waits and shutdown; named Core events preserve cross-process scope, reset and signal-before-wait semantics without leaking native handle or namespace types into common callers.
+- Done when: The chosen second platform passes runtime lock, read-write lock, condition, thread, and event contract tests, including concurrent waits and shutdown; named Core events preserve cross-process scope, reset and signal-before-wait semantics without leaking native handle or namespace types into common callers.
 
 ### platform.portability.062 — Drag and drop has no second-platform integration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-27 18:01 — define second-platform drag-and-drop acceptance.
 
 Map the platform's data-transfer and gesture service to the drag and drop contract the Win32
 backend already implements.
 
 - Related: platform.portability.050
 
-- Complete when: The chosen second-platform GUI backend can accept and initiate the data and gestures supported by the Win32 drag-and-drop contract, with explicit cancellation and data lifetime behavior, while common GUI callers and tests use no native transfer type.
+- Done when: The chosen second-platform GUI backend can accept and initiate the data and gestures supported by the Win32 drag-and-drop contract, with explicit cancellation and data lifetime behavior, while common GUI callers and tests use no native transfer type.
 
 ### platform.portability.022 — Application-to-application messaging has no portable contract
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-27 18:01 — define portable single-instance messaging acceptance.
 
 Give single-instance/application messaging a portable contract. The Windows backend may keep
   `FindWindow`/`SendMessage`; another backend may use a local socket or bus. The public identifier,
@@ -748,12 +634,10 @@ reporting and the receiving application's ownership of queued document opens.
 
 - Related: app.scope.001
 
-- Complete when: A second Swag Scope launch forwards its requested file to the running instance on Windows and the chosen second platform, or reports a bounded delivery failure; tests cover payload ownership, timeout, receiver shutdown, and exactly one queued open.
+- Done when: A second Swag Scope launch forwards its requested file to the running instance on Windows and the chosen second platform, or reports a bounded delivery failure; tests cover payload ownership, timeout, receiver shutdown, and exactly one queued open.
 
 ### platform.portability.090 — A COM object's ABI header is held first by a comment, not by the language
 
-- Recorded: 2026-09-08 18:59
-- Updated: 2026-09-12 10:02 — Correct the current cast spelling and identify the dated reinterpretation census.
 - Area: `std/gui`, Windows OLE bindings
 - Evidence: the four OLE objects in `gui/dragdrop.win32.swg` each open with the interface header
   OLE calls through, and each says so in a comment - `lpVtbl: *IDropTargetVtbl?  // Interface
@@ -770,15 +654,13 @@ reporting and the receiving application's ownership of queued document opens.
 - Next: decide how a composed ABI header reaches its vtable pointer under zero-initialization -
   a nullable `lpVtbl` in the four `ole32.swg` interface structs, a `late` field, or an explicit
   constructor at each creation site - then compose the four objects and delete their `cast(*void)`.
-- Complete when: the four OLE objects compose their interface, the recovery is a checked descent,
+- Done when: the four OLE objects compose their interface, the recovery is a checked descent,
   and no comment in the file asks a field to stay first.
 - Related: compiler.safety.006 includes these bindings in its historical 2026-09-08 census of
   32 reinterpretation sites; that count is not a current whole-repository inventory.
 
 ### platform.portability.078 — No Linux FUSE backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-12 10:02 — Include the existing native auto-unmount monitor in the application boundary.
 - Owner: Swag Vault
 - The existing boundary includes system backends for `Core.Crypto`, `Core.Time` and
   `Core.File`, the WinFsp layer and mount-point selector, and `autounmount.win32.swg` for session
@@ -788,14 +670,12 @@ reporting and the receiving application's ownership of queued document opens.
   full application port ships.
 - Next: map the logical filesystem to the chosen FUSE interface, specifying mount ownership,
   permission translation, cancellation, and callback shutdown before packaging the backend.
-- Complete when: a Linux mount passes the common filesystem behavior and lifetime tests,
+- Done when: a Linux mount passes the common filesystem behavior and lifetime tests,
   including failed mounting and shutdown while requests are active.
 - Related: platform.portability.079
 
 ### platform.portability.050 — No second-platform surface and presentation backend
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-12 10:02 — Include the shared native-text adapter without treating file count as a port plan.
 
 The filenames already expose most of the seam: `surface.win32.swg`, `application.win32.swg`,
 `clipboard.win32.swg`, `dragdrop.win32.swg` and `cursor.win32.swg`, with shared Windows
@@ -806,7 +686,7 @@ replace; their file count is not a porting plan.
 Choose one platform and implement the application loop, surface creation/destruction, native
 resize/move/minimize, renderer presentation, and cursor as the first independently testable slice.
 
-- Complete when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
+- Done when: a non-trivial GUI sample opens, lays out, paints, resizes, and closes on the
   second platform. Platform-neutral events expose no native message numbers, and Windows and
   headless contract tests remain green. Focus, DPI, clipboard and input integrations retain
   their own entries and tests.
@@ -819,8 +699,6 @@ resize/move/minimize, renderer presentation, and cursor as the first independent
 
 ### platform.portability.080 — Bare `.swgs` execution has only a Windows shell contract
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-12 10:02 — Locate the current setup implementation and distinguish its comment from shell guidance.
 
 **Evidence.** `tools/setup.swgs` launches `Tool.runSetup` in `tools/src/maintenance.swg`, which
 installs the current-user file association used by double-click launch. The implementation
@@ -830,7 +708,7 @@ prints a generic terminal-restart message; it neither checks bare execution nor 
 **Intent.** Define shell and desktop-launch integration per host without making Windows file
 associations the portable script contract. Machine-wide mutation remains explicit and opt-in.
 
-**Complete when.**
+**Done when.**
 
 - Setup reports whether bare execution is supported for the current shell and either configures it safely or prints the exact remaining elevated step.
 - A fresh `cmd.exe` and Windows PowerShell 5.1 session execute a representative bare `.swgs` script according to that contract.
@@ -843,21 +721,17 @@ associations the portable script contract. Machine-wide mutation remains explici
 
 ### platform.portability.066 — Renderer backend choice has no target matrix
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-10 20:28 — Separate the existing renderer inventory from an unmeasured platform ranking.
 - `render/` has `cpu` and `ogl`. There is no Vulkan, Direct3D, Metal or WebGPU path.
 - No measured OS/GPU capability matrix currently establishes which backend can present on each
   intended target; the CPU renderer is an existing fallback, not a substitute for that matrix.
 - This also intersects platform.portability.050. Choose the next renderer from the operating systems and hardware the
   project intends to ship, rather than adding a backend independently of the port plan.
 - The backend boundary is already two implementations deep, so a third is additive.
-- Complete when: the supported OS/GPU matrix names the default and fallback renderer for each
+- Done when: the supported OS/GPU matrix names the default and fallback renderer for each
   target, and the next required backend presents through the portable surface contract.
 
 ### platform.portability.067 — Collection-face selection depends on one localized family name
 
-- Recorded: 2026-08-08 06:23
-- Updated: 2026-09-10 20:28 — State the untested localized-name dependency without claiming every localized host fails.
 
 `TypeFace.createFromHfont` now asks GDI for the `ttcf` table, and picks the face out of the
 collection by matching the family GDI enumerated against `Face.familyNameAt`. That match is between
@@ -876,13 +750,11 @@ best-scoring one, which needs `truetype` to answer "does this face call itself X
 instead, which is locale-proof but needs the synthesized single-face file as well as the
 collection, and so reads the font twice.
 
-- Complete when: the Windows adapter returns the portable file-and-face-index descriptor from
+- Done when: the Windows adapter returns the portable file-and-face-index descriptor from
   platform.portability.016/platform.portability.019 without locale-dependent matching, and the same descriptor accepts platform.portability.020's source.
 
 ### platform.portability.019 — A system face cannot load directly from file and face index
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-10 20:26 — Distinguish existing byte/file loading from missing indexed system-font loading.
 
 `TypeFace.create(fullname, bytes)` already constructs a face from portable bytes, and
 `TypeFace.load(fullname)` already reads a file, falling back to the system font directory.
@@ -891,14 +763,12 @@ Neither accepts a collection face index. Installed-family selection separately u
 
 - Next: connect a portable installed-font descriptor's file and face index to `TypeFace`
   creation, keeping `createFromHfont` as an optional Windows adapter.
-- Complete when: a system-family selection loads the requested collection face from its
+- Done when: a system-family selection loads the requested collection face from its
   descriptor without manufacturing a GDI font handle.
 - Related: platform.portability.067, platform.portability.016, platform.portability.017
 
 ### platform.portability.025 — Drag-preview premultiplication still lives in the Windows adapter
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-10 20:22 — Narrow conversion work to the drag preview after shared BMP/DIB encoding shipped.
 
 - Evidence: clipboard and OLE DIB payloads now use `Pixel.Bmp.EncodeOptions{fileHeader: false}`;
   the shared encoder owns row alignment, channel ordering, and straight-alpha conversion.
@@ -906,14 +776,12 @@ Neither accepts a collection face index. Installed-family selection separately u
   bitmap for the shell drag preview.
 - Next: use the existing Pixel pixel-format and alpha-conversion operations for that preview,
   keeping only native bitmap creation, row transfer, and handle ownership in the Windows leaf.
-- Complete when: the preview path has no private color-conversion loop and native tests protect
+- Done when: the preview path has no private color-conversion loop and native tests protect
   orientation, transparency, and bitmap lifetime across success and failed attachment.
 - Related: platform.portability.014, platform.portability.062
 
 ### platform.portability.029 — Periodic timer scheduling still depends on the Windows timer queue
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-10 20:22 — Account for common timer ownership, validation, and callback context dispatch.
 
 `time/timer.swg` already owns `Timer.create`, delay validation, callback/context dispatch,
 `release`, and scope-bound cleanup. The native leaf only adapts the callback and creates or
@@ -923,14 +791,12 @@ semantics are still delegated to that platform service.
 - Next: settle a common periodic scheduling and cancellation contract over a monotonic wait/wake
   primitive or scheduler before adding another backend. Preserve callback context and the rule
   that release waits for an active callback.
-- Complete when: the same timer lifecycle and periodic/cancellation tests run over Windows and
+- Done when: the same timer lifecycle and periodic/cancellation tests run over Windows and
   the chosen second backend without duplicating scheduling policy.
 - Related: platform.portability.036
 
 ### platform.portability.003 — Finish the runtime host ABI boundary
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-10 20:20 — Account for existing thread, synchronization, page, and debug host hooks.
 
 `bin/runtime/os.win32.swg` already provides named `__hostTls*`, thread-storage,
 `__hostThread*`, lock/condition, page-allocation, and image/debug-section hooks. The remaining
@@ -940,14 +806,12 @@ command-line conversion, test exception recovery, and debug-section decoding pol
 - Next: specify the existing host operations and their ownership/failure contracts, then move
   target-independent policy out of the Windows leaf. Keep native context capture, image lookup,
   byte output, library loading, and process termination as explicit host mechanisms.
-- Complete when: another host can implement the same documented operations without copying
+- Done when: another host can implement the same documented operations without copying
   command-line or debug-data parsing policy, and Windows runtime tests retain their behavior.
 - Related: platform.portability.004, platform.portability.005
 
 ### platform.portability.010 — Early argument lookup retains a Windows command-line fallback
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-10 20:20 — Account for the existing runtime-vector lookup before the native fallback.
 
 `Env.findRunArgument` already searches `Swag.args()` first, including compile-time test
 execution. Native sandbox initialization can precede argument-vector population, so it then
@@ -955,14 +819,12 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
 
 - Next: make the runtime argument vector available before native module initialization, then
   share the name/value matching code and remove the early Windows command-line fallback.
-- Complete when: native and compile-time early argument lookup use the same populated vector
+- Done when: native and compile-time early argument lookup use the same populated vector
   and preserve sandbox, smoke, and corpus argument behavior.
 - Related: platform.portability.005, platform.portability.008
 
 ### platform.portability.014 — The Windows virtual-key alias remains in portable input declarations
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-09-10 19:53 — Narrow the remaining work to the virtual-key alias; image and surface adapters are already separated.
 
 - Evidence: image handle conversions and `Surface.win32Handle` already live in Windows
   adapter files. Their native signatures are intentional optional interoperability.
@@ -970,39 +832,33 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
   neutral `key.test.swg`; the conversion functions themselves live in `keyboard.win32.swg`.
 - Next: keep that alias and its tests with the optional keyboard adapter. Common declarations
   and consumers should need only `Input.Key` and normalized events.
-- Complete when: a neutral input compilation contains no virtual-key declaration or native
+- Done when: a neutral input compilation contains no virtual-key declaration or native
   adapter dependency, while Windows keyboard conversion tests still cover the mapping.
 
 ### platform.portability.065 — Audio has no real non-Windows backend
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-10 19:53 — Account for the completed silent fallback and the remaining repeated-dispatch boundary.
 - `DriverKind` is `Default`, `NoSound`, `XAudio2`. Off Windows, `Default` resolves to silence.
 - The backend dispatcher already supports explicit `NoSound`, uses it as the non-Windows
   default, and rejects unavailable `XAudio2`. Its repeated compile-time branches still need the
   interface work in platform.portability.027 before another backend is added. CoreAudio and ALSA or PulseAudio are the obvious
   targets; WASAPI directly would also remove the XAudio2 dependency on Windows.
-- Complete when: one chosen non-Windows target opens a real output device and passes the common
+- Done when: one chosen non-Windows target opens a real output device and passes the common
   engine, voice, bus, streaming, and device-lifecycle contract while `NoSound` remains explicit.
 
 ### platform.portability.048 — Accessibility has no portable semantic tree or Windows adapter
 
-- Recorded: 2026-08-30 12:29
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: the GUI module has no `WM_GETOBJECT` handler, UI Automation provider, MSAA adapter,
   or common accessibility tree. Its custom controls therefore expose no semantic roles, names,
   states, or actions to assistive technology. Existing keyboard navigation supplies no such model.
 - Next: define a platform-neutral accessible tree with roles, names, values, states, focus, and
   actions, validate it through the headless host, then expose it through a Windows UI Automation
   provider rooted at the surface. No portable widget or event may mention UIA or a native message.
-- Complete when: Narrator, NVDA, and JAWS can inspect and operate the first supported controls on
+- Done when: Narrator, NVDA, and JAWS can inspect and operate the first supported controls on
   Windows, the semantic tree is backend-independent, and platform.portability.060 can map another OS without changing
   widget APIs.
 
 ### platform.portability.049 — Text composition has no portable contract or Windows IME adapter
 
-- Recorded: 2026-08-30 12:29
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Problem: no `WM_IME_STARTCOMPOSITION`, `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION`,
   `WM_IME_SETCONTEXT` or `WM_IME_NOTIFY`. Text input is `WM_CHAR` and `WM_KEYDOWN` only.
 - Missing behavior: editors have no representation of an active composition, its clauses, or the
@@ -1011,38 +867,32 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
 - Next: define backend-neutral composition start/update/commit/cancel events, clause styling, and
   candidate-window geometry, then translate the Windows IME messages into that model. The caret
   geometry needed for placement already exists in `EditBox`.
-- Complete when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
+- Done when: Chinese, Japanese, Korean, and Vietnamese composition works on Windows, headless
   tests cover the common model, and platform.portability.061 can add another OS without changing editor APIs.
 
 ### platform.portability.088 — Network transports have no host backends
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: the `net` module proposed by std.core.001.
 - Evidence: `bin/std/modules` has no `net` module or socket/resolver backend. The TCP entry
   previously mixed its public contract with Winsock and BSD-socket implementation work.
 - Next: once the endpoint and ownership contract is chosen, implement Windows and POSIX leaves
   for blocking TCP, UDP, and host/service resolution. Keep native handles and error translation
   inside those leaves; add readiness only after the common concurrency contract is decided.
-- Complete when: both host backends pass the same loopback, partial-transfer, cancellation,
+- Done when: both host backends pass the same loopback, partial-transfer, cancellation,
   resolution-failure, and handle-lifetime tests without exposing native types to callers.
 - Related: std.core.001, std.core.002, std.core.003, std.core.004, language.parallelism.001.
 
 ### platform.portability.081 — Foreign vector ABIs are unavailable
 
-- Recorded: 2026-08-20 08:56
-- Updated: 2026-09-05 16:27 — git: Add unit tests for TaskProvider in providers.test.js
 - Intent: support explicitly selected platform vector ABIs for foreign declarations where the ABI
   is stable, while continuing to reject an ambiguous bare C-vector contract.
-- Complete when: supported Windows x64 and one non-Windows target's vector parameters and returns
+- Done when: supported Windows x64 and one non-Windows target's vector parameters and returns
   interoperate with C/C++ fixtures, unsupported conventions fail semantically, and the contract is
   documented per target.
 - Related: cpu.simd.002.
 
 ### platform.portability.072 — Swag Scope has no portable preview-provider boundary
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-09-01 21:15 — git: Refactor backlog entries for improved clarity and detail across document, text, and viewer scopes
 - Intent: the shipped viewers are reachable from where a file is selected. This is the whole reason
   Quick Look won its category: select, look, move on, without launching an application.
 - Evidence: Apple exposes Quick Look from Finder with Space and adjacent-item navigation. Windows
@@ -1051,7 +901,7 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
   integrity by default, and should receive a host-owned stream rather than ambient path authority.
 - Next: define an out-of-process-safe preview request/result contract, then host it in an Explorer
   preview handler as the first OS adapter.
-- Complete when: Explorer renders the same supported views through `--register-file-types`, the
+- Done when: Explorer renders the same supported views through `--register-file-types`, the
   application window is not required, a selected file reaches first presentable content within the
   shared preview budget, decoder failure cannot damage Explorer, and another desktop preview service
   can host the contract.
@@ -1062,8 +912,6 @@ parses `GetCommandLineA` in `sandbox.win32.swg`.
 
 ### platform.portability.031 — Decide deliberately whether Swag should ship its own libm
 
-- Recorded: 2026-08-09 11:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 `Swag.sin`, `Swag.cos`, `Swag.tan`, the hyperbolic and inverse functions, `Swag.atan2`, `Swag.log`, `Swag.log2`, `Swag.log10`,
 `Swag.exp`, `Swag.exp2`, and `Swag.pow` are language intrinsics but their runtime implementation currently
@@ -1100,62 +948,52 @@ target an operating system, a freestanding environment, deterministic numerics, 
 
 ### platform.portability.063 — Spatialization is coupled to an unused X3DAudio handle
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - `src/driver/xaudio2.swg` calls `X3DAudioInitialize` and stores the handle in `x3DInstance`. That
   handle is never read again. The 3D engine is initialized on every engine creation and does
   nothing.
 - Next: define portable listener, source-position, distance-attenuation, and channel-matrix
   semantics, then lower them through X3DAudio in the Windows backend. Other backends may use their
   native spatializer or an explicitly supported common fallback.
-- Complete when: the public model contains no X3DAudio types, the Windows matrix is validated, and
+- Done when: the public model contains no X3DAudio types, the Windows matrix is validated, and
   a backend can declare or implement the same capability without changing `Voice`.
 - Related: std.audio.007
 
 ### platform.portability.064 — Voice filters are specified only by XAudio2 capabilities
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Submix voices are created with `XAUDIO2_VOICE_USEFILTER` in `src/driver/xaudio2.swg`. The
   capability is requested and no API exposes it.
 - XAudio2 gives a per-voice low-pass, high-pass, band-pass and notch filter once that flag is set.
 - Next: specify portable filter kinds, cutoff, resonance, update timing, and unsupported-capability
   behavior on `Voice` and `Bus`, then map the first implementation to XAudio2.
-- Complete when: no public filter contract names XAudio2, Windows uses its native filters, and a
+- Done when: no public filter contract names XAudio2, Windows uses its native filters, and a
   second backend can implement or reject the same operation explicitly.
 - Related: std.audio.008, std.audio.009, std.audio.014
 
 ### platform.portability.068 — Capture clipboard files are specified as OLE data
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Evidence: a capture leaves as a file, bitmap clipboard data, or an outgoing drag, but cannot be
   copied as a virtual file. The obvious current implementation reuses `DragData` through
   `OleSetClipboard`, which would make OLE the application contract.
 - Next: add the virtual-file descriptor and deferred contents to std.gui.001's portable typed clipboard,
   then map them to OLE only in the Windows backend.
-- Complete when: paste targets receive the file and bitmap media on Windows, while Swag Capture
+- Done when: paste targets receive the file and bitmap media on Windows, while Swag Capture
   calls no OLE API and another clipboard backend can publish the same virtual file.
 - Related: app.capture.001, std.gui.001
 
 ### platform.portability.069 — Capture OCR is specified as a Windows-only service
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Problem: no text recognition anywhere in the module. The Windows Snipping Tool has it, Snagit
   has it, ShareX has it. It has gone from a differentiator to an expectation.
 - Next: define an OCR provider contract over a pixel selection, bind the Windows OS engine as the
   first provider, and keep provider availability explicit so another OS can use its native service
   or an optional local engine without changing the command.
-- Complete when: the command returns text through the provider on Windows, absence is reported
+- Done when: the command returns text through the provider on Windows, absence is reported
   honestly, and capture/editor code imports no Windows OCR type.
 - Why this high: it is the most visible remaining reason to reach for the built-in tool instead of
   this one, and the platform does the hard part.
 
 ### platform.portability.070 — Scrolling capture has no portable scroll-driving backend
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Snagit's most-cited feature; ShareX has it too. Capture a window taller or wider than the screen
   by scrolling it and stitching the frames.
 - Cost: real. Windows can drive scrolling through UI Automation or synthesized messages, while
@@ -1163,51 +1001,43 @@ target an operating system, a freestanding environment, deterministic numerics, 
   common, and put window discovery, scroll requests, bounds, and refusal in a native backend.
 - Sequence it after the portability inventory, runtime host, process, and filesystem work, and scope it to the common cases — a browser page, a document, a list
   view — rather than promising it works everywhere.
-- Complete when: the common stitcher consumes backend-neutral frames and scroll results, the
+- Done when: the common stitcher consumes backend-neutral frames and scroll results, the
   Windows backend covers the stated common cases, and unsupported targets fail explicitly.
 
 ### platform.portability.071 — Cross-platform capture backend
 
-- Recorded: 2026-08-08 06:23
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 `src/screenshot/screenshot.win32.swg` and the GDI dependency are the whole platform boundary on the
 capture side. The editor, the forms, the library, and the serialization are already portable.
 
-- Complete when: one chosen non-Windows backend captures the supported screen/window/region set and
+- Done when: one chosen non-Windows backend captures the supported screen/window/region set and
   the application imports no raw OS binding outside named capture backends.
 
 ### platform.portability.073 — Swag Scope has no portable thumbnail-provider boundary
 
-- Recorded: 2026-08-30 12:27
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: the image, SVG, and Markdown views can produce a representative bitmap; Explorer asks for
   one and gets nothing.
 - Next: define a bounded thumbnail request over the common viewer renderer, then implement the
   Windows Explorer provider without exposing its COM types to viewer code.
-- Complete when: registered formats produce bounded thumbnails on Windows and another desktop
+- Done when: registered formats produce bounded thumbnails on Windows and another desktop
   thumbnail service can consume the same renderer contract.
 - Related: platform.portability.072
 
 ### platform.portability.074 — File-type registration is Windows-only
 
-- Recorded: 2026-08-19 10:05
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: `Env.registerApplication`, `Env.associateFileExtension`, and the shell integration entries
   above are the whole platform boundary; the viewers, streaming, and structure readers are portable.
-- Complete when: desktop registration goes through whatever portable contract platform.portability.015 settles on.
+- Done when: desktop registration goes through whatever portable contract platform.portability.015 settles on.
 - Related: platform.portability.001, platform.portability.015
 
 ### platform.portability.075 — Keys live in pageable memory
 
-- Recorded: 2026-08-08 06:23
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Owner: `bin/std` for the locked allocation, Swag Vault for the policy
 - Problem: `Crypto.Keys` and the unwrapped master key are ordinary memory. The page file or a crash
   minidump can capture the master key. VeraCrypt locks its key pages.
 - Next: define a locked-memory allocation with explicit availability/failure semantics, implement
   it with each target's page-locking primitive, and require Swag Vault's unwrapped keys to use it.
   Keep dump exclusion and lifecycle wiping independently testable.
-- Complete when: supported targets prove the key pages are locked or refuse securely, and Vault
+- Done when: supported targets prove the key pages are locked or refuse securely, and Vault
   contains no direct `VirtualLock`, `mlock`, or equivalent call.
 - Related: platform.portability.076

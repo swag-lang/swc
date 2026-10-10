@@ -7,7 +7,6 @@ being compiled by it.
 
 ### repo.tooling.011 — No validation step compiles the Swag benchmark modules
 
-- Recorded: 2026-10-09 03:04
 - Evidence: `tools/build.swgs` covers std, examples, apps, the Vault integration, the
   reference, and the workspace suite; `tools/tests.swgs` only scans `bench/` for portability.
   The eleven modules with a `bench/*/module.swg` are compiled by nothing in the ladder, so the
@@ -18,12 +17,10 @@ being compiled by it.
 - Next: give `build.swgs` a benchmark step: `sema --module` for program modules, and a compile
   of the test-only modules that runs none of their timed `#test` bodies (a compiler option to
   build a test executable without running it, or a dedicated tag), in each configuration.
-- Complete when: breaking any `bench/*/module.swg` source fails `tools/build.swgs`.
+- Done when: breaking any `bench/*/module.swg` source fails `tools/build.swgs`.
 
 ### repo.tooling.002 — A video differential harness must line pictures up by time, not by rank
 
-- Recorded: 2026-08-25 16:27
-- Updated: 2026-10-06 20:56 — no differential harness is checked in; the outcome is a reproducible one.
 - Found while: measuring the video library against FFmpeg.
 - Observation: FFmpeg numbers the pictures it emits densely, while this reader numbers them the
   way the container does. The two disagree wherever a container holds a sample that produces no
@@ -41,13 +38,12 @@ being compiled by it.
 - Next: check in an opt-in differential harness that decodes a media file with an external
   reference decoder, records each reference picture's presentation time, and asks this reader for
   the rank carrying that time before comparing decoded pixels.
-- Complete when: the checked-in harness pairs decoded pictures by presentation time rather
+- Done when: the checked-in harness pairs decoded pictures by presentation time rather
   than ordinal, a reproducible case with a non-picture sample compares without manual alignment,
   and a mismatched decoded picture still fails the comparison.
 
 ### repo.tooling.010 — Separate cross-language build scenarios from compiler throughput
 
-- Recorded: 2026-10-05 21:40
 - Evidence: `bench/toolchains.py` forces Go dependency rebuilds with `-a` and a fresh `GOCACHE`,
   and clears both Zig caches. `bench/driver.py` publishes Swag's Win32 dependency outside the
   timer; C++ links the installed CRT but reparses headers, including unused `<cmath>` through
@@ -68,14 +64,12 @@ being compiled by it.
   synthetic checking, compilation and linking;
   [rustc-perf](https://github.com/rust-lang/rustc-perf/blob/main/collector/README.md) separates
   profiles and full/incremental scenarios for the same compiler family.
-- Complete when: the report identifies each timing's artifact and dependency state, never mixes
+- Done when: the report identifies each timing's artifact and dependency state, never mixes
   incompatible scenarios in one speedup, and compiler-throughput claims use controlled size
   scaling rather than small application build minima.
 
 ### repo.tooling.007 — Separate formatter input preparation from formatter cost
 
-- Recorded: 2026-09-06 15:21
-- Updated: 2026-10-04 20:29 — distinguish the fixed formatter benchmark corpus from current maintenance coverage.
 - Evidence: on 2026-09-06, the format benchmark's private source copy omitted `.swc-format`
   files and three maintenance input groups. It rewrote 580 files where the real `bin/` dry run
   rewrote none. The mirror was corrected to preserve configuration and match the maintenance
@@ -93,13 +87,11 @@ being compiled by it.
   Shared-host activity varied during the measurement; these are not clean campaign records.
 - Next: measure fresh-copy and original-source formatting separately, attribute the opening
   delay externally, and profile the formatter's dominant passes before choosing another change.
-- Complete when: the campaign distinguishes input-opening cost from formatting CPU and a retained
+- Done when: the campaign distinguishes input-opening cost from formatting CPU and a retained
   optimization has an order-alternated speed gain with identical output and measured memory.
 
 ### repo.tooling.005 — An incremental Release build can mix two versions of the diagnostic table
 
-- Recorded: 2026-09-04 15:19
-- Updated: 2026-09-12 10:21 — Record the confirmed stale-object recurrence and the remaining invalidation uncertainty.
 - Area: tooling
 - Found while: the Release rung of a repository health reset, on sources whose only recent change
   was in semantic analysis
@@ -132,14 +124,12 @@ being compiled by it.
   reads for `DiagnosticDef.h`, its `.inc` catalogs, and the affected translation units. Distinguish
   an identifier insertion in `.inc` from a message-only edit in `.msg`, then fix the dependency
   that fails to invalidate.
-- Complete when: an incremental Release build after ids are added to an `.inc` catalog either
+- Done when: an incremental Release build after ids are added to an `.inc` catalog either
   recompiles what depends on them, or cannot produce a binary whose reported id and printed text
   disagree.
 
 ### repo.tooling.003 — Matroska timing and display-size cases lack reproducible fixtures
 
-- Recorded: 2026-08-25 22:01
-- Updated: 2026-09-12 05:40 — Distinguish existing edited fixtures from the two uncovered header cases
 - Area: tooling
 - Found while: fixing two defects a real film exposed and trying to pin them with a fixture
   (2026-08-25): a track whose `DefaultDuration` says one millisecond, and one whose display size
@@ -164,12 +154,11 @@ being compiled by it.
   small Swag or Python producer that emits an EBML document element by element, so a test can ask
   for exactly the header a defect needs. `std/video` already writes Matroska nowhere, so this is
   test tooling rather than a module feature.
-- Complete when: a checked-in producer reproducibly creates both small header cases and tests
+- Done when: a checked-in producer reproducibly creates both small header cases and tests
   verify timestamp-derived frame rate and non-square display geometry without private media.
 
 ### repo.tooling.009 — Reassess Release LTO after iteration costs are controlled
 
-- Recorded: 2026-09-08 08:02
 - Evidence: Release LTCG links took several minutes during the constant-address investigation,
   including after a change to one semantic-analysis source. The owner requested disabling LTO
   for current development and reconsidering it later. `swc.vcxproj` now disables whole-program
@@ -177,13 +166,11 @@ being compiled by it.
 - Next: measure compiler throughput, binary size, peak memory and incremental link time with
   and without LTO under comparable load before restoring it; consider a separate distribution
   build if shipping performance justifies the cost but routine iteration does not.
-- Complete when: the documented build policy preserves practical Release iteration and any
+- Done when: the documented build policy preserves practical Release iteration and any
   restored LTO has a measured benefit and an explicit place in the build workflow.
 
 ### repo.tooling.008 — Record module timings with load observed during each sample
 
-- Recorded: 2026-09-07 10:37
-- Updated: 2026-09-07 11:57 — Record the GUI memory increase and the slower loaded documentation pairs
 - Evidence: the compilation campaign used a private tracked-source mirror for `gui`, `pixel`,
   and `ogl`, because the full test tool cleans `bin/std` outputs. A CPU admission check before
   a sample did not prevent another campaign from starting during it. Three alternated pairs
@@ -214,6 +201,6 @@ being compiled by it.
   dependencies, whole dependency rebuilds, pinned controls, and ordinary builds in the results.
   Repeat the GUI control under steady load and isolate each retained compiler change to explain
   the peak-memory difference before setting a regression budget.
-- Complete when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
+- Done when: GUI, Pixel, and OGL regressions can be assessed with repeatable paired module
   timings and memory peaks, and a sample disturbed after admission is identified in the record.
 - Related: compiler.optimization.029.

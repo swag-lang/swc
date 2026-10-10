@@ -8,60 +8,30 @@ Operating-system work belongs in [platform.portability.md](platform.portability.
 belongs in [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md).
 [README.md](README.md) has the whole layout.
 
-Entries are ordered from the most recently updated down. An entry disappears when it
-ships; history lives in git, not here.
-
-## Where Swag Capture already stands
-
-The annotation model has nine form types over one shared style base, nested groups, z-order,
-alignment, snapping, per-capture undo, quick styles, and a reflective property panel with undo.
-Area capture detects the window under the cursor, and the in-place editing overlay annotates the
-frozen desktop before the result is copied or opened in the editor.
-
-The gaps are elsewhere: capture modes beyond a still rectangle, text recognition, the layer of
-effects that makes a capture look produced, and output.
 
 ## Entries
 
 Scrolling and recorded capture require a timed acquisition and export subsystem; those outcomes come after the
 still-image editing and output work.
 
-### app.capture.009 — Capture hotkeys are fixed
+### app.capture.009 — Let users rebind capture hotkeys and resolve conflicts
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-10-08 22:00 — Registration failures now name every unavailable shortcut.
-- `MainWnd.registerShortcuts` registers four fixed combinations. Persist user-rebindable hotkeys in the
-  existing options and let the user resolve conflicts. A registration failure produces one
-  information bar naming every shortcut another application already owns.
-- A shortcut can already be owned by another application; rebinding provides a recovery path.
+- Next: persist shortcut choices in the existing options and add a conflict-resolution flow for
+  combinations already owned by another application.
+- Done when: users can rebind every capture command, conflicts identify the unavailable shortcuts,
+  and the chosen bindings survive restart.
 - Related: app.capture.010
 
-### app.capture.023 — Property painters have no regression for stale selections
+### app.capture.023 — Add a regression test for stale property-panel selections
 
-- Recorded: 2026-09-01 17:55
-- Updated: 2026-09-12 06:19 — Describe both typed accessors and explicit kind checks used by the repaired painters.
-- The bug is fixed; what remains is that the headless panel does not reproduce it, so nothing
-  guards the painters themselves.
-- What happened: `PropWnd.propShape` checks the selected kind when it creates its button, but the
-  `iconPainter` it installs runs on every frame and cast whatever was selected *then* to
-  `*FormShape`. Selecting a text form put a `String`'s first bytes where `kind` lives, and
-  `drawShapeGlyph` switches over a three-value enum with `#complete`. Release has the guard off and
-  drew a wrong glyph; devmode panicked. Six other painters and popup handlers had the same shape.
-  They now use `getSelectedForm'T()`, which answers null when the selection is not a `T`, or
-  explicitly check the selected kind before reading fields shared by supported form types.
-- Why there is no test for the painter: a headless fixture that builds the panel, moves the
-  selection to a text form and renders each style button does not fault, with or without the fix —
-  the buttons are laid out and painted and the value read still comes back inside the enum. The
-  running application faults reliably. `propwnd.test.swg` therefore pins the accessor's contract,
-  which is the mechanism, and not the painters that depend on it.
-- Next: find what the headless render does differently — most likely which paint context the icon
-  slot gets — and pin one painter against a deliberately mismatched selection.
-- Complete when: reverting the guard in `propShape` makes a test fail.
+- Evidence: property painters now use typed selection accessors or explicit kind checks. Existing
+  headless tests cover the accessor but do not reach the stale selection used by a painter callback.
+- Next: identify a test paint context that invokes the callback after the selection changes, then
+  assert the painter safely ignores the mismatched form.
+- Done when: a focused test fails without the selection guard and passes with it.
 
 ### app.capture.015 — Assembling complete captures has no layout command
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-09-10 18:29 — Distinguish existing image/form paste from complete-capture assembly.
 
 `Capture.paste` already inserts clipboard images or typed form groups into the active canvas,
 remaps group identities, and records undo. A user can therefore combine images manually. There is
@@ -75,8 +45,6 @@ existing form model and one undoable operation. Named reusable layouts remain ap
 
 ### app.capture.019 — Swag Capture dies when its window is moved and resized in one call
 
-- Recorded: 2026-08-27 07:08
-- Updated: 2026-09-10 18:29 — Rebase the unconfirmed DPI lead on the current surface handlers.
 - Area: apps/swagcapture, std/gui
 - Found while: driving the shipped window from a script to photograph its pages. The window opens
   maximized across a two-monitor desktop, so a capture has to bring it back onto one screen first.
@@ -109,7 +77,6 @@ existing form model and one undoable operation. Named reusable layouts remain ap
 
 ### app.capture.021 — Loading a capture blocks the interface during decode
 
-- Recorded: 2026-09-06 17:42
 - Evidence: `RecentView.select` in `src/recentwnd.swg` flushes a pending save of the selected
   file, then calls `Capture.load` synchronously. The recent strip already has its preview.
   On the photographed 2341x1903 BGRA8 capture measured on 2026-08-15, the original load cost
@@ -118,39 +85,35 @@ existing form model and one undoable operation. Named reusable layouts remain ap
 - Next: make selection an owned asynchronous load that leaves the preview visible, respects
   outstanding saves, and publishes only the result of the latest selection. Define cancellation,
   failure presentation and window-close cleanup before moving the decode off the interface thread.
-- Complete when: delayed loads cannot freeze input or replace a newer selection, failed loads
+- Done when: delayed loads cannot freeze input or replace a newer selection, failed loads
   leave a useful preview and diagnostic, and shutdown joins outstanding work.
 - Related: app.capture.024, app.capture.025, language.parallelism.001
 
 ### app.capture.024 — Revisiting a recent capture decodes its full image again
 
-- Recorded: 2026-09-06 17:42
 - Evidence: `RecentView` retains previews and zoom state in `src/recentwnd.swg`; selecting an
   inactive item calls `Capture.load` again. The historical library sample averaged 7 MB of decoded
   pixels per capture and reached 47 MB, so retaining every decoded capture is not a bounded policy.
 - Next: define a decoded-capture cache bounded by bytes, with ownership of the active editable
   capture, save completion and on-disk replacement included in its invalidation contract.
-- Complete when: revisiting an unchanged cached capture avoids decode, a modified/replaced file
+- Done when: revisiting an unchanged cached capture avoids decode, a modified/replaced file
   cannot reuse stale content, and the cache obeys its byte bound after selection and eviction.
 - Related: app.capture.021
 
 ### app.capture.025 — Capture image chunks have no measured alternative to deflate
 
-- Recorded: 2026-09-06 17:42
 - Evidence: capture persistence uses `Core.Scc` chunk codecs. The photographed payload measured
   on 2026-08-15 compressed from 17.0 to 12.8 MB at BestSpeed and to 12.5 MB at the slower settings;
   PNG decoded in 377–409 ms. Those measurements motivate a codec decision, not a format migration
   without a representative corpus.
 - Next: compare stored and faster lossless chunk encodings on the same capture corpus, recording
   decode CPU, peak memory and file size. Keep existing files readable through their codec id.
-- Complete when: a documented selection rule has measured benefits on representative captures,
+- Done when: a documented selection rule has measured benefits on representative captures,
   and any new encoding round-trips with compatibility tests for existing deflate files.
 - Related: app.capture.021
 
 ### app.capture.002 — No capture-level effect pipeline
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - `Capture` has geometry, a background image, and forms, but nowhere to store and order effects.
   Add an effect list applied identically by preview, flatten, and export, with the property panel
   generated through the existing reflective editor system.
@@ -159,8 +122,6 @@ existing form model and one undoable operation. Named reusable layouts remain ap
 
 ### app.capture.001 — Print the current capture
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Add actual-size, fit-to-page, and centered printing with a clear clipping warning. Consume the GUI
 pagination/preview contract and Pixel vector output rather than creating an application-only print
@@ -170,8 +131,6 @@ path.
 
 ### app.capture.004 — No capture drop-shadow effect
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Add a drop shadow with offset, blur, spread, and color through Pixel's effect graph.
 
@@ -179,8 +138,6 @@ Add a drop shadow with offset, blur, spread, and color through Pixel's effect gr
 
 ### app.capture.003 — No capture border effect
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add border width, color, placement, and corner interaction as the first effect using app.capture.002.
 
@@ -188,8 +145,6 @@ Add border width, color, placement, and corner interaction as the first effect u
 
 ### app.capture.005 — No torn-edge capture effect
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add deterministic torn-edge mask generation with scale-independent parameters.
 
@@ -197,8 +152,6 @@ Add deterministic torn-edge mask generation with scale-independent parameters.
 
 ### app.capture.006 — No faded-edge capture effect
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add a faded-edge mask independently of torn-edge generation.
 
@@ -206,8 +159,6 @@ Add a faded-edge mask independently of torn-edge generation.
 
 ### app.capture.007 — No capture perspective effect
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add perspective transformation with explicit output bounds and resampling behavior.
 
@@ -215,8 +166,6 @@ Add perspective transformation with explicit output bounds and resampling behavi
 
 ### app.capture.008 — No capture watermark effect
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add reusable image/text watermarks with placement, opacity, scale, and export persistence.
 
@@ -224,8 +173,6 @@ Add reusable image/text watermarks with placement, opacity, scale, and export pe
 
 ### app.capture.010 — No named capture presets
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Persist named combinations of capture mode, delay, cursor policy, and destination, then allow app.capture.009
 to bind a hotkey to a preset rather than a raw command.
@@ -234,8 +181,6 @@ to bind a hotkey to a preset rather than a raw command.
 
 ### app.capture.011 — No video recording
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Add a timed frame-capture loop and hardware video encoder with bounded buffering and observable
   dropped-frame behavior.
 - Recommendation: treat it as a deliberate decision rather than an assumed goal. A still-capture
@@ -244,8 +189,6 @@ to bind a hotkey to a preset rather than a raw command.
 
 ### app.capture.012 — No animated GIF recording
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Record and export an animated GIF independently of the video codec pipeline, with a stated frame
 rate, palette, dithering, and size contract.
@@ -254,8 +197,6 @@ rate, palette, dithering, and size contract.
 
 ### app.capture.013 — Recordings cannot include audio
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Capture microphone or loopback audio and mux it into video without making audio a prerequisite for
 silent recording.
@@ -264,8 +205,6 @@ silent recording.
 
 ### app.capture.014 — Recordings cannot be trimmed in the editor
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add non-destructive in/out trimming and export for captured recordings after the base recorder can
 produce a playable artifact.
@@ -274,8 +213,6 @@ produce a playable artifact.
 
 ### app.capture.016 — No reusable capture layout templates
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Persist and apply named layout descriptions independently of combining captures manually.
 
@@ -283,29 +220,9 @@ Persist and apply named layout descriptions independently of combining captures 
 
 ### app.capture.017 — Stamp library
 
-- Recorded: 2026-08-05 07:22
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
 exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
 clip art.
 
 ---
-
-## Out of scope
-
-**Hosted share destinations.** Service integrations add authentication, credential storage, and
-API maintenance outside this application's current scope. Local outputs — clipboard, file,
-drag-out, print, and `mailto` — are the intended integration boundary; platform.portability.068
-owns the operating-system work.
-
-**Machine-learning editing features.** Snagit's object detection and text replacement are model
-work. They belong to a company shipping a capture product, not to an application demonstrating a
-language.
-
-**Mobile and webcam capture.** Neither fits what this application is for.
-
-These application-specific leads will be fixed under `bin/apps/modules/swagcapture`.
-
-A lead that Swag Capture exposed but that will be fixed in `std/gui` belongs in
-[std.gui.md](std.gui.md) instead — the file follows the fix, not the discovery.

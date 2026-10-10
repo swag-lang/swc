@@ -17,13 +17,18 @@ private const RasterSampleTileSide = 1024's32
 // for — serif, monospace, or anything else — exactly as the HTML view reduces it, and
 // the class selects one of these files. Each may be a file path or a filename from the
 // system font directory; a name that fails to load falls back to `fontFileName`.
+//
+// The serif default is the face a browser puts behind `serif` on Windows, so a figure checked in
+// a browser lays out the same here. It also draws lining figures: a face with old-style figures,
+// such as Georgia, sinks 3, 4, 5, 7 and 9 below the baseline and leaves 0, 1 and 2 at x-height,
+// and a number placed to sit centered in a circle no longer does.
 struct ParseOptions
 {
     public
     {
         externalResourceRoot: string = ""     // Canonical containment root for relative image references; empty disables them.
         fontFileName:         string = "segoeui.ttf"        // Typeface used by text with no recognized or no serif/monospace family.
-        serifFontFileName:    string = "georgia.ttf"        // Typeface used by a `serif` family; empty selects `fontFileName`.
+        serifFontFileName:    string = "times.ttf"          // Typeface used by a `serif` family; empty selects `fontFileName`.
         monoFontFileName:     string = "consola.ttf"        // Typeface used by a `monospace` family; empty selects `fontFileName`.
         maxImageBytes:        u64    = 16 * 1024 * 1024     // Maximum encoded bytes accepted for each embedded or external image.
     }

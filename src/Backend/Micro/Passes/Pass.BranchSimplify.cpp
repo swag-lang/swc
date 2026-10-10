@@ -478,10 +478,10 @@ namespace
             if (!inst)
                 return false;
 
-            const MicroInstrOperand* ops = inst->ops(operands);
             if (inst->op == MicroInstrOpcode::Label)
                 continue;
 
+            const MicroInstrOperand* ops = inst->ops(operands);
             if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, ops))
                 return false;
 

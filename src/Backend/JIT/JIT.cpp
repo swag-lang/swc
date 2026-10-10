@@ -1071,8 +1071,10 @@ namespace
         if (!patchContext.visitedConstantAllocations.insert(visitKey))
             return Result::Continue;
 
-        SmallVector<ConstantFunctionPatch> patches;
-        std::vector<DataSegmentRelocation> relocations;
+        // Most allocations carry a few relocations; the walk recurses while it reads them, so
+        // each level keeps its own list, inline.
+        SmallVector<ConstantFunctionPatch>    patches;
+        SmallVector<DataSegmentRelocation, 4> relocations;
         segment.copyRelocations(relocations, allocation.offset, allocation.size);
         for (const DataSegmentRelocation& relocation : relocations)
         {

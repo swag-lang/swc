@@ -85,7 +85,8 @@ private func addSat32(a, b: s32)->s32 => cast(s32, Math.clamp(cast(s64, a) + cas
 
 private func subSat32(a, b: s32)->s32 => cast(s32, Math.clamp(cast(s64, a) - cast(s64, b), -2147483648, 2147483647))
 
-private func lshiftSat32(a: s32, shift: u32)->s32 => Math.clamp(a, Swag.S32.Min >> shift, Swag.S32.Max >> shift) << shift
+private func lshiftSat32(a: s32, shift: u32)->s32 =>
+    Math.clamp(a, Swag.S32.Min >> shift, Swag.S32.Max >> shift) << shift
 
 private func clz32(value: s32)->s32 => cast(s32, (32 - ilog(cast #bit (u32, value))))
 
@@ -316,13 +317,21 @@ private impl Resampler
             let tableIndex = cast(u32, smulwb(indexQ16 & 0xFFFF, 12))
             let at         = cast(u32, (indexQ16 >> 16))
             var res        = smulbb(cast(s32, buffer[at]), cast(s32, SilkResamplerFracFir12[tableIndex, 0]))
-            res          = smlabb(res, cast(s32, buffer[at + 1]), cast(s32, SilkResamplerFracFir12[tableIndex, 1]))
-            res          = smlabb(res, cast(s32, buffer[at + 2]), cast(s32, SilkResamplerFracFir12[tableIndex, 2]))
-            res          = smlabb(res, cast(s32, buffer[at + 3]), cast(s32, SilkResamplerFracFir12[tableIndex, 3]))
-            res          = smlabb(res, cast(s32, buffer[at + 4]), cast(s32, SilkResamplerFracFir12[11 - tableIndex, 3]))
-            res          = smlabb(res, cast(s32, buffer[at + 5]), cast(s32, SilkResamplerFracFir12[11 - tableIndex, 2]))
-            res          = smlabb(res, cast(s32, buffer[at + 6]), cast(s32, SilkResamplerFracFir12[11 - tableIndex, 1]))
-            res          = smlabb(res, cast(s32, buffer[at + 7]), cast(s32, SilkResamplerFracFir12[11 - tableIndex, 0]))
+            res = smlabb(res, cast(s32, buffer[at + 1]), cast(s32, SilkResamplerFracFir12[tableIndex, 1]))
+            res = smlabb(res, cast(s32, buffer[at + 2]), cast(s32, SilkResamplerFracFir12[tableIndex, 2]))
+            res = smlabb(res, cast(s32, buffer[at + 3]), cast(s32, SilkResamplerFracFir12[tableIndex, 3]))
+            res = smlabb(res,
+                         cast(s32, buffer[at + 4]),
+                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 3]))
+            res = smlabb(res,
+                         cast(s32, buffer[at + 5]),
+                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 2]))
+            res = smlabb(res,
+                         cast(s32, buffer[at + 6]),
+                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 1]))
+            res = smlabb(res,
+                         cast(s32, buffer[at + 7]),
+                         cast(s32, SilkResamplerFracFir12[11 - tableIndex, 0]))
             out[written] = cast(s16, sat16(rshiftRound(res, 15)))
             written      += 1
             indexQ16     += incrementQ16
@@ -624,7 +633,8 @@ private impl SilkChannel
         let base = cast(u32, .indices.nlsfIndices[0]) * cb.order
         for k in cb.order
         {
-            let value = ((resQ10[k] << 14) / cast(s32, cb.weightsQ9()[base + k])) + (cast(s32, cb.cb1Q8()[base + k]) << 7)
+            let value = ((resQ10[k] << 14) / cast(s32, cb.weightsQ9()[base + k])) +
+                        (cast(s32, cb.cb1Q8()[base + k]) << 7)
             nlsfQ15[k] = Math.clamp(value, 0, 32767)
         }
 
@@ -719,9 +729,11 @@ private impl SilkChannel
         {
             var offset: s32
             if .fsKHz == 8 do
-                offset = .nbSubfr == MaxNbSubfr ? cast(s32, SilkCbLagsStage2[k, contour]) : cast(s32, SilkCbLagsStage2For10Ms[k, contour])
+                offset = .nbSubfr == MaxNbSubfr ? cast(s32, SilkCbLagsStage2[k, contour]) :
+                         cast(s32, SilkCbLagsStage2For10Ms[k, contour])
             else do
-                offset = .nbSubfr == MaxNbSubfr ? cast(s32, SilkCbLagsStage3[k, contour]) : cast(s32, SilkCbLagsStage3For10Ms[k, contour])
+                offset = .nbSubfr == MaxNbSubfr ? cast(s32, SilkCbLagsStage3[k, contour]) :
+                         cast(s32, SilkCbLagsStage3For10Ms[k, contour])
             pitchLags[k] = Math.clamp(lag + offset, minLag, maxLag)
         }
     }
@@ -736,9 +748,12 @@ private impl SilkChannel
         var sLpcQ14: [MaxSubFrameLength + MaxLpcOrder] s32
         var aQ12:    [MaxLpcOrder] s32
 
-        let offsetQ10     = cast(s32, SilkQuantizationOffsetsQ10[cast(u32, (.indices.signalType >> 1)), cast(u32, .indices.quantOffsetType)])
+        let offsetQ10 = cast(s32,
+                             SilkQuantizationOffsetsQ10[
+                                        cast(u32, (.indices.signalType >> 1)),
+                                        cast(u32, .indices.quantOffsetType)])
         let interpolating = .indices.nlsfInterpCoefQ2 < 4
-        var seed          = .indices.seed
+        var seed = .indices.seed
         for i in .frameLength
         {
             seed = silkRand(seed)
@@ -790,7 +805,11 @@ private impl SilkChannel
                             .outBuf[.ltpMemLength + i] = out[i]
                     }
 
-                    .analysisFilter(&sLtp[cast(u32, startIdx)], &.outBuf[cast(u32, startIdx) + k * .subfrLength], &aQ12[0], .ltpMemLength - cast(u32, startIdx), .lpcOrder)
+                    .analysisFilter(&sLtp[cast(u32, startIdx)],
+                                    &.outBuf[cast(u32, startIdx) + k * .subfrLength],
+                                    &aQ12[0],
+                                    .ltpMemLength - cast(u32, startIdx),
+                                    .lpcOrder)
                     if k == 0 do
                         invGainQ31 = smulwb(invGainQ31, control.ltpScaleQ14) << 2
                     for i in cast(u32, lag) + LtpOrder / 2 do
@@ -1253,11 +1272,19 @@ private func inversePredictionGain(aQ12: const [*] s32, order: u32)->s32
         {
             let tmp1  = aQA[n]
             let tmp2  = aQA[k - n - 1]
-            let first = rshiftRound64(cast(s64, subSat32(tmp1, cast(s32, rshiftRound64(cast(s64, tmp2) * cast(s64, rcQ31), 31)))) * cast(s64, rcMult2), cast(u32, mult2Q))
+            let first = rshiftRound64(cast(s64,
+                                           subSat32(tmp1,
+                                                    cast(s32, rshiftRound64(cast(s64, tmp2) * cast(s64, rcQ31), 31)))) *
+                                      cast(s64, rcMult2),
+                                      cast(u32, mult2Q))
             if first > 2147483647 or first < -2147483648 do
                 return 0
             aQA[n] = cast(s32, first)
-            let second = rshiftRound64(cast(s64, subSat32(tmp2, cast(s32, rshiftRound64(cast(s64, tmp1) * cast(s64, rcQ31), 31)))) * cast(s64, rcMult2), cast(u32, mult2Q))
+            let second = rshiftRound64(cast(s64,
+                                            subSat32(tmp2,
+                                                     cast(s32, rshiftRound64(cast(s64, tmp1) * cast(s64, rcQ31), 31)))) *
+                                       cast(s64, rcMult2),
+                                       cast(u32, mult2Q))
             if second > 2147483647 or second < -2147483648 do
                 return 0
             aQA[k - n - 1] = cast(s32, second)
@@ -1396,7 +1423,12 @@ internal impl SilkDecoder
 
     // Decodes one SILK frame of every internal channel and writes it upsampled to 48 kHz,
     // interleaved over the API channels; returns the 48 kHz sample count.
-    mtd decode(dec: *RangeDecoder, newPacket: bool, payloadMs: u32, internalRate: u32, internalChannels: u32, out: [*] s16)->u32 fail
+    mtd decode(dec: *RangeDecoder,
+               newPacket: bool,
+               payloadMs: u32,
+               internalRate: u32,
+               internalChannels: u32,
+               out: [*] s16)->u32 fail
     {
         if newPacket
         {
@@ -1477,7 +1509,8 @@ internal impl SilkDecoder
                     }
                     else
                     {
-                        let symbol = (channel.nFramesPerPacket == 2 ? dec.decodeIcdf(SilkLbrrFlags2Icdf, 8) : dec.decodeIcdf(SilkLbrrFlags3Icdf, 8)) + 1
+                        let symbol = (channel.nFramesPerPacket == 2 ? dec.decodeIcdf(SilkLbrrFlags2Icdf, 8) :
+                                      dec.decodeIcdf(SilkLbrrFlags3Icdf, 8)) + 1
                         for i in channel.nFramesPerPacket do
                             channel.lbrrFlags[i] = ((symbol >> i) & 1) != 0
                     }
@@ -1503,7 +1536,11 @@ internal impl SilkDecoder
 
                         let condCoding = i > 0 and channel.lbrrFlags[i - 1] ? CodeConditionally : CodeIndependently
                         channel.decodeIndices(dec, i, true, condCoding)
-                        decodeSilkPulses(dec, &pulses[0], channel.indices.signalType, channel.indices.quantOffsetType, channel.frameLength)
+                        decodeSilkPulses(dec,
+                                         &pulses[0],
+                                         channel.indices.signalType,
+                                         channel.indices.quantOffsetType,
+                                         channel.frameLength)
                     }
                 }
             }

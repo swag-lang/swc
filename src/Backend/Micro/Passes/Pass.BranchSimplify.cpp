@@ -384,7 +384,7 @@ namespace
     {
         BranchScan& scan = cache.scan;
         cache.ensureLayout(storage, operands);
-        if (!scan.layout.hasConditionalJump)
+        if (!scan.layout.hasConditionalJump || !scan.layout.hasAnyLabel)
             return nullptr;
         if (!cache.built)
         {
@@ -1811,13 +1811,31 @@ namespace
             return *sites;
         };
 
-        // Site ordinals are appended during an ascending layout walk, so both endpoints bound the list.
-        const auto allWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
-            return list.empty() || (list.front() >= lo && list.back() < hi);
+        // Site ordinals start ordered; register merges can append earlier sites, so
+        // retain bounded queries only until the first rewrite changes that order.
+        bool siteListsOrdered = true;
+        const auto allWithin = [&](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
+            if (siteListsOrdered)
+                return list.empty() || (list.front() >= lo && list.back() < hi);
+            for (const uint32_t ordinal : list)
+            {
+                if (ordinal < lo || ordinal >= hi)
+                    return false;
+            }
+            return true;
         };
-        const auto noneWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
-            const auto firstAtOrAfterLo = std::lower_bound(list.begin(), list.end(), lo);
-            return firstAtOrAfterLo == list.end() || *firstAtOrAfterLo >= hi;
+        const auto noneWithin = [&](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
+            if (siteListsOrdered)
+            {
+                const auto firstAtOrAfterLo = std::lower_bound(list.begin(), list.end(), lo);
+                return firstAtOrAfterLo == list.end() || *firstAtOrAfterLo >= hi;
+            }
+            for (const uint32_t ordinal : list)
+            {
+                if (ordinal >= lo && ordinal < hi)
+                    return false;
+            }
+            return true;
         };
 
         bool changed = false;
@@ -1976,8 +1994,7 @@ namespace
                 if (ordinal != copyOrdinal)
                     dSites.defs.push_back(ordinal);
             }
-            std::ranges::sort(dSites.uses);
-            std::ranges::sort(dSites.defs);
+            siteListsOrdered = false;
             // The flat index keeps its slot, but every instruction now uses D instead of E.
             siteMap[*eIndex - 1] = {};
             changed = true;

@@ -64,6 +64,10 @@ void MicroRegisterAllocationPass::buildLiveIntervals(std::vector<LiveInterval>& 
         for (const uint32_t denseIndex : defVirtualIndices_[idx])
             out[denseIndex].defPositions.push_back(idx * 2 + 1);
 
+        // A copy hint has exactly one virtual destination and at most one
+        // virtual source. Skip instruction lookup for every other event shape.
+        if (defVirtualIndices_[idx].size() != 1 || useVirtualIndices_[idx].size() > 1)
+            continue;
         const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);
         if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
             continue;

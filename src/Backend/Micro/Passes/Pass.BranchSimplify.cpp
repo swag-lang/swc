@@ -780,6 +780,7 @@ namespace
         };
         // By label id; only looked up.
         FlatKeyMap<LabelUse> labelUses;
+        SmallVector<uint32_t, 16> conditionalJumps;
         for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
         {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -788,6 +789,8 @@ namespace
             if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::JumpCondImm || inst->op == MicroInstrOpcode::LoadLabelAddress ||
                 inst->op == MicroInstrOpcode::JumpTableData)
                 return false;
+            if (ordinal && inst->op == MicroInstrOpcode::JumpCond)
+                conditionalJumps.push_back(ordinal);
             uint32_t labelId = 0;
             if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
             {
@@ -832,11 +835,9 @@ namespace
         thread_local FlatKeySet visitedLabels;
 
         constexpr uint32_t K_MAX_WALK = 256;
-        for (uint32_t ordinal = 1; ordinal < count; ++ordinal)
+        for (const uint32_t ordinal : conditionalJumps)
         {
             const MicroInstr* jump = storage.ptr(layout.order[ordinal]);
-            if (jump->op != MicroInstrOpcode::JumpCond)
-                continue;
             const MicroInstrOperand* jumpOps = jump->ops(operands);
             if (jumpOps[0].cpuCond == MicroCond::Unconditional)
                 continue;

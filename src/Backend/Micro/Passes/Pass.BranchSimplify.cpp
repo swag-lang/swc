@@ -2618,7 +2618,8 @@ namespace
             {
                 // A link may test a copy of the value made for it alone.
                 MicroReg          alias;
-                const MicroInstr* first = storage.ptr(layout.order[at]);
+                const MicroInstr* first = at == start ? firstInst : storage.ptr(layout.order[at]);
+                const MicroInstr* cmp   = first;
                 if (first && first->op == MicroInstrOpcode::LoadRegReg && at + 4 < layout.order.size())
                 {
                     const MicroInstrOperand* aliasOps = first->ops(operands);
@@ -2627,9 +2628,9 @@ namespace
                         break;
                     alias = aliasOps[0].reg;
                     ++at;
+                    cmp = storage.ptr(layout.order[at]);
                 }
 
-                const MicroInstr* cmp  = storage.ptr(layout.order[at]);
                 const MicroInstr* set  = storage.ptr(layout.order[at + 1]);
                 const MicroInstr* copy = storage.ptr(layout.order[at + 2]);
                 const MicroInstr* next = storage.ptr(layout.order[at + 3]);

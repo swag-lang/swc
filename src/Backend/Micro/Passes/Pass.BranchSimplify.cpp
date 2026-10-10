@@ -810,6 +810,7 @@ namespace
         {
             uint32_t references  = 0;
             uint32_t jumpOrdinal = 0;
+            MicroCond condition  = MicroCond::Unconditional;
         };
         // By label id; only looked up.
         FlatKeyMap<LabelUse> labelUses;
@@ -825,11 +826,13 @@ namespace
             if (ordinal && inst->op == MicroInstrOpcode::JumpCond)
                 conditionalJumps.push_back(ordinal);
             uint32_t labelId = 0;
-            if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+            const MicroInstrOperand* jumpOps = inst->op == MicroInstrOpcode::JumpCond ? inst->ops(operands) : nullptr;
+            if (jumpOps && tryGetJumpTargetLabelId(labelId, *inst, jumpOps))
             {
                 LabelUse& use = labelUses.getOrInsert(labelId);
                 ++use.references;
                 use.jumpOrdinal = ordinal;
+                use.condition  = jumpOps[0].cpuCond;
             }
         }
 
@@ -932,8 +935,7 @@ namespace
                         break;
 
                     const uint32_t           from    = labelUse->jumpOrdinal;
-                    const MicroInstrOperand* fromOps = storage.ptr(layout.order[from])->ops(operands);
-                    factCond                         = fromOps[0].cpuCond;
+                    factCond                         = labelUse->condition;
                     factJump                         = from;
                     at                               = static_cast<int64_t>(from) - 1;
                 }

@@ -568,7 +568,7 @@ impl GlyphCache
 
     // Returns horizontal kerning in reference-size pixels.
     //
-    // Returns 0 when the typeface has no kerning pair for the couple.
+    // Returns 0 when the typeface has no kerning pair for the pair.
     mtd kerning(leftIndex, rightIndex: u32)->f32
     {
         // Most fonts carry no legacy 'kern' table: skip the per-pair hash lookup entirely.

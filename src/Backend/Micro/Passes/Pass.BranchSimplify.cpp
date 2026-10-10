@@ -4818,8 +4818,10 @@ namespace
 
             candidate.oneRef         = storage.findNextInstructionRef(candidate.secondJumpRef);
             const MicroInstr* one    = storage.ptr(candidate.oneRef);
-            const auto*       oneOps = one ? one->ops(operands) : nullptr;
-            if (!one || one->op != MicroInstrOpcode::LoadRegImm || !oneOps || oneOps[2].hasWideImmediateValue() || oneOps[2].valueU64 != 1 ||
+            if (!one || one->op != MicroInstrOpcode::LoadRegImm)
+                continue;
+            const auto* oneOps = one->ops(operands);
+            if (!oneOps || oneOps[2].hasWideImmediateValue() || oneOps[2].valueU64 != 1 ||
                 (oneOps[1].opBits != MicroOpBits::B32 && oneOps[1].opBits != MicroOpBits::B64))
                 continue;
             candidate.result     = oneOps[0].reg;
@@ -4846,8 +4848,10 @@ namespace
                 continue;
             candidate.zeroRef         = storage.findNextInstructionRef(candidate.falseLabelRef);
             const MicroInstr* zero    = storage.ptr(candidate.zeroRef);
-            const auto*       zeroOps = zero ? zero->ops(operands) : nullptr;
-            if (!zero || zero->op != MicroInstrOpcode::LoadRegImm || !zeroOps || zeroOps[0].reg != candidate.result ||
+            if (!zero || zero->op != MicroInstrOpcode::LoadRegImm)
+                continue;
+            const auto* zeroOps = zero->ops(operands);
+            if (!zeroOps || zeroOps[0].reg != candidate.result ||
                 zeroOps[1].opBits != candidate.resultBits || zeroOps[2].hasWideImmediateValue() || zeroOps[2].valueU64 != 0)
                 continue;
             candidate.joinLabelRef           = storage.findNextInstructionRef(candidate.zeroRef);

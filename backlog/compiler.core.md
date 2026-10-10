@@ -4,7 +4,55 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Items are ordered from the most recently updated down. Every completion condition is intended to be testable. Measurements below are a dated baseline, not permanent product claims.
 
-As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
+
+### compiler.core.080 — Published generic bodies call omitted helper declarations
+
+- Recorded: 2026-10-08 16:26
+- Updated: 2026-10-10 15:47 — Keep the two importer failures and the missing dependency boundary.
+- Evidence: generated Core APIs publish generic bodies that call helpers absent from the API: dynamic Hash.hash32/hash64 need private hashDynamicStorage, and XML numeric reads need internal Xml.zapBlanks. Provider tests pass, but external importers fail; the XML failure also occurs with its pre-refactoring source.
+- Next: reduce the published generic/private-helper dependency to a provider/importer pair and decide whether reachable implementation is published or diagnosed. Cover internal receiver methods; keep the dynamic hash contract and do not expose raw helpers just to silence import errors.
+- Complete when: external importers pass both hash widths and XML text/numeric reads, with publication regressions at the consumer boundary.
+
+### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
+
+- Recorded: 2026-09-30 15:28
+- Updated: 2026-10-10 15:47 — Retain the same-process publication boundary and reproduction.
+- Evidence: a parent compiler loads a workspace-local core.dll for compile-time execution and retains it through ExternalModuleManager. A child compiler in the same process then cannot overwrite that DLL during a forced dependency rebuild; test and documentation commands reproduce access denied. External dependencies use immutable copies, but workspace-local dependencies still load from mutable .output paths.
+- Next: add a workspace fixture that rebuilds the dependency while the parent stays alive; separate compiler-loaded DLL lifetime from publication without changing runtime linking, cache invalidation, or instance ownership.
+- Complete when: the fixture passes with both compiler executables and workspace reuse/publication checks remain green.
+
+### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
+
+- Recorded: 2026-08-30 12:06
+- Updated: 2026-10-10 15:47 — Condense the split-runtime evidence and remaining host-adoption decision.
+- Evidence: a runtime-loaded shared library carried a second Core allocator and runtime context, and its consumer crashed at shutdown. Pinning Core to shared-library linkage for the whole dependency closure fixes the observed fault and is the current rule.
+- Next: decide whether NativeLibrary.load can install the host allocator as well as the TLS slot and context already passed through __swc_rt_stage; otherwise define which incompatible combination the compiler can diagnose.
+- Complete when: a workspace test proves host allocator/context sharing for a loaded library, or the unsupported combination is explained and diagnosed.
+
+### compiler.core.020 — Concurrent type generation may corrupt declared-method traversal
+
+- Recorded: 2026-08-10 12:35
+- Updated: 2026-10-10 15:47 — Keep the unexplained corruption watch and replace its investigation transcript.
+- Evidence: one multi-configuration campaign reported a mimalloc free-list corruption while type generation traversed declared methods. The stack passed through implicit-method discovery and TypeGen. Since then, 100 Release Core rebuilds and 20 rebuilds each of Ogl in Release and DevMode passed; current traversal snapshots shared lists under locks, and several nearby publication races were fixed. No writer has been tied to the original report.
+- Next: investigate only if it recurs; the allocator now captures the reporting thread's stack. Persist the failing module and stress parallel type generation before changing code.
+- Complete when: a recurrence is attributed and fixed with a regression, or a parallel standard-library stress campaign under both executables stays clean and the lead is retired.
+
+### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
+
+- Recorded: 2026-09-16 19:54
+- Updated: 2026-10-10 15:47 — Keep only the unresolved work-directory or code-generation-state question.
+- Evidence: Release build 718 once diagnosed null dereferences in the permanent native regression binding_visit_growth.swg. The same source passed with new work/output roots and outside the checkout; tracing and the integrated build also passed. Evidence does not distinguish cache/work-directory state from scheduling or shared code-generation state.
+- Next: repeat the source with controlled roots and six workers, preserving the failing pre-sanity capture lowering if it recurs.
+- Complete when: a stable reproducer identifies and fixes the cause, or the failure is confined to transient build state and the native suite remains green.
+
+### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-10-10 15:47 — Reduce campaign history to the missing baseline and reporting criteria.
+- Evidence: the campaign records core rebuild/no-op/private-touch, hello build, docs, and formatting workloads with samples and memory. The initial edit-loop record is insufficient to establish a five-campaign noise band. Peak working set is now separated from the older process-tree committed-memory field; formatter input-opening bias is tracked in repo.tooling.007.
+- Next: collect enough clean campaigns to establish each edit-loop band, then report regressions without silently replacing baselines.
+- Complete when: every workload has a five-campaign resolution band, the report flags out-of-band movement, and configuration-specific results are labelled.
+- Related: compiler.core.002, compiler.core.005, compiler.core.007.
 
 ### compiler.core.047 — Imported generic bodies intermittently lose or duplicate bindings
 
@@ -80,55 +128,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: Core and hello builds stay below 250 MB and 40 MB on the campaign host, workloads remain within twice the best comparable implementation or record a reviewed exception, and campaign thresholds and variance are explicit.
 - Related: compiler.core.004, compiler.core.007, runtime.allocator.017.
 
-### compiler.core.080 — Published generic bodies call omitted helper declarations
-
-- Recorded: 2026-10-08 16:26
-- Updated: 2026-10-08 20:01 — Confirm the same publication boundary for the XML reader before and after its numeric refactoring.
-- Evidence: a forced DevMode import at `94dcc8f39`, with six workers, successfully rebuilt
-  Core and then rejected `Hash.hash32` for a `#[Swag.DynCast]` struct with an `s32` field:
-  `unknown symbol 'hashDynamicStorage'`. The span points to that call in generated `core.swg`.
-  Both published `hash32` and `hash64` bodies contain the call, but the generated API has no
-  declaration of the private helper from `crypto/hash64.swg`. The failure is at the import
-  boundary: the eight `tests/collections/dynamicstorage.test.swg` tests pass inside Core.
-- Reproduction: put the following script outside the checkout and run it with the checkout-local
-  `bin/swc.dm.exe --num-cores 6 --rebuild <absolute-script-path>`:
-
-  ```swag
-  #import("core", location: "swag@std")
-  using Core
-  #[Swag.DynCast]
-  struct DynamicKey { value: s32 = 17 }
-  #main
-  {
-      var left: DynamicKey
-      var right: DynamicKey
-      Swag.assert(Hash.hash32(left) == Hash.hash32(right))
-      Swag.assert(Hash.hash64(left) == Hash.hash64(right))
-  }
-  ```
-
-- Additional evidence: an external script importing Core and calling
-  `Serialization.Read.Xml.readNative'f32()` fails with `struct 'Xml' has no field 'zapBlanks'`
-  in generated `core.swg`. The same forced rebuild with the XML source from before `6ba358e2c`
-  fails at the same call; this is not introduced by its numeric-dispatch refactoring. Nine XML
-  and resource tests, including every numeric width, pass inside Core. The missing helper is
-  `internal` here, so checking only private free functions does not cover the boundary. The
-  import diagnostic also describes the missing method as a field and lists only data members.
-- XML reproduction: import Core in an external script, create a `Serialization.Read.Xml`,
-  call `expect reader.startRead("1.5")`, then `discard expect reader.readNative'f32()`.
-- Scope: this is an absent declaration, not the intermittent missing or duplicated local bindings
-  in compiler.core.047. The nongeneric implicit-body export check from `d34b178c2` does not cover
-  unresolved dependencies in an unmaterialized generic body.
-- Next: reduce the published generic/private-helper dependency to an isolated provider and
-  importer, then define how its reachable implementation is published or diagnosed at export.
-  Preserve Core's dynamic-identity-independent hash contract; do not make a raw implementation
-  helper public merely to silence the importer. Verify each hash width and the XML reader
-  separately; include internal receiver methods in the dependency inventory.
-- Complete when: a consumer importing the generated Core API hashes equal standalone and base-view
-  dynamic values consistently with both hash widths, and a publication regression protects the
-  dependency boundary without relying only on tests compiled inside the provider. Imported
-  generic XML numeric and textual reads must also resolve their implementation dependencies.
-
 ### compiler.core.079 — Tuple values never drop the owning fields they hold
 
 - Recorded: 2026-10-07 20:33
@@ -146,79 +145,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   rule in the lifecycle resolution and cover both producers above in the `native` suite.
 - Complete when: a tuple local holding an owning field drops it exactly once at scope end, or
   the declaration is rejected with a diagnostic, and the two reproducers above are suite tests.
-
-### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
-
-- Recorded: 2026-09-30 15:28
-- Updated: 2026-10-07 08:02 — forced documentation rebuilds reproduce the loaded-DLL conflict.
-- Evidence: a serial native Swag Prism test with the DevMode compiler and program configuration
-  `release` loads `bin/std/.output/core/shared-library/release/x86_64/core.dll` in its parent
-  compiler. The test's child compiler requests `build --build-cfg release --optim-level 0` for a
-  temporary Core importer and tries to republish that DLL. The write fails with access denied;
-  the diagnostic identifies the parent `swc.dm.exe` as its owner. Six workers and serial execution
-  reproduce it. Running a script concurrently can hold the same source artifact and expose the
-  same failure, but concurrency between campaigns is not required.
-- Further evidence: after the non-null success-contract migration, both
-  `swc.dm.exe --num-cores 6 tools/help.swgs dm --num-cores 6` and a standalone
-  `swc.dm.exe doc --workspace bin/std --doc-output-dir bin/help --rebuild --num-cores 6`
-  fail after publishing Core: a second write to the devmode `core.dll` reports that
-  a compiler process still owns it. The direct command reproduces this without the
-  tool-script wrapper or another main-checkout compilation. Include this same-command
-  documentation path in the dependency-lifetime investigation.
-- Boundary: scripts use immutable dependency-cache copies, and external workspace dependencies
-  are mirrored into `.dep`; workspace-local dependencies can still be loaded from their mutable
-  `.output` directories. `ExternalModuleManager` retains loaded libraries for the process.
-  Prism's retired probe helper exposed this by forwarding snippet optimization levels to all
-  dependencies; its current `BuildArtifact` path sets the level on the snippet's module instead.
-- Next: reduce the parent compile-time DLL call followed by a child's forced dependency rebuild
-  to a workspace-suite fixture. Audit shared-library resolution during dependency builds and
-  separate compiler-loaded library lifetime from the mutable publication path, while preserving
-  native linking, publication, cache invalidation, and runtime-instance ownership.
-- Complete when: the fixture rebuilds the dependency while its parent compiler remains alive,
-  with both compiler executables, and workspace reuse and publication checks still pass.
-
-### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
-
-- Recorded: 2026-08-10 12:35
-- Updated: 2026-10-06 20:59 — Added a completion condition to the dormant corruption watch.
-- Area: compiler
-- Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
-  semantic-completion assertion had passed on immediate focused rerun.
-- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
-  and a hardware exception while type generation traversed a struct's declared methods. The same
-  compiler and sources had completed the full Release campaign immediately beforehand, and the
-  equality suites had already passed in all three build configurations, so the failure appears
-  scheduling-dependent rather than tied to one deterministic source construct.
-- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
-  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
-  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
-  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
-  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
-  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
-  three configurations.
-- Current validation (2026-09-14): 100 Release 0.1.571 rebuilds of `core` completed with
-  byte-identical sets of 24 published API files. Another 20 Release and 20 DevMode rebuilds
-  of `ogl` completed without a crash. The current declared-method traversal copies impl and
-  interface lists under shared locks, and `SymbolMap::getAllSymbols` snapshots each map under
-  its corresponding lock. This session also fixed mutable attribute snapshots and lifecycle
-  pointer publication, with regression tests. These results establish non-recurrence under
-  those workloads; they do not identify the writer that caused the original free-list damage.
-- Next step: re-evaluate on the next occurrence only. The 2026-08-12 sanification pass eliminated
-  three writers able to corrupt or misread memory underneath a stack like this one: a struct
-  layout republished through transient zero and partially accumulated sizes on every post-node
-  resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
-  imported native modules keeping `Swag.processInfos().args` slices into a destroyed compiler instance's
-  storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
-  matcher reading the signature type of a selected candidate before that type was published
-  (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
-  a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
-  wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
-  report now appends the reporting thread's stack (`Allocator.cpp`), so a recurrence preserves its
-  detection stack; if one does recur, persist the failing module and stress parallel type
-  generation as originally planned.
-- Complete when: a recurrence is attributed through its captured stack and fixed with a
-  regression, or a parallel type-generation stress run over the whole standard library under both
-  compiler executables stays clean and the lead is retired.
 
 ### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
 
@@ -481,29 +407,6 @@ the shared memory budget.
   defined twice in `HashTable`) reproduces under the same stress before attributing it here.
 - Complete when: a repeatable test fails without the post-node ownership check and passes with it.
 
-### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
-
-- Recorded: 2026-09-16 19:54
-- Area: compiler/codegen, captured variables, static sanity
-- Evidence: a Release `swc.exe` 728 full native test (`-bc release --num-cores 6`)
-  diagnosed twelve null dereferences at `total += seed` in
-  `bin/unittests/native/inline/binding_visit_growth.swg`. The source is already a
-  permanent regression test and is unchanged during this investigation.
-- Reduction: standalone builds 712 and 714 passed; build 718 failed using the
-  original session output/work roots, then passed with new output/work roots.
-  An identical source copied outside the checkout passed with the same 718 binary.
-  Build 730 with temporary pre-sanity tracing passed. Tracing was removed; integrated
-  build 731 passes all 3,277 native tests and the expected-failure recovery probes.
-  These observations do not distinguish cache/work-directory state from scheduling
-  or another input. They do not prove that a particular optimization introduced or
-  fixed the failure. The diagnostic is emitted before the micro optimization loops.
-- Evidence artifact: [generated-code session](../bench/results/generated-code/20260916/README.md).
-- Next: repeat the unchanged standalone source with controlled work directories and
-  six workers, preserve the failing pre-sanity capture lowering, and distinguish
-  cache reuse from shared code-generation state when cloning the macro's closure.
-- Complete when: a stable reproducer identifies the cause, the correction passes
-  that reproducer repeatedly, and the full native suite remains green.
-
 ### compiler.core.038 — Measure the remaining semantic frame construction cost
 
 - Recorded: 2026-09-09 15:04
@@ -530,34 +433,6 @@ the shared memory budget.
 - Complete when: current measurements either identify a bounded, worthwhile change with a
   reproducible A/B comparison, or show that the residual cost does not justify further work.
 - Related: compiler.core.001, compiler.core.005, compiler.core.006.
-
-### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-10 19:43 — Account for the September 6 campaign that already records edit-build workloads.
-
-**Evidence.** Since 2026-09-05 the campaign measures the edit-build loop beside the seven tasks: `core_rebuild`, `core_noop`, `core_touch`, `hello_build`, `doc_std` and `format_tree` (`bench/toolchains.py`, `make_compiler_workloads` and `make_hello_builds`), each recorded with wall time, every sample and peak memory, corrected by the campaign's compilation context and indexed against the first clean campaign that measured it (`history.py`, `index_loop`). `bench/compile.py` answers the round-by-round A/B between two compilers. On 2026-09-05, Release 0.1.366, six worker cores, medians of five on a quiet machine: `core_rebuild` 3 485 ms, `core_noop` 334 ms, `core_touch` 3 214 ms, `format_tree` 5.6 s at one busy core, `doc_std` 142 s and 3.3 GiB peak, the standard-library publish pass included. The four August protocol-2 records predate these workloads. The later
-[20260906-143159 record](../bench/results/20260906-143159.json) contains all five `loop`
-workloads and the separate hello-world build result. One such record does not establish the
-five-campaign baseline band required below.
-
-**Intent.** Record enough clean campaigns to know the resolution of each workload, then make the campaign report a regression instead of only plotting it.
-
-**Measurement caveat (2026-09-06).** The original benchmark memory field is process-tree peak
-committed memory. The instrument now records the timed process's peak working set separately;
-older samples have no resident-memory value and must not be used to set that threshold. Memory
-is not normalized by timing context. Formatter source mirrors now preserve `.swc-format` and
-the maintenance tool's complete input selection; the remaining input-opening bias is tracked
-in repo.tooling.007. Establish the baseline band using these corrected inputs and explicit
-compiler-worker counts.
-
-**Complete when.**
-
-- At least five clean baseline campaigns establish the resolution band of every edit-build workload, as the null indices already do for the tasks.
-- The campaign reports a workload that moved past its band without silently rewriting the baseline.
-- Release and DevMode are measured where their behavior differs, and the report says which one a number belongs to.
-
-**Related:** compiler.core.002, compiler.core.005, compiler.core.007.
 
 ### compiler.core.006 — Every process rebuilds the prelude state
 
@@ -630,35 +505,6 @@ compiler-worker counts.
 - Tests cover direct source changes, transitive loads, imports, configuration changes, corrupt entries, and concurrent cache population.
 
 **Related:** compiler.core.001, compiler.core.002, compiler.core.006, platform.portability.080.
-
-### compiler.core.027 — A run-time loaded shared library cannot share the host's runtime
-
-- Recorded: 2026-08-30 12:06
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
-- Area: compiler
-- Found while: making an executable link its dependencies' code in by default, so it ships as one
-  file (`bin/unittests/workspace/modules/standalone_exe`).
-- Observation: an executable links its whole import closure in, which gives the process one copy of
-  each module and one runtime state. A shared library it loads at run time through
-  `Core.NativeLibrary.load` was built against the shared libraries instead, so it brings a second
-  `core` with it: two allocators, two runtime contexts, and memory that cannot cross between them.
-  Nothing the compiler sees says the load will happen — the library is named by a path the program
-  computes while it runs.
-- Evidence: `runtime_context_dynamic_consumer` faulted with `0xC0000005` after its `#test` passed,
-  at shutdown, once its `core` import resolved to the archive. Pinning that import with
-  `link: "shared-library"` — which the all-or-nothing rule then propagates to the whole closure —
-  makes it pass again, and is now what the module states.
-- Next: decide whether a loaded module can adopt its host's runtime instead. The
-  `__swc_rt_stage` hook already hands an imported module the host's TLS slot and context, and
-  `NativeLibrary.load` could call it the same way; that leaves the loaded module's own `core.dll`
-  allocator as the remaining split, so the question is whether the hook can also install the host's
-  allocator. Until then the rule is the pin, and it is documented on the reference's dependency
-  page.
-- Complete when: either a loaded shared library provably shares the host's allocator and context in
-  a workspace test that links its dependencies in, or the backlog records why it cannot and the
-  compiler diagnoses the combination it can see.
-
----
 
 ## Deliberately out of scope
 

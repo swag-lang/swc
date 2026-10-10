@@ -6,6 +6,33 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.030 — Every executable lowers the runtime's functions again
+
+- Recorded: 2026-09-05 22:13
+- Updated: 2026-10-10 15:43 — Keep the current runtime-closure cost and discard superseded profiles.
+- Evidence: executables now lower only functions reached from their roots, but the reachable runtime closure is still lowered for every executable. The function cache in compiler.core.003 excludes functions with code relocations, which covers most of that closure. The earlier JIT cost was removed from native builds; historical timings no longer describe the current compiler.
+- Next: measure the runtime functions and time in a current hello-world Release rebuild, then compare relocation-aware function reuse with a runtime-code cache keyed by compiler build, configuration, architecture, and runtime inputs.
+- Complete when: fresh and reused runtime code produce identical artifacts, all relevant inputs invalidate the cache, and the current edit-build campaign shows a repeatable gain.
+- Related: compiler.core.001, compiler.core.003, compiler.core.004, compiler.core.006, compiler.optimization.029.
+
+### compiler.core.039 — One module analysis resolves four and a half million substitutions
+
+- Recorded: 2026-09-09 17:44
+- Updated: 2026-10-10 15:43 — Retain the unresolved repeated-query question and current structural savings.
+- Evidence: an imported-module analysis once resolved 4.55 million substitute chains, averaging two links. Passing already-read payload state through comparison lowering and metadata merging removed redundant queries without changing substitution rules; the attempted call-site shortcut showed no reliable timing gain and was reverted. A combined type-and-constant view is unsafe because flow narrowing can suppress a null constant.
+- Next: attribute current resolutions to repeated questions within one pass versus callers rebuilding views they already hold; retain a change only with equivalent analysis results and a paired timing on an imported-module workload.
+- Complete when: the remaining query cost is attributed and either reduced with a repeatable gain or shown not worth additional state.
+- Related: compiler.core.001, compiler.core.038.
+
+### compiler.core.005 — Compiler memory has no attributed, enforced budget
+
+- Recorded: 2026-08-06 20:18
+- Updated: 2026-10-10 15:43 — Keep the current memory attribution and discard superseded snapshots.
+- Evidence: September 29 Release measurements reduced a six-worker Core DevMode rebuild from 579 to 389 MB with a 0.87x wall-time ratio, and hello build from 112 to 78 MB. The remaining committed-memory gap grows with worker count while live allocation stays near 16 to 17 MiB, chiefly from per-thread Micro scratch and semantic-analysis high-water marks. Earlier snapshots predate page, sanitizer-state, symbol-map, and job-lifetime reductions.
+- Next: reduce and attribute per-worker retained scratch without reducing parallelism; share JIT code pages when patching no longer requires page-sized allocations.
+- Complete when: Core and hello builds stay below 250 MB and 40 MB on the campaign host, workloads remain within twice the best comparable implementation or record a reviewed exception, and campaign thresholds and variance are explicit.
+- Related: compiler.core.004, compiler.core.007, runtime.allocator.017.
+
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
@@ -313,70 +340,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   native linking, publication, cache invalidation, and runtime-instance ownership.
 - Complete when: the fixture rebuilds the dependency while its parent compiler remains alive,
   with both compiler executables, and workspace reuse and publication checks still pass.
-
-### compiler.core.030 — Every executable lowers the runtime's functions again
-
-- Recorded: 2026-09-05 22:13
-- Updated: 2026-10-06 20:59 — Executables and libraries now lower only what they reach; the runtime closure is still lowered per executable.
-
-**Evidence.** Profiled on 2026-09-05 (Release 0.1.367 with a PDB, six worker cores, a user-mode sampling profiler): a hello world build spends 38 % of its thread samples in `CodeGenJob::exec`, 31 % of them in `MicroPassManager::run`, against 8 to 11 % in semantic analysis. The stage log says why — `tuned 172 functions`, `forged 320 functions`, for a four-line program: the runtime's own functions are lowered and optimized again for every executable, at the `release` preset's `O2`. `swc sema` on an empty file shows the same shape at 19 %: the prelude's `const __buildCfg = #run Swag.compiler().getBuildCfg()![]` (bin/runtime/core.swg) JIT-lowers about a hundred runtime functions so that the build configuration, which the compiler already holds in C++, can be read back through compile-time execution. On a quiet machine the same run measured `swc help` at 34 ms, the prelude's syntax at 35 ms, its sema at 165 ms and the hello world build at 197 ms (0.1.369, six cores); the campaign's `hello_build` target is 50 ms.
-
-**Evidence (2026-09-09, Release 0.1.422, twelve workers, minimum of ten interleaved runs).** The JIT half of this entry no longer costs a native build anything: replacing `const __buildCfg = #run …` with a plain variable in the prelude leaves a snippet build at 91 ms either way, with the same 448 tuned and 441 forged functions, because a native artifact lowers the runtime regardless. The lowering half is what remains, and it is now the largest term of a Swag Prism snippet compilation: the same probe takes 116 ms as a static library and 68 ms with `--artifact-kind export`, so lowering and linking the runtime is 48 ms of it, against 52 ms for the prelude's own semantic pass (compiler.core.006) and 16 ms of process start.
-
-**Evidence (2026-09-23, Release 0.1.1046).** This cost grew with the runtime, not with the compiler. `bin/runtime` went from 8 files and 5 260 lines on 2026-08-07 to 19 files and 8 629 lines on 2026-09-21 — +64 %, as the scheduler, tasks, parallelism, sync, TLS, atomics and symbol families landed — and the benchmark followed it: the Swag build series reads 106 ms on 2026-08-07 against 172 ms on 2026-09-20, and the campaign headline `build_edge`, how many times faster `swc` compiles than the other toolchains, fell from 4.08 to 2.65 over those eight campaigns. A hello world release rebuild now reports `checked 20 files • 42 719 tokens • 43 ms`, `tuned 176 functions • 76 ms`, `forged 314 functions • 91 ms`, for 153 ms of process time: the prelude and the runtime are the entire measurement, and every family added to `bin/runtime` is lowered again by every executable anyone compiles. None of it is a compiler regression; it is this entry and compiler.core.006 scaling with the runtime's surface.
-
-**Intent.** Keep the runtime's lowered code between builds — per compiler build, configuration and architecture, like the module setup cache keeps a setup. Prelude-state reuse belongs to compiler.core.006; this entry owns lowered runtime artifacts.
-
-**Evidence (2026-10-06).** `NativeBackendBuilder::prepare` no longer seeds lowering with every
-function the module completed. An executable starts from its roots (`12640f415`), so a hello
-world no longer lowers the 31 generated `opEquals` that were 19 % of its lowering on 2026-09-23,
-and a library starts from what it exports (`f6c3fb960`, `bad64df6f`). What those roots reach in
-the runtime — the allocator, panic and type-info paths among them — is still lowered again by
-every executable. The function cache of compiler.core.003 skips any function with a code
-relocation, which excludes most of that closure. The function counts and timings above predate
-this change.
-
-**Next.** Remeasure what a hello-world release rebuild lowers from the runtime now, then choose
-between a cache of lowered runtime code keyed like the module setup cache and relocation-aware
-function caching (compiler.core.003).
-
-**Complete when.**
-
-- A build whose sources contain no compile-time execution lowers nothing of the runtime and runs no JIT code.
-- The cached runtime code is invalidated by the compiler build, the runtime sources, the configuration and the target, and a workspace test proves a fresh and a reused runtime produce identical executables.
-- `hello_build` in the compiler.core.004 campaign reads under 50 ms on the campaign host.
-
-**Related:** compiler.core.001, compiler.core.004, compiler.core.006, compiler.optimization.029.
-
-### compiler.core.039 — One module analysis resolves four and a half million substitutions
-
-- Recorded: 2026-09-09 17:44
-- Updated: 2026-10-06 20:59 — Added the missing completion condition.
-
-**Evidence.** Instrumented on 2026-09-09 (Release 0.1.426): analyzing one snippet module that imports `core` — 52 files, 155 000 tokens — enters `NodePayload::followSubstituteChain` **4 554 160 times**, walking 9 121 151 links. The same walk over a 22 800-line file with no import enters it 269 675 times. A chain is short: two links on average, three at most, so the traffic is not depth but the sheer number of times the pass asks what a node now stands for. A profile of that analysis puts the walk at 2.8 % of the compiler's own code and `SemaNodeView::computeInner`, which begins with that question, at 3.2 %.
-
-Handing the walk the payload state its caller had just read — so a two-link chain reads one node instead of two — was written and measured. Paired A/B on the 22 800-line file moved nothing either way, and the imported-module workload, which cannot be measured by alternating runs because two build numbers invalidate the standard library's artifacts between them, gave 92 %, 101 % and 110 % of the processor time across three block measurements. It was reverted: the walk is not where the time goes.
-
-**Taken (2026-10-06, build 1173).** Comparison lowering carries the result type already read
-by its dispatcher through the scalar, string, slice, type-info, aggregate, three-way and vector
-paths. Payload metadata merging receives the resolved node reference already held by all four
-call sites. These remove a result view per ordinary comparison and a substitute-chain query per
-metadata merge without retaining new state or changing substitution rules. The comparison change
-with concurrent SSA work passed 3,620 native Release tests; the metadata change passed 66 native inline tests and four JIT
-`defer.catch` tests. These are structural savings, with no timing or memory measurements.
-
-Do not merge separate type and constant views mechanically: a combined view can suppress a null
-constant when flow analysis narrows the type, while a constant-only view does not perform that
-narrowing. Such a rewrite requires a separate semantic proof.
-
-**Next.** Find out why a view is rebuilt so often, rather than making each rebuild cheaper. Count how many of those 4.5 million resolutions ask about a node another resolution already answered for in the same pass, and whether a resolved reference can be remembered on the node instead of re-derived. The answer decides whether this is a memoization or a call-site problem.
-
-**Complete when.** The resolutions are attributed either to repeated questions about nodes already
-resolved in the same pass or to call sites that rebuild a view they already hold, and the chosen
-change is retained with a paired timing on the imported-module workload or recorded as not worth
-its cost.
-
-**Related:** compiler.core.001, compiler.core.038.
 
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 
@@ -729,30 +692,6 @@ the shared memory budget.
 - Workspace tests cover a diamond graph, concurrent failures, cancellation, and deterministic repeated builds.
 
 **Related:** compiler.core.004, compiler.core.005.
-
-### compiler.core.005 — Compiler memory has no attributed, enforced budget
-
-- Recorded: 2026-08-06 20:18
-- Updated: 2026-09-29 16:26 — commit-on-demand allocator pages, live-only sanitizer states, lighter symbols; per-worker fragmentation attributed
-
-**Evidence (2026-09-29, Release `swc.exe`, peak committed memory of the job, order-alternated A/B against master `d748642a5`).** Four changes landed on `perf/memory-footprint-20260929`: mimalloc small pages commit in 16 KiB steps instead of whole 64 KiB pages; the sanitizer keeps only registers live on entry to a chain head in its stored states (chain liveness computed once per function); per-symbol `std::mutex` become `std::shared_mutex` and the symbol map's big hash map is created only past eight keys; a function's `MicroBuilder` is created at code generation and deleted once lowered. Bench JIT tasks at the default worker count: hello 97 -> 65 MB, wordfreq 131 -> 96, chacha release 132 -> 95, chacha devmode 216 -> 99 (0.62x wall: the sanitizer copies far smaller states), raytrace 107 -> 74, dijkstra 157 -> 123; hello build 112 -> 78 MB; core devmode rebuild (`--num-cores 6`) 579 -> 389 MB with wall min 3.30 -> 2.86 s. Wall-time median ratios stay 0.92-1.00 on every workload. The native programs themselves were already at parity with C++ and are unchanged.
-
-**Attribution after these changes (hello JIT, mimalloc statistics).** Live allocated bytes peak at 16-17 MiB whatever the worker count, but committed memory is 25 MiB with one worker, 42 MiB with six and 61 MiB with 22 (164 -> 238 -> 418 pages): the rest of the JIT overhead is fragmentation across the per-thread heaps, each holding the high-water mark of its own transient allocations. About 10 MiB of it follows the Micro pipeline's `thread_local` scratch (`-O 0` 54 MiB vs `-O 2` 64 MiB at 22 workers), the rest the semantic analysis of the runtime prelude spread over the workers. Measured and rejected: a 4 KiB commit step (-5 MiB, but about +11% median wall on hello JIT); mimalloc purge delay, page retention and reclaim options (no effect). A function's JIT code occupies at least one 4 KiB page because protection is flipped per allocation. `PagedStore::publishPages` copies the whole page table, and keeps every earlier copy for lock-free readers, each time a page is added: 81 KB on hello and 5.3 MB on the core devmode rebuild (61,329 snapshots, largest store 83 pages).
-
-**Evidence (2026-09-05, Release `swc.exe`, `--num-cores 6`, peak working set).** Before: core devmode rebuild 731 MB, core release rebuild 638 MB, hello 73 MB, bench tasks 74-83 MB. After finished jobs release their Sema and CodeGen state, 64 KiB arena blocks, and the api-export index dropped after export: 517 MB, 360 MB, 60 MB, 58-66 MB, with wall time at 0.86x, 0.95x, 1.0x, 0.97x (order-alternated A/B). Attribution by mimalloc statistics and a throwaway sampling probe on the DevMode core rebuild: the largest block still resident at peak is the static sanitizer's flow state (`SanitizerState` copies, ~150 MiB of ~100-byte map nodes, 17M allocations per core rebuild), then paged AST/payload/type stores (~110 MiB), per-thread arenas (~95 MiB, dominated by 2 KB `SymbolFunction` and 1.3 KB `SemaInlinePayload`), the CodeGen objects of sleeping codegen jobs (~23 MiB), and link-time archive buffers (~23 MiB). The compile-time runtime allocator is not a factor.
-
-**Intent.** Use external profiling and the compiler.core.004 workloads to reduce retained AST, semantic, Micro, and temporary state, then turn the agreed memory targets into regression checks.
-
-**Next.** Reduce per-worker high-water marks without reducing parallelism: shrink or share the Micro pipeline's retained `thread_local` scratch, and find which transient semantic allocations a prelude job makes (the 20 KiB and 5 KiB bins hold in-flight `CodeGen` (10.5 KB, 5.6 KB of it an inline 32-entry defer-scope vector) and `Sema` (5 KB, 3.5 KB of it `AstVisit`'s inline stack)). Pack JIT functions into shared pages once the patcher no longer relies on page-sized allocations.
-
-**Complete when.**
-
-- A full core DevMode build peaks below 250 MiB and a hello-world build below 40 MiB on the campaign host.
-- Every campaign workload stays within twice the best comparable compiled-language implementation measured by the same harness, or records a reviewed exception.
-- Thresholds, host normalization, and variance policy are stored with the campaign.
-- External profiling attributes the remaining peak well enough that a regression report names the responsible subsystem.
-
-**Related:** compiler.core.004, compiler.core.007, runtime.allocator.017.
 
 ### compiler.core.057 — The lazy-body completion race has no deterministic regression
 

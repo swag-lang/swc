@@ -390,7 +390,7 @@ namespace
                     break;
                 }
 
-                const MicroInstrOperand* ops     = inst->ops(operands);
+                const MicroInstrOperand* ops     = cache.countMentions || inst->op == MicroInstrOpcode::JumpCond ? inst->ops(operands) : nullptr;
                 uint32_t                 labelId = 0;
                 if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, ops))
                     ++scan.labelReferences.getOrInsert(labelId);

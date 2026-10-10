@@ -4041,7 +4041,8 @@ namespace
     //
     // The first comparison already performs the load on every path. No write
     // or call may separate it from the repeated comparison.
-    bool forwardRepeatedMemoryCompareInShortCircuit(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, RelocationRefCache& relocationCache)
+    bool forwardRepeatedMemoryCompareInShortCircuit(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context,
+                                                    RelocationRefCache& relocationCache, const BranchScanCache& scanCache)
     {
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
@@ -4111,17 +4112,24 @@ namespace
                     sourceLoadOps[3].opBits != leftOps[leftBitsIndex].opBits)
                     continue;
 
-                uint32_t sourceMentions = 0;
-                for (MicroInstr& inst : storage.view())
+                const uint32_t* cachedSourceMentions = nullptr;
+                if (sourceLoadOps[0].reg.isVirtualInt() && scanCache.built && !scanCache.scan.indirectJump)
+                    cachedSourceMentions = scanCache.scan.mentions.find(sourceLoadOps[0].reg.index());
+
+                uint32_t sourceMentions = cachedSourceMentions ? *cachedSourceMentions : 0;
+                if (!cachedSourceMentions)
                 {
-                    const MicroInstrOperand* instOps = inst.ops(operands);
-                    if (!instOps)
-                        continue;
-                    const auto modes = MicroInstr::info(inst.op).resolvedRegModes(instOps);
-                    for (size_t operand = 0; operand < modes.size(); ++operand)
+                    for (MicroInstr& inst : storage.view())
                     {
-                        if (modes[operand] != MicroInstrRegMode::None && instOps[operand].reg == sourceLoadOps[0].reg)
-                            ++sourceMentions;
+                        const MicroInstrOperand* instOps = inst.ops(operands);
+                        if (!instOps)
+                            continue;
+                        const auto modes = MicroInstr::info(inst.op).resolvedRegModes(instOps);
+                        for (size_t operand = 0; operand < modes.size(); ++operand)
+                        {
+                            if (modes[operand] != MicroInstrRegMode::None && instOps[operand].reg == sourceLoadOps[0].reg)
+                                ++sourceMentions;
+                        }
                     }
                 }
                 const MicroInstrOperand* setOps  = set->ops(operands);
@@ -7739,7 +7747,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     rewrote(convertThreeWaySignDiamonds(storage, operands, context, scanCache, relocationCache));
     // Both comparison shapes consume a setcc and branch before the repeated load.
     if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasSetCondition && scanCache.scan.layout.hasConditionalJump))
-        rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context, relocationCache));
+        rewrote(forwardRepeatedMemoryCompareInShortCircuit(storage, operands, context, relocationCache, scanCache));
     // A matching chain has both a conditional jump and a setcc. Use the
     // existing layout only while it still describes the current stream.
     if (!scanCache.layoutBuilt || (scanCache.scan.layout.hasConditionalJump && scanCache.scan.layout.hasSetCondition))

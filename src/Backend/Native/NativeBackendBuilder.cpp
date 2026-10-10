@@ -26,6 +26,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/Version.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
 #include "Support/Os/Os.h"
@@ -441,7 +442,21 @@ namespace
         return shouldPrepareSymbol(builder, fn) && (fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody));
     }
 
-    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, size_t& nextFunctionIndex)
+    // The functions a list already holds, as a membership set. A list may hold empty slots; a
+    // membership query never asks about one.
+    PointerSet<SymbolFunction> memberSetOf(const std::vector<SymbolFunction*>& functions)
+    {
+        PointerSet<SymbolFunction> members;
+        members.reserve(functions.size());
+        for (SymbolFunction* function : functions)
+        {
+            if (function)
+                members.insert(function);
+        }
+        return members;
+    }
+
+    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, size_t& nextFunctionIndex)
     {
         bool changed = false;
         for (; nextFunctionIndex < functions.size(); ++nextFunctionIndex)
@@ -455,7 +470,7 @@ namespace
             {
                 if (!dep || !isIncludableDependency(builder, *dep))
                     continue;
-                if (!seenFunctions.insert(dep).second)
+                if (!seenFunctions.insert(dep))
                     continue;
 
                 functions.push_back(dep);
@@ -468,20 +483,22 @@ namespace
 
     bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
     {
-        std::unordered_set seenFunctions(functions.begin(), functions.end());
+        PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
         size_t             nextFunctionIndex = 0;
         return appendCodeGenDependencies(builder, functions, seenFunctions, nextFunctionIndex);
     }
 
-    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, std::unordered_set<SymbolFunction*>* rejected = nullptr)
+    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, std::unordered_set<SymbolFunction*>* rejected = nullptr)
     {
         const DataSegment&    segment = builder.compiler().cstMgr().shardDataSegment(shardIndex);
         DataSegmentAllocation allocation;
         if (!segment.findAllocation(allocation, sourceOffset))
             return false;
 
-        const uint64_t allocationKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
-        if (!visitedAllocations.insert(allocationKey).second)
+        // The high bit keeps the first allocation of the first shard from packing to zero, which
+        // the set reads as a free slot.
+        const uint64_t allocationKey = 1ULL << 63 | static_cast<uint64_t>(shardIndex) << 32 | allocation.offset;
+        if (!visitedAllocations.insert(allocationKey))
             return false;
 
         bool                               changed = false;
@@ -500,7 +517,7 @@ namespace
                         rejected->insert(target);
                     continue;
                 }
-                if (!seenFunctions.insert(target).second)
+                if (!seenFunctions.insert(target))
                     continue;
 
                 functions.push_back(target);
@@ -515,7 +532,7 @@ namespace
         return changed;
     }
 
-    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, std::unordered_set<SymbolFunction*>* rejected = nullptr)
+    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, std::unordered_set<SymbolFunction*>* rejected = nullptr)
     {
         bool changed = false;
         // Global initializers reach read-only data without a code relocation. Its function
@@ -530,7 +547,7 @@ namespace
         return changed;
     }
 
-    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, size_t& nextFunctionIndex)
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, size_t& nextFunctionIndex)
     {
         bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations);
 
@@ -565,14 +582,14 @@ namespace
     // or generic instance still being analysed) is checked again every round.
     struct ConstantDependencyScan
     {
-        std::unordered_set<uint64_t>                      visitedAllocations;
+        StampedKeySet                                     visitedAllocations;
         std::unordered_map<const SymbolFunction*, size_t> scannedRelocations;
         std::unordered_set<SymbolFunction*>               rejected;
     };
 
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, ConstantDependencyScan& scan)
     {
-        std::unordered_set seenFunctions(functions.begin(), functions.end());
+        PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
         bool               changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, &scan.rejected);
         for (auto it = scan.rejected.begin(); it != scan.rejected.end();)
         {
@@ -624,7 +641,7 @@ namespace
     bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
     {
         bool               changed = false;
-        std::unordered_set seenFunctions(functions.begin(), functions.end());
+        PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
         for (const SymbolVariable* global : globals)
         {
             if (!global)
@@ -633,7 +650,7 @@ namespace
             SymbolFunction* target = global->globalFunctionInit();
             if (!target || !isIncludableDependency(builder, *target))
                 continue;
-            if (!seenFunctions.insert(target).second)
+            if (!seenFunctions.insert(target))
                 continue;
 
             functions.push_back(target);
@@ -1592,18 +1609,18 @@ Result NativeBackendBuilder::prepare()
             if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
                 auto                                executableFunctions = collectExecutableFunctionRoots(*this);
-                std::unordered_set<SymbolFunction*> seenFunctions;
+                PointerSet<SymbolFunction> seenFunctions;
                 seenFunctions.reserve(executableFunctions.size());
                 size_t uniqueRootCount = 0;
                 for (auto* function : executableFunctions)
                 {
-                    if (seenFunctions.insert(function).second)
+                    if (seenFunctions.insert(function))
                         executableFunctions[uniqueRootCount++] = function;
                 }
                 executableFunctions.resize(uniqueRootCount);
-                std::unordered_set<uint64_t> visitedAllocations;
-                size_t                       nextCallFunctionIndex     = 0;
-                size_t                       nextConstantFunctionIndex = 0;
+                StampedKeySet visitedAllocations;
+                size_t        nextCallFunctionIndex     = 0;
+                size_t        nextConstantFunctionIndex = 0;
 
                 // Lowering is complete, so each dependency source is now immutable. Keep
                 // independent cursors to preserve the call/constant discovery order while

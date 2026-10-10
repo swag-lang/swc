@@ -3315,6 +3315,13 @@ namespace
             size_t                                         at            = start;
             bool                                           fallsIntoCase = false;
             uint32_t                                       fallDefaultId = 0;
+            uint64_t                                       low           = UINT64_MAX;
+            uint64_t                                       high          = 0;
+            const auto addCase = [&](const uint64_t caseValue, const uint32_t labelId) {
+                cases.push_back({caseValue, labelId});
+                low  = std::min(low, caseValue);
+                high = std::max(high, caseValue);
+            };
             while (true)
             {
                 const MicroInstr* cmp  = instAt(at);
@@ -3334,7 +3341,7 @@ namespace
                         arm->op != MicroInstrOpcode::Label || !tryGetLabelId(armId, *arm, arm->ops(operands)) ||
                         !tryGetJumpTargetLabelId(fallDefaultId, *jump, jumpOps))
                         break;
-                    cases.push_back({cmpOps[2].valueU64 & getBitsMask(keyBits), armId});
+                    addCase(cmpOps[2].valueU64 & getBitsMask(keyBits), armId);
                     fallsIntoCase = true;
                     at += 1;
                     break;
@@ -3362,7 +3369,7 @@ namespace
                     if (rangeHigh < rangeLow || rangeHigh - rangeLow >= K_MAX_ENTRIES)
                         break;
                     for (uint64_t caseValue = rangeLow; caseValue <= rangeHigh; ++caseValue)
-                        cases.push_back({caseValue, target});
+                        addCase(caseValue, target);
                     chainJumpTargets.push_back(target);
                     at += 5;
                     continue;
@@ -3370,7 +3377,7 @@ namespace
                 if (cmpOps[0].reg != key || cmpOps[1].opBits != keyBits || cmpOps[2].hasWideImmediateValue() || jumpOps[0].cpuCond != MicroCond::Equal ||
                     !tryGetJumpTargetLabelId(target, *jump, jumpOps))
                     break;
-                cases.push_back({cmpOps[2].valueU64 & getBitsMask(keyBits), target});
+                addCase(cmpOps[2].valueU64 & getBitsMask(keyBits), target);
                 chainJumpTargets.push_back(target);
                 at += 2;
             }
@@ -3535,13 +3542,6 @@ namespace
 
             // The table: a hole holds the default already, else entry N does,
             // and the entries must fit a register.
-            uint64_t low  = UINT64_MAX;
-            uint64_t high = 0;
-            for (const auto& [caseValue, labelId] : cases)
-            {
-                low  = std::min(low, caseValue);
-                high = std::max(high, caseValue);
-            }
             // The span first: the keys may cover the whole word.
             if (high - low >= K_MAX_ENTRIES)
                 continue;

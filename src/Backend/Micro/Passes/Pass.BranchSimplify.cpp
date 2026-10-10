@@ -789,7 +789,7 @@ namespace
                 inst->op == MicroInstrOpcode::JumpTableData)
                 return false;
             uint32_t labelId = 0;
-            if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+            if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
             {
                 LabelUse& use = labelUses.getOrInsert(labelId);
                 ++use.references;
@@ -834,9 +834,11 @@ namespace
         constexpr uint32_t K_MAX_WALK = 256;
         for (uint32_t ordinal = 1; ordinal < count; ++ordinal)
         {
-            const MicroInstr*        jump    = storage.ptr(layout.order[ordinal]);
+            const MicroInstr* jump = storage.ptr(layout.order[ordinal]);
+            if (jump->op != MicroInstrOpcode::JumpCond)
+                continue;
             const MicroInstrOperand* jumpOps = jump->ops(operands);
-            if (jump->op != MicroInstrOpcode::JumpCond || jumpOps[0].cpuCond == MicroCond::Unconditional)
+            if (jumpOps[0].cpuCond == MicroCond::Unconditional)
                 continue;
 
             MicroReg    reg  = MicroReg::invalid();

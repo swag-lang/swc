@@ -450,10 +450,10 @@ namespace
             if (!nextInst)
                 return false;
 
-            const MicroInstrOperand* nextOps = nextInst->ops(operands);
             if (nextInst->op != MicroInstrOpcode::Label)
                 return false;
 
+            const MicroInstrOperand* nextOps = nextInst->ops(operands);
             uint32_t labelId = 0;
             if (!tryGetLabelId(labelId, *nextInst, nextOps))
                 return false;

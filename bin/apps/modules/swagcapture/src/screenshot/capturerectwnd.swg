@@ -76,7 +76,7 @@ struct CaptureRectWnd
     tryStartGrab:  bool
     autoGrab:      bool
     lerpGrab:      Math.Rectangle
-    clickStartPos: Math.Point     // Track where the click started
+    clickStartPos: Math.Point
 }
 
 impl IWnd for CaptureRectWnd
@@ -135,13 +135,13 @@ impl IWnd for CaptureRectWnd
             // If we're still in tryStartGrab mode (didn't move mouse significantly)
             if .tryStartGrab
             {
-                // Validate the current auto grab selection
+                // A click without a drag accepts the auto-detected rectangle.
                 g_GrabDone = true
                 g_Exit     = true
             }
             elif .startGrab
             {
-                // Manual rectangle selection completed
+                // Resolve which window owns the manually selected rectangle.
                 let rect       = getGrabRect()
                 let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
                 g_CaptureWindow = getCaptureWindowForRect(.surface!, screenRect)
@@ -153,16 +153,16 @@ impl IWnd for CaptureRectWnd
             g_EndGrabX = physPosX
             g_EndGrabY = physPosY
 
-            // Check if mouse moved significantly from click start position
+            // Wait for more than one device pixel of movement before switching modes.
             if Math.abs(physPosX - .clickStartPos.x) > k or
                Math.abs(physPosY - .clickStartPos.y) > k
             {
-                // Switch to manual rectangle selection mode
+                // A drag selects a rectangle instead of accepting the auto-grab.
                 .tryStartGrab = false
                 .startGrab    = true
                 .autoGrab     = false
 
-                // Set grab start to click position
+                // Anchor the manual rectangle at the original press location.
                 g_StartGrabX = .clickStartPos.x
                 g_StartGrabY = .clickStartPos.y
             }
@@ -174,7 +174,7 @@ impl IWnd for CaptureRectWnd
 
         case .Move:
 
-            // Auto grab is always active when not dragging
+            // Track the window under the pointer until a manual drag begins.
             if not .startGrab
             {
                 .autoGrab = true
@@ -188,7 +188,7 @@ impl IWnd for CaptureRectWnd
     {
         var grabRect = getGrabRect()
 
-        // Lerp grab rectangle only in auto grab mode
+        // Smooth auto-grab changes between frames; manual selection follows the pointer.
         if .autoGrab and not .startGrab
         {
             .lerpGrab.x      = easeGrab(.lerpGrab.x, grabRect.x)

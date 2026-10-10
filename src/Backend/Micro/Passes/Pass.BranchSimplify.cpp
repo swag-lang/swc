@@ -830,7 +830,7 @@ namespace
                 return false;
             uint32_t labelId = 0;
             const MicroInstrOperand* jumpOps = inst->op == MicroInstrOpcode::JumpCond ? inst->ops(operands) : nullptr;
-            if (ordinal && jumpOps)
+            if (ordinal && jumpOps && jumpOps[0].cpuCond != MicroCond::Unconditional)
                 conditionalJumps.push_back({.ordinal = ordinal, .condition = jumpOps[0].cpuCond});
             if (jumpOps && tryGetJumpTargetLabelId(labelId, *inst, jumpOps))
             {
@@ -884,9 +884,6 @@ namespace
         for (const ConditionalJump& candidate : conditionalJumps)
         {
             const uint32_t ordinal = candidate.ordinal;
-            if (candidate.condition == MicroCond::Unconditional)
-                continue;
-
             MicroReg    reg  = MicroReg::invalid();
             MicroOpBits bits = MicroOpBits::Zero;
             uint64_t    imm  = 0;

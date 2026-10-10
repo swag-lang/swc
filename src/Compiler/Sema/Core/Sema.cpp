@@ -865,6 +865,9 @@ void Sema::addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, S
     {
         auto& frame = frames_[index - 1];
         frame.addNarrowFact(path, kind);
+        // An inline body can resolve this path back to a caller binding; its proof must stop here.
+        if (frame.inlineContextRootRef().isValid())
+            return;
         if (!frame.bindingScoped())
             return;
     }

@@ -85,6 +85,34 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
+
+- Recorded: 2026-10-10 11:07
+- Updated: 2026-10-10 13:53 — Keep the inline proof-boundary repair and reject broad eligibility after sentinel frame traffic grows.
+- Area: compiler/sema, automatic inlining and flow narrowing.
+- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
+  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
+  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
+  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
+  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
+  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
+  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
+- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
+  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
+  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
+  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
+- Rejected broad eligibility on the current revision: inlining both wrappers changed
+  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
+  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
+  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
+  This does not meet the sentinel no-loss rule; no timing was taken.
+- Next: make eligibility depend on the actual call-site type and body flow, then prove a hot-path
+  gain without volunteering one-time setup or adding frame traffic to sentinel loops.
+- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
+  per-iteration loss on any bench hot loop.
+- Related: compiler.optimization.094, compiler.optimization.117.
+
+
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
@@ -292,31 +320,6 @@ new language syntax.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
-
-### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
-
-- Recorded: 2026-10-10 11:07
-- Area: compiler/sema, automatic inlining and flow narrowing.
-- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
-  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
-  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
-  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
-  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
-  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
-  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
-- Defect exposed and handled in the prototype: an inlined `m.alive!` on a parameter bound to the
-  caller's `m` added a NonNull fact that outlived the expansion, so the caller's own later `m.alive!`
-  failed with `sema_err_notnull_already_proven` (native aoc2024 day11 and day21). Stopping
-  `Sema::addNarrowFactPastBindingFrames` at the frame that opens an inline expansion fixed it.
-- Rejected for now: with all three changes the twelve tasks lose statically on sentinels. Inlining
-  one-time setup (`mapInit`) into `main` changes the allocation of `main`'s later timed loop: wordfreq
-  84 -> 99 instructions and 1 -> 10 frame accesses per iteration, csvagg loops gain frame accesses, chacha
-  main's loop 88 -> 124 instructions.
-- Next: find why inlining straight-line setup into a function changes the allocation of an unrelated
-  loop after it, then land the fact boundary with the `!` exemption and the nullable lift.
-- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
-  per-iteration loss on any bench hot loop.
-- Related: compiler.optimization.094, compiler.optimization.117.
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 

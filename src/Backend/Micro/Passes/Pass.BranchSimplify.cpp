@@ -5562,10 +5562,12 @@ namespace
         MicroInstrRef stopRef;
         if (!collectDiamondArm(out.fallthroughArm, stopRef, scan, jumpRef) || out.fallthroughArm.refs.empty())
             return false;
-        const MicroInstr*        joinJumpInst = scan.storage->ptr(stopRef);
-        const MicroInstrOperand* joinJumpOps  = joinJumpInst->ops(*scan.operands);
-        uint32_t                 joinLabelId  = 0;
-        if (joinJumpInst->op != MicroInstrOpcode::JumpCond || !joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
+        const MicroInstr* joinJumpInst = scan.storage->ptr(stopRef);
+        if (!joinJumpInst || joinJumpInst->op != MicroInstrOpcode::JumpCond)
+            return false;
+        const MicroInstrOperand* joinJumpOps = joinJumpInst->ops(*scan.operands);
+        uint32_t                 joinLabelId = 0;
+        if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
             return false;
         if (!tryGetJumpTargetLabelId(joinLabelId, *joinJumpInst, joinJumpOps) || joinLabelId == armLabelId)
             return false;
@@ -5577,6 +5579,8 @@ namespace
         if (!out.armLabelRef.isValid() || scan.relocated->contains(out.armLabelRef.get()))
             return false;
         const MicroInstr* armLabelInst = scan.storage->ptr(out.armLabelRef);
+        if (!armLabelInst || armLabelInst->op != MicroInstrOpcode::Label)
+            return false;
         uint32_t          labelId      = 0;
         if (!tryGetLabelId(labelId, *armLabelInst, armLabelInst->ops(*scan.operands)) || labelId != armLabelId)
             return false;
@@ -5587,6 +5591,8 @@ namespace
         if (!collectDiamondArm(out.jumpArm, stopRef, scan, out.armLabelRef) || out.jumpArm.refs.empty())
             return false;
         const MicroInstr* joinLabelInst = scan.storage->ptr(stopRef);
+        if (!joinLabelInst || joinLabelInst->op != MicroInstrOpcode::Label)
+            return false;
         if (!tryGetLabelId(labelId, *joinLabelInst, joinLabelInst->ops(*scan.operands)) || labelId != joinLabelId)
             return false;
         out.joinLabelRef = stopRef;

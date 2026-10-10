@@ -54,9 +54,17 @@ public:
         return false;
     }
 
+    // A set that holds nothing has nothing to free. A large table that its last fill used only a
+    // little of is given back, so a set a worker keeps costs what the current walk inserts rather
+    // than the largest walk it has seen.
     void clear() noexcept
     {
-        std::ranges::fill(slots_, nullptr);
+        if (!count_)
+            return;
+        if (slots_.size() > RELEASE_CAPACITY && count_ * 8 < slots_.size())
+            slots_ = SmallVector<T*, INITIAL_CAPACITY>{};
+        else
+            std::ranges::fill(slots_, nullptr);
         count_ = 0;
     }
     size_t size() const noexcept { return count_; }
@@ -73,6 +81,7 @@ public:
 
 private:
     static constexpr size_t INITIAL_CAPACITY = 16;
+    static constexpr size_t RELEASE_CAPACITY = 1024;
 
     // Pointers from one allocator share their low bits; the multiply spreads them over the table.
     static size_t slotIndex(const T* value, size_t mask) noexcept
@@ -399,7 +408,9 @@ private:
 // A map from 32-bit (or 64-bit) keys to small trivially copyable values, held in one flat table.
 // The all-ones key marks a free slot, so that one key lives beside the table. A found value is read
 // before the next insertion, which can move it. Clearing keeps the table, so a map that is refilled
-// reuses it.
+// reuses it, unless the table is large and its last fill used little of it: that table is given
+// back, so a map a worker keeps costs what the current function inserts rather than the largest
+// function it has seen.
 template<typename V, typename K = uint32_t>
 class FlatKeyMap
 {
@@ -449,11 +460,27 @@ public:
     {
         if (count_)
         {
-            for (Slot& slot : slots_)
-                slot.key = K_FREE;
+            if (slots_.size() > RELEASE_CAPACITY && count_ * 8 < slots_.size())
+            {
+                slots_ = {};
+            }
+            else
+            {
+                for (Slot& slot : slots_)
+                    slot.key = K_FREE;
+            }
             count_ = 0;
         }
         hasFreeKey_ = false;
+    }
+
+    void reserve(size_t count)
+    {
+        size_t capacity = INITIAL_CAPACITY;
+        while (count * 4 > capacity * 3)
+            capacity *= 2;
+        if (capacity > slots_.size())
+            rehash(capacity);
     }
 
 private:
@@ -464,6 +491,7 @@ private:
     };
 
     static constexpr size_t INITIAL_CAPACITY = 64;
+    static constexpr size_t RELEASE_CAPACITY = 1024;
     static constexpr K      K_FREE           = std::numeric_limits<K>::max();
 
     static size_t slotIndex(K key, size_t mask) noexcept
@@ -552,6 +580,7 @@ public:
     bool   empty() const noexcept { return map_.size() == 0; }
     size_t size() const noexcept { return map_.size(); }
     void   clear() noexcept { map_.clear(); }
+    void   reserve(size_t count) { map_.reserve(count); }
 
 private:
     FlatKeyMap<bool, K> map_;

@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
@@ -17,37 +18,25 @@ class MicroOperandStorage;
 // only the mechanics live here.
 namespace MicroPeephole
 {
-    // Most pass runs claim no instructions or carry no relocations. Defer the
-    // hash table until the first entry, since even an empty MSVC set allocates.
+    // Most pass runs claim no instructions or carry no relocations. An empty flat
+    // set owns no table, and a filled one is a single allocation.
     class LazyU32Set
     {
     public:
-        bool empty() const { return !values_ || values_->empty(); }
-        bool contains(uint32_t value) const { return values_ && values_->contains(value); }
-        void clear()
-        {
-            if (values_)
-                values_->clear();
-        }
+        bool empty() const { return values_.empty(); }
+        bool contains(uint32_t value) const { return values_.contains(value); }
+        void clear() { values_.clear(); }
 
         void reserve(size_t count)
         {
-            if (!count)
-                return;
-            if (!values_)
-                values_.emplace();
-            values_->reserve(count);
+            if (count)
+                values_.reserve(count);
         }
 
-        void insert(uint32_t value)
-        {
-            if (!values_)
-                values_.emplace();
-            values_->insert(value);
-        }
+        void insert(uint32_t value) { values_.insert(value); }
 
     private:
-        std::optional<std::unordered_set<uint32_t>> values_;
+        FlatKeySet values_;
     };
 
     // Collected rewrites and the instructions already spoken for. A pass derives its Context

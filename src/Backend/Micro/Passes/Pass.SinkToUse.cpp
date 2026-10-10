@@ -50,7 +50,7 @@ namespace
         std::vector<MicroInstrUseDef> useDefs;
         MicroDenseRegIndex            virtualRegs;
         std::vector<RegCounts>        regCounts;
-        std::unordered_set<uint32_t>  relocationRefs;
+        FlatKeySet                    relocationRefs;
         std::vector<Move>             moves;
         MicroPeephole::LazyU32Set     foldedConsumers;
     };

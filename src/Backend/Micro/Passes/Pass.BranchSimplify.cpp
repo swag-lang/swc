@@ -6793,10 +6793,12 @@ namespace
             const MicroInstrOpcode secondCompareOp          = secondCompareInst->op;
             const MicroCond        firstCond                = firstJumpOps[0].cpuCond;
             const MicroCond        secondCond               = secondJumpOps[0].cpuCond;
+            const MicroInstrOperand* firstCompareSourceOps  = firstCompareInst->ops(operands);
+            const MicroInstrOperand* secondCompareSourceOps = secondCompareInst->ops(operands);
             for (uint32_t i = 0; i < firstCompareNumOperands; ++i)
-                firstCompareOps[i] = firstCompareInst->ops(operands)[i];
+                firstCompareOps[i] = firstCompareSourceOps[i];
             for (uint32_t i = 0; i < secondCompareNumOperands; ++i)
-                secondCompareOps[i] = secondCompareInst->ops(operands)[i];
+                secondCompareOps[i] = secondCompareSourceOps[i];
 
             const MicroReg rejected = MicroReg::virtualIntReg(MicroPassHelpers::computeNextVirtualIntRegIndex(context));
             renameRegisterOperands(diamond.jumpArm.refs.span(), storage, operands, diamond.result, rejected);

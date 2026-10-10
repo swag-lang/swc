@@ -5539,12 +5539,22 @@ namespace SemaEscape
         // These functions completed before the edge snapshot is taken, so all their
         // return edges are present. Keep the fixpoint local: sema workers may still
         // read the published, non-atomic return masks of completed functions.
-        std::unordered_map<const SymbolFunction*, ReturnSummary> returns;
+        // The summaries sit in a vector, found by function through a flat table. Both fixpoints
+        // below are monotone (completeness only drops, masks only grow), so the order they sweep
+        // the summaries in changes how many sweeps they take, never what they converge to.
+        std::vector<const SymbolFunction*>        returnFunctions;
+        std::vector<ReturnSummary>                returnSummaries;
+        PointerMap<SymbolFunction, ReturnSummary> returns;
+        returnFunctions.reserve(completedFunctions.size());
+        returnSummaries.reserve(completedFunctions.size());
         returns.reserve(completedFunctions.size());
         for (const SymbolFunction* fn : completedFunctions)
         {
-            if (fn->isSemaCompleted())
-                returns.emplace(fn, ReturnSummary{fn->returnBorrowsParamsMask(), fn->returnsStorageParamsMask(), fn->returnsPayloadParamsMask()});
+            if (!fn->isSemaCompleted() || returns.find(fn))
+                continue;
+            returnFunctions.push_back(fn);
+            returnSummaries.push_back(ReturnSummary{fn->returnBorrowsParamsMask(), fn->returnsStorageParamsMask(), fn->returnsPayloadParamsMask()});
+            returns.set(fn, &returnSummaries.back());
         }
 
         ctx.compiler().withReturnEdgesByCaller([&](auto&& edgesOf) {
@@ -5555,26 +5565,27 @@ namespace SemaEscape
             while (changed)
             {
                 changed = false;
-                for (auto& entry : returns)
+                for (size_t entryIndex = 0; entryIndex < returnSummaries.size(); ++entryIndex)
                 {
-                    if (!entry.second.complete)
+                    ReturnSummary& entry = returnSummaries[entryIndex];
+                    if (!entry.complete)
                         continue;
 
-                    edgesOf(entry.first, [&](const SemaEscapeSummaryEdge& edge) {
-                        if (!entry.second.complete)
+                    edgesOf(returnFunctions[entryIndex], [&](const SemaEscapeSummaryEdge& edge) {
+                        if (!entry.complete)
                             return;
                         if (edge.callerIndirect || edge.calleeIndirect)
                             return;
 
-                        const auto callee = returns.find(edge.callee);
-                        if (callee == returns.end() || !callee->second.complete ||
+                        const ReturnSummary* callee = returns.find(edge.callee);
+                        if (!callee || !callee->complete ||
                             std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
-                                const auto source = returns.find(guard.callee);
-                                return source == returns.end() || !source->second.complete;
+                                const ReturnSummary* source = returns.find(guard.callee);
+                                return !source || !source->complete;
                             }))
                         {
-                            entry.second.complete = false;
-                            changed               = true;
+                            entry.complete = false;
+                            changed        = true;
                         }
                     });
                 }
@@ -5584,18 +5595,19 @@ namespace SemaEscape
             while (changed)
             {
                 changed = false;
-                for (auto& entry : returns)
+                for (size_t entryIndex = 0; entryIndex < returnSummaries.size(); ++entryIndex)
                 {
-                    if (!entry.second.complete)
+                    ReturnSummary& entry = returnSummaries[entryIndex];
+                    if (!entry.complete)
                         continue;
 
-                    edgesOf(entry.first, [&](const SemaEscapeSummaryEdge& edge) {
-                        if (!entry.second.complete)
+                    edgesOf(returnFunctions[entryIndex], [&](const SemaEscapeSummaryEdge& edge) {
+                        if (!entry.complete)
                             return;
 
                         if (edge.callerIndirect || edge.calleeIndirect)
                             return;
-                        const ReturnSummary callee    = returns.at(edge.callee);
+                        const ReturnSummary callee    = *returns.find(edge.callee);
                         const uint64_t      calleeBit = 1ULL << edge.calleeParamIndex;
                         const uint64_t      callerBit = 1ULL << edge.callerParamIndex;
                         bool                borrows   = true;
@@ -5609,14 +5621,14 @@ namespace SemaEscape
                                 storage = false;
                                 continue;
                             }
-                            const ReturnSummary source = returns.at(guard.callee);
+                            const ReturnSummary source = *returns.find(guard.callee);
                             const uint64_t      bit    = 1ULL << guard.paramIndex;
                             borrows &= (source.borrows & bit) != 0;
                             storage &= (source.storage & bit) != 0;
                             payload |= (source.payload & bit) != 0;
                         }
 
-                        ReturnSummary&      summary = entry.second;
+                        ReturnSummary&      summary = entry;
                         const ReturnSummary before  = summary;
                         if (borrows && (callee.borrows & calleeBit))
                             summary.borrows |= callerBit;
@@ -5639,11 +5651,11 @@ namespace SemaEscape
             const bool ineligible = std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
                 if (guard.indirect)
                     return true;
-                const auto source = returns.find(guard.callee);
-                if (source == returns.end() || !source->second.complete)
+                const ReturnSummary* source = returns.find(guard.callee);
+                if (!source || !source->complete)
                     return true;
                 const uint64_t bit = 1ULL << guard.paramIndex;
-                return !(source->second.borrows & bit) || !(source->second.storage & bit) || (source->second.payload & bit);
+                return !(source->borrows & bit) || !(source->storage & bit) || (source->payload & bit);
             });
             if (!ineligible)
                 forwardings.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect});

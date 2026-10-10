@@ -225,7 +225,7 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
         uint32_t                 guardId  = 0;
         uint32_t                 nextId   = 0;
         if (isUnconditionalLabelJump(*guard, guardOps) && tryGetJumpTargetLabelId(guardId, *guard, guardOps) &&
-            tryGetLabelId(nextId, *next, next->ops(operands)) && guardId == nextId)
+            next->op == MicroInstrOpcode::Label && tryGetLabelId(nextId, *next, next->ops(operands)) && guardId == nextId)
             storage.erase(block.guardRef);
     }
 

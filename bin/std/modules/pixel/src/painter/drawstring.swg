@@ -1054,7 +1054,7 @@ impl Painter
                     startLine = cast(s32, idx)
                     line      = OneLine{}
 
-                    // We: not want the new line to start with a space
+                    // We do not want the new line to start with a space
                     if c.isSpace
                     {
                         startLine += 1

@@ -25,7 +25,9 @@ private func flacDecodeAll(sound: const *SoundFile)->Array'u8 fail
     for index in sound.packetCount()
     {
         let packet   = try sound.packet(index)
-        let produced = try itf.decodePacket(block.storage(), block.count, bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
+        let produced = try itf.decodePacket(block.storage(),
+                                            block.count,
+                                            bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
         result.add(block.toSlice()[0 until produced])
     }
 
@@ -86,7 +88,8 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 #test
 {
     let directory = Env.getSpecialDirectory(.Temp)
-    let path      = Path.combine(directory.toString(), Format.toString("audio-flac-%.flac", Guid64.random()).toString())
+    let path      = Path.combine(directory.toString(),
+                                 Format.toString("audio-flac-%.flac", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
     var bytes: Array'u8

@@ -188,6 +188,10 @@ namespace MicroPassHelpers
         SmallVector<uint32_t> tails;
         std::vector<uint8_t>  inBody;
         uint32_t              bodySize = 0;
+        // The body lies within [bodyBegin, bodyEnd): a scan of 'inBody' in instruction order
+        // can start and stop there and meet the same members.
+        uint32_t              bodyBegin = 0;
+        uint32_t              bodyEnd   = 0;
 
         void collectBody(const MicroControlFlowGraph& cfg);
     };

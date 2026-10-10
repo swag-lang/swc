@@ -248,7 +248,7 @@ namespace
         std::vector<uint32_t> innermostLoopSizes(n, n + 1);
         for (const auto& nested : loopsByHeader | std::views::values)
         {
-            for (uint32_t i = 0; i < n; ++i)
+            for (uint32_t i = nested.bodyBegin; i < nested.bodyEnd; ++i)
             {
                 if (nested.inBody[i])
                     innermostLoopSizes[i] = std::min(innermostLoopSizes[i], nested.bodySize);
@@ -409,7 +409,7 @@ namespace
             bool loopHasPointerStore = false;
             bool loopHasFrameStore   = false;
             bool loopHasNestedLoop   = false;
-            for (uint32_t i = 0; i < n; ++i)
+            for (uint32_t i = loop->bodyBegin; i < loop->bodyEnd; ++i)
             {
                 if (!inBody[i])
                     continue;

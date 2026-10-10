@@ -395,7 +395,7 @@ namespace
                 return false;
         }
         SmallVector<MemAccess> accesses;
-        for (uint32_t i = 0; i < n; ++i)
+        for (uint32_t i = loop.bodyBegin; i < loop.bodyEnd; ++i)
         {
             if (!loop.inBody[i])
                 continue;

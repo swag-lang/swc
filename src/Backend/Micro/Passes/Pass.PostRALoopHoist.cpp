@@ -535,7 +535,7 @@ namespace
         // Every way out of the loop must converge on one instruction that only
         // the loop reaches.
         uint32_t exitTarget = std::numeric_limits<uint32_t>::max();
-        for (uint32_t i = 0; i < n; ++i)
+        for (uint32_t i = loop.bodyBegin; i < loop.bodyEnd; ++i)
         {
             if (!inBody[i])
                 continue;
@@ -593,7 +593,7 @@ namespace
         slots.clear();
         blockedRanges.clear();
 
-        for (uint32_t i = 0; i < n; ++i)
+        for (uint32_t i = loop.bodyBegin; i < loop.bodyEnd; ++i)
         {
             if (!inBody[i])
                 continue;
@@ -1256,7 +1256,7 @@ namespace
             uint64_t definedRegs         = 0;
             uint64_t multiplyDefinedRegs = 0;
             writes.clear();
-            for (uint32_t i = 0; i < n && !bodyOpaque; ++i)
+            for (uint32_t i = loop->bodyBegin; i < loop->bodyEnd && !bodyOpaque; ++i)
             {
                 if (!inBody[i])
                     continue;
@@ -1327,7 +1327,7 @@ namespace
 
             const bool restrictToUnreachable = hasUnplaceableWrite && !framePrivate;
 
-            for (uint32_t i = 0; i < n; ++i)
+            for (uint32_t i = loop->bodyBegin; i < loop->bodyEnd; ++i)
             {
                 if (!inBody[i])
                     continue;
@@ -1652,7 +1652,7 @@ namespace
             if (externalPredCount != 1 || hasOtherExternalPred)
                 continue;
 
-            for (uint32_t i = header; i < n; ++i)
+            for (uint32_t i = header; i < loop.bodyEnd; ++i)
             {
                 if (!loop.inBody[i])
                     continue;

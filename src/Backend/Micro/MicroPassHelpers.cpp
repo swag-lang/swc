@@ -1119,6 +1119,8 @@ void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg
     inBody.assign(n, 0);
     inBody[header] = 1;
     bodySize       = 1;
+    bodyBegin      = header;
+    bodyEnd        = header + 1;
 
     // Backward reachability from every tail, stopping at the header: that is exactly the set of
     // instructions the loop can execute.
@@ -1130,6 +1132,8 @@ void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg
         {
             inBody[tail] = 1;
             ++bodySize;
+            bodyBegin = std::min(bodyBegin, tail);
+            bodyEnd   = std::max(bodyEnd, tail + 1);
             stack.push_back(tail);
         }
     }
@@ -1145,6 +1149,8 @@ void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg
             {
                 inBody[pred] = 1;
                 ++bodySize;
+                bodyBegin = std::min(bodyBegin, pred);
+                bodyEnd   = std::max(bodyEnd, pred + 1);
                 stack.push_back(pred);
             }
         }

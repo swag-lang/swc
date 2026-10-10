@@ -344,7 +344,7 @@ namespace InstructionCombine
                         const auto                           refs  = cfg.instructionRefs();
                         for (const auto& loop : loops | std::views::values)
                         {
-                            for (uint32_t i = 0; i < loop.inBody.size() && i < refs.size(); ++i)
+                            for (uint32_t i = loop.bodyBegin; i < loop.bodyEnd && i < refs.size(); ++i)
                             {
                                 if (loop.inBody[i])
                                     loopSlots.insert(refs[i].get());

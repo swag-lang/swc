@@ -303,7 +303,7 @@ namespace
 
             thread_local LoopScan scan;
             scan.defs.clear();
-            for (uint32_t i = 0; i < n; ++i)
+            for (uint32_t i = loop.bodyBegin; i < loop.bodyEnd; ++i)
             {
                 if (!inBody[i])
                     continue;
@@ -460,7 +460,7 @@ namespace
             thread_local std::vector<Candidate> sums;
             products.clear();
             sums.clear();
-            for (uint32_t i = 0; i < n; ++i)
+            for (uint32_t i = loop.bodyBegin; i < loop.bodyEnd; ++i)
             {
                 if (!inBody[i])
                     continue;

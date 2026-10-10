@@ -514,11 +514,10 @@ impl AllocatorPage
 
     // Reports whether a block's first word reads as a free-list link.
     //
-    // Reports whether a block's first word reads as a free-list link, which every free block holds: the end of
-    // the list, or an address inside the page's block area. A live block holds one only by a coincidence of
-    // its data with the page key, about one chance in 2^40, so a match calls for a walk of the lists to tell a
-    // double free from that. The range test alone is enough to keep coincidences that rare, so the
-    // divisibility test is not repeated here.
+    // Every free block holds the end of the list or an address within the page's block area. A
+    // live block matches only by coincidence with the key, about one chance in 2^40, so a match
+    // needs a list walk to distinguish a double free. The range test keeps coincidences rare
+    // enough that divisibility need not be checked again.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd looksFree(address: u64)->bool
     {
@@ -891,10 +890,8 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
     return null
 }
 
-// The page of an address known to lie below an arena's bump cursor.
-//
-// The page of an address known to lie below an arena's bump cursor, where every segment-aligned address starts
-// a segment whose header is committed.
+// Returns the page for an address below an arena's bump cursor. Every segment-aligned address
+// below that cursor starts a segment whose header is committed.
 #[Swag.Inline]
 func allocatorPageInSegment(address: u64)->*AllocatorPage?
 {
@@ -907,4 +904,5 @@ func allocatorPageInSegment(address: u64)->*AllocatorPage?
 }
 
 #[Swag.Inline]
-func allocatorSegmentOf(page: *AllocatorPage)->*AllocatorSegment => cast(*AllocatorSegment, (cast(u64, page) & ~(AllocatorSegmentSize - 1)))
+func allocatorSegmentOf(page: *AllocatorPage)->*AllocatorSegment
+    => cast(*AllocatorSegment, (cast(u64, page) & ~(AllocatorSegmentSize - 1)))

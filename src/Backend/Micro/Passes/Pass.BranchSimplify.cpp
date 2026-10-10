@@ -1679,10 +1679,12 @@ namespace
             SmallVector<uint32_t, 4> defs;
         };
 
-        std::optional<std::unordered_map<uint32_t, RegSites>> sites;
-        const auto                                            regSites = [&]() -> std::unordered_map<uint32_t, RegSites>& {
+        std::optional<FlatKeyMap<uint32_t>> siteIndexByReg;
+        std::optional<std::vector<RegSites>> sites;
+        const auto                           regSites = [&]() -> std::vector<RegSites>& {
             if (!sites)
             {
+                siteIndexByReg.emplace();
                 sites.emplace();
                 for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
                 {
@@ -1701,7 +1703,13 @@ namespace
                         const MicroReg reg = instOps[i].reg;
                         if (!reg.isVirtualInt())
                             continue;
-                        RegSites& sitesForReg = (*sites)[reg.index()];
+                        uint32_t& siteIndex = siteIndexByReg->getOrInsert(reg.index());
+                        if (!siteIndex)
+                        {
+                            sites->emplace_back();
+                            siteIndex = static_cast<uint32_t>(sites->size());
+                        }
+                        RegSites& sitesForReg = (*sites)[siteIndex - 1];
                         if (modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef)
                             sitesForReg.uses.push_back(ordinal);
                         if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
@@ -1806,9 +1814,12 @@ namespace
             // D is written in the operator's block or the rhs and read only in
             // the join; nothing touches E from there up to the copy; every
             // reader of either takes no more bits than the copy moves.
-            auto&           siteMap = regSites();
-            RegSites&       dSites  = siteMap[d.index()];
-            const RegSites& eSites  = siteMap[e.index()];
+            std::vector<RegSites>& siteMap = regSites();
+            const uint32_t*        dIndex  = siteIndexByReg->find(d.index());
+            const uint32_t*        eIndex  = siteIndexByReg->find(e.index());
+            SWC_ASSERT(dIndex && *dIndex && eIndex && *eIndex);
+            RegSites&       dSites = siteMap[*dIndex - 1];
+            const RegSites& eSites = siteMap[*eIndex - 1];
             if (!allWithin(dSites.defs, start, j) || !allWithin(dSites.uses, j + 1, cmpOrdinal + 1) ||
                 !noneWithin(eSites.uses, start, copyOrdinal) || !noneWithin(eSites.defs, start, copyOrdinal))
                 continue;
@@ -1868,7 +1879,6 @@ namespace
                 if (ordinal != copyOrdinal)
                     dSites.defs.push_back(ordinal);
             }
-            siteMap.erase(e.index());
             changed = true;
         }
 

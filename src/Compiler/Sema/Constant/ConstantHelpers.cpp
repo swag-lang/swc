@@ -25,12 +25,12 @@ namespace
 {
     struct FunctionNameScratch
     {
-        Utf8& value;
+        Utf8* value = nullptr;
 
         ~FunctionNameScratch()
         {
-            if (value.capacity() > MAX_RETAINED_CAPACITY)
-                Utf8{}.swap(value);
+            if (value && value->capacity() > MAX_RETAINED_CAPACITY)
+                Utf8{}.swap(*value);
         }
 
         static constexpr size_t MAX_RETAINED_CAPACITY = 256;
@@ -746,12 +746,16 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const SourceView*      srcView = codeRange.srcView;
     const SourceFile*      file    = srcView ? srcView->file() : nullptr;
     const std::string_view fileName = file ? std::string_view{file->pathString()} : std::string_view{""};
-    thread_local Utf8      funcNameStorage;
-    funcNameStorage.clear();
-    const FunctionNameScratch functionNameScratch{funcNameStorage};
+    std::string_view        funcName;
+    FunctionNameScratch     functionNameScratch;
     if (function)
+    {
+        thread_local Utf8 funcNameStorage;
+        funcNameStorage.clear();
+        functionNameScratch.value = &funcNameStorage;
         function->appendFullScopedName(ctx, funcNameStorage);
-    const std::string_view funcName = funcNameStorage;
+        funcName = funcNameStorage;
+    }
 
     const uint32_t shardIndex = sourceCodeLocationShardIndex(codeRange, fileName, funcName);
     DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);

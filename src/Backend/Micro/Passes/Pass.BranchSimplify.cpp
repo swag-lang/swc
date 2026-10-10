@@ -1043,7 +1043,7 @@ namespace
 
             const bool               mayDefineFlags = MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::DefinesCpuFlags);
             const bool               needsFlagOps    = mayDefineFlags && MicroPassHelpers::instructionCpuFlagsDependOnOperands(inst);
-            const MicroInstrOperand* ops             = inst.op == MicroInstrOpcode::JumpCond || needsFlagOps ? inst.ops(operands) : nullptr;
+            MicroInstrOperand*       ops             = inst.op == MicroInstrOpcode::JumpCond || needsFlagOps ? inst.ops(operands) : nullptr;
             if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
                 bool branchTaken = false;
@@ -1064,9 +1064,8 @@ namespace
                         }
                         else
                         {
-                            MicroInstrOperand* mutableOps = inst.ops(operands);
-                            mutableOps[0].cpuCond         = MicroCond::Unconditional;
-                            changed                       = true;
+                            ops[0].cpuCond = MicroCond::Unconditional;
+                            changed        = true;
                         }
                     }
 

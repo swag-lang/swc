@@ -2,7 +2,7 @@ const {TextDocument} = require('vscode-languageserver-textdocument');
 const {pathKey, pathToFileURL} = require('./compiler');
 
 const tokenTypes = ['namespace', 'type', 'struct', 'interface', 'enum', 'enumMember', 'function', 'variable', 'parameter', 'property'];
-const tokenModifiers = ['declaration', 'readonly'];
+const tokenModifiers = ['declaration', 'readonly', 'local', 'global'];
 const symbolKinds = {namespace: 3, type: 5, struct: 23, interface: 11, enum: 10, enumMember: 22, function: 12, variable: 13, parameter: 13, property: 7};
 const implicitTryTooltip = 'Propagates its error: the function has #[Swag.Propagate]';
 
@@ -162,8 +162,9 @@ class SemanticSnapshot
         {
             const {start, end} = item.range;
             if (start.line !== end.line) continue;
+            const storageModifier = item.storage === 'local' ? 4 : item.storage === 'global' ? 8 : 0;
             data.push(start.line - previousLine, start.line === previousLine ? start.character - previousCharacter : start.character,
-                end.character - start.character, tokenTypes.indexOf(item.kind), (item.declaration ? 1 : 0) | (item.readonly ? 2 : 0));
+                end.character - start.character, tokenTypes.indexOf(item.kind), (item.declaration ? 1 : 0) | (item.readonly ? 2 : 0) | storageModifier);
             previousLine = start.line;
             previousCharacter = start.character;
         }

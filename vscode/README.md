@@ -9,7 +9,8 @@ Compiler-backed language support and a dark theme for Swag in Visual Studio Code
 # Features
 
  - Syntax highlighting
- - Semantic highlighting of resolved types, functions, parameters, fields, and variables
+ - Semantic highlighting of resolved types, functions, parameters, fields, and variables, with
+   distinct colors for local and global variables
  - Hover types, including inferred types, and inferred variable type inlay hints
  - A faded `try` inlay hint before each call that a `#[Swag.Propagate]` function propagates
    without spelling `try`
@@ -79,7 +80,8 @@ checkout's executable and run `npm run test:integration` for the LSP lifecycle, 
 types, overload selection, cross-file definitions, unsaved edits, and diagnostic repair.
 
 The bridge writes JSON with `version: 1`, source texts, and byte-based symbol occurrences
-using `swc sema --editor-index <file>`. `--editor-overlay <file>` reads `SWAG-EDITOR-1\n`,
+using `swc sema --editor-index <file>`. Variable occurrences may include `storage: "local"`
+or `storage: "global"` for semantic coloring. `--editor-overlay <file>` reads `SWAG-EDITOR-1\n`,
 followed by pairs of UTF-8 path and source strings. Each string is preceded by its decimal
 byte length and a newline; its exact bytes follow immediately, including for empty buffers.
 Source paths retain their identity. The index is converted to LSP UTF-16 positions by the

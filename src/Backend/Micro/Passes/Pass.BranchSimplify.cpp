@@ -2615,6 +2615,8 @@ namespace
             SmallVector<Link, 8> links;
             size_t               bodyEnd = start;
             size_t               at = start;
+            uint64_t             lo = UINT64_MAX;
+            uint64_t             hi = 0;
             while (at + 3 < layout.order.size() && links.size() < K_MAX_CHAIN)
             {
                 // A link may test a copy of the value made for it alone.
@@ -2661,7 +2663,10 @@ namespace
                 else if (tested != value || cmpOps[1].opBits != bits || setOps[1].cpuCond != setCond || copyOps[0].reg != result)
                     break;
 
-                links.push_back({.cmp = static_cast<uint32_t>(at), .value = cmpOps[2].valueU64 & valueMask});
+                const uint64_t linkValue = cmpOps[2].valueU64 & valueMask;
+                links.push_back({.cmp = static_cast<uint32_t>(at), .value = linkValue});
+                lo = std::min(lo, linkValue);
+                hi = std::max(hi, linkValue);
                 bodyEnd = at + 2;
 
                 uint32_t labelId = 0;
@@ -2686,13 +2691,6 @@ namespace
             if (relocationCache.get(context).contains(layout.order[bodyEnd + 1].get()))
                 continue;
 
-            uint64_t lo = UINT64_MAX;
-            uint64_t hi = 0;
-            for (const Link& link : links)
-            {
-                lo = std::min(lo, link.value);
-                hi = std::max(hi, link.value);
-            }
             if (hi < 64)
                 lo = 0;
             if (hi - lo >= 64)

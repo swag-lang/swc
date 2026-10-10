@@ -1989,24 +1989,13 @@ void Sanitizer::dropZeros(SanitizerState& state)
     state.upperRegValues.eraseIf([](const auto& entry) { return entry.second.isZero(); });
 }
 
-bool Sanitizer::resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const
-{
-    if (!ops)
-        return false;
-
-    if (!isPlainLoadInstruction(inst.op))
-        return false;
-
-    return resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, outSlot);
-}
-
 void Sanitizer::reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const DiagnosticId id)
 {
     if (state.movedFrom.empty())
         return;
 
     int64_t slot = 0;
-    if (!resolvePlainLoadStackSlot(slot, inst, def, ops, state))
+    if (!ops || !resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
         return;
 
     for (const auto& [rangeStart, range] : state.movedFrom)

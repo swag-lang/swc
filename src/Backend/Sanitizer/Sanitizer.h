@@ -152,7 +152,6 @@ private:
 
     static PointerOrigin takePointerOrigin(const SanitizerState& state, MicroReg reg);
     static void          applyPointerOrigin(SanitizerState& state, MicroReg reg, const PointerOrigin& origin);
-    bool                 resolvePlainLoadStackSlot(int64_t& outSlot, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state) const;
 
     // Join + propagation.
     void        propagate(const SanitizerState& edge, uint32_t index, SmallVector<uint32_t, 32>& worklist);

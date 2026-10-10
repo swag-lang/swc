@@ -4455,8 +4455,13 @@ namespace
             if (!inst)
                 return false;
             inst->collectUseDef(useDef, operands, context.encoder);
-            const bool defsBase  = std::ranges::find(useDef.defs, base) != useDef.defs.end();
-            const bool defsStack = std::ranges::find(useDef.defs, stack) != useDef.defs.end();
+            bool defsBase  = false;
+            bool defsStack = false;
+            for (const MicroReg reg : useDef.defs)
+            {
+                defsBase  |= reg == base;
+                defsStack |= reg == stack;
+            }
             if (defsBase)
             {
                 const auto* ops = inst->ops(operands);
@@ -4479,7 +4484,10 @@ namespace
                     return false;
                 continue;
             }
-            if (std::ranges::find(useDef.uses, base) == useDef.uses.end())
+            size_t baseUseCount = 0;
+            for (const MicroReg reg : useDef.uses)
+                baseUseCount += reg == base;
+            if (!baseUseCount)
                 continue;
             if (!defRef.isValid())
                 return false;
@@ -4525,7 +4533,7 @@ namespace
                 uses.push_back(use);
                 ++explicitUses;
             }
-            if (explicitUses != static_cast<size_t>(std::ranges::count(useDef.uses, base)))
+            if (explicitUses != baseUseCount)
                 return false;
 
             // The stack pointer cannot be the index of an indexed address.

@@ -506,14 +506,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         bool          ambiguous          = false;
         bool          stackPointerOrigin = false;
     };
-    // These tables describe one function, but their capacity can serve
-    // later mem2reg rounds and functions on the same worker.
-    thread_local std::unordered_map<MicroReg, AddrRegInfo> addrRegOffset;
+    // Keyed by the packed register and only looked up: a fresh flat table costs what this run
+    // records. The other two describe one function, but their capacity can serve later mem2reg
+    // rounds and functions on the same worker.
+    FlatKeyMap<AddrRegInfo>                                addrRegOffset;
     thread_local std::unordered_set<uint32_t>              addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
     thread_local std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;
-    addrRegOffset.clear();
     addressAdjustments.clear();
     addrRegMoreOffsets.clear();
 
@@ -556,13 +556,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
             if (!ar.isVirtualInt() || ar == frameBase)
                 continue;
-            const auto [found, inserted] = addrRegOffset.try_emplace(ar, AddrRegInfo{.offset = offset, .defRef = it.current, .stackPointerOrigin = ops[1].reg == stackPointer});
-            if (!inserted)
+            if (AddrRegInfo* found = addrRegOffset.find(ar.packed))
             {
-                found->second.ambiguous = true;
-                found->second.stackPointerOrigin |= ops[1].reg == stackPointer;
+                found->ambiguous = true;
+                found->stackPointerOrigin |= ops[1].reg == stackPointer;
                 addrRegMoreOffsets[ar].push_back(offset);
             }
+            else
+                addrRegOffset.emplace(ar.packed, AddrRegInfo{.offset = offset, .defRef = it.current, .stackPointerOrigin = ops[1].reg == stackPointer});
         }
     }
 
@@ -585,8 +586,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (modes[i] != MicroInstrRegMode::Def && modes[i] != MicroInstrRegMode::UseDef)
                     continue;
-                const auto found = addrRegOffset.find(ops[i].reg);
-                if (found != addrRegOffset.end() && it.current != found->second.defRef && !addressAdjustments.contains(it.current.get()))
+                AddrRegInfo* found = addrRegOffset.find(ops[i].reg.packed);
+                if (found && it.current != found->defRef && !addressAdjustments.contains(it.current.get()))
                 {
                     // A frame-derived pointer can cross local-object boundaries:
                     // lowering spells an address as `copy frame; add offset`.
@@ -598,7 +599,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                                                    ops[2].opBits == MicroOpBits::B64 && frameRegisterOffsetAt(sourceOffset, ops[1].reg, it.current);
                     if (!knownFrameAddress)
                         return Result::Continue;
-                    found->second.ambiguous = true;
+                    found->ambiguous = true;
                 }
             }
         }
@@ -635,22 +636,24 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             const auto* ops = it->ops(operands);
             if (!ops)
                 continue;
-            auto found = addrRegOffset.find(ops[0].reg);
+            const AddrRegInfo* found = addrRegOffset.find(ops[0].reg.packed);
             if (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
                 ops[0].reg.isVirtualInt() && ops[0].reg != frameBase && definedOnce(ops[0].reg) &&
-                found == addrRegOffset.end() && available.contains(ops[1].reg))
+                !found && available.contains(ops[1].reg))
             {
-                const AddrRegInfo& source = addrRegOffset.at(ops[1].reg);
-                found                     = addrRegOffset.emplace(ops[0].reg, AddrRegInfo{.offset = source.offset, .defRef = it.current, .stackPointerOrigin = source.stackPointerOrigin}).first;
+                const AddrRegInfo* source = addrRegOffset.find(ops[1].reg.packed);
+                SWC_ASSERT(source != nullptr);
+                addrRegOffset.emplace(ops[0].reg.packed, AddrRegInfo{.offset = source->offset, .defRef = it.current, .stackPointerOrigin = source->stackPointerOrigin});
+                found = addrRegOffset.find(ops[0].reg.packed);
                 addressCopies.insert(it.current.get());
             }
-            if (found != addrRegOffset.end() && !found->second.ambiguous && found->second.defRef == it.current)
-                available.insert(found->first);
+            if (found && !found->ambiguous && found->defRef == it.current)
+                available.insert(ops[0].reg);
         }
     }
 
     auto isTracked = [&](MicroReg reg) -> bool {
-        return reg == frameBase || addrRegOffset.contains(reg);
+        return reg == frameBase || addrRegOffset.find(reg.packed);
     };
 
     // ---- Local-variable extents: escapes poison one variable, not the function. ----
@@ -730,10 +733,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     auto trackedEscapeOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
         if (reg == frameBase)
             return false;
-        const auto found = addrRegOffset.find(reg);
-        if (found == addrRegOffset.end())
+        const AddrRegInfo* found = addrRegOffset.find(reg.packed);
+        if (!found)
             return false;
-        outOffset = found->second.offset;
+        outOffset = found->offset;
         return true;
     };
 
@@ -799,10 +802,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             continue;
         if (addressCopies.contains(ref.get()))
             continue;
-        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 && isFrameRegister(ops[1].reg) && addrRegOffset.contains(ops[0].reg))
+        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 && isFrameRegister(ops[1].reg) && addrRegOffset.find(ops[0].reg.packed))
             continue;
         // The `mov ar, fb` address definition recognized by pass 1.
-        if (inst.op == MicroInstrOpcode::LoadRegReg && isFrameRegister(ops[1].reg) && ops[2].opBits == MicroOpBits::B64 && addrRegOffset.contains(ops[0].reg))
+        if (inst.op == MicroInstrOpcode::LoadRegReg && isFrameRegister(ops[1].reg) && ops[2].opBits == MicroOpBits::B64 && addrRegOffset.find(ops[0].reg.packed))
             continue;
         // The entry subtract and the releases, checked above.
         if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == stackPointer)
@@ -829,13 +832,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             }
             else
             {
-                const auto found = addrRegOffset.find(reg);
-                if (found != addrRegOffset.end() && !found->second.ambiguous)
+                const AddrRegInfo* found = addrRegOffset.find(reg.packed);
+                if (found && !found->ambiguous)
                 {
                     baseReg      = reg;
-                    baseSlot     = found->second.offset + extraOffset;
+                    baseSlot     = found->offset + extraOffset;
                     baseValid    = true;
-                    stackAddress = found->second.stackPointerOrigin;
+                    stackAddress = found->stackPointerOrigin;
                 }
             }
         };

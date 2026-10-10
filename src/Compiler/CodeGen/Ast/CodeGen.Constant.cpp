@@ -465,6 +465,17 @@ namespace
         return currentTypeRef;
     }
 
+    // Whether a slice constant's descriptor sits in a constant segment that relocates its data
+    // pointer, so the elements it views are runtime data already.
+    bool hasRelocatedSliceDescriptor(CodeGen& codeGen, const ConstantValue& cst)
+    {
+        const DataSegmentRef descriptorRef = cst.dataSegmentRef();
+        if (!descriptorRef.isValid())
+            return false;
+        DataSegmentRelocation relocation;
+        return codeGen.cstMgr().shardDataSegment(descriptorRef.shardIndex).findRelocation(relocation, descriptorRef.offset + offsetof(Runtime::Slice<std::byte>, ptr), DataSegmentRelocationKind::DataSegmentOffset);
+    }
+
     ConstantRef materializeBorrowedStorageConstant(CodeGen& codeGen, ConstantRef cstRef, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -693,12 +704,20 @@ namespace
                 const std::span<const std::byte> sliceBytes = cst.getSlice();
                 const TypeInfo&                  sliceType  = cst.type(codeGen.ctx());
                 SWC_ASSERT(sliceType.isSlice());
-                const uint64_t    elementCount    = cst.getSliceCount();
-                const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
-                if (safeArrayCstRef.isInvalid())
-                    return raiseConstantMaterializationError(codeGen, "cannot materialize a slice constant payload");
-                const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                const void*          targetPtr          = sliceBytes.empty() ? sliceBytes.data() : safeArrayCst.getArray().data();
+                const uint64_t elementCount = cst.getSliceCount();
+
+                // A slice whose descriptor already relocates its data pointer views runtime data
+                // in place - a reflected type's field or slot table, folded from a constant type -
+                // and keeps viewing it. Copying its elements would give them a second address, and
+                // a struct finds its own slot in the reflected table by address.
+                const void* targetPtr = sliceBytes.data();
+                if (!sliceBytes.empty() && !hasRelocatedSliceDescriptor(codeGen, cst))
+                {
+                    const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
+                    if (safeArrayCstRef.isInvalid())
+                        return raiseConstantMaterializationError(codeGen, "cannot materialize a slice constant payload");
+                    targetPtr = codeGen.cstMgr().get(safeArrayCstRef).getArray().data();
+                }
                 const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), targetPtr, elementCount);
                 SWC_ASSERT(runtimeSliceCstRef.isValid());
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);

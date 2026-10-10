@@ -77,6 +77,23 @@ func checkStorage(value: *void, type: typeinfo)
     Swag.assert(child.extra == 45)
 }
 
+// Inlined, the type argument is a constant and its slot table folds to a constant
+// slice: that slice must still view the reflected table, not a copy of it.
+#[Swag.Inline]
+func checkStorageInline(value: *void, type: typeinfo)
+{
+    let info  = cast(const *Swag.TypeInfoStruct, cast(const *void, type))
+    var slots = info.dynamicSlots!
+    let slot  = cast([*] u8, value) + slots[0].offset
+    Swag.assert(cast(*u64, cast(*void, slot))[] == cast(u64, &slots[0]))
+}
+
+#test
+{
+    var child: StorageChild
+    checkStorageInline(&child, StorageChild)
+}
+
 #test
 {
     var values: [3] StorageChild

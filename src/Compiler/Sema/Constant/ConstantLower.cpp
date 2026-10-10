@@ -268,6 +268,17 @@ namespace
         return Result::Continue;
     }
 
+    // Whether the slice descriptor at `descriptor` lives in a constant segment that relocates
+    // its data pointer: the view of storage the compiler already laid out as runtime data.
+    bool isRelocatedSliceDescriptor(const Sema& sema, const void* descriptor)
+    {
+        DataSegmentRef descriptorRef;
+        if (!sema.cstMgr().resolveDataSegmentRef(descriptorRef, descriptor))
+            return false;
+        DataSegmentRelocation relocation;
+        return sema.cstMgr().shardDataSegment(descriptorRef.shardIndex).findRelocation(relocation, descriptorRef.offset + offsetof(Runtime::Slice<std::byte>, ptr), DataSegmentRelocationKind::DataSegmentOffset);
+    }
+
     Result materializeStaticSlice(Sema& sema, DataSegment& segment, const TypeInfo& typeInfo, const StaticPayload& payload)
     {
         TaskContext& ctx = sema.ctx();
@@ -283,6 +294,19 @@ namespace
         {
             dstSlice.ptr   = nullptr;
             dstSlice.count = 0;
+            return Result::Continue;
+        }
+
+        // A view read out of storage that is already runtime data - a reflected type's field
+        // or slot table, whose descriptor carries its own relocation - keeps pointing at what it
+        // views. A copy would give the elements a second address, and a struct finds its own
+        // slot by address. Raw compile-time bytes have no such relocation and are copied below.
+        if (srcSlice.ptr && isRelocatedSliceDescriptor(sema, payload.srcBytes.data()))
+        {
+            uint64_t address = 0;
+            SWC_RESULT(relocateSegmentAddress(address, sema, segment, payload.baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), srcSlice.ptr));
+            dstSlice.ptr   = pointerFromRawAddress<std::byte>(address);
+            dstSlice.count = srcSlice.count;
             return Result::Continue;
         }
 

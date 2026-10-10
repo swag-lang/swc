@@ -174,7 +174,8 @@ namespace
                     continue;
                 const MicroInstr* incoming = storage.ptr(order[predecessor]);
                 uint32_t          target   = 0;
-                if (!incoming || !tryGetJumpTargetLabelId(target, *incoming, incoming->ops(operands)) || target != matchId)
+                if (!incoming || incoming->op != MicroInstrOpcode::JumpCond ||
+                    !tryGetJumpTargetLabelId(target, *incoming, incoming->ops(operands)) || target != matchId)
                 {
                     directMatchEdges = false;
                     break;
@@ -694,7 +695,7 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     for (uint32_t ordinal = 0; ordinal + 3 < order.size(); ++ordinal)
     {
         const MicroInstr* labelInst = storage.ptr(order[ordinal]);
-        if (!labelInst)
+        if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
             continue;
         uint32_t labelId = 0;
         if (!tryGetLabelId(labelId, *labelInst, labelInst->ops(operands)))

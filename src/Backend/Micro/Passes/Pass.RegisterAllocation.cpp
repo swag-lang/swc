@@ -4404,6 +4404,7 @@ namespace
         const MicroReg       stack    = CallConv::get(context.callConvKind).stackPointer;
 
         std::vector<MicroInstrRef> refs;
+        refs.reserve(storage.count());
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
             refs.push_back(it.current);
 

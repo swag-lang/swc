@@ -7164,8 +7164,10 @@ namespace
         }
 
         const MicroInstr* labelInst = scan.storage->ptr(stopRef);
+        if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
+            return false;
         uint32_t          labelId   = 0;
-        if (!labelInst || !tryGetLabelId(labelId, *labelInst, labelInst->ops(*scan.operands)) || labelId != joinLabelId)
+        if (!tryGetLabelId(labelId, *labelInst, labelInst->ops(*scan.operands)) || labelId != joinLabelId)
             return false;
 
         out.jumpRef      = jumpRef;
@@ -7345,8 +7347,7 @@ namespace
             if (scan.relocated->contains(cur.get()))
                 return false;
 
-            const MicroInstr*        inst = scan.storage->ptr(cur);
-            const MicroInstrOperand* ops  = inst ? inst->ops(*scan.operands) : nullptr;
+            const MicroInstr* inst = scan.storage->ptr(cur);
             if (!inst)
                 return false;
 
@@ -7358,12 +7359,16 @@ namespace
 
             if (out.valueRef.isValid())
             {
-                if (out.epilogueRef.isValid() || !isStackRestore(*inst, ops, conv.stackPointer))
+                if (out.epilogueRef.isValid() || inst->op != MicroInstrOpcode::OpBinaryRegImm)
+                    return false;
+                const MicroInstrOperand* ops = inst->ops(*scan.operands);
+                if (!isStackRestore(*inst, ops, conv.stackPointer))
                     return false;
                 out.epilogueRef = cur;
                 continue;
             }
 
+            const MicroInstrOperand* ops = nullptr;
             if (!isSpeculatableArmInstruction(*inst, *scan.operands, ops))
                 return false;
 

@@ -2453,33 +2453,6 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
     }
 }
 
-// The linear rewrite needs virtual live-outs at every instruction, but concrete
-// live-outs only for address loads and copies from concrete registers.
-void MicroRegisterAllocationPass::computeCurrentVirtualLiveOutBits(const uint32_t instructionIndex)
-{
-    SWC_ASSERT(controlFlowGraph_ != nullptr);
-
-    const auto& successors = controlFlowGraph_->successors(instructionIndex);
-    if (successors.size() == 1)
-    {
-        SWC_ASSERT(successors[0] < instructionCount_);
-        const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
-        std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
-        return;
-    }
-
-    for (uint64_t& value : tempOutVirtual_)
-        value = 0;
-
-    for (const uint32_t succIdx : successors)
-    {
-        SWC_ASSERT(succIdx < instructionCount_);
-        const std::span<const uint64_t> succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, denseVirtualRegs_.wordCount());
-        for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
-            tempOutVirtual_[word] |= succInVirtual[word];
-    }
-}
-
 void MicroRegisterAllocationPass::computeCurrentConcreteLiveOutBits(const uint32_t instructionIndex)
 {
     SWC_ASSERT(controlFlowGraph_ != nullptr);
@@ -2505,11 +2478,38 @@ void MicroRegisterAllocationPass::computeCurrentConcreteLiveOutBits(const uint32
     }
 }
 
-void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t stamp)
+void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t instructionIndex, const uint32_t stamp)
 {
-    for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
+    SWC_ASSERT(controlFlowGraph_ != nullptr);
+
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    if (successors.size() == 1)
     {
-        uint64_t wordBits = tempOutVirtual_[wordIndex];
+        SWC_ASSERT(successors[0] < instructionCount_);
+        const std::span<const uint64_t> succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
+        for (size_t wordIndex = 0; wordIndex < succInVirtual.size(); ++wordIndex)
+        {
+            uint64_t wordBits = succInVirtual[wordIndex];
+            while (wordBits)
+            {
+                const uint32_t bitInWord = std::countr_zero(wordBits);
+                const size_t   bitIndex  = wordIndex * 64ull + bitInWord;
+                SWC_ASSERT(bitIndex < liveStampByDenseIndex_.size());
+                liveStampByDenseIndex_[bitIndex] = stamp;
+                wordBits &= (wordBits - 1ull);
+            }
+        }
+        return;
+    }
+
+    for (size_t wordIndex = 0; wordIndex < denseVirtualRegs_.wordCount(); ++wordIndex)
+    {
+        uint64_t wordBits = 0;
+        for (const uint32_t succIdx : successors)
+        {
+            SWC_ASSERT(succIdx < instructionCount_);
+            wordBits |= DenseBits::row(liveInVirtualBits_, succIdx, denseVirtualRegs_.wordCount())[wordIndex];
+        }
         while (wordBits)
         {
             const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -3890,8 +3890,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         }
         ++stamp;
 
-        computeCurrentVirtualLiveOutBits(idx);
-        markCurrentVirtualLiveOut(stamp);
+        markCurrentVirtualLiveOut(idx, stamp);
         advanceCurrentPositionCursors(idx);
         bool concreteLiveOutReady     = false;
         bool concreteLiveOutRegsReady = false;

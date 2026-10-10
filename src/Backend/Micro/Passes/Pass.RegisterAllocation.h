@@ -289,9 +289,8 @@ private:
     void              computeReachability();
     void              analyzeLiveness();
     void              computeCurrentLiveOutBits(uint32_t instructionIndex);
-    void              computeCurrentVirtualLiveOutBits(uint32_t instructionIndex);
     void              computeCurrentConcreteLiveOutBits(uint32_t instructionIndex);
-    void              markCurrentVirtualLiveOut(uint32_t stamp);
+    void              markCurrentVirtualLiveOut(uint32_t instructionIndex, uint32_t stamp);
     void              rebuildCurrentConcreteLiveOutRegs();
     bool              isInstructionReachable(uint32_t instructionIndex) const;
     bool              canEraseCoalescedCopy(MicroInstrRef copyRef, MicroReg dstReg) const;

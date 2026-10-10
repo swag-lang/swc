@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:34 — Reuse fixed-register intersections during election.
+- Updated: 2026-10-10 14:38 — Locate split value nodes by binary search.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -144,6 +144,10 @@ new language syntax.
   check. This removes a second pool traversal and one repeated interval-intersection search for a
   free register ending at a call. The Release build and focused native
   `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: edge resolution now locates a split or parked value node by binary search
+  in its already sorted, disjoint per-value node group, with a direct check for unsplit values.
+  The Release build and focused native `physical_copy_intervals.swg` and
+  `private_spill_cold_call.swg` tests passed; no timing claim is made.
 - Evidence: the walk describes every concrete claim by the position it occupies, except
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole

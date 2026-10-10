@@ -1186,12 +1186,22 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     SWC_ASSERT(predecessors_.size() == instructionCount_);
 
     const auto locate = [&](const uint32_t denseIndex, const uint32_t pos) -> const LiveInterval* {
-        for (uint32_t n = result.valueNodesBegin[denseIndex]; n < result.valueNodesBegin[denseIndex + 1]; ++n)
-        {
-            if (result.nodes[n].covers(pos))
-                return &result.nodes[n];
-        }
-        return nullptr;
+        const uint32_t first = result.valueNodesBegin[denseIndex];
+        const uint32_t last  = result.valueNodesBegin[denseIndex + 1];
+        if (first == last)
+            return nullptr;
+        if (last == first + 1)
+            return result.nodes[first].covers(pos) ? &result.nodes[first] : nullptr;
+
+        // Split and parked nodes partition one value's ranges; the group table
+        // orders them by start, so only the last node starting before `pos`
+        // can cover it.
+        auto node = std::upper_bound(result.nodes.begin() + first, result.nodes.begin() + last, pos,
+                                     [](const uint32_t value, const LiveInterval& interval) { return value < interval.start(); });
+        if (node == result.nodes.begin() + first)
+            return nullptr;
+        --node;
+        return node->covers(pos) ? &*node : nullptr;
     };
 
     // Stack depth per instruction, propagated over the CFG (mid-body rsp

@@ -1819,18 +1819,31 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // With at most one connector, its default order zero is already final.
     if (connectors.size() > 1)
     {
-        std::map<uint64_t, std::vector<size_t>> byPoint;
+        // Connectors grouped by insertion point: points ascending, and each group in connector
+        // order. One sorted array of (point, connector) pairs gives the groups an ordered map of
+        // lists would, without a node and a list per point.
+        std::vector<std::pair<uint64_t, size_t>> byPoint;
+        byPoint.reserve(connectors.size());
         for (size_t i = 0; i < connectors.size(); ++i)
         {
             const bool isTramp = connectors[i].trampJump != std::numeric_limits<uint32_t>::max();
-            byPoint[(static_cast<uint64_t>(connectors[i].beforeIndex) << 2) | (isTramp ? 0u : 2u) | connectors[i].phase].push_back(i);
+            byPoint.emplace_back((static_cast<uint64_t>(connectors[i].beforeIndex) << 2) | (isTramp ? 0u : 2u) | connectors[i].phase, i);
         }
-        std::vector<bool> emitted;
-        for (auto& [point, list] : byPoint)
+        std::ranges::sort(byPoint);
+        std::vector<size_t> list;
+        std::vector<bool>   emitted;
+        for (size_t groupEnd = 0; groupEnd < byPoint.size();)
         {
+            const size_t groupBegin = groupEnd;
+            while (groupEnd < byPoint.size() && byPoint[groupEnd].first == byPoint[groupBegin].first)
+                ++groupEnd;
+
             // A lone connector already has order zero and cannot form a copy dependency.
-            if (list.size() == 1)
+            if (groupEnd - groupBegin == 1)
                 continue;
+            list.clear();
+            for (size_t k = groupBegin; k < groupEnd; ++k)
+                list.push_back(byPoint[k].second);
             uint32_t order = 0;
             emitted.assign(list.size(), false);
             for (;;)

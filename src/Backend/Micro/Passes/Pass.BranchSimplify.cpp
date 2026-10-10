@@ -820,8 +820,13 @@ namespace
             if (!labelOrdinal)
                 return true;
             const MicroInstr* prev = storage.ptr(layout.order[labelOrdinal - 1]);
-            return !prev || !(prev->op == MicroInstrOpcode::Ret || prev->op == MicroInstrOpcode::Trap || prev->op == MicroInstrOpcode::JumpReg ||
-                              MicroInstrInfo::isUnconditionalJumpInstruction(*prev, prev->ops(operands)));
+            if (!prev)
+                return true;
+            if (prev->op == MicroInstrOpcode::Ret || prev->op == MicroInstrOpcode::Trap || prev->op == MicroInstrOpcode::JumpReg)
+                return false;
+            const MicroInstrFlags      prevFlags = MicroInstr::info(prev->op).flags;
+            const MicroInstrOperand*   prevOps   = prevFlags.has(MicroInstrFlagsE::ConditionalJump) ? prev->ops(operands) : nullptr;
+            return !MicroInstrInfo::isUnconditionalJumpInstruction(*prev, prevOps);
         };
 
         struct Decision
@@ -864,12 +869,12 @@ namespace
             {
                 const uint32_t           current  = static_cast<uint32_t>(at);
                 const MicroInstr*        inst     = storage.ptr(layout.order[current]);
-                const MicroInstrOperand* instOps  = inst->ops(operands);
                 MicroCond                factCond = MicroCond::Unconditional;
                 uint32_t                 factJump = 0;
 
                 if (inst->op == MicroInstrOpcode::Label)
                 {
+                    const MicroInstrOperand* instOps = inst->ops(operands);
                     uint32_t labelId = 0;
                     if (!tryGetLabelId(labelId, *inst, instOps))
                         break;
@@ -902,7 +907,8 @@ namespace
                 else if (inst->op == MicroInstrOpcode::JumpCond)
                 {
                     // The path falls through: the jump was not taken.
-                    if (instOps[0].cpuCond == MicroCond::Unconditional || !MicroPassHelpers::invertCondition(factCond, instOps[0].cpuCond))
+                    const MicroInstrOperand* jumpOps = inst->ops(operands);
+                    if (jumpOps[0].cpuCond == MicroCond::Unconditional || !MicroPassHelpers::invertCondition(factCond, jumpOps[0].cpuCond))
                         break;
                     factJump = current;
                     --at;

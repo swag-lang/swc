@@ -374,6 +374,50 @@ namespace PostRaPeephole
     // after it can leave the shape behind, as a float clamp's did. Every
     // condition has an exact complement over the flags, unordered floats
     // included.
+    // A jump whose target is itself an unconditional jump goes straight to the final target:
+    //
+    //     jump L1 ... L1: jump L2        ->    jump L2 ... L1: jump L2
+    //
+    // The branch simplification threads such chains before allocation, but there a join
+    // often still starts with the copies that merge its values; once the allocator has
+    // coalesced them, the join is a bare jump and the hot path takes two jumps in a row.
+    bool tryThreadJumpToJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const MicroInstrOperand* ops = inst.ops(*ctx.operands);
+        if (!ops || inst.numOperands < 3 || ctx.isClaimed(ref) || !ctx.builder)
+            return false;
+
+        const auto&    cfg   = ctx.builder->controlFlowGraph();
+        const auto     refs  = cfg.instructionRefs();
+        const uint64_t first = ops[2].valueU64;
+        uint32_t       index = cfg.indexOfLabel(first);
+        if (index == MicroControlFlowGraph::K_NO_INDEX)
+            return false;
+
+        // The first instruction at the target, past any other label placed there.
+        const MicroInstr* next = nullptr;
+        MicroInstrRef     nextRef;
+        for (; index < refs.size(); ++index)
+        {
+            nextRef = refs[index];
+            next    = ctx.instruction(nextRef);
+            if (!next || next->op != MicroInstrOpcode::Label)
+                break;
+        }
+        if (!next || next->op != MicroInstrOpcode::JumpCond || nextRef == ref || ctx.isClaimed(nextRef))
+            return false;
+        const MicroInstrOperand* nextOps = next->ops(*ctx.operands);
+        if (!nextOps || next->numOperands < 3 || nextOps[0].cpuCond != MicroCond::Unconditional || nextOps[2].valueU64 == first)
+            return false;
+        if (!ctx.claimAll({ref}))
+            return false;
+
+        MicroInstrOperand branch[3] = {ops[0], ops[1], ops[2]};
+        branch[2].valueU64          = nextOps[2].valueU64;
+        ctx.emitRewrite(ref, MicroInstrOpcode::JumpCond, branch);
+        return true;
+    }
+
     bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);

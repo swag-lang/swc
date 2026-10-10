@@ -4640,6 +4640,50 @@ SWC_TEST_BEGIN(PostRAPeephole_BranchOverJumpInverted)
 }
 SWC_TEST_END()
 
+// `je .L1 ... .L1: jmp .L2` is `je .L2`; a jump to a jump to itself stays put.
+SWC_TEST_BEGIN(PostRAPeephole_JumpToJumpThreaded)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+
+    MicroBuilder        builder(ctx);
+    const MicroLabelRef join = builder.createLabel();
+    const MicroLabelRef spin = builder.createLabel();
+    const MicroLabelRef done = builder.createLabel();
+    builder.emitLoadRegMem(rax, r8, 0, MicroOpBits::B64);
+    builder.emitCmpRegImm(rax, ApInt(3, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+    builder.emitCmpRegImm(rax, ApInt(5, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, spin);
+    builder.emitLoadMemReg(r8, 8, rax, MicroOpBits::B64);
+    builder.emitRet();
+    builder.placeLabel(join);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+    builder.placeLabel(spin);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, spin);
+    builder.placeLabel(done);
+    builder.emitLoadMemReg(r8, 16, rax, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    bool threaded = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::JumpCond)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (ops[0].cpuCond != MicroCond::Equal)
+            continue;
+        if (ops[2].valueU64 == join.get())
+            return Result::Error;
+        if (ops[2].valueU64 == done.get())
+            threaded = true;
+    }
+    return threaded ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_SinkRipLoadIntoOneBranchArm)
 {
     constexpr MicroReg value = MicroReg::floatReg(0);

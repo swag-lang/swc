@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 17:40 — Reuse packed-switch candidate buffers across starts.
+- Updated: 2026-10-10 17:43 — Reuse packed-switch buffers and decoded operands.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
@@ -147,6 +147,7 @@ new language syntax.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now merges the sorted use and definition ordinals for register E and rewrites each instruction once. A use-def or repeated-operand instruction no longer triggers multiple operand lookups and mode scans during the same coalescing rewrite. The Release compiler build, focused native Release `short_circuit_booleans.swg` test, all 299 native optimizer tests, and repository validator passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now checks static register modes before decoding operands during its backward definition search. Instructions with only register reads avoid an operand lookup and mode scan; special modes, encoder effects, and operand-dependent flag definitions retain the existing full checks. The Release build, focused native Release `branch_simplification.swg` test, and all 299 native optimizer tests passed; no timing claim is made.
 - Taken on 2026-10-10: `convertSwitchesToPackedTables` now reuses its case and chain-target buffers across candidate starts. A long compare chain exposes overlapping suffix candidates, whose case lists can exceed inline capacity; later suffixes no longer allocate and free both vectors again. The Release build, all 62 focused native `switch_` tests, and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the packed-switch matcher now reads the first `CmpRegImm` operands once for both key and width instead of decoding them twice. The Release build and all 62 focused native `switch_` tests passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;

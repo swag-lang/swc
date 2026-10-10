@@ -96,15 +96,6 @@ impl Capture
                fi.serial == fi.capture!.serialBackTexture
     }
 
-    // Paints one form through its retained rendering, or returns false to use the
-    // direct path.
-    //
-    // The direct path re-renders the form into a fresh layer on every repaint — with
-    // its supersampling and its shadow blur — so a full repaint scaled with the number
-    // of forms. Here the layer lives across frames: an unchanged form composites its
-    // retained texture, a zoom in flight draws it scaled (and [MaxFormCacheRefresh]
-    // forms per repaint re-render sharp until none is stale), and only a content
-    // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
     // Turns the painter by `degrees` about the center of `around`, and
     // moves `rect` into the turned frame, where the center is the origin.
     func turnAbout(painter: *Painter, around: Math.Rectangle, rect: *Math.Rectangle, degrees: f32)
@@ -126,9 +117,15 @@ impl Capture
         }
     }
 
-    // Paints `f` from its cached layer, rendering the layer first when the form
-    // or the zoom changed. Returns false when the form cannot use the cache, so
-    // the caller paints it directly.
+    // Paints one form through its retained rendering, or returns false to use the
+    // direct path.
+    //
+    // The direct path re-renders the form into a fresh layer on every repaint — with
+    // its supersampling and its shadow blur — so a full repaint scaled with the number
+    // of forms. Here the layer lives across frames: an unchanged form composites its
+    // retained texture, a zoom in flight draws it scaled (and [MaxFormCacheRefresh]
+    // forms per repaint re-render sharp until none is stale), and only a content
+    // change forces a re-render. Falls back when the extent exceeds [MaxFormCacheDim].
     mtd paintFormCached(painter: *Painter, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
     {
         let base = assume cast(*BaseForm, f)
@@ -332,7 +329,6 @@ impl Capture
         paintRect.width  = wt2
         paintRect.height = ht2
 
-        // Rotation
         painter.pushTransform()
 
         if not quickMode and base.isRotated() do
@@ -365,7 +361,6 @@ impl Capture
         let editView = .editView!
         let renderer = editView.app().renderer
 
-        // Background image
         if not .backTexture.isValid() and .backImg.width > 0
         {
             .backTexture       = renderer.addImage(.backImg)
@@ -374,7 +369,7 @@ impl Capture
 
         if .backTexture.isValid()
         {
-            // Background image has been changed
+            // Re-upload the texture after a background edit.
             if .dirtyBackImg
             {
                 renderer.removeTexture(&.backTexture)
@@ -506,11 +501,9 @@ impl Capture
             cullClip.intersect(pc)
         }
 
-        // Background image
         painter.setAntialiased(false)
         .paintBackImage(painter, rect.x, rect.y, zoom)
 
-        // Shapes
         for f in .forms
         {
             // Cull against the form's actual painted extent. `paintForm` inflates the bound by its
@@ -540,7 +533,6 @@ impl Capture
                 painter.popClippingRect()
         }
 
-        // Gizmos
         for f, i in .forms
         {
             var flags = FormFlags.Zero
@@ -559,7 +551,6 @@ impl Capture
         // that its forms move as one unit (the individual member gizmos still show).
         .paintGroupOutlines(painter, rect, zoom)
 
-        // Selection rectangle
         if .drawSelRect
         {
             var r = Math.Rectangle{.movingStart.x, .movingStart.y, .movingEnd.x - .movingStart.x, .movingEnd.y - .movingStart.y}
@@ -568,7 +559,6 @@ impl Capture
             painter.drawRect(r, Argb.Cyan, 2)
         }
 
-        // Snap
         if .snapX != -1 do
             painter.drawLine(rect.x + .snapX * zoom, rect.y, rect.x + .snapX * zoom, rect.bottom(), Argb.Purple, 2)
         if .snapY != -1 do

@@ -61,7 +61,7 @@ using Swag, Core
 //
 // This is a regression guard for a compiler codegen bug: `parallelVisit` does
 // `if not range.count do return`, and `not slice.count` was compiled as an 8-bit
-// compare, so ? any byte count that is a multiple of 256 (e.g. 128*96*4 = 49152) was
+// compare, so any byte count that is a multiple of 256 (e.g. 128*96*4 = 49152) was
 // wrongly seen as zero and the visit returned without writing anything.
 #test
 {

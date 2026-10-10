@@ -211,18 +211,17 @@ You are running a long campaign to improve the runtime performance of code gener
 Read AGENTS.md and its skills, backlog/compiler.core.md, backlog/compiler.optimization.md,
 and bench/README.md first.
 
-For this campaign, the diagnosis and performance acceptance rules below take precedence over
-shared instructions to edit before building or integrate the first correctness-validated batch
-promptly. Keep experimental commits in the campaign worktree until they pass this performance
-gate. Focused correctness repairs still follow the shared repair and validation rules; identify
-them separately and never present a required repair as an established speedup.
+The campaign is judged by the generated-code improvements it lands in master. Acceptance rests
+on correctness and on static evidence read from the executed hot path, so a batch can be
+accepted on a loaded machine. Other agents usually build and test on this same machine. Timing
+is a confirmation and a veto against a clear slowdown. It is never a gate a batch must wait
+for. A session that runs for an hour without landing an accepted batch has gone wrong: change
+the hypothesis or the task instead of measuring more.
 
 GOAL
 
 Make ordinary Swag programs run faster through general improvements to generated code. Compare
-each bench task with its fastest non-Swag runtime from the same accepted campaign. Static code
-analysis explains and selects hypotheses; runtime evidence decides whether an optimization works.
-Fewer Micro instructions, fewer memory operands, or resemblance to a winner do not prove a speedup.
+each bench task with its fastest non-Swag runtime from the same accepted campaign.
 
 The campaign's runtime milestones, across every current task, are:
 
@@ -247,168 +246,148 @@ An accepted full campaign, 20261001-165313, recorded these native release times 
   wordfreq     44.648  D / LDC                     46.687    0.956x
   geometric mean across all twelve tasks                   1.096x
 
-This is a selection aid, not an A/B baseline or evidence for any individual edit. Recompute the
-inventory and winners from the latest accepted results when starting. Exclude every Swag native
-and JIT variant from the competing runtimes. Verify actual toolchain versions and build options;
-do not assume C++ or LLVM wins. Treat close rankings within measurement uncertainty as ties.
+This is a selection aid, not a baseline for any individual edit. Recompute the inventory and
+winners from the latest accepted results when one is available. Exclude every Swag native and
+JIT variant from the competing runtimes. Verify actual toolchain versions and build options; do
+not assume C++ or LLVM wins. Treat close rankings within measurement uncertainty as ties.
 
 The historical aggregate in bench/history.py deliberately covers the original seven tasks.
 Report the complete current task set separately, including nbody, fannkuch, binarytrees, lz77,
 and sort. Keep a fixed task set within each before/after comparison; never splice different
 panels into one improvement claim or change the published history to hide its continuity rule.
 
-START WITH A FOCUSED DIAGNOSIS
+START WITH A FOCUSED DIAGNOSIS, THEN EDIT
 
-Use existing evidence to choose one important gap or a suspected regression. Preserve a known
-baseline compiler and its inputs before editing; build that baseline if no suitable binary
-exists. Do not start with a full repository campaign or a complete cross-language benchmark.
-The first useful outcome is a specific, testable explanation of runtime cost, not a code change
-made to meet a deadline. A short profile or focused measurement before editing is expected when
-it is needed to establish that explanation.
+Use existing evidence (backlog entries, earlier campaigns, the table above) to choose one
+important gap. Preserve a baseline compiler and its runtime folder outside the checkout, in a
+folder no other agent uses, so the final machine code can be compared before and after. Do not
+start with a full repository campaign or a complete cross-language benchmark.
 
-Locate the cost inside the benchmark's timed region using sampling, hardware counters when
-available, or a controlled experiment. Distinguish parsing, arithmetic, calls, allocation,
-branching, memory traffic and instruction delivery. Estimate the share of time the proposed
-change can affect. A visible assembly difference outside the dominant path has limited value.
-If profiling facilities are unavailable, state the uncertainty and design a focused experiment
-that can falsify the hypothesis; do not invent a bottleneck from instruction counts alone.
+Find the cost inside the benchmark's timed region: which loop runs most, which calls,
+allocations, branches and memory traffic it contains. A short sampling profile helps when the
+machine allows it. Otherwise reason from loop structure and execution counts. Budget about
+thirty minutes for diagnosis before the first edit. An unresolved diagnosis is a reason to pick
+a better-understood gap, not to keep measuring.
 
-Read the competing source and its actual assembly or JIT output under the benchmark's options.
-Check equivalent work, including allocation, reclamation, safety and floating-point contracts.
-If the winner is not inspectable, study its execution strategy and use the fastest inspectable
-native implementation as secondary code evidence. Keep the actual winner as the runtime target.
-An allocator or runtime difference needs investigation at that boundary; it is not automatically
-a missing Micro peephole. Follow proven causes into lowering, alias analysis, inlining, register
+Read the competing source and its actual assembly under the benchmark's options. Check
+equivalent work, including allocation, reclamation, safety and floating-point contracts. An
+allocator or runtime difference needs work at that boundary; it is not automatically a missing
+Micro peephole. Follow proven causes into lowering, alias analysis, inlining, register
 allocation, encoding, layout or runtime code as needed.
 
 THE LOOP
 
-  1. State one causal hypothesis: which measured cost dominates, which general mechanism should
-     reduce it, which region should change, and what observation would disprove the idea. Select
-     the target and a small set of regression sentinels before editing. Include an unrelated
-     input with the same structure and a counterexample where the rule must not apply.
+  1. State one causal hypothesis: which cost dominates the hot path, which general mechanism
+     removes it, and which other code must stay unchanged. Pick the target loop and two or three
+     sentinel tasks whose hot paths the mechanism can reach, including a counterexample where
+     the rule must not apply.
 
   2. Inspect our optimized Micro code and the final emitted machine code for that region beside
-     the competitor. Inspect executed paths, spills, dependencies, calls, vector width, encoded
-     sizes, loop addresses and alignment. Identical Micro code can run differently after layout:
-     the csvagg regression fixed by 7e72000a8 came from loop placement, with essentially unchanged
-     hot-loop instructions. Count instructions per path or iteration, accounting for nested loops
-     and execution frequency; a function total is not a runtime cost model.
-     Use a scratch copy with PrintMicro when needed and strip ANSI colour. Micro instruction
-     references restart at each function, and a jump target is the last number on its line;
-     the operand width is not a target. Confirm the executed native/JIT and inlined/out-of-line
-     shape rather than assuming a standalone dump is the code the benchmark executes.
+     the competitor. Count instructions, memory operands, spills, calls and dependency chains
+     per iteration of the executed path, weighting nested loops by their trip counts; a function
+     total is not a cost model. Use a scratch copy with PrintMicro when needed and strip ANSI
+     colour. Micro instruction references restart at each function, and a jump target is the
+     last number on its line; the operand width is not a target. Confirm the executed native/JIT
+     and inlined/out-of-line shape rather than assuming a standalone dump is what the benchmark
+     runs.
 
   3. Implement one coherent mechanism. Use general eligibility based on data flow, aliasing,
-     ranges, loop structure and estimated benefit. Plan interacting producer, consumer and
-     register lifetimes together when vectorization or scheduling requires it. The smallest
-     useful transformation may span several passes; do not accumulate unrelated peepholes to
-     increase the number of retained edits. State the expected follow-up for an enabling change.
+     ranges, loop structure and estimated benefit. The smallest useful transformation may span
+     several passes; do not split it into unrelated peepholes, and do not bundle unrelated
+     peepholes into one batch.
 
-  4. Complete the batch, rebuild only the needed compiler executable and inspect the final
-     code again. Use static evidence to reject failed implementations quickly and to explain
-     tradeoffs. Then run the focused correctness tests and benchmark checksums before timing.
-     Include native, JIT and script coverage when the changed path can reach them, following
-     validate-swag-changes. A checksum mismatch invalidates a performance result.
+  4. Rebuild the needed compiler executable once for the batch and inspect the final machine
+     code of the target loop and of each sentinel again. Then run the focused correctness tests
+     and the benchmark checksums, including native, JIT and script coverage when the changed path
+     can reach them, following validate-swag-changes. A checksum mismatch rejects the batch.
 
-  5. Run the controlled A/B below on the target and selected sentinels before accepting the
-     batch for integration. Measure a coherent group when its enabling changes are inseparable;
-     compare the entire group with the preserved baseline. Do not require a complete benchmark
-     campaign after every edit. A small focused experiment is the normal decision boundary.
+  5. Decide with the acceptance rule below. An accepted batch is committed and integrated into
+     master within the next batch or two; do not accumulate accepted batches on the branch.
+     After integration, advance the baseline compiler to the integrated revision.
 
-  6. Classify the outcome using the predeclared criteria:
-       - Established gain: correct output, repeatable improvement beyond control variation,
-         and no detected regression in the selected sentinels at the declared precision. Keep
-         the batch and record both the measured effect and the mechanism that explains it.
-       - Regression: a repeatable slowdown, even with fewer instructions. Investigate, revise
-         or revert; an attractive static diff cannot overrule valid runtime evidence. Separate
-         mixed batches to identify the cause. An average gain does not cancel a task regression.
-       - Inconclusive: the change is below resolution, controls drift, or repeats disagree.
-         Record "benefit not established". Keep it pending in the worktree, combine it only with
-         its stated enabling follow-up, or revert it. Do not merge it as a proven optimization.
-     A code-size-only benefit is a separate result, not a runtime win under this prompt.
+  6. Every few accepted batches, and when the machine is quiet, run a short paired timing of the
+     recent targets and sentinels. Run a full cross-language campaign with tools/bench.swgs at
+     the end of a session, in a quiet window, before any claim about the runtime milestones.
 
-  7. Integrate accepted batches under the shared protocol. If incorporating concurrent changes
-     affects code generation, inputs or layout, repeat the relevant A/B against that same
-     combined revision without the candidate; an old timing result cannot validate a new
-     combination. Keep baseline and candidate identities explicit. After integration, advance
-     the baseline to the accepted revision for the next independent experiment.
+ACCEPTANCE
 
-  8. Run a full cross-language campaign at milestones after several accepted batches, after a
-     change whose reach requires it, and before claiming the runtime milestones or completion.
-     Use tools/bench.swgs and the documented admission and worker bounds. Inspect every task,
-     recalculate its winner, and separate these competitive ratios from causal A/B results.
-     A full campaign is a broader regression check, not a substitute for attributing a batch.
+A batch is accepted when all of these hold:
 
-CONTROLLED A/B
+  - Correct: focused tests, benchmark checksums and the reachable native, JIT and script paths
+    pass on the combined revision.
+  - Static gain on the hot path: the final machine code of the target's dominant loop or call
+    path does less work per execution than the baseline: fewer executed instructions, memory
+    operands, spills, calls, or a shorter loop-carried dependency chain. Unchanged or cold code
+    shrinking does not count.
+  - No static loss on the sentinels: their hot paths are unchanged or also improved. A sentinel
+    whose hot loop gets longer must be explained and fixed before the batch lands.
+  - General: the eligibility test is a data-flow, aliasing, range or loop property, never a
+    benchmark name, an exact constant or a threshold fitted to one example.
 
-Build and preserve both versions before timing. Apart from the candidate change, use identical
-benchmark sources, imports, runtime sources, input data, build configuration, target features,
-module names and worker counts. Isolate their outputs and affected caches. Record revisions,
-compiler and executable hashes, exact commands and the timed-region definition. For a runtime
-change, the corresponding runtime difference is part of the candidate and must be named.
-Temporary binaries, dumps, probes and logs stay outside every checkout.
+Commit an accepted batch with "[prompt 2]" and one line of evidence in the message body:
+"Evidence: static, <task> hot loop <before> -> <after> <unit> per iteration" or "Evidence:
+measured, <ratio> vs A/A <spread>". A batch accepted on static evidence is a landed improvement,
+not a proven speedup; report it that way.
 
-Measure the generated program's intended kernel with the same boundaries as the benchmark.
-Keep compilation, input generation, warmup and setup outside the region when the benchmark does.
-Whole-process CPU time may corroborate a result but cannot replace the kernel measurement when
-it includes substantial untimed work. Use the benchmark harness's process isolation and performance
-core affinity. A custom probe must preserve those controls and avoid changing the published task.
+Timing can only veto. A batch is reverted or revised when a timing shows a clear slowdown
+beyond its unchanged A/A control in two independent runs, on a target or a sentinel, even when
+it executes fewer instructions. Loop placement and alignment can cause such a slowdown: the
+csvagg regression fixed by 7e72000a8 came from layout, with essentially unchanged hot-loop
+instructions. A noisy, drifting or missing measurement has no consequence on acceptance:
+record "not measured" and move on. Never wait for a quiet window; continue with the next
+hypothesis while the machine is busy.
 
-Before collecting samples, state the question, minimum useful gain, non-regression tolerance,
-control-stability checks, sample budget and stop rule. Choose attainable precision from an
-unchanged-binary A/A control, not from the candidate's result. Do not widen a tolerance to admit a
-regression, relax a failed gate, cherry-pick repetitions or keep sampling until one run wins.
+Not accepted: a change whose only effect is code size, cold code, Micro instruction totals or
+resemblance to the competitor. Revert it, or keep it on the branch only as the enabling half of
+a mechanism whose second half lands in the same session.
 
-Warm both versions, interleave pairs and balance A/B versus B/A order. Include an unchanged
-control across the measurement window, retain every sample, and report paired ratios with their
-spread or uncertainty rather than comparing independent minima. Confirm a claimed gain in a
-second independent window. Select sentinels by the affected mechanism; use csvagg for changes to
-layout, calls or register pressure, and nbody for floating-point, inlining or vectorization changes.
-Expand coverage when evidence shows that the initial sentinels do not bound the effect.
+WHEN TIMING
 
-Build admission is not measurement isolation. Do not launch builds or tests alongside the timed
-runs. A failed control makes the experiment inconclusive; continue independent source analysis
-while waiting for a suitable window. Never stop another user's or agent's work to make room.
-Partial A/B experiments retain their own evidence and never enter the full campaign history.
+When the machine allows a measurement, use the benchmark harness's process isolation and
+performance-core affinity, and measure the benchmark's own timed region. Build both versions
+before timing, with identical sources, runtime, inputs, configuration, module names and worker
+counts. Keep their outputs and caches separate. Warm both versions, interleave A/B and B/A pairs,
+include an unchanged A/A control, retain every sample and report paired ratios with their
+spread. Do not launch builds or tests alongside your own timed runs, and never stop another
+user's or agent's work to make room. Temporary binaries, dumps, probes and logs stay outside
+every checkout.
+
+The end-of-session full campaign checks the landed batches together. A task that regressed
+there is bisected among the landed batches, and the cause is fixed or reverted before the
+session ends.
 
 RULES AND STOPPING
 
   - Never change a benchmark's computation, workload, timed boundaries or checksum to obtain a
-    speedup. Scratch variants may diagnose a mechanism but cannot replace the original task's
-    acceptance measurement. Preserve language semantics, including aliasing and FP policy.
-  - Never recognize benchmark names, exact constants or thresholds selected to fit one example.
-    Explain how the optimization benefits ordinary code with the same proven properties.
-  - Execution performance is the primary objective. Report compile time, memory and code-size
-    costs at milestones or when the change makes them material; do not call extra analysis
-    worthwhile solely because the emitted code looks simpler. Improve an expensive analysis
-    without discarding an established runtime benefit merely for compile-speed convenience.
-  - Keep rejected or unresolved hypotheses with their code and measurement evidence in the
-    existing matching backlog entry. Search before allocating a new identifier, state a concrete
-    next action, and avoid repeating experiments already ruled out under the same conditions.
-  - Between some batches, audit a relevant pass's generality and its interaction with allocation
-    or layout. Keep the audit focused; any resulting optimization passes the same acceptance gate.
+    speedup. Scratch variants may diagnose a mechanism but cannot replace the original task.
+    Preserve language semantics, including aliasing and FP policy.
+  - A generated-code gain takes priority over compile time. Never reject an accepted batch
+    because it makes compilation slower. State the algorithmic cost of every new or extended
+    analysis, keep it as cheap as the runtime benefit allows, and name the costly pass in the
+    matching backlog entry so the compilation-speed campaign can compensate.
+  - Keep rejected hypotheses with their code evidence in the existing matching backlog entry.
+    Search before allocating a new identifier, state a concrete next action, and do not repeat
+    experiments already ruled out under the same conditions.
+  - Between some batches, audit a relevant pass's generality and its interaction with
+    allocation or layout. Any resulting optimization follows the same acceptance rule.
 
-The campaign reaches its target when accepted measurements cover every current task, meet both
-runtime milestones, and establish no outstanding reproducible regression, with correctness checks
-valid for the final revision. Continue beyond a milestone when profiling identifies a concrete,
-material remaining opportunity and the requested campaign budget permits it.
+The campaign reaches its target when a quiet-window full campaign covers every current task,
+meets both runtime milestones, and shows no outstanding reproducible regression, with
+correctness checks valid for the final revision. Continue beyond a milestone while a concrete,
+material opportunity remains and the requested budget permits it.
 
-If three evidence-based rounds across the current task set produce no established gain and leave
-no credible actionable hypothesis, report a plateau and the remaining gaps. Do not describe that
-as reaching the target. Unavailable stable measurements are a blocker to a performance claim,
-not proof of success or exhaustion. A requested time limit ends the run with pending experiments
-and unestablished benefits identified explicitly.
+If three rounds across different tasks produce no accepted batch and leave no credible
+hypothesis, report a plateau and the remaining gaps. A requested time limit ends the run with
+pending work identified explicitly.
 
 REPORT
 
-After each round, give one compact table: task and competing runtime/toolchain, observed
-bottleneck, hypothesis, relevant before/after machine-code evidence, paired runtime effect and
-uncertainty, unchanged-control and sentinel results, correctness checks, decision and commit.
-Distinguish experimental, accepted and integrated changes. Report rejected and inconclusive
-results as well as wins. At a full milestone, give all current per-task competitive ratios and
-their geometric mean, naming the exact campaign and task set; label the seven-task historical
-aggregate separately. Never substitute instruction savings or a checksum pass for a speedup.
+After each round, give one compact table: task and competing runtime, observed bottleneck,
+mechanism, hot-path machine code before and after (per iteration), timing if one was taken
+(otherwise "not measured"), correctness checks, decision and commit. Distinguish landed,
+pending and rejected batches. At a full campaign, give all current per-task competitive ratios
+and their geometric mean, naming the exact campaign and task set; label the seven-task
+historical aggregate separately.
 ```
 
 ---

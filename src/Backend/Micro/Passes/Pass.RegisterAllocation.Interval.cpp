@@ -2391,12 +2391,19 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         return false;
 
     const auto liveInEntry = DenseBits::row(liveInVirtualBits_, 0, wordCount);
+    size_t       activeCandidates = 0;
     for (Candidate& c : candidates)
+    {
         c.rejected |= DenseBits::contains(liveInEntry, c.dst) && DenseBits::contains(liveInEntry, c.src);
+        activeCandidates += !c.rejected;
+    }
 
     MicroInstrRegOperandRefs regRefs;
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
+        if (!activeCandidates)
+            break;
+
         const auto& defs = defVirtualIndices_[idx];
         const auto& uses = useVirtualIndices_[idx];
 
@@ -2430,6 +2437,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             if (depth > c.copyDepth && DenseBits::contains(liveIn, c.dst) && DenseBits::contains(liveIn, c.src))
             {
                 c.rejected = true;
+                --activeCandidates;
                 continue;
             }
 
@@ -2438,6 +2446,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             if (touchesDst && !namedByOperand(c.dst))
             {
                 c.rejected = true;
+                --activeCandidates;
                 continue;
             }
 
@@ -2446,6 +2455,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             if (touchesSrc && !namedByOperand(c.src))
             {
                 c.rejected = true;
+                --activeCandidates;
                 continue;
             }
 
@@ -2454,6 +2464,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             if (defDst && defSrc)
             {
                 c.rejected = true;
+                --activeCandidates;
                 continue;
             }
 
@@ -2470,6 +2481,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             if (isCopy && copyDst == virtualRegs[defined] && copySrc == virtualRegs[partner])
                 continue;
             c.rejected = true;
+            --activeCandidates;
         }
     }
 

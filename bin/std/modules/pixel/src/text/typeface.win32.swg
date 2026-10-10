@@ -11,10 +11,9 @@ impl TypeFace
     //
     // `GetFontData` with no table tag returns a single-face file synthesized for the
     // selected font, and for a member of a collection that file is unusable: its
-    // table directory still carries the offsets the member had inside the collection,
-    // while the collection header those offsets were measured from is gone. Every
-        // Each table is read from the wrong offset; `cmap` can report tens of thousands of subtables,
-        // and parsing then runs past the end of the buffer.
+    // Its table directory still uses offsets measured from the collection, whose header is gone.
+    // Reading those offsets can make `cmap` report tens of thousands of subtables and send
+    // parsing past the end of the buffer.
     //
     // Asking for the `ttcf` table instead returns the collection itself, byte for
     // byte, which the face is then selected from. A font that belongs to no
@@ -74,8 +73,6 @@ impl TypeFace
     // whose names cannot be read, and fall back to the first face if no name matches (for example,
     // when the system's localized names differ from the `name` table).
     // a collection stating no match falls back to its first face, which is what a
-    // system whose enumerated names are localized away from the `name` table gets.
-    func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face fail
     {
         let count = try Face.countFaces(bytes)
         if count > 1 and family.count != 0
@@ -109,7 +106,6 @@ impl TypeFace
         // instead of reporting the failure.
         var buffer = try readHfontData(hfont)
         let family = try readHfontFamily(hfont)
-        let face   = try loadFaceForFamily(buffer.toSlice(), family, allocator)
 
         let tf = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator

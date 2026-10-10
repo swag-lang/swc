@@ -9,7 +9,7 @@ impl TypeFace
 {
     // Reads the whole font file behind a device context.
     //
-    // `GetFontData` with no table tag returns a single-face file synthesized for the
+    // When called without a table tag, `GetFontData` synthesizes a single-face file for the selected font.
     // With no table tag, `GetFontData` synthesizes a single-face file for the selected font.
     // A collection member cannot use that file: its table offsets refer to the collection, whose
     // header is gone. Reading those offsets can make `cmap` report tens of thousands of

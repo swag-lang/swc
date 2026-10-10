@@ -21,7 +21,7 @@ internal struct EncoderDesc
 // encoded stream: everything it produces goes to the [[Core.ByteSink]] it is handed, so writing
 // a long video costs the memory of one frame.
 //
-// `begin`, `addFrame` and `end` are called in that order, exactly once for the first and the
+// `begin`, `addFrame` and `end` are called in that order, with `begin` and `end` each called once.
 // last. A format whose header needs a value known only at the end — a frame count, a total size,
 // an index — writes it in `end`, either as a trailer, or by reserving the field in the header and
 // rewriting it with [[Core.ByteSink.patch]] once the last frame is written.

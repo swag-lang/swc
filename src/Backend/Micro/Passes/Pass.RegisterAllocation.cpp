@@ -3950,12 +3950,14 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        MicroInstrOperand*        instOps = it->ops(*operands_);
+        const MicroInstrDef& info               = MicroInstr::info(it->op);
+        const bool           hasRegisterEffects = hasExplicitRegisterOperands(info) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
+        MicroInstrOperand*   instOps            = hasRegisterEffects ? it->ops(*operands_) : nullptr;
         SmallVector<MicroReg>     protectedKeys;
         SmallVector<AllocRequest> allocRequests;
         if (instOps)
         {
-            const auto modes = MicroInstr::info(it->op).resolvedRegModes(instOps);
+            const auto modes = info.resolvedRegModes(instOps);
             for (size_t operand = 0; operand < modes.size(); ++operand)
             {
                 const MicroInstrRegMode mode = modes[operand];
@@ -4211,7 +4213,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         if (instOps)
         {
-            const auto modes = MicroInstr::info(it->op).resolvedRegModes(instOps);
+            const auto modes = info.resolvedRegModes(instOps);
             for (size_t operand = 0; operand < modes.size(); ++operand)
             {
                 if (modes[operand] == MicroInstrRegMode::None || !instOps[operand].reg.isVirtual())

@@ -214,6 +214,8 @@ namespace
                 return "tzcnt";
             case MicroOp::Xor:
                 return "xor";
+            case MicroOp::AndNot:
+                return "andn";
             case MicroOp::VecAdd32:
                 return "vec.add32";
             case MicroOp::VecAnd:

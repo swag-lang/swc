@@ -132,6 +132,7 @@ enum class MicroOp : uint8_t
     Test,
     TrailingZeroCount,
     Xor,
+    AndNot, // Integer ~src1 & src2 (BMI1 ANDN), three-operand only (OpBinaryRegRegReg).
 
     // 128-bit packed operations on the float register file. Everything from
     // VecAdd32 to the end of the enum is a packed operation: isVecMicroOp is a

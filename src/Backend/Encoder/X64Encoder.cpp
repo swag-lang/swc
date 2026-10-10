@@ -4201,6 +4201,21 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
         SWC_ASSERT(!regSrc1.isFloat() && !regSrc2.isFloat());
         SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
 
+        // ANDN r, r(vvvv), r/m (VEX.LZ.0F38.W0/W1 F2 /r): dst = ~src1 & src2, the inverted
+        // operand named in vvvv. The 32-bit form zero-extends like any 32-bit write.
+        if (op == MicroOp::AndNot)
+        {
+            const auto    x64Dst  = microRegToX64Reg(regDst);
+            const auto    x64Src2 = microRegToX64Reg(regSrc2);
+            const uint8_t vvvv    = static_cast<uint8_t>(~x64RegNumber(microRegToX64Reg(regSrc1)) & 0x0F);
+            store_.pushU8(0xC4);
+            store_.pushU8(static_cast<uint8_t>((isExtendedReg(x64Dst) ? 0 : 0x80) | 0x40 | (isExtendedReg(x64Src2) ? 0 : 0x20) | VEX_MAP_0F38));
+            store_.pushU8(static_cast<uint8_t>((opBits == MicroOpBits::B64 ? 0x80 : 0x00) | (vvvv << 3)));
+            emitCpuOp(store_, 0xF2);
+            emitModRm(store_, regDst, regSrc2);
+            return;
+        }
+
         uint8_t pp = 0;
         switch (op)
         {

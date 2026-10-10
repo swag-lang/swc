@@ -144,7 +144,13 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     if not __isTestFileSelected(testPath) or not __isTestTagSelected(testTag) do
         return
 
-    Swag.print("[swag.test] event=start executed=", cast(s64, g_TestsExecuted), " failed=", cast(s64, g_TestsFailedCnt), " name=", testName, "\n")
+    Swag.print("[swag.test] event=start executed=",
+               cast(s64, g_TestsExecuted),
+               " failed=",
+               cast(s64, g_TestsFailedCnt),
+               " name=",
+               testName,
+               "\n")
 
     g_TestsExecuted += 1
     g_TestFailed    = false
@@ -171,7 +177,15 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     if g_TestFailed do
         g_TestsFailedCnt += 1
 
-    Swag.print("[swag.test] event=", g_TestFailed ? "fail" : "pass", " executed=", cast(s64, g_TestsExecuted), " failed=", cast(s64, g_TestsFailedCnt), " name=", testName, "\n")
+    Swag.print("[swag.test] event=",
+               g_TestFailed ? "fail" : "pass",
+               " executed=",
+               cast(s64, g_TestsExecuted),
+               " failed=",
+               cast(s64, g_TestsFailedCnt),
+               " name=",
+               testName,
+               "\n")
 }
 
 func __testsDone()

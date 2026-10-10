@@ -2516,7 +2516,7 @@ namespace
             bool                 hasEnd  = false;
             bool                 closed  = false;
             SmallVector<Link, 8> links;
-            SmallVector<size_t>  body;
+            size_t               bodyEnd = start;
             size_t               at = start;
             while (at + 3 < layout.order.size() && links.size() < K_MAX_CHAIN)
             {
@@ -2530,7 +2530,6 @@ namespace
                         getNumBits(aliasOps[2].opBits) < getNumBits(bits) || mentions.getOrInsert(aliasOps[0].reg.index()) != 2)
                         break;
                     alias = aliasOps[0].reg;
-                    body.push_back(at);
                     ++at;
                 }
 
@@ -2564,9 +2563,7 @@ namespace
 
                 const uint64_t mask = getNumBits(bits) == 64 ? UINT64_MAX : (1ULL << getNumBits(bits)) - 1;
                 links.push_back({.cmp = static_cast<uint32_t>(at), .value = cmpOps[2].valueU64 & mask});
-                body.push_back(at);
-                body.push_back(at + 1);
-                body.push_back(at + 2);
+                bodyEnd = at + 2;
 
                 uint32_t labelId = 0;
                 if (next->op == MicroInstrOpcode::JumpCond)
@@ -2576,7 +2573,7 @@ namespace
                         break;
                     endId  = labelId;
                     hasEnd = true;
-                    body.push_back(at + 3);
+                    bodyEnd = at + 3;
                     at += 4;
                     continue;
                 }
@@ -2587,7 +2584,7 @@ namespace
             if (!closed || links.size() < K_MIN_CHAIN || labelReferences.getOrInsert(endId) != links.size() - 1)
                 continue;
 
-            if (relocationCache.get(context).contains(layout.order[body.back() + 1].get()))
+            if (relocationCache.get(context).contains(layout.order[bodyEnd + 1].get()))
                 continue;
 
             uint64_t lo = UINT64_MAX;
@@ -2601,7 +2598,7 @@ namespace
                 lo = 0;
             if (hi - lo >= 64)
                 continue;
-            const MicroInstrRef lastRef = layout.order[body.back()];
+            const MicroInstrRef lastRef = layout.order[bodyEnd];
             if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, lastRef))
                 continue;
 
@@ -2671,10 +2668,12 @@ namespace
             resultOps[2].opBits = MicroOpBits::B8;
             storage.insertDerivedBefore(operands, firstRef, MicroInstrOpcode::LoadRegReg, resultOps);
 
-            for (const size_t index2 : body)
-                storage.erase(layout.order[index2]);
+            // Every accepted link contributes adjacent instructions, including
+            // its optional alias copy, so the matched body is one layout range.
+            for (size_t bodyIndex = start; bodyIndex <= bodyEnd; ++bodyIndex)
+                storage.erase(layout.order[bodyIndex]);
             changed = true;
-            ordinal = body.back() + 1;
+            ordinal = bodyEnd + 1;
         }
 
         if (changed)

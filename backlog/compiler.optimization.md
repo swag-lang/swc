@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:06 — Process guarded calls from the existing ordered call-site list.
+- Updated: 2026-10-10 14:08 — Skip empty guarded-call work and visit only guarded call sites.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -99,12 +99,12 @@ new language syntax.
   vectors, so each interval starts with the same fields while no empty `LiveInterval` is
   copied for every register. The Release `interval` selection passed two native tests; timing
   and peak memory were not measured.
-- Taken on 2026-10-10: guarded-call parking after interval assignment now iterates the existing
-  ordered `callPositions_` list and filters its guarded entries, instead of visiting every
-  instruction index to find calls. Call positions are appended during the ascending instruction
-  walk, so guarded-call order and node processing are unchanged; non-call instructions no longer
-  incur a predicate check in this loop. The Release build and focused native
-  `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: guarded-call parking after interval assignment now skips its entire call
+  loop when `guardedCallPositions_` is empty, and otherwise visits only entries in the existing
+  ordered `callPositions_` list rather than every instruction index. The guarded-position vector
+  is populated only after a valid region containing a call is found, and call positions retain
+  ascending instruction order, so node processing is unchanged. The Release build and focused
+  native `private_spill_cold_call.swg` test passed; no timing claim is made.
 - Evidence: the walk describes every concrete claim by the position it occupies, except
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole

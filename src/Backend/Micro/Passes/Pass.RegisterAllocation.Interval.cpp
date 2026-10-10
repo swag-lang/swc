@@ -1060,13 +1060,13 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // side alone - the side that made the call - while the jump that steps over the block
     // finds the value where it left it. A value the call itself reads keeps its register up to
     // the call's input, so the head ends at the output slot.
-    if (!walk.failed && hasControlFlow_)
+    if (!walk.failed && hasControlFlow_ && !guardedCallPositions_.empty())
     {
         for (const uint32_t idx : callPositions_)
         {
             if (walk.failed)
                 break;
-            if (idx + 1 >= instructionCount_ || idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx])
+            if (idx + 1 >= instructionCount_ || !guardedCallPositions_[idx])
                 continue;
             const auto&    clobbers = instructionUseDefs_[idx].defs;
             const uint32_t callIn   = idx * 2;

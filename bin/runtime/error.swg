@@ -799,8 +799,6 @@ func __failedExpect(loc: SourceCodeLocation)
     Swag.panic(Swag.makeString(&str[0], len), loc)
 }
 
-////////////////////////////////////////////////////////////
-
 func __stackTrace(loc: SourceCodeLocation)
 {
     let cxt = Swag.getContext()
@@ -809,8 +807,6 @@ func __stackTrace(loc: SourceCodeLocation)
     cxt.traces[cxt.traceIndex] = loc
     cxt.traceIndex += 1
 }
-
-////////////////////////////////////////////////////////////
 
 // Raise a compiler error at the given source location
 func compilerError(message: string, loc: SourceCodeLocation)

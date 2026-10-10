@@ -408,7 +408,6 @@ impl IWnd for ListView
         let shift = evt.modifiers.has(.Shift)
 
         // Right mouse button
-        // ============================
 
         if evt.button == .Right
         {
@@ -448,7 +447,6 @@ impl IWnd for ListView
             if localPos.x >= widthLeft
             {
                 // Expand
-                // ============================
 
                 widthLeft += Math.min(metrics.btnCheck_Size, .list.lineHeight())
                 if hitLine.canExpand()
@@ -468,9 +466,6 @@ impl IWnd for ListView
                 }
 
                 // Check boxes
-                // ============================
-
-                // On checkbox
                 if hitLine.canCheck
                 {
                     var eatCheck = false
@@ -504,7 +499,6 @@ impl IWnd for ListView
         }
 
         // User double click
-        // ============================
 
         if evt.kind == .DoubleClick
         {
@@ -516,7 +510,6 @@ impl IWnd for ListView
         }
 
         // Selection by left button
-        // ============================
 
         if .list.selectionMode == .None do
             return
@@ -872,7 +865,7 @@ private impl ListView
                 expand.paint(painter, expandX, opticalTop(.font(), layout.expand.vertCenter(), expand.sizeY) + 1, colorExpand)
             }
 
-            // Background color ?
+            // Cell background override.
             if item.colorBk.a and not isSelected
             {
                 var rectPos = layout.cell

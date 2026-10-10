@@ -73,10 +73,9 @@ private func inkBounds(source: string, side = 100's32)->{ minX, minY, maxX, maxY
     Swag.assert(Math.abs(turned.minX - 15) <= 1 and Math.abs(turned.maxX - 84) <= 1)
     Swag.assert(Math.abs(turned.minY - 28) <= 1 and Math.abs(turned.maxY - 71) <= 1)
 
-    // A rounded rectangle keeps its area under a quarter turn, corners included: the curves are
-    // written out rather than reduced to an axis-aligned stand-in. The two forms are sampled by
-    // different primitives — one raw round rectangle, four cubic corners — so the areas agree to
-    // within the handful of pixels that difference is worth, not to the pixel.
+    // A rounded rectangle keeps its area under a quarter turn, including its corners. The curves
+    // are written out rather than reduced to an axis-aligned stand-in. Because the source and
+    // rotated forms use different primitives, their areas agree within a few pixels, not exactly.
     let plain   = inkBounds("<svg viewBox='0 0 100 100'><rect x='20' y='30' width='60' height='40' rx='10' ry='10' fill='#000'/></svg>")
     let rotated = inkBounds("<svg viewBox='0 0 100 100'><g transform='rotate(90 50 50)'><rect x='20' y='30' width='60' height='40' rx='10' ry='10' fill='#000'/></g></svg>")
     Swag.assert(rotated.minX == 30 and rotated.maxX == 69)

@@ -66,10 +66,10 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
 
 // Offsetting a convex region is Steiner's formula, and it is exact.
 //
-// Growing a convex body by `d` adds a band of the perimeter times `d` plus one full disc of
-// radius `d` — the corner wedges of a closed contour always sum to a whole turn. A miter join
-// replaces each wedge by the kite that its two edges cut out, which for a regular polygon is
-// `d²·tan(π/n)` per corner. Shrinking removes the same band and disc.
+// Growing a convex body by `d` adds a band equal to perimeter times `d`, plus one full disc of
+// radius `d`. The corner wedges of a closed contour sum to one full turn. A miter join
+// replaces each wedge with a kite whose area is `d^2 * tan(pi/n)` for a regular n-gon.
+// Shrinking by `d` removes the same perimeter band and disc.
 //
 // This is what says an offset is the shape it claims to be. A join emitted on the wrong side, a
 // wedge swept the wrong way, or a union that keeps the offset's own self-intersections all move
@@ -98,9 +98,9 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
         let expectedMiter = area + perimeter * delta + cornerTerm
         Swag.assert(Math.abs(miter.area - expectedMiter) <= 1e-4 * expectedMiter)
 
-        // Shrinking stays inside the inradius, so the result is still one convex region — and a
-        // convex corner has no arc on the inside, whatever the join type says: the two edges
-        // simply meet, so the corner term is the miter's kite either way.
+        // Shrinking stays inside the inradius, so the result remains one convex region. A convex corner
+        // has no inner arc, regardless of join type: its edges meet, so the corner term is the
+        // same miter kite in each case.
         let expectedShrunk = area - perimeter * delta + cornerTerm
         for joinType in [JoinType.Round, .Miter, .Square]
         {

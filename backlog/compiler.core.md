@@ -9,8 +9,8 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
-- Updated: 2026-10-10 08:51 — Array and aggregate types intern from their parts; the remaining
-  items are the ordered maps and the cost of clearing a kept flat table.
+- Updated: 2026-10-10 10:20 — Fresh flat tables in the remaining per-run pass and linker paths; the
+  ordered maps and the kept-table clear remain.
 - Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
   and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
   escape state, code generation node and variable payloads, value numbering, loop rotation and
@@ -37,9 +37,15 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   counts, register allocation and stack normalization label depths, the post-allocation peephole
   backtracks, SLP's definition scan (now shared by both lane widths) and register values, loop
   load forwarding, the native dependency closure, branch simplification's diamond label counts
-  and referenced labels (`FlatKey64Set`, 64-bit keys) and implied-branch label uses. Loop scans
-  start and stop at a natural loop's body span. Pre-emit listings of eight bench tasks in devmode
-  and release compare equal before and after.
+  and referenced labels (`FlatKey64Set`, 64-bit keys) and implied-branch label uses,
+  induction-variable use and definition counts, mem2reg's address registers and access lookup,
+  definition summaries shared by loop-invariant code motion and SLP, loop-invariant code motion's
+  per-loop sets, dead-code float counts, web renaming's sets, the sanitizer's escaped locals, the
+  native function-info lookup and the module API dependency walk. Location sort keys convert a
+  file's path once and the sort compares file parts and token numbers without building keys.
+  Loop scans start and stop at a natural loop's body span. Pre-emit listings of eight bench tasks
+  in devmode and release compare equal before and after, and single-core executables and
+  `core.dll` keep identical code, unwind, debug, export and import sections.
 - These remain, each needing a design change:
   - Node maps whose iteration order reaches the output: the sanitizer's sparse fact maps
     (`movedFrom`, `aliasPtrSlots`, ...), mem2reg's `slots`, SLP's `locations` and
@@ -58,7 +64,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
 - Recorded: 2026-10-01 17:08
-- Updated: 2026-10-09 12:37 — Two single-core rebuilds of release core.dll still differ in .rdata and .reloc only.
+- Updated: 2026-10-10 10:20 — A single-core `.rdata` difference traced to where an empty string lands.
 - Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
   Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
   3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
@@ -89,6 +95,13 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   addresses of data-only references) and `.reloc` differs accordingly. Six-core rebuilds also
   change the file size by 512 bytes. The code itself is stable; one `.rdata` allocation still
   changes size or order between runs, even without parallel workers.
+- October 10: single-core builds of the same bench task by the same Release compiler still
+  differ in `.rdata` and `.reloc` alone, in about one build of two. In `lz77` the difference is
+  one empty-string payload: a reflected type value's empty name points into an allocation reached
+  early in one build, and into its own one-byte allocation emitted just before
+  `"[..] Swag.TypeValue"` in the other, shifting every later string by one byte. Type-info
+  strings come from shard 0's `DataSegment::addString`, which deduplicates per segment; which
+  allocation first holds `""` follows the order type infos are generated.
 - What still varies: the offsets of globals in `.data` and `.bss`. They are assigned while
   sema runs in parallel, so the addresses that code and relocations use differ from one
   build to the next (48 to 5,800 bytes per pair).
@@ -97,6 +110,42 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   unwind record comparison to see whether another prologue cause remains.
 - Complete when: the source of the different prologues is explained and corrected at its
   owning boundary, with stable normalized output and the affected native tests green.
+
+### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
+
+- Recorded: 2026-09-30 08:32
+- Updated: 2026-10-10 10:20 — The patch walk keeps relocations inline; two repeated name and order builds noted.
+- Area: compiler/JIT, compile-time execution, compilation time
+- Evidence: the remaining repeated work is visible in the current call paths:
+  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
+    patched function names, once per function, taking the allocation lock and the relocation lock
+    for every allocation it visits (each allocation's relocations are copied into an inline list
+    since October 10). The semantic walk over the same graph remembers an allocation per
+    relocation version; this one remembers nothing between functions. A patchable target is the
+    function's patch address once it has one and its work address before, so a slot patched early
+    can later receive a different address: a memo across functions must keep re-patching or prove
+    the address no longer moves.
+  - `prepareJitFunction` builds the JIT order once before waiting for sema and again after, only
+    to compare sizes. The order follows the call graph and the native init targets, which both
+    carry a version; reusing the first order when neither moved needs every other input of the
+    walk (ignored functions, macro attributes) to move one of them too.
+  - `TypeRuntimeHash::canonicalScopedNameHash` rebuilds a symbol's full scoped name for every
+    runtime hash that meets it, while `Symbol::scopedNameHash` caches the same value. Using the
+    cache needs proof that no symbol's scope chain changes after its hash is first taken;
+    otherwise a reflected type's identity could differ between modules.
+  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
+    memo keys on the count of semantically completed symbols, which moves while sema runs. The
+    unguarded path retains applied forwardings and appends only new edges, but each new signature
+    still scans the pending edges; an edge whose callee never frees its parameter stays pending.
+    The guarded path also reconstructs its closure-local return-summary table. A worklist keyed by
+    callee could revisit an edge only when its callee's mask or either end's completion changes.
+- Next: measure these remaining walks on a `gui` release rebuild. Before remembering patched
+  allocations across functions, preserve deferred-function registration and the `Pause` path;
+  a memo must account for both. Preserve the guarded return proofs and late completion when
+  replacing the release scan with a worklist.
+- Complete when: each item is either removed with compile-time execution and safety tests, or
+  recorded as measured and not worth its risk.
+- Related: compiler.core.030.
 
 ### compiler.core.081 — An imported generic method once lost its own parameter
 
@@ -471,31 +520,6 @@ its cost.
 - Complete when: `link prepare` no longer shows as serial time in the scheduler report, with the
   linker and PDB C++ tests, the native suite, and a linked consumer green under both executables.
 - Related: compiler.core.069
-
-### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
-
-- Recorded: 2026-09-30 08:32
-- Updated: 2026-10-03 19:05 — Narrowed to uncached constant walks and pending release edges.
-- Area: compiler/JIT, compile-time execution, compilation time
-- Evidence: the remaining repeated work is visible in the current call paths:
-  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
-    patched function names, once per function, taking the allocation lock and the relocation lock
-    and filling a fresh relocation vector for every allocation it visits. The semantic walk over
-    the same graph remembers an allocation per relocation version; this one remembers nothing
-    between functions.
-  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
-    memo keys on the count of semantically completed symbols, which moves while sema runs. The
-    unguarded path retains applied forwardings and appends only new edges, but each new signature
-    still scans the pending edges; an edge whose callee never frees its parameter stays pending.
-    The guarded path also reconstructs its closure-local return-summary table. A worklist keyed by
-    callee could revisit an edge only when its callee's mask or either end's completion changes.
-- Next: measure these remaining walks on a `gui` release rebuild. Before remembering patched
-  allocations across functions, preserve deferred-function registration and the `Pause` path;
-  a memo must account for both. Preserve the guarded return proofs and late completion when
-  replacing the release scan with a worklist.
-- Complete when: each item is either removed with compile-time execution and safety tests, or
-  recorded as measured and not worth its risk.
-- Related: compiler.core.030.
 
 ### compiler.core.075 — Aligned node references collapse semantic metadata partitions
 

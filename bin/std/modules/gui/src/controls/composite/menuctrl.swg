@@ -520,9 +520,9 @@ impl MenuCtrl
     private mtd resolveSubmenuDirections()
     {
         let surfaceRect = .surfaceRect()
-        for i in .items where i!.popup != null and not i!.hidden
+        for i in .items where i!.popup != null and not i.hidden
         {
-            let item = i!
+            let item = i
             item.popup.updateState()
             item.popup.computeLayoutPopup()
             item.submenuOpensLeft = .shouldOpenSubmenuLeft(surfaceRect, item.popup.position.width)

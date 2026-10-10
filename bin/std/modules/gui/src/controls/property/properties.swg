@@ -744,8 +744,8 @@ impl Properties
         if not .isGridLike() do
             return
 
-        for item in .items where item!.numChilds and item!.line.position.height > 0 do
-            item!.flags.remove(.Expanded)
+        for item in .items where item!.numChilds and item.line.position.height > 0 do
+            item.flags.remove(.Expanded)
         .updateStates()
     }
 
@@ -758,8 +758,8 @@ impl Properties
         if not .isGridLike() do
             return
 
-        for item in .items where item!.numChilds and item!.line.position.height > 0 do
-            item!.flags.remove(.Expanded)
+        for item in .items where item!.numChilds and item.line.position.height > 0 do
+            item.flags.remove(.Expanded)
 
         for item in .items where item!.isModified
         {

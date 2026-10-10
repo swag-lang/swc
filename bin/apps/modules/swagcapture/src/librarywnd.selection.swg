@@ -125,11 +125,11 @@ impl LibraryWnd
     {
         .view.mutexLoaded.lock()
         defer .view.mutexLoaded.unlock()
-        for item in .view.allItems where item!.capture and item!.fi.fullName == file
+        for item in .view.allItems where item!.capture and item.fi.fullName == file
         {
-            item!.capture!.tags    = capture.tags
-            item.capture!.favorite = capture.favorite
-            item.capture.rating    = capture.rating
+            item.capture!.tags    = capture.tags
+            item.capture.favorite = capture.favorite
+            item.capture.rating   = capture.rating
         }
 
         g_DirtyList = true

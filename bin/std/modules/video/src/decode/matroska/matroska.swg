@@ -1856,7 +1856,7 @@ private impl Decoder
         let fileIndex = .fileIndex
         if not fileIndex or Atomic.get(&fileIndex.soundStatus) != SoundIndexIdle do
             return
-        if not fileIndex.progressive!.audioTracks.count and not fileIndex.progressive!.subtitleTracks.count
+        if not fileIndex.progressive!.audioTracks.count and not fileIndex.progressive.subtitleTracks.count
         {
             Atomic.exchange(&fileIndex.soundStatus, SoundIndexReady)
             return
@@ -2048,7 +2048,7 @@ private impl Decoder
     mtd extendSoundWindow(index: u64)
     {
         let fileIndex = .fileIndex
-        if not fileIndex or (not fileIndex.progressive!.audioTracks.count and not fileIndex.progressive!.subtitleTracks.count) do
+        if not fileIndex or (not fileIndex.progressive!.audioTracks.count and not fileIndex.progressive.subtitleTracks.count) do
             return
         if not Atomic.get(&fileIndex.currentSeekSound) do
             return

@@ -267,9 +267,9 @@ impl PdfPageCache
             var oldest = Swag.U64.Max
             for page, index in .pages
             {
-                if page!.index >= keepFrom and page!.index <= keepTo do
+                if page!.index >= keepFrom and page.index <= keepTo do
                     continue
-                if page!.used < oldest
+                if page.used < oldest
                 {
                     oldest = page.used
                     victim = index

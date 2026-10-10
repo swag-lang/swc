@@ -707,7 +707,7 @@ impl Decoder
         while Atomic.get(job.progress! + row) < needed and Atomic.get(job.failed!) == 0
         {
             job.events![row].reset()
-            if Atomic.get(job.progress! + row) < needed and Atomic.get(job.failed!) == 0 do
+            if Atomic.get(job.progress + row) < needed and Atomic.get(job.failed!) == 0 do
                 job.events[row].wait()
         }
 

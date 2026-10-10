@@ -44,7 +44,7 @@ impl IActionUI for ActionAlign
         case .SendToFront:
             evt.updatedFields |= .Disabled | .Icon | .Name
             evt.name          = appStrings().act_SendToFront
-            evt.disabled      = not hasSel or capture!.selection.contains(capture!.forms.count - 1)
+            evt.disabled      = not hasSel or capture!.selection.contains(capture.forms.count - 1)
             evt.icon          = main.theme().icon(.BringToFront)
 
         case .SendToBack:
@@ -56,7 +56,7 @@ impl IActionUI for ActionAlign
         case .MoveForward:
             evt.updatedFields |= .Disabled | .Icon | .Name
             evt.name          = appStrings().act_MoveForward
-            evt.disabled      = not hasSel or capture!.selection.contains(capture!.forms.count - 1)
+            evt.disabled      = not hasSel or capture!.selection.contains(capture.forms.count - 1)
             evt.icon          = main.theme().icon(.BringForward)
 
         case .MoveBackward:

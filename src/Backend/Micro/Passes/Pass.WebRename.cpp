@@ -93,7 +93,7 @@ namespace
         // Value numbering deliberately leaves frame reads to mem-to-reg.
         // Preserving them here would create single-use integer copies that
         // instruction combining removes, only to recreate them next sweep.
-        std::optional<std::unordered_set<MicroReg>>                                            frameDerived;
+        std::optional<FlatKeySet>                                                              frameDerived;
         std::unordered_map<MicroReg, std::unordered_map<uint64_t, std::vector<MicroInstrRef>>> loads;
         std::vector<MicroInstrRef>                                                             preserve;
         const auto                                                                             flush = [&] {
@@ -129,7 +129,7 @@ namespace
             {
                 if (!frameDerived)
                     MicroPassHelpers::collectFrameDerivedRegs(frameDerived.emplace(), storage, operands, CallConv::get(context.callConvKind).stackPointer);
-                if (!frameDerived->contains(ops[1].reg))
+                if (!frameDerived->contains(ops[1].reg.packed))
                     loads[ops[1].reg][ops[3].valueU64].push_back(it.current);
             }
         }

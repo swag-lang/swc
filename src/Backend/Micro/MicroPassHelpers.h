@@ -308,7 +308,8 @@ namespace MicroPassHelpers
     // Flow-insensitive closure of frame-derived addresses through copies,
     // address computations and additions. Consumers use the same conservative
     // set when coordinating memory forwarding with scalar stack promotion.
-    void collectFrameDerivedRegs(std::unordered_set<MicroReg>& out, const MicroStorage& storage, const MicroOperandStorage& operands, MicroReg stackPointer);
+    // The set holds registers by packed form.
+    void collectFrameDerivedRegs(FlatKeySet& out, const MicroStorage& storage, const MicroOperandStorage& operands, MicroReg stackPointer);
 
     // The frame extents [lo, hi) of the function's stack locals, as offsets from the frame base
     // the code generator names (MicroPassContext::debugStackBaseVirtualReg). Frame objects are
@@ -354,7 +355,8 @@ namespace MicroPassHelpers
     // incoming argument, and no use but as the base of a read - or, for a value handle, as an
     // argument handed on to a callee. A register that is copied elsewhere, offset, stored, or
     // written through may name storage someone else changes.
-    void collectImmutableStorageBases(std::unordered_set<MicroReg>& out, const MicroPassContext& context);
+    // The set holds registers by packed form.
+    void collectImmutableStorageBases(FlatKeySet& out, const MicroPassContext& context);
 
     // Fold a binary integer operation on two immediate values.
     // Maps MicroOp to Math::FoldBinaryOp and delegates to Math::foldBinaryInt.

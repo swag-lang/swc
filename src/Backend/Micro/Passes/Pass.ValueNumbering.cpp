@@ -65,16 +65,16 @@ namespace
     // whose intermediate results die the instruction after they are made —
     // still matches step by step until its tail, where the surviving result
     // register allows the actual rewrite and DCE unwinds the rest.
-    using ValueAliases = std::unordered_map<uint32_t, uint32_t>;
+    using ValueAliases = FlatKeyMap<uint32_t>;
 
     uint32_t resolveValueAlias(const ValueAliases& aliases, uint32_t valueId)
     {
         for (uint32_t depth = 0; depth < 8; ++depth)
         {
-            const auto it = aliases.find(valueId);
-            if (it == aliases.end())
+            const uint32_t* alias = aliases.find(valueId);
+            if (!alias)
                 break;
-            valueId = it->second;
+            valueId = *alias;
         }
         return valueId;
     }
@@ -643,8 +643,8 @@ namespace
 
     struct NumberingScratch
     {
-        std::unordered_set<MicroReg> frameDerivedRegs;
-        std::unordered_set<MicroReg> immutableBases;
+        FlatKeySet                   frameDerivedRegs;
+        FlatKeySet                   immutableBases;
         NumberingTable               table;
         std::vector<PlannedRewrite>  rewrites;
         ValueAliases                 valueAliases;
@@ -652,11 +652,12 @@ namespace
 
         void reset(const uint32_t instructionCount)
         {
-            frameDerivedRegs.clear();
-            immutableBases.clear();
+            // The flat tables start empty rather than clear what the largest function left.
+            frameDerivedRegs = {};
+            immutableBases   = {};
             table.clear();
             rewrites.clear();
-            valueAliases.clear();
+            valueAliases = {};
             // The source-order walk writes each entry before a later label
             // reads that instruction's epoch as its predecessor.
             epochAt.resize(instructionCount);
@@ -866,7 +867,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                 MicroPassHelpers::collectFrameDerivedRegs(frameDerivedRegs, storage, operands, CallConv::get(context.callConvKind).stackPointer);
                 frameDerivedRegsReady = true;
             }
-            if (!ripLoad && frameDerivedRegs.contains(ops[shape.useSlots[0]].reg))
+            if (!ripLoad && frameDerivedRegs.contains(ops[shape.useSlots[0]].reg.packed))
                 continue;
         }
 
@@ -964,7 +965,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
                             MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
                             immutableBasesReady = true;
                         }
-                        immutableLoad = immutableBases.contains(ops[shape.useSlots[0]].reg);
+                        immutableLoad = immutableBases.contains(ops[shape.useSlots[0]].reg.packed);
                     }
                     immutableLoadReady = true;
                 }

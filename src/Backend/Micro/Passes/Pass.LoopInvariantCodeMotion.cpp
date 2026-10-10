@@ -368,7 +368,7 @@ namespace
         // A value-handle parameter passed by reference is immutable to the
         // callee: no store and no call in a loop changes what a read through
         // its incoming address returns.
-        thread_local std::unordered_set<MicroReg> immutableBases;
+        FlatKeySet immutableBases;
         MicroPassHelpers::collectImmutableStorageBases(immutableBases, context);
 
         thread_local FlatKeySet             claimed; // instruction slot ids planned this round
@@ -811,7 +811,7 @@ namespace
                                                             firstIndex &&
                                                             relocations[*firstIndex].kind == MicroRelocation::Kind::ConstantAddress;
 
-                            const bool immutableLoad = loadOps[1].reg.isVirtualInt() && immutableBases.contains(loadOps[1].reg);
+                            const bool immutableLoad = loadOps[1].reg.isVirtualInt() && immutableBases.contains(loadOps[1].reg.packed);
 
                             // A private global read directly: no pointer store reaches it, only a
                             // direct store to the same global in this loop. Only an innermost loop

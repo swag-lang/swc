@@ -437,12 +437,12 @@ uint32_t MicroPassHelpers::computeNextVirtualFloatRegIndex(const MicroPassContex
     return computeNextVirtualRegIndex(context, true, 1);
 }
 
-void MicroPassHelpers::collectFrameDerivedRegs(std::unordered_set<MicroReg>& out, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroReg stackPointer)
+void MicroPassHelpers::collectFrameDerivedRegs(FlatKeySet& out, const MicroStorage& storage, const MicroOperandStorage& operands, const MicroReg stackPointer)
 {
-    out.clear();
+    out = {};
     if (!stackPointer.isValid())
         return;
-    out.insert(stackPointer);
+    out.insert(stackPointer.packed);
 
     bool changed = true;
     while (changed)
@@ -460,22 +460,22 @@ void MicroPassHelpers::collectFrameDerivedRegs(std::unordered_set<MicroReg>& out
                 case MicroInstrOpcode::LoadRegReg:
                 case MicroInstrOpcode::LoadAddrRegMem:
                 case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    derived = out.contains(ops[1].reg);
+                    derived = out.contains(ops[1].reg.packed);
                     break;
                 case MicroInstrOpcode::OpBinaryRegReg:
-                    derived = ops[3].microOp == MicroOp::Add && out.contains(ops[1].reg);
+                    derived = ops[3].microOp == MicroOp::Add && out.contains(ops[1].reg.packed);
                     break;
                 case MicroInstrOpcode::OpBinaryRegRegReg:
-                    derived = ops[4].microOp == MicroOp::Add && (out.contains(ops[1].reg) || out.contains(ops[2].reg));
+                    derived = ops[4].microOp == MicroOp::Add && (out.contains(ops[1].reg.packed) || out.contains(ops[2].reg.packed));
                     break;
                 case MicroInstrOpcode::OpBinaryRegRegImm:
-                    derived = (ops[3].microOp == MicroOp::Add || ops[3].microOp == MicroOp::Subtract) && out.contains(ops[1].reg);
+                    derived = (ops[3].microOp == MicroOp::Add || ops[3].microOp == MicroOp::Subtract) && out.contains(ops[1].reg.packed);
                     break;
                 default:
                     break;
             }
 
-            if (derived && out.insert(ops[0].reg).second)
+            if (derived && out.insert(ops[0].reg.packed))
                 changed = true;
         }
     }
@@ -1424,9 +1424,9 @@ bool MicroPassHelpers::dereferenceBaseOperandIndex(uint8_t& outIndex, MicroInstr
     return true;
 }
 
-void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>& out, const MicroPassContext& context)
+void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const MicroPassContext& context)
 {
-    out.clear();
+    out = {};
     if (!context.builder || !context.instructions || !context.operands)
         return;
     const std::unordered_set<MicroReg>& marked = context.builder->immutableStorageBases();
@@ -1436,8 +1436,10 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
 
-    std::unordered_set<MicroReg>                  defined;
-    std::unordered_set<MicroReg>                  rejected;
+    // Registers by packed form. The defined ones are also listed, for the final pass.
+    FlatKeySet                                    defined;
+    SmallVector<MicroReg, 4>                      definedList;
+    FlatKeySet                                    rejected;
     SmallVector<std::pair<MicroReg, MicroReg>, 4> copies;
     for (const MicroInstr& inst : storage.view())
     {
@@ -1471,10 +1473,14 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
                                             (!ops[1].reg.isVirtual() || marked.contains(ops[1].reg))) ||
                                            (inst.op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
                                             !ops[1].reg.isVirtual()));
-                if (!fromArgument || !defined.insert(reg).second)
+                if (!fromArgument || !defined.insert(reg.packed))
                 {
-                    if (rejected.insert(reg).second && rejected.size() == marked.size())
+                    if (rejected.insert(reg.packed) && rejected.size() == marked.size())
                         return;
+                }
+                else
+                {
+                    definedList.push_back(reg);
                 }
                 continue;
             }
@@ -1499,7 +1505,7 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
 
             // Rejection is permanent. Once every marked base is rejected,
             // neither later operands nor copy propagation can add an output.
-            if (rejected.insert(reg).second && rejected.size() == marked.size())
+            if (rejected.insert(reg.packed) && rejected.size() == marked.size())
                 return;
         }
     }
@@ -1509,11 +1515,11 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
         changed = false;
         for (const auto& [from, to] : copies)
         {
-            const bool fromRejected = rejected.contains(from);
-            const bool toRejected   = rejected.contains(to);
+            const bool fromRejected = rejected.contains(from.packed);
+            const bool toRejected   = rejected.contains(to.packed);
             if (fromRejected != toRejected)
             {
-                rejected.insert(fromRejected ? to : from);
+                rejected.insert(fromRejected ? to.packed : from.packed);
                 if (rejected.size() == marked.size())
                     return;
                 changed = true;
@@ -1521,10 +1527,10 @@ void MicroPassHelpers::collectImmutableStorageBases(std::unordered_set<MicroReg>
         }
     }
 
-    for (const MicroReg reg : defined)
+    for (const MicroReg reg : definedList)
     {
-        if (!rejected.contains(reg))
-            out.insert(reg);
+        if (!rejected.contains(reg.packed))
+            out.insert(reg.packed);
     }
 }
 

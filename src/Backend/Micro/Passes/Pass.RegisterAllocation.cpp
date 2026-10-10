@@ -2306,16 +2306,48 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         }
     };
 
+    const auto computeAcyclicLiveIn = [&](const uint32_t instructionIndex) {
+        const auto& successors = controlFlowGraph.successors(instructionIndex);
+        auto        inVirtual  = DenseBits::row(liveInVirtualBits_, instructionIndex, virtualWordCount);
+        auto        inConcrete = DenseBits::row(liveInConcreteBits_, instructionIndex, concreteWordCount);
+        if (successors.size() == 1)
+        {
+            SWC_ASSERT(successors[0] < instructionCount_);
+            std::ranges::copy(DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount), inVirtual.begin());
+            std::ranges::copy(DenseBits::row(liveInConcreteBits_, successors[0], concreteWordCount), inConcrete.begin());
+        }
+        else
+        {
+            std::ranges::fill(inVirtual, 0);
+            std::ranges::fill(inConcrete, 0);
+            for (const uint32_t succIdx : successors)
+            {
+                SWC_ASSERT(succIdx < instructionCount_);
+                const auto succInVirtual  = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
+                const auto succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, concreteWordCount);
+                for (size_t word = 0; word < virtualWordCount; ++word)
+                    inVirtual[word] |= succInVirtual[word];
+                for (size_t word = 0; word < concreteWordCount; ++word)
+                    inConcrete[word] |= succInConcrete[word];
+            }
+        }
+
+        for (const uint32_t bitIndex : defVirtualIndices_[instructionIndex])
+            DenseBits::clear(inVirtual, bitIndex);
+        for (const uint32_t bitIndex : useVirtualIndices_[instructionIndex])
+            DenseBits::set(inVirtual, bitIndex);
+        for (const uint32_t bitIndex : defConcreteIndices_[instructionIndex])
+            DenseBits::clear(inConcrete, bitIndex);
+        for (const uint32_t bitIndex : useConcreteIndices_[instructionIndex])
+            DenseBits::set(inConcrete, bitIndex);
+    };
+
     // Every edge in an acyclic instruction CFG points forward in listing order.
     // One reverse sweep therefore sees final successor rows without a worklist.
     if (!functionHasLoop_)
     {
         for (uint32_t idx = instructionCount_; idx != 0;)
-        {
-            computeLiveIn(--idx);
-            std::ranges::copy(tempOutVirtual_, DenseBits::row(liveInVirtualBits_, idx, virtualWordCount).begin());
-            std::ranges::copy(tempOutConcrete_, DenseBits::row(liveInConcreteBits_, idx, concreteWordCount).begin());
-        }
+            computeAcyclicLiveIn(--idx);
     }
     else
     {

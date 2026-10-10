@@ -1,6 +1,13 @@
 {
 	"$schema": "vscode://schemas/color-theme",
 	"name": "Swag Dark",
+	"semanticHighlighting": true,
+	"semanticTokenColors": {
+		"parameter": "#E8A06A",
+		"property": "#61D0E8",
+		"variable.local": "#D5D5DD",
+		"variable.global": "#38BDF8"
+	},
 	"colors": {
 		"checkbox.border": "#6B6B6B",
 		"editor.background": "#1E1E1E",

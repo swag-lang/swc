@@ -842,8 +842,12 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
             continue;
 
         // The region must end in a call, have no interior entry or terminator,
-        // and start with a label when the hot path jumps over it.
+        // and start with a label when the hot path jumps over it. A call whose
+        // result the region keeps still ends it: only register copies may follow
+        // it - the result out of its return register, then into the variable it
+        // is assigned to - as a slow path that computes a value has them.
         bool     regionIsGuard = true;
+        bool     endsInCall    = false;
         uint32_t inner         = idx + 1;
         for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
         {
@@ -851,11 +855,14 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                 regionIsGuard = innerIt->op == MicroInstrOpcode::Label;
             else if (innerIt->op == MicroInstrOpcode::Label)
                 regionIsGuard = false;
-            else if (inner + 1 == targetIdx)
-                regionIsGuard = instructionUseDefs_[inner].isCall;
             else if (MicroInstrInfo::isTerminatorInstruction(*innerIt))
                 regionIsGuard = false;
+            else if (instructionUseDefs_[inner].isCall)
+                endsInCall = true;
+            else if (endsInCall)
+                endsInCall = innerIt->op == MicroInstrOpcode::LoadRegReg;
         }
+        regionIsGuard = regionIsGuard && endsInCall;
 
         if (!regionIsGuard)
             continue;

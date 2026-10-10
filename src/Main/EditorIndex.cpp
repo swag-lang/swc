@@ -67,6 +67,21 @@ namespace
         }
     }
 
+    std::string_view variableStorage(const Symbol& symbol)
+    {
+        if (!symbol.isVariable())
+            return {};
+
+        const auto& variable = symbol.cast<SymbolVariable>();
+        if (variable.hasExtraFlag(SymbolVariableFlagsE::Parameter) || (symbol.ownerSymMap() && symbol.ownerSymMap()->isStruct()))
+            return {};
+        if (variable.hasGlobalStorage())
+            return "global";
+        if (variable.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+            return "local";
+        return {};
+    }
+
     struct FileWriter
     {
         CompilerInstance*                      compiler    = nullptr;
@@ -119,6 +134,7 @@ namespace
             const auto* variable    = symbol.decl()->safeCast<AstSingleVarDecl>();
             const bool  inferred    = declaration && variable && variable->nodeTypeRef.isInvalid() && variable->nodeInitRef.isValid();
             const bool  readonly    = symbol.isConstant() || symbol.isEnumValue() || symbol.isLetVariable();
+            const auto  storage     = variableStorage(symbol);
 
             if (!first)
                 *out << ',';
@@ -130,6 +146,11 @@ namespace
             *out << ",\"type\":";
             writeString(*out, symbol.typeRef().isValid() ? symbol.typeInfo(*ctx).toName(*ctx).view() : std::string_view{});
             *out << ",\"declaration\":" << (declaration ? "true" : "false") << ",\"readonly\":" << (readonly ? "true" : "false");
+            if (!storage.empty())
+            {
+                *out << ",\"storage\":";
+                writeString(*out, storage);
+            }
             *out << ",\"inferred\":" << (inferred ? "true" : "false") << ",\"definition\":{\"path\":";
             writePath(*out, target.file()->path());
             *out << ",\"start\":" << target.tokenByteStart(targetToken) << ",\"length\":" << targetToken.byteLength << "}}";

@@ -1912,8 +1912,14 @@ namespace
             bool narrowReaders = true;
             for (const SmallVector<uint32_t, 4>* list : {&std::as_const(dSites).uses, &eSites.uses})
             {
+                bool     hasPreviousOrdinal = false;
+                uint32_t previousOrdinal    = 0;
                 for (const uint32_t ordinal : *list)
                 {
+                    if (hasPreviousOrdinal && ordinal == previousOrdinal)
+                        continue;
+                    previousOrdinal    = ordinal;
+                    hasPreviousOrdinal = true;
                     if (ordinal == copyOrdinal)
                         continue;
                     const MicroInstr* reader = storage.ptr(layout.order[ordinal]);

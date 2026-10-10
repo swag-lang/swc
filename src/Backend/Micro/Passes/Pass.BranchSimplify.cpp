@@ -1677,7 +1677,7 @@ namespace
                 if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
                     return false;
                 uint32_t labelId = 0;
-                if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
+                if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
                     ++localLabelReferences->getOrInsert(labelId);
             }
         }

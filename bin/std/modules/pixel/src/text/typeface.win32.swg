@@ -72,7 +72,9 @@ impl TypeFace
     // `msgothic.ttc` lists `MS Gothic` first and `MS PGothic` last. Match by name; skip faces
     // whose names cannot be read, and fall back to the first face if no name matches (for example,
     // when the system's localized names differ from the `name` table).
-    // a collection stating no match falls back to its first face, which is what a
+    // A collection with no name match falls back to its first face, which handles
+    // systems whose localized family names differ from the `name` table.
+    func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face fail
     {
         let count = try Face.countFaces(bytes)
         if count > 1 and family.count != 0
@@ -106,6 +108,7 @@ impl TypeFace
         // instead of reporting the failure.
         var buffer = try readHfontData(hfont)
         let family = try readHfontFamily(hfont)
+        let face   = try loadFaceForFamily(buffer.toSlice(), family, allocator)
 
         let tf = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator

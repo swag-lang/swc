@@ -5680,6 +5680,35 @@ namespace
         return false;
     }
 
+    bool armReadsAnyRegisterLiveIn(const DiamondArm& arm, const DiamondScan& scan, SmallVector<MicroReg, 8>& pending)
+    {
+        for (const MicroInstrRef ref : arm.refs)
+        {
+            const MicroInstrUseDef* useDef = scan.ssa->instrUseDef(ref);
+            if (!useDef)
+                return true;
+            for (const MicroReg use : useDef->uses)
+            {
+                if (std::ranges::find(pending, use) != pending.end())
+                    return true;
+            }
+            for (const MicroReg def : useDef->defs)
+            {
+                for (size_t i = pending.size(); i-- > 0;)
+                {
+                    if (pending[i] == def)
+                    {
+                        pending.erase_unordered(pending.begin() + i);
+                        break;
+                    }
+                }
+            }
+            if (pending.empty())
+                return false;
+        }
+        return false;
+    }
+
     bool qualifyDiamond(Diamond& diamond, const DiamondScan& scan)
     {
         MicroReg fallthroughResult;
@@ -5704,12 +5733,32 @@ namespace
         // The jump arm now runs after the fall-through arm. Its first touch of
         // the result must be a write (the rename to D' then covers every
         // occurrence), and it must not read anything the other arm wrote.
-        if (armReadsRegisterLiveIn(diamond.jumpArm, scan, diamond.result))
-            return false;
-        for (const MicroReg def : diamond.fallthroughArm.defs)
+        if (diamond.fallthroughArm.defs.size() <= 7)
         {
-            if (def != diamond.result && armReadsRegisterLiveIn(diamond.jumpArm, scan, def))
+            SmallVector<MicroReg, 8> liveInChecks;
+            liveInChecks.push_back(diamond.result);
+            for (const MicroReg def : diamond.fallthroughArm.defs)
+            {
+                if (def != diamond.result && std::ranges::find(liveInChecks, def) == liveInChecks.end())
+                    liveInChecks.push_back(def);
+            }
+            if (liveInChecks.size() == 1)
+            {
+                if (armReadsRegisterLiveIn(diamond.jumpArm, scan, diamond.result))
+                    return false;
+            }
+            else if (armReadsAnyRegisterLiveIn(diamond.jumpArm, scan, liveInChecks))
                 return false;
+        }
+        else
+        {
+            if (armReadsRegisterLiveIn(diamond.jumpArm, scan, diamond.result))
+                return false;
+            for (const MicroReg def : diamond.fallthroughArm.defs)
+            {
+                if (def != diamond.result && armReadsRegisterLiveIn(diamond.jumpArm, scan, def))
+                    return false;
+            }
         }
 
         // When neither arm writes the flags, the conditional move at the join

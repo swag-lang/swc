@@ -1443,7 +1443,7 @@ namespace
             return false;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump || !layout.hasSetCondition)
+        if (!layout.hasConditionalJump || !layout.hasSetCondition || !layout.hasImmediateCompare)
             return false;
         const auto soleUsesAre = [&](MicroReg firstReg, MicroInstrRef firstReader, MicroReg secondReg, MicroInstrRef secondReader) {
             uint32_t firstUses  = 0;

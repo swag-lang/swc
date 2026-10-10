@@ -135,6 +135,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
     still scans the pending edges; an edge whose callee never frees its parameter stays pending.
     The guarded path also reconstructs its closure-local return-summary table. A worklist keyed by
     callee could revisit an edge only when its callee's mask or either end's completion changes.
+- October 10 Prompt 4: `prepareJitFunction` now records the call-graph and native-init-target
+  versions before its sema-order walk, waits for that order, and reuses it when both versions
+  remain stable. A change repeats the build-and-wait loop until the order is stable, rather than
+  accepting a rebuilt order based only on its size. Macro/mixin attribute transitions now advance
+  the call-graph version because those attributes exclude functions from the walk. This removes
+  one stable-path order reconstruction while preserving summary propagation. Release JIT tests
+  (1,534) and sanity tests (71) pass; no timing was collected.
 - Next: measure these remaining walks on a `gui` release rebuild. Before remembering patched
   allocations across functions, preserve deferred-function registration and the `Pause` path;
   a memo must account for both. Preserve the guarded return proofs and late completion when

@@ -775,12 +775,12 @@ namespace
         return !stages.empty();
     }
 
-    NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal)
+    NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal, SymbolSort::LocationKeyCache* sortKeys = nullptr)
     {
         NativeFunctionInfo info;
         info.symbol                   = &symbol;
         info.machineCode              = &symbol.loweredCode();
-        info.sortKey                  = SymbolSort::locationKey(builder.compiler(), symbol);
+        info.sortKey                  = sortKeys ? sortKeys->key(symbol) : SymbolSort::locationKey(builder.compiler(), symbol);
         info.compilerFn               = isCompilerFunction(symbol);
         const bool exportPublicSymbol = isExportedLibraryFunction(builder, symbol);
         if (exportPublicSymbol)
@@ -799,10 +799,11 @@ namespace
         builder.functionInfos.reserve(functions.size());
         builder.functionBySymbol.reserve(functions.size());
 
+        SymbolSort::LocationKeyCache sortKeys(builder.compiler());
         for (SymbolFunction* symbol : functions)
         {
             SWC_ASSERT(symbol != nullptr);
-            NativeFunctionInfo info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(builder.functionInfos.size()));
+            NativeFunctionInfo info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(builder.functionInfos.size()), &sortKeys);
             SWC_RESULT(builder.finalizeFunctionCacheHit(info.cacheHit, *symbol, info.symbolName));
             if (info.cacheHit)
                 info.machineCode = nullptr;

@@ -1294,7 +1294,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // see is what the rest of this round rewrites.
             if (!deadStores.empty())
             {
-                std::unordered_set<uint32_t> erased;
+                FlatKeySet erased;
                 for (const MicroInstrRef deadStore : deadStores)
                 {
                     erased.insert(deadStore.get());

@@ -69,7 +69,7 @@ namespace
         MicroOperandStorage* operands = nullptr;
         MicroReg             stackPointer;
 
-        std::unordered_map<uint32_t, RegDefInfo> regDefs;
+        FlatKeyMap<RegDefInfo>                   regDefs; // by packed register
         std::vector<uint32_t>                    stackPointerDefs;
         uint32_t                                 firstCallIndex = K_INVALID;
 
@@ -112,11 +112,11 @@ namespace
                 if (!reg.isVirtual())
                     return false;
 
-                const auto defIt = regDefs.find(reg.packed);
-                if (defIt == regDefs.end() || defIt->second.defCount != 1)
+                const RegDefInfo* regDef = regDefs.find(reg.packed);
+                if (!regDef || regDef->defCount != 1)
                     return false;
 
-                const MicroInstr* defInst = storage->ptr(defIt->second.defRef);
+                const MicroInstr* defInst = storage->ptr(regDef->defRef);
                 if (!defInst)
                     return false;
 
@@ -136,7 +136,7 @@ namespace
                 }
 
                 outRoot = reg;
-                outKind = classifyRoot(reg, &defIt->second);
+                outKind = classifyRoot(reg, regDef);
                 return true;
             }
 
@@ -658,7 +658,7 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
                 fn.stackPointerDefs.push_back(i);
             if (!reg.isVirtual())
                 return;
-            RegDefInfo& info = fn.regDefs[reg.packed];
+            RegDefInfo& info = fn.regDefs.getOrInsert(reg.packed);
             info.defCount++;
             info.defRef   = instrRefs[i];
             info.defIndex = i;

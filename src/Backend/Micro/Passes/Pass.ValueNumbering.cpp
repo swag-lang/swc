@@ -421,7 +421,7 @@ namespace
     {
         if (!context.sanitizerFunction)
             return false;
-        std::optional<std::unordered_set<uint32_t>> selfCalls;
+        std::optional<FlatKeySet> selfCalls;
         for (const auto& relocation : context.builder->codeRelocations())
             if (relocation.kind == MicroRelocation::Kind::LocalFunctionAddress &&
                 relocation.targetSymbol == context.sanitizerFunction)

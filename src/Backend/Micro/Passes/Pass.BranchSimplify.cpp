@@ -3729,7 +3729,7 @@ namespace
         };
 
         SmallVector<RangeCheck>                     checks;
-        std::optional<std::unordered_set<uint32_t>> used;
+        std::optional<FlatKeySet>                   used;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             RangeCheck check;
@@ -4616,7 +4616,7 @@ namespace
         };
 
         SmallVector<Candidate>                           candidates;
-        std::optional<std::unordered_set<MicroInstrRef>> claimedRefs;
+        std::optional<FlatKeySet>                        claimedRefs; // instruction slot ids
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
             if (it->op != MicroInstrOpcode::JumpCond)
@@ -4699,10 +4699,10 @@ namespace
             };
             if (!claimedRefs)
                 claimedRefs.emplace();
-            if (std::ranges::any_of(candidateRefs, [&](MicroInstrRef ref) { return claimedRefs->contains(ref); }))
+            if (std::ranges::any_of(candidateRefs, [&](MicroInstrRef ref) { return claimedRefs->contains(ref.get()); }))
                 continue;
             for (const MicroInstrRef ref : candidateRefs)
-                claimedRefs->insert(ref);
+                claimedRefs->insert(ref.get());
 
             candidates.push_back(candidate);
         }

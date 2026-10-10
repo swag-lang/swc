@@ -121,7 +121,7 @@ namespace
     // Describes the access an instruction of the body makes, when it is one
     // the rule understands. `addrDefs` maps a register to the body position of
     // its single in-body address definition.
-    bool describeAccess(Access& out, const Loop& loop, uint32_t pos, const std::unordered_map<uint32_t, uint32_t>& addrDefs)
+    bool describeAccess(Access& out, const Loop& loop, uint32_t pos, const FlatKeyMap<uint32_t>& addrDefs)
     {
         out                           = {};
         out.pos                       = pos;
@@ -157,11 +157,11 @@ namespace
             {
                 const bool     isStore = inst.op == MicroInstrOpcode::LoadMemReg;
                 const MicroReg addr    = isStore ? ops[0].reg : ops[1].reg;
-                const auto     it      = addrDefs.find(addr.packed);
-                if (it == addrDefs.end() || it->second >= pos)
+                const uint32_t* addrPos = addrDefs.find(addr.packed);
+                if (!addrPos || *addrPos >= pos)
                     return false;
-                const MicroInstrOperand* addrOps = loop.ops[it->second];
-                SWC_ASSERT(loop.insts[it->second]->op == MicroInstrOpcode::LoadAddrAmcRegMem);
+                const MicroInstrOperand* addrOps = loop.ops[*addrPos];
+                SWC_ASSERT(loop.insts[*addrPos]->op == MicroInstrOpcode::LoadAddrAmcRegMem);
                 // [0] dst, [1] base, [2] index, [3] dst bits, [4] value bits, [5] scale, [6] disp
                 if (addrOps[3].opBits != MicroOpBits::B64 || addrOps[4].opBits != MicroOpBits::B64)
                     return false;
@@ -205,9 +205,12 @@ namespace
 
         // Registers the body defines, and where; the index candidates are
         // those defined once, by an immediate step.
-        FlatKeyMap<uint32_t>                   defCount;
-        FlatKeyMap<uint32_t>                   lastDef;
-        std::unordered_map<uint32_t, uint32_t> addrDefs;
+        FlatKeyMap<uint32_t> defCount;
+        FlatKeyMap<uint32_t> lastDef;
+        // Body position of each single address definition, by packed register; the
+        // positions are also listed, for the checks that read every one of them.
+        FlatKeyMap<uint32_t>  addrDefs;
+        std::vector<uint32_t> addrDefPositions;
         for (uint32_t i = 0; i < n; ++i)
         {
             for (const MicroReg def : loop.useDefs[i].defs)
@@ -226,7 +229,11 @@ namespace
                 continue;
             const MicroReg dst = loop.ops[i][0].reg;
             if (definitionCount(dst) == 1)
-                addrDefs[dst.packed] = i;
+            {
+                // A register defined once has one such definition: each key is new.
+                addrDefs.getOrInsert(dst.packed) = i;
+                addrDefPositions.push_back(i);
+            }
         }
 
         std::vector<Access> accesses;
@@ -270,7 +277,7 @@ namespace
                 if (access.index == consumer.index && access.pos > stepPos)
                     indexAfterAll = false;
             }
-            for (const auto& [reg, pos] : addrDefs)
+            for (const uint32_t pos : addrDefPositions)
             {
                 if (loop.ops[pos][2].reg == consumer.index && pos > stepPos)
                     indexAfterAll = false;

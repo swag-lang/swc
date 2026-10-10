@@ -5564,14 +5564,16 @@ namespace
     };
 
     // Collect up to K_MAX_IF_CONVERT_ARM_INSTR speculatable instructions after
-    // `fromRef`, stopping at the first one that is not; that instruction comes
-    // back in `outStopRef` for the caller to classify.
-    bool collectDiamondArm(DiamondArm& outArm, MicroInstrRef& outStopRef, const DiamondScan& scan, MicroInstrRef fromRef)
+    // `fromRef`, stopping at the first one that is not; return its reference and
+    // pointer for the caller to classify.
+    bool collectDiamondArm(DiamondArm& outArm, MicroInstrRef& outStopRef, const MicroInstr*& outStopInst, const DiamondScan& scan, MicroInstrRef fromRef)
     {
-        outStopRef = scan.storage->findNextInstructionRef(fromRef);
+        outStopRef  = scan.storage->findNextInstructionRef(fromRef);
+        outStopInst = nullptr;
         while (outStopRef.isValid())
         {
-            const MicroInstr*        inst = scan.storage->ptr(outStopRef);
+            outStopInst              = scan.storage->ptr(outStopRef);
+            const MicroInstr*        inst = outStopInst;
             const MicroInstrOperand* ops  = nullptr;
             if (!inst || !isSpeculatableArmInstruction(*inst, *scan.operands, ops))
                 return true;
@@ -5594,9 +5596,10 @@ namespace
 
         // The fall-through arm, ended by the jump to the join.
         MicroInstrRef stopRef;
-        if (!collectDiamondArm(out.fallthroughArm, stopRef, scan, jumpRef) || out.fallthroughArm.refs.empty())
+        const MicroInstr* stopInst;
+        if (!collectDiamondArm(out.fallthroughArm, stopRef, stopInst, scan, jumpRef) || out.fallthroughArm.refs.empty())
             return false;
-        const MicroInstr* joinJumpInst = scan.storage->ptr(stopRef);
+        const MicroInstr* joinJumpInst = stopInst;
         if (!joinJumpInst || joinJumpInst->op != MicroInstrOpcode::JumpCond)
             return false;
         const MicroInstrOperand* joinJumpOps = joinJumpInst->ops(*scan.operands);
@@ -5622,9 +5625,9 @@ namespace
             return false;
 
         // The jump arm, ended by the join label.
-        if (!collectDiamondArm(out.jumpArm, stopRef, scan, out.armLabelRef) || out.jumpArm.refs.empty())
+        if (!collectDiamondArm(out.jumpArm, stopRef, stopInst, scan, out.armLabelRef) || out.jumpArm.refs.empty())
             return false;
-        const MicroInstr* joinLabelInst = scan.storage->ptr(stopRef);
+        const MicroInstr* joinLabelInst = stopInst;
         if (!joinLabelInst || joinLabelInst->op != MicroInstrOpcode::Label)
             return false;
         if (!tryGetLabelId(labelId, *joinLabelInst, joinLabelInst->ops(*scan.operands)) || labelId != joinLabelId)
@@ -7201,7 +7204,8 @@ namespace
             return false;
 
         MicroInstrRef stopRef;
-        if (!collectDiamondArm(out.arm, stopRef, scan, jumpRef) || out.arm.refs.empty() || !stopRef.isValid())
+        const MicroInstr* stopInst;
+        if (!collectDiamondArm(out.arm, stopRef, stopInst, scan, jumpRef) || out.arm.refs.empty() || !stopRef.isValid())
             return false;
 
         // A lone move is convertBranchesToConditionalMoves' shape.
@@ -7212,7 +7216,7 @@ namespace
                 return false;
         }
 
-        const MicroInstr* labelInst = scan.storage->ptr(stopRef);
+        const MicroInstr* labelInst = stopInst;
         if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
             return false;
         uint32_t          labelId   = 0;

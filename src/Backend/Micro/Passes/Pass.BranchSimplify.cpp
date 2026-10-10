@@ -1413,7 +1413,7 @@ namespace
     // An inlined boolean return can reach a sole branch through a copy and a
     // join. Thread the producer's condition to the consumer's two successors
     // when the temporary and the merged byte have no other readers.
-    bool threadInlinedBooleanBranches(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, ProgramLayoutCache& layoutCache)
+    bool threadInlinedBooleanBranches(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, ProgramLayoutCache& layoutCache, const CountTable* mentionCounts)
     {
         if (!builder)
             return false;
@@ -1442,6 +1442,19 @@ namespace
                 }
             }
             return firstUses == 1 && secondUses == 1;
+        };
+        const auto soleUsesMatchCachedMentions = [&](const MicroReg firstReg, const MicroInstrRef firstReader, const MicroReg secondReg, const MicroInstrRef secondReader) {
+            if (mentionCounts && firstReg != secondReg)
+            {
+                const uint32_t* firstMentions = mentionCounts->find(firstReg.index());
+                if (firstMentions && *firstMentions == 2u)
+                {
+                    const uint32_t* secondMentions = mentionCounts->find(secondReg.index());
+                    if (secondMentions && *secondMentions == 2u)
+                        return true;
+                }
+            }
+            return soleUsesAre(firstReg, firstReader, secondReg, secondReader);
         };
 
         for (size_t ordinal = 2; ordinal + 1 < layout.order.size(); ++ordinal)
@@ -1486,7 +1499,7 @@ namespace
             if (!cmpOps || !branchOps || cmpOps[0].reg != copyOps[0].reg ||
                 cmpOps[1].opBits != MicroOpBits::B8 || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 ||
                 (branchOps[0].cpuCond != MicroCond::Equal && branchOps[0].cpuCond != MicroCond::NotEqual) ||
-                !soleUsesAre(setOps[0].reg, copyRef, copyOps[0].reg, cmpRef) ||
+                !soleUsesMatchCachedMentions(setOps[0].reg, copyRef, copyOps[0].reg, cmpRef) ||
                 !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, branchRef))
                 continue;
 
@@ -7713,10 +7726,12 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         roundChanged |= coalesced;
         if (coalesced)
         {
+            currentBranchScan = nullptr;
             shortCircuitLayout.invalidate();
             relocationCache.invalidate();
         }
-        if (threadInlinedBooleanBranches(storage, operands, context.builder, shortCircuitLayout))
+        const CountTable* currentMentions = currentBranchScan ? &currentBranchScan->mentions : nullptr;
+        if (threadInlinedBooleanBranches(storage, operands, context.builder, shortCircuitLayout, currentMentions))
         {
             roundChanged = true;
             shortCircuitLayout.invalidate();

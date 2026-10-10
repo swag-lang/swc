@@ -264,13 +264,17 @@ bool readCoffDefinedSymbols(std::vector<CoffInputSymbol>& outSymbols, Diagnostic
 bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects)
 {
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
-    std::unordered_set<Utf8>           definedNames;
+    // Views of the names: the objects' own outlive the merge, and the image's symbols already
+    // present (typically none) are copied once, since the image grows below.
+    std::unordered_set<std::string_view> definedNames;
+    std::vector<Utf8>                    presentNames;
 
     // Seed with any sections already present (typically none).
     for (uint32_t i = 0; i < outImage.sections.size(); ++i)
         sectionByName[outImage.sections[i].name] = i;
+    presentNames.reserve(outImage.symbols.size());
     for (const LinkSymbol& symbol : outImage.symbols)
-        definedNames.insert(symbol.name);
+        definedNames.insert(presentNames.emplace_back(symbol.name).view());
 
     for (const CoffObject& object : objects)
     {
@@ -348,7 +352,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
         {
             if (symbol.sectionIndex >= baseOffset.size() || baseOffset[symbol.sectionIndex] < 0)
                 continue; // defined in a dropped section
-            if (!definedNames.insert(symbol.name).second)
+            if (!definedNames.insert(symbol.name.view()).second)
                 continue; // first definition wins
 
             LinkSymbol out;

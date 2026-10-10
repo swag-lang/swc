@@ -794,18 +794,22 @@ namespace
         // still reject a stale read. Waiting only on sema permits recursive calls.
         while (true)
         {
+            const uint64_t orderCallGraphVersion = SymbolFunction::callGraphVersion();
+            const uint64_t orderTargetsVersion   = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
             SmallVector<SymbolFunction*> semaOrder;
             buildJitOrderWithNativeRoots(sema, symFn, semaOrder);
             for (const SymbolFunction* function : semaOrder)
                 SWC_RESULT(sema.waitSemaCompleted(function, function->codeRef()));
 
-            SmallVector<SymbolFunction*> completedOrder;
-            buildJitOrderWithNativeRoots(sema, symFn, completedOrder);
-            if (completedOrder.size() != semaOrder.size())
-                continue;
+            // Sema can add dependencies or native roots. Reuse this order only when neither
+            // version moved while its functions were being completed.
+            if (SymbolFunction::callGraphVersion() == orderCallGraphVersion &&
+                sema.compiler().nativeGlobalFunctionInitTargetsVersion() == orderTargetsVersion)
+            {
+                SemaEscape::propagateCompletedFreesSummaries(ctx, semaOrder.span());
+                break;
+            }
 
-            SemaEscape::propagateCompletedFreesSummaries(ctx, completedOrder.span());
-            break;
         }
 
         sema.compiler().tryEnqueueCodeGenJob(sema, symFn, symFn.declNodeRef());

@@ -3177,8 +3177,14 @@ namespace
         const auto   instAt = [&](size_t index) -> const MicroInstr* {
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
+        const auto unconditionalJumpOps = [&](const MicroInstr* inst) -> const MicroInstrOperand* {
+            if (!inst || inst->op != MicroInstrOpcode::JumpCond)
+                return nullptr;
+            const MicroInstrOperand* ops = inst->ops(operands);
+            return ops && ops[0].cpuCond == MicroCond::Unconditional ? ops : nullptr;
+        };
         const auto isUnconditionalJump = [&](const MicroInstr* inst) {
-            return inst && inst->op == MicroInstrOpcode::JumpCond && inst->ops(operands)[0].cpuCond == MicroCond::Unconditional;
+            return unconditionalJumpOps(inst) != nullptr;
         };
 
         struct Arm
@@ -3341,9 +3347,9 @@ namespace
                 }
 
                 uint32_t exitId = 0;
-                if (isUnconditionalJump(exit))
+                if (const MicroInstrOperand* jumpOps = unconditionalJumpOps(exit))
                 {
-                    if (!tryGetJumpTargetLabelId(exitId, *exit, exit->ops(operands)))
+                    if (!tryGetJumpTargetLabelId(exitId, *exit, jumpOps))
                         return false;
                 }
                 else if (exit->op == MicroInstrOpcode::Label && tryGetLabelId(exitId, *exit, exit->ops(operands)))

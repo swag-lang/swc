@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 15:15 — Skip dead-store load decoding with no pending store.
+- Updated: 2026-10-10 15:19 — Gate equality-chain label operands by opcode.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
@@ -100,6 +100,7 @@ new language syntax.
 - Taken on 2026-10-10: InstructionCombine's store-to-load forwarding and dead-store scans now decode operands only for the load/store opcodes they analyze. Their other paths use opcode barriers and SSA definitions, so they retain the same clearing and alias decisions without operand lookup. The Release build and focused native store-filter (8 tests) and `global_load_forwarding.swg` (1 test) passed; no timing claim is made.
 - Taken on 2026-10-10: dead-store elimination now decodes a `LoadRegMem` only after confirming at least one earlier store is pending. A load with an empty pending set immediately continues, so its operands cannot affect any later decision. The Release build and focused native store-filter (8 tests) passed; no timing claim is made.
 - Taken on 2026-10-10: `convertEqualityChainsToBitTests` now records the matched body's last layout ordinal instead of pushing each instruction index into a temporary vector. Accepted links, including optional alias copies, are contiguous, so cleanup iterates the proven range and avoids the per-link index writes and dynamic body storage for longer chains. The Release build and focused `equality_chain_bit_test.swg` native test passed; no timing claim is made.
+- Taken on 2026-10-10: equality-chain closure now fetches a candidate's operands for `tryGetLabelId` only when the following instruction is a label. That helper rejects every other opcode, so failed candidate tails avoid the lookup. The Release build and focused native `equality_chain_bit_test.swg` test passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;

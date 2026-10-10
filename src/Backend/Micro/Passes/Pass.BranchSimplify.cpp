@@ -2589,7 +2589,7 @@ namespace
                     at += 4;
                     continue;
                 }
-                if (tryGetLabelId(labelId, *next, next->ops(operands)) && hasEnd && labelId == endId)
+                if (next->op == MicroInstrOpcode::Label && tryGetLabelId(labelId, *next, next->ops(operands)) && hasEnd && labelId == endId)
                     closed = true;
                 break;
             }

@@ -4266,7 +4266,9 @@ namespace
         };
 
         SmallVector<Candidate> candidates;
-        const bool             hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
+        if (scanCache.built && scanCache.scan.indirectJump)
+            return false;
+        const bool hasCurrentBranchScan = scanCache.built;
         if (!hasCurrentBranchScan)
         {
             for (const MicroInstr& inst : storage.view())

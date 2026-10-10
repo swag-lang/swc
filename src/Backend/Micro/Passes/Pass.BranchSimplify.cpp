@@ -65,13 +65,14 @@ namespace
 
     // Label ordinals, label reference counts and register mentions. The branch scans are rebuilt
     // after every rewrite into thread-local caches, so a cleared table is refilled in place.
-    using CountTable = FlatKeyMap<uint32_t>;
+    using CountTable         = FlatKeyMap<uint32_t>;
+    using RetainedCountTable = TrackedClearFlatKeyMap<uint32_t>;
 
     struct ProgramLayout
     {
         std::vector<MicroInstrRef> order;
         std::vector<uint32_t>      ordinalByRef;
-        CountTable                 labelOrdinalById;
+        RetainedCountTable         labelOrdinalById;
         bool                       hasAnyLabel         = false;
         bool                       hasConditionalJump  = false;
         bool                       hasImmediateCompare = false;
@@ -260,8 +261,8 @@ namespace
     struct BranchScan
     {
         ProgramLayout layout;
-        CountTable    labelReferences;
-        CountTable    mentions;
+        RetainedCountTable labelReferences;
+        RetainedCountTable mentions;
         bool          indirectJump = false;
     };
 
@@ -319,9 +320,9 @@ namespace
 
     struct JumpLabelReferenceCache
     {
-        CountTable        counts;
-        const CountTable* borrowed = nullptr;
-        bool              built    = false;
+        RetainedCountTable        counts;
+        const RetainedCountTable* borrowed = nullptr;
+        bool                      built    = false;
 
         void invalidate()
         {
@@ -329,7 +330,7 @@ namespace
             built    = false;
         }
 
-        void borrow(const CountTable& source)
+        void borrow(const RetainedCountTable& source)
         {
             // Keep the same scratch-node lifetime as a fresh count build.
             counts.clear();
@@ -337,7 +338,7 @@ namespace
             built    = false;
         }
 
-        const CountTable& get(const MicroStorage& storage, const MicroOperandStorage& operands)
+        const RetainedCountTable& get(const MicroStorage& storage, const MicroOperandStorage& operands)
         {
             if (borrowed)
                 return *borrowed;
@@ -358,7 +359,8 @@ namespace
         }
     };
 
-    uint32_t jumpLabelReferenceCount(const CountTable& counts, const uint32_t labelId)
+    template<typename Table>
+    uint32_t jumpLabelReferenceCount(const Table& counts, const uint32_t labelId)
     {
         const uint32_t* count = counts.find(labelId);
         return count ? *count : 0;
@@ -1665,7 +1667,7 @@ namespace
             return false;
         const size_t count = layout.order.size();
 
-        std::optional<CountTable> localLabelReferences;
+        std::optional<RetainedCountTable> localLabelReferences;
         if (!branchScan)
         {
             localLabelReferences.emplace();
@@ -4307,7 +4309,7 @@ namespace
 
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
-        std::optional<CountTable> localMentions;
+        std::optional<RetainedCountTable> localMentions;
         const auto*               mentions = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
@@ -4467,7 +4469,7 @@ namespace
         if (candidates.empty())
             return false;
 
-        std::optional<CountTable> localMentions;
+        std::optional<RetainedCountTable> localMentions;
         const bool                hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
         const auto*               mentions             = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)

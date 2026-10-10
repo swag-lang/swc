@@ -411,9 +411,15 @@ private:
 // reuses it, unless the table is large and its last fill used little of it: that table is given
 // back, so a map a worker keeps costs what the current function inserts rather than the largest
 // function it has seen.
-template<typename V, typename K = uint32_t>
+template<typename V, typename K = uint32_t, bool TrackOccupiedSlots = false>
 class FlatKeyMap
 {
+    struct NoOccupiedSlots
+    {
+    };
+
+    using OccupiedSlots = std::conditional_t<TrackOccupiedSlots, std::vector<size_t>, NoOccupiedSlots>;
+
     static_assert(std::is_trivially_copyable_v<V>, "FlatKeyMap holds trivially copyable values");
 
 public:
@@ -463,6 +469,13 @@ public:
             if (slots_.size() > RELEASE_CAPACITY && count_ * 8 < slots_.size())
             {
                 slots_ = {};
+                if constexpr (TrackOccupiedSlots)
+                    std::vector<size_t>().swap(occupiedSlots_);
+            }
+            else if constexpr (TrackOccupiedSlots)
+            {
+                for (const size_t index : occupiedSlots_)
+                    slots_[index].key = K_FREE;
             }
             else
             {
@@ -471,6 +484,8 @@ public:
             }
             count_ = 0;
         }
+        if constexpr (TrackOccupiedSlots)
+            occupiedSlots_.clear();
         hasFreeKey_ = false;
     }
 
@@ -530,6 +545,8 @@ private:
             index = (index + 1) & (slots_.size() - 1);
         }
 
+        if constexpr (TrackOccupiedSlots)
+            occupiedSlots_.push_back(index);
         slots_[index] = {.key = key, .value = V{}};
         ++count_;
         outInserted = true;
@@ -538,8 +555,12 @@ private:
 
     void rehash(size_t capacity)
     {
+        if constexpr (TrackOccupiedSlots)
+            occupiedSlots_.reserve(count_);
         std::vector<Slot> previous(capacity);
         previous.swap(slots_);
+        if constexpr (TrackOccupiedSlots)
+            occupiedSlots_.clear();
 
         const size_t mask = slots_.size() - 1;
         for (const Slot& slot : previous)
@@ -550,14 +571,22 @@ private:
             while (slots_[index].key != K_FREE)
                 index = (index + 1) & mask;
             slots_[index] = slot;
+            if constexpr (TrackOccupiedSlots)
+                occupiedSlots_.push_back(index);
         }
     }
 
-    std::vector<Slot> slots_;
-    size_t            count_ = 0;
-    V                 freeKeyValue_{};
-    bool              hasFreeKey_ = false;
+    std::vector<Slot>                  slots_;
+    [[no_unique_address]] OccupiedSlots occupiedSlots_;
+    size_t                              count_ = 0;
+    V                                   freeKeyValue_{};
+    bool                                hasFreeKey_ = false;
 };
+
+// A variant for a worker map cleared between fills. It resets the occupied slots rather than
+// scanning its retained capacity; each insertion records one slot index to make that possible.
+template<typename V, typename K = uint32_t>
+using TrackedClearFlatKeyMap = FlatKeyMap<V, K, true>;
 
 // A set of 32-bit (or 64-bit) keys held in one flat table, for the instruction sets a pass collects
 // once per function and then only asks about. An empty set owns nothing; a filled one is one

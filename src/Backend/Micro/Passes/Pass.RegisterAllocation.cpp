@@ -4439,14 +4439,15 @@ namespace
         MicroInstrRef        defRef   = MicroInstrRef::invalid();
         uint64_t             distance = 0;
         std::vector<BaseUse> uses;
+        MicroInstrUseDef     useDef;
         for (size_t index = 0; index < refs.size(); ++index)
         {
             MicroInstr* inst = storage.ptr(refs[index]);
             if (!inst)
                 return false;
-            const MicroInstrUseDef useDef    = inst->collectUseDef(operands, context.encoder);
-            const bool             defsBase  = std::ranges::find(useDef.defs, base) != useDef.defs.end();
-            const bool             defsStack = std::ranges::find(useDef.defs, stack) != useDef.defs.end();
+            inst->collectUseDef(useDef, operands, context.encoder);
+            const bool defsBase  = std::ranges::find(useDef.defs, base) != useDef.defs.end();
+            const bool defsStack = std::ranges::find(useDef.defs, stack) != useDef.defs.end();
             if (defsBase)
             {
                 const auto* ops = inst->ops(operands);

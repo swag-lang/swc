@@ -5396,12 +5396,37 @@ namespace
         }
     }
 
+    bool mayBeSpeculatableArmInstruction(const MicroInstrOpcode op)
+    {
+        switch (op)
+        {
+            case MicroInstrOpcode::LoadRegReg:
+            case MicroInstrOpcode::LoadRegImm:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::LoadAddrRegMem:
+            case MicroInstrOpcode::LoadAddrAmcRegMem:
+            case MicroInstrOpcode::CmpRegReg:
+            case MicroInstrOpcode::CmpRegImm:
+            case MicroInstrOpcode::LoadCondRegReg:
+            case MicroInstrOpcode::ClearReg:
+            case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegImm:
+            case MicroInstrOpcode::OpBinaryRegRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     // An instruction that can run on a path that used to skip it: no memory
     // read (a guarded load may fault), no write, no call, no trap, and
     // integer register results the conditional move can join.
     bool isSpeculatableArmInstruction(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        if (!ops)
+        if (!ops || !mayBeSpeculatableArmInstruction(inst.op))
             return false;
 
         switch (inst.op)
@@ -5428,7 +5453,7 @@ namespace
             case MicroInstrOpcode::OpUnaryReg:
                 return isSpeculatableMicroOp(ops[2].microOp);
             default:
-                return false;
+                return true;
         }
     }
 
@@ -5518,9 +5543,11 @@ namespace
         outStopRef = scan.storage->findNextInstructionRef(fromRef);
         while (outStopRef.isValid())
         {
-            const MicroInstr*        inst = scan.storage->ptr(outStopRef);
-            const MicroInstrOperand* ops  = inst ? inst->ops(*scan.operands) : nullptr;
-            if (!inst || !isSpeculatableArmInstruction(*inst, ops))
+            const MicroInstr* inst = scan.storage->ptr(outStopRef);
+            if (!inst || !mayBeSpeculatableArmInstruction(inst->op))
+                return true;
+            const MicroInstrOperand* ops = inst->ops(*scan.operands);
+            if (!isSpeculatableArmInstruction(*inst, ops))
                 return true;
             if (outArm.refs.size() >= K_MAX_IF_CONVERT_ARM_INSTR || scan.relocated->contains(outStopRef.get()))
                 return false;

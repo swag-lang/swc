@@ -3418,7 +3418,6 @@ private impl Parser
         }
     }
 
-    // Appends transformed copies of a definition's shapes.
     // Appends transformed copies of a definition's shapes and reports the range they occupy.
     //
     // `state` carries the complete transform the copies are placed under, so a `use` offset, a

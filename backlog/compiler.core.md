@@ -121,10 +121,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
     function's patch address once it has one and its work address before, so a slot patched early
     can later receive a different address: a memo across functions must keep re-patching or prove
     the address no longer moves.
-  - `prepareJitFunction` builds the JIT order once before waiting for sema and again after, only
-    to compare sizes. The order follows the call graph and the native init targets, which both
-    carry a version; reusing the first order when neither moved needs every other input of the
-    walk (ignored functions, macro attributes) to move one of them too.
   - `TypeRuntimeHash::canonicalScopedNameHash` rebuilds a symbol's full scoped name for every
     runtime hash that meets it, while `Symbol::scopedNameHash` caches the same value. Using the
     cache needs proof that no symbol's scope chain changes after its hash is first taken;

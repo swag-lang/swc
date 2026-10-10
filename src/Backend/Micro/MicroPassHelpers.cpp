@@ -15,7 +15,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const MicroPassContext& context, std::span<const MicroInstrRef> refs, std::span<const MicroInstrUseDef> useDefs, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions, bool collectEscapes)
+MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const MicroPassContext& context, std::span<const MicroInstrRef> refs, std::span<const MicroInstrUseDef> useDefs, const FlatKeyMap<RegDefinitionSummary>& definitions, bool collectEscapes)
 {
     FramePrivacy   result;
     const MicroReg stackPointer = CallConv::get(context.callConvKind).stackPointer;
@@ -42,8 +42,8 @@ MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const Micro
             if (!inst || !propagatesAddress(*inst, ops) || useDefs[i].defs.size() != 1)
                 continue;
             const MicroReg dst = useDefs[i].defs[0];
-            const auto     def = definitions.find(dst);
-            if (!dst.isVirtualInt() || def == definitions.end() || def->second.count != 1 || result.frameDerived.contains(dst))
+            const RegDefinitionSummary* def = definitions.find(dst.packed);
+            if (!dst.isVirtualInt() || !def || def->count != 1 || result.frameDerived.contains(dst))
                 continue;
             if (result.isFrame(ops[1].reg, stackPointer))
             {

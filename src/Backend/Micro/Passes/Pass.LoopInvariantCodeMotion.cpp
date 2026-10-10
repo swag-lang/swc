@@ -258,10 +258,11 @@ namespace
 
         // Hoisting needs instruction-local effects, not SSA values or phis.
         // Collect these only after finding a natural loop worth analyzing.
-        thread_local std::vector<MicroInstrUseDef>                      useDefs;
-        thread_local std::unordered_map<MicroReg, RegDefinitionSummary> definitions;
+        thread_local std::vector<MicroInstrUseDef> useDefs;
+        // Keyed by the packed register and only looked up; a fresh table costs what this round
+        // records.
+        FlatKeyMap<RegDefinitionSummary> definitions;
         useDefs.resize(n); // every instruction effect is replaced below
-        definitions.clear();
         for (uint32_t i = 0; i < n; ++i)
         {
             const MicroInstr* inst = storage.ptr(instrRefs[i]);
@@ -272,7 +273,7 @@ namespace
             const MicroInstrUseDef* useDef = &useDefs[i];
             for (const MicroReg def : useDef->defs)
             {
-                RegDefinitionSummary& summary = definitions[def];
+                RegDefinitionSummary& summary = definitions.getOrInsert(def.packed);
                 ++summary.count;
                 summary.lastSlot = i;
             }
@@ -331,8 +332,8 @@ namespace
                 continue;
             const MicroInstrOperand* instOps = inst->ops(operands);
             const MicroReg           reg     = instOps ? instOps[0].reg : MicroReg{};
-            const auto               def     = reg.isVirtualInt() ? definitions.find(reg) : definitions.end();
-            if (def == definitions.end() || def->second.count != 1)
+            const auto*              def     = reg.isVirtualInt() ? definitions.find(reg.packed) : nullptr;
+            if (!def || def->count != 1)
                 materializedPrivateGlobals.insert(relocationKey(relocation));
             else
                 privateGlobalBases.emplace(reg, relocationKey(relocation));
@@ -399,12 +400,11 @@ namespace
             // rescan the rest of the function for each loop.
             bodyIndices.clear();
             bodyIndices.reserve(loop->bodySize);
-            thread_local std::unordered_set<MicroReg> defsInLoop;
-            thread_local std::unordered_set<MicroReg> dereferenceBasesInLoop;
-            defsInLoop.clear();
-            dereferenceBasesInLoop.clear();
-            thread_local std::unordered_set<uint64_t> directStoreTargets;
-            directStoreTargets.clear();
+            // Membership only: registers by packed form, store targets by relocation key. Fresh
+            // tables cost what this loop records.
+            FlatKeySet   defsInLoop;
+            FlatKeySet   dereferenceBasesInLoop;
+            FlatKey64Set directStoreTargets;
             bool loopHasCall         = false;
             bool loopHasReadOnlyCall = false;
             bool loopHasPointerStore = false;
@@ -421,11 +421,11 @@ namespace
                 if (!inst)
                     continue;
                 for (const MicroReg def : useDef->defs)
-                    defsInLoop.insert(def);
+                    defsInLoop.insert(def.packed);
                 uint8_t                  baseOperandIndex = 0;
                 const MicroInstrOperand* memoryOps        = MicroPassHelpers::dereferenceBaseOperandIndex(baseOperandIndex, inst->op, MicroInstr::info(inst->op)) ? inst->ops(operands) : nullptr;
                 if (memoryOps)
-                    dereferenceBasesInLoop.insert(memoryOps[baseOperandIndex].reg);
+                    dereferenceBasesInLoop.insert(memoryOps[baseOperandIndex].reg.packed);
                 if (useDef->isCall || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                 {
                     if (callDoesNotWrite(instrRefs[i], inst->op))
@@ -500,13 +500,13 @@ namespace
 
                 const MicroReg nestedReg = instOps[outerLayout.indexIdx].reg;
                 const MicroReg outerBase = instOps[outerLayout.baseIdx].reg;
-                if (!nestedReg.isVirtualInt() || !outerBase.isVirtualInt() || defsInLoop.contains(outerBase))
+                if (!nestedReg.isVirtualInt() || !outerBase.isVirtualInt() || defsInLoop.contains(outerBase.packed))
                     continue;
 
-                const auto definition = definitions.find(nestedReg);
-                if (definition == definitions.end() || definition->second.lastSlot >= i)
+                const RegDefinitionSummary* definition = definitions.find(nestedReg.packed);
+                if (!definition || definition->lastSlot >= i)
                     continue;
-                const uint32_t    lastSlot = definition->second.lastSlot;
+                const uint32_t    lastSlot = definition->lastSlot;
                 const MicroInstr* nested   = storage.ptr(instrRefs[lastSlot]);
                 if (!nested)
                     continue;
@@ -515,7 +515,7 @@ namespace
                 MicroReg                 innerIndex = MicroReg::invalid();
                 int64_t                  innerAdd   = 0;
                 bool                     copyAddSum = false;
-                if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && definition->second.count == 1)
+                if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && definition->count == 1)
                 {
                     if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
                         nestedOps[4].opBits != MicroOpBits::B64 || nestedOps[5].valueU64 != 1)
@@ -524,7 +524,7 @@ namespace
                     innerIndex = nestedOps[2].reg;
                     innerAdd   = static_cast<int64_t>(nestedOps[6].valueU64);
                 }
-                else if (nested->op == MicroInstrOpcode::OpBinaryRegReg && definition->second.count == 2 && lastSlot > 0 &&
+                else if (nested->op == MicroInstrOpcode::OpBinaryRegReg && definition->count == 2 && lastSlot > 0 &&
                          inBody[lastSlot - 1] && nestedOps && nestedOps[0].reg == nestedReg &&
                          nestedOps[1].reg != nestedReg && nestedOps[2].opBits == MicroOpBits::B64 &&
                          nestedOps[3].microOp == MicroOp::Add &&
@@ -542,8 +542,8 @@ namespace
                 else
                     continue;
 
-                const bool baseVaries  = defsInLoop.contains(innerBase);
-                const bool indexVaries = defsInLoop.contains(innerIndex);
+                const bool baseVaries  = defsInLoop.contains(innerBase.packed);
+                const bool indexVaries = defsInLoop.contains(innerIndex.packed);
                 if (baseVaries == indexVaries)
                     continue;
 
@@ -567,9 +567,9 @@ namespace
 
                 // A constant offset belongs in the displacement, which costs no
                 // register: rooting it would keep one alive across the loop.
-                if (const auto fixedDef = definitions.find(fixed); fixedDef != definitions.end() && fixedDef->second.count == 1)
+                if (const RegDefinitionSummary* fixedDef = definitions.find(fixed.packed); fixedDef && fixedDef->count == 1)
                 {
-                    const MicroInstr* fixedInst = storage.ptr(instrRefs[fixedDef->second.lastSlot]);
+                    const MicroInstr* fixedInst = storage.ptr(instrRefs[fixedDef->lastSlot]);
                     if (fixedInst && (fixedInst->op == MicroInstrOpcode::LoadRegImm || fixedInst->op == MicroInstrOpcode::LoadRegPtrImm))
                         continue;
                 }
@@ -686,8 +686,8 @@ namespace
                     return nullptr;
                 if (it->second.defSlots.size() > K_MAX_WEB_DEFS)
                     return nullptr;
-                const auto dc = definitions.find(reg);
-                return dc != definitions.end() && dc->second.count == it->second.defSlots.size() ? &it->second : nullptr;
+                const RegDefinitionSummary* dc = definitions.find(reg.packed);
+                return dc && dc->count == it->second.defSlots.size() ? &it->second : nullptr;
             };
 
             std::unordered_set<uint32_t>              hoistSet;
@@ -786,7 +786,7 @@ namespace
                         {
                             if (use == destReg && slotIsCompute[i])
                                 continue; // the web's own previous value
-                            if (!defsInLoop.contains(use))
+                            if (!defsInLoop.contains(use.packed))
                                 continue;
                             const RegWeb* useWeb = banned.contains(use) ? nullptr : eligibleWeb(use);
                             if (!useWeb || !acceptedPrefix(*useWeb, i))
@@ -850,7 +850,7 @@ namespace
                                 }
                                 const bool structureField = inst->op == MicroInstrOpcode::LoadRegMem &&
                                                             loadOps[1].reg.isVirtualInt() && loadOps[2].opBits == MicroOpBits::B64 &&
-                                                            dereferenceBasesInLoop.contains(loadOps[0].reg);
+                                                            dereferenceBasesInLoop.contains(loadOps[0].reg.packed);
                                 if (!directGlobal && !structureField && inst->op != MicroInstrOpcode::LoadAmcRegMem)
                                     continue;
                             }
@@ -880,8 +880,8 @@ namespace
                                 const bool baseIsConstantAddress = !base.isValid() || base.isInstructionPointer();
                                 if (loopHasFrameStore && !baseIsConstantAddress)
                                 {
-                                    const auto bc            = base.isValid() ? definitions.find(base) : definitions.end();
-                                    const bool baseSingleDef = bc != definitions.end() && bc->second.count == 1;
+                                    const RegDefinitionSummary* bc            = base.isValid() ? definitions.find(base.packed) : nullptr;
+                                    const bool                  baseSingleDef = bc && bc->count == 1;
                                     if (!frame.framePrivate || !baseSingleDef)
                                         continue;
                                 }

@@ -35,7 +35,8 @@ namespace MicroPassHelpers
 
     // A frame stays private when every derived address is only propagated or
     // used as a memory base. Passing or storing an address exposes the frame.
-    FramePrivacy analyzeFramePrivacy(const MicroPassContext& context, std::span<const MicroInstrRef> refs, std::span<const MicroInstrUseDef> useDefs, const std::unordered_map<MicroReg, RegDefinitionSummary>& definitions, bool collectEscapes = false);
+    // 'definitions' is keyed by the packed register.
+    FramePrivacy analyzeFramePrivacy(const MicroPassContext& context, std::span<const MicroInstrRef> refs, std::span<const MicroInstrUseDef> useDefs, const FlatKeyMap<RegDefinitionSummary>& definitions, bool collectEscapes = false);
 
     // SP displacement from a captured frame base at each reachable instruction.
     // Conflicting paths and unmodelled SP definitions leave the offset unknown.

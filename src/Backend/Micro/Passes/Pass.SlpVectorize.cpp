@@ -576,7 +576,7 @@ namespace
         {
             std::vector<MicroInstrRef>                                           refs;
             std::vector<MicroInstrUseDef>                                        useDefs;
-            std::unordered_map<MicroReg, MicroPassHelpers::RegDefinitionSummary> definitions;
+            FlatKeyMap<MicroPassHelpers::RegDefinitionSummary>                   definitions;
             refs.reserve(fn.storage->count());
             useDefs.reserve(fn.storage->count());
             for (auto it = fn.storage->view().begin(); it != fn.storage->view().end(); ++it)
@@ -584,7 +584,7 @@ namespace
                 refs.push_back(it.current);
                 useDefs.push_back(it->collectUseDef(*fn.operands, fn.encoder));
                 for (const MicroReg reg : useDefs.back().defs)
-                    ++definitions[reg].count;
+                    ++definitions.getOrInsert(reg.packed).count;
             }
             fn.framePrivacy = MicroPassHelpers::analyzeFramePrivacy(*fn.context, refs, useDefs, definitions, true);
         }

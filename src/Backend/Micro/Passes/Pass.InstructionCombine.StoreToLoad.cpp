@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
 // Store-to-load forwarding: when a plain scalar or vector load reads the
@@ -177,6 +178,20 @@ namespace InstructionCombine
                     return false;
             }
         }
+
+        bool instructionMayDefineRegister(const MicroInstrDef& info, const Encoder* encoder)
+        {
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)) || info.special != MicroInstrRegSpecial::None)
+                return true;
+
+            for (const MicroInstrRegMode mode : info.regModes)
+            {
+                if (mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef)
+                    return true;
+            }
+            return false;
+        }
     }
 
     void runStoreToLoadForwarding(Context& ctx)
@@ -323,6 +338,10 @@ namespace InstructionCombine
                 continue;
             }
 
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (!instructionMayDefineRegister(info, ctx.passContext->encoder))
+                continue;
+
             const auto* useDef = ctx.ssa->instrUseDef(it.current);
             if (useDef)
             {
@@ -416,6 +435,10 @@ namespace InstructionCombine
             }
 
             // A redefined base no longer names the address the store wrote.
+            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            if (!instructionMayDefineRegister(info, ctx.passContext->encoder))
+                continue;
+
             if (const auto* useDef = ctx.ssa->instrUseDef(it.current))
             {
                 for (const MicroReg def : useDef->defs)

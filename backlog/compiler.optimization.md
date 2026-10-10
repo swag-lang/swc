@@ -474,18 +474,6 @@ new language syntax.
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
 
-### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
-
-- Recorded: 2026-09-25 11:15
-- Updated: 2026-10-06 20:59 — Private-global hoisting and value numbering landed after the last qsort dump; re-dump before further work.
-- Area: compiler/backend, loop-invariant code motion and call effects
-- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
-- Current evidence: the new loop-guided wrapper rule inlines both `less` calls in `qsort`. Its optimized body grows from 72 to 132 Micro instructions, while each unequal-count comparison now reads the retained `g_Idx` and `g_Cnt` pointers without a `less` call or a global reload. The tie path still calls `memcmp`, and the second comparator loop reloads both global pointers on entry. LDC also retains its pointers during the unequal-count loop and reloads after a call. Wordfreq's checksum is 130489; csvagg's selected function counts and checksum are unchanged. No timing sample informed the rule.
-- A value-numbering trial preserved mutable global loads across a direct `ReadOnly` call. It removed four instructions from `qsort` as a whole (132 to 128), including a repeated global pointer load after `memcmp`, and kept checksum 130489. The extra live value changed allocation in the first comparator loop: each increment path acquired a stack reload of the count pointer and an unconditional back-edge jump. That hot-path regression outweighed the colder tie-path saving, so the trial was reverted without timing it. A direct-call regression test for this trial was reverted with the rule.
-- Since that dump: LICM hoists a load of a private global (one no other module names and whose address no use binds) past pointer stores, but only out of an innermost loop (`ba4e255d4`, then `baedb50db` after a 22% wordfreq regression when the hoisted `g_Text` had to outlive nested loops), and value numbering reuses unmodified private globals across disjoint writes (`a172a3428`). `g_Idx` and `g_Cnt` are file-level `late var` globals in `bench/src/swag/wordfreq.swg`; no `qsort` dump has been taken since these changes.
-- Next: dump the current Release `qsort`. If the post-call and second-loop reloads are gone, retire the entry; otherwise compare the tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to decide whether the remaining reloads warrant a focused allocation change.
-- Complete when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
-
 ### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
 
 - Recorded: 2026-08-24 13:31
@@ -1072,7 +1060,7 @@ new language syntax.
 - Complete when: a third-party readonly helper preserves an unrelated load without being inlined;
   transitive writers/callbacks invalidate it; recursion converges; summary-only imports help callers
   even when their bodies are not imported.
-- Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.055,
+- Related: compiler.optimization.108, compiler.optimization.109,
   compiler.optimization.020.
 
 ### compiler.optimization.111 — Inline ordinary functions across module boundaries

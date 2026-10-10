@@ -51,12 +51,12 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
     (`movedFrom`, `aliasPtrSlots`, ...), mem2reg's `slots`, SLP's `locations` and
     `entryValues`, web renaming's `loads`, and the native dependency walk's `rejected`. Each needs
     an order-preserving replacement.
-  - A worker-kept `FlatKeyMap` (branch simplification's `BranchScan` counts among them) clears
-    its whole table, so a rebuild costs the largest function the worker has seen rather than the
-    current one. Bounding it (stamped slots, or a list of the occupied ones) trades a per-insert
-    cost for the clear; that tradeoff needs the benchmark campaign.
-- Next: an order-preserving flat map for the sanitizer's sparse facts, or measure the kept-table
-  clear against a fresh table at the benchmark campaign's next milestone.
+  - A worker-kept `FlatKeyMap` clears its whole table, so a rebuild costs the largest function the
+    worker has seen rather than the current one. Bounding it (stamped slots, or a list of the
+    occupied ones) trades a per-insert cost for the clear; that tradeoff needs the benchmark
+    campaign.
+- Next: design an order-preserving flat map for the sanitizer's sparse facts, then audit the
+  other listed node maps against their output ordering requirements.
 - Done when: each item is replaced with identical output and its owning suites green, or
   recorded here as not worth the change it needs.
 - Related: compiler.core.060.

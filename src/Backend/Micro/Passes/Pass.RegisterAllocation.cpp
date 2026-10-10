@@ -3840,7 +3840,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         computeCurrentLiveOutBits(idx);
         markCurrentVirtualLiveOut(stamp);
-        rebuildCurrentConcreteLiveOutRegs();
         advanceCurrentPositionCursors(idx);
         const bool currentReachable = !hasControlFlow_ || isInstructionReachable(idx);
 
@@ -4085,6 +4084,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         SmallVector<AssignedPhysReg> assignedPhysRegs;
         assignedPhysRegs.reserve(allocRequests.size());
+        bool concreteLiveOutRegsReady = false;
 
         for (const auto& requestInfo : allocRequests)
         {
@@ -4097,6 +4097,11 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 ((it->op == MicroInstrOpcode::LoadRegReg && !instOps[1].reg.isVirtual()) ||
                  (it->op == MicroInstrOpcode::LoadSignedExtRegReg && !instOps[1].reg.isVirtual()) ||
                  (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
+            if (defOnlyCopyFromConcrete && !concreteLiveOutRegsReady)
+            {
+                rebuildCurrentConcreteLiveOutRegs();
+                concreteLiveOutRegsReady = true;
+            }
 
             SmallVector<MicroReg> forbiddenPhysRegs;
             forbiddenPhysRegs.reserve((defOnlyCopyFromConcrete ? currentConcreteLiveOut_.size() : 0) + addressSourceRegs.size() + mentionedConcreteRegs.size() + assignedPhysRegs.size());

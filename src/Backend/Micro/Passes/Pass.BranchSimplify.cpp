@@ -3321,7 +3321,7 @@ namespace
                 const MicroInstr* jump = instAt(at + 1);
                 if (!cmp || !jump || cmp->op != MicroInstrOpcode::CmpRegImm || jump->op != MicroInstrOpcode::JumpCond)
                     break;
-                const MicroInstrOperand* cmpOps  = cmp->ops(operands);
+                const MicroInstrOperand* cmpOps  = at == start ? firstOps : cmp->ops(operands);
                 const MicroInstrOperand* jumpOps = jump->ops(operands);
                 uint32_t                 target  = 0;
                 // The last case may leave for the default on inequality and fall

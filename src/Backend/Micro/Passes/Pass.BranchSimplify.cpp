@@ -4399,7 +4399,8 @@ namespace
             const MicroInstrRef labelRef = storage.findNextInstructionRef(ref);
             const MicroInstr*   label    = labelRef.isValid() ? storage.ptr(labelRef) : nullptr;
             uint32_t            labelId  = 0;
-            if (!label || !tryGetLabelId(labelId, *label, label->ops(operands)) || labelId != joinId)
+            if (!label || label->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(labelId, *label, label->ops(operands)) || labelId != joinId)
                 continue;
             if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, candidate.mergeRef))
                 continue;
@@ -5305,7 +5306,7 @@ namespace
             if (!labelRef.isValid())
                 continue;
             const MicroInstr* labelInst = storage.ptr(labelRef);
-            if (!labelInst)
+            if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
                 continue;
             uint32_t labelId = 0;
             if (!tryGetLabelId(labelId, *labelInst, labelInst->ops(operands)))
@@ -7457,6 +7458,8 @@ namespace
         if (!out.labelRef.isValid() || scan.relocated->contains(out.labelRef.get()))
             return false;
         const MicroInstr* labelInst    = scan.storage->ptr(out.labelRef);
+        if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
+            return false;
         uint32_t          foundLabelId = 0;
         if (!tryGetLabelId(foundLabelId, *labelInst, labelInst->ops(*scan.operands)) || foundLabelId != labelId)
             return false;

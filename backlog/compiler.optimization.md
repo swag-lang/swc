@@ -501,9 +501,13 @@ new language syntax.
   candidates backwards and uses only already accepted narrow-reader rewrites. The Release
   optimizer selection passes 275 tests, including every u16 input and wrapping mask chains.
   No compiler timing or memory comparison was made in this iteration.
-- Next: identify the remaining 404-instruction test during a standard-module validation
-  milestone, check whether it shares either resolved chain, and fix or bound its next blocker.
-  Do not repeat the completed constant-address or select-width chain work.
+- October 10: the combined Release standard-module suite completed 2,465 tests across twelve
+  modules without an unconverged optimization-loop diagnostic. The historical test identity
+  remains unrecovered; this run does not report per-function sweep counts, so it rules out the
+  old cap failure without establishing that every function stays within sixteen sweeps.
+- Next: reopen when a reproducible Release standard-module failure identifies the function and
+  remaining rewrite chain. Do not repeat the completed constant-address or select-width chain
+  work, or add convergence instrumentation to pursue an unlocated historical outlier.
 - Done when: no standard-module function, tests included, needs more than sixteen sweeps,
   or each longer chain is identified and bounded.
 - Related: compiler.optimization.029, compiler.core.004.

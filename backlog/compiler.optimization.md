@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:14 — Filter interval copy hints by dense events.
+- Updated: 2026-10-10 14:16 — Skip disproven zero-high definitions during copy analysis.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -118,6 +118,10 @@ new language syntax.
   before fetching an instruction to find copy hints. A hint needs exactly one virtual destination
   and at most one virtual source, including copies from physical registers. The Release build and
   focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the zero-high analysis in `coalesceSameValueCopies` skips instruction
+  lookup when all of an instruction's destinations already have a definition that disproves the
+  property. The state only changes from true to false. The Release build and focused native
+  `physical_copy_intervals.swg` test passed; no timing claim is made.
 - Evidence: the walk describes every concrete claim by the position it occupies, except
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole

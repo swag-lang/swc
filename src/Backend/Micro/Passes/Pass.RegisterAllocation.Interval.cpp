@@ -2230,11 +2230,12 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         }
         for (uint32_t idx = 0; idx < instructionCount_; ++idx)
         {
-            if (defVirtualIndices_[idx].empty())
+            const auto& defs = defVirtualIndices_[idx];
+            if (defs.empty() || std::ranges::none_of(defs, [&](const uint32_t dense) { return zeroHigh[dense]; }))
                 continue;
             const MicroInstr*        inst = instructions_->ptr(instrRefs[idx]);
             const MicroInstrOperand* ops  = inst ? inst->ops(*operands_) : nullptr;
-            for (const uint32_t dense : defVirtualIndices_[idx])
+            for (const uint32_t dense : defs)
             {
                 if (!ops || ops[0].reg != virtualRegs[dense] || !MicroPassHelpers::definesZeroHighBits(*inst, ops))
                     zeroHigh[dense] = 0;

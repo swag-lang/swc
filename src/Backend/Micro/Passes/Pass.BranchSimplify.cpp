@@ -1735,7 +1735,7 @@ namespace
         if (branchScan && branchScan->indirectJump)
             return false;
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump)
+        if (!layout.hasConditionalJump || !layout.hasImmediateCompare)
             return false;
         const size_t count = layout.order.size();
 

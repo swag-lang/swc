@@ -481,11 +481,12 @@ namespace
         return changed;
     }
 
-    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
+    // Appends the call dependencies of the functions from 'firstUnwalked' on, and of everything
+    // that appends, to the list.
+    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, size_t firstUnwalked = 0)
     {
         PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
-        size_t             nextFunctionIndex = 0;
-        return appendCodeGenDependencies(builder, functions, seenFunctions, nextFunctionIndex);
+        return appendCodeGenDependencies(builder, functions, seenFunctions, firstUnwalked);
     }
 
     bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, std::unordered_set<SymbolFunction*>* rejected = nullptr)
@@ -1583,13 +1584,17 @@ Result NativeBackendBuilder::prepare()
 
     SWC_SCHED_PHASE(ctx_.global().jobMgr(), "codegen");
     ConstantDependencyScan constantScan;
+    // The functions before this index had their calls walked since the last code generation, and
+    // nothing has been lowered since: only the constant dependencies appended after them are new.
+    size_t callsWalked = 0;
     while (true)
     {
-        appendCodeGenDependencies(*this, functions);
+        appendCodeGenDependencies(*this, functions, callsWalked);
         SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
         SWC_RESULT(scheduleCodeGen(*this, functions));
 
         const bool addedCallDeps     = appendCodeGenDependencies(*this, functions);
+        callsWalked                  = functions.size();
         const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions, constantScan);
         if (!addedCallDeps && !addedConstantDeps)
         {

@@ -187,17 +187,19 @@ namespace InstructionCombine
         // Relocation identity per instruction, so RIP-relative loads of the
         // same target can forward to each other: their (base, off) pair is
         // always ([ip], 0) and only the relocation tells two targets apart.
-        std::optional<std::unordered_map<uint32_t, const MicroRelocation*>> relocationByRef;
-        const auto                                                          ensureRelocationsReady = [&]() {
-            if (relocationByRef)
+        // One flat table; a later relocation of the same instruction replaces an earlier one.
+        RefPointerMap<MicroInstrRef, const MicroRelocation> relocationByRef;
+        bool                                                relocationsReady       = false;
+        const auto                                          ensureRelocationsReady = [&]() {
+            if (relocationsReady)
                 return;
-            relocationByRef.emplace();
+            relocationsReady = true;
             if (ctx.builder)
             {
                 for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
                 {
                     if (reloc.instructionRef.isValid())
-                        (*relocationByRef)[reloc.instructionRef.get()] = &reloc;
+                        relocationByRef.set(reloc.instructionRef, &reloc);
                 }
             }
         };
@@ -222,13 +224,13 @@ namespace InstructionCombine
                     // Forwarding only invalidates an existing relocation; the
                     // first RIP access sees the original snapshot.
                     ensureRelocationsReady();
-                    const auto relocIt = relocationByRef->find(it.current.get());
-                    if (relocIt == relocationByRef->end() || relocIt->second->form != MicroRelocation::Form::Relative32)
+                    const MicroRelocation* reloc = relocationByRef.find(it.current);
+                    if (!reloc || reloc->form != MicroRelocation::Form::Relative32)
                     {
                         dropEntriesReferencing(cache, ops[0].reg);
                         continue;
                     }
-                    relocation = relocIt->second;
+                    relocation = reloc;
                 }
 
                 const bool claimed = ctx.isClaimed(it.current);
@@ -284,13 +286,13 @@ namespace InstructionCombine
                     if (ctx.isClaimed(it.current))
                         continue;
                     ensureRelocationsReady();
-                    const auto relocIt = relocationByRef->find(it.current.get());
-                    if (relocIt == relocationByRef->end() || relocIt->second->form != MicroRelocation::Form::Relative32)
+                    const MicroRelocation* reloc = relocationByRef.find(it.current);
+                    if (!reloc || reloc->form != MicroRelocation::Form::Relative32)
                         continue;
-                    const MicroRelocation::Kind kind = relocIt->second->kind;
+                    const MicroRelocation::Kind kind = reloc->kind;
                     if (kind != MicroRelocation::Kind::GlobalInitAddress && kind != MicroRelocation::Kind::GlobalZeroAddress)
                         continue;
-                    cache.push_back({.base = base, .src = ops[1].reg, .bits = bits, .off = off, .relocation = relocIt->second});
+                    cache.push_back({.base = base, .src = ops[1].reg, .bits = bits, .off = off, .relocation = reloc});
                     continue;
                 }
 

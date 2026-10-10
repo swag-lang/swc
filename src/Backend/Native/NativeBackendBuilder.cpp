@@ -583,9 +583,10 @@ namespace
     // or generic instance still being analysed) is checked again every round.
     struct ConstantDependencyScan
     {
-        StampedKeySet                                     visitedAllocations;
-        std::unordered_map<const SymbolFunction*, size_t> scannedRelocations;
-        std::unordered_set<SymbolFunction*>               rejected;
+        StampedKeySet visitedAllocations;
+        // Relocations already walked, by function address; only looked up.
+        FlatKeyMap<size_t, uint64_t>        scannedRelocations;
+        std::unordered_set<SymbolFunction*> rejected;
     };
 
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, ConstantDependencyScan& scan)
@@ -618,7 +619,7 @@ namespace
                 continue;
 
             const MachineCode& code    = function->loweredCode();
-            size_t&            scanned = scan.scannedRelocations[function];
+            size_t&            scanned = scan.scannedRelocations.getOrInsert(reinterpret_cast<uint64_t>(function));
             if (scanned == code.codeRelocations.size())
                 continue;
             scanned = code.codeRelocations.size();

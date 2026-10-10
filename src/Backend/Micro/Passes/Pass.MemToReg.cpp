@@ -626,7 +626,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             const uint32_t* count = definitions.find(reg.packed);
             return count && *count == 1;
         };
-        std::unordered_set<MicroReg> available;
+        // Registers by packed form, emptied at every block boundary.
+        FlatKeySet available;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const auto& info = MicroInstr::info(it->op);
@@ -639,7 +640,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             const AddrRegInfo* found = addrRegOffset.find(ops[0].reg.packed);
             if (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
                 ops[0].reg.isVirtualInt() && ops[0].reg != frameBase && definedOnce(ops[0].reg) &&
-                !found && available.contains(ops[1].reg))
+                !found && available.contains(ops[1].reg.packed))
             {
                 const AddrRegInfo* source = addrRegOffset.find(ops[1].reg.packed);
                 SWC_ASSERT(source != nullptr);
@@ -648,7 +649,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 addressCopies.insert(it.current.get());
             }
             if (found && !found->ambiguous && found->defRef == it.current)
-                available.insert(ops[0].reg);
+                available.insert(ops[0].reg.packed);
         }
     }
 

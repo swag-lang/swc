@@ -121,8 +121,12 @@ namespace
 
     struct SlpValueTable
     {
-        std::vector<SlpValue>                               values;
-        std::unordered_map<uint64_t, std::vector<uint32_t>> buckets;
+        std::vector<SlpValue> values;
+        // Values sharing a hash, chained from the most recent one: the head is the id plus one
+        // (zero when the hash is new) and each link names the previous id plus one. An interned
+        // value is unique, so the order of a chain cannot change which id a lookup returns.
+        FlatKeyMap<uint32_t, uint64_t> bucketHeads;
+        std::vector<uint32_t>          bucketLinks;
 
         static uint64_t hashOf(const SlpValue& v)
         {
@@ -176,17 +180,20 @@ namespace
             // lane, and swapping operands in one lane but not its siblings
             // would misalign the operand roles across the group. The scan
             // produces consistent shapes for isomorphic code as written.
-            const uint64_t h      = hashOf(v);
-            auto&          bucket = buckets[h];
-            for (const uint32_t id : bucket)
+            const uint64_t h    = hashOf(v);
+            uint32_t&      head = bucketHeads.getOrInsert(h);
+            for (uint32_t link = head; link; link = bucketLinks[link - 1])
             {
-                if (equal(values[id], v))
-                    return id;
+                if (equal(values[link - 1], v))
+                    return link - 1;
             }
 
             values.push_back(v);
             const auto id = static_cast<uint32_t>(values.size() - 1);
-            bucket.push_back(id);
+            if (bucketLinks.size() < values.size())
+                bucketLinks.resize(values.size(), 0);
+            bucketLinks[id] = head;
+            head            = id + 1;
             return id;
         }
 

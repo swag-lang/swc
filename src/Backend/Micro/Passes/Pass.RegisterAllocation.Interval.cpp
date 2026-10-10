@@ -1537,20 +1537,21 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     };
     std::vector<RematRecipe> remat(virtualCount);
     {
-        std::optional<std::unordered_map<uint32_t, const MicroRelocation*>> relocationByInstruction;
-        // Only relocation-backed rematerializations need this function-wide index.
-        const auto findRelocation = [&](const MicroInstrRef ref) -> const MicroRelocation* {
-            if (!relocationByInstruction)
+        // Only relocation-backed rematerializations need this function-wide index. One flat
+        // table; a later relocation of the same instruction replaces an earlier one.
+        RefPointerMap<MicroInstrRef, const MicroRelocation> relocationByInstruction;
+        bool                                                relocationsReady = false;
+        const auto                                          findRelocation   = [&](const MicroInstrRef ref) -> const MicroRelocation* {
+            if (!relocationsReady)
             {
-                relocationByInstruction.emplace();
+                relocationsReady = true;
                 for (const MicroRelocation& relocation : context_->builder->codeRelocations())
                 {
                     if (relocation.instructionRef.isValid())
-                        (*relocationByInstruction)[relocation.instructionRef.get()] = &relocation;
+                        relocationByInstruction.set(relocation.instructionRef, &relocation);
                 }
             }
-            const auto found = relocationByInstruction->find(ref.get());
-            return found == relocationByInstruction->end() ? nullptr : found->second;
+            return relocationByInstruction.find(ref);
         };
         for (uint32_t denseIndex = 0; denseIndex < virtualCount; ++denseIndex)
         {

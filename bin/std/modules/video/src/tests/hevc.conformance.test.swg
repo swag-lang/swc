@@ -3,7 +3,7 @@
 
 using Core, Core.Errors
 
-// Network abstraction layer unit types and the payload type that carries a picture digest.
+// The NAL unit types and SEI payload type that carry decoded picture digests.
 const PrefixSeiNal = 39'u32
 const SuffixSeiNal = 40'u32
 const DecodedPictureHashPayload = 132'u32

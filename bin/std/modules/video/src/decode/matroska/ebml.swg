@@ -136,7 +136,7 @@ impl Cursor
     }
 
     // Reads an element header and bounds it by its parent.
-    // Whether a walk of sibling elements has reached the end of what the stream holds.
+    // Whether the sibling walk has reached its bound or a zero byte that cannot begin an EBML ID.
     //
     // The first byte of an element identifier always carries a marker bit, so a zero there begins
     // nothing. A file whose tail never made it to disk, or one written into space reserved ahead of
@@ -148,6 +148,7 @@ impl Cursor
         return .position >= end or not .bytes[.position]
     }
 
+    // Reads an element header and bounds it by its parent.
     mtd readElement(limit: u64)->Element fail
     {
         if limit > (.bytes).count do
@@ -226,8 +227,8 @@ impl Cursor
         fail InvalidFormatError{"Matroska floating-point value needs four or eight bytes"}
     }
 
-    // Copies a textual element into owned storage.
-    // Copies a string element, without the padding a writer is free to leave behind.
+
+    // Copies a string element into owned storage, without trailing zero padding.
     //
     // A string element states its length, and a writer that reserved room for a longer value fills
     // what it did not use with zeros. Those zeros are padding, not content, and clause 7 of the

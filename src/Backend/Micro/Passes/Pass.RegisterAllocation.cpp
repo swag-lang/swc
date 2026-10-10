@@ -2162,9 +2162,15 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             }
         }
 
-        const MicroInstr*        inst = instructions_->ptr(instructionRefs[idx]);
-        const MicroInstrOperand* ops  = inst ? inst->ops(*operands_) : nullptr;
-        if (inst && inst->has128BitOperands(ops))
+        if (usesV.empty() && defsV.empty())
+            continue;
+        const MicroInstr* inst = instructions_->ptr(instructionRefs[idx]);
+        if (!inst)
+            continue;
+        const MicroInstrDef& info = MicroInstr::info(inst->op);
+        const bool hasWideOperands = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ||
+                                     (info.opBitsMask && inst->has128BitOperands(inst->ops(*operands_)));
+        if (hasWideOperands)
             wideInstructionPositions.push_back(idx);
     }
 

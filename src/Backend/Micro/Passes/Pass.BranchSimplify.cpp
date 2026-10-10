@@ -2606,11 +2606,12 @@ namespace
             // One link: cmp X, C; setcc T; D = T; then a je to the end or the end label itself.
             MicroReg             value;
             MicroReg             result;
-            MicroOpBits          bits    = MicroOpBits::Zero;
-            MicroCond            setCond = MicroCond::Unconditional;
-            uint32_t             endId   = 0;
-            bool                 hasEnd  = false;
-            bool                 closed  = false;
+            MicroOpBits          bits      = MicroOpBits::Zero;
+            MicroCond            setCond   = MicroCond::Unconditional;
+            uint64_t             valueMask = 0;
+            uint32_t             endId     = 0;
+            bool                 hasEnd    = false;
+            bool                 closed    = false;
             SmallVector<Link, 8> links;
             size_t               bodyEnd = start;
             size_t               at = start;
@@ -2654,12 +2655,13 @@ namespace
                     bits    = cmpOps[1].opBits;
                     setCond = setOps[1].cpuCond;
                     result  = copyOps[0].reg;
+                    const uint32_t bitCount = getNumBits(bits);
+                    valueMask               = bitCount == 64 ? UINT64_MAX : (1ULL << bitCount) - 1;
                 }
                 else if (tested != value || cmpOps[1].opBits != bits || setOps[1].cpuCond != setCond || copyOps[0].reg != result)
                     break;
 
-                const uint64_t mask = getNumBits(bits) == 64 ? UINT64_MAX : (1ULL << getNumBits(bits)) - 1;
-                links.push_back({.cmp = static_cast<uint32_t>(at), .value = cmpOps[2].valueU64 & mask});
+                links.push_back({.cmp = static_cast<uint32_t>(at), .value = cmpOps[2].valueU64 & valueMask});
                 bodyEnd = at + 2;
 
                 uint32_t labelId = 0;

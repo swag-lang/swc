@@ -2420,9 +2420,14 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         // A value an instruction names outside its register operands (an
         // encoder-implied use or definition) cannot be renamed there.
         regRefs.clear();
-        if (inst)
-            inst->collectRegOperands(*operands_, regRefs, context_->encoder);
+        bool haveRegRefs = false;
         const auto namedByOperand = [&](const uint32_t dense) {
+            if (!haveRegRefs)
+            {
+                if (inst)
+                    inst->collectRegOperands(*operands_, regRefs, context_->encoder);
+                haveRegRefs = true;
+            }
             return std::ranges::any_of(regRefs, [&](const MicroInstrRegOperandRef& ref) { return *ref.reg == virtualRegs[dense]; });
         };
 

@@ -62,7 +62,10 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
             for index in destination.count do
                 destination[index] = Sentinel
 
-            let progress      = try decoder.decode(destination.storage(), destinationBytes, source.storage(), sourceSamples * sampleSize)
+            let progress = try decoder.decode(destination.storage(),
+                                              destinationBytes,
+                                              source.storage(),
+                                              sourceSamples * sampleSize)
             let expectedCount = Math.min(sourceSamples, destinationBytes / #sizeof(s16))
             Swag.assert(progress.bytesWritten == expectedCount * #sizeof(s16))
             Swag.assert(progress.bytesRead == expectedCount * sampleSize)
@@ -145,7 +148,10 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     let decoded       = expect audioDecodePcmToPcm16(.Float32, cast([..] u8, src), src.count * #sizeof(s16))
     Swag.assert(decoded.progress.bytesWritten == src.count * #sizeof(s16))
     Swag.assert(decoded.progress.bytesRead == src.count * #sizeof(f32))
-    audioAssertSamples(decoded.destination.toSlice(), [-32768's16, 0's16, 16384's16, 32767's16, 32767's16, -32768's16, 8192's16, -8192's16, 32764's16, -32764's16, 3's16, -3's16])
+    audioAssertSamples(decoded.destination.toSlice(), [
+        -32768's16, 0's16, 16384's16, 32767's16,
+        32767's16, -32768's16, 8192's16, -8192's16,
+        32764's16, -32764's16, 3's16, -3's16])
 }
 
 #test

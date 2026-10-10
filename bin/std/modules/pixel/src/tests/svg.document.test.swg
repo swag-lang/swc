@@ -75,7 +75,7 @@ func makeTrianglePath()->LinePath
     Swag.assert(text.contains("fill-opacity="))
 }
 
-// Bezier segments keep their own commands instead of being flattened.
+// Bézier segments keep their own commands instead of being flattened.
 #test
 {
     var path: LinePath

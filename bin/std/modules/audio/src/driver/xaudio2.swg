@@ -151,10 +151,6 @@ impl XAudio2DriverNative
     }
 }
 
-///////////////////////////////////////////////////////////////
-// XAUDIO2 CALLBACKS
-///////////////////////////////////////////////////////////////
-
 internal
 {
     var g_ThreadCxt: Swag.Context
@@ -207,10 +203,6 @@ internal
     g_Cbi.onVoiceError               = &onVoiceError
 }
 
-///////////////////////////////////////////////////////////////
-// VOICE
-///////////////////////////////////////////////////////////////
-
 impl Voice
 {
     func createXAudio2(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
@@ -253,7 +245,14 @@ impl Voice
         var handle: *IXAudio2SourceVoice?
         let safeXAudio2       = g_Driver.xAudio2.xAudio2!
         let createSourceVoice = safeXAudio2.vtbl.createSourceVoice
-        let hr = createSourceVoice(safeXAudio2, &handle, cast(const *WAVEFORMATEX, &wfx.format), flags, XAUDIO2_DEFAULT_FREQ_RATIO, &g_Cb, null, null)
+        let hr = createSourceVoice(safeXAudio2,
+                                   &handle,
+                                   cast(const *WAVEFORMATEX, &wfx.format),
+                                   flags,
+                                   XAUDIO2_DEFAULT_FREQ_RATIO,
+                                   &g_Cb,
+                                   null,
+                                   null)
         if hr != S_OK do
             fail SystemError{"createSourceVoice", errorID: hresultErrorId(hr)}
         voice.handle = cast(*void?, handle)
@@ -436,10 +435,6 @@ internal impl Voice
     }
 }
 
-///////////////////////////////////////////////////////////////
-// BUS
-///////////////////////////////////////////////////////////////
-
 impl Bus
 {
     func createXAudio2(bus: *Bus, numChannels: u32, parent: *Bus? = null) fail
@@ -463,7 +458,14 @@ impl Bus
         var handle: *IXAudio2SubmixVoice?
         let safeXAudio2       = g_Driver.xAudio2.xAudio2!
         let createSubmixVoice = safeXAudio2.vtbl.createSubmixVoice
-        let hr = createSubmixVoice(safeXAudio2, &handle, numChannels, 44100, XAUDIO2_VOICE_USEFILTER, 0, pSFXSEndList, null)
+        let hr = createSubmixVoice(safeXAudio2,
+                                   &handle,
+                                   numChannels,
+                                   44100,
+                                   XAUDIO2_VOICE_USEFILTER,
+                                   0,
+                                   pSFXSEndList,
+                                   null)
         if hr != S_OK do
             fail SystemError{"createSubmixVoice", errorID: hresultErrorId(hr)}
         bus.handle = cast(*void?, handle)

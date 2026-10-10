@@ -291,11 +291,36 @@ namespace
     }
 }
 
+bool MicroPassHelpers::instructionCpuFlagsDependOnOperands(const MicroInstr& inst)
+{
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::ClearReg:
+        case MicroInstrOpcode::OpUnaryReg:
+        case MicroInstrOpcode::OpUnaryMem:
+        case MicroInstrOpcode::OpBinaryRegImm:
+        case MicroInstrOpcode::OpBinaryMemImm:
+        case MicroInstrOpcode::OpBinaryRegReg:
+        case MicroInstrOpcode::OpBinaryRegMem:
+        case MicroInstrOpcode::OpBinaryMemReg:
+        case MicroInstrOpcode::OpBinaryRegAmcMem:
+        case MicroInstrOpcode::OpBinaryAmcMemReg:
+        case MicroInstrOpcode::OpUnaryAmcMem:
+        case MicroInstrOpcode::OpBinaryAmcMemImm:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 bool MicroPassHelpers::instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)
 {
     const MicroInstrDef& info = MicroInstr::info(inst.op);
     if (!info.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
         return false;
+    if (!instructionCpuFlagsDependOnOperands(inst))
+        return true;
     if (!ops)
         return true;
 

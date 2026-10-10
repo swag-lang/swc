@@ -277,6 +277,7 @@ namespace MicroPassHelpers
     // The opcode table flags every arithmetic form as a flag writer; the
     // micro-op decides: an exchange, a lea, a `not`, a byte swap, and every
     // float, conversion and packed operation leave the flags alone.
+    bool instructionCpuFlagsDependOnOperands(const MicroInstr& inst);
     bool instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
     // A flag writer may preserve incoming flags: rotates and zero-count shifts
     // must not terminate a liveness proof. Keep any-write checks for invalidation.

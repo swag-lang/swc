@@ -1008,7 +1008,8 @@ namespace
             }
 
             const bool               mayDefineFlags = MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::DefinesCpuFlags);
-            const MicroInstrOperand* ops            = inst.op == MicroInstrOpcode::JumpCond || mayDefineFlags ? inst.ops(operands) : nullptr;
+            const bool               needsFlagOps    = mayDefineFlags && MicroPassHelpers::instructionCpuFlagsDependOnOperands(inst);
+            const MicroInstrOperand* ops             = inst.op == MicroInstrOpcode::JumpCond || needsFlagOps ? inst.ops(operands) : nullptr;
             if (inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional)
             {
                 bool branchTaken = false;
@@ -1160,7 +1161,8 @@ namespace
                 continue;
             }
 
-            if (inst.op != MicroInstrOpcode::SetCondReg && !flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            const bool needsFlagOps = flags.has(MicroInstrFlagsE::DefinesCpuFlags) && MicroPassHelpers::instructionCpuFlagsDependOnOperands(inst);
+            if (inst.op != MicroInstrOpcode::SetCondReg && !needsFlagOps)
                 continue;
 
             const MicroInstrOperand* ops = inst.ops(operands);
@@ -1232,15 +1234,18 @@ namespace
             // What the operation does, not what its opcode may do: a bitwise
             // complement, a move and an address computation share an opcode
             // with arithmetic that writes the flags, and leave them alone.
+            const MicroInstrOperand* scanOps = nullptr;
+            if (trackedReg.isValid() ||
+                (flags.has(MicroInstrFlagsE::DefinesCpuFlags) && MicroPassHelpers::instructionCpuFlagsDependOnOperands(*scanInst)))
+                scanOps = scanInst->ops(operands);
             if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
                 return scanRef;
             if (flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanInst->ops(operands)))
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanOps))
                 return scanRef;
 
             if (trackedReg.isValid())
             {
-                const MicroInstrOperand* scanOps = scanInst->ops(operands);
                 if (!scanOps)
                     continue;
                 const auto modes = MicroInstr::info(scanInst->op).resolvedRegModes(scanOps);

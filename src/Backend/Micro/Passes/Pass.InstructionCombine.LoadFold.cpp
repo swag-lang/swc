@@ -997,6 +997,20 @@ namespace InstructionCombine
 
         bool matchIndexedRead(IndexedRead& out, const Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
         {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadAmcRegMem:
+                case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                case MicroInstrOpcode::LoadRegMem:
+                case MicroInstrOpcode::LoadSignedExtRegMem:
+                case MicroInstrOpcode::LoadZeroExtRegMem:
+                    break;
+
+                default:
+                    return false;
+            }
+
             const MicroInstrOperand* ops = inst.ops(*ctx.operands);
             if (!ops)
                 return false;

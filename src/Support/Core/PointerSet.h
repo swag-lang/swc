@@ -373,16 +373,17 @@ private:
     size_t            count_ = 0;
 };
 
-// A map from 32-bit keys to small trivially copyable values, held in one flat table. The all-ones
-// key marks a free slot, so that one key lives beside the table. A found value is read before the
-// next insertion, which can move it. Clearing keeps the table, so a map that is refilled reuses it.
-template<typename V>
+// A map from 32-bit (or 64-bit) keys to small trivially copyable values, held in one flat table.
+// The all-ones key marks a free slot, so that one key lives beside the table. A found value is read
+// before the next insertion, which can move it. Clearing keeps the table, so a map that is refilled
+// reuses it.
+template<typename V, typename K = uint32_t>
 class FlatKeyMap
 {
     static_assert(std::is_trivially_copyable_v<V>, "FlatKeyMap holds trivially copyable values");
 
 public:
-    const V* find(uint32_t key) const noexcept
+    const V* find(K key) const noexcept
     {
         if (key == K_FREE)
             return hasFreeKey_ ? &freeKeyValue_ : nullptr;
@@ -400,10 +401,10 @@ public:
         return nullptr;
     }
 
-    V* find(uint32_t key) noexcept { return const_cast<V*>(std::as_const(*this).find(key)); }
+    V* find(K key) noexcept { return const_cast<V*>(std::as_const(*this).find(key)); }
 
     // Inserts the key with the value, or keeps the value already there, like 'emplace'.
-    void emplace(uint32_t key, const V& value)
+    void emplace(K key, const V& value)
     {
         bool inserted = false;
         V&   slot     = slotFor(key, inserted);
@@ -412,7 +413,7 @@ public:
     }
 
     // The value of the key, value-initialized when the key is new, like 'operator[]'.
-    V& getOrInsert(uint32_t key)
+    V& getOrInsert(K key)
     {
         bool inserted = false;
         return slotFor(key, inserted);
@@ -435,21 +436,21 @@ public:
 private:
     struct Slot
     {
-        uint32_t key = K_FREE;
-        V        value{};
+        K key = K_FREE;
+        V value{};
     };
 
-    static constexpr size_t   INITIAL_CAPACITY = 64;
-    static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
+    static constexpr size_t INITIAL_CAPACITY = 64;
+    static constexpr K      K_FREE           = std::numeric_limits<K>::max();
 
-    static size_t slotIndex(uint32_t key, size_t mask) noexcept
+    static size_t slotIndex(K key, size_t mask) noexcept
     {
         return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
     }
 
     // The table grows before an insertion rather than after it, so the returned value stays
     // where it is until the next one.
-    V& slotFor(uint32_t key, bool& outInserted)
+    V& slotFor(K key, bool& outInserted)
     {
         if (key == K_FREE)
         {
@@ -507,13 +508,15 @@ private:
     bool              hasFreeKey_ = false;
 };
 
-// A set of 32-bit keys held in one flat table, for the instruction sets a pass collects once per
-// function and then only asks about. An empty set owns nothing; a filled one is one allocation.
-class FlatKeySet
+// A set of 32-bit (or 64-bit) keys held in one flat table, for the instruction sets a pass collects
+// once per function and then only asks about. An empty set owns nothing; a filled one is one
+// allocation.
+template<typename K = uint32_t>
+class FlatKeySetOf
 {
 public:
     // True when the key was not already present.
-    bool insert(uint32_t key)
+    bool insert(K key)
     {
         bool& present = map_.getOrInsert(key);
         if (present)
@@ -522,14 +525,17 @@ public:
         return true;
     }
 
-    bool   contains(uint32_t key) const noexcept { return map_.find(key) != nullptr; }
+    bool   contains(K key) const noexcept { return map_.find(key) != nullptr; }
     bool   empty() const noexcept { return map_.size() == 0; }
     size_t size() const noexcept { return map_.size(); }
     void   clear() noexcept { map_.clear(); }
 
 private:
-    FlatKeyMap<bool> map_;
+    FlatKeyMap<bool, K> map_;
 };
+
+using FlatKeySet   = FlatKeySetOf<uint32_t>;
+using FlatKey64Set = FlatKeySetOf<uint64_t>;
 
 // The nodes on the current path of a recursive walk that must not re-enter itself. Each node
 // leaves the path before its frame returns, so the path is never deeper than the recursion and a

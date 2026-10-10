@@ -778,8 +778,8 @@ namespace
             uint32_t references  = 0;
             uint32_t jumpOrdinal = 0;
         };
-        thread_local std::unordered_map<uint32_t, LabelUse> labelUses;
-        labelUses.clear();
+        // By label id; only looked up.
+        FlatKeyMap<LabelUse> labelUses;
         for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
         {
             const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
@@ -791,7 +791,7 @@ namespace
             uint32_t labelId = 0;
             if (tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
             {
-                LabelUse& use = labelUses[labelId];
+                LabelUse& use = labelUses.getOrInsert(labelId);
                 ++use.references;
                 use.jumpOrdinal = ordinal;
             }
@@ -877,9 +877,9 @@ namespace
                     }
                     if (!visitedLabels.insert(labelId).second)
                         break;
-                    const auto     useIt      = labelUses.find(labelId);
-                    const uint32_t references = useIt == labelUses.end() ? 0 : useIt->second.references;
-                    const bool     fallsInto  = fallsIntoLabel(current);
+                    const LabelUse* labelUse   = labelUses.find(labelId);
+                    const uint32_t  references = labelUse ? labelUse->references : 0;
+                    const bool      fallsInto  = fallsIntoLabel(current);
                     if (!references)
                     {
                         if (!fallsInto)
@@ -890,7 +890,7 @@ namespace
                     if (references != 1 || fallsInto)
                         break;
 
-                    const uint32_t           from    = useIt->second.jumpOrdinal;
+                    const uint32_t           from    = labelUse->jumpOrdinal;
                     const MicroInstrOperand* fromOps = storage.ptr(layout.order[from])->ops(operands);
                     factCond                         = fromOps[0].cpuCond;
                     factJump                         = from;
@@ -4756,8 +4756,8 @@ namespace
     // instruction-anchored relocations, whose targets it cannot see.
     bool eraseUnreferencedLabels(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, RelocationRefCache& relocationCache)
     {
-        std::unordered_set<uint64_t> referencedLabels;
-        SmallVector<MicroInstrRef>   labelRefs;
+        FlatKey64Set               referencedLabels;
+        SmallVector<MicroInstrRef> labelRefs;
 
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
@@ -5340,7 +5340,7 @@ namespace
         const MicroSsaState*                   ssa      = nullptr;
         const MicroStorage*                    storage  = nullptr;
         const MicroOperandStorage*             operands = nullptr;
-        std::unordered_map<uint64_t, uint32_t> labelReferences;
+        FlatKeyMap<uint32_t, uint64_t>         labelReferences;
         const FlatKeySet*                      relocated = nullptr;
     };
 
@@ -5395,8 +5395,8 @@ namespace
         uint32_t          labelId      = 0;
         if (!tryGetLabelId(labelId, *armLabelInst, armLabelInst->ops(*scan.operands)) || labelId != armLabelId)
             return false;
-        const auto referenceIt = scan.labelReferences.find(armLabelId);
-        if (referenceIt == scan.labelReferences.end() || referenceIt->second != expectedArmReferences)
+        const uint32_t* referenceIt = scan.labelReferences.find(armLabelId);
+        if (!referenceIt || *referenceIt != expectedArmReferences)
             return false;
 
         // The jump arm, ended by the join label.
@@ -5596,7 +5596,7 @@ namespace
             const MicroInstrOperand* ops = inst.ops(operands);
             if (!ops || inst.numOperands < 3)
                 return false;
-            ++scan.labelReferences[ops[2].valueU64];
+            ++scan.labelReferences.getOrInsert(ops[2].valueU64);
         }
 
         return true;
@@ -5631,7 +5631,8 @@ namespace
     {
         if (!cache.built)
         {
-            cache.scan.labelReferences.clear();
+            // A fresh table: clearing a kept one would cost its largest size ever, not this scan's.
+            cache.scan.labelReferences = {};
             cache.usable = prepareDiamondScan(cache.scan, storage, operands, context);
             if (cache.usable)
                 cache.scan.relocated = &cache.relocations->get(context);
@@ -5715,8 +5716,8 @@ namespace
             if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
                 !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
                 continue;
-            const auto armReferences = scan.labelReferences.find(armLabelId);
-            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+            const uint32_t* armReferences = scan.labelReferences.find(armLabelId);
+            if (!armReferences || *armReferences != 1)
                 continue;
 
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
@@ -5854,8 +5855,8 @@ namespace
             if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
                 !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
                 continue;
-            const auto armReferences = scan.labelReferences.find(armLabelId);
-            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+            const uint32_t* armReferences = scan.labelReferences.find(armLabelId);
+            if (!armReferences || *armReferences != 1)
                 continue;
 
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
@@ -6037,8 +6038,8 @@ namespace
             if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
                 !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
                 continue;
-            const auto armReferences = scan.labelReferences.find(armLabelId);
-            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+            const uint32_t* armReferences = scan.labelReferences.find(armLabelId);
+            if (!armReferences || *armReferences != 1)
                 continue;
 
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
@@ -6224,8 +6225,8 @@ namespace
             if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
                 !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
                 continue;
-            const auto armReferences = scan.labelReferences.find(armLabelId);
-            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+            const uint32_t* armReferences = scan.labelReferences.find(armLabelId);
+            if (!armReferences || *armReferences != 1)
                 continue;
 
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
@@ -6411,8 +6412,8 @@ namespace
             if (!tryGetJumpTargetLabelId(armLabelId, *jump, jumpOps) ||
                 !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
                 continue;
-            const auto armReferences = scan.labelReferences.find(armLabelId);
-            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+            const uint32_t* armReferences = scan.labelReferences.find(armLabelId);
+            if (!armReferences || *armReferences != 1)
                 continue;
 
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
@@ -6527,8 +6528,8 @@ namespace
             uint32_t joinLabelId = 0;
             if (!tryGetJumpTargetLabelId(armLabelId, jumpInst, jumpOps) || !tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || armLabelId == joinLabelId)
                 continue;
-            const auto armReferences = scan.labelReferences.find(armLabelId);
-            if (armReferences == scan.labelReferences.end() || armReferences->second != 1)
+            const uint32_t* armReferences = scan.labelReferences.find(armLabelId);
+            if (!armReferences || *armReferences != 1)
                 continue;
 
             const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
@@ -7166,8 +7167,8 @@ namespace
         uint32_t          foundLabelId = 0;
         if (!tryGetLabelId(foundLabelId, *labelInst, labelInst->ops(*scan.operands)) || foundLabelId != labelId)
             return false;
-        const auto referenceIt = scan.labelReferences.find(labelId);
-        if (referenceIt == scan.labelReferences.end() || referenceIt->second != 1)
+        const uint32_t* referenceIt = scan.labelReferences.find(labelId);
+        if (!referenceIt || *referenceIt != 1)
             return false;
 
         if (!collectReturnPath(out.tail, scan, conv, out.labelRef))

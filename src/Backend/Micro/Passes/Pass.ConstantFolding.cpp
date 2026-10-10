@@ -975,14 +975,15 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     auto&                 knownFlags  = scratch.flags;
     computeKnownValues(knownValues, knownFlags, *ssaState, storage, operands);
 
-    // Keep relocation buckets across functions, but publish only this run's
-    // addresses and context pointers to the constant-load folds.
+    // Publish only this run's addresses and context pointers to the constant-load folds. The
+    // address table starts fresh: clearing a kept one would cost its largest size ever, not
+    // this run's.
     thread_local ConstantMemoryContext memoryContext;
-    memoryContext.ssaState      = ssaState;
-    memoryContext.operands      = &operands;
-    memoryContext.taskContext   = nullptr;
-    memoryContext.addressSource = nullptr;
-    memoryContext.constantAddressByInstruction.clear();
+    memoryContext.ssaState                     = ssaState;
+    memoryContext.operands                     = &operands;
+    memoryContext.taskContext                  = nullptr;
+    memoryContext.addressSource                = nullptr;
+    memoryContext.constantAddressByInstruction = {};
     if (context.builder && !context.builder->codeRelocations().empty() && context.taskContext && context.taskContext->hasCompiler())
     {
         memoryContext.taskContext   = context.taskContext;

@@ -1117,12 +1117,9 @@ impl Allocator
         }
     }
 
-    // Rounds a header-path block up to one of eight sizes per power of two.
-    //
-    // Rounds a header-path block up to one of eight sizes per power of two, so that blocks freed and requested
-    // with slightly different sizes land on the same size and the cache can serve them. The rounding wastes at
-    // most an eighth of the block, and only in address space and commitment: the pages past the request are
-    // never touched by the allocator.
+    // Rounds a header-path block up to one of eight sizes per power of two so that blocks freed and requested
+    // with slightly different sizes can share the cache. The rounding wastes at most an eighth of the block in
+    // address space and commitment; the allocator never touches pages past the request.
     func largeBlockSize(size: u64)->u64
     {
         if size <= AllocatorLargeRoundMin do
@@ -1179,11 +1176,9 @@ impl Allocator
         .cachedBlocks[index] = .cachedBlocks[.cachedBlockCount]
     }
 
-    // The bytes the cache may keep committed.
-    //
-    // The bytes the cache may keep committed: as much as the program holds live through the header path, so a
-    // program that works with large buffers keeps recycling them while a program that is done with them gives
-    // the memory back, plus a floor that absorbs the allocate/free cycles of a few large buffers.
+    // Sets the committed-byte budget to the live header-path bytes, within fixed bounds. This lets programs
+    // working with large buffers recycle them while returning memory when they are done, with a floor that
+    // absorbs cycles involving a few large buffers.
     mtd blockCacheBudget()->u64
     {
         let live = atomicGet(&.headerBytes)
@@ -1424,7 +1419,8 @@ impl Allocator
     // Public operations
     // ###################################################################################
 
-    // Allocates a block already available on the calling thread's current page, with a size and alignment the page path can serve.
+    // Allocates a block already available on the calling thread's current page, with a size and alignment the
+    // page path can serve.
     //
     // The common allocation: a default alignment, a size a page class carries, and a block ready on the
     // calling thread's current page for that class. Returns zero whenever anything else has to happen; the
@@ -2194,7 +2190,12 @@ func releaseAllocatorThreadCache()
     alloc?.retireThreadHeap(heap)
 }
 
-func installAllocator(electricMode: bool = false, detectLeaks: bool = true, captureStack: bool = false, trackAllocations: bool = false, fillMemory: bool = false, installInContext: bool = true)->*Allocator
+func installAllocator(electricMode: bool = false,
+                      detectLeaks: bool = true,
+                      captureStack: bool = false,
+                      trackAllocations: bool = false,
+                      fillMemory: bool = false,
+                      installInContext: bool = true)->*Allocator
 {
     let cxt = Swag.getContext()
 

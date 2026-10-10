@@ -1879,6 +1879,8 @@ namespace
                 if (ordinal != copyOrdinal)
                     dSites.defs.push_back(ordinal);
             }
+            // The flat index keeps its slot, but every instruction now uses D instead of E.
+            siteMap[*eIndex - 1] = {};
             changed = true;
         }
 

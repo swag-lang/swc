@@ -42,6 +42,15 @@ public func runFormat(context: *Context, options: *Options)->s32 fail
 // separate, explicit step: it accepts whatever the code currently produces.
 public func runGoldens(context: *Context, options: *Options)->s32 fail
 {
+    // The tool names no module, so any other word is a mistyped command. Read as nothing, it
+    // would fall through to 'accept' and promote every snapshot on disk, reviewed or not.
+    if not options.module.isEmpty()
+    {
+        Console.println("error: '", options.module, "' is not a goldens command")
+        Console.println("Use 'test' to run the golden campaign, 'accept' to promote reviewed snapshots, or '--help'.")
+        return 1
+    }
+
     if options.command == "test" do
         return try runGoldenTests(context, options)
     return try acceptGoldens(context)

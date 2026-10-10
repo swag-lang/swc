@@ -420,21 +420,20 @@ impl RichEditView
             runToDraw = &drawShape
         }
 
-        let left  = snapPixels ? Math.round(x * info.deviceScale) / info.deviceScale : x
-        var right = left
-        for glyph, idx in runToDraw.glyphs
-        {
-            let step = Painter.advanceTextX(right, glyph.offsetX, glyph.advanceX, info, idx == 0)
-            right = step.rightX
-        }
+        var right = x
+        for glyph in runToDraw.glyphs do
+            right = Painter.advanceTextX(right, glyph.offsetX, glyph.advanceX, info).rightX
 
-        // Background rectangle
+        // Background rectangle. Its edges land on whole device pixels, so the backgrounds of two
+        // adjacent runs meet without a seam; the run itself ends at its exact pen position.
         if visible and strStyle.colBk.a
         {
+            let left = snapPixels ? Math.round(x * info.deviceScale) / info.deviceScale : x
+            let end  = snapPixels ? Math.round(right * info.deviceScale) / info.deviceScale : right
             var rect: Math.Rectangle
             rect.x      = left
             rect.y      = y
-            rect.width  = Math.max(right - left, 0.0)
+            rect.width  = Math.max(end - left, 0.0)
             rect.height = edn.xGlyphSize().y
             painter.fillRect(rect, strStyle.colBk)
         }

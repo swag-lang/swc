@@ -846,8 +846,10 @@ impl ViewerWindow
         var result: retval
         for plugin in .index.plugins
         {
+            // The no-break spaces keep each separator with the name before it, so a line never
+            // opens on one.
             if not result.isEmpty() do
-                result += "  ·  "
+                result += "\u00A0\u00A0·  "
             result += "<b>"
             result += plugin.displayName()
             result += "</b>"

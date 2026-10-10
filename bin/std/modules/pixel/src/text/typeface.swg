@@ -194,14 +194,19 @@ public impl TypeFace
     mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap fail => try .renderGlyphByIndex(.face.glyphIndex(c), size, forceBold, forceItalic)
 
     // Rasterizes one glyph index as a grayscale bitmap at `size` pixels, like [[Pixel.TypeFace.renderGlyph]].
+    //
+    // `penOffsetX` moves the outline right by a fraction of a pixel before rasterization, so a
+    // glyph drawn from a fractional pen position keeps its exact ink while its bitmap stays
+    // aligned to whole pixels. The bitmap's left edge accounts for the offset.
     #[Swag.Propagate]
-    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap fail
+    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false, penOffsetX = 0.0'f32)->const *Bitmap fail
     {
         .face.setPixelSize(0, size)
         .face.loadGlyph(glyphIndex)
         .transform(size, 0, forceBold, forceItalic)
         .face.glyph.outline.embolden(stemDarkenStrength(size))
         .face.hintVertical()
+        .face.glyph.outline.translate(cast(s32, Math.round(penOffsetX * 64)), 0)
         .face.renderGlyph()
         return &.face.glyph.bitmap
     }

@@ -120,6 +120,15 @@ const RefEmSpread: u32 = 8
 // text at every common display scale: a sixteen-pixel body size only reaches it at 200%.
 const AutoMsdfMinPx: f32 = 32.0
 
+// Sets how many horizontal positions inside one device pixel a bitmap glyph can be drawn at.
+//
+// A bitmap glyph is rasterized once for each position it is drawn at: its quad stays on whole
+// device pixels, so the atlas maps texel for pixel, while its ink keeps the pen position the
+// layout computed. Four positions bound the placement error to an eighth of a pixel. Rounding
+// every glyph to a whole pixel instead erases each kerning pair below half a pixel and lets the
+// spacing inside a word drift by a pixel, which reads as letters that touch.
+const SubpixelPositions: u32 = 4
+
 // Stores glyphs shared by compatible [[Pixel.Font]] views.
 //
 // Fonts with the same typeface, style, render mode, reference size, and spread share
@@ -145,7 +154,7 @@ public struct GlyphCache
         underlineSize: f32     // Recommended underline thickness.
 
         atlases:  Array'GlyphAtlas                // Atlas pages populated on demand.
-        glyphRef: HashTable'(u32, *GlyphDesc)     // Cached descriptors indexed by typeface glyph index.
+        glyphRef: HashTable'(u32, *GlyphDesc)     // Cached descriptors keyed by glyph index and subpixel position.
         kernRef:  HashTable'(u64, f32)            // Kerning cache keyed by two glyph indices.
         dirty:    bool     // Whether at least one atlas requires a GPU upload.
     }
@@ -583,27 +592,40 @@ impl GlyphCache
 
     // Rasterizes a typeface glyph into the face bitmap using this cache's mode.
     //
+    // A bitmap glyph is rasterized with its pen `subpixel` / `SubpixelPositions` of a pixel
+    // right of the origin; an MSDF glyph is size independent and ignores it.
+    //
     // This is a low-level cache operation; [[Pixel.GlyphCache.getGlyphDescByIndex]]
     // normally invokes it automatically when a descriptor is first requested.
-    mtd renderGlyphBitmap(glyphIndex: u32) fail
+    mtd renderGlyphBitmap(glyphIndex: u32, subpixel: u32 = 0) fail
     {
         switch .renderMode
         {
-        case .Msdf: discard try .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
-        default:    discard try .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic)
+        case .Msdf:
+            discard try .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
+        default:
+            let penOffsetX = cast(f32, subpixel % SubpixelPositions) / cast(f32, SubpixelPositions)
+            discard try .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic, penOffsetX)
         }
     }
 
     // Returns the descriptor of a glyph index, rendered at the reference size on first use.
-    mtd getGlyphDescByIndex(glyphIndex: u32)->const *GlyphDesc
+    //
+    // `subpixel` selects the rasterization of a bitmap glyph drawn with its pen `subpixel` /
+    // `SubpixelPositions` of a device pixel right of a whole pixel; its `shiftX` and bitmap
+    // carry that offset, and its advance is the same at every position. An MSDF glyph has one
+    // rasterization, returned for every position.
+    mtd getGlyphDescByIndex(glyphIndex: u32, subpixel: u32 = 0)->const *GlyphDesc
     {
-        let entry = .glyphRef.tryFind(glyphIndex)
+        let position = .renderMode == .Msdf ? 0 : subpixel % SubpixelPositions
+        let key      = glyphIndex | (position << 28)
+        let entry    = .glyphRef.tryFind(key)
         if entry do
             return cast(const *GlyphDesc, entry.value)
 
         // Render the glyph
         let bpp = .renderMode.bytesPerPixel()
-        discard catch .renderGlyphBitmap(glyphIndex)
+        discard catch .renderGlyphBitmap(glyphIndex, position)
         let bmpRef = &.typeFace.face.glyph.bitmap
 
         // Glyph width in bytes (atlas columns are measured in bytes, rows in pixels)
@@ -661,14 +683,14 @@ impl GlyphCache
 
         // Setup GlyphDesc
         let refr = Memory.new'GlyphDesc()
-        .glyphRef.add(glyphIndex, refr)
+        .glyphRef.add(key, refr)
         refr.cache = me
 
         refr.width  = bmpRef.width
         refr.height = bmpRef.rows
 
         let glyph = .typeFace.face.glyph
-        refr.glyphIndex = glyph.index
+        refr.glyphIndex = glyphIndex
         refr.advanceX   = glyph.advance.x / 64.0
         refr.advanceY   = glyph.advance.y / 64.0
         refr.shiftX     = glyph.bitmapLeft

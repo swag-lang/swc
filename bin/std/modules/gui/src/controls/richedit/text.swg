@@ -169,7 +169,7 @@ impl RichEditCtrl
                 let info  = .computeTextDrawInfo(line.styles[i])
                 let font  = info.drawFont.resolveRune(line.chars[i])
                 let glyph = font.getGlyphDescByIndex(font.glyphIndex(line.chars[i]))
-                next = Painter.advanceTextX(x, 0, glyph.advanceX, info, true).rightX
+                next = Painter.advanceTextX(x, 0, glyph.advanceX, info).rightX
             }
 
             if next > right and i > start

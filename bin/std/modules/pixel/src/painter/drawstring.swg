@@ -154,6 +154,17 @@ struct ShapedGlyph
     }
 }
 
+// Places one glyph of a run being drawn: where its quad starts and which rasterization it samples.
+//
+// The type identity is part of the exported [[Pixel.Painter]] layout, so it is public, but it
+// carries no public contract of its own.
+#[Swag.NoDoc]
+struct PlacedGlyph
+{
+    late desc: const *GlyphDesc     // The glyph's rasterization at the subpixel position its pen fell on.
+    x:         f32     // Pen position the quad is drawn from, on the device grid for a bitmap font.
+}
+
 // Owns shaped glyphs and aggregate measurements for a primary font and its fallback faces.
 struct ShapedRun
 {
@@ -203,7 +214,7 @@ struct TextDrawInfo
     public
     {
         late drawFont: *Font       // Borrowed bitmap or MSDF font selected for drawing.
-        snapPixels:    bool        // Whether glyph positions snap to the device-pixel grid.
+        snapPixels:    bool        // Whether glyph quads land on whole device pixels, their ink placed by subpixel rasterizations.
         scale:         f32         // Scale from reference glyph metrics to logical draw units.
         deviceScale:   f32 = 1     // Physical device pixels per logical draw unit.
 
@@ -374,22 +385,17 @@ impl Painter
         return Math.max(scale.x, scale.y) * .curContentScale
     }
 
-    // Resolves one glyph's left and right positions from scaled metrics.
+    // Resolves one glyph's pen position and the pen position after it, from scaled metrics.
     //
-    // Bitmap runs snap offsets and advances to whole device pixels. When `runStart`
-    // is true, the initial position is snapped as well, compensating the transform
-    // translation carried by `info`. Offsets and advances are relative widths and
-    // snap without it.
-    func advanceTextX(left, offsetX, advanceX: f32, info: TextDrawInfo, runStart = false)->{ glyphX: f32, rightX: f32 }
+    // `left` is the pen position after the previous glyph, and `offsetX` the kerning and letter
+    // spacing placed before this one. Positions are exact in every render mode: a bitmap glyph
+    // reaches the device grid only when it is drawn, through the subpixel rasterization its
+    // fraction selects, so a run measured with this function ends where its glyphs are drawn.
+    func advanceTextX(left, offsetX, advanceX: f32, info: TextDrawInfo)->{ glyphX: f32, rightX: f32 }
     {
         var result: retval
-        result.glyphX = runStart ? snapTextPosition(left, info.snapPixels, info.deviceScale, info.snapOffsetX) : left
-
-        let snappedOffset = snapTextPosition(offsetX * info.scale, info.snapPixels, info.deviceScale)
-        result.glyphX += snappedOffset
-
-        let snappedAdvance = snapTextPosition(advanceX * info.scale, info.snapPixels, info.deviceScale)
-        result.rightX = result.glyphX + snappedAdvance
+        result.glyphX = left + offsetX * info.scale
+        result.rightX = result.glyphX + advanceX * info.scale
         return result
     }
 
@@ -555,13 +561,14 @@ impl Painter
 
     // Measures the rendered horizontal advance up to byte `atByte`.
     //
-    // The result uses the same pixel snapping and draw-font resolution as
-    // [[Pixel.Painter.drawString]]. Unlike [[Pixel.Painter.measureString]], it
-    // matches on-screen glyph positions for carets, selections, and right-aligned
-    // anchors. The default `atByte` measures the whole run. `deviceScale` must match
-    // the device scale the text is drawn with (see `Gui.Wnd.deviceScale`);
-    // measuring with another scale snaps advances to a different pixel grid and the
-    // measured position drifts from the drawn one.
+    // The result uses the same draw-font resolution as [[Pixel.Painter.drawString]].
+    // Unlike [[Pixel.Painter.measureString]], it matches on-screen glyph positions for
+    // carets, selections, and right-aligned anchors: a bitmap font drawn small is
+    // rasterized at the device pixel size, whose hinted advances differ from the nominal
+    // ones. The default `atByte` measures the whole run. `deviceScale` must match the
+    // device scale the text is drawn with (see `Gui.Wnd.deviceScale`); measuring with
+    // another scale resolves another draw font and the measured position drifts from the
+    // drawn one.
     func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max, deviceScale = 1.0'f32)->f32
     {
         let info = computeTextDrawInfo(run.font, 1.0, deviceScale)
@@ -577,12 +584,11 @@ impl Painter
         }
 
         var x = 0.0'f32
-        for glyph, idx in toDraw.glyphs
+        for glyph in toDraw.glyphs
         {
             if glyph.cluster >= atByte do
                 break
-            let step = advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
-            x = step.rightX
+            x = advanceTextX(x, glyph.offsetX, glyph.advanceX, info).rightX
         }
 
         return x
@@ -599,8 +605,8 @@ impl Painter
     // `Swag.U64.Max` when the whole run fits.
     //
     // The walk mirrors [[Pixel.Painter.measureStringSnapped]]: the prefix is measured with the
-    // resolved draw font and device-snapped advances, so the cut point agrees with the width
-    // the run is drawn at rather than with its nominal advances.
+    // resolved draw font, so the cut point agrees with the width the run is drawn at rather
+    // than with its nominal advances.
     private func fitShapedPrefix(run: const *ShapedRun, maxWidth: f32, deviceScale: f32)->u64
     {
         let info = computeTextDrawInfo(run.font, 1.0, deviceScale)
@@ -614,9 +620,9 @@ impl Painter
         }
 
         var x = 0.0'f32
-        for glyph, idx in toWalk.glyphs
+        for glyph in toWalk.glyphs
         {
-            let step = advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
+            let step = advanceTextX(x, glyph.offsetX, glyph.advanceX, info)
             if step.rightX > maxWidth do
                 return glyph.cluster
             x = step.rightX
@@ -651,48 +657,74 @@ impl Painter
         return result
     }
 
-    // Emit the glyph quads of a shaped run, translated by (dx, dy) and tinted with
-    // 'color'. The offset is applied after pixel snapping so a sub-pixel shadow
-    // offset survives. Shared by the face pass and the drop-shadow pass.
-    private mtd pushShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, startLeft, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
+    // Resolves where each glyph of a run is drawn from, and which rasterization it samples.
+    //
+    // A bitmap glyph is placed at its pen position rounded to the nearest of the
+    // `SubpixelPositions` positions inside a device pixel: the whole pixel places the quad,
+    // and the remainder selects the rasterization whose ink is shifted by it. This runs before
+    // the atlas update is recorded, so a rasterization made for this draw is uploaded with it.
+    private mtd placeShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, startLeft: f32)
     {
-        var x = startLeft
-        for glyph, idx in runToDraw.glyphs
+        let positions = cast(f32, SubpixelPositions)
+        var x         = startLeft
+        .scratchPlaced.clear()
+        for glyph in runToDraw.glyphs
         {
-            let step   = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
-            let glyphX = step.glyphX
+            let step = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info)
+            x = step.rightX
 
-            let refr = glyph.desc
-            if refr.width != 0 and refr.height != 0
+            var placed = PlacedGlyph{glyph.desc, step.glyphX}
+            if info.snapPixels and placed.desc.width != 0 and placed.desc.height != 0
             {
-                .setTextureFont(glyph.font orelse drawFont, refr.atlasIndex)
-
-                // Round scaled reference metrics before translating each quad edge.
-                let left   = Math.mulAdd(refr.shiftX, info.scale, glyphX)
-                let top    = Math.mulAdd(-refr.shiftY, info.scale, Math.mulAdd(glyph.offsetY, info.scale, baselineY))
-                let right  = Math.mulAdd(refr.width, info.scale, left)
-                let bottom = Math.mulAdd(refr.height, info.scale, top)
-
-                let x1 = snapTextPosition(left, snapPixels, info.deviceScale, info.snapOffsetX) + dx
-                let y1 = snapTextPosition(top, snapPixels, info.deviceScale, info.snapOffsetY) + dy
-                let x2 = snapTextPosition(right, snapPixels, info.deviceScale, info.snapOffsetX) + dx
-                let y2 = snapTextPosition(bottom, snapPixels, info.deviceScale, info.snapOffsetY) + dy
-
-                let p1 = Math.Vector2{x1, y1}
-                let p2 = Math.Vector2{x2, y1}
-                let p3 = Math.Vector2{x1, y2}
-                let p4 = Math.Vector2{x2, y2}
-
-                let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
-                let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
-                let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
-                let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
-
-                discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, color)
-                discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, color)
+                let device   = Math.round((placed.x + info.snapOffsetX) * info.deviceScale * positions)
+                let pixel    = Math.floor(device / positions)
+                let subpixel = cast(u32, device - pixel * positions)
+                placed.x = pixel / info.deviceScale - info.snapOffsetX
+                if subpixel do
+                    placed.desc = (glyph.font orelse drawFont).cache.getGlyphDescByIndex(glyph.glyphIndex, subpixel)
             }
 
-            x = step.rightX
+            .scratchPlaced.add(placed)
+        }
+    }
+
+    // Emit the glyph quads of a shaped run placed by `placeShapedGlyphs`, translated by
+    // (dx, dy) and tinted with 'color'. The offset is applied after pixel snapping so a
+    // sub-pixel shadow offset survives. Shared by the face pass and the drop-shadow pass.
+    private mtd pushShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
+    {
+        for glyph, idx in runToDraw.glyphs
+        {
+            let refr = .scratchPlaced[idx].desc
+            if refr.width == 0 or refr.height == 0 do
+                continue
+
+            let glyphX = .scratchPlaced[idx].x
+            .setTextureFont(glyph.font orelse drawFont, refr.atlasIndex)
+
+            // Round scaled reference metrics before translating each quad edge.
+            let left   = Math.mulAdd(refr.shiftX, info.scale, glyphX)
+            let top    = Math.mulAdd(-refr.shiftY, info.scale, Math.mulAdd(glyph.offsetY, info.scale, baselineY))
+            let right  = Math.mulAdd(refr.width, info.scale, left)
+            let bottom = Math.mulAdd(refr.height, info.scale, top)
+
+            let x1 = snapTextPosition(left, snapPixels, info.deviceScale, info.snapOffsetX) + dx
+            let y1 = snapTextPosition(top, snapPixels, info.deviceScale, info.snapOffsetY) + dy
+            let x2 = snapTextPosition(right, snapPixels, info.deviceScale, info.snapOffsetX) + dx
+            let y2 = snapTextPosition(bottom, snapPixels, info.deviceScale, info.snapOffsetY) + dy
+
+            let p1 = Math.Vector2{x1, y1}
+            let p2 = Math.Vector2{x2, y1}
+            let p3 = Math.Vector2{x1, y2}
+            let p4 = Math.Vector2{x2, y2}
+
+            let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
+            let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
+            let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
+            let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
+
+            discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, color)
+            discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, color)
         }
     }
 
@@ -744,6 +776,7 @@ impl Painter
 
         let drawLeft = snapTextPosition(left, snapPixels, info.deviceScale, info.snapOffsetX)
         let y        = snapTextPosition(top + font.ascent * zoom, snapPixels, info.deviceScale, info.snapOffsetY)
+        .placeShapedGlyphs(runToDraw, drawFont, info, left)
 
         switch drawFont.cache.renderMode
         {
@@ -770,7 +803,7 @@ impl Painter
         {
             .resetTexture0()
             .setFontEffect(effect.shadowParams())
-            .pushShapedGlyphs(runToDraw, drawFont, info, left, y, effect.shadowOffset.x * zoom, effect.shadowOffset.y * zoom, snapPixels, effect.shadowColor)
+            .pushShapedGlyphs(runToDraw, drawFont, info, y, effect.shadowOffset.x * zoom, effect.shadowOffset.y * zoom, snapPixels, effect.shadowColor)
             .resetTextureFont()
         }
 
@@ -810,7 +843,7 @@ impl Painter
             .canSetTexture0 = true
         }
 
-        .pushShapedGlyphs(runToDraw, drawFont, info, left, y, 0, 0, snapPixels, brush.color)
+        .pushShapedGlyphs(runToDraw, drawFont, info, y, 0, 0, snapPixels, brush.color)
 
         .resetTextureFont()
         .endFont()

@@ -60,8 +60,7 @@ impl RichEditCtrl
             offsetX = drawFont.kerning(prevGlyphIndex, glyphIndex)
         }
 
-        let step = Painter.advanceTextX(x, offsetX, desc.advanceX, info, not hasPrevRune)
-        return step.rightX
+        return Painter.advanceTextX(x, offsetX, desc.advanceX, info).rightX
     }
 
     // Returns the advance of rune `i` of `line` drawn from `x`, and the line height.

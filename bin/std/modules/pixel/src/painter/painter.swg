@@ -331,6 +331,7 @@ struct Painter
         // Reusable shaped run for the immediate drawString path, so per-frame text drawing
         // shapes without allocating a fresh glyph buffer on every call.
         scratchShaped:     ShapedRun                 // Reusable shaping result for immediate text drawing.
+        scratchPlaced:     Array'PlacedGlyph         // Quad positions and rasterizations of the run being drawn.
         transientTextures: Array'Texture             // Renderer-owned images released after the recorded frame.
         transientTargets:  Array'(*RenderTarget)     // Off-screen targets released after nested alpha replay.
     }

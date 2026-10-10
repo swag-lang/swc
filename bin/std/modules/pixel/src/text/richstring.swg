@@ -63,6 +63,12 @@ struct RichString
     dirty: bool
 }
 
+// Reports whether a line may break at `c`.
+//
+// A no-break space is a space the author placed to keep its neighbours on one line, so it
+// stays inside the word it sits in.
+private func isBreakingSpace(c: rune)->bool => Unicode.isSpace(c) and c != '\u00A0'rune and c != '\u2007'rune and c != '\u202F'rune
+
 impl RichString
 {
     // Reports whether the original marked-up text equals `other`.
@@ -384,10 +390,10 @@ impl RichString
                 continue
             }
 
-            if Unicode.isSpace(c)
+            if isBreakingSpace(c)
             {
                 .addChunk(byteIdx)
-                while eat and Unicode.isSpace(c)
+                while eat and isBreakingSpace(c)
                 {
                     byteIdx, scan += eat
                     count         -= eat

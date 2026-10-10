@@ -8,6 +8,6 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=24 bbox=(10,15)-(51,28) uv=(0,0)-(0.172,0.203) colors=[FF000000] cov=solid
+DrawTriangles n=24 bbox=(10,15)-(52,28) uv=(0,0)-(0.516,0.203) colors=[FF000000] cov=solid
 ResetTextureFont
 EndFont

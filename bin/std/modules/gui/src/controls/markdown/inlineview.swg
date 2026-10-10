@@ -158,7 +158,6 @@ public struct InlineView
     images:           HtmlImageCache
     textBatches:      Array'InlineTextBatch
     textBatchScale:   f32
-    textBatchOffset:  f32
     renderLayer:      Layer
     renderCachePhase: Math.Point
 
@@ -958,15 +957,15 @@ impl InlineView
 
     // Shaping belongs to layout, not scrolling. Batch neighboring words without reshaping their
     // boundaries or changing justified spacing; selection and hit testing still use the atoms.
+    //
+    // Glyph positions are exact and reach the device grid only when they are drawn, so a batch
+    // depends on the scale that resolves its draw font and never on where the view is scrolled.
     mtd prepareTextBatches(painter: *Painter)
     {
-        let scale       = painter.textTransformScale()
-        let translation = painter.transform().tx
-        let phase       = translation - Math.floor(translation * scale) / scale
-        if .textBatchScale == scale and Math.abs(.textBatchOffset - phase) < 0.0001 do
+        let scale = painter.textTransformScale()
+        if .textBatchScale == scale do
             return
-        .textBatchScale  = scale
-        .textBatchOffset = phase
+        .textBatchScale = scale
         .textBatches.clear()
         var scratch: ShapedRun
         var right:   f32
@@ -987,8 +986,7 @@ impl InlineView
             let font  = .font(atom)
             let color = .color(atom)
             let top   = .textTop(atom, font)
-            var info  = Painter.computeTextDrawInfo(font, 1, scale)
-            info.snapOffsetX = phase
+            let info  = Painter.computeTextDrawInfo(font, 1, scale)
             if current == Swag.U32.Max or
                .textBatches[current].font != font or
                .textBatches[current].origin.y != top or
@@ -1002,15 +1000,15 @@ impl InlineView
                 batch.color       = color
                 current           = cast(u32, .textBatches.count)
                 .textBatches.add(#move batch)
-                right = Painter.advanceTextX(atom.position.x, 0, 0, info, true).rightX
+                right = atom.position.x
             }
 
             Painter.shapeRunInto(&scratch, atom.isSpace ? " " : atom.text.toString(), info.drawFont)
             let batch = &.textBatches[current]
             var x     = atom.position.x
-            for glyph, glyphIndex in scratch.glyphs
+            for glyph in scratch.glyphs
             {
-                let step   = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info, glyphIndex == 0)
+                let step   = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info)
                 var placed = glyph[]
                 placed.offsetX = (step.glyphX - right) / info.scale
                 batch.shaped.glyphs.add(placed)

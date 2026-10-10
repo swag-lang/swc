@@ -308,3 +308,17 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.assert(dotChunk.pos.x > betaChunk.pos.x)
     Swag.assert(betaChunk.pos.y > alphaChunk.pos.y)
 }
+
+// A no-break space keeps its neighbours in one chunk, so a wrap can never fall on it, while an
+// ordinary space still separates two words.
+#test
+{
+    var text: RichString = "A\u00A0B C"
+    text.compute()
+    var spaceCount = 0
+    for &chunk in text.chunks where chunk.isSpace do
+        spaceCount += 1
+
+    Swag.assert(spaceCount == 1)
+    Swag.assert(text.chunks.count == 3)
+}

@@ -49,11 +49,12 @@ using Swag, Core
     defer host.shutdown()
     let label = Label.create(&host.root, "First\nSecond\nThird", {0, 0, 200, 0}, flags: .WordWrap | .AutoHeight)
     label.setTextAlignment(.Left, .Top)
-    let initial = label.measure({200, 0}).preferred.y
+    let initial     = label.measure({200, 0}).preferred.y
+    let initialText = label.name.boundRect.height
     label.setLineGap(4)
     Swag.assert(Math.abs(label.measure({200, 0}).preferred.y - initial - 8) < 0.5)
     var image = host.render(label)
-    Swag.assert(Math.abs(label.name.boundRect.height - initial - 8) < 0.5)
+    Swag.assert(Math.abs(label.name.boundRect.height - initialText - 8) < 0.5)
     label.setLineGap(-1)
     Swag.assert(label.lineGap == 0)
     Swag.assert(Math.abs(label.measure({200, 0}).preferred.y - initial) < 0.5)

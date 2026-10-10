@@ -332,19 +332,27 @@ impl Panel
         }
 
         let loadedHeight = .editor.loadedDocumentHeight()
-        if .repositioning or not .residentStart do
-            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
-        if loadedHeight <= 0
+        if loadedHeight > 0 do
+            .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32, .fileSize) / cast(f32, consumed), loadedHeight)
+        if .virtualHeight <= 0
         {
-            if .virtualHeight > 0 do
-                .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
+            .residentOffsetY = 0
             return
         }
 
-        .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32, .fileSize) / cast(f32, consumed), loadedHeight)
-        if .repositioning or not .residentStart do
-            .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
+        // The resident window sits where its first byte falls in the estimate, which is what makes
+        // a scroll position name the right part of the file. A raised estimate moves it, and the
+        // reader's view moves by as much, so the text on screen stays where it was.
+        let previousOffset = .residentOffsetY
+        .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
+        if .repositioning or not .residentStart or .residentOffsetY == previousOffset do
+            return
+
+        .repositioning = true
+        defer .repositioning = false
+        let position = .editor.scrollPosition()
+        .editor.setScrollPosition({position.x, position.y + .residentOffsetY - previousOffset})
     }
 
     mtd scheduleMore()

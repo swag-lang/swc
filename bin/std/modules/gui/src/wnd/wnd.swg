@@ -1276,7 +1276,14 @@ impl Wnd
         var content: Math.Point
         if result.preferred.x <= 0 or result.preferred.y <= 0
         {
-            content = .itf.measureContent(available)
+            // Content measures in fractional units, text above all, while layouts place windows
+            // on whole units. Rounded to the nearest one, a paragraph measured 401.2 wide is
+            // given 401 and wraps a word its measure fitted, so the room content asks for is the
+            // next whole unit. The tolerance is the 1/64 precision of font metrics.
+            const MetricPrecision = 1.0'f32 / 64
+            content   = .itf.measureContent(available)
+            content.x = Math.max(Math.ceil(content.x - MetricPrecision), 0)
+            content.y = Math.max(Math.ceil(content.y - MetricPrecision), 0)
             if result.preferred.x <= 0 do
                 result.preferred.x = content.x
             if result.preferred.y <= 0 do

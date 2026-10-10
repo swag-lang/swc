@@ -1930,13 +1930,22 @@ namespace
                         instructionOps[operand].reg = d;
                 }
             };
-            for (const uint32_t ordinal : eSites.uses)
-                rewriteRegisterAt(ordinal);
-            for (const uint32_t ordinal : eSites.defs)
+            // Both site lists are appended in program order. Merge them so a
+            // use-def instruction, or an instruction with repeated E operands,
+            // is decoded and rewritten only once.
+            size_t useIndex = 0;
+            size_t defIndex = 0;
+            while (useIndex < eSites.uses.size() || defIndex < eSites.defs.size())
             {
-                if (ordinal == copyOrdinal)
-                    continue;
-                rewriteRegisterAt(ordinal);
+                const uint32_t useOrdinal = useIndex < eSites.uses.size() ? eSites.uses[useIndex] : UINT32_MAX;
+                const uint32_t defOrdinal = defIndex < eSites.defs.size() ? eSites.defs[defIndex] : UINT32_MAX;
+                const uint32_t ordinal    = std::min(useOrdinal, defOrdinal);
+                while (useIndex < eSites.uses.size() && eSites.uses[useIndex] == ordinal)
+                    ++useIndex;
+                while (defIndex < eSites.defs.size() && eSites.defs[defIndex] == ordinal)
+                    ++defIndex;
+                if (ordinal != copyOrdinal)
+                    rewriteRegisterAt(ordinal);
             }
             storage.erase(layout.order[copyOrdinal]);
 

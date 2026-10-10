@@ -1,7 +1,5 @@
 using Swag
 
-////////////////////////////////////////////////////////////
-
 #[Discardable, Safety(.All, false)]
 func __itoa(result: [*] u8, value: s64)->[*] u8
 {
@@ -227,8 +225,6 @@ func print(params: ...)
         __printString("?")
     }
 }
-
-////////////////////////////////////////////////////////////
 
 // Compares two strings, and returns 'true' if they are equal.
 func stringCmp(str1: string?, str2: string?)->bool

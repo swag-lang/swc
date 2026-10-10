@@ -1290,12 +1290,7 @@ namespace
             const MicroReg boolReg = cmpOps[0].reg;
             if (!boolReg.isVirtual())
                 continue;
-
-            // Jumps and conditional moves preserve the flags they read. The
-            // boolean compare can only go when no later reader observes it.
-            // Repeated selects with their own boolean compares still qualify:
-            // each next compare overwrites the flags before the next reader.
-            if (!builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, jumpRef))
+            if (!builder)
                 continue;
 
             // Readers between the setcc and the compare still see the original
@@ -1347,6 +1342,15 @@ namespace
             const MicroCond setCond = setOps[1].cpuCond;
             MicroCond       newCond = setCond;
             if (branchOnBoolZero && !MicroPassHelpers::invertCondition(newCond, setCond))
+                continue;
+
+            // Jumps and conditional moves preserve the flags they read. The
+            // boolean compare can only go when no later reader observes it.
+            // Repeated selects with their own boolean compares still qualify:
+            // each next compare overwrites the flags before the next reader.
+            // Resolve the local setcc chain first so unrelated zero compares
+            // do not build or query CFG flag liveness.
+            if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*builder, jumpRef))
                 continue;
 
             jumpOps[condIdx].cpuCond = newCond;

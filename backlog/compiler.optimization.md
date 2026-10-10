@@ -85,40 +85,13 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
-
-- Recorded: 2026-10-10 11:07
-- Updated: 2026-10-10 13:53 — Keep the inline proof-boundary repair and reject broad eligibility after sentinel frame traffic grows.
-- Area: compiler/sema, automatic inlining and flow narrowing.
-- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
-  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
-  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
-  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
-  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
-  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
-  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
-- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
-  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
-  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
-  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
-- Rejected broad eligibility on the current revision: inlining both wrappers changed
-  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
-  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
-  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
-  This does not meet the sentinel no-loss rule; no timing was taken.
-- Next: make eligibility depend on the actual call-site type and body flow, then prove a hot-path
-  gain without volunteering one-time setup or adding frame traffic to sentinel loops.
-- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
-  per-iteration loss on any bench hot loop.
-- Related: compiler.optimization.094, compiler.optimization.117.
-
-
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 13:50 — Keep coalesced site records flat and release their obsolete use lists.
+- Updated: 2026-10-10 13:55 — Defer CFG flag-liveness checks until the local setcc chain matches.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
+- Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;
@@ -320,6 +293,35 @@ new language syntax.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
+
+
+### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
+
+- Recorded: 2026-10-10 11:07
+- Updated: 2026-10-10 13:53 — Keep the inline proof-boundary repair and reject broad eligibility after sentinel frame traffic grows.
+- Area: compiler/sema, automatic inlining and flow narrowing.
+- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
+  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
+  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
+  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
+  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
+  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
+  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
+- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
+  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
+  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
+  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
+- Rejected broad eligibility on the current revision: inlining both wrappers changed
+  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
+  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
+  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
+  This does not meet the sentinel no-loss rule; no timing was taken.
+- Next: make eligibility depend on the actual call-site type and body flow, then prove a hot-path
+  gain without volunteering one-time setup or adding frame traffic to sentinel loops.
+- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
+  per-iteration loss on any bench hot loop.
+- Related: compiler.optimization.094, compiler.optimization.117.
+
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 

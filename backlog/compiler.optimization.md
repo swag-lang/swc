@@ -90,41 +90,13 @@ new language syntax.
 - Evidence: the pass still runs many pattern-specific transforms over each function. Shared program-layout and relocation indexes remove some duplicate walks, but independent transforms continue to scan for their own shapes.
 - Next: profile the current Release pass on a representative `bin/std` rebuild, identify the largest repeated traversal, and merge it with an existing walk or skip it using facts already available without adding a costly unconditional scan.
 - Done when: one measured repeated traversal is removed with equivalent generated code and no repeatable compile-time or memory regression; delete the entry if current profiling finds no useful target.
-### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
+### compiler.optimization.024 — Make implicit register claims operand-precise
 
-- Area: compiler/backend
-- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
-  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
-  the earlier scan, which also remains the fallback whenever a precondition fails or the
-  walk bails, and the C++ conformity cases run both.
-- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
-  fixed-claim interval arrays with direct default construction. The call sites pass empty
-  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
-  copied for every register. The Release `interval` selection passed two native tests; timing
-  and peak memory were not measured.
-- Evidence: the walk describes every concrete claim by the position it occupies, except
-  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
-  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
-  instruction, so no operand of theirs can share it, and the second legalization sweep can
-  then need a short save/restore borrow from `tryBorrowReservedRegister`.
-- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
-  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
-  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
-  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
-  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
-  The user explicitly accepts such proof without a measurable runtime improvement.
-- Runtime evidence: the focused four-task Release A/B established no target gain and produced
-  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
-  Investigate that allocation/layout interaction separately; it is not an independently
-  confirmed regression, and no runtime gain is claimed for the retained rule.
-- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
-  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
-  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
-- Done when: the three forms carry position-precise fixed intervals, the borrow path no
-  longer fires on a whole-library build, and the suites stay green.
+- Evidence: the split allocator assigns full-instruction fixed intervals to remaining implicit operands such as variable shifts and compare-exchange. Those intervals can trigger avoidable register borrows; definition-only multiply outputs already use position-specific claims.
+- Attempt: a whole-library Release comparison showed no repeatable runtime gain for the retained multiply-output rule, so keep it only for its proved register-pressure benefit.
+- Next: audit shift and compare-exchange claims, then trace any remaining borrow from a representative `bin/std` build to the exact interval that requires it.
+- Done when: implicit operands use the narrowest sound interval, unnecessary borrows disappear, and focused allocator tests preserve all input/output constraints.
 - Related: compiler.optimization.016.
-
-
 ### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
 
 - Area: compiler/sema, automatic inlining and flow narrowing.
@@ -240,70 +212,12 @@ new language syntax.
 - Next: dump the current Release `qsort`. If the post-call and second-loop reloads are gone, retire the entry; otherwise compare the tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to decide whether the remaining reloads warrant a focused allocation change.
 - Done when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
 
-### compiler.optimization.011 — A SIMD routine keeps its strides and counts in the frame
+### compiler.optimization.011 — Keep hot SIMD values out of the frame
 
-- Area: compiler/backend
-- Found while: std.video.001, after mem2reg was taught the vector load and store and the memory traffic
-  of the motion-compensation path fell by a quarter.
-- Observation: promotion now reaches the vector temporaries, so the intermediate values of a
-  `#simd` expression stay in registers. What is still in memory is everything the local
-  allocator put there: `Video.H264.mcChroma` emits 635 instructions with 81 frame stores and 119
-  frame loads, and its interpolation loop reloads the two splat sources on every row. The loop of
-  `Video.H264.copyPlane` shows what the shape should be — after post-RA hoisting learned that a
-  private frame cannot be reached by a store through a program pointer, its sixteen-byte copy is
-  seven instructions with no frame access at all — and mcChroma does not get there because its
-  own locals escape into helpers, which keeps its frame from being private.
-- Evidence: 2026-08-24, release, `#[Swag.PrintMicro("post-emit")]`. mcChroma 707 -> 635
-  instructions and 108 -> 81 frame stores across this pass; copyPlane 111 -> 104 instructions,
-  its hot loop 10 -> 7 with 3 -> 0 frame accesses. The decode of one 2496x1440 picture went from
-  10.1 to 8.5 ms of processor time (minimum of five interleaved pairs), and motion compensation
-  is 44 percent of that picture.
-- **The same shape was measured in H.265 before the split allocator (2026-08-26, std.video.005).** Three hot routines dumped at pre-emit, all of them
-  already vectorized and already at their instruction budget on paper:
-  - `Hevc.Decoder.filterLumaEdge` emits 776 instructions with **87 frame stores and 84 frame
-    loads** — 22 percent of the function is stack traffic. It filters 101,633 four-line
-    segments a picture at about 575 cycles each, where the instructions a segment executes
-    predict something closer to a hundred.
-  - `Hevc.Decoder.interpolateLuma` keeps twelve vector spills and twelve reloads inside its
-    innermost body. One call filters about 800 samples in 1.73 microseconds, which is 8.6
-    cycles a sample against about three from the instruction count.
-  - Reading the filter taps once a block instead of once a pair removed fifteen table-pointer
-    loads and twenty multiplies from the same function and **changed the measured time by less
-    than one percent**, which is what says the loop is not bound by those instructions.
-- **What that is worth, measured against another compiler on the same algorithm (2026-08-26)**:
-  the loop filter of clause 8.7.2.5 was written twice, once in C and once in Swag, statement
-  for statement, over the same synthetic 3840x2076 plane with the same thresholds and the same
-  decision mix — 1,612 flat, 430,398 strong and 65,229 weak segments a picture in both. Per
-  picture, best of several runs on a quiet machine:
-  - clang 21 `-O2 -msse2`: **18.3 ms** (37 ns a filtered segment)
-  - clang 21 `-O2 -march=native -fno-vectorize -fno-slp-vectorize`: 18.7 ms
-  - clang 21 `-O2 -march=native`: 34.1 ms — **its own auto-vectorizer costs it 1.9x here**,
-    which is worth knowing before reading any clang figure as the answer sheet
-  - this compiler, release: **40.6 ms** (82 ns a segment)
-- In that historical comparison the backend was **2.2x behind clang's best on identical scalar code**, the
-  largest single factor in the 3x the H.265 decoder is behind FFmpeg — larger than the 256-bit
-  forms of cpu.simd.002, and larger than anything left in the decoder's own algorithms. The frame
-  traffic above is the visible half of it: 171 frame accesses in 776 instructions for one
-  routine, against 61 in 443 for clang's build of the same function.
-- The per-object view shipped (2026-08-26): `Pass.PostRALoopHoist` now classifies escapes per
-  source object from the extents `SymbolFunction::localVariables()` carries, recognizes the
-  prologue's local-base register, and keeps the two address spaces apart — a value use of the
-  stack pointer (call staging) reaches sp-addressed slots, never the locals behind the base. A
-  slot inside no escaped object hoists even when the frame as a whole is handed out.
-- What that revealed: the pass fires only about twenty times across the whole `video` workspace,
-  and in none of the hot decoder functions. The binding constraint is not aliasing any more — it
-  is that a hoist needs the reload's destination register to have **no other definition in the
-  whole loop body**, and after allocation every register in a fat body is reused many times.
-  Post-RA hoisting cannot rename, so it is capped by the allocator's register reuse; the fix
-  belongs in allocation (keep the value resident so no hoist is needed), not in a smarter hoist.
-- Next: rebaseline `Hevc.Decoder.filterLumaEdge` and `Hevc.Decoder.interpolateLuma` with the now
-  shipped split allocator, recording frame accesses and per-segment time. Attribute a remaining
-  gap to the selected allocator or its fallback; extend the post-RA hoist only if a current dump
-  first shows an invariant value with a reusable destination.
-- Done when: current dumps and alternating timings establish the remaining allocation cost
-  on both large kernels and identify a specific next change or retire this lead.
+- Evidence: `Video.H264.mcChroma`, `Hevc.Decoder.filterLumaEdge`, and `Hevc.Decoder.interpolateLuma` have had frame traffic in their hot loops. Previous measurements predate the split allocator and are no longer a current baseline.
+- Next: dump the current Release functions and measure per-segment time. Attribute each remaining spill to register pressure or a missed allocation/hoist opportunity before changing the backend.
+- Done when: current evidence identifies a profitable change with byte-exact decoder output, or shows the remaining frame traffic is necessary and the entry is removed.
 - Related: compiler.optimization.024.
-
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Area: compiler/backend

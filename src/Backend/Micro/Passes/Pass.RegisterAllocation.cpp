@@ -4372,6 +4372,10 @@ namespace
     // locals can be read through the stack pointer itself, as C compilers address them. The
     // register goes back to the allocator. Debug records name the base register, so a build
     // with debug information keeps it.
+    //
+    // The peephole often has already folded the copy and the first local's displacement into
+    // `lea base, [sp + C]`. Every address through the base then takes C on its displacement,
+    // and a plain copy of the base becomes the same `lea` into its destination.
     bool foldLocalStackBaseIntoStackPointer(MicroPassContext& context)
     {
         const MicroReg base = context.debugStackBaseVirtualReg;
@@ -4404,8 +4408,19 @@ namespace
             return false;
         };
 
-        MicroInstrRef          defRef = MicroInstrRef::invalid();
-        std::vector<MicroReg*> uses;
+        // How a read of the base is rewritten once the base is the stack pointer plus a distance.
+        struct BaseUse
+        {
+            MicroInstrRef ref;
+            uint8_t       regIdx    = 0;
+            uint8_t       offsetIdx = 0;
+            bool          copy      = false; // a plain copy of the base, which becomes a lea
+            bool          address   = false; // an address operand whose displacement takes the distance
+        };
+
+        MicroInstrRef        defRef   = MicroInstrRef::invalid();
+        uint64_t             distance = 0;
+        std::vector<BaseUse> uses;
         for (size_t index = 0; index < refs.size(); ++index)
         {
             MicroInstr* inst = storage.ptr(refs[index]);
@@ -4417,8 +4432,14 @@ namespace
             if (defsBase)
             {
                 const auto* ops = inst->ops(operands);
-                if (defRef.isValid() || inst->op != MicroInstrOpcode::LoadRegReg || !ops || ops[0].reg != base || ops[1].reg != stack ||
-                    ops[2].opBits != MicroOpBits::B64)
+                if (defRef.isValid() || !ops || ops[0].reg != base)
+                    return false;
+                if (inst->op == MicroInstrOpcode::LoadRegReg && ops[1].reg == stack && ops[2].opBits == MicroOpBits::B64)
+                    distance = 0;
+                else if (inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == stack && ops[2].opBits == MicroOpBits::B64 &&
+                         !ops[3].hasWideImmediateValue() && ops[3].valueU64 <= INT32_MAX)
+                    distance = ops[3].valueU64;
+                else
                     return false;
                 defRef = refs[index];
                 continue;
@@ -4438,15 +4459,42 @@ namespace
             MicroInstrOperand* ops = inst->ops(operands);
             if (!ops)
                 return false;
-            const auto modes        = MicroInstr::info(inst->op).resolvedRegModes(ops);
-            size_t     explicitUses = 0;
+            const MicroInstrDef& info         = MicroInstr::info(inst->op);
+            const auto           modes        = info.resolvedRegModes(ops);
+            size_t               explicitUses = 0;
             for (size_t i = 0; i < modes.size(); ++i)
             {
                 if (modes[i] == MicroInstrRegMode::None || ops[i].reg != base)
                     continue;
                 if (modes[i] != MicroInstrRegMode::Use)
                     return false;
-                uses.push_back(&ops[i].reg);
+
+                BaseUse use{.ref = refs[index], .regIdx = static_cast<uint8_t>(i)};
+                if (distance)
+                {
+                    MicroPassHelpers::AmcLayout layout;
+                    if (MicroPassHelpers::amcLayoutFor(layout, inst->op) && i == layout.baseIdx)
+                    {
+                        use.address   = true;
+                        use.offsetIdx = layout.addIdx;
+                    }
+                    else if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && i == info.memBaseOperandIndex)
+                    {
+                        use.address   = true;
+                        use.offsetIdx = info.memOffsetOperandIndex;
+                    }
+                    else if (inst->op == MicroInstrOpcode::LoadRegReg && i == 1 && ops[2].opBits == MicroOpBits::B64)
+                        use.copy = true;
+                    else
+                        return false;
+                    if (use.address)
+                    {
+                        const int64_t displaced = static_cast<int64_t>(ops[use.offsetIdx].valueU64) + static_cast<int64_t>(distance);
+                        if (displaced < INT32_MIN || displaced > INT32_MAX)
+                            return false;
+                    }
+                }
+                uses.push_back(use);
                 ++explicitUses;
             }
             if (explicitUses != static_cast<size_t>(std::ranges::count(useDef.uses, base)))
@@ -4460,8 +4508,25 @@ namespace
         if (!defRef.isValid())
             return false;
 
-        for (MicroReg* use : uses)
-            *use = stack;
+        for (const BaseUse& use : uses)
+        {
+            MicroInstr*        inst = storage.ptr(use.ref);
+            MicroInstrOperand* ops  = inst->ops(operands);
+            if (use.copy)
+            {
+                MicroInstrOperand leaOps[4] = {};
+                leaOps[0].reg               = ops[0].reg;
+                leaOps[1].reg               = stack;
+                leaOps[2].opBits            = MicroOpBits::B64;
+                leaOps[3].valueU64          = distance;
+                storage.insertDerivedBefore(operands, use.ref, MicroInstrOpcode::LoadAddrRegMem, leaOps);
+                storage.erase(use.ref);
+                continue;
+            }
+            ops[use.regIdx].reg = stack;
+            if (use.address)
+                ops[use.offsetIdx].valueU64 += distance;
+        }
         storage.erase(defRef);
         context.debugStackBaseVirtualReg = MicroReg::invalid();
         context.localStackBaseFolded     = true;

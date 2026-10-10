@@ -182,6 +182,10 @@ namespace
 
     void addLinkSymbolAliases(LinkImage& image, const std::vector<LinkSymbolAlias>& aliases)
     {
+        // Without an alias there is nothing to add, and no reason to index every symbol name.
+        if (aliases.empty())
+            return;
+
         std::unordered_map<Utf8, size_t> symbolIndices;
         symbolIndices.reserve(image.symbols.size() + aliases.size());
         for (size_t i = 0; i < image.symbols.size(); ++i)
@@ -327,7 +331,8 @@ namespace
         if (candidates.size() < 2)
             return;
 
-        std::unordered_map<Utf8, size_t> candidateBySymbol;
+        // Keyed by views of the candidates' own names, which outlive the map.
+        std::unordered_map<std::string_view, size_t> candidateBySymbol;
         candidateBySymbol.reserve(candidates.size());
         for (size_t i = 0; i < candidates.size(); ++i)
             candidateBySymbol.emplace(candidates[i].symbolName, i);

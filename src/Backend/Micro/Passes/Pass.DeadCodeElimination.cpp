@@ -34,7 +34,7 @@ namespace
     {
         const MicroStorage*                    storage  = nullptr;
         const MicroSsaState*                   ssaState = nullptr;
-        std::unordered_map<MicroReg, uint32_t> counts;
+        FlatKeyMap<uint32_t>                   counts; // by packed register
         bool                                   ready = false;
 
         uint32_t countFor(MicroReg reg)
@@ -48,14 +48,14 @@ namespace
                     for (const MicroReg def : useDef->defs)
                     {
                         if (def.isVirtualFloat())
-                            ++counts[def];
+                            ++counts.getOrInsert(def.packed);
                     }
                 }
                 ready = true;
             }
 
-            const auto it = counts.find(reg);
-            return it == counts.end() ? 0 : it->second;
+            const uint32_t* count = counts.find(reg.packed);
+            return count ? *count : 0;
         }
     };
 
@@ -302,7 +302,8 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     thread_local FloatDefCounts floatDefs;
     floatDefs.storage  = &storage;
     floatDefs.ssaState = ssaState;
-    floatDefs.counts.clear();
+    // A fresh table: clearing a kept one would cost its largest size ever, not this run's.
+    floatDefs.counts = {};
     floatDefs.ready = false;
 
     // Erasing a dead definition cannot change the reaching value of a surviving

@@ -2587,7 +2587,6 @@ namespace
 
         struct Link
         {
-            uint32_t cmp   = 0;
             uint64_t value = 0;
         };
 
@@ -2664,7 +2663,7 @@ namespace
                     break;
 
                 const uint64_t linkValue = cmpOps[2].valueU64 & valueMask;
-                links.push_back({.cmp = static_cast<uint32_t>(at), .value = linkValue});
+                links.push_back({.value = linkValue});
                 lo = std::min(lo, linkValue);
                 hi = std::max(hi, linkValue);
                 bodyEnd = at + 2;
@@ -2703,7 +2702,7 @@ namespace
             for (const Link& link : links)
                 bitMask |= 1ULL << (link.value - lo);
 
-            const MicroInstrRef firstRef = layout.order[links.front().cmp];
+            const MicroInstrRef firstRef = layout.order[start];
             MicroReg            index    = value;
             if (lo)
             {

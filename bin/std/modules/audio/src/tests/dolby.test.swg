@@ -17,7 +17,9 @@ private func ac3TestPackets(path: string)->Array'SoundPacket fail
         if fscod >= 3 or sizeCode >= 38 do
             fail InvalidFormatError{"AC-3 test fixture has a reserved frame-size code"}
         let bitRate   = BitRates[sizeCode >> 1]
-        let frameSize = fscod == 0 ? 4 * bitRate : fscod == 1 ? 2 * ((320 * bitRate) / 147 + (sizeCode & 1)) : 6 * bitRate
+        let frameSize = fscod == 0 ? 4 * bitRate :
+                        fscod == 1 ? 2 * ((320 * bitRate) / 147 + (sizeCode & 1)) :
+                        6 * bitRate
         if frameSize > bytes.count - offset do
             fail InvalidFormatError{"AC-3 test fixture has a truncated sync frame"}
         result.add({offset, frameSize, 1536})
@@ -70,7 +72,13 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let path    = audioGetTestDataPath("ac3-5.1-48000.ac3")
     let packets = expect ac3TestPackets(path)
     var config: Array'u8
-    var sound   = expect SoundFile.openPacketStream(path, .Ac3, 48_000, 6, packets.count * 1536, packets.toSlice(), config.toSlice())
+    var sound   = expect SoundFile.openPacketStream(path,
+                                                    .Ac3,
+                                                    48_000,
+                                                    6,
+                                                    packets.count * 1536,
+                                                    packets.toSlice(),
+                                                    config.toSlice())
     Swag.assert(sound.packetCount() == 16 and sound.speakerChannelMask() == 0x3F)
 
     discard expect createNoSoundEngine()
@@ -98,7 +106,13 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let path    = audioGetTestDataPath("eac3-stereo-48000.eac3")
     let packets = expect eac3TestPackets(path)
     var config: Array'u8
-    var sound   = expect SoundFile.openPacketStream(path, .Eac3, 48_000, 2, packets.count * 1536, packets.toSlice(), config.toSlice())
+    var sound   = expect SoundFile.openPacketStream(path,
+                                                    .Eac3,
+                                                    48_000,
+                                                    2,
+                                                    packets.count * 1536,
+                                                    packets.toSlice(),
+                                                    config.toSlice())
 
     discard expect createNoSoundEngine()
     defer destroyEngine()
@@ -118,7 +132,13 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     let path    = audioGetTestDataPath("eac3-5.1-48000.eac3")
     let packets = expect eac3TestPackets(path)
     var config: Array'u8
-    var sound   = expect SoundFile.openPacketStream(path, .Eac3, 48_000, 6, packets.count * 1536, packets.toSlice(), config.toSlice())
+    var sound   = expect SoundFile.openPacketStream(path,
+                                                    .Eac3,
+                                                    48_000,
+                                                    6,
+                                                    packets.count * 1536,
+                                                    packets.toSlice(),
+                                                    config.toSlice())
     Swag.assert(sound.packetCount() == 16 and sound.speakerChannelMask() == 0x3F)
 
     discard expect createNoSoundEngine()

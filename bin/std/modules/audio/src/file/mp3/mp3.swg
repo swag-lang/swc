@@ -75,7 +75,8 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
     let extensionOffset = tagOffset + 120
     if extensionOffset + 24 > frame.count do
         return result
-    let encoderDelay = (cast(u64, frame[extensionOffset + 0x15]) << 4) | (cast(u64, frame[extensionOffset + 0x16]) >> 4)
+    let encoderDelay = (cast(u64, frame[extensionOffset + 0x15]) << 4) |
+                       (cast(u64, frame[extensionOffset + 0x16]) >> 4)
     if encoderDelay do
         result.delayFrames = encoderDelay + DecoderDelay
     return result

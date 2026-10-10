@@ -22,7 +22,9 @@ private func mp3DecodeAll(sound: const *SoundFile)->Array's16 fail
     for index in sound.packetCount()
     {
         let packet  = try sound.packet(index)
-        let written = try itf.decodePacket(block.storage(), block.count, bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
+        let written = try itf.decodePacket(block.storage(),
+                                           block.count,
+                                           bytes[packet.sourceOffset until packet.sourceOffset + packet.byteSize])
         let samples = cast(const [*] s16, block.storage())
         for sample in written / #sizeof(s16) do
             result.add(samples[sample])
@@ -167,7 +169,8 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
 #test
 {
     let directory = Env.getSpecialDirectory(.Temp)
-    let path      = Path.combine(directory.toString(), Format.toString("audio-mp3-%.mp3", Guid64.random()).toString())
+    let path      = Path.combine(directory.toString(),
+                                 Format.toString("audio-mp3-%.mp3", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
     var bytes: Array'u8

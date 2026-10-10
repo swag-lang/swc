@@ -549,9 +549,7 @@ impl Wnd
     // Borders, focus rings and shadows all sit in this margin.
     private const PaintExtentMargin = 32'f32
 
-    //////////////////////////////////////////////
     // Setup
-    //////////////////////////////////////////////
 
     #[Swag.Inline]
     {
@@ -749,9 +747,7 @@ impl Wnd
     // Returns the explicit owner when present, otherwise the structural parent.
     mtd ownerOrParent()->*Wnd? => .owner orelse .parent
 
-    //////////////////////////////////////////////
     // State
-    //////////////////////////////////////////////
 
     // Shows the window, or hides it when `b` is false.
     mtd show(b = true)
@@ -851,9 +847,7 @@ impl Wnd
     // Reports this window's own enabled flag, independently of its ancestors.
     mtd isLocallyEnabled()->bool => not .wndFlags.has(.Disabled)
 
-    //////////////////////////////////////////////
     // Paint
-    //////////////////////////////////////////////
 
     // Resolves the style of this window against its application style.
     //
@@ -1225,9 +1219,7 @@ impl Wnd
         .invalidatePresentation()
     }
 
-    //////////////////////////////////////////////
     // Layout sizing contract
-    //////////////////////////////////////////////
 
     // Requests measurement and arrangement before the next paint, propagating to the root.
     mtd invalidateLayout()
@@ -1406,9 +1398,7 @@ impl Wnd
             c.dumpLayoutTreeNode(depth + 1)
     }
 
-    //////////////////////////////////////////////
     // Coordinates
-    //////////////////////////////////////////////
 
     // Moves this window back inside its parent's rectangle, keeping `marginW` and `marginH` of room.
     //
@@ -1992,9 +1982,7 @@ impl Wnd
         return null
     }
 
-    //////////////////////////////////////////////
     // Mouse
-    //////////////////////////////////////////////
 
     // Captures platform pointer input for this window.
     mtd captureMouse()
@@ -2011,9 +1999,7 @@ impl Wnd
     // Returns the window that currently owns pointer capture.
     mtd mouseCapture()->*Wnd? => .surface!.app.mouseCapture()
 
-    //////////////////////////////////////////////
     // Keyboard
-    //////////////////////////////////////////////
 
     // Returns the window the focus lands on for this one, following the delegate chain.
     //
@@ -2358,9 +2344,7 @@ impl Wnd
         return result
     }
 
-    //////////////////////////////////////////////
     // Events
-    //////////////////////////////////////////////
 
     // Creates a repeating timer that sends [[Gui.TimerEvent]] values to this window.
     //
@@ -2517,9 +2501,7 @@ impl Wnd
         p.notifyEvent(kind)
     }
 
-    //////////////////////////////////////////////
     // Commands
-    //////////////////////////////////////////////
 
     // Computes and applies the command state of this window, or of its children when it declines.
     //
@@ -2550,13 +2532,13 @@ impl Wnd
 
         var evtState: retval
 
-        // User will fill the state
+        // Ask the event chain for the command's current state.
         evtState.kind   = .Compute
         evtState.id     = safeCmdId
         evtState.source = me
         .sendEvent(&evtState)
 
-        // Is there a keyboard shortcut or a global hot key ?
+        // Add the first shortcut found in the local or application routing chain.
         var sk = .keyShortcutName(safeCmdId)
         if sk.isEmpty() do
             sk = .app().hotKeyShortcutName(safeCmdId)
@@ -2578,13 +2560,11 @@ impl Wnd
             return
         let safeCmdId = cmdId orelse ""
 
-        // We first need to be sure that the target can deal with the event
         var evtState: CommandStateEvent
         evtState.kind = .Compute
         evtState.id   = safeCmdId
         .sendEvent(&evtState)
 
-        // If it's not disabled, then we can send
         if not evtState.updatedFields.has(.Disabled) or not evtState.disabled
         {
             var evtc = CommandEvent{}
@@ -2593,9 +2573,7 @@ impl Wnd
         }
     }
 
-    //////////////////////////////////////////////
     // Actions
-    //////////////////////////////////////////////
 
     // Registers the stateless action type `T`, which implements [[Gui.IActionUI]], on this window.
     mtd(T) registerAction()
@@ -2637,9 +2615,7 @@ impl Wnd
         return false
     }
 
-    //////////////////////////////////////////////
     // Serialization
-    //////////////////////////////////////////////
 
     // Offers persistent-state serialization to this window, then recursively to children if declined.
     mtd serializeState(ser: *Serialization.Serializer) fail

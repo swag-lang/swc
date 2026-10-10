@@ -729,6 +729,8 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
     // spanning many outer boundaries above one crossing a few innermost ones,
     // inverting the real cost.
     outBenefit.assign(denseVirtualRegs_.regs().size(), 0);
+    if (!hasControlFlow_)
+        return;
 
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
     uint32_t       idx       = 0;

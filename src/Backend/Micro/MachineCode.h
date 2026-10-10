@@ -31,6 +31,9 @@ struct MachineCode
     // invalid when the function has no local stack frame. Locals are addressed against it.
     MicroReg debugStackBasePhysReg = MicroReg::invalid();
 
+    // Alignment the image has to give the first byte of `bytes` (see MicroPassContext::codeAlignment).
+    uint32_t codeAlignment = 16;
+
     const DebugSourceRange* findDebugSourceRangeAtOffset(uint32_t codeOffset) const;
     static bool             tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range);
     bool                    tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, uint32_t codeOffset) const;

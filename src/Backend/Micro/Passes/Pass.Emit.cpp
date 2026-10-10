@@ -41,12 +41,30 @@
 // bytes one line over. Functions start 16-byte aligned in both the native image
 // and the JIT, so an offset aligned here stays aligned once placed. The padding
 // before a header is executed once per loop entry, never per iteration.
+//
+// Alignment alone still leaves the branch that closes the loop wherever the body
+// puts it. When that branch - with the compare it fuses with - crosses a 32-byte
+// boundary or ends on one, the pair no longer issues as one fused operation, and
+// leven ran 12% slower with the same bytes 16 bytes over. This is the case LLVM's
+// branch alignment exists for (MCAssembler needPadding, X86 isMacroFused). Once the
+// branches are settled, such a loop's header is pinned to the other half of the
+// 32-byte window (pinLoopBranchGroups) and the layout is redone; the function then
+// asks to start on a 32-byte boundary so the window measured here is the real one.
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
     constexpr uint32_t K_LOOP_HEADER_ALIGNMENT = 16;
+    constexpr uint32_t K_BRANCH_BOUNDARY       = 32;
+
+    // LLVM's MCAssembler needPadding: a branch group must neither cross a boundary nor end on one.
+    bool needsBoundaryPadding(const uint32_t start, const uint32_t end)
+    {
+        const bool mayCrossBoundary  = start / K_BRANCH_BOUNDARY != (end - 1) / K_BRANCH_BOUNDARY;
+        const bool isAgainstBoundary = end % K_BRANCH_BOUNDARY == 0;
+        return mayCrossBoundary || isAgainstBoundary;
+    }
 }
 
 MicroEmitPass::LabelInfo& MicroEmitPass::labelInfo(const MicroLabelRef labelRef)
@@ -78,7 +96,7 @@ bool MicroEmitPass::findRelocationIndex(uint32_t& outIndex, const MicroInstrRef 
 bool MicroEmitPass::isShortJump(const MicroInstrRef instructionRef) const
 {
     const uint32_t slot = instructionRef.get();
-    return slot < slots_.size() && slots_[slot].shortJumpStamp == functionStamp_;
+    return slot < slots_.size() && slots_[slot].shortJumpStamp == shortJumpEpoch_;
 }
 
 void MicroEmitPass::nextFunctionStamp()
@@ -88,10 +106,22 @@ void MicroEmitPass::nextFunctionStamp()
 
     // Zero marks an entry no function has written, so a wrapped counter starts over on clean tables.
     for (LabelInfo& label : labels_)
-        label.seenStamp = label.loopHeaderStamp = 0;
+        label.seenStamp = label.loopHeaderStamp = label.pinnedStamp = 0;
     for (SlotInfo& slot : slots_)
         slot = {};
     functionStamp_ = 1;
+}
+
+// Branch relaxation starts over, every jump long again: per function, and whenever a pinned
+// loop header widens the padding a short jump was proved against.
+void MicroEmitPass::nextShortJumpEpoch()
+{
+    if (++shortJumpEpoch_)
+        return;
+
+    for (SlotInfo& slot : slots_)
+        slot.shortJumpStamp = 0;
+    shortJumpEpoch_ = 1;
 }
 
 void MicroEmitPass::nextLayoutStamp()
@@ -160,15 +190,28 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             LabelInfo&          label = labelInfo(labelRef);
             if (label.loopHeaderStamp == functionStamp_)
             {
-                const uint32_t misalignment = static_cast<uint32_t>(encoder.currentOffset() % K_LOOP_HEADER_ALIGNMENT);
-                if (misalignment)
-                    encoder.encodeNopPadding(K_LOOP_HEADER_ALIGNMENT - misalignment);
-                paddedLabels_++;
+                const uint32_t offset = static_cast<uint32_t>(encoder.currentOffset());
+                if (label.pinnedStamp == functionStamp_)
+                {
+                    // A pinned header keeps its place in the 32-byte window whatever moves
+                    // before it, so the loop that fixed its branch group stays fixed.
+                    const uint32_t padding = (label.pinnedPhase - offset) & (K_BRANCH_BOUNDARY - 1);
+                    if (padding)
+                        encoder.encodeNopPadding(padding);
+                    paddingBudget_ += K_BRANCH_BOUNDARY - 1;
+                }
+                else
+                {
+                    const uint32_t misalignment = offset % K_LOOP_HEADER_ALIGNMENT;
+                    if (misalignment)
+                        encoder.encodeNopPadding(K_LOOP_HEADER_ALIGNMENT - misalignment);
+                    paddingBudget_ += K_LOOP_HEADER_ALIGNMENT - 1;
+                }
             }
 
-            label.offset       = encoder.currentOffset();
-            label.paddedLabels = paddedLabels_;
-            label.offsetStamp  = layoutStamp_;
+            label.offset        = encoder.currentOffset();
+            label.paddingBefore = paddingBudget_;
+            label.offsetStamp   = layoutStamp_;
             break;
         }
         case MicroInstrOpcode::JumpCond:
@@ -180,10 +223,14 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             jump.valid = true;
             SWC_ASSERT(ops[2].valueU64 <= std::numeric_limits<uint32_t>::max());
             PendingLabelJump pendingJump;
-            pendingJump.jump               = jump;
-            pendingJump.instructionRef     = instructionRef;
-            pendingJump.labelRef           = MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64));
-            pendingJump.paddedLabelsBefore = paddedLabels_;
+            pendingJump.jump           = jump;
+            pendingJump.instructionRef = instructionRef;
+            pendingJump.labelRef       = MicroLabelRef(static_cast<uint32_t>(ops[2].valueU64));
+            pendingJump.paddingBefore  = paddingBudget_;
+            pendingJump.groupStart     = instructionCodeStartOffset;
+            pendingJump.groupEnd       = encoder.size();
+            if (prevInstrEnd_ == instructionCodeStartOffset && isMacroFused(prevFusion_, ops[0].cpuCond))
+                pendingJump.groupStart = prevInstrStart_;
             pendingLabelJumps_.push_back(pendingJump);
             break;
         }
@@ -601,6 +648,83 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         encoder.onInstructionEncoded(inst, ops, instructionCodeStartOffset, encoder.size());
         encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.debugSourceInfo);
     }
+
+    // A marker that encodes nothing sits between two instructions without separating them.
+    if (encoder.size() != instructionCodeStartOffset)
+    {
+        prevInstrStart_ = instructionCodeStartOffset;
+        prevInstrEnd_   = encoder.size();
+        prevFusion_     = fusionKind(inst, ops);
+    }
+}
+
+MicroEmitPass::FusionKind MicroEmitPass::fusionKind(const MicroInstr& inst, const MicroInstrOperand* ops)
+{
+    // LLVM's X86 classifyFirstOpcodeInMacroFusion: integer TEST, AND, CMP, ADD and SUB in their
+    // register, immediate and single memory forms. A memory-immediate form never fuses, and
+    // isFirstMacroFusibleInst refuses a RIP-relative memory operand.
+    const auto binaryKind = [](const MicroOp op) {
+        if (op == MicroOp::And)
+            return FusionKind::And;
+        if (op == MicroOp::Add || op == MicroOp::Subtract)
+            return FusionKind::AddSub;
+        return FusionKind::None;
+    };
+
+    switch (inst.op)
+    {
+        case MicroInstrOpcode::TestRegReg:
+        case MicroInstrOpcode::TestRegImm:
+            return ops[0].reg.isInt() ? FusionKind::Test : FusionKind::None;
+        case MicroInstrOpcode::TestMemReg:
+            return ops[0].reg.isInstructionPointer() ? FusionKind::None : FusionKind::Test;
+        case MicroInstrOpcode::CmpRegReg:
+        case MicroInstrOpcode::CmpRegImm:
+            return ops[0].reg.isInt() ? FusionKind::Cmp : FusionKind::None;
+        case MicroInstrOpcode::CmpMemReg:
+            return ops[0].reg.isInstructionPointer() || !ops[1].reg.isInt() ? FusionKind::None : FusionKind::Cmp;
+        case MicroInstrOpcode::CmpAmcReg:
+            return ops[2].reg.isInt() ? FusionKind::Cmp : FusionKind::None;
+        case MicroInstrOpcode::OpBinaryRegReg:
+            return ops[0].reg.isInt() ? binaryKind(ops[3].microOp) : FusionKind::None;
+        case MicroInstrOpcode::OpBinaryRegImm:
+            return ops[0].reg.isInt() ? binaryKind(ops[2].microOp) : FusionKind::None;
+        case MicroInstrOpcode::OpBinaryRegMem:
+            return ops[0].reg.isInt() && !ops[1].reg.isInstructionPointer() ? binaryKind(ops[3].microOp) : FusionKind::None;
+        default:
+            return FusionKind::None;
+    }
+}
+
+bool MicroEmitPass::isMacroFused(const FusionKind first, const MicroCond cond)
+{
+    // LLVM's X86 isMacroFused over classifySecondCondCodeInMacroFusion: TEST and AND fuse with
+    // every condition, CMP, ADD and SUB only with the unsigned (AB) and the equality and
+    // signed (ELG) families. An unconditional jump fuses with nothing.
+    if (first == FusionKind::None || cond == MicroCond::Unconditional)
+        return false;
+    if (first == FusionKind::Test || first == FusionKind::And)
+        return true;
+
+    switch (cond)
+    {
+        case MicroCond::Above:
+        case MicroCond::AboveOrEqual:
+        case MicroCond::Below:
+        case MicroCond::BelowOrEqual:
+        case MicroCond::NotAbove:
+        case MicroCond::Equal:
+        case MicroCond::NotEqual:
+        case MicroCond::Zero:
+        case MicroCond::NotZero:
+        case MicroCond::Greater:
+        case MicroCond::GreaterOrEqual:
+        case MicroCond::Less:
+        case MicroCond::LessOrEqual:
+            return true;
+        default:
+            return false;
+    }
 }
 
 void MicroEmitPass::collectLoopHeaders(const MicroPassContext& context)
@@ -628,6 +752,53 @@ void MicroEmitPass::collectLoopHeaders(const MicroPassContext& context)
     }
 }
 
+// LLVM pads right before a branch group that needs it (X86AsmBackend, -x86-align-branch=fused+jcc+jmp),
+// which a loop's closing branch then executes on every iteration. Here the loop is known, so the
+// whole loop moves instead: its header takes the other 16-byte phase of the 32-byte window, and the
+// padding before it runs once per entry. A group of at most 16 bytes that crosses or ends on a
+// boundary lands inside the window once moved by 16. A loop that encloses another candidate waits
+// for the next round: the inner loop runs more often, and moving it moves the outer branch.
+bool MicroEmitPass::pinLoopBranchGroups()
+{
+    if (!alignLoopHeaders_)
+        return false;
+
+    pinCandidates_.clear();
+    for (const PendingLabelJump& pending : pendingLabelJumps_)
+    {
+        if (pending.instructionRef.isInvalid())
+            continue;
+        const LabelInfo* label = findLabelInfo(pending.labelRef);
+        if (!label || label->loopHeaderStamp != functionStamp_ || label->pinnedStamp == functionStamp_)
+            continue;
+        if (label->offset > pending.groupStart || pending.groupEnd - pending.groupStart > K_LOOP_HEADER_ALIGNMENT)
+            continue;
+        if (!needsBoundaryPadding(pending.groupStart, pending.groupEnd))
+            continue;
+        pinCandidates_.push_back({.labelRef = pending.labelRef, .start = static_cast<uint32_t>(label->offset), .end = pending.groupEnd});
+    }
+
+    bool pinned = false;
+    for (const PinCandidate& candidate : pinCandidates_)
+    {
+        const bool enclosesAnother = std::ranges::any_of(pinCandidates_, [&](const PinCandidate& other) {
+            return other.start >= candidate.start && other.end <= candidate.end && (other.start != candidate.start || other.end != candidate.end);
+        });
+        if (enclosesAnother)
+            continue;
+
+        LabelInfo& label = labelInfo(candidate.labelRef);
+        if (label.pinnedStamp == functionStamp_)
+            continue;
+        label.pinnedStamp = functionStamp_;
+        label.pinnedPhase = (candidate.start + K_LOOP_HEADER_ALIGNMENT) & (K_BRANCH_BOUNDARY - 1);
+        pinnedLabels_++;
+        pinned = true;
+    }
+
+    return pinned;
+}
+
 Result MicroEmitPass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.encoder);
@@ -637,6 +808,8 @@ Result MicroEmitPass::run(MicroPassContext& context)
     const auto& relocations = context.builder->codeRelocations();
 
     nextFunctionStamp();
+    nextShortJumpEpoch();
+    pinnedLabels_ = 0;
     (context.builder)->pruneDeadRelocations();
 
     if (slots_.size() < context.instructions->slotCount())
@@ -668,7 +841,10 @@ Result MicroEmitPass::run(MicroPassContext& context)
 
         nextLayoutStamp();
         pendingLabelJumps_.clear();
-        paddedLabels_ = 0;
+        paddingBudget_  = 0;
+        prevInstrStart_ = 0;
+        prevInstrEnd_   = 0;
+        prevFusion_     = FusionKind::None;
 
         // Emit with the short branches already proved by the preceding layout.
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
@@ -701,24 +877,35 @@ Result MicroEmitPass::run(MicroPassContext& context)
             // header's padding can then grow back to its full width. A branch is
             // made short only when it still fits with every such padding at its
             // widest, so no later layout can push it out of range.
-            const uint32_t paddedBetween = label->paddedLabels > pending.paddedLabelsBefore ? label->paddedLabels - pending.paddedLabelsBefore : pending.paddedLabelsBefore - label->paddedLabels;
-            const int64_t  worstCase     = static_cast<int64_t>(paddedBetween) * (K_LOOP_HEADER_ALIGNMENT - 1);
+            const uint32_t paddedBetween = label->paddingBefore > pending.paddingBefore ? label->paddingBefore - pending.paddingBefore : pending.paddingBefore - label->paddingBefore;
+            const int64_t  worstCase     = static_cast<int64_t>(paddedBetween);
             if (displacement - worstCase < std::numeric_limits<int8_t>::min() || displacement + worstCase > std::numeric_limits<int8_t>::max())
                 continue;
 
             SlotInfo& slot = slots_[pending.instructionRef.get()];
-            if (slot.shortJumpStamp != functionStamp_)
+            if (slot.shortJumpStamp != shortJumpEpoch_)
             {
-                slot.shortJumpStamp = functionStamp_;
+                slot.shortJumpStamp = shortJumpEpoch_;
                 foundShorterJump    = true;
             }
         }
 
         // Shrinking a branch can only bring every intervening target closer. Repeat until
         // no remaining rel32 branch fits rel8; the last layout is the emitted one.
-        if (!foundShorterJump)
+        if (foundShorterJump)
+            continue;
+
+        // Once the branches are settled, pin the headers of the loops whose closing branch
+        // group sits badly. Each header is pinned at most once, so this ends.
+        if (!pinLoopBranchGroups())
             break;
+        nextShortJumpEpoch();
     }
+
+    // Offsets are measured from the start of the function; a pinned phase means that start
+    // has to sit on a 32-byte boundary in the image too.
+    if (pinnedLabels_)
+        context.codeAlignment = std::max(context.codeAlignment, K_BRANCH_BOUNDARY);
 
     // Every relocation the code still carries names an instruction that was
     // encoded, and encoding that instruction is what writes its patch site

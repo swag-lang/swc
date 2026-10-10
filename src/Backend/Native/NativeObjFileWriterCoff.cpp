@@ -44,7 +44,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     SWC_ASSERT(builder_ != nullptr);
     CoffSectionBuild textSection;
     textSection.data.name            = ".text";
-    textSection.data.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
+    textSection.data.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_32BYTES;
     SWC_RESULT(buildTextSection(description, textSection));
 
     std::vector<CoffSectionBuild> sections;
@@ -156,9 +156,9 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     return builder_->reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
 }
 
-void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const ByteArray& bytes)
+void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const ByteArray& bytes, const uint32_t alignment)
 {
-    const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), 16);
+    const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), alignment);
     if (textSection.data.bytes.size() < alignedOffset)
         textSection.data.bytes.resize(alignedOffset, std::byte{0});
     outOffset = alignedOffset;
@@ -168,9 +168,9 @@ void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSecti
 Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     if (description.startup)
-        appendAlignedCodeBytes(textSection, description.startup->textOffset, description.startup->code.bytes);
+        appendAlignedCodeBytes(textSection, description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
     for (NativeFunctionInfo* info : description.functions)
-        appendAlignedCodeBytes(textSection, info->textOffset, info->machineCode->bytes);
+        appendAlignedCodeBytes(textSection, info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
 
     if (description.startup)
         SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols, description.splitRDataReferences));

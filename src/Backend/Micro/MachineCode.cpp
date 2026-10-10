@@ -68,6 +68,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     SWC_RESULT(builder.runPasses(&encoder, passContext));
 
     debugStackBasePhysReg = passContext.debugStackBasePhysReg;
+    codeAlignment         = passContext.codeAlignment;
 
     // Diagnostics can abort lowering before any encodable instruction is produced.
     // Propagate the existing failure instead of crashing in the test runner.

@@ -39,6 +39,10 @@ struct MicroPassContext
     // build configuration. 0 (the default, used for compiler-generated code) disables it.
     uint16_t sanitizerSafetyMask = 0;
 
+    // Alignment the start of the emitted code needs in the image, raised by the emit pass
+    // when it placed code against a window wider than the default function alignment.
+    uint32_t codeAlignment = 16;
+
     // The function being lowered, for sanitizer checks that need its signature (return
     // type nullability, ...). Null for compiler-generated code.
     const SymbolFunction* sanitizerFunction = nullptr;

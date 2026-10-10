@@ -1663,7 +1663,8 @@ func atomget(addr: *u64)->u64
     func vecinterleavehi(value1, value2: #simd [4] u32)->#simd [4] u32
     func vecinterleavehi(value1, value2: #simd [2] u64)->#simd [2] u64
 
-    // Widening: the low or high half of the lanes extends to double width, zero-extended for unsigned lanes and sign-extended for signed ones.
+    // Widening: the low or high half of the lanes extends to double width, zero-extended for unsigned lanes
+    // and sign-extended for signed ones.
     func vecwidenlo(value: #simd [16] u8)->#simd [8] u16
     func vecwidenlo(value: #simd [16] s8)->#simd [8] s16
     func vecwidenlo(value: #simd [8] u16)->#simd [4] u32
@@ -1707,7 +1708,8 @@ func atomget(addr: *u64)->u64
     func vecmulhi(value1, value2: #simd [2] u64)->#simd [2] u64
     func vecmulhi(value1, value2: #simd [2] s64)->#simd [2] s64
 
-    // Sum of absolute byte differences: each half of the operands reduces into the low word of the matching 64-bit lane.
+    // Sum of absolute byte differences: each half of the operands reduces into the low word of the matching
+    // 64-bit lane.
     func vecsad(value1, value2: #simd [16] u8)->#simd [2] u64
     func vecsad(value1, value2: #simd [16] s8)->#simd [2] u64
 
@@ -1781,10 +1783,8 @@ func atomget(addr: *u64)->u64
     // Every index must be at most 's32.Max' and designate a readable element.
     func vecgather(base: const [*] s32, indices: #simd [4] u32)->#simd [4] s32
 
-    // Permutes bytes using the low four bits of each table byte, or yields zero when its high bit is set.
-    //
-    // Dynamic byte permute: every result byte picks the source byte named by the low four bits of the matching
-    // table byte, or zero when the table byte's high bit is set.
+    // Each result byte picks the source byte named by the low four bits of the matching table byte, or zero
+    // when the table byte's high bit is set.
     func vecperm(value: #simd [16] u8, table: #simd [16] u8)->#simd [16] u8
 
     // Lane permutation.
@@ -1803,7 +1803,8 @@ func atomget(addr: *u64)->u64
     func vecshuffle(value: #simd [4] f32, pattern: #simd [4] u32)->#simd [4] f32
     func vecshuffle(value: #simd [2] f64, pattern: #simd [2] u64)->#simd [2] f64
 
-    // The same over two vectors: an index below the lane count reads 'value1', and one above it reads 'value2' at the index minus the lane count.
+    // The same operation over two vectors: an index below the lane count reads 'value1'; an index above it
+    // reads 'value2' at the index minus the lane count.
     func vecshuffle2(value1, value2: #simd [16] u8, pattern: #simd [16] u8)->#simd [16] u8
     func vecshuffle2(value1, value2: #simd [16] s8, pattern: #simd [16] u8)->#simd [16] s8
     func vecshuffle2(value1, value2: #simd [8] u16, pattern: #simd [8] u16)->#simd [8] u16

@@ -2230,10 +2230,11 @@ namespace
     // Evaluate every reachable function symbol in source order. Generic roots are probed
     // through speculative instantiation; concrete functions are probed first as regular
     // calls and then, if relevant, as UFCS/member-style calls with an injected receiver.
-    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
+    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, SmallVector<const Attempt*>& outViable, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
         outAttempts.clear();
         outFunctionSymbols.clear();
+        outViable.clear();
 
         bool hasGenericRoot = false;
         for (Symbol* s : symbols)
@@ -2299,6 +2300,14 @@ namespace
         const bool suppressGenericInstantiationErrors = matchingShapes > 1;
 
         outAttempts.reserve(outFunctionSymbols.size());
+        outViable.reserve(outFunctionSymbols.size());
+        const auto appendAttempt = [&](Attempt&& attempt) {
+            outAttempts.push_back(std::move(attempt));
+            const Attempt* appended = &outAttempts.back();
+            if (appended->viable)
+                outViable.push_back(appended);
+        };
+
         for (SymbolFunction* fn : outFunctionSymbols)
         {
             SWC_ASSERT(fn != nullptr);
@@ -2332,7 +2341,7 @@ namespace
                 if (!a.viable)
                     a.fail = std::move(fail);
 
-                outAttempts.push_back(std::move(a));
+                appendAttempt(std::move(a));
                 continue;
             }
 
@@ -2369,7 +2378,7 @@ namespace
                 a.fail   = std::move(fail);
             }
 
-            outAttempts.push_back(std::move(a));
+            appendAttempt(std::move(a));
         }
 
         return Result::Continue;
@@ -2394,8 +2403,7 @@ namespace
 
     Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
-        SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, symbols, args, ufcsArg, explicitGenericArgNodes, mode));
-        gatherViableAttempts(out.attempts, out.viable);
+        SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, out.viable, symbols, args, ufcsArg, explicitGenericArgNodes, mode));
         return Result::Continue;
     }
 

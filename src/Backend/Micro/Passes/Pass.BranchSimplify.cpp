@@ -500,12 +500,12 @@ namespace
             return false;
         }
 
-        thread_local std::unordered_set<uint32_t> visited;
+        // A flat set the worker keeps: a chain inserts a few labels and allocates nothing.
+        thread_local FlatKeySet visited;
         visited.clear();
-        visited.reserve(4);
         visited.insert(startLabelId);
 
-        while (visited.insert(currentLabelId).second)
+        while (visited.insert(currentLabelId))
         {
             uint32_t nextLabelId = 0;
             if (!tryGetTrampolineTarget(nextLabelId, layout, storage, operands, currentLabelId))
@@ -829,7 +829,7 @@ namespace
         };
         thread_local std::vector<Decision> decisions;
         decisions.clear();
-        thread_local std::unordered_set<uint32_t> visitedLabels;
+        thread_local FlatKeySet visitedLabels;
 
         constexpr uint32_t K_MAX_WALK = 256;
         for (uint32_t ordinal = 1; ordinal < count; ++ordinal)
@@ -875,7 +875,7 @@ namespace
                         visitedLabels.clear();
                         visitedLabelsReady = true;
                     }
-                    if (!visitedLabels.insert(labelId).second)
+                    if (!visitedLabels.insert(labelId))
                         break;
                     const LabelUse* labelUse   = labelUses.find(labelId);
                     const uint32_t  references = labelUse ? labelUse->references : 0;

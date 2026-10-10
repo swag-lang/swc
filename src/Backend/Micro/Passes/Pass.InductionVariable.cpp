@@ -645,17 +645,17 @@ namespace
                 // A sum is carried only when it takes every use of its
                 // induction with it, so the induction dies and the carried
                 // pointer costs no register.
-                thread_local std::unordered_map<uint32_t, uint32_t> sumsPerInduction;
+                thread_local FlatKeyMap<uint32_t> sumsPerInduction;
                 sumsPerInduction.clear();
                 for (const Candidate& candidate : sums)
-                    ++sumsPerInduction[candidate.inductionIx];
+                    ++sumsPerInduction.getOrInsert(candidate.inductionIx);
                 for (const Candidate& candidate : sums)
                 {
                     const Induction& induction = inductions[candidate.inductionIx];
                     const RegOccurrences* useIt    = uses.find(induction.reg.packed);
                     const uint32_t        useCount = useIt ? useIt->count : 0;
                     // The step reads the induction once itself.
-                    if (useCount == sumsPerInduction[candidate.inductionIx] + 1)
+                    if (useCount == *sumsPerInduction.find(candidate.inductionIx) + 1)
                         chosenSums.push_back(candidate);
                 }
                 chosen = &chosenSums;

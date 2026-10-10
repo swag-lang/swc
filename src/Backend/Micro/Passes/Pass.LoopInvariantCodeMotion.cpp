@@ -319,8 +319,9 @@ namespace
         const auto relocationKey = [](const MicroRelocation& relocation) {
             return (static_cast<uint64_t>(relocation.kind) << 56) ^ relocation.targetAddress;
         };
-        thread_local std::unordered_set<uint64_t>           materializedPrivateGlobals;
-        thread_local std::unordered_map<MicroReg, uint64_t> privateGlobalBases;
+        // Relocation keys, and relocation keys by packed base register; only looked up.
+        thread_local FlatKey64Set         materializedPrivateGlobals;
+        thread_local FlatKeyMap<uint64_t> privateGlobalBases;
         materializedPrivateGlobals.clear();
         privateGlobalBases.clear();
         for (const MicroRelocation& relocation : relocations)
@@ -336,7 +337,7 @@ namespace
             if (!def || def->count != 1)
                 materializedPrivateGlobals.insert(relocationKey(relocation));
             else
-                privateGlobalBases.emplace(reg, relocationKey(relocation));
+                privateGlobalBases.emplace(reg.packed, relocationKey(relocation));
         }
         if (!privateGlobalBases.empty())
         {
@@ -350,14 +351,14 @@ namespace
                 const MicroInstrOperand* instOps   = inst->ops(operands);
                 for (const MicroReg use : useDefs[i].uses)
                 {
-                    const auto it = privateGlobalBases.find(use);
-                    if (it == privateGlobalBases.end())
+                    const uint64_t* privateKey = privateGlobalBases.find(use.packed);
+                    if (!privateKey)
                         continue;
                     // This loop already proves one use; only a sole base use with no definition stays private.
                     if (!hasBase || !instOps || instOps[baseIndex].reg != use ||
                         std::ranges::count(useDefs[i].uses, use) != 1 ||
                         std::ranges::find(useDefs[i].defs, use) != useDefs[i].defs.end())
-                        materializedPrivateGlobals.insert(it->second);
+                        materializedPrivateGlobals.insert(*privateKey);
                 }
             }
         }
@@ -445,8 +446,8 @@ namespace
                 // So does one writing through a register that holds a private global's address.
                 if (memoryOps)
                 {
-                    if (const auto privateBase = privateGlobalBases.find(memoryOps[baseOperandIndex].reg); privateBase != privateGlobalBases.end())
-                        directStoreTargets.insert(privateBase->second);
+                    if (const uint64_t* privateBase = privateGlobalBases.find(memoryOps[baseOperandIndex].reg.packed))
+                        directStoreTargets.insert(*privateBase);
                 }
                 if (isStackOnlyWrite(inst->op))
                 {
@@ -691,7 +692,7 @@ namespace
             };
 
             std::unordered_set<uint32_t>              hoistSet;
-            thread_local std::unordered_set<MicroReg> banned;
+            thread_local FlatKeySet banned; // registers by packed form
             banned.clear();
 
             // The value a use reads at slot i is hoisted when every earlier def
@@ -729,7 +730,7 @@ namespace
                             continue;
 
                         const MicroReg destReg = slotDefReg[i];
-                        if (!destReg.isValid() || banned.contains(destReg))
+                        if (!destReg.isValid() || banned.contains(destReg.packed))
                             continue;
                         const RegWeb* destWeb = eligibleWeb(destReg);
                         if (!destWeb)
@@ -788,7 +789,7 @@ namespace
                                 continue; // the web's own previous value
                             if (!defsInLoop.contains(use.packed))
                                 continue;
-                            const RegWeb* useWeb = banned.contains(use) ? nullptr : eligibleWeb(use);
+                            const RegWeb* useWeb = banned.contains(use.packed) ? nullptr : eligibleWeb(use);
                             if (!useWeb || !acceptedPrefix(*useWeb, i))
                             {
                                 allInvariant = false;
@@ -1131,7 +1132,7 @@ namespace
                 if (violations.empty())
                     break;
                 for (const MicroReg reg : violations)
-                    banned.insert(reg);
+                    banned.insert(reg.packed);
             }
 
             if (hoistSet.empty())

@@ -510,7 +510,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // records. The other two describe one function, but their capacity can serve later mem2reg
     // rounds and functions on the same worker.
     FlatKeyMap<AddrRegInfo>                                addrRegOffset;
-    thread_local std::unordered_set<uint32_t>              addressAdjustments;
+    thread_local FlatKeySet                                addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
     thread_local std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;

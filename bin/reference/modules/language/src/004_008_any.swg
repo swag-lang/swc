@@ -39,7 +39,7 @@ Use `catch cast(*T?, boxed)` when a failed conversion should produce null.
 #test
 {
     let a: any = 6
-    let ptr    = (catch cast(const *s32?, a))
+    let ptr    = catch cast(const *s32?, a)
     Swag.assert(ptr != null)
     Swag.assert(ptr[] == 6)
 }

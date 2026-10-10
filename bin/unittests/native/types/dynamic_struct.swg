@@ -84,7 +84,7 @@ struct ResetDynamicChild
 
 func inspectDynamic(base: *DynamicBase)
 {
-    let child = (catch cast(*DynamicChild?, base))
+    let child = catch cast(*DynamicChild?, base)
     Swag.assert(child != null)
     Swag.assert(child.extra == 45)
     Swag.assert(not (base is DynamicSibling))
@@ -97,7 +97,7 @@ func inspectDynamic(base: *DynamicBase)
     var value: DynamicGrandchild
     inspectDynamic(&value)
     let base: *DynamicBase = &value
-    let grandchild         = (catch cast(*DynamicGrandchild?, base))
+    let grandchild         = catch cast(*DynamicGrandchild?, base)
     Swag.assert(grandchild == &value)
     Swag.assert(grandchild!.tail == 67)
 }
@@ -127,7 +127,7 @@ func inspectPresentDynamic(base: *DynamicBase?)->bool
 {
     while base
     {
-        let child = (catch cast(*DynamicChild?, base))
+        let child = catch cast(*DynamicChild?, base)
         if child and child.extra == 45 do
             return true
         return false

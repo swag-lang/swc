@@ -480,6 +480,8 @@ namespace
 
             if (inst->op == MicroInstrOpcode::Label)
                 continue;
+            if (inst->op != MicroInstrOpcode::JumpCond)
+                return false;
 
             const MicroInstrOperand* ops = inst->ops(operands);
             if (!MicroInstrInfo::isUnconditionalJumpInstruction(*inst, ops))
@@ -7410,8 +7412,13 @@ namespace
         if (!MicroInstrInfo::isTerminatorInstruction(inst))
             return false;
 
-        if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::JumpInstruction))
+        const MicroInstrFlags flags = MicroInstr::info(inst.op).flags;
+        if (flags.has(MicroInstrFlagsE::JumpInstruction))
+        {
+            if (!flags.has(MicroInstrFlagsE::ConditionalJump))
+                return true;
             return MicroInstrInfo::isUnconditionalJumpInstruction(inst, inst.ops(operands));
+        }
 
         return true;
     }

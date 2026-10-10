@@ -589,7 +589,7 @@ ConstantValue ConstantValue::makeAggregateStruct(TaskContext& ctx, const std::sp
     for (const auto& v : values)
         memberTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
-    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateStruct(names, memberTypes));
+    cv.typeRef_ = ctx.typeMgr().addAggregateStructType(names, memberTypes);
     cv.kind_    = ConstantKind::AggregateStruct;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -607,7 +607,7 @@ ConstantValue ConstantValue::makeAggregateArray(TaskContext& ctx, const std::spa
     for (const auto& v : values)
         elemTypes.push_back(ctx.cstMgr().get(v).typeRef());
 
-    cv.typeRef_ = ctx.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes));
+    cv.typeRef_ = ctx.typeMgr().addAggregateArrayType(elemTypes);
     cv.kind_    = ConstantKind::AggregateArray;
     std::construct_at(&cv.payloadAggregate_.val, values.begin(), values.end());
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized

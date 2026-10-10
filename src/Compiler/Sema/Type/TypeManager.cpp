@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeRuntimeHash.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
@@ -315,7 +316,8 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     return (*it)->typeRef();
 }
 
-TypeRef TypeManager::findInterned(const InternTable* table, const TypeInfo& typeInfo, size_t hash) noexcept
+template<typename Matches>
+TypeRef TypeManager::findInternedIf(const InternTable* table, size_t hash, const Matches& matches) noexcept
 {
     if (!table)
         return TypeRef::invalid();
@@ -326,9 +328,86 @@ TypeRef TypeManager::findInterned(const InternTable* table, const TypeInfo& type
         const TypeInfo* type = table->types[i].load(std::memory_order_acquire);
         if (!type)
             return TypeRef::invalid();
-        if (table->hashes[i].load(std::memory_order_relaxed) == hash && *type == typeInfo)
+        if (table->hashes[i].load(std::memory_order_relaxed) == hash && matches(*type))
             return type->typeRef();
     }
+}
+
+TypeRef TypeManager::findInterned(const InternTable* table, const TypeInfo& typeInfo, size_t hash) noexcept
+{
+    return findInternedIf(table, hash, [&](const TypeInfo& type) { return type == typeInfo; });
+}
+
+const TypeManager::InternTable* TypeManager::publishedInternTable(const uint32_t stableHash) const noexcept
+{
+    const Shard&        shard  = shards_[stableHash & (SHARD_COUNT - 1)];
+    const InternStripe& stripe = shard.internStripes[(stableHash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1)];
+    return stripe.table.load(std::memory_order_acquire);
+}
+
+TypeRef TypeManager::addArrayType(const std::span<const uint64_t> dims, const TypeRef elementTypeRef, const TypeInfoFlags flags, std::span<const TypeRef> indexTypeRefs)
+{
+    // TypeInfo::makeArray keeps the index types only when one of them is valid.
+    if (std::ranges::none_of(indexTypeRefs, [](const TypeRef typeRef) { return typeRef.isValid(); }))
+        indexTypeRefs = {};
+
+    // An array is placed by its own hash: see stableShardHash.
+    const uint32_t hash  = TypeInfo::hashArrayPayload(TypeInfo::hashHeader(TypeInfoKind::Array, flags), dims, elementTypeRef, indexTypeRefs);
+    const TypeRef  found = findInternedIf(publishedInternTable(hash), hash, [&](const TypeInfo& type) {
+        return type.kind_ == TypeInfoKind::Array &&
+               type.flags_ == flags &&
+               type.payloadArray_.typeRef == elementTypeRef &&
+               std::ranges::equal(type.payloadArray_.dims, dims) &&
+               std::ranges::equal(type.payloadArray_.indexTypeRefs, indexTypeRefs);
+    });
+    if (found.isValid())
+        return found;
+
+    return addType(TypeInfo::makeArray(dims, elementTypeRef, flags, indexTypeRefs));
+}
+
+TypeRef TypeManager::addArrayTypeAfterFirstDimension(const TypeInfo& arrayType)
+{
+    SWC_ASSERT(arrayType.isArray());
+    SWC_ASSERT(arrayType.payloadArray_.dims.size() > 1);
+
+    const std::span dims{arrayType.payloadArray_.dims};
+    const std::span indexTypeRefs{arrayType.payloadArray_.indexTypeRefs};
+    return addArrayType(dims.subspan(1), arrayType.payloadArray_.typeRef, arrayType.flags_, indexTypeRefs.empty() ? indexTypeRefs : indexTypeRefs.subspan(1));
+}
+
+TypeRef TypeManager::addAggregateStructType(const std::span<const IdentifierRef> names, const std::span<const TypeRef> types)
+{
+    SWC_ASSERT(types.size() == names.size());
+    constexpr TypeInfoFlags flags = TypeInfoFlagsE::Const;
+    const uint32_t          hash  = TypeInfo::hashAggregatePayload(TypeInfo::hashHeader(TypeInfoKind::AggregateStruct, flags), TypeInfoKind::AggregateStruct, types, names);
+    const uint32_t          place = compiler_ ? TypeRuntimeHash::computeAggregate(TaskContext(*compiler_), TypeInfoKind::AggregateStruct, flags, types, names) : hash;
+    const TypeRef           found = findInternedIf(publishedInternTable(place), hash, [&](const TypeInfo& type) {
+        return type.kind_ == TypeInfoKind::AggregateStruct &&
+               type.flags_ == flags &&
+               std::ranges::equal(type.payloadAggregate_.types, types) &&
+               std::ranges::equal(type.payloadAggregate_.names, names);
+    });
+    if (found.isValid())
+        return found;
+
+    return addType(TypeInfo::makeAggregateStruct(names, types));
+}
+
+TypeRef TypeManager::addAggregateArrayType(const std::span<const TypeRef> types)
+{
+    constexpr TypeInfoFlags flags = TypeInfoFlagsE::Const;
+    const uint32_t          hash  = TypeInfo::hashAggregatePayload(TypeInfo::hashHeader(TypeInfoKind::AggregateArray, flags), TypeInfoKind::AggregateArray, types, {});
+    const uint32_t          place = compiler_ ? TypeRuntimeHash::computeAggregate(TaskContext(*compiler_), TypeInfoKind::AggregateArray, flags, types, {}) : hash;
+    const TypeRef           found = findInternedIf(publishedInternTable(place), hash, [&](const TypeInfo& type) {
+        return type.kind_ == TypeInfoKind::AggregateArray &&
+               type.flags_ == flags &&
+               std::ranges::equal(type.payloadAggregate_.types, types);
+    });
+    if (found.isValid())
+        return found;
+
+    return addType(TypeInfo::makeAggregateArray(types));
 }
 
 void TypeManager::publishInterned(InternStripe& stripe, const TypeInfo* type, size_t hash)

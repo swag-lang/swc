@@ -449,10 +449,48 @@ const TypeInfo* TypeInfo::resolveAliasType(const TaskContext& ctx) const noexcep
 template const TypeInfo* TypeInfo::resolveAliasType<false>(const TaskContext& ctx) const noexcept;
 template const TypeInfo* TypeInfo::resolveAliasType<true>(const TaskContext& ctx) const noexcept;
 
+uint32_t TypeInfo::hashHeader(const TypeInfoKind kind, const TypeInfoFlags flags)
+{
+    const uint32_t h = Math::hash(static_cast<uint32_t>(kind));
+    return Math::hashCombine(h, static_cast<uint32_t>(flags.get()));
+}
+
+uint32_t TypeInfo::hashArrayPayload(uint32_t h, const std::span<const uint64_t> dims, const TypeRef elementTypeRef, const std::span<const TypeRef> indexTypeRefs)
+{
+    h = Math::hashCombine(h, elementTypeRef.get());
+    for (size_t i = 0; i < dims.size(); ++i)
+    {
+        h = Math::hashCombine(h, static_cast<uint32_t>(dims[i]));
+        if (!indexTypeRefs.empty())
+            h = Math::hashCombine(h, indexTypeRefs[i].get());
+    }
+    return h;
+}
+
+uint32_t TypeInfo::hashAggregatePayload(uint32_t h, const TypeInfoKind kind, const std::span<const TypeRef> types, const std::span<const IdentifierRef> names)
+{
+    if (kind == TypeInfoKind::AggregateStruct)
+    {
+        h = Math::hashCombine(h, static_cast<uint32_t>(types.size()));
+        h = Math::hashCombine(h, static_cast<uint32_t>(names.size()));
+        for (size_t i = 0; i < types.size(); ++i)
+        {
+            h = Math::hashCombine(h, types[i].get());
+            h = Math::hashCombine(h, names[i].get());
+        }
+        return h;
+    }
+
+    SWC_ASSERT(kind == TypeInfoKind::AggregateArray);
+    h = Math::hashCombine(h, static_cast<uint32_t>(types.size()));
+    for (const TypeRef typeRef : types)
+        h = Math::hashCombine(h, typeRef.get());
+    return h;
+}
+
 uint32_t TypeInfo::hash() const
 {
-    uint32_t h = Math::hash(static_cast<uint32_t>(kind_));
-    h          = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
+    uint32_t h = hashHeader(kind_, flags_);
 
     switch (kind_)
     {
@@ -486,19 +524,8 @@ uint32_t TypeInfo::hash() const
             return h;
 
         case TypeInfoKind::AggregateStruct:
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.names.size()));
-            for (size_t i = 0; i < payloadAggregate_.types.size(); ++i)
-            {
-                h = Math::hashCombine(h, payloadAggregate_.types[i].get());
-                h = Math::hashCombine(h, payloadAggregate_.names[i].get());
-            }
-            return h;
         case TypeInfoKind::AggregateArray:
-            h = Math::hashCombine(h, static_cast<uint32_t>(payloadAggregate_.types.size()));
-            for (const TypeRef typeRef : payloadAggregate_.types)
-                h = Math::hashCombine(h, typeRef.get());
-            return h;
+            return hashAggregatePayload(h, kind_, payloadAggregate_.types, payloadAggregate_.names);
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
             return h;
@@ -515,14 +542,7 @@ uint32_t TypeInfo::hash() const
             h = Math::hashCombine(h, payloadFunction_.sym->typeSignatureHash());
             return h;
         case TypeInfoKind::Array:
-            h = Math::hashCombine(h, payloadArray_.typeRef.get());
-            for (size_t i = 0; i < payloadArray_.dims.size(); ++i)
-            {
-                h = Math::hashCombine(h, static_cast<uint32_t>(payloadArray_.dims[i]));
-                if (!payloadArray_.indexTypeRefs.empty())
-                    h = Math::hashCombine(h, payloadArray_.indexTypeRefs[i].get());
-            }
-            return h;
+            return hashArrayPayload(h, payloadArray_.dims, payloadArray_.typeRef, payloadArray_.indexTypeRefs);
 
         case TypeInfoKind::Simd:
             h = Math::hashCombine(h, payloadSimd_.laneTypeRef.get());
@@ -1064,19 +1084,6 @@ TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims,
     ti.payloadArray_.typeRef = elementTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
-}
-
-TypeInfo TypeInfo::makeArrayAfterFirstDimension() const
-{
-    SWC_ASSERT(isArray());
-    SWC_ASSERT(payloadArray_.dims.size() > 1);
-
-    const std::span remainingDims{payloadArray_.dims.begin() + 1, payloadArray_.dims.end()};
-    if (payloadArray_.indexTypeRefs.empty())
-        return makeArray(remainingDims, payloadArray_.typeRef, flags_);
-
-    const std::span remainingIndexTypeRefs{payloadArray_.indexTypeRefs.begin() + 1, payloadArray_.indexTypeRefs.end()};
-    return makeArray(remainingDims, payloadArray_.typeRef, flags_, remainingIndexTypeRefs);
 }
 
 TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types)

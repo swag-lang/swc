@@ -93,7 +93,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticArrayBufferConstant(CodeGen
         return ConstantRef::invalid();
 
     const std::array<uint64_t, 1> dims         = {count};
-    const TypeRef                 arrayTypeRef = codeGen.typeMgr().addType(TypeInfo::makeArray(dims, elementTypeRef));
+    const TypeRef                 arrayTypeRef = codeGen.typeMgr().addArrayType(dims, elementTypeRef);
     return materializeStaticPayloadConstant(codeGen, arrayTypeRef, payload);
 }
 

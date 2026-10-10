@@ -255,7 +255,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
             sourceFlags.add(TypeInfoFlagsE::Nullable);
             SWC_RESULT(Cast::cast(sema, sourceView, sema.typeMgr().addType(TypeInfo::makeAny(sourceFlags)), CastKind::Implicit));
             const uint64_t count       = 4;
-            const TypeRef  storageType = sema.typeMgr().addType(TypeInfo::makeArray(std::span{&count, 1}, sema.typeMgr().typeU64()));
+            const TypeRef  storageType = sema.typeMgr().addArrayType(std::span{&count, 1}, sema.typeMgr().typeU64());
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, storageType, "__runtime_cast_storage"));
         }
         sema.clearConstant(sema.curNodeRef());

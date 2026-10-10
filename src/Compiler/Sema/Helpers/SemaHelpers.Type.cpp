@@ -293,7 +293,7 @@ namespace
         if (!changed)
             return typeRef;
 
-        return typeMgr.addType(TypeInfo::makeAggregateStruct(aggregate.names, concreteFieldTypes));
+        return typeMgr.addAggregateStructType(aggregate.names, concreteFieldTypes);
     }
 
     bool constantFitsArrayTarget(Sema& sema, ConstantRef cstRef, std::span<const uint64_t> dims, TypeRef elementTypeRef);
@@ -444,7 +444,7 @@ namespace
         if (!changed && !namesChanged)
             return elemTypes.front();
 
-        return typeMgr.addType(TypeInfo::makeAggregateStruct(mergedFieldNames, mergedFieldTypes));
+        return typeMgr.addAggregateStructType(mergedFieldNames, mergedFieldTypes);
     }
 
     bool sameArrayDimensions(std::span<const uint64_t> leftDims, std::span<const uint64_t> rightDims)
@@ -481,7 +481,7 @@ namespace
         if (!mergedElemTypeRef.isValid())
             return TypeRef::invalid();
 
-        return typeMgr.addType(TypeInfo::makeArray(leftType.payloadArrayDims(), mergedElemTypeRef, TypeInfoFlagsE::Zero, leftType.payloadArrayIndexTypeRefs()));
+        return typeMgr.addArrayType(leftType.payloadArrayDims(), mergedElemTypeRef, TypeInfoFlagsE::Zero, leftType.payloadArrayIndexTypeRefs());
     }
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, std::span<const ConstantRef> values)
@@ -603,7 +603,7 @@ TypeRef SemaHelpers::deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typ
         return typeRef;
 
     const std::array<uint64_t, 1> outerDim = {elemTypes.size()};
-    return typeMgr.addType(TypeInfo::makeArray(outerDim, elemTypeRef));
+    return typeMgr.addArrayType(outerDim, elemTypeRef);
 }
 
 bool SemaHelpers::isTypeLikeTypeRef(const TaskContext& ctx, TypeRef typeRef)
@@ -980,7 +980,7 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     }
     else
     {
-        const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAggregateStruct(memberNames, memberTypes));
+        const TypeRef typeRef = sema.typeMgr().addAggregateStructType(memberNames, memberTypes);
         sema.setType(sema.curNodeRef(), typeRef);
     }
 

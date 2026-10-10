@@ -410,9 +410,8 @@ namespace
                 TypeRef elemTypeRef = baseTypeRef;
                 for (const uint64_t& initDim : std::ranges::reverse_view(initDims))
                 {
-                    const std::array<uint64_t, 1> oneDim    = {initDim};
-                    const TypeInfo                arrayType = TypeInfo::makeArray(oneDim, elemTypeRef, nodes[0].flags);
-                    elemTypeRef                             = sema.typeMgr().addType(arrayType);
+                    const std::array<uint64_t, 1> oneDim = {initDim};
+                    elemTypeRef = sema.typeMgr().addArrayType(oneDim, elemTypeRef, nodes[0].flags);
                 }
 
                 return elemTypeRef;
@@ -445,8 +444,7 @@ namespace
         TypeRef elemTypeRef = baseTypeRef;
         for (auto& node : std::ranges::reverse_view(nodes))
         {
-            const TypeInfo arrayType = TypeInfo::makeArray(node.dims.span(), elemTypeRef, node.flags);
-            elemTypeRef              = sema.typeMgr().addType(arrayType);
+            elemTypeRef = sema.typeMgr().addArrayType(node.dims.span(), elemTypeRef, node.flags);
         }
 
         return elemTypeRef;

@@ -425,7 +425,7 @@ namespace
 
         constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
         const std::array   dims                 = {interfaceStorageSize + objectStorageSize};
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
     }
 
     bool makeInterfaceObjectIsConst(Sema& sema, const SemaNodeView& objectView)

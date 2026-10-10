@@ -45,7 +45,7 @@ namespace
     TypeRef interfaceMethodTableTypeRef(TaskContext& ctx, uint32_t count)
     {
         const std::array<uint64_t, 1> dims = {count};
-        return ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeValuePtrVoid()));
+        return ctx.typeMgr().addArrayType(dims, ctx.typeMgr().typeValuePtrVoid());
     }
 
     const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, PointerSet<const SymbolStruct>& visited);

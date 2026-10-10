@@ -45,7 +45,7 @@ namespace
         if (dims.size() == 1)
             return arrayType.payloadArrayElemTypeRef();
 
-        return codeGen.typeMgr().addType(arrayType.makeArrayAfterFirstDimension());
+        return codeGen.typeMgr().addArrayTypeAfterFirstDimension(arrayType);
     }
 
     AstNodeRef codeGenErrorNodeRef(CodeGen& codeGen)

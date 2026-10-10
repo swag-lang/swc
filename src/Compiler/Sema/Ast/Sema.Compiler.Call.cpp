@@ -933,7 +933,7 @@ namespace
     {
         TypeInfoFlags reflectedFlags = resolvedType.flags();
         reflectedFlags.add(TypeInfoFlagsE::Const);
-        return sema.typeMgr().addType(TypeInfo::makeArray(resolvedType.payloadArrayDims(), resolvedType.payloadArrayElemTypeRef(), reflectedFlags, resolvedType.payloadArrayIndexTypeRefs()));
+        return sema.typeMgr().addArrayType(resolvedType.payloadArrayDims(), resolvedType.payloadArrayElemTypeRef(), reflectedFlags, resolvedType.payloadArrayIndexTypeRefs());
     }
 
     TypeRef preserveTopLevelConstForReflectedAggregateLiteral(Sema& sema, TypeRef originalTypeRef, TypeRef resolvedTypeRef)
@@ -1581,7 +1581,7 @@ namespace
         sema.compiler().registerCompilerInputFile(resolvedPath);
 
         const std::array<uint64_t, 1> dims         = {bytes.size()};
-        const TypeRef                 arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        const TypeRef                 arrayTypeRef = sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
         const ConstantValue           value        = ConstantValue::makeArray(ctx, arrayTypeRef, bytes.span());
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;

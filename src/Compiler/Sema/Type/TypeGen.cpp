@@ -101,7 +101,7 @@ TypeRef TypeGen::resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arr
     if (dims.size() == 1)
         return arrayType.payloadArrayElemTypeRef();
 
-    return tm.addType(arrayType.makeArrayAfterFirstDimension());
+    return tm.addArrayTypeAfterFirstDimension(arrayType);
 }
 
 TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)

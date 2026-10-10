@@ -785,7 +785,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     else
     {
         SWC_RESULT(sizeUnsizedArrayElements(sema, elements.span(), elemTypes));
-        sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeAggregateArray(elemTypes)));
+        sema.setType(sema.curNodeRef(), sema.typeMgr().addAggregateArrayType(elemTypes));
     }
 
     sema.setIsValue(*this);

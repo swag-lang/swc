@@ -68,7 +68,7 @@ namespace
             }
 
             const std::array<uint64_t, 1> dims = {elemTypes.size()};
-            return codeGen.typeMgr().addType(TypeInfo::makeArray(dims, dstType.payloadTypeRef()));
+            return codeGen.typeMgr().addArrayType(dims, dstType.payloadTypeRef());
         }
 
         return storageTypeRef;

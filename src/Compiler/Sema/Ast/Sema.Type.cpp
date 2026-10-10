@@ -298,7 +298,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     switch (qualifiedType.kind())
     {
         case TypeInfoKind::Array:
-            typeRef = typeMgr.addType(TypeInfo::makeArray(qualifiedType.payloadArrayDims(), qualifiedType.payloadArrayElemTypeRef(), typeFlags, qualifiedType.payloadArrayIndexTypeRefs()));
+            typeRef = typeMgr.addArrayType(qualifiedType.payloadArrayDims(), qualifiedType.payloadArrayElemTypeRef(), typeFlags, qualifiedType.payloadArrayIndexTypeRefs());
             break;
         case TypeInfoKind::ValuePointer:
             typeRef = typeMgr.addType(TypeInfo::makeValuePointer(qualifiedType.payloadTypeRef(), typeFlags));
@@ -466,8 +466,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     // Unknown dimension [?]
     if (spanDimensionsRef.isInvalid())
     {
-        const TypeInfo tyA     = TypeInfo::makeArray({}, view.typeRef());
-        const TypeRef  typeRef = sema.typeMgr().addType(tyA);
+        const TypeRef typeRef = sema.typeMgr().addArrayType({}, view.typeRef());
         sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;
     }
@@ -525,8 +524,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     }
 
     const std::span<const TypeRef> arrayIndexTypeRefs = hasEnumDimension ? indexTypeRefs.span() : std::span<const TypeRef>{};
-    const TypeInfo                 ty                 = TypeInfo::makeArray(dims, view.typeRef(), TypeInfoFlagsE::Zero, arrayIndexTypeRefs);
-    const TypeRef                  typeRef            = sema.typeMgr().addType(ty);
+    const TypeRef                  typeRef            = sema.typeMgr().addArrayType(dims, view.typeRef(), TypeInfoFlagsE::Zero, arrayIndexTypeRefs);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }

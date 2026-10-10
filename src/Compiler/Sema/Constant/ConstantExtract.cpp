@@ -261,7 +261,7 @@ namespace
 
         if (dims.size() > 1)
         {
-            const TypeRef nextTypeRef = sema.typeMgr().addType(typeInfo.makeArrayAfterFirstDimension());
+            const TypeRef nextTypeRef = sema.typeMgr().addArrayTypeAfterFirstDimension(typeInfo);
             SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
             const uint64_t    nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
             const std::span   nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};

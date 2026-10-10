@@ -364,6 +364,42 @@ namespace
         RuntimeHashStackScope typeScope(state.types, typeRef);
         return ctx.typeMgr().get(typeRef).runtimeHash(ctx);
     }
+
+    uint32_t combineAggregatePayload(uint32_t h, const TaskContext& ctx, const TypeInfoKind kind, const std::span<const TypeRef> types, const std::span<const IdentifierRef> names)
+    {
+        if (kind == TypeInfoKind::AggregateStruct)
+        {
+            h = Math::hashCombine(h, static_cast<uint32_t>(types.size()));
+            h = Math::hashCombine(h, static_cast<uint32_t>(names.size()));
+            for (uint32_t i = 0; i < types.size(); ++i)
+            {
+                h = Math::hashCombine(h, stableTypeHash(ctx, types[i]));
+                if (i < names.size() && names[i].isValid())
+                {
+                    const auto& id = ctx.idMgr().get(names[i]);
+                    h              = Math::hashCombine(h, Math::hash(id.name));
+                }
+                else
+                    h = Math::hashCombine(h, 0u);
+            }
+            return h;
+        }
+
+        SWC_ASSERT(kind == TypeInfoKind::AggregateArray);
+        h = Math::hashCombine(h, static_cast<uint32_t>(types.size()));
+        for (const TypeRef elemTypeRef : types)
+            h = Math::hashCombine(h, stableTypeHash(ctx, elemTypeRef));
+        return h;
+    }
+}
+
+uint32_t TypeRuntimeHash::computeAggregate(const TaskContext& ctx, const TypeInfoKind kind, TypeInfoFlags flags, const std::span<const TypeRef> types, const std::span<const IdentifierRef> names)
+{
+    RuntimeHashRootScope runtimeHashScope;
+    flags.remove(TypeInfoFlagsE::Nullable);
+    uint32_t h = Math::hash(static_cast<uint32_t>(kind));
+    h          = Math::hashCombine(h, static_cast<uint32_t>(flags.get()));
+    return combineAggregatePayload(h, ctx, kind, types, names);
 }
 
 uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeInfo)
@@ -404,25 +440,8 @@ uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeIn
             return h;
 
         case TypeInfoKind::AggregateStruct:
-            h = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.payloadAggregate_.types.size()));
-            h = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.payloadAggregate_.names.size()));
-            for (uint32_t i = 0; i < typeInfo.payloadAggregate_.types.size(); ++i)
-            {
-                h = Math::hashCombine(h, stableTypeHash(ctx, typeInfo.payloadAggregate_.types[i]));
-                if (i < typeInfo.payloadAggregate_.names.size() && typeInfo.payloadAggregate_.names[i].isValid())
-                {
-                    const auto& id = ctx.idMgr().get(typeInfo.payloadAggregate_.names[i]);
-                    h              = Math::hashCombine(h, Math::hash(id.name));
-                }
-                else
-                    h = Math::hashCombine(h, 0u);
-            }
-            return h;
         case TypeInfoKind::AggregateArray:
-            h = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.payloadAggregate_.types.size()));
-            for (const TypeRef elemTypeRef : typeInfo.payloadAggregate_.types)
-                h = Math::hashCombine(h, stableTypeHash(ctx, elemTypeRef));
-            return h;
+            return combineAggregatePayload(h, ctx, typeInfo.kind_, typeInfo.payloadAggregate_.types, typeInfo.payloadAggregate_.names);
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, stableSymbolHash(ctx, typeInfo.payloadSymEnum()));
             return h;

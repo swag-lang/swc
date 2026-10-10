@@ -264,7 +264,7 @@ namespace
         if (dims.size() <= 1)
             return arrayType.payloadArrayElemTypeRef();
 
-        return typeMgr.addType(arrayType.makeArrayAfterFirstDimension());
+        return typeMgr.addArrayTypeAfterFirstDimension(arrayType);
     }
 
     bool patternCanDeduceMissingGenericParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef)

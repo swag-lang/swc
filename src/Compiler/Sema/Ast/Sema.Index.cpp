@@ -374,7 +374,7 @@ namespace
             return Result::Continue;
 
         const std::array<uint64_t, 1> dims = {indexedType.isSimd() ? 16u : 8u};
-        outRuntimeStorageTypeRef           = sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        outRuntimeStorageTypeRef           = sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
         return Result::Continue;
     }
 }
@@ -406,7 +406,7 @@ namespace
         if (indexedType.isArray())
         {
             if (indexedType.payloadArrayDims().size() > 1)
-                return sema.typeMgr().addType(indexedType.makeArrayAfterFirstDimension());
+                return sema.typeMgr().addArrayTypeAfterFirstDimension(indexedType);
             return indexedType.payloadArrayElemTypeRef();
         }
         if (indexedType.isSlice() || indexedType.isBlockPointer() || indexedType.isTypedVariadic())
@@ -526,8 +526,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         const uint64_t numExpected = arrayDims.size();
         if (numExpected > 1)
         {
-            const TypeInfo typeArray = indexedType.makeArrayAfterFirstDimension();
-            sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
+            sema.setType(sema.curNodeRef(), sema.typeMgr().addArrayTypeAfterFirstDimension(indexedType));
         }
         else
         {
@@ -677,8 +676,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 const auto& arrayDims = currentType.payloadArrayDims();
                 if (arrayDims.size() > 1)
                 {
-                    const TypeInfo typeArray = currentType.makeArrayAfterFirstDimension();
-                    currentTypeRef           = sema.typeMgr().addType(typeArray);
+                    currentTypeRef = sema.typeMgr().addArrayTypeAfterFirstDimension(currentType);
                 }
                 else
                 {

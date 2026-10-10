@@ -354,7 +354,6 @@ public:
                               TypeRef                          elementTypeRef,
                               TypeInfoFlags                    flags         = TypeInfoFlagsE::Zero,
                               const std::span<const TypeRef>&  indexTypeRefs = {});
-    TypeInfo        makeArrayAfterFirstDimension() const;
     static TypeInfo makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types);
     static TypeInfo makeAggregateArray(const std::span<const TypeRef>& types);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
@@ -375,6 +374,12 @@ private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     template<bool IncludeEnum>
     const TypeInfo* resolveAliasType(const TaskContext& ctx) const noexcept;
+
+    // The parts of hash() that an array or aggregate payload contributes, so a type can be hashed
+    // from its parts before one is built.
+    static uint32_t hashHeader(TypeInfoKind kind, TypeInfoFlags flags);
+    static uint32_t hashArrayPayload(uint32_t h, std::span<const uint64_t> dims, TypeRef elementTypeRef, std::span<const TypeRef> indexTypeRefs);
+    static uint32_t hashAggregatePayload(uint32_t h, TypeInfoKind kind, std::span<const TypeRef> types, std::span<const IdentifierRef> names);
 
     TypeInfoKind  kind_    = TypeInfoKind::Invalid;
     TypeInfoFlags flags_   = TypeInfoFlagsE::Zero;

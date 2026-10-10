@@ -496,7 +496,7 @@ namespace
             concreteElemTypeRef = concreteElemType.payloadArrayElemTypeRef();
         }
 
-        return typeMgr.addType(TypeInfo::makeArray(dims.span(), concreteElemTypeRef, type.flags(), indexTypeRefs.span()));
+        return typeMgr.addArrayType(dims.span(), concreteElemTypeRef, type.flags(), indexTypeRefs.span());
     }
 
     TypeRef normalizeTypeInfoTarget(Sema& sema, TypeRef typeRef)

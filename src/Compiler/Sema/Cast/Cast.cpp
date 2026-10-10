@@ -104,7 +104,7 @@ namespace
             return TypeRef::invalid();
 
         const std::array<uint64_t, 1> dims = {srcType.payloadAggregate().types.size()};
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, dstType.payloadTypeRef()));
+        return sema.typeMgr().addArrayType(dims, dstType.payloadTypeRef());
     }
 
     AstNodeRef fallbackCastFailureNodeRef(Sema& sema, const CastFailure& failure)
@@ -220,13 +220,13 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
             constexpr uint64_t            interfaceStorageSize = sizeof(Runtime::Interface);
             const uint64_t                valueStorage         = srcType.sizeOf(sema.ctx());
             const std::array<uint64_t, 1> dims                 = {interfaceStorageSize + valueStorage};
-            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+            return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
         }
 
         if (isPointerLikeInterfaceObjectSource(sema, srcType) && dstType.isInterface())
         {
             const std::array<uint64_t, 1> dims = {sizeof(Runtime::Interface)};
-            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+            return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
         }
     }
 
@@ -267,7 +267,7 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
         constexpr uint64_t            anyStorageSize = sizeof(Runtime::Any);
         const uint64_t                valueStorage   = std::max<uint64_t>(1, srcType.sizeOf(sema.ctx()));
         const std::array<uint64_t, 1> dims           = {anyStorageSize + valueStorage};
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
     }
 
     if (srcType.isStruct() && dstType.isInterface())
@@ -275,13 +275,13 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
         constexpr uint64_t            interfaceStorageSize = sizeof(Runtime::Interface);
         const uint64_t                valueStorage         = srcType.sizeOf(sema.ctx());
         const std::array<uint64_t, 1> dims                 = {interfaceStorageSize + valueStorage};
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
     }
 
     if (isPointerLikeInterfaceObjectSource(sema, srcType) && dstType.isInterface())
     {
         const std::array<uint64_t, 1> dims = {sizeof(Runtime::Interface)};
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
     }
 
     if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())

@@ -102,7 +102,7 @@ namespace
     TypeRef foreachInternalArrayType(Sema& sema, TypeRef elemTypeRef, uint64_t count)
     {
         const std::array<uint64_t, 1> dims = {count};
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, elemTypeRef));
+        return sema.typeMgr().addArrayType(dims, elemTypeRef);
     }
 
     const SymbolEnum* enumTypeExprSymbol(Sema& sema, const SemaNodeView& exprView)

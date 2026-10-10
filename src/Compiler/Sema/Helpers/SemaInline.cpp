@@ -2396,7 +2396,7 @@ namespace
         arrayPtr->spanChildrenRef = sema.ast().pushSpan(clonedValues.span());
 
         const std::array<uint64_t, 1> dims = {clonedValues.size()};
-        outExprTypeRef                     = sema.typeMgr().addType(TypeInfo::makeArray(dims, targetElemTypeRef));
+        outExprTypeRef                     = sema.typeMgr().addArrayType(dims, targetElemTypeRef);
         outExprRef                         = arrayRef;
         return Result::Continue;
     }

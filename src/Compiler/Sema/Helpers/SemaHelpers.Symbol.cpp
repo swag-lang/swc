@@ -965,7 +965,7 @@ namespace
 
         SmallVector<uint64_t> storageDims;
         storageDims.push_back(8);
-        const TypeRef storageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(storageDims.span(), sema.typeMgr().typeU8()));
+        const TypeRef storageTypeRef = sema.typeMgr().addArrayType(storageDims.span(), sema.typeMgr().typeU8());
         return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *payload.runtimeStorageSym, storageTypeRef);
     }
 

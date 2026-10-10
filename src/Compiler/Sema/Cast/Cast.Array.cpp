@@ -255,7 +255,7 @@ namespace
                 return failArrayTooManyValues(args, srcTypes.size(), dstTopDim);
 
             TypeManager&  typeMgr         = args.sema->typeMgr();
-            const TypeRef dstSubArrayType = typeMgr.addType(args.dstType->makeArrayAfterFirstDimension());
+            const TypeRef dstSubArrayType = typeMgr.addArrayTypeAfterFirstDimension(*args.dstType);
             if (srcTypes.size() < dstTopDim && SymbolStruct::typeRequiresExplicitInitialization(*args.sema, dstSubArrayType))
                 return failArrayMissingRequiredValues(args);
 

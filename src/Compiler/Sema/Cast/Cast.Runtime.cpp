@@ -793,7 +793,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         }
 
         const std::array<uint64_t, 1> arrayDims    = {srcValues.size()};
-        const TypeRef                 arrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(arrayDims, dstElemTypeRef));
+        const TypeRef                 arrayTypeRef = sema.typeMgr().addArrayType(arrayDims, dstElemTypeRef);
         const TypeInfo&               arrayType    = sema.typeMgr().get(arrayTypeRef);
 
         const uint64_t             arraySize = arrayType.sizeOf(ctx);

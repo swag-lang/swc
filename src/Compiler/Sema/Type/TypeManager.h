@@ -99,6 +99,12 @@ public:
     TypeRef typeU64() const { return typeU64_; }
 
     TypeRef         addType(const TypeInfo& typeInfo);
+    // Intern an array or aggregate type from its parts, like addType of the matching
+    // TypeInfo::make*. A type that already exists is found without building its payload.
+    TypeRef addArrayType(std::span<const uint64_t> dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero, std::span<const TypeRef> indexTypeRefs = {});
+    TypeRef addArrayTypeAfterFirstDimension(const TypeInfo& arrayType);
+    TypeRef addAggregateStructType(std::span<const IdentifierRef> names, std::span<const TypeRef> types);
+    TypeRef addAggregateArrayType(std::span<const TypeRef> types);
     const TypeInfo& get(TypeRef typeRef) const;
     TypeRef         unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const;
     TypeRef         unwrapNonStrictAlias(TypeRef typeRef) const;
@@ -246,6 +252,9 @@ private:
     Shard                     shards_[SHARD_COUNT];
 
     static TypeRef findInterned(const InternTable* table, const TypeInfo& typeInfo, size_t hash) noexcept;
+    template<typename Matches>
+    static TypeRef     findInternedIf(const InternTable* table, size_t hash, const Matches& matches) noexcept;
+    const InternTable* publishedInternTable(uint32_t stableHash) const noexcept;
     static void    publishInterned(InternStripe& stripe, const TypeInfo* type, size_t hash);
 
     // Runtime types

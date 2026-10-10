@@ -294,7 +294,7 @@ namespace
             if (dims.size() <= 1)
                 return typeMgr.get(elementRef).sizeOf(codeGen.ctx());
 
-            const TypeRef strideTypeRef = typeMgr.addType(indexedType.makeArrayAfterFirstDimension());
+            const TypeRef strideTypeRef = typeMgr.addArrayTypeAfterFirstDimension(indexedType);
             return typeMgr.get(strideTypeRef).sizeOf(codeGen.ctx());
         }
 
@@ -319,7 +319,7 @@ namespace
             if (dims.size() <= 1)
                 return indexedType.payloadArrayElemTypeRef();
 
-            return typeMgr.addType(indexedType.makeArrayAfterFirstDimension());
+            return typeMgr.addArrayTypeAfterFirstDimension(indexedType);
         }
 
         if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())

@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 15:57 — Gate remaining post-RA loop labels.
+- Updated: 2026-10-10 16:03 — Skip irrelevant operand decoding in the later allocation probe.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
@@ -120,6 +120,7 @@ new language syntax.
 - Taken on 2026-10-10: `PostRALoopRotate` now checks label opcodes before decoding candidate labels, fallthrough instructions, and instructions in its lazily built label-ordinal map. Non-label entries no longer incur label-operand lookup. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
 - Taken on 2026-10-10: `LoopLoadForward` now checks the opcode before probing each instruction as a loop-entry label, and `ColdBlockLayout` checks the fallthrough opcode before reading its label operand. Their non-label candidates avoid the helper lookup. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
 - Taken on 2026-10-10: `PostRALoopRotate` now checks that incoming edges are `JumpCond` before decoding a target, and that each loop-header candidate is a `Label` before reading its id. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
+- Taken on 2026-10-10: the later-sweep register-allocation probe skips operand decoding when opcode metadata has no explicit register modes or encoder register effects. It also no longer calls `collectUseDef` for calls after checking explicit modes: the remaining ABI argument uses and clobbers are concrete physical registers, so they cannot affect whether the function still has a virtual register. Encoder-specific effects remain checked. The Release build and all 299 native optimizer tests passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;

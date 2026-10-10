@@ -108,6 +108,11 @@ namespace
         for (const MicroInstr& inst : instructions.view())
         {
             const MicroInstrDef&     info = MicroInstr::info(inst.op);
+            const bool hasEncoderRegUseDef = encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
+            if (info.regModes[0] == MicroInstrRegMode::None && info.regModes[1] == MicroInstrRegMode::None &&
+                info.regModes[2] == MicroInstrRegMode::None && !hasEncoderRegUseDef)
+                continue;
+
             const MicroInstrOperand* ops  = inst.ops(operands);
             if (ops)
             {
@@ -119,10 +124,10 @@ namespace
                 }
             }
 
-            // Calls and encoder rules can name registers without a register-mode
-            // operand. Keep the probe equivalent to collectUseDef for these forms.
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+            // Call ABI uses and clobbers are concrete registers; the call's
+            // explicit virtual operands were already checked through regModes.
+            // Encoder rules can add register effects outside those modes.
+            if (hasEncoderRegUseDef)
             {
                 inst.collectUseDef(useDef, operands, encoder);
                 for (const MicroReg reg : useDef.uses)

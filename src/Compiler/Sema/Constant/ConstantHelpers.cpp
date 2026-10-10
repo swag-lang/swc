@@ -746,7 +746,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const SourceView*      srcView = codeRange.srcView;
     const SourceFile*      file    = srcView ? srcView->file() : nullptr;
     const std::string_view fileName = file ? std::string_view{file->pathString()} : std::string_view{""};
-    std::string_view        funcName;
+    std::string_view        funcName{""};
     FunctionNameScratch     functionNameScratch;
     if (function)
     {

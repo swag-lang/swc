@@ -35,8 +35,8 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-10 17:43 |
 | [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-10 15:31 |
-| [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-10 10:20 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-09 17:16 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-09 03:04 |
 | [language.design.md](language.design.md) | The Swag language and its syntax | 2026-10-08 23:15 |

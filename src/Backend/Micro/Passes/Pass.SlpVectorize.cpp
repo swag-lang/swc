@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 // Superword-level vectorization of straight-line blocks.
@@ -330,11 +331,12 @@ namespace
         MicroOperandStorage* operands = nullptr;
         const Encoder*       encoder  = nullptr;
 
-        // Single-definition map over virtual registers, for address rooting.
-        std::unordered_map<uint32_t, RegDefInfo> regDefs;
+        // Single-definition map over virtual registers, for address rooting, keyed by the
+        // register's packed form. Owned by the function's definition scan.
+        const FlatKeyMap<RegDefInfo>* regDefs = nullptr;
 
         // Root registry: register -> dense key.
-        std::unordered_map<uint32_t, uint32_t>                           rootKeys;
+        FlatKeyMap<uint32_t>                                             rootKeys;
         std::vector<RootInfo>                                            roots;
         std::unordered_map<IndexedRootKey, uint32_t, IndexedRootKeyHash> indexedRootKeys;
 
@@ -350,10 +352,12 @@ namespace
 
         uint32_t rootKeyFor(MicroReg reg, RootKind kind, uint32_t defPos)
         {
-            const auto [it, inserted] = rootKeys.try_emplace(reg.packed, static_cast<uint32_t>(roots.size()));
-            if (inserted)
-                roots.push_back(RootInfo{.reg = reg, .kind = kind, .defPos = defPos});
-            return it->second;
+            if (const uint32_t* known = rootKeys.find(reg.packed))
+                return *known;
+            const auto key = static_cast<uint32_t>(roots.size());
+            rootKeys.emplace(reg.packed, key);
+            roots.push_back(RootInfo{.reg = reg, .kind = kind, .defPos = defPos});
+            return key;
         }
     };
 
@@ -373,8 +377,8 @@ namespace
         std::vector<BlockInstr> instrs;
 
         SlpValueTable values;
-        // Current lane value per register (the low shape.bytes bytes).
-        std::unordered_map<uint32_t, uint32_t> regValues;
+        // Current lane value per register (the low shape.bytes bytes), by packed register.
+        FlatKeyMap<uint32_t> regValues;
         // Stable value for registers live at block entry.
         std::unordered_map<uint32_t, uint32_t> entryValues;
         // Memory state per (rootKey, offset), lane-aligned slots.
@@ -420,10 +424,10 @@ namespace
             if (!reg.isVirtual())
                 return false;
 
-            const auto defIt = fn.regDefs.find(reg.packed);
-            if (defIt == fn.regDefs.end())
+            const RegDefInfo* defIt = fn.regDefs->find(reg.packed);
+            if (!defIt)
                 return false;
-            if (defIt->second.defCount != 1)
+            if (defIt->defCount != 1)
             {
                 // A loop-carried register can be stable over this block's
                 // accesses. The block validates its definition positions later.
@@ -431,7 +435,7 @@ namespace
                 return true;
             }
 
-            const MicroInstr* defInst = fn.storage->ptr(defIt->second.defRef);
+            const MicroInstr* defInst = fn.storage->ptr(defIt->defRef);
             if (!defInst)
                 return false;
 
@@ -441,9 +445,9 @@ namespace
             if (addressCopy)
             {
                 const MicroReg source       = defOps[1].reg;
-                const auto     sourceDef    = fn.regDefs.find(source.packed);
-                const bool     stableSource = isStackPointer(fn, source) ||
-                                          (source.isVirtual() && sourceDef != fn.regDefs.end() && sourceDef->second.defCount == 1);
+                const RegDefInfo* sourceDef    = fn.regDefs->find(source.packed);
+                const bool        stableSource = isStackPointer(fn, source) ||
+                                          (source.isVirtual() && sourceDef && sourceDef->defCount == 1);
                 if (stableSource)
                 {
                     if (defInst->op == MicroInstrOpcode::LoadAddrRegMem)
@@ -459,12 +463,12 @@ namespace
             // is what makes it provably disjoint from the frame.
             auto kind = RootKind::Unknown;
             if (defInst->op == MicroInstrOpcode::LoadRegReg && defOps && defOps[2].opBits == MicroOpBits::B64 &&
-                !defOps[1].reg.isVirtual() && defOps[1].reg.isInt() && defIt->second.defPos < fn.firstCallPos)
+                !defOps[1].reg.isVirtual() && defOps[1].reg.isInt() && defIt->defPos < fn.firstCallPos)
             {
                 kind = RootKind::Parameter;
             }
 
-            outRootKey = fn.rootKeyFor(reg, kind, defIt->second.defPos);
+            outRootKey = fn.rootKeyFor(reg, kind, defIt->defPos);
             return true;
         }
 
@@ -631,15 +635,16 @@ namespace
 
     uint32_t currentValue(BlockScan& scan, MicroReg reg)
     {
-        const auto [it, inserted] = scan.regValues.try_emplace(reg.packed);
-        if (inserted)
-            it->second = entryValueFor(scan, reg);
-        return it->second;
+        if (const uint32_t* known = scan.regValues.find(reg.packed))
+            return *known;
+        const uint32_t valueId = entryValueFor(scan, reg);
+        scan.regValues.emplace(reg.packed, valueId);
+        return valueId;
     }
 
     void setValue(BlockScan& scan, MicroReg reg, uint32_t valueId)
     {
-        scan.regValues[reg.packed] = valueId;
+        scan.regValues.getOrInsert(reg.packed) = valueId;
     }
 
     void setOpaque(BlockScan& scan, MicroReg reg)
@@ -1982,8 +1987,8 @@ namespace
             {
                 if (!reg.isValid())
                     continue;
-                const auto def = fn.regDefs.find(reg.packed);
-                if (reg.isVirtual() && (def == fn.regDefs.end() || def->second.defCount == 1))
+                const RegDefInfo* def = fn.regDefs->find(reg.packed);
+                if (reg.isVirtual() && (!def || def->defCount == 1))
                     continue;
                 for (const BlockInstr& blockInstr : blockInstrs)
                 {
@@ -2174,10 +2179,10 @@ namespace
             {
                 if (!reg.isVirtual())
                     continue;
-                const auto defIt = fn.regDefs.find(reg.packed);
-                if (defIt == fn.regDefs.end())
+                const RegDefInfo* defIt = fn.regDefs->find(reg.packed);
+                if (!defIt)
                     continue;
-                if (defIt->second.defCount != 1)
+                if (defIt->defCount != 1)
                 {
                     uint32_t lastAccess = 0;
                     for (const auto& load : scan.loads)
@@ -2198,7 +2203,7 @@ namespace
                 }
                 for (const BlockInstr& blockInstr : blockInstrs)
                 {
-                    if (blockInstr.instRef == defIt->second.defRef && blockInstr.pos >= firstDeletedPos)
+                    if (blockInstr.instRef == defIt->defRef && blockInstr.pos >= firstDeletedPos)
                         return false;
                 }
             }
@@ -2537,8 +2542,65 @@ namespace
 
 namespace
 {
-    Result runSlp(MicroPassContext& context, LaneShape shape)
+    // What one walk of the function learns before any block is scanned: the definitions of each
+    // virtual register, the position of the first call, and the number of memory writes. It
+    // depends on the instruction stream alone, so every width reads the same one until a width
+    // rewrites the stream.
+    struct SlpDefinitionScan
     {
+        FlatKeyMap<RegDefInfo> regDefs;
+        uint32_t               firstCallPos = K_INVALID_ID;
+        uint32_t               scalarStores = 0;
+        bool                   valid        = false;
+    };
+
+    void scanDefinitions(SlpDefinitionScan& out, const MicroStorage& storage, const MicroOperandStorage& operands, const Encoder* encoder)
+    {
+        out.regDefs.clear();
+        out.firstCallPos = K_INVALID_ID;
+        out.scalarStores = 0;
+
+        uint32_t position = 0;
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++position)
+        {
+            if (MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::WritesMemory))
+                out.scalarStores++;
+
+            if (out.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                out.firstCallPos = position;
+
+            const auto recordDef = [&](const MicroReg reg) {
+                if (!reg.isVirtual())
+                    return;
+                RegDefInfo& info = out.regDefs.getOrInsert(reg.packed);
+                info.defCount++;
+                info.defRef = it.current;
+                info.defPos = position;
+            };
+            const MicroInstrDef& info = MicroInstr::info(it->op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+            {
+                const MicroInstrUseDef useDef = it->collectUseDef(operands, encoder);
+                for (const MicroReg reg : useDef.defs)
+                    recordDef(reg);
+            }
+            else if (const MicroInstrOperand* ops = it->ops(operands))
+            {
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
+                        recordDef(ops[i].reg);
+                }
+            }
+        }
+
+        out.valid = true;
+    }
+
+    Result runSlp(MicroPassContext& context, LaneShape shape, SlpDefinitionScan& scan, bool& outChanged)
+    {
+        outChanged = false;
         if (!context.builder || !context.instructions || !context.operands || !context.encoder)
             return Result::Continue;
 
@@ -2556,54 +2618,22 @@ namespace
         fn.encoder  = context.encoder;
 
         // Single-definition map for address rooting, and global positions.
-        std::vector<BlockInstr> blockInstrs;
-        uint32_t                position     = 0;
-        uint32_t                scalarStores = 0;
-        for (auto it = fn.storage->view().begin(), endIt = fn.storage->view().end(); it != endIt; ++it, ++position)
-        {
-            if (MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::WritesMemory))
-                scalarStores++;
-
-            if (fn.firstCallPos == K_INVALID_ID && MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
-                fn.firstCallPos = position;
-
-            const auto recordDef = [&](const MicroReg reg) {
-                if (!reg.isVirtual())
-                    return;
-                RegDefInfo& info = fn.regDefs[reg.packed];
-                info.defCount++;
-                info.defRef = it.current;
-                info.defPos = position;
-            };
-            const MicroInstrDef& info = MicroInstr::info(it->op);
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
-            {
-                const MicroInstrUseDef useDef = it->collectUseDef(*fn.operands, fn.encoder);
-                for (const MicroReg reg : useDef.defs)
-                    recordDef(reg);
-            }
-            else if (const MicroInstrOperand* ops = it->ops(*fn.operands))
-            {
-                const auto modes = info.resolvedRegModes(ops);
-                for (size_t i = 0; i < modes.size(); ++i)
-                {
-                    if (modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef)
-                        recordDef(ops[i].reg);
-                }
-            }
-        }
+        if (!scan.valid)
+            scanDefinitions(scan, *fn.storage, *fn.operands, fn.encoder);
+        fn.regDefs      = &scan.regDefs;
+        fn.firstCallPos = scan.firstCallPos;
 
         // Every vectorized group needs one memory write per lane. Count
         // conservatively here; the scan checks widths and supported operations.
-        if (scalarStores < shape.count())
+        if (scan.scalarStores < shape.count())
             return Result::Continue;
 
         std::optional<MicroSsaState> localSsa;
 
         // Walk the straight-line blocks.
-        bool changed = false;
-        position     = 0;
-        blockInstrs.clear();
+        std::vector<BlockInstr> blockInstrs;
+        uint32_t                position = 0;
+        bool                    changed  = false;
         uint32_t scalarStoresInBlock = 0;
 
         const auto flushBlock = [&]() {
@@ -2638,6 +2668,7 @@ namespace
 
         if (changed)
             context.passChanged = true;
+        outChanged = changed;
 
         return Result::Continue;
     }
@@ -2646,13 +2677,18 @@ namespace
 
 Result MicroSlpVectorizePass::run(MicroPassContext& context)
 {
-    SWC_RESULT(runSlp(context, {4}));
+    SlpDefinitionScan scan;
+    bool              rewrote = false;
+    SWC_RESULT(runSlp(context, {4}, scan, rewrote));
     // The first width may have changed the instruction stream. Keep its shared
     // scalar snapshot intact and build the second width's analysis locally.
+    // The definition scan still describes the stream unless that width rewrote it.
+    if (rewrote)
+        scan.valid = false;
     MicroPassContext doubleContext = context;
     doubleContext.ssaState         = nullptr;
     doubleContext.passChanged      = false;
-    SWC_RESULT(runSlp(doubleContext, {8}));
+    SWC_RESULT(runSlp(doubleContext, {8}, scan, rewrote));
     context.passChanged = context.passChanged || doubleContext.passChanged;
     return Result::Continue;
 }

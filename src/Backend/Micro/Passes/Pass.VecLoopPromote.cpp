@@ -350,7 +350,7 @@ namespace
         //      point cannot land on it). ----
         uint32_t exitFrom = K_INVALID;
         uint32_t exitTo   = K_INVALID;
-        for (uint32_t u = 0; u < n; ++u)
+        for (uint32_t u = loop.bodyBegin; u < loop.bodyEnd; ++u)
         {
             if (!loop.inBody[u])
                 continue;

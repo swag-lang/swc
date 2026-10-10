@@ -692,7 +692,7 @@ namespace
 
                 // A different frame access, including a partially overlapping one, must
                 // not observe the old home while its write is delayed.
-                for (uint32_t k = 0; k < n && !blocked; ++k)
+                for (uint32_t k = loop.bodyBegin; k < loop.bodyEnd && !blocked; ++k)
                 {
                     if (!inBody[k] || k == use.storeIndex)
                         continue;
@@ -716,7 +716,7 @@ namespace
                     updateOps[2].microOp != MicroOp::Add)
                     continue;
                 bool otherDefinition = false;
-                for (uint32_t k = 0; k < n && !otherDefinition; ++k)
+                for (uint32_t k = loop.bodyBegin; k < loop.bodyEnd && !otherDefinition; ++k)
                 {
                     if (!inBody[k] || k == use.storeIndex - 1)
                         continue;
@@ -890,7 +890,7 @@ namespace
 
         SmallVector<uint32_t, 4> calls;
         uint64_t                 unavailable = 0;
-        for (uint32_t index = 0; index < refs.size(); ++index)
+        for (uint32_t index = loop.bodyBegin; index < loop.bodyEnd && index < refs.size(); ++index)
         {
             if (!loop.inBody[index])
                 continue;
@@ -954,7 +954,7 @@ namespace
         };
         SmallVector<Slot, 16>    slots;
         SmallVector<uint32_t, 4> exits;
-        for (uint32_t index = 0; index < refs.size(); ++index)
+        for (uint32_t index = loop.bodyBegin; index < loop.bodyEnd && index < refs.size(); ++index)
         {
             if (!loop.inBody[index])
                 continue;
@@ -1421,7 +1421,7 @@ namespace
                 if (!needsCache)
                     hoists.push_back({instrRefs[i], headerRef});
                 claimed.insert(i);
-                for (uint32_t k = 0; k < n; ++k)
+                for (uint32_t k = loop->bodyBegin; k < loop->bodyEnd; ++k)
                 {
                     if (!inBody[k] || k == i || claimed.contains(k))
                         continue;
@@ -1694,7 +1694,7 @@ namespace
                     continue;
 
                 bool stable = true;
-                for (uint32_t j = 0; j < n && stable; ++j)
+                for (uint32_t j = loop.bodyBegin; j < loop.bodyEnd && stable; ++j)
                 {
                     if (!loop.inBody[j])
                         continue;
@@ -1731,7 +1731,7 @@ namespace
                         unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
                                  std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
                     }
-                    for (uint32_t j = 0; j < n && unused; ++j)
+                    for (uint32_t j = loop.bodyBegin; j < loop.bodyEnd && unused; ++j)
                     {
                         if (!loop.inBody[j])
                             continue;
@@ -1744,7 +1744,7 @@ namespace
 
                     SmallVector<MicroInstrRef, 4> foldedRefs;
                     bool                          hasRelocatedUse = false;
-                    for (uint32_t j = 0; j < n; ++j)
+                    for (uint32_t j = loop.bodyBegin; j < loop.bodyEnd; ++j)
                     {
                         if (!loop.inBody[j])
                             continue;

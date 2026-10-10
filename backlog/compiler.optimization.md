@@ -85,6 +85,49 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
+
+- Recorded: 2026-08-29 15:41
+- Updated: 2026-10-10 14:06 — Process guarded calls from the existing ordered call-site list.
+- Area: compiler/backend
+- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
+  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
+  the earlier scan, which also remains the fallback whenever a precondition fails or the
+  walk bails, and the C++ conformity cases run both.
+- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
+  fixed-claim interval arrays with direct default construction. The call sites pass empty
+  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
+  copied for every register. The Release `interval` selection passed two native tests; timing
+  and peak memory were not measured.
+- Taken on 2026-10-10: guarded-call parking after interval assignment now iterates the existing
+  ordered `callPositions_` list and filters its guarded entries, instead of visiting every
+  instruction index to find calls. Call positions are appended during the ascending instruction
+  walk, so guarded-call order and node processing are unchanged; non-call instructions no longer
+  incur a predicate check in this loop. The Release build and focused native
+  `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Evidence: the walk describes every concrete claim by the position it occupies, except
+  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
+  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
+  instruction, so no operand of theirs can share it, and the second legalization sweep can
+  then need a short save/restore borrow from `tryBorrowReservedRegister`.
+- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
+  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
+  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
+  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
+  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
+  The user explicitly accepts such proof without a measurable runtime improvement.
+- Runtime evidence: the focused four-task Release A/B established no target gain and produced
+  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
+  Investigate that allocation/layout interaction separately; it is not an independently
+  confirmed regression, and no runtime gain is claimed for the retained rule.
+- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
+  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
+  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
+- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
+  longer fires on a whole-library build, and the suites stay green.
+- Related: compiler.optimization.016.
+
+
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
@@ -733,42 +776,6 @@ new language syntax.
   Keep the late stage so array promotion/vectorization retain their input shape.
 - Complete when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
-
-### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
-
-- Recorded: 2026-08-29 15:41
-- Updated: 2026-10-06 08:54 — update the remaining fixed-claim scope after reserve removal.
-- Area: compiler/backend
-- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
-  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
-  the earlier scan, which also remains the fallback whenever a precondition fails or the
-  walk bails, and the C++ conformity cases run both.
-- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
-  fixed-claim interval arrays with direct default construction. The call sites pass empty
-  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
-  copied for every register. The Release `interval` selection passed two native tests; timing
-  and peak memory were not measured.
-- Evidence: the walk describes every concrete claim by the position it occupies, except
-  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
-  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
-  instruction, so no operand of theirs can share it, and the second legalization sweep can
-  then need a short save/restore borrow from `tryBorrowReservedRegister`.
-- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
-  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
-  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
-  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
-  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
-  The user explicitly accepts such proof without a measurable runtime improvement.
-- Runtime evidence: the focused four-task Release A/B established no target gain and produced
-  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
-  Investigate that allocation/layout interaction separately; it is not an independently
-  confirmed regression, and no runtime gain is claimed for the retained rule.
-- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
-  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
-  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
-- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
-  longer fires on a whole-library build, and the suites stay green.
-- Related: compiler.optimization.016.
 
 ### compiler.optimization.105 — Prove lz77's signed remainder bounds
 

@@ -1062,9 +1062,11 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // the call's input, so the head ends at the output slot.
     if (!walk.failed && hasControlFlow_)
     {
-        for (uint32_t idx = 0; idx + 1 < instructionCount_ && !walk.failed; ++idx)
+        for (const uint32_t idx : callPositions_)
         {
-            if (!isGuardedCall(idx))
+            if (walk.failed)
+                break;
+            if (idx + 1 >= instructionCount_ || idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx])
                 continue;
             const auto&    clobbers = instructionUseDefs_[idx].defs;
             const uint32_t callIn   = idx * 2;

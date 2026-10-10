@@ -3814,18 +3814,26 @@ namespace
         std::optional<FlatKeySet>                   used;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
-            RangeCheck check;
-            check.firstCmpRef  = it.current;
-            check.firstJumpRef = storage.findNextInstructionRef(check.firstCmpRef);
-            check.lastCmpRef   = check.firstJumpRef.isValid() ? storage.findNextInstructionRef(check.firstJumpRef) : MicroInstrRef::invalid();
-            check.lastJumpRef  = check.lastCmpRef.isValid() ? storage.findNextInstructionRef(check.lastCmpRef) : MicroInstrRef::invalid();
-            if (!check.lastJumpRef.isValid())
+            auto firstJumpIt = it;
+            if (++firstJumpIt == endIt)
+                continue;
+            auto lastCmpIt = firstJumpIt;
+            if (++lastCmpIt == endIt)
+                continue;
+            auto lastJumpIt = lastCmpIt;
+            if (++lastJumpIt == endIt)
                 continue;
 
-            const MicroInstr* firstCmp  = storage.ptr(check.firstCmpRef);
-            const MicroInstr* firstJump = storage.ptr(check.firstJumpRef);
-            const MicroInstr* lastCmp   = storage.ptr(check.lastCmpRef);
-            const MicroInstr* lastJump  = storage.ptr(check.lastJumpRef);
+            RangeCheck check;
+            check.firstCmpRef  = it.current;
+            check.firstJumpRef = firstJumpIt.current;
+            check.lastCmpRef   = lastCmpIt.current;
+            check.lastJumpRef  = lastJumpIt.current;
+
+            const MicroInstr* firstCmp  = &*it;
+            const MicroInstr* firstJump = &*firstJumpIt;
+            const MicroInstr* lastCmp   = &*lastCmpIt;
+            const MicroInstr* lastJump  = &*lastJumpIt;
             if (firstCmp->op != MicroInstrOpcode::CmpRegImm || lastCmp->op != MicroInstrOpcode::CmpRegImm ||
                 firstJump->op != MicroInstrOpcode::JumpCond || lastJump->op != MicroInstrOpcode::JumpCond)
                 continue;

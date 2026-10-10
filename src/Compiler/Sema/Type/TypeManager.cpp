@@ -506,6 +506,16 @@ bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, 
             continue;
         }
 
+        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        {
+            for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
+            {
+                if (hasLifecycleOperator(ctx, fieldTypeRef, lifecycleOperator))
+                    return true;
+            }
+            return false;
+        }
+
         if (!typeInfo.isStruct())
             return false;
 

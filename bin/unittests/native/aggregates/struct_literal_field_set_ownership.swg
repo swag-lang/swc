@@ -181,6 +181,34 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    {
+        let tuple = {owned: cast(Owned, name())}
+        Swag.assert(tuple.owned.addr == &tuple.owned)
+    }
+
+    Swag.assert(SetCount == 1)
+    Swag.assert(DropCount == 1)
+    Swag.assert(PostCopyCount == 0)
+    Swag.assert(StaleDropCount == 0)
+}
+
+#test
+{
+    resetCounts()
+    {
+        let tuple = {owned: makeOwned()}
+        Swag.assert(tuple.owned.addr == &tuple.owned)
+    }
+
+    Swag.assert(SetCount == 1)
+    Swag.assert(DropCount == 1)
+    Swag.assert(PostCopyCount == 0)
+    Swag.assert(StaleDropCount == 0)
+}
+
+#test
+{
+    resetCounts()
     assignConditional(true)
     Swag.assert(SetCount == 1)
     Swag.assert(DropCount == 2)

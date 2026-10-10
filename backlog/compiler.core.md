@@ -212,23 +212,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   dependency boundary without relying only on tests compiled inside the provider. Imported
   generic XML numeric and textual reads must also resolve their implementation dependencies.
 
-### compiler.core.079 — Tuple values never drop the owning fields they hold
-
-- Found while: fixing the ownership of values an implicit `opSet` builds inside literal fields.
-- Evidence: a struct-literal type (a tuple) has no lifecycle: `resolveEffectiveLifecycleFunction`
-  and `tryBuildLifecycleActionRec` in `CodeGen.cpp` only answer for structs and arrays, so
-  `functionHasImplicitDrops` and `registerImplicitDrop` see nothing to drop in a tuple local.
-  With a field type that counts its `opDrop` calls, `let t = {owned: cast(Owned, name())}`
-  adopts the value with `opPostMove` and never drops it (one set, zero drops), and
-  `let t = {owned: mk()}` with `mk()->Owned` moves the call result into the tuple while the
-  call temporary is dropped at the end of the statement, so the tuple keeps a released value.
-  Every owning type held in a tuple local, such as `Core.String`, leaks or dangles the same way.
-- Next: decide whether a tuple owns its fields like a struct (field-wise drop, post-copy and
-  post-move derived from the field types) or rejects owning field types; then implement that
-  rule in the lifecycle resolution and cover both producers above in the `native` suite.
-- Done when: a tuple local holding an owning field drops it exactly once at scope end, or
-  the declaration is rejected with a diagnostic, and the two reproducers above are suite tests.
-
 ### compiler.core.047 — Imported generic bodies intermittently lose or duplicate bindings
 
 - Found while: validating the dynamic type-pattern migration with DevMode 0.1.675 and six workers.

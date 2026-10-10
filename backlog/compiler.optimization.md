@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 15:52 — Reuse operand-dependency classification across flag scans.
+- Updated: 2026-10-10 15:54 — Gate post-RA loop label decoding.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
@@ -117,6 +117,7 @@ new language syntax.
 - Taken on 2026-10-10: added `instructionCpuFlagsDependOnOperands` for the opcodes whose actual flag effect depends on the operation operand, and used it in branch flag scans. Flag-independent writers no longer decode operands just to be classified; tracked-register scans reuse one decoded operand array for both flag and definition checks. The Release build, focused native Release `branch_simplification.swg` and `short_circuit_booleans.swg`, the full native Release suite (3,690 tests), and the full JIT Release suite (1,534 tests) passed. No timing claim is made.
 - The cumulative native and JIT Release milestone also ran all three expected native recovery probes; the test tool returned exit code zero.
 - Taken on 2026-10-10: applied the same operand-dependency classification to flag-clobber windows in ConstProp and LoadFold, dead-code side-effect classification, loop-invariant motion, and adjacent-load diamond validation. Flag-independent writers pass a null operand pointer to the conservative helper, avoiding operand decoding without changing its answer. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
+- Taken on 2026-10-10: `PostRALoopRotate` now checks label opcodes before decoding candidate labels, fallthrough instructions, and instructions in its lazily built label-ordinal map. Non-label entries no longer incur label-operand lookup. The Release build, all 299 native optimizer tests, and all 1,534 JIT Release tests passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;

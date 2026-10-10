@@ -147,7 +147,8 @@ namespace
             const MicroInstr* branch     = storage.ptr(order[at + 1]);
             uint32_t          emptyId    = 0;
             uint32_t          matchId    = 0;
-            if (!emptyLabel || !matchLabel || !tryGetLabelId(emptyId, *emptyLabel, emptyLabel->ops(operands)) ||
+            if (!emptyLabel || emptyLabel->op != MicroInstrOpcode::Label || !matchLabel || matchLabel->op != MicroInstrOpcode::Label ||
+                !tryGetLabelId(emptyId, *emptyLabel, emptyLabel->ops(operands)) ||
                 !tryGetLabelId(matchId, *matchLabel, matchLabel->ops(operands)) ||
                 !isZeroCellCompare(compare) || !branch || branch->op != MicroInstrOpcode::JumpCond)
                 continue;
@@ -260,7 +261,8 @@ namespace
 
             const MicroInstr* afterBranch = storage.ptr(order[at + 2]);
             uint32_t          fallthrough = 0;
-            const bool        needsLabel  = !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
+            const bool        needsLabel = afterBranch->op != MicroInstrOpcode::Label ||
+                                           !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
             if (needsLabel)
                 fallthrough = context.builder->createLabel().get();
             const uint32_t          zeroTarget    = branchOps[0].cpuCond == MicroCond::Equal ? branchTarget : fallthrough;
@@ -341,8 +343,10 @@ namespace
                 for (uint32_t labelOrdinal = 0; labelOrdinal < order.size(); ++labelOrdinal)
                 {
                     const MicroInstr* inst = storage.ptr(order[labelOrdinal]);
+                    if (!inst || inst->op != MicroInstrOpcode::Label)
+                        continue;
                     uint32_t          id   = 0;
-                    if (inst && tryGetLabelId(id, *inst, inst->ops(operands)))
+                    if (tryGetLabelId(id, *inst, inst->ops(operands)))
                         labelOrdinals[id] = labelOrdinal;
                 }
             }

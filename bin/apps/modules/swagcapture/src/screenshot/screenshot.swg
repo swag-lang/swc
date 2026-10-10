@@ -101,7 +101,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     return result
 }
 
-// In place edition of capture image
+// Builds an in-place editor for the grabbed area, or crops it immediately when that mode is off.
 func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture? fail
 {
     let grabRect = getGrabRect()
@@ -201,7 +201,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
 {
     let platformScope = beginCapturePlatformScope()
 
-    // Hide editor before capture
+    // Keep the editor out of the desktop pixels unless the option says otherwise.
     let surface   = main.surface!
     let wasHidden = surface.isHidden
     if main.captureOptions.hideEditorBefore and not surface.isHidden and not surface.isMinimized do
@@ -214,7 +214,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
             surface.show()
     }
 
-    // Force a delay
+    // Let the configured capture delay elapse before reading the desktop.
     if main.captureOptions.delay do
         Threading.Thread.sleep(Time.Duration.fromSeconds(main.captureOptions.delay))
 
@@ -224,7 +224,6 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     g_ScreenHeight  = Env.getSystemMetric(.DesktopHeight)
     g_CaptureWindow = {}
 
-    // Capture
     var capture: *Capture?
     if not setGrabBounds(main, captureMode, monitorIndex)
     {

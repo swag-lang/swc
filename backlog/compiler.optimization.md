@@ -85,6 +85,110 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.105 — Prove lz77's signed remainder bounds
+
+- Recorded: 2026-09-30 08:42
+- Updated: 2026-10-10 18:21 — Accepted low-bit-only signed remainder reduction;
+  the loop-counter range proof remains open.
+- Area: compiler/backend, value ranges and signed remainder lowering.
+- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
+  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
+  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
+  loop has six instructions and two reads. Swag now matches those counts after
+  caching the invariant index in an otherwise unused caller-saved SIMD register.
+  The latch transfers its bits back to a GP register; one seed load runs before
+  the loop. These static changes have not been timed in a new full campaign.
+- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
+  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
+  floor-modulo result for a positive power-of-two divisor permits masking even for
+  negative inputs; Swag's signed remainder has a different contract. The previously
+  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
+  remaining remainders requires proving the counters' bounds under its own semantics.
+- October 10 current worktree: the actual `swagnat/lz77.swg` `Lz77.__main_0` Release
+  O2 Micro is 506 instructions. In the match-chain loop, `cand % WINDOW` is already
+  one `and` because `cand >= 0` reaches the existing sign proof. `i % WINDOW` still
+  uses five instructions (`sar`, `shr`, `add`, `and`, `sub`) on the outer parse loop;
+  `p % WINDOW` uses the same five in the match insertion loop. The emitted native
+  executable returns `CHECK=622942003053`. The `swag`-flavour `#run` source is
+  unsuitable for this native inspection: it executes during compilation and then
+  lacks `#main`.
+- October 10 Prompt 2 accepted change: when SSA proves every use observes only the low
+  `k` bits, a signed remainder by `2^k` becomes an `and (2^k - 1)`. The proof follows
+  copies and phis, and accepts narrow zero-extensions or memory writes only when their
+  observed width fits. LZ77's emitted match token now reduces the `% 256` path from
+  nine Micro instructions to two (`dist - 1` and the byte store). Native and JIT
+  checksums both remain `622942003053`; C++ validation passed `1,421` tests.
+  The SHA-256 sentinel's unsigned `% 256` path is unchanged (`CHECK=2503168387`), and
+  fannkuch's parity test remains a single `test` (`CHECK=8629030`). These are static
+  shape and correctness checks; no timing gain is claimed.
+- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
+  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
+  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
+  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
+  the second window's spread overlaps its unchanged-binary control.
+- Rejected on October 3, measured with an unchanged-binary control on a quiet machine (41 to
+  61 rounds), each rule alone on master `1898124b1`:
+  - Byte and word loads whose upper bits are dead as `movzx` (`2b23c932f` on
+    `perf/prompt2-int-20261003`): lz77 0.998 against a 0.999 control, and fannkuch 1.046 and
+    1.050 in two windows against 1.003: its main loop is byte-identical but sits 0x50 bytes
+    later because each `movzx` is one byte longer, moving the flips loop within its cache line.
+  - A multiplication by 2^n+1 or 2^n-1 as a shift and an add or subtract (`27ef513e8`, same
+    branch): every task inside its control spread (lz77 1.003).
+  - Post-RA copy forwarding through indexed loads (`aacbe30d8` on
+    `perf/prompt2-int-lot3-20261003`): the candidate loop loses
+    `mov rax, [rsi + 8 * r10]; mov r10, rax` (19 to 18 instructions) and 10 to 15 copies go
+    per executable, but lz77 is 1.000 against a 1.005 control; the core renames such moves away.
+- October 6: removing the legalization reserve keeps the invariant index in an integer
+  register and removes its XMM2 transfer on each candidate. Main loses eight instructions
+  and seven memory operations. The `l < limit` guard before the byte loop still remains
+  where clang proves `n - i >= 4`.
+- Next: add a conservative SSA induction-range proof for nonnegative counters with
+  bounded positive updates, including a no-signed-overflow proof. Apply it first to
+  the LZ77 `i` and `p` window indices; keep negative initial values and potentially
+  wrapping loops as counterexamples. The low-bit-only rule does not prove these
+  counters nonnegative or resolve their signed window remainders.
+- Complete when: each removable sign correction has a sound range proof, exact
+  checksums and unrelated positive/negative coverage, with the candidate and byte
+  loops retaining their instruction and memory counts without a loss elsewhere.
+
+### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
+
+- Recorded: 2026-10-10 11:07
+- Updated: 2026-10-10 16:37 — Rejected call-site nullable specialization when it
+  still cannot lower to a selected candidate.
+- Area: compiler/sema, automatic inlining and flow narrowing.
+- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
+  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
+  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
+  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
+  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
+  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
+  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
+- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
+  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
+  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
+  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
+- Rejected broad eligibility on the current revision: inlining both wrappers changed
+  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
+  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
+  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
+  This does not meet the sentinel no-loss rule; no timing was taken.
+- Rejected 2026-10-10 trial: removed the blanket nullable-formal rejection for
+  call-bearing auto-inline bodies, tracked postfix `!` separately, and required a
+  statically non-null source argument. A narrow public-wrapper allowance was also
+  tried. `Native.release` remained 19 O2 instructions and still called `benchFree`;
+  the nullable test fixture passed but both wrappers still emitted the call to
+  `nullableConsumer`. Binarytrees checksum was 674478 and Wordfreq checksum was
+  130489. The isolated builds stop at the known missing-`#main` artifact error, and
+  the Wordfreq micro selector did not match, so no sentinel micro comparison is
+  claimed. Reverted the trial.
+- Next: determine why parser finalization does not mark the `benchFree` body
+  eligible after recognizing its postfix `!`, and print the exact
+  `Wordfreq.__main_0` target before attempting another call-site rule.
+- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
+  per-iteration loss on any bench hot loop.
+- Related: compiler.optimization.094, compiler.optimization.117.
+
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
@@ -363,34 +467,6 @@ new language syntax.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
-
-
-### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
-
-- Recorded: 2026-10-10 11:07
-- Updated: 2026-10-10 13:53 — Keep the inline proof-boundary repair and reject broad eligibility after sentinel frame traffic grows.
-- Area: compiler/sema, automatic inlining and flow narrowing.
-- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
-  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
-  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
-  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
-  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
-  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
-  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
-- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
-  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
-  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
-  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
-- Rejected broad eligibility on the current revision: inlining both wrappers changed
-  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
-  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
-  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
-  This does not meet the sentinel no-loss rule; no timing was taken.
-- Next: make eligibility depend on the actual call-site type and body flow, then prove a hot-path
-  gain without volunteering one-time setup or adding frame traffic to sentinel loops.
-- Complete when: single-call wrappers with `!` or nullable signatures auto-inline with no static
-  per-iteration loss on any bench hot loop.
-- Related: compiler.optimization.094, compiler.optimization.117.
 
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
@@ -790,52 +866,6 @@ new language syntax.
   Keep the late stage so array promotion/vectorization retain their input shape.
 - Complete when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
-
-### compiler.optimization.105 — Prove lz77's signed remainder bounds
-
-- Recorded: 2026-09-30 08:42
-- Updated: 2026-10-06 08:54 — remove the resolved XMM index transfer from the remaining LZ77 scope.
-- Area: compiler/backend, value ranges and signed remainder lowering.
-- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
-  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
-  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
-  loop has six instructions and two reads. Swag now matches those counts after
-  caching the invariant index in an otherwise unused caller-saved SIMD register.
-  The latch transfers its bits back to a GP register; one seed load runs before
-  the loop. These static changes have not been timed in a new full campaign.
-- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
-  floor-modulo result for a positive power-of-two divisor permits masking even for
-  negative inputs; Swag's signed remainder has a different contract. The previously
-  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
-  remaining remainders requires proving the counters' bounds under its own semantics.
-- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
-  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
-  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
-  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
-  the second window's spread overlaps its unchanged-binary control.
-- Rejected on October 3, measured with an unchanged-binary control on a quiet machine (41 to
-  61 rounds), each rule alone on master `1898124b1`:
-  - Byte and word loads whose upper bits are dead as `movzx` (`2b23c932f` on
-    `perf/prompt2-int-20261003`): lz77 0.998 against a 0.999 control, and fannkuch 1.046 and
-    1.050 in two windows against 1.003: its main loop is byte-identical but sits 0x50 bytes
-    later because each `movzx` is one byte longer, moving the flips loop within its cache line.
-  - A multiplication by 2^n+1 or 2^n-1 as a shift and an add or subtract (`27ef513e8`, same
-    branch): every task inside its control spread (lz77 1.003).
-  - Post-RA copy forwarding through indexed loads (`aacbe30d8` on
-    `perf/prompt2-int-lot3-20261003`): the candidate loop loses
-    `mov rax, [rsi + 8 * r10]; mov r10, rax` (19 to 18 instructions) and 10 to 15 copies go
-    per executable, but lz77 is 1.000 against a 1.005 control; the core renames such moves away.
-- October 6: removing the legalization reserve keeps the invariant index in an integer
-  register and removes its XMM2 transfer on each candidate. Main loses eight instructions
-  and seven memory operations. The `l < limit` guard before the byte loop still remains
-  where clang proves `n - i >= 4`.
-- Next: follow the loop-carried counters through SSA ranges and exit conditions.
-  Establish nonnegativity before replacing sign correction; retain negative-input
-  controls and do not infer a bound merely from this benchmark's current inputs.
-- Complete when: each removable sign correction has a sound range proof, exact
-  checksums and unrelated positive/negative coverage, with the candidate and byte
-  loops retaining their instruction and memory counts without a loss elsewhere.
 
 ### compiler.optimization.039 — Locate the remaining optimization sweep-budget outliers
 

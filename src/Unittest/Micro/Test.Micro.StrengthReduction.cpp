@@ -488,6 +488,80 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivisionOfMaskedDividendIsUnsigned)
 }
 SWC_TEST_END()
 
+// A signed remainder keeps its low divisor bits even for negative dividends.
+// Keep the result as those bits, but retain signed remainder semantics whenever
+// the full result or higher bits remain observable.
+SWC_TEST_BEGIN(StrengthReduction_NarrowSignedRemainderKeepsLowBits)
+{
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u})
+    {
+        constexpr MicroReg dividend = MicroReg::virtualIntReg(1);
+        constexpr MicroReg result   = MicroReg::virtualIntReg(2);
+        constexpr MicroReg copy     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg sink     = MicroReg::intReg(3);
+        const uint64_t    divisor   = mode == 1 ? 128 : 256;
+        MicroBuilder      builder(ctx);
+        builder.emitLoadRegReg(dividend, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(dividend, ApInt(divisor, 64), MicroOp::ModuloSigned, MicroOpBits::B64);
+        MicroReg narrowedSrc = dividend;
+        if (mode == 4 || mode == 5)
+        {
+            builder.emitLoadRegReg(copy, dividend, mode == 4 ? MicroOpBits::B64 : MicroOpBits::B32);
+            narrowedSrc = copy;
+        }
+        if (mode < 2 || mode == 4 || mode == 5)
+            builder.emitLoadZeroExtendRegReg(result, narrowedSrc, MicroOpBits::B64, MicroOpBits::B8);
+        else if (mode == 3)
+            builder.emitLoadZeroExtendRegReg(result, dividend, MicroOpBits::B64, MicroOpBits::B16);
+        else if (mode != 6 && mode != 7)
+            builder.emitLoadRegReg(result, dividend, MicroOpBits::B64);
+        if (mode == 6)
+            builder.emitLoadAmcMemReg(sink, MicroReg::intReg(4), 1, 0, MicroOpBits::B64, dividend, MicroOpBits::B8);
+        else if (mode == 7)
+            builder.emitLoadMemReg(dividend, 0, dividend, MicroOpBits::B8);
+        else
+            builder.emitLoadMemReg(sink, 0, result, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runStrengthReductionPass(builder));
+
+        const bool narrowed = mode == 0 || mode == 4 || mode == 5 || mode == 6;
+        const bool hasMask = hasBinaryRegImm(builder, MicroOp::And, divisor - 1);
+        const uint32_t arithmeticShifts = countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight);
+        const uint32_t remainders = countBinaryRegImmOp(builder, MicroOp::ModuloSigned);
+        if ((narrowed && !hasMask) || (arithmeticShifts != 0) == narrowed || remainders != 0)
+        {
+            return Result::Error;
+        }
+    }
+
+    constexpr MicroReg dividend = MicroReg::virtualIntReg(1);
+    constexpr MicroReg result   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg sink     = MicroReg::intReg(3);
+    MicroBuilder       builder(ctx);
+    const MicroLabelRef alternate = builder.createLabel();
+    const MicroLabelRef join      = builder.createLabel();
+    builder.emitCmpRegImm(MicroReg::intReg(4), ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
+    builder.emitLoadRegReg(dividend, MicroReg::intReg(2), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(dividend, ApInt(256, 64), MicroOp::ModuloSigned, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+    builder.placeLabel(alternate);
+    builder.emitLoadRegImm(dividend, ApInt(17, 64), MicroOpBits::B64);
+    builder.placeLabel(join);
+    builder.emitLoadZeroExtendRegReg(result, dividend, MicroOpBits::B64, MicroOpBits::B8);
+    builder.emitLoadMemReg(sink, 0, result, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runStrengthReductionPass(builder));
+    if (!hasBinaryRegImm(builder, MicroOp::And, 255) || countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight) != 0 ||
+        countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The instance inside the optimization loop leaves an unproved signed division
 // for the late one, which expands it.
 SWC_TEST_BEGIN(StrengthReduction_LoopInstanceDefersSignedDivision)

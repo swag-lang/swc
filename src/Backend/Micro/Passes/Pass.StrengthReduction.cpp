@@ -827,6 +827,115 @@ namespace
         return false;
     }
 
+    bool isUsedOnlyThroughLowBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t firstValueId, const uint32_t maxObservedBits)
+    {
+        std::vector<uint32_t> pending{firstValueId};
+        std::unordered_set<uint32_t> visited;
+        bool hasNarrowUse = false;
+        while (!pending.empty())
+        {
+            const uint32_t valueId = pending.back();
+            pending.pop_back();
+            if (!visited.insert(valueId).second)
+                continue;
+            const MicroSsaState::ValueInfo* value = ssa.valueInfo(valueId);
+            if (!value || value->uses.empty())
+                return false;
+
+            for (const MicroSsaState::UseSite& useSite : value->uses)
+            {
+                if (useSite.kind == MicroSsaState::UseSite::Kind::Phi)
+                {
+                    const MicroSsaState::PhiInfo* phi = ssa.phiInfo(useSite.phiIndex);
+                    if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE)
+                        return false;
+                    pending.push_back(phi->resultValueId);
+                    continue;
+                }
+                const MicroInstr*        use    = storage.ptr(useSite.instRef);
+                const MicroInstrOperand* useOps = use ? use->ops(operands) : nullptr;
+                if (!use || !useOps)
+                    return false;
+
+                if (use->op == MicroInstrOpcode::LoadZeroExtRegReg && useOps[1].reg == value->reg)
+                {
+                    if (getNumBits(useOps[3].opBits) > maxObservedBits)
+                        return false;
+                    hasNarrowUse = true;
+                    continue;
+                }
+
+                if ((use->op == MicroInstrOpcode::LoadMemReg && useOps[0].reg != value->reg && useOps[1].reg == value->reg && getNumBits(useOps[2].opBits) <= maxObservedBits) ||
+                    (use->op == MicroInstrOpcode::LoadAmcMemReg && useOps[0].reg != value->reg && useOps[1].reg != value->reg && useOps[2].reg == value->reg && getNumBits(useOps[4].opBits) <= maxObservedBits))
+                {
+                    hasNarrowUse = true;
+                    continue;
+                }
+
+                if (use->op != MicroInstrOpcode::LoadRegReg || useOps[1].reg != value->reg)
+                    return false;
+                const uint32_t copyBits = getNumBits(useOps[2].opBits);
+                if (copyBits == 32 && copyBits <= maxObservedBits)
+                {
+                    hasNarrowUse = true;
+                    continue;
+                }
+                if (copyBits != 8 && copyBits != 16 && copyBits != 32 && copyBits != 64)
+                    return false;
+
+                uint32_t copiedValueId = MicroSsaState::K_INVALID_VALUE;
+                if (!ssa.defValue(useOps[0].reg, useSite.instRef, copiedValueId))
+                    return false;
+                pending.push_back(copiedValueId);
+            }
+        }
+        return hasNarrowUse;
+    }
+
+    // A signed remainder by 2^k has the same low k bits as its dividend,
+    // including for negative dividends. When every use eventually observes
+    // only those bits, avoid materializing the signed remainder's sign correction.
+    bool useLowBitsOfNarrowSignedRemainder(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroSsaState& ssaScratch)
+    {
+        std::vector<MicroInstrRef> candidates;
+        for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
+        {
+            if (it->op != MicroInstrOpcode::OpBinaryRegImm)
+                continue;
+            const MicroInstrOperand* ops = it->ops(operands);
+            if (!ops || !ops[0].reg.isVirtualInt() || ops[1].opBits != MicroOpBits::B64 || ops[2].microOp != MicroOp::ModuloSigned || ops[3].hasWideImmediateValue())
+                continue;
+            const uint64_t divisor = ops[3].valueU64;
+            if (divisor <= 1 || !Math::isPowerOfTwo(divisor) || divisor >= (uint64_t{1} << (getNumBits(ops[1].opBits) - 1)))
+                continue;
+            candidates.push_back(it.current);
+        }
+        if (candidates.empty())
+            return false;
+
+        const MicroSsaState* ssa = MicroSsaState::ensureFor(context, ssaScratch);
+        if (!ssa || !ssa->isValid())
+            return false;
+
+        bool changed = false;
+        for (const MicroInstrRef ref : candidates)
+        {
+            MicroInstr*        inst = storage.ptr(ref);
+            MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            uint32_t           valueId = MicroSsaState::K_INVALID_VALUE;
+            if (!ops || !ssa->defValue(ops[0].reg, ref, valueId))
+                continue;
+            const bool lowOnly = isUsedOnlyThroughLowBits(*ssa, storage, operands, valueId, Math::integerLog2(ops[3].valueU64));
+            if (!lowOnly)
+                continue;
+
+            ops[2].microOp = MicroOp::And;
+            ops[3].setImmediateValue(ApInt(ops[3].valueU64 - 1, 64));
+            changed = true;
+        }
+        return changed;
+    }
+
     // Turn every signed division or remainder of a provably non-negative
     // dividend by a positive constant into its unsigned form, before the
     // reductions below look at them. Only the operation changes, so the
@@ -979,6 +1088,9 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     MicroSsaState&               ssaScratch             = context.ssaState ? *context.ssaState : localSsaState.emplace();
     const MicroSsaState*         ssaState               = nullptr;
     uint32_t                     nextVirtualIntRegIndex = 0; // computed lazily on the first expansion
+
+    if (useLowBitsOfNarrowSignedRemainder(context, storage, operands, ssaScratch))
+        context.passChanged = true;
 
     if (useUnsignedDivisionWhereProven(context, storage, operands, ssaScratch))
         context.passChanged = true;

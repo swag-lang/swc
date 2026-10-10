@@ -2,28 +2,16 @@
 
 using Core
 
-// Every entry opens with the moment it was found, and says when it last changed. Both stamps are
-// local time on a 24-hour clock, so the newest work reads off the file without asking Git.
-private const StampShape    = "0000-00-00 00:00"
-private const RecordedField = "- Recorded: "
-private const UpdatedField  = "- Updated: "
-private const NoteSeparator = " — "
-
-// What one domain file contributes to the audit: its error count and the latest stamp any of its
-// entries carries, kept as text so a stale README row can be reported in the file's own words.
+// A domain file contributes its name and validation errors to the backlog audit.
 private struct FileAudit
 {
     errors: u32
-    latest: u64
-    stamp:  String
 }
 
 // A domain file as the README inventory must list it.
 private struct Domain
 {
-    name:   String
-    latest: u64
-    stamp:  String
+    name: String
 }
 
 private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
@@ -39,53 +27,6 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
     return {value, pos}
 }
 
-// Parses `YYYY-MM-DD HH:MM` into a value that orders chronologically. Zero means malformed.
-private func parseStamp(text: string)->u64
-{
-    if text.count != StampShape.count do
-        return 0
-
-    var value: u64
-    for i in text.count
-    {
-        if StampShape[i] == '0'
-        {
-            if not Latin1.isDigit(text[i]) do
-                return 0
-            value = value * 10 + cast(u64, (text[i] - '0'))
-        }
-        elif text[i] != StampShape[i]
-        {
-            return 0
-        }
-    }
-
-    let date = Time.DateTime{
-        year: cast((value / 100000000)),
-        month: cast(((value / 1000000) % 100)),
-        day: cast(((value / 10000) % 100)),
-        hour: cast(((value / 100) % 100)),
-        minute: cast((value % 100))}
-    return date.isValid() ? value : 0
-}
-
-// An entry is placed by its latest stamp: nothing above it may be older.
-private func auditEntryOrder(fileName: string, entryLine: u64, latest: u64, previous: *u64)->u32
-{
-    if entryLine == 0 or latest == 0 do
-        return 0
-
-    var errors: u32
-    if latest > previous[]
-    {
-        Console.println("error: ", fileName, ":", entryLine, ": backlog entry is more recent than the one above it; entries go from the most recently updated down")
-        errors = 1
-    }
-
-    previous[] = latest
-    return errors
-}
-
 private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudit fail
 {
     let content = try File.readAllText(fileName)
@@ -95,16 +36,10 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
     headingPrefix += stem
     headingPrefix += "."
 
-    var result:        retval
-    var lineNumber     = 0'u64
-    var entryCount     = 0'u64
-    var entryLine:     u64      // The heading line of the current entry.
-    var entryLatest:   u64      // The latest stamp of the current entry, zero until one is read.
-    var previousLatest = Swag.U64.Max     // The latest stamp of the entry above; the list descends.
-    var sectionLine:   u64      // A `##` heading met after an entry; no entry may follow it.
-    var recorded:      u64      // The Recorded stamp of the current entry, zero until it is read.
-    var awaitRecorded: bool     // The next non-blank line must be the entry's Recorded stamp.
-    var allowUpdated:  bool     // The next line may be the entry's Updated stamp.
+    var result:    retval
+    var lineNumber = 0'u64
+    var entryCount = 0'u64
+    var sectionLine: u64
 
     for line in Tokenize.splitLines(content.toString())
     {
@@ -120,25 +55,12 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
 
         if Utf8.startsWith(cast(const [..] u8, line), "### ")
         {
-            if awaitRecorded
-            {
-                Console.println("error: ", fileName, ":", entryLine, ": backlog entry does not open with '", RecordedField, "YYYY-MM-DD HH:MM'")
-                result.errors += 1
-            }
-
-            result.errors += auditEntryOrder(fileName, entryLine, entryLatest, &previousLatest)
             if sectionLine != 0
             {
-                Console.println("error: ", fileName, ":", sectionLine, ": entries are grouped under a '##' heading; a domain file is one list from the most recently updated entry down")
+                Console.println("error: ", fileName, ":", sectionLine, ": entries are grouped under a '##' heading; keep one flat list per domain")
                 result.errors += 1
                 sectionLine   = 0
             }
-
-            entryLine     = lineNumber
-            entryLatest   = 0
-            awaitRecorded = true
-            allowUpdated  = false
-            recorded      = 0
 
             if not Utf8.startsWith(cast(const [..] u8, line), headingPrefix.toString())
             {
@@ -173,96 +95,13 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
             continue
         }
 
-        if awaitRecorded
+        if Utf8.startsWith(cast(const [..] u8, trimmed), "- Recorded:") or
+           Utf8.startsWith(cast(const [..] u8, trimmed), "- Updated:")
         {
-            if trimmed.count == 0 do
-                continue
-
-            awaitRecorded = false
-            if not Utf8.startsWith(cast(const [..] u8, trimmed), RecordedField)
-            {
-                Console.println("error: ", fileName, ":", lineNumber, ": backlog entry does not open with '", RecordedField, "YYYY-MM-DD HH:MM'")
-                result.errors += 1
-                continue
-            }
-
-            let stamp = trimmed[RecordedField.count until trimmed.count]
-            recorded = parseStamp(stamp)
-            if recorded == 0
-            {
-                Console.println("error: ", fileName, ":", lineNumber, ": malformed Recorded stamp, expected 'YYYY-MM-DD HH:MM'")
-                result.errors += 1
-                continue
-            }
-
-            entryLatest = recorded
-            if recorded > result.latest
-            {
-                result.latest = recorded
-                result.stamp  = String.from(stamp)
-            }
-
-            allowUpdated = true
-            continue
-        }
-
-        let updatedAllowed = allowUpdated
-        allowUpdated = false
-        if Utf8.startsWith(cast(const [..] u8, trimmed), UpdatedField)
-        {
-            if not updatedAllowed
-            {
-                Console.println("error: ", fileName, ":", lineNumber, ": an Updated stamp must directly follow the entry's Recorded stamp")
-                result.errors += 1
-                continue
-            }
-
-            let rest    = trimmed[UpdatedField.count until trimmed.count]
-            let stamp   = rest.count < StampShape.count ? "" : rest[0 until StampShape.count]
-            let updated = parseStamp(stamp)
-            if updated == 0
-            {
-                Console.println("error: ", fileName, ":", lineNumber, ": malformed Updated stamp, expected 'YYYY-MM-DD HH:MM — what changed'")
-                result.errors += 1
-                continue
-            }
-
-            let note = rest[stamp.count until rest.count]
-            if not Utf8.startsWith(cast(const [..] u8, note), NoteSeparator) or Latin1.trim(note[NoteSeparator.count until note.count]).count == 0
-            {
-                Console.println("error: ", fileName, ":", lineNumber, ": an Updated stamp must say what changed after ' — '")
-                result.errors += 1
-                continue
-            }
-
-            if updated < recorded
-            {
-                Console.println("error: ", fileName, ":", lineNumber, ": Updated stamp is earlier than the entry's Recorded stamp")
-                result.errors += 1
-                continue
-            }
-
-            entryLatest = updated
-            if updated > result.latest
-            {
-                result.latest = updated
-                result.stamp  = String.from(stamp)
-            }
-        }
-        elif Utf8.startsWith(cast(const [..] u8, trimmed), RecordedField)
-        {
-            Console.println("error: ", fileName, ":", lineNumber, ": a Recorded stamp must directly follow the entry heading")
+            Console.println("error: ", fileName, ":", lineNumber, ": backlog entry contains a Recorded or Updated history field; remove it (Git preserves changes)")
             result.errors += 1
         }
     }
-
-    if awaitRecorded
-    {
-        Console.println("error: ", fileName, ":", entryLine, ": backlog entry does not open with '", RecordedField, "YYYY-MM-DD HH:MM'")
-        result.errors += 1
-    }
-
-    result.errors += auditEntryOrder(fileName, entryLine, entryLatest, &previousLatest)
 
     if entryCount == 0 and result.errors == 0
     {
@@ -452,13 +291,11 @@ private func auditBacklogRelated(fileName: string, seen: *HashSet'String)->u32 f
     return errors
 }
 
-// The README inventory is ordered from the most recently updated domain down, and each row's
-// stamp is the latest one its file holds, so the table answers "what moved last?" by itself.
+// The README inventory is a navigation table with one row for every domain file.
 private func auditBacklogIndex(fileName: string, readme: string, domains: const [..] Domain)->u32
 {
     var errors:     u32
     var lineNumber: u64
-    var previous = Swag.U64.Max
     var listed:     HashSet'String
 
     for line in Tokenize.splitLines(readme)
@@ -477,25 +314,8 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
             continue
         }
 
-        let name  = trimmed[open + 2 until close]
-        let body  = trimmed[0 until trimmed.count - 1]
-        let cell  = Utf8.lastIndexOf(cast(const [..] u8, body), "|")
-        let text  = Latin1.trim(body[cell + 1 until body.count])
-        let stamp = parseStamp(text)
-        if stamp == 0
-        {
-            Console.println("error: ", fileName, ":", lineNumber, ": inventory row for '", name, "' has no 'YYYY-MM-DD HH:MM' stamp in its last column")
-            errors += 1
-            continue
-        }
+        let name = trimmed[open + 2 until close]
 
-        if stamp > previous
-        {
-            Console.println("error: ", fileName, ":", lineNumber, ": inventory row for '", name, "' is out of order; rows go from the most recently updated file down")
-            errors += 1
-        }
-
-        previous = stamp
         if listed.contains(name)
         {
             Console.println("error: ", fileName, ":", lineNumber, ": duplicate inventory row for '", name, "'")
@@ -504,11 +324,6 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
 
         listed.add(String.from(name))
 
-        for domain in domains where domain.name.toString() == name and domain.latest != 0 and domain.latest != stamp
-        {
-            Console.println("error: ", fileName, ":", lineNumber, ": inventory row for '", name, "' says ", text, " but the latest stamp in that file is ", domain.stamp.toString())
-            errors += 1
-        }
     }
 
     for domain in domains where not listed.contains(domain.name.toString())
@@ -568,7 +383,7 @@ private func collectDomainIdentifiers(text: string, headingPrefix: string, stem:
 }
 
 // A missed Git rename is recoverable only when every source entry survives with the same
-// suffix, title, and Recorded stamp, and the match is unique in both directions.
+// suffix and title, and the match is unique in both directions.
 private struct BacklogIdentity
 {
     path:    String
@@ -604,23 +419,16 @@ private func readBacklogIdentity(context: *Context, revision: string, path: stri
     var result: retval
     result.path = String.from(path)
     let prefix = Format.toString("### %.", Path.fileNameWithoutExtension(path)!)
-    var heading: String
     for line in Tokenize.splitLines(content.toString())
     {
         if Utf8.startsWith(cast(const [..] u8, line), "### ")
         {
-            heading.clear()
             if Utf8.startsWith(cast(const [..] u8, line), prefix.toString())
             {
                 let end = Utf8.indexOf(cast(const [..] u8, line), " ", 4)
                 if end == prefix.count + 3 and isBacklogIdentifier(line[4 until end]) do
-                    heading = String.from(line[prefix.count to])
+                    result.entries.add(String.from(line[prefix.count to]))
             }
-        }
-        elif not heading.isEmpty() and Utf8.startsWith(cast(const [..] u8, Latin1.trim(line)), RecordedField)
-        {
-            result.entries.add(Format.toString("%\n%", heading.toString(), Latin1.trim(line)))
-            heading.clear()
         }
     }
 
@@ -835,7 +643,7 @@ private func auditBacklogAllocations(context: *Context, seen: *HashSet'String, d
         return 0
     var renameCommand: Arguments
 
-    // A minimal entry retains its stamp while its entire heading changes with the prefix;
+    // A minimal entry retains its title while its prefix changes with the domain;
     // that puts a valid rename just below Git's default 50% similarity threshold.
     renameCommand.add(["diff", "--name-status", "--find-renames=40%", "HEAD", "--", "backlog"])
     let renames = try captureBacklogGit(context, renameCommand)
@@ -883,9 +691,7 @@ public func auditBacklog(context: *Context)->s32 fail
 
         with var domain: Domain
         {
-            .name   = String.from(name)
-            .latest = audit.latest
-            .stamp  = audit.stamp
+            .name = String.from(name)
         }
 
         domains.add(domain)

@@ -7,36 +7,11 @@ Cross-cutting compiler and language work belongs in [compiler.core.md](compiler.
 [language.design.md](language.design.md). This file keeps the evidence, investigations, and intended outcomes
 owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole layout.
 
-Entries are ordered from the most recently updated down. An entry disappears when it
-ships; history lives in git, not here.
-
-## Where the module already stands
-
-A process-wide engine with an explicit lifecycle, a bus tree with parent routing and per-bus gain,
-voices with linear and decibel gain, pitch through a frequency ratio, looping, fire-and-forget
-lifetime, and streaming through three rotating decoded buffers, each at least 64 KiB and large
-enough for the source's largest decoded packet. A codec registry
-(`ICodec`, `registerCodec`) that makes decoding extensible from outside the module, with AAC-LC,
-AC-3, independent E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, Opus, and WAVE ADPCM decoders in
-the box. AAC, AC-3, E-AC-3, DTS, FLAC, MP3, and Ogg also have their own file readers, so a
-`.aac`, `.ac3`, `.eac3`/`.ec3`, `.dts`, `.flac`, `.mp3`, `.ogg`/`.oga`, or `.opus` opens through
-`SoundFile.load` and streams from
-disk; that is the answer to "no music", and what is left below is breadth beside it. A no-sound
-driver that preserves the entire lifecycle without opening a device, wired into the sandbox so a
-test run never makes noise — that last part is better integrated than in most libraries of this
-size.
-
-The remaining gaps are compressed-format variants, panning and spatialization, gain ramps,
-effects, output-device management, and capture. The native backend has channel-routing
-facilities, but the module has no portable pan contract. Operating-system backend work lives in
-[platform.portability.md](platform.portability.md).
 
 ## Entries
 
 ### std.audio.010 — Engine creation cost on the startup path
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-10-06 20:56 — Link the X3DAudio and backend entries that share this cost.
 - `XAudio2DriverNative.createXAudio2` does COM initialization, `XAudio2Create`, mastering-voice creation,
   channel-mask query and `X3DAudioInitialize`. Engine creation was previously measured in the 500
   to 950 millisecond range, which dominates the startup of the example scripts that call it —
@@ -48,8 +23,6 @@ facilities, but the module has no portable pan contract. Operating-system backen
 
 ### std.audio.001 — DTS Core advanced coding tools remain unsupported
 
-- Recorded: 2026-08-27 07:58
-- Updated: 2026-09-10 19:12 — Distinguish unsupported extension decoding from accepted DTS-HD core payloads
 - Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, reconstructs four-tap
   ADPCM prediction across frame boundaries, and consumes VQ-bearing frames while omitting those
   high-frequency bands. It still explicitly rejects Huffman-coded side information or audio,
@@ -59,13 +32,11 @@ facilities, but the module has no portable pan contract. Operating-system backen
   exercises none of the remaining tools.
 - Next: obtain a permissively redistributable stream that exercises the common Core tool set, or
   a reproducible encoder for one, then implement and validate each tool against that corpus.
-- Complete when: representative Core streams using those tools decode with validated channel order
+- Done when: representative Core streams using those tools decode with validated channel order
   and bounded reference error, while unsupported extension substreams remain explicit.
 
 ### std.audio.002 — MP3 synthesis has not been measured or factored
 
-- Recorded: 2026-08-26 20:48
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Intent: Layer III decodes at every sampling frequency of the three versions, within the
   reference-error limits in `mp3.test.swg`. Its transform and filter-bank cost has not been measured.
 - What is slow by construction, and was written that way on purpose: the inverse transform is the
@@ -76,14 +47,12 @@ facilities, but the module has no portable pan contract. Operating-system backen
   128 kbit/s a frame is 26 ms of audio and the whole decode may already be far below that.
 - Next: measure synthesis separately from entropy decoding, then compare factored transforms
   against the current reference implementation on the same granules.
-- Complete when: synthesis cost is recorded and any retained optimization preserves the complete
+- Done when: synthesis cost is recorded and any retained optimization preserves the complete
   MPEG-1/2/2.5, channel-mode, block-type, and reservoir regression corpus.
 - Related: std.video.008
 
 ### std.audio.003 — Gain changes have no sample-based ramp
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Problem: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend. XAudio2
   applies a target gain without a ramp owned by this module. An abrupt change on a nonzero sample
   can produce a discontinuity; this is a risk, not evidence that every gain change audibly clicks.
@@ -96,16 +65,12 @@ facilities, but the module has no portable pan contract. Operating-system backen
 
 ### std.audio.004 — No output-device enumeration
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Enumerate output devices with stable session identifiers and enough capabilities for a caller to
   present a choice.
 - Related: std.audio.005, std.audio.006
 
 ### std.audio.005 — The engine cannot select an output device
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Allow `createEngine` or a dedicated switch operation to target one identifier returned by std.audio.004,
 with a defined fallback when that device is unavailable.
@@ -114,8 +79,6 @@ with a defined fallback when that device is unavailable.
 
 ### std.audio.006 — Output-device loss is not reported or recovered
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Handle the backend's critical-error signal, report the loss, and rebuild or fail over according to
 an explicit policy when headphones, USB audio, or the default device changes.
@@ -124,8 +87,6 @@ an explicit policy when headphones, USB audio, or the default device changes.
 
 ### std.audio.007 — No stereo pan control
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Add backend-neutral stereo panning to `Voice` without requiring the listener and distance model of
 platform.portability.063.
@@ -134,8 +95,6 @@ platform.portability.063.
 
 ### std.audio.008 — No reverb effect
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Expose a reverb effect independently of the basic voice filters and of a general effects graph.
 
@@ -143,8 +102,6 @@ Expose a reverb effect independently of the basic voice filters and of a general
 
 ### std.audio.009 — No echo effect
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Expose an echo/delay effect independently of reverb and the general effects graph.
 
@@ -152,8 +109,6 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 ### std.audio.011 — No audio capture input
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Add capture-device enumeration and a recording stream as a peer of playback.
 - This is what a recorder, a voice-chat path, or a level meter would need. It is also a prerequisite
   if `Swag Capture` ever records video with sound —
@@ -162,8 +117,6 @@ Expose an echo/delay effect independently of reverb and the general effects grap
 
 ### std.audio.012 — No full-duplex audio session
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Allow synchronized input and output in one engine session for voice communication and live
 processing.
@@ -172,8 +125,6 @@ processing.
 
 ### std.audio.013 — No system-output loopback capture
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 Expose desktop/output loopback as a distinct capture source when the backend supports it.
 
@@ -181,8 +132,6 @@ Expose desktop/output loopback as a distinct capture source when the backend sup
 
 ### std.audio.014 — Effects graph
 
-- Recorded: 2026-08-05 07:43
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Buses route and scale gain. They do not process. FMOD, Wwise, SoLoud and miniaudio all expose a
   DSP or node graph where an effect can be inserted on a bus.
 - Sequence this after platform.portability.064: a per-voice filter answers most of the need, and an effects graph is
@@ -190,15 +139,3 @@ Expose desktop/output loopback as a distinct capture source when the backend sup
 - Related: platform.portability.064, std.audio.008, std.audio.009
 
 ---
-
-## Out of scope
-
-**An authoring tool.** FMOD Studio and Wwise are as much authoring applications as they are
-runtimes — banks, events, parameters, adaptive music, and a designer-facing editor. That is a
-product, not a standard-library module.
-
-**Bundled codec licensing.** Every format added here must be a clean-room or permissively-licensed
-implementation. Do not vendor a decoder whose terms cannot be satisfied by a standard library
-shipped with a compiler. Normative tables are a separate question from code: Layer III's were
-recovered from two public-domain implementations and checked against each other, with the
-provenance in `bin/THIRDPARTY.md`; a table is a fact of the format, a decoder is expression.

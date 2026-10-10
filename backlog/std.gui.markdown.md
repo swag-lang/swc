@@ -6,45 +6,17 @@ measured against the readers it competes with — Typora, the VS Code preview, a
 rendering — with CommonMark plus GFM as the reference for what a document means, while staying
 what the whole document family is: an offline, script-free, network-free viewer.
 
-Evidence, investigations, and intended outcomes for the Markdown engine stay together here. The
-engine lives beside its widget inside `gui`, as [std.gui.pdf.md](std.gui.pdf.md#where-this-family-lives-and-why)
-records for the document family; application-level zoom stays in
+The engine lives beside its widget inside `gui`; application-level zoom stays in
 [app.scope.text.md](app.scope.text.md), shared printing in
 [app.scope.viewers.md](app.scope.viewers.md), and shell thumbnail integration in
 [platform.portability.md](platform.portability.md).
 [README.md](README.md) has the whole layout.
 
-Entries are ordered from the most recently updated down. An entry disappears when it
-ships; history lives in git, not here.
-
-## Where the engine already stands
-
-The implementation separates parsing from rendering. The block
-parser is line-based and single-pass: ATX and setext headings, fenced code with a language label,
-GFM pipe tables with per-column alignment, ordered, unordered and task lists with soft-wrap
-continuation, block quotes carrying the five GitHub alerts, thematic breaks, YAML front matter,
-`[TOC]`, footnotes, reference definitions, and display mathematics in both `$$` and `\[` forms.
-The inline renderer emits a private markup protocol — emphasis through bold-italic, strikethrough,
-highlight, code spans, sub- and superscript, inline/reference/collapsed links, autolinks and bare
-URLs, escapes, entities, and inline mathematics parsed by `Pixel.MathExpression` rather than
-approximated with text. Inline phrasing HTML is translated into the same rich-text protocol;
-layout-bearing HTML is hosted by the adjacent HTML engine, including its offline image policy.
-Markdown images resolve local raster and SVG files beside the document, and embedded raster
-images from data URIs. Remote images remain links. Paired HTML containers retain their blank
-lines across streamed reads, and HTML comments contribute no visible text.
-The view streams multi-megabyte files behind a byte-to-height estimate,
-reveals an arbitrary byte offset without parsing what precedes it, navigates by line, page and
-document boundary from the keyboard, restyles live from a theme sheet and a typography style —
-the Swag Scope viewer ships five complete reading themes on top of it — finds and highlights text,
-and signals link activation to its host. Tests cover the block grammar, emphasis nesting, inline
-mathematics, wrap, forward and reverse streaming, and both failure paths.
 
 ## Entries
 
 ### std.gui.markdown.005 — Inline TOC, fragment and footnote links do not navigate the document
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-10-04 15:06 — Retain inline anchor resolution after programmatic heading navigation and the Scope outline shipped.
 - Evidence: `Markdown.parseHeadings` returns headings with distinct source byte offsets, and
   `Markdown.View.revealHeading` navigates to one in a streamed document. Swag Scope uses these
   APIs for its outline; `documentoutline.test.swg` covers heading parsing and navigation beyond
@@ -54,36 +26,30 @@ mathematics, wrap, forward and reverse streaming, and both failure paths.
   navigation does not give these inline references an identity or resolution rule.
 - Next: assign stable heading and footnote anchors, resolve inline targets against the document,
   and route TOC and local-link activation through the existing heading/reveal operations.
-- Complete when: TOC entries, in-document fragments and footnote references reach their targets
+- Done when: TOC entries, in-document fragments and footnote references reach their targets
   in both `createText` and streamed files, with duplicate headings and unloaded targets covered.
 - Related: app.scope.document.001
 
 ### std.gui.markdown.010 — No opt-in smart punctuation
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
 - Evidence: the inline renderer preserves straight quotes, `--` and `...` as authored text.
 - Next: add a default-off style option for contextual quotes, dashes and ellipses, with an
   explicit rule for existing punctuation and escaped input.
-- Complete when: enabling the option transforms prose while preserving code spans, math,
+- Done when: enabling the option transforms prose while preserving code spans, math,
   escaped punctuation and source-offset mapping used by search and selection.
 - Related: std.gui.markdown.011
 
 ### std.gui.markdown.011 — Emoji shortcodes remain source text
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
 - Evidence: the inline renderer has no shortcode lookup; `:smile:` is rendered literally.
 - Next: define a versioned shortcode table and a default-off style option, preserving unknown
   names and keeping code, math and escaped input outside the transform.
-- Complete when: known shortcodes render their emoji with correct search/selection offsets,
+- Done when: known shortcodes render their emoji with correct search/selection offsets,
   unknown names remain readable, and disabled mode preserves the authored text.
 - Related: std.gui.markdown.010
 
 ### std.gui.markdown.002 — Block structure is flat: containers do not nest
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 The parser recognizes every leaf block but no container can hold one. A list inside a quote, a
 fence inside a quote, or a `> >` nested quote all degrade — the second `>` renders as literal
@@ -95,14 +61,12 @@ child blocks, rendered with inherited indent and the quote border spanning its c
 keeping the streamed, per-block visual pipeline as it is.
 
 - Intent: quotes and list items own child blocks instead of flattening or hoisting them
-- Complete when: a fixture with a list in a quote, a fence in a list item, a multi-paragraph item
+- Done when: a fixture with a list in a quote, a fence in a list item, a multi-paragraph item
   and a two-level quote lays out with correct indentation and borders, and the existing
   list-hoisting test is rewritten to the new stance
 
 ### std.gui.markdown.003 — A code block has no syntax coloring
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 The fence's language is shown as an uppercase label but never used: no syntax coloring, while the
 repository already colors Swag both in `DocMarkdown` and through the RichEdit lexer interface
@@ -110,13 +74,11 @@ repository already colors Swag both in `DocMarkdown` and through the RichEdit le
 Coloring is the visible half of parity with every competitor.
 
 - Intent: fenced code colors through the shared lexer interface
-- Complete when: a `swag` fence colors, an unknown language stays plain, and wrapped lines are
+- Done when: a `swag` fence colors, an unknown language stays plain, and wrapped lines are
   visually distinguishable from new lines
 
 ### std.gui.markdown.004 — Reference and footnote definitions do not cross a streaming boundary
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 `parseBlocks` collects definitions only from the chunk it is parsing, and the convention every
 real document follows — all `[name]: target` lines gathered at the end of the file — is exactly
@@ -127,13 +89,11 @@ and resolve when the definition arrives. `revealFileOffset` windows have the sam
 directions.
 
 - Intent: a streamed document resolves references wherever their definitions sit
-- Complete when: a multi-chunk streamed fixture with end-of-file definitions renders every
+- Done when: a multi-chunk streamed fixture with end-of-file definitions renders every
   reference link and footnote live, including after a reveal
 
 ### std.gui.markdown.007 — No measured conformance stance
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 Nobody can say which part of CommonMark the parser speaks. Run the CommonMark and GFM example
 corpora through `parseBlocks`/`renderInline`, record each case as passing or deviating by choice,
@@ -142,12 +102,10 @@ blocks do not exist, and the emphasis flanking rules are approximate. The record
 durable artifact; the fixes are the first harvest.
 
 - Intent: conformance is a measured number with a recorded stance, not a guess
-- Complete when: the corpus runs as a test and a stance file lists every deviation as deliberate
+- Done when: the corpus runs as a test and a stance file lists every deviation as deliberate
 
 ### std.gui.markdown.008 — Find cannot walk its matches
 
-- Recorded: 2026-08-18 20:20
-- Updated: 2026-09-01 08:37 — git: Add backlogs for std.pixel, std.truetype, and std.win32 modules
 
 `findText` clears the current highlight and advances to the next block, selecting occurrence zero
 there. It therefore cannot reach a second match in the same block, move backwards, or report a
@@ -157,5 +115,5 @@ search state and connect it to the host. Swag Scope's search panel deserves the 
 Markdown as over code.
 
 - Intent: find walks matches one by one and says how many there are
-- Complete when: repeated find advances match-by-match across and within blocks, and the match
+- Done when: repeated find advances match-by-match across and within blocks, and the match
   count is exposed to the host

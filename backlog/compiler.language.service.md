@@ -2,12 +2,10 @@
 
 This backlog owns compiler-backed editor services: analysis snapshots, diagnostics, semantic navigation and queries, symbol operations, and code actions. General compiler front-end invalidation and module-interface work remain in [compiler.core.md](compiler.core.md).
 
-Items are ordered from the most recently updated down. Every completion condition is intended to be testable.
+Entries stay in one flat list. Keep each outcome testable.
 
 ### compiler.language.service.001 — Language services still start a compiler for each edited snapshot
 
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-10-08 19:09 — Add imported API discovery and full-module timing evidence.
 - Evidence: `vscode/src/server.js` keeps an LSP session with versioned open buffers, cancellation,
   shutdown, and module snapshots. `swc sema --editor-index` exports compiler-resolved symbols;
   `--editor-overlay` supplies unsaved buffers without replacing disk files. Each changed snapshot
@@ -20,68 +18,59 @@ Items are ordered from the most recently updated down. Every completion conditio
   edits. Prioritize semantic invalidation and reuse; a parse-only shortcut cannot preserve resolved
   types and references. Keep the existing LSP integration tests as the transport-independent
   contract.
-- Complete when: requests call retained compiler-library services, obsolete analyses can be
+- Done when: requests call retained compiler-library services, obsolete analyses can be
   cancelled inside that service, and unchanged files and interfaces reuse their compiler state.
 - Related: compiler.core.001, compiler.core.002, compiler.language.service.002, compiler.language.service.006,
   compiler.language.service.003, compiler.language.service.004, compiler.language.service.005, compiler.language.service.007.
 
 ### compiler.language.service.002 — Diagnostics still wait for full-module reanalysis
 
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
 - Evidence: the LSP server publishes one-line compiler diagnostics for open buffers, converts
   display columns to UTF-16, clears obsolete results, and rejects superseded snapshots. Analysis
   still runs per module; semantic features are cleared while that module has errors. Diagnostic
   notes and related locations are not represented as structured LSP diagnostic information.
 - Next: export structured diagnostics from the compiler and retain usable semantic information
   through incomplete or erroneous source. Invalidate affected files through compiler.core.002.
-- Complete when: edits reanalyze affected files and their dependents, semantic queries continue on
+- Done when: edits reanalyze affected files and their dependents, semantic queries continue on
   recoverable input, and identifiers, severity, primary and related locations survive conversion.
 - Related: compiler.core.002, compiler.language.service.001.
 
 ### compiler.language.service.003 — Definition navigation needs dependency origins and generated-source mappings
 
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
 - Evidence: the LSP server consumes resolved declaration locations from the compiler, including
   selected calls and symbols retained before folding. Source buffers keep their original paths.
   Imported definitions currently point to generated API files; generated source views without a
   physical mapping and ambiguous generic instances produce no location.
 - Next: preserve canonical source origins through API publication, specialization, and generated
   source expansion, then extend the protocol tests to imports, aliases, members, and generics.
-- Complete when: navigation reaches original declarations across dependencies and expansions,
+- Done when: navigation reaches original declarations across dependencies and expansions,
   covers resolved generic and alias uses, and never substitutes a plausible but unrelated location.
 - Related: compiler.core.001, compiler.language.service.001, compiler.language.service.004.
 
 ### compiler.language.service.004 — Reference search stops at the analyzed module
 
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
 - Evidence: LSP references compare resolved declaration identities within one compiler snapshot,
   distinguish declarations from uses, and exclude unrelated same-spelled symbols. Other modules
   are not searched, and unsaved dependency-module buffers are not part of a consumer's snapshot.
 - Next: maintain a versioned workspace reference index over module identities and dependency
   interfaces, including invalidation when another module's public declarations change.
-- Complete when: references span open and on-disk workspace modules, retain semantic identity
+- Done when: references span open and on-disk workspace modules, retain semantic identity
   across imported APIs, and exclude stale entries after edits, file removal, and cancellation.
 - Related: compiler.language.service.001, compiler.language.service.003, compiler.language.service.007.
 
 ### compiler.language.service.005 — Hover needs documentation, constant values, and expression types
 
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-10-07 21:02 — Narrow the remaining work around compiler-backed editor snapshots.
 - Evidence: hover shows the compiler's resolved type for named entities; inferred variable
   types also appear as inlay hints. Unknown and ambiguous locations return no answer. The
   snapshot does not yet carry public documentation, constant values, ownership, or attributes.
 - Next: extend the semantic snapshot with declaration documentation and expression information,
   preserving Markdown escaping and original dependency source identity.
-- Complete when: hover covers inferred literals and expressions, generic parameters, aliases,
+- Done when: hover covers inferred literals and expressions, generic parameters, aliases,
   selected overloads, imported documentation, and relevant ownership and attribute information.
 - Related: compiler.language.service.001, compiler.language.service.006, compiler.language.service.003.
 
 ### compiler.language.service.008 — Offer semantic cleanup edits with explicit preservation checks
 
-- Recorded: 2026-09-16 16:06
 - Evidence: the bin/ cleanup changed 53 direct-return bodies, five declaration/with pairs and
   two relay locals. Candidate searches also found deliberate language-test syntax, owning locals
   and typed temporaries which cannot safely be removed by a textual rewrite. The formatter
@@ -100,7 +89,7 @@ Items are ordered from the most recently updated down. Every completion conditio
   Prove positive and negative examples for each of the three initial transformations; expose the
   same edits as editor code actions once compiler.language.service.001 provides the session layer. Wider
   API-family renames use compiler.language.service.007 plus an explicit migration, not a cleanup heuristic.
-- Complete when: suggested edits apply only to the analyzed document version, are idempotent,
+- Done when: suggested edits apply only to the analyzed document version, are idempotent,
   compile with the same relevant contracts, and regression tests reject transformations that
   alter effects, ownership, overload resolution or scope. A CLI preview works independently of LSP.
 - Related: compiler.language.service.001, compiler.language.service.002, compiler.language.service.007;
@@ -108,12 +97,10 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 ### compiler.language.service.006 — The editor has no semantic completion service
 
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 **Intent.** Provide completion candidates from the semantic snapshot at a source position, including local scope, members, visible imports, generic parameters, and applicable language constructs.
 
-**Complete when.**
+**Done when.**
 
 - Completion operates on unsaved, syntactically incomplete buffers and honors shadowing and visibility.
 - Items include stable kind, insertion text, signature/detail, and documentation fields where available.
@@ -124,12 +111,10 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 ### compiler.language.service.007 — The editor cannot rename a symbol semantically
 
-- Recorded: 2026-08-09 20:16
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 
 **Intent.** Validate a requested identifier at a resolved declaration, reuse the semantic reference set, and produce a versioned workspace edit without changing unrelated text.
 
-**Complete when.**
+**Done when.**
 
 - Prepare-rename rejects keywords, compiler-generated or immutable declarations, ambiguous positions, and names that would create a known collision.
 - Rename covers declarations and references across open and on-disk workspace files while preserving comments and strings.

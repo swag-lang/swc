@@ -17,28 +17,25 @@ owned by a viewer lives in the corresponding domain:
 - [app.scope.midi.md](app.scope.midi.md) — MIDI viewer
 
 Reusable engine work remains in the backlog of the standard module that owns it. Entries here are
-ordered from the most recently updated down.
+Entries stay in one flat list per domain.
 
 ### app.scope.001 — One document per window
 
-- Recorded: 2026-08-27 07:08
-- Updated: 2026-09-06 17:42 — git: Add unit tests for float to u64 conversion safety checks
 - Evidence: `src/main.swg` creates one `ViewerWindow`, which owns one active file and viewer.
   Opening another file replaces that document; there is no document-tab host.
 - Next: adopt the GUI document-host contract with independent document ownership, close behavior,
   focus and saved reading state. Keep process reuse behind platform.portability.022's messaging
   contract, and side-by-side presentation separate.
-- Complete when: several documents can remain open as tabs in one window, and switching or closing
+- Done when: several documents can remain open as tabs in one window, and switching or closing
   a tab preserves the other documents' state and outstanding-work ownership.
 - Related: std.gui.029, platform.portability.022, app.scope.003
 
 ### app.scope.003 — Two documents cannot be shown side by side
 
-- Recorded: 2026-09-06 17:42
 - Evidence: `ViewerWindow` has one active viewer surface. The application has no pair of independently
   focused document panes; hexadecimal difference analysis remains a separate viewer capability.
 - Next: add a split presentation for two open documents with explicit focus and command routing,
   preserving each viewer's reading state when moving between tabs and split panes.
-- Complete when: two documents remain visible and independently usable, and closing or replacing
+- Done when: two documents remain visible and independently usable, and closing or replacing
   either pane leaves the other's state and input intact.
 - Related: app.scope.001, app.scope.hexa.003

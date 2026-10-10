@@ -16,35 +16,29 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.008 — ISO-BMFF does not expose Layer III sound tracks
 
-- Recorded: 2026-09-06 07:51
-- Updated: 2026-10-06 20:56 — Layer III tracks are silently omitted, not rejected.
 - Evidence: `decode/mp4/mp4.swg` keeps an `mp4a` track only when its decoder-configuration
   object type is `0x40` (`Mpeg4AudioObjectType`); `0x69` and `0x6B` Layer III tracks are silently
   left out rather than rejected, although std/audio already decodes Layer III packets and the
   Matroska reader exposes them.
 - Next: retain the object type while reading the audio descriptor and construct the existing
   Layer III packet stream for supported variants. Add a redistributable multiplexed fixture.
-- Complete when: ISO-BMFF Layer III tracks enumerate, decode, seek, and retain their timestamps
+- Done when: ISO-BMFF Layer III tracks enumerate, decode, seek, and retain their timestamps
   through `Video.Reader`, with reference PCM comparisons and explicit rejection of unsupported
   MPEG audio layers.
 - Related: std.audio.002
 
 ### std.video.004 — An AVI larger than four gigabytes is refused
 
-- Recorded: 2026-08-17 18:40
-- Updated: 2026-10-06 20:56 — Credit the decoder's frame-walk fallback beside `idx1`.
 - Intent: every size in the AVI container is a 32-bit field, so the encoder refuses a stream that
   would run past four gigabytes (`encode/avi/avi.swg`), and the decoder reads `idx1` or, when it is
   missing or rejected, walks the first RIFF's `movi` list (`walkFrames`), ignoring OpenDML. OpenDML answers both
   with 64-bit `indx` chunks and a `RIFF AVIX` continuation, which is what any capture longer than a
   few minutes at a usable bitrate produces.
-- Complete when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
+- Done when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
   encoder emits them instead of failing once the stream approaches the limit.
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
-- Recorded: 2026-08-19 13:23
-- Updated: 2026-10-06 11:54 — Retire the resolved significance-loop frame reload diagnosis.
 - Evidence: on 2026-09-12, decoding the same 3840x2160 one-slice High/CABAC clip and alternating
   the two decoders inside one measurement window, this decoder and FFmpeg's own build with its
   hand-written assembly disabled read within a tenth of each other, while FFmpeg with its
@@ -123,7 +117,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   establish a durable whole-picture gain; generic decision inlining was neutral under splitting.
   Recasting RGB conversion as pair sums predates cross-module SIMD inlining and needs a fresh
   comparison before its old verdict is used.
-- Complete when: serial decode costs at most four-thirds of FFmpeg on the same one-slice fixture
+- Done when: serial decode costs at most four-thirds of FFmpeg on the same one-slice fixture
   and machine, measured in decoding-thread cycles with unchanged decoded planes. Parity with its
   compiled code is reached; the remaining factor is its assembly, so the target is now reached by
   vector kernels in the pixel layer and by relieving register pressure in the entropy layer.
@@ -131,8 +125,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Recorded: 2026-08-25 08:38
-- Updated: 2026-09-23 19:25 — Record the bounded cross-file inlining contract now shipped.
 - Evidence: the 2026-08-26 one-lane comparison on a 3840x2076 Main10 passage recorded 92 ms
   of processor time per picture against FFmpeg's 28.6 ms. Later stage experiments changed the
   decoder and the compiler; those numbers and old frame-access counts are historical attribution,
@@ -159,14 +151,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Boundary: the same-module, non-generic cross-file path now waits for semantic completion and
   preserves resolved bindings. Generic cross-Ast bodies still need their own publication and
   rebinding proof before the earlier `aoc2019` experiment can be retried.
-- Complete when: serial decode costs at most four-thirds of FFmpeg on the same 3840x2076 Main10
+- Done when: serial decode costs at most four-thirds of FFmpeg on the same 3840x2076 Main10
   fixture and machine, with exact conformance and reference planes and recorded measurement scope.
 - Related: std.video.001, std.video.009, compiler.optimization.011, cpu.simd.002
 
 ### std.video.009 — H.265 range-extension chroma formats are not decoded
 
-- Recorded: 2026-09-06 18:10
-- Updated: 2026-09-12 06:47 — State the actual bit-depth checks and the supported range-extension subset.
 - Evidence: `decode/hevc/sets.swg` rejects `chroma_format_idc` values other than 1, unequal luma
   and chroma bit depths, and depths above 10. The syntax supplies a minimum of 8; the conformance
   corpus covers Main/Main10 at 8 and 10 bits. The reader accepts some range-extension flags, but
@@ -175,14 +165,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   tools are also refused. Current conformance coverage does not establish range-profile support.
 - Next: choose a bounded range-extension profile for 4:2:2/4:4:4 input and implement its sample
   geometry and reconstruction rules. Keep unsupported extension families explicitly rejected.
-- Complete when: redistributable conformance fixtures for the chosen profile match reference
+- Done when: redistributable conformance fixtures for the chosen profile match reference
   planes, malformed inputs remain bounded, and the documented limits name every unsupported tool.
 - Related: std.video.005
 
 ### std.video.012 — 4:2:2 is the chroma format H.264 still refuses
 
-- Recorded: 2026-09-09 19:33
-- Updated: 2026-09-11 22:20 — Separate 4:4:4 colour-plane coding from the 4:2:2 geometry outcome.
 - Intent: the decoder reads 4:2:0 and, since this change, 4:4:4, which is what a screen recorder,
   a colourist's intermediate, and x264 at `profile=high444` produce. `chroma_format_idc` equal to
   2 is what remains, and a file carrying it is refused at the sequence set rather than decoded.
@@ -196,43 +184,40 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Separate colour-plane coding is a distinct 4:4:4 feature, tracked in std.video.014.
 - Next: decide whether a real file is asking for it. If one is, start from `Sps` carrying a
   horizontal and a vertical chroma shift rather than one, then the chroma DC transform.
-- Complete when: a 4:2:2 fixture encoded by x264 decodes byte-exact against FFmpeg, beside the
+- Done when: a 4:2:2 fixture encoded by x264 decodes byte-exact against FFmpeg, beside the
   4:2:0 and 4:4:4 ones in `video/src/tests/datas`.
 
 ### std.video.013 — H.264 multi-slice scheduling needs its own cost and progress contract
 
-- Recorded: 2026-09-11 22:20
 - Evidence: split from std.video.001. The recorded six-slice 4K run used a banded parse/reconstruct
   path with both threads spending roughly half their samples waiting. A one-slice serial result
   cannot establish that this stream shape schedules efficiently.
 - Next: preserve an openly reproducible multi-slice fixture, measure parse, reconstruction and
   wait costs separately, then choose a scheduling change that preserves reference dependencies.
-- Complete when: multi-slice pictures decode exactly with bounded queues and forward progress,
+- Done when: multi-slice pictures decode exactly with bounded queues and forward progress,
   measured scheduling overhead improves on the same fixture, and the one-slice path does not regress.
 - Related: std.video.001, language.parallelism.001
 
 ### std.video.014 — H.264 separate colour-plane pictures are not decoded
 
-- Recorded: 2026-09-11 22:20
 - Evidence: split from std.video.012. `decode/h264/sets.swg` reads `separate_colour_plane_flag`
   only for `chroma_format_idc == 3` and explicitly rejects it. This is a 4:4:4 picture-coding
   feature, distinct from the 4:2:2 chroma geometry that entry owns.
 - Next: establish a redistributable separate-plane fixture and define slice/plane identity,
   reference state and picture completion before extending the decoder.
-- Complete when: the chosen separate-plane stream matches reference planes, incomplete plane
+- Done when: the chosen separate-plane stream matches reference planes, incomplete plane
   sets fail safely, and ordinary 4:2:0/4:4:4 fixtures retain their output.
 - Related: std.video.012
 
 ### std.video.010 — Decode VP9 pictures in Matroska and WebM
 
-- Recorded: 2026-09-06 18:27
 - Evidence: the Matroska demuxer already accepts the `webm` document type and retains packet
   timestamps, seek points and lacing, but has no VP9 picture decoder. Its advertised extension
   is `.mkv`. Swag Scope builds its playback selectors from `Reader.decodableFormats()`, so the
   missing implementation belongs to the video module.
 - Next: integrate a bounded VP9 decoder through the existing picture/plane and seek contract,
   advertise WebM when supported, and retain the existing Opus/Vorbis audio integration.
-- Complete when: redistributable VP9 fixtures decode and seek with reference plane comparisons,
+- Done when: redistributable VP9 fixtures decode and seek with reference plane comparisons,
   malformed input respects decoder limits, audio remains synchronized, and Scope discovers the
   supported format automatically while keeping its separate binary structure viewer.
 - Historical provenance: split from the retired `app.scope.video.014` playback capability entry.
@@ -240,14 +225,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.011 — Decode AV1 pictures in Matroska and WebM
 
-- Recorded: 2026-09-06 18:27
 - Evidence: the Matroska demuxer already accepts the `webm` document type and retains packet
   timestamps, seek points and lacing, but has no AV1 picture decoder. Its advertised extension
   is `.mkv`. Swag Scope builds its playback selectors from `Reader.decodableFormats()`, so the
   missing implementation belongs to the video module.
 - Next: integrate a bounded AV1 decoder through the existing picture/plane and seek contract,
   advertise WebM when supported, and retain the existing Opus/Vorbis audio integration.
-- Complete when: redistributable AV1 fixtures decode and seek with reference plane comparisons,
+- Done when: redistributable AV1 fixtures decode and seek with reference plane comparisons,
   malformed input respects decoder limits, audio remains synchronized, and Scope discovers the
   supported format automatically while keeping its separate binary structure viewer.
 - Historical provenance: split from the retired `app.scope.video.014` playback capability entry.
@@ -255,8 +239,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.006 — Interlaced H.264 is the last picture feature a real library asks for
 
-- Recorded: 2026-08-25 16:27
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - A recorded survey of 592 films of one personal library, twelve pictures each against FFmpeg:
   590 decode, and one of the two that do not is refused with `video decoder does not support
   interlaced H.264 streams`. It is a 1968 film telecined to fields.
@@ -269,8 +251,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.007 — RealVideo RV40 is one film, and a whole codec
 
-- Recorded: 2026-08-25 16:27
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - The last film of the 592 that does not open is `V_REAL/RV40`, a 1999 encode. RealVideo 9/10 is an
   H.264 relative with its own slice format, its own bitstream syntax, and no relationship to
   anything this module reads.
@@ -281,12 +261,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.002 — Refreshing a bounded sound window interrupts playback
 
-- Recorded: 2026-08-25 22:01
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: the sixty-second Matroska sound window now rebuilds asynchronously and keeps the picture
   queue full even when an SMB scan takes 1.3 to 2.2 seconds, but every rebuild publishes a new
   `SoundFile`, so the player replaces its voice and the listener still hears the seam.
-- Complete when: the packet window can grow or hand off without replacing the playing voice, and
+- Done when: the packet window can grow or hand off without replacing the playing voice, and
   a long network-share playback crosses several refresh boundaries without an audio interruption.
 - Constraint: `Audio.SoundFile.openPacketStream` currently takes its packet table by value and a
   voice reads it without a lock. The ownership and synchronization contract must change before a
@@ -295,10 +273,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.003 — Retired sound windows remain alive until the video closes
 
-- Recorded: 2026-08-25 22:01
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Intent: release superseded bounded `SoundFile` windows as soon as no player or decoder can still
   hold a pointer into them; today every published window stays alive until the whole file closes.
-- Complete when: window ownership makes the last consumer observable, several refreshes keep only
+- Done when: window ownership makes the last consumer observable, several refreshes keep only
   the active and genuinely referenced windows, and a seek cannot read freed packet storage.
 - Related: std.video.002

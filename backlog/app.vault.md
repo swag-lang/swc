@@ -10,8 +10,6 @@ in [compiler.optimization.md](compiler.optimization.md); compiler and language w
 [compiler.core.md](compiler.core.md) and [language.design.md](language.design.md). [README.md](README.md) has the whole
 layout.
 
-Entries are ordered from the most recently updated down. An entry disappears when it
-ships; history lives in git, not here.
 
 Locked key memory is a standard-library primitive that happens to have been discovered here; it
 must not be reimplemented locally. The roadmap keeps the product adoption and its observable
@@ -20,8 +18,6 @@ module's roadmap.
 
 ### app.vault.002 — Unmounting has no explicit busy-versus-force contract
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-09-12 05:22 — Remove the unrelated, obsolete password-only interpretation of startup state.
 - Owner: Swag Vault
 - Current `WinFspMount.stop` stops the dispatcher, removes the mount point, and destroys the
   filesystem without a busy-result or force parameter. Define an ordinary unmount result for
@@ -30,8 +26,6 @@ module's roadmap.
 
 ### app.vault.007 — No normative container-format specification
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-09-12 05:22 — Distinguish the documented hidden-volume extension from the missing complete format contract.
 - Owner: Swag Vault
 - Evidence: [hidden-volumes.md](../bin/apps/modules/swagvault/hidden-volumes.md) documents the
   version-1 hidden-locator extension and its protection rules. The base layout remains described
@@ -43,8 +37,6 @@ module's roadmap.
 
 ### app.vault.003 — Additional password slots are not in the interface
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
   hold four passwords and the interface only ever writes the one a reader opened it with.
@@ -57,8 +49,6 @@ module's roadmap.
 
 ### app.vault.004 — Header backup and restore
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - Problem: key slots and both alternating headers live in the same file. Damage to the only
   usable password slot or to both header copies can make otherwise intact data inaccessible.
@@ -70,8 +60,6 @@ module's roadmap.
 
 ### app.vault.010 — Crash tests do not interrupt writes and checkpoints
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - `volume.test.swg` already corrupts a journal record and verifies that replay stops before later
   records; it also checks alternating-header recovery and misplaced journal sequences. These are
@@ -81,8 +69,6 @@ module's roadmap.
 
 ### app.vault.011 — Large metadata has no end-to-end scale benchmark
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Owner: Swag Vault
 - `nodeindex.test.swg` already exercises 100,000 in-memory nodes, and `volume.test.swg` crosses
   metadata paging with 300 nodes using smaller test headers. Add a bounded end-to-end correctness
@@ -92,8 +78,6 @@ module's roadmap.
 
 ### app.vault.001 — No block cache
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Owner: Swag Vault
 - Problem: `Volume.readPhysical` decrypts and verifies the tag on every call, with no memory
   between calls. Repeated reads still pay authentication and decryption, and an unaligned write
@@ -104,8 +88,6 @@ module's roadmap.
 
 ### app.vault.005 — Filesystem mutations still use one volume-wide lock
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Owner: Swag Vault
 - Problem: WinFsp now uses its fine guard, reads can proceed concurrently, and large transfers run
   bounded parallel crypto batches. Mutating callbacks still take one volume-wide exclusive lock,
@@ -116,8 +98,6 @@ module's roadmap.
 
 ### app.vault.008 — No published Swag Vault format test vectors
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Owner: Swag Vault
 - Publish deterministic vectors for key derivation, headers, records, locators, and full minimal
   containers so independent implementations can be compared.
@@ -125,8 +105,6 @@ module's roadmap.
 
 ### app.vault.009 — Attacker-controlled container decoders are not fuzzed
 
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Owner: Swag Vault
 - Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize`, and `JournalRecord.decode` with
   reproducible corpora and sanitizer coverage.
@@ -134,27 +112,9 @@ module's roadmap.
 
 ### app.vault.012 — External audit
 
-- Recorded: 2026-08-06 08:32
-- Updated: 2026-08-30 12:44 — git: Refactor and update various components for improved functionality and clarity
 - Owner: project
 - After app.vault.007. Until it happens, the format and the implementation have had no independent
   cryptographic review, and Swag Vault is not a proven replacement for VeraCrypt on critical data — no
   matter what else on this list ships.
 
 ---
-
-## Out of scope
-
-**Partition and system-disk encryption.** The application hosts a filesystem through WinFsp.
-A block-device and pre-boot encryption product would require a different driver, boot integration,
-and recovery contract. The bundled WinFsp path already uses an elevated helper to register its
-signed runtime; describing the application as requiring no driver setup would be inaccurate.
-
-**Cipher cascades and a user-facing cipher menu.** Keep the cryptographic suite part of the
-versioned format contract. A user-facing algorithm menu and cascade combinations are outside the
-product scope; future suite changes require format compatibility and independent review.
-
-**Reading an incompatible historical format.** The current decoder accepts format version 1 of
-its present key-slot and record layout. Earlier layouts require separate decoders and an explicit
-migration contract. Unsupported layout, wrong password, and damaged authentication records retain
-the format's deliberately indistinguishable unlock failure.

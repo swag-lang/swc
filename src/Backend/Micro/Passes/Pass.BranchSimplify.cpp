@@ -1268,12 +1268,29 @@ namespace
                 flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return MicroInstrRef::invalid();
 
+            const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+            bool                mayDefineTrackedReg = trackedReg.isValid() &&
+                                                     (info.special != MicroInstrRegSpecial::None || flags.has(MicroInstrFlagsE::EncoderRegUseDef));
+            if (trackedReg.isValid() && !mayDefineTrackedReg)
+            {
+                for (const MicroInstrRegMode mode : info.regModes)
+                {
+                    if (mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef)
+                    {
+                        mayDefineTrackedReg = true;
+                        break;
+                    }
+                }
+            }
+
             // What the operation does, not what its opcode may do: a bitwise
             // complement, a move and an address computation share an opcode
             // with arithmetic that writes the flags, and leave them alone.
+            // Likewise, read-only register modes cannot end the tracked-value
+            // search, so they need no operand decode on that path.
             const MicroInstrOperand* scanOps = nullptr;
-            if (trackedReg.isValid() ||
-                (flags.has(MicroInstrFlagsE::DefinesCpuFlags) && MicroPassHelpers::instructionCpuFlagsDependOnOperands(*scanInst)))
+            const bool needsFlagOps = flags.has(MicroInstrFlagsE::DefinesCpuFlags) && MicroPassHelpers::instructionCpuFlagsDependOnOperands(*scanInst);
+            if (mayDefineTrackedReg || needsFlagOps)
                 scanOps = scanInst->ops(operands);
             if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
                 return scanRef;
@@ -1281,7 +1298,7 @@ namespace
                 MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanOps))
                 return scanRef;
 
-            if (trackedReg.isValid())
+            if (mayDefineTrackedReg)
             {
                 if (!scanOps)
                     continue;

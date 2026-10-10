@@ -3299,11 +3299,11 @@ namespace
             const MicroInstr* first = instAt(start);
             if (!first || first->op != MicroInstrOpcode::CmpRegImm)
                 continue;
-            const MicroInstrOperand* firstOps = first->ops(operands);
-            if (!firstOps)
-                continue;
             const MicroInstr* firstJump = instAt(start + 1);
             if (!firstJump || firstJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* firstOps = first->ops(operands);
+            if (!firstOps)
                 continue;
             const MicroReg    key     = firstOps[0].reg;
             const MicroOpBits keyBits = firstOps[1].opBits;

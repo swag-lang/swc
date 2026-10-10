@@ -210,10 +210,12 @@ namespace InstructionCombine
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+            const MicroInstr& inst = *it;
+            const bool isLoad = inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem;
+            const bool isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg;
+            const MicroInstrOperand* ops = isLoad || isStore ? inst.ops(*ctx.operands) : nullptr;
 
-            if ((inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem) && ops)
+            if (isLoad && ops)
             {
                 // A RIP-relative load participates through its relocation
                 // identity; one whose relocation cannot be found stays
@@ -271,7 +273,7 @@ namespace InstructionCombine
                 continue;
             }
 
-            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg) && ops)
+            if (isStore && ops)
             {
                 const MicroReg    base = ops[0].reg;
                 const MicroOpBits bits = ops[2].opBits;
@@ -352,12 +354,14 @@ namespace InstructionCombine
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+            const MicroInstr& inst = *it;
+            const bool isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm;
+            const bool isLoad = inst.op == MicroInstrOpcode::LoadRegMem;
+            const MicroInstrOperand* ops = isStore || isLoad ? inst.ops(*ctx.operands) : nullptr;
 
             // A register and an immediate store alike: they differ only in
             // where the width and the offset sit.
-            if ((inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm) && ops)
+            if (isStore && ops)
             {
                 const bool        fromReg = inst.op == MicroInstrOpcode::LoadMemReg;
                 const MicroReg    base    = ops[0].reg;
@@ -389,7 +393,7 @@ namespace InstructionCombine
             if (pending.empty())
                 continue;
 
-            if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
+            if (isLoad && ops)
             {
                 // A read keeps only the stores it provably misses: the same
                 // base, and bytes that do not overlap. It also redefines its

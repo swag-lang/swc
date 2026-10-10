@@ -340,7 +340,6 @@ impl IForm for FormText
 
             painter.popTransform()
 
-            // Next line
             y0 += ht + (.lineSpacing * zscale)
         }
     }

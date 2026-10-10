@@ -18,7 +18,6 @@ struct StreamInfo
         // A picture with non-square samples, common in television standards and disc sources, can store a
         // different width than its displayed width. Zero means the stored and displayed sizes match, as
         // they do for modern encodes.
-        // encode states.
         displayWidth:  s32
         displayHeight: s32     // Display height in pixels; zero uses the stored frame height.
 

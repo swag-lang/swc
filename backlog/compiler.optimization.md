@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
 
 - Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:08 — Skip empty guarded-call work and visit only guarded call sites.
+- Updated: 2026-10-10 14:10 — Reject impossible copy joins before instruction decoding.
 - Area: compiler/backend
 - State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
   of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
@@ -105,6 +105,11 @@ new language syntax.
   is populated only after a valid region containing a call is found, and call positions retain
   ascending instruction order, so node processing is unchanged. The Release build and focused
   native `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `coalesceSameValueCopies` now checks its already-built dense use/definition
+  lists before fetching an instruction and decoding operands. Anything other than one virtual use
+  and one virtual definition cannot satisfy the full-register-copy matcher or its later assertion.
+  The Release build and focused native `physical_copy_intervals.swg` test passed; no timing claim
+  is made.
 - Evidence: the walk describes every concrete claim by the position it occupies, except
   for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
   the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole

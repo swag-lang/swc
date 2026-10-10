@@ -2343,6 +2343,11 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     const MicroReg         debugBase = context_->debugStackBaseVirtualReg;
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
+        // A full register copy has one virtual use and one virtual definition.
+        // Reject every other instruction from the already-built lists before
+        // fetching it and decoding its operands.
+        if (defVirtualIndices_[idx].size() != 1 || useVirtualIndices_[idx].size() != 1)
+            continue;
         MicroReg          dstReg;
         MicroReg          srcReg;
         const MicroInstr* inst = instructions_->ptr(instrRefs[idx]);

@@ -62,7 +62,7 @@ impl IForm for FormShape
         xb += xbu
         yb += ybu
 
-        // Same size
+        // Keep width and height equal while Shift is held.
         let shiftPressed = cast(bool, evt.modifiers & .Shift)
         if shiftPressed
         {

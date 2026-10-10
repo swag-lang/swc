@@ -35,6 +35,7 @@ the latest entry was removed. The removal itself lives in Git.
 
 | File | Area | Updated |
 | --- | --- | --- |
+| [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-10 11:07 |
 | [compiler.core.md](compiler.core.md) | Compiler frontend, backend, incrementality, and workspace build engine | 2026-10-10 10:20 |
 | [repo.prompts.md](repo.prompts.md) | Copy-pasteable prompts for long-running campaigns | 2026-10-09 17:16 |
 | [repo.tooling.md](repo.tooling.md) | The build, sandbox, and test harness | 2026-10-09 03:04 |
@@ -47,7 +48,6 @@ the latest entry was removed. The removal itself lives in Git.
 | [platform.portability.md](platform.portability.md) | Every operating-system port, target backend, and Windows-bound contract that must become portable | 2026-10-08 21:29 |
 | [compiler.language.service.md](compiler.language.service.md) | Compiler-backed editor analysis, diagnostics, semantic queries, symbol operations, and code actions | 2026-10-08 19:09 |
 | [compiler.safety.md](compiler.safety.md) | Memory safety: the borrow rules, the sanity proofs, the runtime guards, and the unsafe surface | 2026-10-07 20:42 |
-| [compiler.optimization.md](compiler.optimization.md) | Intermodule and backend optimization, register allocation, final layout, and generated-code performance | 2026-10-07 19:55 |
 | [runtime.allocator.md](runtime.allocator.md) | `bin/runtime`, and the allocator in particular | 2026-10-06 21:14 |
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism: task ownership, memory isolation, cancellation, runtime contracts, and migration | 2026-10-06 20:59 |
 | [cpu.simd.md](cpu.simd.md) | Explicit SIMD, its compiler/backend capabilities, and optimized consumers | 2026-10-06 20:59 |

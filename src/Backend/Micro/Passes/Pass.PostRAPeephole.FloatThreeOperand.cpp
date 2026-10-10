@@ -1432,6 +1432,104 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A complement consumed by an AND is one BMI1 instruction:
+    //
+    //     mov r12, rax ; not r12 ; and r12, r15        ->    andn r12, rax, r15
+    //     not r12 ; mov r12d, r12d ; and r12, r15      ->    andn r12d, r12d, r15d
+    //     not rdx ; and rcx, rdx                       ->    andn rcx, rdx, rcx
+    //
+    // In the last form the AND keeps its other operand, so the complement must die
+    // there. The copy is optional. A zero extension from 32 bits between the complement and
+    // the AND selects the 32-bit form, which zero-extends its result: (~a & M32) & b
+    // equals the low 32 bits of ~a & b. ANDN leaves the parity flag undefined, so the
+    // flags of the AND must be dead.
+    bool tryFoldNotIntoAndNot(Context& ctx, const MicroInstrRef notRef, const MicroInstr& notInst)
+    {
+        const MicroInstrOperand* notOps = ctx.operandsFor(notRef);
+        if (!notOps || notInst.numOperands < 3 || notOps[2].microOp != MicroOp::BitwiseNot || ctx.isClaimed(notRef))
+            return false;
+        const MicroReg    target  = notOps[0].reg;
+        const MicroOpBits notBits = notOps[1].opBits;
+        if (!target.isInt() || ctx.isPrivateFrameBase(target) || (notBits != MicroOpBits::B32 && notBits != MicroOpBits::B64))
+            return false;
+
+        // An optional zero extension of the complement from 32 bits.
+        MicroInstrRef     nextRef = ctx.nextRef(notRef);
+        const MicroInstr* next    = ctx.instruction(nextRef);
+        MicroInstrRef     zextRef = MicroInstrRef::invalid();
+        bool              narrow  = notBits == MicroOpBits::B32;
+        if (next && next->op == MicroInstrOpcode::LoadZeroExtRegReg)
+        {
+            const MicroInstrOperand* zextOps = ctx.operandsFor(nextRef);
+            if (!zextOps || zextOps[0].reg != target || zextOps[1].reg != target || zextOps[3].opBits != MicroOpBits::B32 || ctx.isClaimed(nextRef))
+                return false;
+            zextRef = nextRef;
+            narrow  = true;
+            nextRef = ctx.nextRef(nextRef);
+            next    = ctx.instruction(nextRef);
+        }
+
+        // The AND that consumes it.
+        if (!next || next->op != MicroInstrOpcode::OpBinaryRegReg || ctx.isClaimed(nextRef))
+            return false;
+        const MicroInstrOperand* andOps = ctx.operandsFor(nextRef);
+        if (!andOps || andOps[3].microOp != MicroOp::And || !andOps[0].reg.isInt() || !andOps[1].reg.isInt() || andOps[0].reg == andOps[1].reg)
+            return false;
+        // The operand the complement is ANDed with, and where the result lands.
+        const bool     intoTarget = andOps[0].reg == target;
+        const MicroReg other      = intoTarget ? andOps[1].reg : andOps[0].reg;
+        if (!intoTarget && (andOps[1].reg != target || ctx.isPrivateFrameBase(other) ||
+                            !ctx.isRegDeadAfter(target, ctx.instructionIndex + (zextRef.isValid() ? 2 : 1))))
+            return false;
+        const MicroOpBits andBits = andOps[2].opBits;
+        if (andBits != MicroOpBits::B32 && andBits != MicroOpBits::B64)
+            return false;
+        if (!narrow && (notBits != MicroOpBits::B64 || andBits != MicroOpBits::B64))
+            return false;
+        if (narrow && !zextRef.isValid() && andBits != MicroOpBits::B32)
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, nextRef, ctx.builder))
+            return false;
+
+        // The copy that put the complemented value in place, when its source survives it.
+        MicroReg            source  = target;
+        const MicroInstrRef copyRef = ctx.previousRef(notRef);
+        const MicroInstr*   copy    = ctx.instruction(copyRef);
+        bool                useCopy = false;
+        if (copy && copy->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(copyRef))
+        {
+            const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+            if (copyOps && copyOps[0].reg == target && copyOps[1].reg.isInt() && copyOps[1].reg != target &&
+                !ctx.isPrivateFrameBase(copyOps[1].reg) &&
+                (copyOps[2].opBits == MicroOpBits::B64 || (narrow && copyOps[2].opBits == MicroOpBits::B32)))
+            {
+                source  = copyOps[1].reg;
+                useCopy = true;
+            }
+        }
+
+        if (!ctx.claimAll({notRef, nextRef}))
+            return false;
+        if (zextRef.isValid() && !ctx.claimAll({zextRef}))
+            return false;
+        if (useCopy && !ctx.claimAll({copyRef}))
+            return false;
+
+        MicroInstrOperand newOps[5] = {};
+        newOps[0].reg               = intoTarget ? target : other;
+        newOps[1].reg               = source;
+        newOps[2].reg               = other;
+        newOps[3].opBits            = narrow ? MicroOpBits::B32 : MicroOpBits::B64;
+        newOps[4].microOp           = MicroOp::AndNot;
+        ctx.emitRewrite(nextRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5}, true);
+        ctx.emitErase(notRef);
+        if (zextRef.isValid())
+            ctx.emitErase(zextRef);
+        if (useCopy)
+            ctx.emitErase(copyRef);
+        return true;
+    }
+
     // The result of a multiply by a constant can be named where it is wanted,
     // the other way round:
     //

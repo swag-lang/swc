@@ -12,7 +12,9 @@ private func mdctDirect(spectrum: const [..] f32, output: [*] f64)
         var sum = 0.0'f64
         for bin in half
         {
-            let angle = 2.0 * Math.ConstF64.Pi / cast(f64, n) * (cast(f64, index) + 0.5 + cast(f64, n) / 4.0) * (cast(f64, bin) + 0.5)
+            let angle = 2.0 * Math.ConstF64.Pi / cast(f64, n) *
+                        (cast(f64, index) + 0.5 + cast(f64, n) / 4.0) *
+                        (cast(f64, bin) + 0.5)
             sum += cast(f64, spectrum[bin]) * Math.cos(angle)
         }
 

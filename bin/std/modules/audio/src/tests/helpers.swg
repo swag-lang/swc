@@ -31,7 +31,9 @@ func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
     return path
 }
 
-func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding, source: [..] u8, destinationCapacity: u64)->{ destination: Array'u8, progress: CodecProgress } fail
+func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding,
+                           source: [..] u8,
+                           destinationCapacity: u64)->{ destination: Array'u8, progress: CodecProgress } fail
 {
     var codec: CodecPcmToPcm16
     let allocator = Swag.getContext().allocator!

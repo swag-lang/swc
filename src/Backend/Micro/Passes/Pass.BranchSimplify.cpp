@@ -65,13 +65,14 @@ namespace
 
     // Label ordinals, label reference counts and register mentions. The branch scans are rebuilt
     // after every rewrite into thread-local caches, so a cleared table is refilled in place.
-    using CountTable = FlatKeyMap<uint32_t>;
+    using CountTable         = FlatKeyMap<uint32_t>;
+    using RetainedCountTable = TrackedClearFlatKeyMap<uint32_t>;
 
     struct ProgramLayout
     {
         std::vector<MicroInstrRef> order;
         std::vector<uint32_t>      ordinalByRef;
-        CountTable                 labelOrdinalById;
+        RetainedCountTable         labelOrdinalById;
         bool                       hasAnyLabel         = false;
         bool                       hasConditionalJump  = false;
         bool                       hasImmediateCompare = false;
@@ -184,7 +185,7 @@ namespace
     }
 
     void buildProgramLayout(ProgramLayout& outLayout, const MicroStorage& storage, const MicroOperandStorage& operands,
-                            CountTable* outLabelReferences = nullptr, bool* outIndirectJump = nullptr)
+                            RetainedCountTable* outLabelReferences = nullptr, bool* outIndirectJump = nullptr)
     {
         outLayout.order.clear();
         outLayout.order.reserve(storage.count());
@@ -269,8 +270,8 @@ namespace
     struct BranchScan
     {
         ProgramLayout layout;
-        CountTable    labelReferences;
-        CountTable    mentions;
+        RetainedCountTable             labelReferences;
+        RetainedCountTable             mentions;
         FlatKeyMap<uint32_t, uint64_t> diamondImmediateLabelReferences;
         bool          indirectJump = false;
         bool          diamondScanUsable = true;
@@ -293,7 +294,7 @@ namespace
         {
             if (!layoutBuilt)
             {
-                CountTable* labelReferences = countMentions ? nullptr : &scan.labelReferences;
+                RetainedCountTable* labelReferences = countMentions ? nullptr : &scan.labelReferences;
                 bool*       indirectJump    = countMentions ? nullptr : &scan.indirectJump;
                 buildProgramLayout(scan.layout, storage, operands, labelReferences, indirectJump);
                 layoutBuilt = true;
@@ -332,9 +333,9 @@ namespace
 
     struct JumpLabelReferenceCache
     {
-        CountTable        counts;
-        const CountTable* borrowed = nullptr;
-        bool              built    = false;
+        RetainedCountTable        counts;
+        const RetainedCountTable* borrowed = nullptr;
+        bool                      built    = false;
 
         void invalidate()
         {
@@ -342,7 +343,7 @@ namespace
             built    = false;
         }
 
-        void borrow(const CountTable& source)
+        void borrow(const RetainedCountTable& source)
         {
             // Keep the same scratch-node lifetime as a fresh count build.
             counts.clear();
@@ -350,7 +351,7 @@ namespace
             built    = false;
         }
 
-        const CountTable& get(const MicroStorage& storage, const MicroOperandStorage& operands)
+        const RetainedCountTable& get(const MicroStorage& storage, const MicroOperandStorage& operands)
         {
             if (borrowed)
                 return *borrowed;
@@ -371,7 +372,8 @@ namespace
         }
     };
 
-    uint32_t jumpLabelReferenceCount(const CountTable& counts, const uint32_t labelId)
+    template<typename Table>
+    uint32_t jumpLabelReferenceCount(const Table& counts, const uint32_t labelId)
     {
         const uint32_t* count = counts.find(labelId);
         return count ? *count : 0;
@@ -1436,7 +1438,7 @@ namespace
     // An inlined boolean return can reach a sole branch through a copy and a
     // join. Thread the producer's condition to the consumer's two successors
     // when the temporary and the merged byte have no other readers.
-    bool threadInlinedBooleanBranches(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, ProgramLayoutCache& layoutCache, const CountTable* mentionCounts)
+    bool threadInlinedBooleanBranches(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, ProgramLayoutCache& layoutCache, const RetainedCountTable* mentionCounts)
     {
         if (!builder)
             return false;
@@ -1739,7 +1741,7 @@ namespace
             return false;
         const size_t count = layout.order.size();
 
-        std::optional<CountTable> localLabelReferences;
+        std::optional<RetainedCountTable> localLabelReferences;
         if (!branchScan)
         {
             localLabelReferences.emplace();
@@ -4438,7 +4440,7 @@ namespace
 
         // D is a byte the skipped part made for B alone: nothing else may read
         // it, or running that part on the other path would be observable.
-        std::optional<CountTable> localMentions;
+        std::optional<RetainedCountTable> localMentions;
         const auto*               mentions = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
         {
@@ -4598,7 +4600,7 @@ namespace
         if (candidates.empty())
             return false;
 
-        std::optional<CountTable> localMentions;
+        std::optional<RetainedCountTable> localMentions;
         const bool                hasCurrentBranchScan = scanCache.built && !scanCache.scan.indirectJump;
         const auto*               mentions             = &scanCache.scan.mentions;
         if (!hasCurrentBranchScan)
@@ -7918,7 +7920,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             shortCircuitLayout.invalidate();
             relocationCache.invalidate();
         }
-        const CountTable* currentMentions = currentBranchScan ? &currentBranchScan->mentions : nullptr;
+        const RetainedCountTable* currentMentions = currentBranchScan ? &currentBranchScan->mentions : nullptr;
         if (threadInlinedBooleanBranches(storage, operands, context.builder, shortCircuitLayout, currentMentions))
         {
             roundChanged = true;

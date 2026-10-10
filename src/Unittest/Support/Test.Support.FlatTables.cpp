@@ -47,6 +47,45 @@ SWC_TEST_BEGIN(FlatTables_PointerSetClearAfterLargeAndSmallFills)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FlatTables_TrackedClearFlatKeyMapAfterLargeAndSmallFills)
+{
+    constexpr uint32_t           K_ALL_ONES = std::numeric_limits<uint32_t>::max();
+    TrackedClearFlatKeyMap<uint32_t> map;
+    for (uint32_t key = 0; key < 4096; ++key)
+        map.getOrInsert(key) = key + 1;
+    map.getOrInsert(K_ALL_ONES) = 7;
+    if (map.size() != 4097)
+        return Result::Error;
+
+    // A dense clear uses the saved occupied slots instead of scanning the full table.
+    map.clear();
+    if (!map.empty() || map.find(12) || map.find(K_ALL_ONES))
+        return Result::Error;
+
+    map.emplace(10, 11);
+    map.emplace(10, 99);
+    if (!map.find(10) || *map.find(10) != 11)
+        return Result::Error;
+
+    // A small fill of the retained table gives its large allocation back on clear.
+    map.clear();
+    map.clear();
+    if (!map.empty() || map.find(10))
+        return Result::Error;
+
+    for (uint32_t key = 0; key < 3000; key += 3)
+        map.getOrInsert(key) = key * 2;
+    for (uint32_t key = 0; key < 3000; ++key)
+    {
+        const uint32_t* value = map.find(key);
+        if ((value != nullptr) != (key % 3 == 0))
+            return Result::Error;
+        if (value && *value != key * 2)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FlatTables_FlatKeyMapClearAfterLargeAndSmallFills)
 {
     constexpr uint32_t   K_ALL_ONES = std::numeric_limits<uint32_t>::max();

@@ -42,14 +42,15 @@ namespace
 
     // Gathers the link library required by every foreign function referenced by a code block. The
     // dependency-module hooks are themselves foreign functions, so this also pulls in dependency libs.
-    void collectForeignLibs(std::set<Utf8>& outLibNames, const TaskContext& ctx, const MachineCode& code)
+    // A function's library depends on the function alone, so one already in 'seen' adds nothing.
+    void collectForeignLibs(std::set<Utf8>& outLibNames, PointerSet<const SymbolFunction>& seen, const TaskContext& ctx, const MachineCode& code)
     {
         for (const MicroRelocation& relocation : code.codeRelocations)
         {
             if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress || !relocation.targetSymbol)
                 continue;
             const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
-            if (!function)
+            if (!function || !seen.insert(function))
                 continue;
 
             // An explicit link module wins; otherwise the origin module name maps to the
@@ -895,11 +896,12 @@ namespace
         // Library names: every foreign-function and dependency-hook module.
         for (const Utf8& library : builder.compiler().foreignLibs())
             outLibNames.insert(normalizedLibName(library.view()));
+        PointerSet<const SymbolFunction> foreignFunctions;
         for (const NativeFunctionInfo& info : builder.functionInfos)
             if (info.machineCode)
-                collectForeignLibs(outLibNames, builder.ctx(), *info.machineCode);
+                collectForeignLibs(outLibNames, foreignFunctions, builder.ctx(), *info.machineCode);
         if (builder.startup)
-            collectForeignLibs(outLibNames, builder.ctx(), builder.startup->code);
+            collectForeignLibs(outLibNames, foreignFunctions, builder.ctx(), builder.startup->code);
 
         // Search directories: the SDK/MSVC library directories, then dependency link dirs and the folders
         // that hold imported-API artifacts.

@@ -1816,12 +1816,8 @@ namespace
             return list.empty() || (list.front() >= lo && list.back() < hi);
         };
         const auto noneWithin = [](const SmallVector<uint32_t, 4>& list, const uint32_t lo, const uint32_t hi) {
-            for (const uint32_t ordinal : list)
-            {
-                if (ordinal >= lo && ordinal < hi)
-                    return false;
-            }
-            return true;
+            const auto firstAtOrAfterLo = std::lower_bound(list.begin(), list.end(), lo);
+            return firstAtOrAfterLo == list.end() || *firstAtOrAfterLo >= hi;
         };
 
         bool changed = false;

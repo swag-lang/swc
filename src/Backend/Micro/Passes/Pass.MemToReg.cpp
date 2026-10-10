@@ -10,6 +10,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -607,18 +608,23 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // the same straight line. Interface dispatch copies a local's address into
     // a temporary before reading its first field; the copy does not expose the
     // object. An actual escape through either register still poisons it below.
-    std::unordered_set<uint32_t> addressCopies;
+    FlatKeySet addressCopies;
     if (!addrRegOffset.empty())
     {
-        std::unordered_map<MicroReg, uint32_t> definitions;
+        // Definition counts by register, keyed by its packed form: only looked up, never walked.
+        FlatKeyMap<uint32_t> definitions;
         for (const MicroInstr& inst : storage.view())
         {
             const auto* ops   = inst.ops(operands);
             const auto  modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
             for (size_t i = 0; i < modes.size(); ++i)
                 if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtualInt())
-                    ++definitions[ops[i].reg];
+                    ++definitions.getOrInsert(ops[i].reg.packed);
         }
+        const auto definedOnce = [&](const MicroReg reg) {
+            const uint32_t* count = definitions.find(reg.packed);
+            return count && *count == 1;
+        };
         std::unordered_set<MicroReg> available;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
@@ -631,7 +637,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 continue;
             auto found = addrRegOffset.find(ops[0].reg);
             if (it->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
-                ops[0].reg.isVirtualInt() && ops[0].reg != frameBase && definitions[ops[0].reg] == 1 &&
+                ops[0].reg.isVirtualInt() && ops[0].reg != frameBase && definedOnce(ops[0].reg) &&
                 found == addrRegOffset.end() && available.contains(ops[1].reg))
             {
                 const AddrRegInfo& source = addrRegOffset.at(ops[1].reg);

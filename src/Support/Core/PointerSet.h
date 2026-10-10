@@ -419,6 +419,7 @@ public:
     }
 
     size_t size() const noexcept { return count_ + (hasFreeKey_ ? 1 : 0); }
+    bool   empty() const noexcept { return size() == 0; }
 
     void clear() noexcept
     {

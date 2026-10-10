@@ -7,6 +7,7 @@
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA constant folding driven by SSA reaching definitions.
@@ -155,7 +156,7 @@ namespace
         const MicroOperandStorage*             operands      = nullptr;
         const TaskContext*                     taskContext   = nullptr;
         const MicroBuilder*                    addressSource = nullptr;
-        std::unordered_map<uint32_t, uint64_t> constantAddressByInstruction;
+        FlatKeyMap<uint64_t>                   constantAddressByInstruction;
     };
 
     constexpr uint32_t K_MAX_ADDRESS_CHAIN_DEPTH = 8;
@@ -180,10 +181,10 @@ namespace
         {
             case MicroInstrOpcode::LoadRegPtrReloc:
             {
-                const auto found = context.constantAddressByInstruction.find(def.instRef.get());
-                if (found == context.constantAddressByInstruction.end())
+                const uint64_t* found = context.constantAddressByInstruction.find(def.instRef.get());
+                if (!found)
                     return false;
-                outAddress = found->second;
+                outAddress = *found;
                 return true;
             }
 
@@ -252,7 +253,7 @@ namespace
                 continue;
             if (!relocation.instructionRef.isValid() || !relocation.targetAddress)
                 continue;
-            context.constantAddressByInstruction[relocation.instructionRef.get()] = relocation.targetAddress;
+            context.constantAddressByInstruction.getOrInsert(relocation.instructionRef.get()) = relocation.targetAddress;
         }
     }
 

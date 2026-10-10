@@ -4,7 +4,6 @@
 #foreignlib("user32")
 #foreignlib("ucrt")
 
-////////////////////////////////////////////////////////////
 namespace __Win32RT
 {
     alias HANDLE                 = *void?
@@ -152,9 +151,7 @@ func __hostThreadStorageSet(id: u64, value: *void?)->bool => id != 0 and __Win32
 
 func __hostCurrentThreadId()->u64 => __Win32RT.GetCurrentThreadId()
 
-////////////////////////////////////////////////////////////
 // EXECUTION RESOURCES
-////////////////////////////////////////////////////////////
 
 // Starts one host thread running `entry` with `param`, or returns null when the host refuses.
 func __hostThreadCreate(entry: __Win32RT.THREAD_START_ROUTINE, param: *void?)->*void? => __Win32RT.CreateThread(null, 0, entry, param, 0, null)
@@ -203,9 +200,7 @@ func __hostMonotonicFrequency()->u64
     return cast(u64, frequency)
 }
 
-////////////////////////////////////////////////////////////
 // LOCKS AND CONDITIONS
-////////////////////////////////////////////////////////////
 
 func __hostLockExclusive(lock: *__Win32RT.SRWLOCK)          => __Win32RT.AcquireSRWLockExclusive(lock)
 func __hostUnlockExclusive(lock: *__Win32RT.SRWLOCK)        => __Win32RT.ReleaseSRWLockExclusive(lock)
@@ -221,9 +216,7 @@ func __hostConditionWakeAll(condition: *__Win32RT.CONDITION_VARIABLE) => __Win32
 // Atomically releases `lock`, waits for a wake, and reacquires it. Returns false on timeout.
 func __hostConditionWait(condition: *__Win32RT.CONDITION_VARIABLE, lock: *__Win32RT.SRWLOCK, milliseconds: u32)->bool => __Win32RT.SleepConditionVariableSRW(condition, lock, milliseconds, 0) != __Win32RT.FALSE
 
-////////////////////////////////////////////////////////////
 // PROCESS-WIDE ANCHOR
-////////////////////////////////////////////////////////////
 
 // Publishes `candidate` as the one process-wide value for `key`, and returns the value that
 // actually won. Every artifact of one process carries its own copy of the runtime, so a
@@ -302,9 +295,7 @@ func __hostPageRelease(address: *void?, _size: u64)
     discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
 }
 
-////////////////////////////////////////////////////////////
 // MUTEX
-////////////////////////////////////////////////////////////
 
 #[Swag.NoDoc]
 struct MutexRW
@@ -326,9 +317,7 @@ impl MutexRW
     }
 }
 
-////////////////////////////////////////////////////////////
 // LIBC
-////////////////////////////////////////////////////////////
 
 namespace __Win32RT
 {
@@ -371,9 +360,7 @@ namespace __Win32RT
     }
 }
 
-////////////////////////////////////////////////////////////
 // INTRINSIC WRAPPERS
-////////////////////////////////////////////////////////////
 
 {
     func sin(value: f32)->f32 => __Win32RT.sinf(value)
@@ -416,7 +403,6 @@ namespace __Win32RT
     func atan2(value1, value2: f64)->f64 => __Win32RT.atan2(value1, value2)
 }
 
-////////////////////////////////////////////////////////////
 // The command line this process was launched with, still owned by the operating system and
 // therefore valid for the whole run. The buffer holds the executable path followed by the
 // arguments, which is the shape 'Swag.args()' parses.
@@ -451,7 +437,6 @@ func __osCommandLine()->string?
 // what the VEX-encoded forms the backend emits depend on. A CPUID bit alone would not prove it.
 func __hostHasAvx2()->bool => __Win32RT.IsProcessorFeaturePresent(__Win32RT.PF_AVX2_INSTRUCTIONS_AVAILABLE) != __Win32RT.FALSE
 
-////////////////////////////////////////////////////////////
 func __printString(message: string?)
 {
     if not message or not message.count do
@@ -461,7 +446,6 @@ func __printString(message: string?)
     discard WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.buffer, len, null, null)
 }
 
-////////////////////////////////////////////////////////////
 func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
 {
     // In a native binary there is no compiler above us to catch the exception:
@@ -492,7 +476,6 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
-////////////////////////////////////////////////////////////
 func __loaddll(name: string) => __Win32RT.LoadLibraryA(name.buffer)
 
 #[Swag.NoReturn]
@@ -501,14 +484,12 @@ func __exit()
     __Win32RT.ExitProcess(0)
 }
 
-////////////////////////////////////////////////////////////
 #[Swag.NoReturn]
 func __exitError()
 {
     __Win32RT.ExitProcess(cast #bit (u32, -666))
 }
 
-////////////////////////////////////////////////////////////
 // Windows context recovery for the common native #test runner. A failed test is abandoned without
 // unwinding, matching the process-abort semantics a native panic had before tests could continue.
 private var g_TestContextBuf: [1360] u8

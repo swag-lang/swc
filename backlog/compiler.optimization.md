@@ -88,7 +88,7 @@ new language syntax.
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 17:10 — Materialize concrete live-out registers only for copy allocation requests that use them.
+- Updated: 2026-10-10 17:12 — Compute concrete live-out bitsets only for instructions that consume them.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
@@ -135,6 +135,7 @@ new language syntax.
 - Taken on 2026-10-10: the main register-allocation rewrite walk now decodes operands only for instructions with explicit register modes, special modes, or encoder register effects. This avoids a second lookup for direct calls and other non-register instructions while ABI call effects continue to come from the prepared use/def data. The Release build and all 299 native optimizer tests passed; no timing claim is made.
 - Taken on 2026-10-10: the main register-allocation rewrite walk now resolves each instruction's register modes once and reuses that array to build allocation requests and rewrite assigned operands. Allocation only changes register fields; special-mode selection reads the separate micro-operation field. The Release build and all 299 native optimizer tests passed; no timing claim is made.
 - Taken on 2026-10-10: register allocation now materializes its concrete live-out `MicroReg` list only when a definition-only copy from a concrete register needs it. Other instructions no longer scan and expand the concrete live-out bitset. The Release build and all 299 native optimizer tests passed; no timing claim is made.
+- Taken on 2026-10-10: the main allocation rewrite now computes concrete live-out bits only for address loads and definition-only copies from concrete registers; virtual live-out bits remain computed for every instruction. The liveness fixed-point path keeps its original combined routine. The Release build and all 299 native optimizer tests passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
   --num-cores 6`. The micro pipeline spends 65.3 s of worker CPU over 33,062 functions;

@@ -2453,6 +2453,58 @@ void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instr
     }
 }
 
+// The linear rewrite needs virtual live-outs at every instruction, but concrete
+// live-outs only for address loads and copies from concrete registers.
+void MicroRegisterAllocationPass::computeCurrentVirtualLiveOutBits(const uint32_t instructionIndex)
+{
+    SWC_ASSERT(controlFlowGraph_ != nullptr);
+
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    if (successors.size() == 1)
+    {
+        SWC_ASSERT(successors[0] < instructionCount_);
+        const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], denseVirtualRegs_.wordCount());
+        std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
+        return;
+    }
+
+    for (uint64_t& value : tempOutVirtual_)
+        value = 0;
+
+    for (const uint32_t succIdx : successors)
+    {
+        SWC_ASSERT(succIdx < instructionCount_);
+        const std::span<const uint64_t> succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, denseVirtualRegs_.wordCount());
+        for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
+            tempOutVirtual_[word] |= succInVirtual[word];
+    }
+}
+
+void MicroRegisterAllocationPass::computeCurrentConcreteLiveOutBits(const uint32_t instructionIndex)
+{
+    SWC_ASSERT(controlFlowGraph_ != nullptr);
+
+    const auto& successors = controlFlowGraph_->successors(instructionIndex);
+    if (successors.size() == 1)
+    {
+        SWC_ASSERT(successors[0] < instructionCount_);
+        const auto succInConcrete = DenseBits::row(liveInConcreteBits_, successors[0], denseConcreteRegs_.wordCount());
+        std::ranges::copy(succInConcrete, tempOutConcrete_.begin());
+        return;
+    }
+
+    for (uint64_t& value : tempOutConcrete_)
+        value = 0;
+
+    for (const uint32_t succIdx : successors)
+    {
+        SWC_ASSERT(succIdx < instructionCount_);
+        const std::span<const uint64_t> succInConcrete = DenseBits::row(liveInConcreteBits_, succIdx, denseConcreteRegs_.wordCount());
+        for (size_t word = 0; word < tempOutConcrete_.size(); ++word)
+            tempOutConcrete_[word] |= succInConcrete[word];
+    }
+}
+
 void MicroRegisterAllocationPass::markCurrentVirtualLiveOut(const uint32_t stamp)
 {
     for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
@@ -3838,9 +3890,11 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         }
         ++stamp;
 
-        computeCurrentLiveOutBits(idx);
+        computeCurrentVirtualLiveOutBits(idx);
         markCurrentVirtualLiveOut(stamp);
         advanceCurrentPositionCursors(idx);
+        bool concreteLiveOutReady     = false;
+        bool concreteLiveOutRegsReady = false;
         const bool currentReachable = !hasControlFlow_ || isInstructionReachable(idx);
 
         if (it->op == MicroInstrOpcode::Label)
@@ -4048,6 +4102,11 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         addressSourceRegs.reserve(2);
         if (instOps)
         {
+            if ((it->op == MicroInstrOpcode::LoadAddrRegMem || it->op == MicroInstrOpcode::LoadAddrAmcRegMem) && !concreteLiveOutReady)
+            {
+                computeCurrentConcreteLiveOutBits(idx);
+                concreteLiveOutReady = true;
+            }
             if (it->op == MicroInstrOpcode::LoadAddrRegMem)
             {
                 const MicroReg baseReg = instOps[1].reg;
@@ -4084,7 +4143,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         SmallVector<AssignedPhysReg> assignedPhysRegs;
         assignedPhysRegs.reserve(allocRequests.size());
-        bool concreteLiveOutRegsReady = false;
 
         for (const auto& requestInfo : allocRequests)
         {
@@ -4099,6 +4157,11 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                  (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
             if (defOnlyCopyFromConcrete && !concreteLiveOutRegsReady)
             {
+                if (!concreteLiveOutReady)
+                {
+                    computeCurrentConcreteLiveOutBits(idx);
+                    concreteLiveOutReady = true;
+                }
                 rebuildCurrentConcreteLiveOutRegs();
                 concreteLiveOutRegsReady = true;
             }

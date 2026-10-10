@@ -2422,7 +2422,7 @@ namespace
         constexpr uint32_t K_MAX_CHAIN = 6;
 
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump || !layout.hasSetCondition)
+        if (!layout.hasConditionalJump || !layout.hasSetCondition || !layout.hasImmediateCompare)
             return false;
 
         // Labels placed past a join's test, by the join's jump.
@@ -2837,7 +2837,7 @@ namespace
         if (!context.builder)
             return false;
         scanCache.ensureLayout(storage, operands);
-        if (!scanCache.scan.layout.hasSetCondition)
+        if (!scanCache.scan.layout.hasSetCondition || !scanCache.scan.layout.hasConditionalJump)
             return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
@@ -3053,7 +3053,7 @@ namespace
         if (!context.builder)
             return false;
         scanCache.ensureLayout(storage, operands);
-        if (!scanCache.scan.layout.hasSetCondition)
+        if (!scanCache.scan.layout.hasSetCondition || !scanCache.scan.layout.hasConditionalJump)
             return false;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);

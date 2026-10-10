@@ -10,10 +10,10 @@ impl TypeFace
     // Reads the whole font file behind a device context.
     //
     // `GetFontData` with no table tag returns a single-face file synthesized for the
-    // selected font, and for a member of a collection that file is unusable: its
-    // Its table directory still uses offsets measured from the collection, whose header is gone.
-    // Reading those offsets can make `cmap` report tens of thousands of subtables and send
-    // parsing past the end of the buffer.
+    // With no table tag, `GetFontData` synthesizes a single-face file for the selected font.
+    // A collection member cannot use that file: its table offsets refer to the collection, whose
+    // header is gone. Reading those offsets can make `cmap` report tens of thousands of
+    // subtables and send parsing past the end of the buffer.
     //
     // Asking for the `ttcf` table instead returns the collection itself, byte for
     // byte, which the face is then selected from. A font that belongs to no
@@ -72,8 +72,6 @@ impl TypeFace
     // `msgothic.ttc` lists `MS Gothic` first and `MS PGothic` last. Match by name; skip faces
     // whose names cannot be read, and fall back to the first face if no name matches (for example,
     // when the system's localized names differ from the `name` table).
-    // A collection with no name match falls back to its first face, which handles
-    // systems whose localized family names differ from the `name` table.
     func loadFaceForFamily(bytes: const [..] u8, family: string, allocator: IAllocator)->*Face fail
     {
         let count = try Face.countFaces(bytes)
@@ -105,7 +103,6 @@ impl TypeFace
         // Everything that can fail runs before the cached value exists. Dropping a typeface
         // destroys its face. Build the face first so a failure cannot read an unassigned pointer
         // instead of reporting the original error.
-        // instead of reporting the failure.
         var buffer = try readHfontData(hfont)
         let family = try readHfontFamily(hfont)
         let face   = try loadFaceForFamily(buffer.toSlice(), family, allocator)

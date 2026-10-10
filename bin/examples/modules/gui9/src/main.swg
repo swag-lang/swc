@@ -61,7 +61,8 @@ func onMsgConfirm(_: *Button)
 
 func onMsgError(_: *Button)
 {
-    MessageDlg.error(g_Surface!, "Unable to mount the virtual disk.\n\nThe password is incorrect or the container is damaged.")
+    MessageDlg.error(g_Surface!,
+                     "Unable to mount the virtual disk.\n\nThe password is incorrect or the container is damaged.")
 }
 
 func onEditSingle(_: *Button)
@@ -89,7 +90,9 @@ func onForm(_: *Button)
 
     let dlg = FormDlg.create(g_Surface!, opt)
     discard dlg.form.addTextField("NAME", "Ada", placeholder: "Display name")
-    discard dlg.form.addPasswordField("PASSWORD", placeholder: "Optional password", help: "Leave empty to keep the current password.")
+    discard dlg.form.addPasswordField("PASSWORD",
+                                      placeholder: "Optional password",
+                                      help: "Leave empty to keep the current password.")
     let role = dlg.form.addChoiceField("ROLE")
     role.addItem("Developer")
     role.addItem("Designer")

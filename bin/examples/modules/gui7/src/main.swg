@@ -139,7 +139,9 @@ func updateHeader()
     let footer   = g_Footer!
     title.setText(Format.toString("GUI7 layout showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
-    footer.setText(Format.toString("F1 : next page (%/%). Resize the window or drag split bars.", g_Page + 1, MaxPages))
+    footer.setText(Format.toString("F1 : next page (%/%). Resize the window or drag split bars.",
+                                   g_Page + 1,
+                                   MaxPages))
 }
 
 func updateThemeButton()

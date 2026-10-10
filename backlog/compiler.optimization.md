@@ -85,107 +85,14 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
-
-- Recorded: 2026-08-29 15:41
-- Updated: 2026-10-10 14:51 — Index register pools directly during interval walks.
-- Area: compiler/backend
-- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
-  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
-  the earlier scan, which also remains the fallback whenever a precondition fails or the
-  walk bails, and the C++ conformity cases run both.
-- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
-  fixed-claim interval arrays with direct default construction. The call sites pass empty
-  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
-  copied for every register. The Release `interval` selection passed two native tests; timing
-  and peak memory were not measured.
-- Taken on 2026-10-10: guarded-call parking after interval assignment now skips its entire call
-  loop when `guardedCallPositions_` is empty, and otherwise visits only entries in the existing
-  ordered `callPositions_` list rather than every instruction index. The guarded-position vector
-  is populated only after a valid region containing a call is found, and call positions retain
-  ascending instruction order, so node processing is unchanged. The Release build and focused
-  native `private_spill_cold_call.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `coalesceSameValueCopies` now checks its already-built dense use/definition
-  lists before fetching an instruction and decoding operands. Anything other than one virtual use
-  and one virtual definition cannot satisfy the full-register-copy matcher or its later assertion.
-  The Release build and focused native `physical_copy_intervals.swg` test passed; no timing claim
-  is made.
-- Taken on 2026-10-10: copy-join analysis now tracks the number of candidates still eligible for
-  renaming and ends its instruction scan as soon as each candidate has been rejected. It avoids
-  decoding remaining instructions after the result is fixed; no join decision changes. The Release
-  build and focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `buildLiveIntervals` now checks the existing dense use/definition lists
-  before fetching an instruction to find copy hints. A hint needs exactly one virtual destination
-  and at most one virtual source, including copies from physical registers. The Release build and
-  focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: the zero-high analysis in `coalesceSameValueCopies` skips instruction
-  lookup when all of an instruction's destinations already have a definition that disproves the
-  property. The state only changes from true to false. The Release build and focused native
-  `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `analyzeLiveness` now skips operand-width lookup for instructions with no
-  virtual uses or definitions; only virtual registers consume the resulting `wideFloat` marks.
-  It also uses the opcode's metadata to skip fetching operands when the opcode cannot carry a
-  variable 128-bit operand, or is fixed 128-bit. The Release build and focused native
-  `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: the final copy-join scan now collects explicit and encoder-implied register
-  references lazily, only if an instruction touches a candidate register. Untouched instructions
-  no longer perform this lookup. The Release build and focused native
-  `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: `computeGlobalBenefits` returns its already-zeroed result without scanning
-  instructions when `hasControlFlow_` is false; `isFlushBoundary` rejects every instruction in
-  that state. The Release build and focused native `physical_copy_intervals.swg` test passed; no
-  timing claim is made.
-- Taken on 2026-10-10: the final copy-join scan now delays instruction lookup and full-copy
-  decoding until a candidate register is touched, and only checks copy shapes with one dense use
-  and definition. Untouched instructions avoid both operations. The Release build and focused
-  native `physical_copy_intervals.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: interval register election now chooses the best free register while it
-  computes fixed-register intersections, retaining the winning intersection for the call-boundary
-  check. This removes a second pool traversal and one repeated interval-intersection search for a
-  free register ending at a call. The Release build and focused native
-  `private_spill_cold_call.swg` test passed; no timing claim is made.
-- Taken on 2026-10-10: edge resolution now locates a split or parked value node by binary search
-  in its already sorted, disjoint per-value node group, with a direct check for unsplit values.
-  The Release build and focused native `physical_copy_intervals.swg` and
-  `private_spill_cold_call.swg` tests passed; no timing claim is made.
-- Taken on 2026-10-10: fixed-interval construction now checks concrete-source liveness directly
-  for the usual zero- or one-successor copy case, keeping the general scan for multiple successors.
-  The Release build, focused `physical_copy_intervals.swg`, and complete native Release suite
-  (3,690 tests) passed; no timing claim is made.
-- Taken on 2026-10-10: interval election now builds per-class physical-register-to-pool-index
-  tables once, replacing repeated linear pool searches for active and inactive nodes. The Release
-  build and focused native `physical_copy_intervals.swg` and `private_spill_cold_call.swg` tests
-  passed; no timing claim is made.
-- Evidence: the walk describes every concrete claim by the position it occupies, except
-  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
-  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
-  instruction, so no operand of theirs can share it, and the second legalization sweep can
-  then need a short save/restore borrow from `tryBorrowReservedRegister`.
-- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
-  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
-  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
-  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
-  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
-  The user explicitly accepts such proof without a measurable runtime improvement.
-- Runtime evidence: the focused four-task Release A/B established no target gain and produced
-  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
-  Investigate that allocation/layout interaction separately; it is not an independently
-  confirmed regression, and no runtime gain is claimed for the retained rule.
-- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
-  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
-  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
-- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
-  longer fires on a whole-library build, and the suites stay green.
-- Related: compiler.optimization.016.
-
-
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
-- Updated: 2026-10-10 13:59 — Store equality-chain cleanup as a range and defer CFG flag-liveness checks.
+- Updated: 2026-10-10 14:54 — Skip operand decoding for irrelevant boolean-fold instructions.
 - Taken on 2026-10-10: `coalesceShortCircuitResults` now maps virtual-register ids through `FlatKeyMap` to a contiguous vector of site records. This removes the node-based map's per-register allocation and pointer lookup while keeping the one-time site scan lazy. The Release compiler build succeeded, and the Release native `short_circuit_booleans.swg` test passed; no timing claim is made.
 - Taken on 2026-10-10: after every use and definition of E has been renamed to D, its retained flat-table record is reset so the old `SmallVector` storage is released, matching the former map erase's lifetime. The Release compiler rebuilt, and the focused Release native test passed; no timing claim is made.
 - Taken on 2026-10-10: `fuseMaterializedBoolBranches` now resolves the local setcc/copy chain before querying CFG flag liveness. Candidates rejected by that local match no longer trigger the CFG query; accepted candidates perform the same query before rewriting. The Release build succeeded, and the focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
+- Taken on 2026-10-10: `foldDecidedBooleans` now fetches operands only for `SetCondReg` instructions or opcodes whose metadata says they may define CPU flags. Other instructions cannot affect the tracked flag definition or boolean result. The Release build and focused `branch_simplification.swg` and `short_circuit_booleans.swg` native tests passed; no timing claim is made.
 - Taken on 2026-10-10: `convertEqualityChainsToBitTests` now records the matched body's last layout ordinal instead of pushing each instruction index into a temporary vector. Accepted links, including optional alias copies, are contiguous, so cleanup iterates the proven range and avoids the per-link index writes and dynamic body storage for longer chains. The Release build and focused `equality_chain_bit_test.swg` native test passed; no timing claim is made.
 - Area: compiler/backend, compilation time
 - Evidence: instrumented Release 0.1.1035 on `swc build -w bin/std -bc release --rebuild
@@ -388,6 +295,100 @@ new language syntax.
 - Complete when: adding a pattern no longer adds a full function scan to every run, or the pass
   drops below 15% of micro-pipeline CPU on the `bin/std` release rebuild.
 - Related: compiler.optimization.029, compiler.optimization.039.
+
+
+### compiler.optimization.024 — The split allocator claims a whole instruction for an implicit operand
+
+- Recorded: 2026-08-29 15:41
+- Updated: 2026-10-10 14:51 — Index register pools directly during interval walks.
+- Area: compiler/backend
+- State: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005, the allocator
+  of HotSpot's client compiler) is what every optimizing build allocates with. `-O0` keeps
+  the earlier scan, which also remains the fallback whenever a precondition fails or the
+  walk bails, and the C++ conformity cases run both.
+- The 2026-09-28 prompt-4 continuation replaced fill-copy construction of fresh value and
+  fixed-claim interval arrays with direct default construction. The call sites pass empty
+  vectors, so each interval starts with the same fields while no empty `LiveInterval` is
+  copied for every register. The Release `interval` selection passed two native tests; timing
+  and peak memory were not measured.
+- Taken on 2026-10-10: guarded-call parking after interval assignment now skips its entire call
+  loop when `guardedCallPositions_` is empty, and otherwise visits only entries in the existing
+  ordered `callPositions_` list rather than every instruction index. The guarded-position vector
+  is populated only after a valid region containing a call is found, and call positions retain
+  ascending instruction order, so node processing is unchanged. The Release build and focused
+  native `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `coalesceSameValueCopies` now checks its already-built dense use/definition
+  lists before fetching an instruction and decoding operands. Anything other than one virtual use
+  and one virtual definition cannot satisfy the full-register-copy matcher or its later assertion.
+  The Release build and focused native `physical_copy_intervals.swg` test passed; no timing claim
+  is made.
+- Taken on 2026-10-10: copy-join analysis now tracks the number of candidates still eligible for
+  renaming and ends its instruction scan as soon as each candidate has been rejected. It avoids
+  decoding remaining instructions after the result is fixed; no join decision changes. The Release
+  build and focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `buildLiveIntervals` now checks the existing dense use/definition lists
+  before fetching an instruction to find copy hints. A hint needs exactly one virtual destination
+  and at most one virtual source, including copies from physical registers. The Release build and
+  focused native `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the zero-high analysis in `coalesceSameValueCopies` skips instruction
+  lookup when all of an instruction's destinations already have a definition that disproves the
+  property. The state only changes from true to false. The Release build and focused native
+  `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `analyzeLiveness` now skips operand-width lookup for instructions with no
+  virtual uses or definitions; only virtual registers consume the resulting `wideFloat` marks.
+  It also uses the opcode's metadata to skip fetching operands when the opcode cannot carry a
+  variable 128-bit operand, or is fixed 128-bit. The Release build and focused native
+  `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: the final copy-join scan now collects explicit and encoder-implied register
+  references lazily, only if an instruction touches a candidate register. Untouched instructions
+  no longer perform this lookup. The Release build and focused native
+  `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: `computeGlobalBenefits` returns its already-zeroed result without scanning
+  instructions when `hasControlFlow_` is false; `isFlushBoundary` rejects every instruction in
+  that state. The Release build and focused native `physical_copy_intervals.swg` test passed; no
+  timing claim is made.
+- Taken on 2026-10-10: the final copy-join scan now delays instruction lookup and full-copy
+  decoding until a candidate register is touched, and only checks copy shapes with one dense use
+  and definition. Untouched instructions avoid both operations. The Release build and focused
+  native `physical_copy_intervals.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: interval register election now chooses the best free register while it
+  computes fixed-register intersections, retaining the winning intersection for the call-boundary
+  check. This removes a second pool traversal and one repeated interval-intersection search for a
+  free register ending at a call. The Release build and focused native
+  `private_spill_cold_call.swg` test passed; no timing claim is made.
+- Taken on 2026-10-10: edge resolution now locates a split or parked value node by binary search
+  in its already sorted, disjoint per-value node group, with a direct check for unsplit values.
+  The Release build and focused native `physical_copy_intervals.swg` and
+  `private_spill_cold_call.swg` tests passed; no timing claim is made.
+- Taken on 2026-10-10: fixed-interval construction now checks concrete-source liveness directly
+  for the usual zero- or one-successor copy case, keeping the general scan for multiple successors.
+  The Release build, focused `physical_copy_intervals.swg`, and complete native Release suite
+  (3,690 tests) passed; no timing claim is made.
+- Taken on 2026-10-10: interval election now builds per-class physical-register-to-pool-index
+  tables once, replacing repeated linear pool searches for active and inactive nodes. The Release
+  build and focused native `physical_copy_intervals.swg` and `private_spill_cold_call.swg` tests
+  passed; no timing claim is made.
+- Evidence: the walk describes every concrete claim by the position it occupies, except
+  for the forms that name a register implicitly - the `rax`/`rdx` pair of a multiply-high,
+  the `cl` of a variable shift, a compare-exchange. Those keep a claim on the whole
+  instruction, so no operand of theirs can share it, and the second legalization sweep can
+  then need a short save/restore borrow from `tryBorrowReservedRegister`.
+- Oct 6 resolved scope: definition-only RDX claims now start at the output of register/register
+  and register/memory binary instructions. Dying multipliers can occupy RDX without consuming
+  R8/R9; carried values, read/write RAX, division and shifts retain their input protection.
+  The Release optimizer regressions pass, including signed/unsigned boundary quotients and
+  inputs retained across multiply-high sequences. This is a structural register-pressure gain.
+  The user explicitly accepts such proof without a measurable runtime improvement.
+- Runtime evidence: the focused four-task Release A/B established no target gain and produced
+  an adverse fannkuch signal. Keep the [patch and all samples](../bench/results/generated-code/20261006-mul-claims/README.md).
+  Investigate that allocation/layout interaction separately; it is not an independently
+  confirmed regression, and no runtime gain is claimed for the retained rule.
+- Next: audit the remaining shift and compare-exchange constraints. Preserve the resolved
+  multiply output rule and diagnose remaining borrow sites on a whole-library build. The
+  global legalization reserve has been removed; compiler.optimization.035 tracks local spills.
+- Complete when: the three forms carry position-precise fixed intervals, the borrow path no
+  longer fires on a whole-library build, and the suites stay green.
+- Related: compiler.optimization.016.
 
 
 ### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature

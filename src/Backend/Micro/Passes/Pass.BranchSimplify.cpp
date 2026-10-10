@@ -1149,6 +1149,9 @@ namespace
                 continue;
             }
 
+            if (inst.op != MicroInstrOpcode::SetCondReg && !flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+                continue;
+
             const MicroInstrOperand* ops = inst.ops(operands);
             if (inst.op == MicroInstrOpcode::SetCondReg)
             {

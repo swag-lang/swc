@@ -213,6 +213,7 @@ void MicroRegisterAllocationPass::initState(MicroPassContext& context)
     worklist_.reserve(instructionCount_);
     inWorklist_.reserve(instructionCount_);
 
+    relocationSnapshots_.clear();
     relocationByDefInstruction_.clear();
 }
 
@@ -2753,14 +2754,14 @@ void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regSt
             // elimination is what creates — turns into a store plus a reload.
             if (instOps[0].reg != virtKey)
                 return;
-            const auto relocIt = relocationByDefInstruction_.find(instRef);
-            if (relocIt == relocationByDefInstruction_.end())
+            const uint32_t* snapshotIndex = relocationByDefInstruction_.find(instRef.get());
+            if (!snapshotIndex)
                 return;
 
             setRematerializedImmediate(regState, instOps[2], instOps[1].opBits);
             regState.rematDefInstRef  = instRef;
             regState.rematIsRelocated = true;
-            regState.rematRelocation  = relocIt->second;
+            regState.rematRelocation  = relocationSnapshots_[*snapshotIndex];
             return;
         }
 
@@ -3759,7 +3760,10 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     for (const MicroRelocation& reloc : context_->builder->codeRelocations())
     {
         if (reloc.instructionRef.isValid())
-            relocationByDefInstruction_[reloc.instructionRef] = reloc;
+        {
+            relocationByDefInstruction_.getOrInsert(reloc.instructionRef.get()) = static_cast<uint32_t>(relocationSnapshots_.size());
+            relocationSnapshots_.push_back(reloc);
+        }
     }
 
     // Main rewrite pass:

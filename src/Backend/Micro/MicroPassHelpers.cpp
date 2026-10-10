@@ -43,11 +43,11 @@ MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const Micro
                 continue;
             const MicroReg dst = useDefs[i].defs[0];
             const RegDefinitionSummary* def = definitions.find(dst.packed);
-            if (!dst.isVirtualInt() || !def || def->count != 1 || result.frameDerived.contains(dst))
+            if (!dst.isVirtualInt() || !def || def->count != 1 || result.frameDerived.contains(dst.packed))
                 continue;
             if (result.isFrame(ops[1].reg, stackPointer))
             {
-                result.frameDerived.insert(dst);
+                result.frameDerived.insert(dst.packed);
                 changed = true;
             }
         }
@@ -61,7 +61,7 @@ MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const Micro
         const auto& info        = MicroInstr::info(inst->op);
         uint8_t     baseIndex   = 0;
         const bool  hasBase     = dereferenceBaseOperandIndex(baseIndex, inst->op, info);
-        const bool  propagation = propagatesAddress(*inst, ops) && result.frameDerived.contains(ops[0].reg);
+        const bool  propagation = propagatesAddress(*inst, ops) && result.frameDerived.contains(ops[0].reg.packed);
         const auto  modes       = info.resolvedRegModes(ops);
         for (size_t operand = 0; operand < modes.size(); ++operand)
         {

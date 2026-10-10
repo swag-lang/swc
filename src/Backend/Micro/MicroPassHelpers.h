@@ -23,13 +23,13 @@ namespace MicroPassHelpers
 
     struct FramePrivacy
     {
-        std::unordered_set<MicroReg> frameDerived;
-        std::vector<MicroInstrRef>   escapes;
-        bool                         framePrivate = true;
+        FlatKeySet                 frameDerived; // registers by packed form
+        std::vector<MicroInstrRef> escapes;
+        bool                       framePrivate = true;
 
         bool isFrame(MicroReg reg, MicroReg stackPointer) const
         {
-            return reg == stackPointer || frameDerived.contains(reg);
+            return reg == stackPointer || frameDerived.contains(reg.packed);
         }
     };
 

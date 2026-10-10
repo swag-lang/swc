@@ -436,7 +436,10 @@ private:
     std::vector<PendingInsert>                 deferredLoopCarriedStores_;
     // Snapshot of what each relocation-bearing address load points at, taken
     // before allocation so a rematerialized copy can be given its own.
-    std::unordered_map<MicroInstrRef, MicroRelocation> relocationByDefInstruction_;
+    // The copies sit in a vector, found by defining instruction through a flat table of
+    // indices; a later relocation of the same instruction replaces an earlier one.
+    std::vector<MicroRelocation> relocationSnapshots_;
+    FlatKeyMap<uint32_t>         relocationByDefInstruction_;
 
     // The pass object lives on a compiler worker across functions. Retain capacity for
     // arrays that are fully overwritten before each use instead of allocating them again.

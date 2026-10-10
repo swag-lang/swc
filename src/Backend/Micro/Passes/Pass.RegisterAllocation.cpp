@@ -4409,14 +4409,23 @@ namespace
             refs.push_back(it.current);
 
         // The frame release before a return: stack-pointer additions and pops up to the return.
+        size_t cachedReleaseBegin = refs.size();
+        size_t cachedReturnIndex  = refs.size();
         const auto releasesFrame = [&](size_t index) {
-            for (; index < refs.size(); ++index)
+            if (index >= cachedReleaseBegin && index < cachedReturnIndex)
+                return true;
+
+            for (size_t cursor = index; cursor < refs.size(); ++cursor)
             {
-                const MicroInstr* inst = storage.ptr(refs[index]);
+                const MicroInstr* inst = storage.ptr(refs[cursor]);
                 if (!inst)
                     return false;
                 if (inst->op == MicroInstrOpcode::Ret)
+                {
+                    cachedReleaseBegin = index;
+                    cachedReturnIndex  = cursor;
                     return true;
+                }
                 if (inst->op == MicroInstrOpcode::Pop)
                     continue;
                 const auto* ops = inst->ops(operands);

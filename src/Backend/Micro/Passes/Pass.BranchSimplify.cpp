@@ -1230,10 +1230,10 @@ namespace
             // What the operation does, not what its opcode may do: a bitwise
             // complement, a move and an address computation share an opcode
             // with arithmetic that writes the flags, and leave them alone.
+            if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
+                return scanRef;
             if (flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
                 MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanInst->ops(operands)))
-                return scanRef;
-            if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
                 return scanRef;
 
             if (trackedReg.isValid())

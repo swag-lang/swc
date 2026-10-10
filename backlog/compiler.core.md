@@ -868,27 +868,6 @@ cache is part of the normal DevMode and Release paths.
 - Complete when: a stable reproducer identifies the cause, the correction passes
   that reproducer repeatedly, and the full native suite remains green.
 
-### compiler.core.051 — Isolate a silent CodeGen failure observed in a discarded JIT prototype
-
-- Recorded: 2026-09-16 18:31
-- Found while: comparing Release compilation of `bin/std` with six pinned performance workers.
-- Evidence: an unmerged build-710 prototype based on `277804c1c` returned exit 5 on the third
-  candidate rebuild of `swc.exe build -w bin/std -m gui -bc release --num-cores 6 --rebuild`.
-  Seven dependency modules completed; gui stopped with
-  `internal compiler error: job 'CodeGen' returned an error without a diagnostic`.
-- Scope: the prototype transferred the existing shared JIT-order lock to its reader and reused
-  local dependency/completion vectors. It was discarded. The same gui command passed once in
-  DevMode; three further runs with unchanged Release build 702 passed. Neither a production
-  regression nor a causal connection to either prototype change has been established.
-- Evidence location: `bench/results/compilation/20260916-bin-release/README.md` and its sample
-  CSV retain the command context, compiler hashes and failed run. The session's external
-  `jit-order-lock-buffers-710.patch` and `jit-order-control` compilers retain the exact prototype.
-- Next: capture the function, waited symbol and failing return path at `abortCodeGen`, replay
-  candidate and baseline, and isolate lock transfer from vector reuse before reviving either
-  optimization. Do not classify this as compiler.core.047 without a matching generic-local witness.
-- Complete when: a bounded reproducer identifies the responsible path, or evidence confines the
-  failure to an invalid discarded prototype; remove this entry once that question is settled.
-
 ### compiler.core.045 — A conditionally evaluated `!` cannot record the proof it makes
 
 - Recorded: 2026-09-15 12:47
@@ -942,24 +921,6 @@ cache is part of the normal DevMode and Release paths.
 - Complete when: current measurements either identify a bounded, worthwhile change with a
   reproducible A/B comparison, or show that the residual cost does not justify further work.
 - Related: compiler.core.001, compiler.core.005, compiler.core.006.
-
-### compiler.core.041 — Reduce parallel dependency registration to a workspace-suite witness
-
-- Recorded: 2026-09-11 23:34
-- Evidence: the 2026-09-11 workspace build stopped inside `std::set::insert` reached from
-  `semaCompilerInclude`. `NativeArtifact_ConcurrentCompilerInputsKeepEveryDependency` now forces
-  six simultaneous writers and checks all included files, loaded files, and deduplicated imports;
-  registration and snapshots share a mutex. That C++ boundary is covered, but the language suites
-  cannot yet force the failing interleaving. A reduction with 256 independent source files and
-  16,384 `#include` expressions over 256 byte fixtures passed both standalone semantic analysis
-  and a workspace build with the unfixed Release 0.1.477 compiler; its manifest retained every
-  fixture. Keeping that reduction as a regression would not distinguish the defect.
-- Next: find a bounded source-level ordering or a workspace-test scheduling hook that exposes
-  missing or corrupted dependency registration without depending on a large GUI module build.
-  Keep the existing C++ concurrency test as the precise internal guard.
-- Complete when: a `bin/unittests/workspace` case fails with unsynchronized registration, passes
-  with synchronized registration under both compiler executables with six workers, and verifies
-  dependency retention and subsequent invalidation without an intermittent timeout as its oracle.
 
 ### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
 

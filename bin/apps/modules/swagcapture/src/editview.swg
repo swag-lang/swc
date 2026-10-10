@@ -51,7 +51,6 @@ impl IWnd for EditView
 
         let painter = evt.paintContext.painter
 
-        // Background
         let matte = .main.editorOptions.editBackColor.a ? .main.editorOptions.editBackColor : .themeColors().view_Bk
 
         var rect = .clientRect()
@@ -74,7 +73,6 @@ impl IWnd for EditView
         clip.inflate(100, 100)
         .capture.paint(painter, clip, captureRect)
 
-        // Capture gizmo
         painter.pushTransform()
         painter.translateTransform(captureRect.x, captureRect.y)
         .capture.gizmo.rect = Math.Rectangle{0, 0, captureRect.width, captureRect.height}

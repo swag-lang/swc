@@ -609,7 +609,7 @@ public impl RichEditCtrl
         if .lines.isEmpty() do
             .newLine(0)
 
-        // A new undo action needs to be regenerate ?
+        // Start a new undo action when the next rune cannot join the current insertion.
         var forceUndo = false
         var pundo     = .currentUndo ? .undoMgr[.currentUndo - 1] : null
         if not .hasSelRect and not .isSelectionEmpty() do

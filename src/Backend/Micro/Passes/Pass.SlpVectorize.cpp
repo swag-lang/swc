@@ -386,8 +386,11 @@ namespace
         SlpValueTable values;
         // Current lane value per register (the low shape.bytes bytes), by packed register.
         FlatKeyMap<uint32_t> regValues;
-        // Stable value for registers live at block entry.
-        std::unordered_map<uint32_t, uint32_t> entryValues;
+        // Stable value for registers live at block entry, by packed register, and the register
+        // of each such value. Every entry value is a fresh opaque one, so a value names at most
+        // one register.
+        FlatKeyMap<uint32_t> entryValues;
+        FlatKeyMap<uint32_t> entryRegByValue;
         // Memory state per (rootKey, offset), lane-aligned slots.
         std::unordered_map<LocationKey, MemLocation, LocationKeyHash> locations;
 
@@ -634,10 +637,12 @@ namespace
 
     uint32_t entryValueFor(BlockScan& scan, MicroReg reg)
     {
-        const auto [it, inserted] = scan.entryValues.try_emplace(reg.packed);
-        if (inserted)
-            it->second = scan.values.makeOpaque();
-        return it->second;
+        if (const uint32_t* known = scan.entryValues.find(reg.packed))
+            return *known;
+        const uint32_t valueId = scan.values.makeOpaque();
+        scan.entryValues.emplace(reg.packed, valueId);
+        scan.entryRegByValue.emplace(valueId, reg.packed);
+        return valueId;
     }
 
     uint32_t currentValue(BlockScan& scan, MicroReg reg)
@@ -1237,13 +1242,11 @@ namespace
                     for (uint32_t lane = 1; lane < scan_->shape.count(); ++lane)
                         if (tuple.ids[lane] != tuple.ids[0])
                             return K_INVALID_ID;
-                    for (const auto& [packedReg, valueId] : scan_->entryValues)
+                    if (const uint32_t* packedReg = scan_->entryRegByValue.find(tuple.ids[0]))
                     {
-                        if (valueId != tuple.ids[0])
-                            continue;
                         const uint32_t dstReg = allocReg();
                         MicroReg       scalar;
-                        scalar.packed = packedReg;
+                        scalar.packed = *packedReg;
                         plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Broadcast, .dst = dstReg, .scalarReg = scalar});
                         remember(tuple, sorted, dstReg);
                         return dstReg;

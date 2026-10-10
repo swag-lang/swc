@@ -7,7 +7,6 @@ enum UpdateCommand
     UpdateBuffers
 }
 
-// The sound driver
 struct Driver
 {
     using native: DriverNative
@@ -141,11 +140,9 @@ impl Driver
         // Halt the backend's audio processing thread first: from here on no mixer
         // pass reads submitted buffers and no voice callback can fire, so the
         // voices below can be destroyed and freed safely.
-        ////////////////
         .stopEngineNative()
 
         // Force update thread to end
-        ////////////////
         .updateTh.safeForceEnd()
         .wakeupUpdate.signal()
         .updateTh.wait()
@@ -154,7 +151,6 @@ impl Driver
         // Be sure no update can come during the closing.
         // If there's a Register update, then register the voice to be destroyed, as it's not
         // yet registered in the active list
-        ////////////////
         .mutexVoicesToUpdate.lock()
         for cmd in .voicesToUpdate
         {
@@ -166,7 +162,6 @@ impl Driver
         .mutexVoicesToUpdate.unlock()
 
         // Destroy voices lists
-        ////////////////
         .toRecycleVoices.add(.pendingRecycleVoices.toSlice())
         .pendingRecycleVoices.clear()
 
@@ -191,7 +186,6 @@ impl Driver
         .activeVoices.clear()
 
         // Destroy buses
-        ////////////////
         for bus in .buses
         {
             bus.destroyNative()
@@ -202,7 +196,6 @@ impl Driver
         .buses.clear()
 
         // Then destroy native driver
-        ////////////////
         .destroyNative()
 
         Swag.drop(me, 1)

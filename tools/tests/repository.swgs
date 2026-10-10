@@ -4,8 +4,7 @@
 
 using Core
 
-const SampleStamp  = "2026-09-06 12:00"
-const SampleReadme = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:00 |\n"
+const SampleReadme = "| File | Area |\n| --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample |\n"
 
 // Inspect the actual child command line as well as the arguments handed to its script.
 func checkCoreBoundArguments(prefix: const [..] string, forwarded: const [..] string, added: const [..] string) fail
@@ -78,10 +77,10 @@ func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiag
         Swag.assert(Utf8.contains(process.standardOutput(), expectedDiagnostic))
 }
 
-// One well-formed entry whose stamps match `SampleReadme`, followed by `body`.
+// One well-formed entry, followed by `body`.
 func sampleEntry(body: string)->String
 {
-    return Format.toString("### repo.sample.001 — Sample\n\n- Recorded: %\n%\n", SampleStamp, body)
+    return Format.toString("### repo.sample.001 — Sample\n\n%\n", body)
 }
 
 func checkRelated(root: string, related: string, expectedExit: s32) fail
@@ -222,7 +221,7 @@ func checkBacklogRenameAmbiguity(parentRoot: string) fail
     duplicate.replace("repo.destination", "repo.duplicate")
     let duplicatePath = Path.combine(root.toString(), "backlog", "repo.duplicate.md")
     discard try File.writeAllBytes(duplicatePath.toString(), cast(const [..] u8, duplicate.toString()))
-    readme += Format.toString("| [repo.other.md](repo.other.md) | Other | % |\n| [repo.duplicate.md](repo.duplicate.md) | Duplicate | % |\n", SampleStamp, SampleStamp)
+    readme += "| [repo.other.md](repo.other.md) | Other |\n| [repo.duplicate.md](repo.duplicate.md) | Duplicate |\n"
     try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
     try runBacklogGit(root.toString(), ["add", "backlog"])
     try checkBacklog(root.toString(), entries.toString(), 1, "backlog identifier 'repo.destination.005' must use suffix 2", readme.toString(), "repo.destination.md")
@@ -248,7 +247,7 @@ func checkBacklogAllocationHistory(root: string) fail
 
     // Parent and child domains own distinct counters even though their prefixes overlap.
     let childPath   = Path.combine(root, "backlog", "repo.sample.child.md")
-    let childReadme = Format.toString("%| [repo.sample.child.md](repo.sample.child.md) | Child | % |\n", SampleReadme, SampleStamp)
+    let childReadme = Format.toString("%| [repo.sample.child.md](repo.sample.child.md) | Child |\n", SampleReadme)
     var child       = first
     child.replace("repo.sample.001", "repo.sample.child.001")
     discard try File.writeAllBytes(childPath.toString(), cast(const [..] u8, child.toString()))
@@ -567,51 +566,22 @@ func checkFormatCoverage() fail
     expect checkBacklog(root.toString(), "", 1, "backlog domain has no entries")
     expect checkBacklog(root.toString(), "# Retired domain\n\nAll work is complete.\n", 1, "backlog domain has no entries")
 
-    // Every entry opens with its Recorded stamp. An Updated stamp sits directly under it, says
-    // what changed, and never precedes it.
-    expect checkBacklog(root.toString(), "### repo.sample.001 — Sample\n\n- Evidence: none.\n", 1, "does not open with '- Recorded: YYYY-MM-DD HH:MM'")
-    expect checkBacklog(root.toString(), "### repo.sample.001 — Sample\n\n- Recorded: 2026-09-06\n", 1, "malformed Recorded stamp")
-    expect checkBacklog(root.toString(), "### repo.sample.001 — Sample\n\n- Recorded: 2026-13-06 12:00\n", 1, "malformed Recorded stamp")
-    expect checkBacklog(root.toString(), "### repo.sample.001 — Sample", 1, "does not open with '- Recorded: YYYY-MM-DD HH:MM'")
-    expect checkBacklog(root.toString(), Format.toString("### repo.sample.002 — Missing stamp\n\n%", sampleEntry("")).toString(), 1, "does not open with '- Recorded: YYYY-MM-DD HH:MM'")
-    expect checkBacklog(root.toString(), Format.toString("%\n### repo.sample.002 — Missing stamp\n\n", sampleEntry("")).toString(), 1, "does not open with '- Recorded: YYYY-MM-DD HH:MM'")
-    for stamp in ["0000-01-01 12:00", "2026-02-31 12:00", "2026-02-29 12:00", "1900-02-29 12:00", "2026-04-31 12:00"]
-    {
-        let invalid = Format.toString("### repo.sample.001 — Sample\n\n- Recorded: %\n", stamp)
-        expect checkBacklog(root.toString(), invalid.toString(), 1, "malformed Recorded stamp")
-    }
+    // Backlogs describe current work; dated history belongs in Git.
+    expect checkBacklog(root.toString(), sampleEntry("- Recorded: 2026-09-06 12:00").toString(), 1, "contains a Recorded or Updated history field")
+    expect checkBacklog(root.toString(), sampleEntry("- Updated: 2026-09-06 12:30 — changed").toString(), 1, "contains a Recorded or Updated history field")
 
-    for stamp in ["2024-02-29 12:00", "2000-02-29 12:00"]
-    {
-        let valid = Format.toString("### repo.sample.001 — Sample\n\n- Recorded: %\n- Updated: % — refreshed\n", stamp, SampleStamp)
-        expect checkBacklog(root.toString(), valid.toString(), 0)
-    }
-
-    expect checkBacklog(root.toString(), sampleEntry("- Updated: 2026-09-06 12:30").toString(), 1, "must say what changed")
-    expect checkBacklog(root.toString(), sampleEntry("- Updated: 2026-09-06 11:00 — earlier").toString(), 1, "earlier than the entry's Recorded stamp")
-    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.\n- Updated: 2026-09-06 12:30 — late").toString(), 1, "must directly follow the entry's Recorded stamp")
-
-    // The inventory row carries the file's latest stamp, and rows go from the newest file down.
-    let refreshed       = sampleEntry("- Updated: 2026-09-06 12:30 — refreshed the evidence")
-    let refreshedReadme = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:30 |\n"
-    expect checkBacklog(root.toString(), refreshed.toString(), 1, "says 2026-09-06 12:00 but the latest stamp in that file is 2026-09-06 12:30")
-    expect checkBacklog(root.toString(), refreshed.toString(), 0, "", refreshedReadme)
-    let duplicateReadme = Format.toString("%| [repo.sample.md](repo.sample.md) | Duplicate | 2026-09-06 12:00 |\n", SampleReadme)
+    let duplicateReadme = Format.toString("%| [repo.sample.md](repo.sample.md) | Duplicate |\n", SampleReadme)
     expect checkBacklog(root.toString(), sampleEntry("").toString(), 1, "duplicate inventory row", duplicateReadme.toString())
     expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.").toString(), 1, "inventory has no row for repo.sample.md", "[Sample](repo.sample.md)\n")
     let other = Path.combine(root.toString(), "backlog", "repo.other.md")
-    discard expect File.writeAllBytes(other.toString(), "### repo.other.001 — Other\n\n- Recorded: 2026-09-06 13:00\n")
-    let unsortedReadme = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:00 |\n| [repo.other.md](repo.other.md) | Other | 2026-09-06 13:00 |\n"
-    let sortedReadme   = "| File | Area | Updated |\n| --- | --- | --- |\n| [repo.other.md](repo.other.md) | Other | 2026-09-06 13:00 |\n| [repo.sample.md](repo.sample.md) | Sample | 2026-09-06 12:00 |\n"
-    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.").toString(), 1, "is out of order", unsortedReadme)
-    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.").toString(), 0, "", sortedReadme)
+    discard expect File.writeAllBytes(other.toString(), "### repo.other.001 — Other\n\n- Next: inspect the issue.\n")
+    let otherReadme = "| File | Area |\n| --- | --- |\n| [repo.other.md](repo.other.md) | Other |\n| [repo.sample.md](repo.sample.md) | Sample |\n"
+    expect checkBacklog(root.toString(), sampleEntry("- Evidence: none.").toString(), 0, "", otherReadme)
     expect File.delete(other.toString())
 
-    // Inside a file, entries go from the most recently updated down, as one list without '##' groups.
-    let older = "### repo.sample.002 — Older\n\n- Recorded: 2026-09-06 11:00\n"
+    // A domain is one flat list, without groups between entries.
+    let older = "### repo.sample.002 — Older\n\n- Next: inspect the issue.\n"
     let newer = sampleEntry("- Evidence: none.")
-    expect checkBacklog(root.toString(), Format.toString("%\n%", older, newer).toString(), 1, "more recent than the one above it")
-    expect checkBacklog(root.toString(), Format.toString("%\n%", newer, older).toString(), 0)
     expect checkBacklog(root.toString(), Format.toString("%\n## Group\n\n%", newer, older).toString(), 1, "grouped under a '##' heading")
     expect checkBacklog(root.toString(), Format.toString("%\n## Out of scope\n\nNothing else.\n", newer).toString(), 0)
 

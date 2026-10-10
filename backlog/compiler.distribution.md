@@ -33,8 +33,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.005 — The first command does not close the first-program loop
 
-- Recorded: 2026-09-05 05:12
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: `swc help` already shows `new script`, `new module`, and their follow-up commands, but
   its links lead to a website and GitHub's moving `master` branch. A user holding only the executable
   has no local route from a command, an error, or a generated starter to version-matched explanation.
@@ -50,7 +48,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
     command-line arguments, files, errors, and a minimal GUI where its prerequisites are met.
   - Extend the existing collision-safe creation result with expected output and a local topic to
     continue with; do not create a second planning mode beside `--dry-run`.
-- Complete when: an offline newcomer can complete a script and workspace tutorial from `swc` alone,
+- Done when: an offline newcomer can complete a script and workspace tutorial from `swc` alone,
   deliberately inspect a build before it runs, and recover from an intentional syntax and missing-
   toolchain error without a browser or repository.
 - Related: compiler.distribution.004, compiler.distribution.006, compiler.distribution.007,
@@ -58,8 +56,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.009 — An autonomous caller cannot tell what a command may execute or change
 
-- Recorded: 2026-09-05 05:12
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Evidence: compiling Swag can execute `#run` and JIT code; `run`, `test`, format, clean, tool
   setup, and example commands have different filesystem, process, and machine-configuration effects.
   `Command.DryRun.cpp` already reports a suppressed-execution plan, and `syntax` stops after parsing.
@@ -74,7 +70,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   linking, cache use, and shell/registry changes. Define safe inspection modes and the boundary at
   which semantic analysis necessarily requires user code. Connect the report to compiler.distribution.008
   rather than maintaining a second, prose-only safety table.
-- Complete when: an autonomous caller can enumerate a command's effects without executing user
+- Done when: an autonomous caller can enumerate a command's effects without executing user
   code, choose a documented non-executing inspection path, and receive a precise report before a
   command writes outside the project or activation-cache roots, launches an artifact, contacts a
   network endpoint, or edits user shell configuration.
@@ -83,7 +79,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.003 — Release acceptance does not verify unsupported hosts
 
-- Recorded: 2026-09-05 05:12
 - Evidence: `src/Main/HostCpuGuard.cpp` already checks AVX2 from a baseline-compatible TLS callback
   before the allocator and CRT callbacks. Its translation unit disables extended instructions and
   whole-program optimization in `swc.vcxproj`. The compiler therefore has an early prerequisite
@@ -95,14 +90,13 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 - Next: add disposable-host acceptance cases with AVX2 absent and present, checking exit status,
   message and initialization ordering for DevMode and Release. Specify the supported Windows and
   architecture boundaries and test their prerequisite reports in the same release matrix.
-- Complete when: supported hosts retain the existing fast path, and every unsupported supported-OS
+- Done when: supported hosts retain the existing fast path, and every unsupported supported-OS
   host receives one deterministic, non-crashing, non-networked prerequisite report before runtime,
   allocator, or compiler initialization.
 - Related: compiler.distribution.001, platform.portability.001.
 
 ### compiler.distribution.001 — One downloaded executable has no finished product contract
 
-- Recorded: 2026-09-05 05:12
 - Evidence: the repository explicitly publishes no binary release today. `swc` resolves `runtime/`
   beside its executable and resolves `std/` beside it or through `SWAG_PATH`; a copied lone
   executable therefore cannot compile an ordinary program. `tools/setup.swgs` currently changes
@@ -117,7 +111,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   `bin/std`, reference, templates, and example inputs. Decide whether the distribution includes all
   published examples or a documented complete subset; no included example may refer to a checkout
   file or network asset absent from its payload.
-- Complete when: a versioned release specification names both contracts, every command and guide
+- Done when: a versioned release specification names both contracts, every command and guide
   uses the terms above, and an automated inventory proves that each promised payload file is present
   with a compatible compiler build number.
 - Related: compiler.distribution.002, compiler.distribution.005, compiler.distribution.010,
@@ -125,7 +119,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.002 — A single-file delivery cannot materialize its compatible resources
 
-- Recorded: 2026-09-05 05:12
 - Evidence: `CompilerInstance` collects `runtime` from the compiler resource root unconditionally,
   while the standard-library resolver requires a `std` directory beside the compiler or a separately
   configured `SWAG_PATH`. The present resource-root lookup intentionally serves a checkout or a
@@ -145,7 +138,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
     used together always originate from one manifest and compiler identity.
   - An installed complete `bin/` continues to run in place without an activation cache and keeps
     taking its colocated `runtime/` and `std/` as one unit.
-- Complete when: on a clean offline Windows profile, a lone release `swc.exe` can run `swc help`,
+- Done when: on a clean offline Windows profile, a lone release `swc.exe` can run `swc help`,
   `swc new script hello`, and `swc hello.swgs`; the same release works after moving the executable,
   after a killed first activation, and with two simultaneous first invocations. A complete `bin/`
   installation passes the same workflows without extraction or `SWAG_PATH`.
@@ -153,7 +146,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.004 — Readiness is discovered only during a failed workflow
 
-- Recorded: 2026-09-05 05:12
 - Evidence: `--show-config` can show resolved paths and reports missing MSVC or Windows SDK library
   directories for native artifacts, but it is attached to a compilation command. A new programmer
   must first understand inputs and backend selection to learn whether the machine can link a native
@@ -167,7 +159,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   feed it, `--show-config`, and native-link diagnostics. Include canonical prerequisite URLs or
   commands only where they are versioned and safe to display; `doctor` itself never downloads,
   installs, elevates, or edits user settings.
-- Complete when: on a clean host without native libraries, `doctor` says that scripts are ready or
+- Done when: on a clean host without native libraries, `doctor` says that scripts are ready or
   what blocks them, says native artifacts are unavailable and why, and gives one actionable next
   step. On a ready host, it identifies every selected library root. Tests cover absent, partial,
   conflicting, inaccessible, and non-ASCII path cases.
@@ -175,7 +167,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.006 — Documentation is not available as version-matched local data
 
-- Recorded: 2026-09-05 05:12
 - Evidence: the language reference and standard-library documentation are maintained in the
   repository and the website is generated from them, but the command help points at remote pages.
   The `doc` pipeline has no serializable documentation model yet (compiler.command.doc.003), so an
@@ -190,7 +181,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   index. Every returned item carries a release version, stable identifier, local source/topic
   reference, signatures, imports, platform requirements, and a minimal compilable example where
   one exists.
-- Complete when: the compiler can answer an offline query for a language feature, a standard symbol,
+- Done when: the compiler can answer an offline query for a language feature, a standard symbol,
   an import, a lifetime contract, and a command option from data built by the same release. A query
   cannot accidentally combine documentation, runtime, or standard-library data from different
   compiler builds.
@@ -199,7 +190,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.007 — Examples are repository files, not a runnable catalogue
 
-- Recorded: 2026-09-05 05:12
 - Evidence: useful scripts, module demonstrations, applications, and tested reference pages exist
   below `bin/examples` and `bin/reference`, but their discovery depends on the repository tree and
   GitHub. Names alone do not tell a beginner whether an example writes files, opens a window,
@@ -215,7 +205,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   - The catalogue begins with small composable examples before games and applications. Every
     advertised example is built or tested by release validation with the compiler and payload that
     ship together.
-- Complete when: a user can find, inspect, copy, run, and test one example for scripts, workspaces,
+- Done when: a user can find, inspect, copy, run, and test one example for scripts, workspaces,
   imports, tests, errors, compile-time execution, core collections, and GUI without cloning the
   repository. The catalogue gives a useful prerequisite report rather than attempting an impossible
   native or GUI example.
@@ -223,7 +213,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.008 — The command line has no authoritative machine interface
 
-- Recorded: 2026-09-05 05:12
 - Evidence: current help and diagnostics are high-quality terminal text, with options for one-line
   diagnostics and suppressed colors, but no stable structured schema for commands, options, docs,
   examples, capability checks, progress, or source diagnostics. An AI must scrape prose, infer
@@ -243,7 +232,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   human log interleaved with data. Define stdout/stderr ownership and one record framing; never
   require a consumer to parse a sentence. Preserve existing exit-code meanings and version any
   extension explicitly.
-- Complete when: a small independent client can discover a command, create a project, run a safe
+- Done when: a small independent client can discover a command, create a project, run a safe
   plan, interpret an intentional compiler error, locate the matching local reference entry, and
   distinguish a source error from an unavailable host capability without hard-coded Swag knowledge.
 - Related: compiler.command.doc.003, compiler.distribution.004, compiler.distribution.006,
@@ -251,7 +240,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.010 — The distributed compiler does not expose a ready editor/agent endpoint
 
-- Recorded: 2026-09-05 05:12
 - Evidence: the compiler-core backlog already owns the persistent LSP process and semantic editor
   services, but a programmer who receives only a release has no documented, discoverable way to
   launch that endpoint, identify its version, or ensure that its hover documentation and imported
@@ -260,7 +248,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   `swc lsp` release command. Its initialization response and diagnostics identify the compiler and
   payload versions; its document links resolve to the same local documentation index used by CLI
   and agent queries. An editor remains optional: a text editor and the normal CLI always suffice.
-- Complete when: an LSP client can start from a lone executable or complete `bin/` installation,
+- Done when: an LSP client can start from a lone executable or complete `bin/` installation,
   discover the exact endpoint/version without repository files, open an unsaved workspace document,
   receive diagnostics/completion/hover with local documentation, and shut down without leaving
   release or cache state ambiguous.
@@ -269,7 +257,6 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.011 — No release gate proves the first-use contract
 
-- Recorded: 2026-09-05 05:12
 - Evidence: repository validation can build compiler, runtime, standard modules, examples, and the
   reference, but no release artifact is exercised from a clean machine as a lone executable and as
   a complete `bin/` installation. A release can therefore contain individually valid files that
@@ -287,7 +274,7 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
     spans, exit categories, no unintended network access, and no global shell mutation.
   - Manifest signatures, hashes, licences, release version coherence, and recovery from an altered
     payload or cache.
-- Complete when: every published release is blocked on this matrix in clean disposable Windows
+- Done when: every published release is blocked on this matrix in clean disposable Windows
   environments, and its report identifies the artifact manifest and every externally supplied
   prerequisite. A passing repository campaign alone is no longer accepted as release evidence.
 - Related: compiler.distribution.001, compiler.distribution.002, compiler.distribution.004,

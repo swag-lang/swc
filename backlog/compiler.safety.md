@@ -32,7 +32,7 @@ another local — and survives an ordinary call: what a function never hands an 
 can reassign. What is left on the heap side is the shape nothing marks as an owner at all, a
 release proven on only one path, storage whose address the function does hand over, a release
 reached through a field of a receiver, and the operations that forge a pointer out of nothing being
-spelled like ordinary code. The entries below are ordered from the most recently updated down.
+spelled like ordinary code.
 
 The fault-class entries use [bin/unittests/safety/corpus](../bin/unittests/safety/corpus):
 one file per CWE, a fault half that names the diagnostic it expects and a sound half that must
@@ -45,7 +45,6 @@ is the current scorecard.
 
 ### compiler.safety.025 — The box-content release summary stops at the module boundary
 
-- Recorded: 2026-10-07 20:42
 - Area: compiler/sema, `SemaEscape`; `Swag.BorrowSummary`; `Sanitizer`
 - Evidence: a function that releases the pointer stored in the box its parameter designates
   (`if let item = slot[] { Memory.delete(item); slot[] = null }`) now records
@@ -59,13 +58,11 @@ is the current scorecard.
 - Next: add a `freesIndirect` argument to `Swag.BorrowSummary` (runtime `api.swg`, `Sema.Attributes`,
   `AttributeList`, the export), then forward the bit along direct edges whose argument is
   exactly the caller's parameter.
-- Complete when: a cross-module caller of a box-content release reports the old-copy read the
+- Done when: a cross-module caller of a box-content release reports the old-copy read the
   in-module suite case reports, and wrappers keep the summary.
 
 ### compiler.safety.005 — A write through a pointer into a moved value is not reported
 
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-10-06 20:59 — Reads through a moved value's self-pointer are now diagnosed; only the write remains.
 - Area: compiler/backend, `Sanitizer`
 - Evidence: a struct holding a pointer into its own storage keeps that pointer after `#move`, and
   the pointer then addresses the abandoned source. Reading through it is now a compile-time error:
@@ -83,13 +80,11 @@ is the current scorecard.
 - Next: separate a store through a pointer derived from the source before the move from a direct
   reassignment of the moved-from variable, and report the first with the same diagnostic. If the
   analysis cannot tell them apart, document the limit next to the move rules instead.
-- Complete when: the corpus write case is a fault case naming its diagnostic, or the reference
+- Done when: the corpus write case is a fault case naming its diagnostic, or the reference
   documents the limit; reassignment after a move and `opPostMove` repair stay accepted.
 
 ### compiler.safety.023 — Opaque results lack pointer-field provenance
 
-- Recorded: 2026-09-08 20:48
-- Updated: 2026-10-04 15:14 — Reconfirm the opaque carrier release gap after copied-field summary support.
 - Area: compiler/sema, `SemaEscape`
 - Evidence: a fresh semantic-only helper on 2026-10-04 still accepts
   `release(carrier.borrowed)` after a no-inline factory stores `&local` in that field and
@@ -104,14 +99,12 @@ is the current scorecard.
 - Next: trace this returned-field route through the existing projection and frees-summary
   machinery, then preserve each field's provenance. Cover both fields through generated
   module APIs; never execute an invalid free merely to probe its diagnostic.
-- Complete when: borrowed returned fields are diagnosed without rejecting releases of
+- Done when: borrowed returned fields are diagnosed without rejecting releases of
   independently allocated fields, and the focused sanity and workspace regressions pass
   with measured cost.
 
 ### compiler.safety.019 — Remeasure sanity cost after live-state pruning
 
-- Recorded: 2026-09-08 07:59
-- Updated: 2026-10-04 15:02 — Replace pre-pruning cost assumptions with a current attribution step.
 - Area: compiler/backend, `Sanitizer`
 - Historical evidence: six-worker Release-compiler profiles on 2026-09-23 attributed about
   8-10% of a core devmode rebuild's busy CPU to `Sanitizer::run`, principally conditional-branch
@@ -127,14 +120,12 @@ is the current scorecard.
   state memory, propagation/check visits, and wall time separately. Use those measurements to
   choose between branch narrowing, value transfer, and state storage; do not exclude state
   layout using a profile taken before live-state pruning.
-- Complete when: the current sanity pass's cost is attributed and either accepted or reduced
+- Done when: the current sanity pass's cost is attributed and either accepted or reduced
   with a repeatable comparison and the safety/sanity behavior preserved.
 - Related: compiler.core.005.
 
 ### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
 
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-30 19:29 — Reports moved out of line and settled guards removed; devmode measured against release again.
 - Area: compiler/backend, optimization
 - Evidence: `buildCfg.safetyGuards` is `None` in `release`, so `a[i]` with a runtime `i` has no
   bounds guard; an invalid access may read unrelated storage or fault. The same invalid index
@@ -159,14 +150,13 @@ is the current scorecard.
   same count (induction-variable range against the container's `.count`), and hoist the check of
   a `late` global out of a loop that does not assign it. Re-measure the two loops of the prior
   decision with guards on.
-- Complete when: a loop-bounded index needs no guard, the residual cost of `.BoundCheck` on the
+- Done when: a loop-bounded index needs no guard, the residual cost of `.BoundCheck` on the
   two loops above is recorded next to the 2026-07-08 numbers, and `devmode` compile time is
   measured before and after.
 - Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
 
 ### compiler.safety.024 — A mutable cast can write through an any that borrows a literal
 
-- Recorded: 2026-09-16 07:54
 - Evidence: the DevMode compiler at the parent revision `e3e20baae` accepts
   `var boxed: any = 42's32; if let number = cast #try (*s32) boxed do number[] += 1`
   (spelled `try cast(*s32, boxed)` or `if boxed is s32 as number` since `102f0efb4`).
@@ -178,13 +168,11 @@ is the current scorecard.
   Inspect constant boxing, runtime type qualifiers, and dynamic cast destinations together;
   choose rejection of mutable views or deliberate writable materialization without turning
   `any` into an owning variant. Audit existing casts of literal-backed views before migration.
-- Complete when: JIT and native execution agree, a mutable cast cannot expose read-only
+- Done when: JIT and native execution agree, a mutable cast cannot expose read-only
   literal storage, and tests cover literal, constant, mutable-local, and const-local sources.
 
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-16 07:54 — Type patterns share the checked dynamic-cast rules.
 - Area: language
 - Evidence: a short list of operations can produce a pointer to anything, and none of them is
   subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
@@ -259,7 +247,7 @@ is the current scorecard.
   integration tests. Use that population to choose expression and file-level opt-ins for ABI
   reinterpretation, raw memory, foreign calls, lifecycle bypasses and unchecked assumptions.
   Then define and enforce the guarantee of the safe subset.
-- Complete when: the unsafe operation list is fixed and documented, safe code cannot reach any of
+- Done when: the unsafe operation list is fixed and documented, safe code cannot reach any of
   them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
   states which faults the safe subset excludes.
 - Related: language.design.002 narrows the union bullet rather than removing it. The census in that
@@ -270,8 +258,6 @@ is the current scorecard.
 
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
-- Recorded: 2026-09-08 09:05
-- Updated: 2026-09-11 14:38 — The nullable projection prerequisite is implemented and covered by borrow regressions.
 - Area: compiler/sema, `SemaEscape`
 - The half that no longer needs anything: a release helper that reaches for what it just
   released is proven inside its own BODY, because the receiver names the object there and
@@ -329,14 +315,12 @@ is the current scorecard.
   entry named has since landed on its own — the body of a release helper is judged where it
   is written — so what is left is only the caller, and only for a helper whose body the
   caller cannot see. Weigh that against the cost before building it.
-- Complete when: both shapes above are compile-time errors, the `reset` shape and the
+- Done when: both shapes above are compile-time errors, the `reset` shape and the
   carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
 - Related: compiler.safety.017.
 
 ### compiler.safety.011 — `!` and `late` stop asserting in release
 
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-10 19:35 — Use the current late-field spelling and qualify the unchecked-null outcome.
 - Area: language, runtime guards
 - Evidence: `p!` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
   assertions under two different flags, both off in `release` by default. A violated invariant gets a located panic in `devmode`; in unguarded `release`,
@@ -355,14 +339,12 @@ is the current scorecard.
   `safetyGuards` on — should be a configuration the compiler registers and the reference names, so
   "ship it with the checks" is one flag rather than a build file nobody writes. Then measure it
   once, on an application, so the trade is a number and not a guess.
-- Complete when: a guarded release configuration exists and is documented, and its cost on one
+- Done when: a guarded release configuration exists and is documented, and its cost on one
   application workload is recorded.
 - Related: compiler.safety.008 is what makes that configuration affordable.
 
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 
-- Recorded: 2026-09-04 19:35
-- Updated: 2026-09-08 09:18 — the allocator is a runtime value, so "allocated" does not imply "must be released"
 - Area: compiler/sema, language
 - Evidence: the four allocation-loss shapes in `cwe401_memory_leak.swg` compile without a static
   diagnostic: no release, release on one path, overwritten pointer, and an owner without `opDrop`.
@@ -384,14 +366,13 @@ is the current scorecard.
   ownership rather than on the interface, or leak detection stays with the allocator report. Count
   the arena and temporary allocation sites in `bin/` before choosing: that count is what says
   whether an interface split is affordable.
-- Complete when: the compiler either diagnoses a documented set of proven leak shapes with sound
+- Done when: the compiler either diagnoses a documented set of proven leak shapes with sound
   counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
   the corpus reflects that decision.
 - Related: runtime.allocator.010, compiler.safety.018.
 
 ### compiler.safety.018 — A release proven on one path only is never reported
 
-- Recorded: 2026-09-08 07:59
 - Area: compiler/backend, `Sanitizer`
 - Evidence: `conditionalFree` in `cwe416_use_after_free.swg` releases inside an `if` and reads
   after it. The engine's join is an intersection, so the fact does not survive the merge and
@@ -406,14 +387,12 @@ is the current scorecard.
   warning policy layer rather than an error, so the report exists without a build failing on a
   guess. Start by counting how many sites in `bin/` a may-analysis would name, which is what says
   whether the report is readable or noise.
-- Complete when: either a warning exists with its count on `bin/` recorded, or the reference states
+- Done when: either a warning exists with its count on `bin/` recorded, or the reference states
   that a conditional release is outside what the proof covers and the corpus records the decision.
 - Related: compiler.safety.017.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-06 07:51 — git: prompt 6
 - Area: language
 - Evidence: `cast(Color, 99)` is accepted with no check in any configuration, and the result is used
   as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
@@ -429,14 +408,12 @@ is the current scorecard.
   the check in the type and needs no guard at all, which is the only form that also holds in a
   build with the dynamic guards off. `#[Swag.EnumFlags]` types accept combinations and must be
   excluded either way.
-- Complete when: converting an integer to an enum has one documented rule, the flags case is
+- Done when: converting an integer to an enum has one documented rule, the flags case is
   specified separately, and `bin/unittests` covers a valid value, an out-of-range value, and a flags
   combination.
 
 ### compiler.safety.014 — Nothing states what the safe subset guarantees
 
-- Recorded: 2026-09-04 17:05
-- Updated: 2026-09-05 10:30 — git: Take the copy away from a type that owns what it releases
 - Area: documentation, language
 - Evidence: [013_002_safety.swg](../bin/reference/modules/language/src/013_002_safety.swg),
   [013_003_sanity.swg](../bin/reference/modules/language/src/013_003_sanity.swg) and
@@ -453,14 +430,13 @@ is the current scorecard.
   compiler.safety.006 and 008 are decided, because each one changes what belongs in it. What can
   be done now is the inventory: one page listing every fault class, what excludes it today, and in
   which configuration.
-- Complete when: the reference carries one page stating, per fault class, whether the safe subset
+- Done when: the reference carries one page stating, per fault class, whether the safe subset
   excludes it, in which build configurations, and by which mechanism — and every claim on it is
   backed by a test in `bin/unittests`.
 - Related: compiler.safety.006, compiler.safety.008.
 
 ### compiler.safety.007 — A foreign function is opaque to every safety analysis
 
-- Recorded: 2026-09-04 17:05
 - Area: compiler/sema, `SemaEscape`
 - Evidence: `#[Swag.BorrowSummary]` can be written by hand on a `#[Foreign]` declaration, and the
   reference says so — but nothing requires it, nothing checks it against the callee, and a foreign
@@ -473,6 +449,6 @@ is the current scorecard.
   from compiler.safety.006, or a foreign declaration without a written summary is assumed to store
   everything it receives and the bindings are annotated. Measure the second option against
   `bin/std/modules/win32` before choosing.
-- Complete when: the foreign boundary has one documented default, and the reference says what
+- Done when: the foreign boundary has one documented default, and the reference says what
   crossing it suspends.
 - Related: compiler.safety.006.

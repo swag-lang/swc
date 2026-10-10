@@ -120,7 +120,8 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 #test
 {
     let directory = Env.getSpecialDirectory(.Temp)
-    let path      = Path.combine(directory.toString(), Format.toString("audio-opus-%.opus", Guid64.random()).toString())
+    let path      = Path.combine(directory.toString(),
+                                 Format.toString("audio-opus-%.opus", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
     var bytes = expect File.readAllBytes(audioGetTestDataPath("opus-mono-silk.opus").toString())

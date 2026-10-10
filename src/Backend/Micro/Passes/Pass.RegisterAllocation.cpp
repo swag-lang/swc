@@ -2385,27 +2385,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         const bool    hotCall    = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
         const uint8_t weight     = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
         const auto&   successors = controlFlowGraph.successors(idx);
-        if (successors.size() == 1)
-        {
-            SWC_ASSERT(successors[0] < instructionCount_);
-            const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
-            std::ranges::copy(succInVirtual, tempOutVirtual_.begin());
-        }
-        else
-        {
-            std::ranges::fill(tempOutVirtual_, 0);
-            for (const uint32_t succIdx : successors)
-            {
-                SWC_ASSERT(succIdx < instructionCount_);
-                const auto succInVirtual = DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount);
-                for (size_t word = 0; word < tempOutVirtual_.size(); ++word)
-                    tempOutVirtual_[word] |= succInVirtual[word];
-            }
-        }
-
-        for (size_t wordIndex = 0; wordIndex < tempOutVirtual_.size(); ++wordIndex)
-        {
-            uint64_t wordBits = tempOutVirtual_[wordIndex];
+        const auto recordLiveOutWord = [&](const size_t wordIndex, uint64_t wordBits) {
             while (wordBits)
             {
                 const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -2421,6 +2401,26 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                     vregsLiveAcrossHotCall_[bitIndex] = static_cast<uint8_t>(std::min<uint32_t>(current + weight, 255u));
                 }
                 wordBits &= (wordBits - 1ull);
+            }
+        };
+        if (successors.size() == 1)
+        {
+            SWC_ASSERT(successors[0] < instructionCount_);
+            const auto succInVirtual = DenseBits::row(liveInVirtualBits_, successors[0], virtualWordCount);
+            for (size_t wordIndex = 0; wordIndex < succInVirtual.size(); ++wordIndex)
+                recordLiveOutWord(wordIndex, succInVirtual[wordIndex]);
+        }
+        else
+        {
+            for (size_t wordIndex = 0; wordIndex < virtualWordCount; ++wordIndex)
+            {
+                uint64_t wordBits = 0;
+                for (const uint32_t succIdx : successors)
+                {
+                    SWC_ASSERT(succIdx < instructionCount_);
+                    wordBits |= DenseBits::row(liveInVirtualBits_, succIdx, virtualWordCount)[wordIndex];
+                }
+                recordLiveOutWord(wordIndex, wordBits);
             }
         }
     }

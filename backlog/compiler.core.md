@@ -121,10 +121,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
     function's patch address once it has one and its work address before, so a slot patched early
     can later receive a different address: a memo across functions must keep re-patching or prove
     the address no longer moves.
-  - `TypeRuntimeHash::canonicalScopedNameHash` rebuilds a symbol's full scoped name for every
-    runtime hash that meets it, while `Symbol::scopedNameHash` caches the same value. Using the
-    cache needs proof that no symbol's scope chain changes after its hash is first taken;
-    otherwise a reflected type's identity could differ between modules.
   - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
     memo keys on the count of semantically completed symbols, which moves while sema runs. The
     unguarded path retains applied forwardings and appends only new edges, but each new signature

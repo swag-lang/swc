@@ -23,6 +23,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct FunctionNameScratch
+    {
+        Utf8& value;
+
+        ~FunctionNameScratch()
+        {
+            if (value.capacity() > MAX_RETAINED_CAPACITY)
+                Utf8{}.swap(value);
+        }
+
+        static constexpr size_t MAX_RETAINED_CAPACITY = 256;
+    };
+
     // The shard decides which strings a location shares with its neighbours, so it is derived
     // from what the location says, never from a pointer or a load-order index: either would
     // make the read-only data of two builds of the same program differ.
@@ -730,10 +743,15 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     TypeRef            typeRef = TypeRef::invalid();
     SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, SourceCodeRef::invalid()));
 
-    const SourceView*      srcView  = codeRange.srcView;
-    const SourceFile*      file     = srcView ? srcView->file() : nullptr;
+    const SourceView*      srcView = codeRange.srcView;
+    const SourceFile*      file    = srcView ? srcView->file() : nullptr;
     const std::string_view fileName = file ? std::string_view{file->pathString()} : std::string_view{""};
-    const Utf8             funcName = function ? function->getFullScopedName(ctx) : Utf8{};
+    thread_local Utf8      funcNameStorage;
+    funcNameStorage.clear();
+    const FunctionNameScratch functionNameScratch{funcNameStorage};
+    if (function)
+        function->appendFullScopedName(ctx, funcNameStorage);
+    const std::string_view funcName = funcNameStorage;
 
     const uint32_t shardIndex = sourceCodeLocationShardIndex(codeRange, fileName, funcName);
     DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);

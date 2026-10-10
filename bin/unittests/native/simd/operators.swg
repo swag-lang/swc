@@ -173,7 +173,11 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
     let bytesRight = cast([16] u8, (bytes >> 7))
     let bytesLeft  = cast([16] u8, (bytes << 7))
     Swag.assert(bytesRight[0] == 1 and bytesRight[1] == 0 and bytesRight[4] == 1 and bytesRight[6] == 0)
-    Swag.assert(bytesLeft[0] == 128 and bytesLeft[1] == 128 and bytesLeft[2] == 128 and bytesLeft[3] == 0 and bytesLeft[6] == 0)
+    Swag.assert(bytesLeft[0] == 128 and
+                bytesLeft[1] == 128 and
+                bytesLeft[2] == 128 and
+                bytesLeft[3] == 0 and
+                bytesLeft[6] == 0)
 
     // The compound forms take the same route.
     var acc = cast(#simd [8] s16, [-32768, -3, 32767, 1, -1, 0, 2, -2])

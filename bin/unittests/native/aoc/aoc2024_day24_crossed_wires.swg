@@ -254,7 +254,10 @@ func parseGates(c: *Circuit, text: string)
 
         // Read operator
         var op: GateOp
-        if pos + 2 < bytes.count and bytes[pos] == 'A' and bytes[pos + 1] == 'N' and bytes[pos + 2] == 'D'
+        if pos + 2 < bytes.count and
+           bytes[pos] == 'A' and
+           bytes[pos + 1] == 'N' and
+           bytes[pos + 2] == 'D'
         {
             op  = GateOp.OpAnd
             pos += 4
@@ -265,7 +268,10 @@ func parseGates(c: *Circuit, text: string)
             // Check if next char is space (OR) vs other
             pos += 3
         }
-        elif pos + 2 < bytes.count and bytes[pos] == 'X' and bytes[pos + 1] == 'O' and bytes[pos + 2] == 'R'
+        elif pos + 2 < bytes.count and
+             bytes[pos] == 'X' and
+             bytes[pos + 1] == 'O' and
+             bytes[pos + 2] == 'R'
         {
             op  = GateOp.OpXor
             pos += 4
@@ -453,7 +459,9 @@ func findSwapped(c: *Circuit)->SwappedResult
         let inputsAreXY = isXY(g.nameA0) and isXY(g.nameB0)
 
         // Highest z-bit is the carry-out, skip it for rule 1
-        let isHighestZ = outIsZ and g.nameOut1 == cast(u8, (c.maxZBit / 10)) + '0' and g.nameOut2 == cast(u8, (c.maxZBit % 10)) + '0'
+        let isHighestZ = outIsZ and
+                         g.nameOut1 == cast(u8, (c.maxZBit / 10)) + '0' and
+                         g.nameOut2 == cast(u8, (c.maxZBit % 10)) + '0'
 
         // Rule 1: z-output gates must be XOR (except highest)
         if outIsZ and not isHighestZ and g.op != GateOp.OpXor

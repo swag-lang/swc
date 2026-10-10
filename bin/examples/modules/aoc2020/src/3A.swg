@@ -17,8 +17,8 @@ func day3A()
     while row != lines.count - 1
     {
         column = cast(s32, ((column + 3) % lines[0].length))
-        row += 1
-        total += lines[row][column] == '#' ? 1 : 0
+        row    += 1
+        total  += lines[row][column] == '#' ? 1 : 0
     }
 
     Swag.assert(total == 211)

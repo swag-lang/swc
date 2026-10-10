@@ -1581,7 +1581,9 @@ func intrinsicInitStrictStringInfo()->bool
     var values: [2] IntrinsicStrictStringAlias
     Swag.init(values)(cast(IntrinsicStrictStringAlias, "world"))
 
-    return cast(string, value) == "hello" and cast(string, values[0]) == "world" and cast(string, values[1]) == "world"
+    return cast(string, value) == "hello" and
+           cast(string, values[0]) == "world" and
+           cast(string, values[1]) == "world"
 }
 
 func makeIntrinsicRunStrictIntArray()->[2] IntrinsicStrictIntAlias

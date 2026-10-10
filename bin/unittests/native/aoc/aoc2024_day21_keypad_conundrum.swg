@@ -161,7 +161,10 @@ func memoPut(m: *Memo, key: u64, val: u64)
 #[Swag.Inline]
 func packKey(fromIdx: u32, dstIdx: u32, depth: u32, isNum: bool)->u64
 {
-    return cast(u64, fromIdx) | (cast(u64, dstIdx) << 8) | (cast(u64, depth) << 16) | (cast(u64, (isNum ? 1'u32 : 0'u32)) << 24)
+    return cast(u64, fromIdx) |
+           (cast(u64, dstIdx) << 8) |
+           (cast(u64, depth) << 16) |
+           (cast(u64, (isNum ? 1'u32 : 0'u32)) << 24)
 }
 
 // Recursive cost: minimal human presses to go from key `from` to key `to`

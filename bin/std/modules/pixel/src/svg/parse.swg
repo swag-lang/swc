@@ -1111,7 +1111,10 @@ private func transformScale(transform: Math.Transform2)->f32
 // arc runs the other way, which a primitive measured with positive extents cannot state.
 #[Swag.Inline]
 private func isAxisAligned(transform: Math.Transform2)->bool
-    => Math.isZeroEpsilon(transform.m12) and Math.isZeroEpsilon(transform.m21) and transform.m11 > 0 and transform.m22 > 0
+    => Math.isZeroEpsilon(transform.m12) and
+       Math.isZeroEpsilon(transform.m21) and
+       transform.m11 > 0 and
+       transform.m22 > 0
 
 // The angle a transform turns the horizontal axis by, which is the direction text runs in.
 #[Swag.Inline]
@@ -3649,7 +3652,7 @@ impl Drawing
                 item.hasBounds = true
 
             case .Image:
-                let image      = &.images[item.index]
+                let image = &.images[item.index]
                 item.bounds    = image.transform.transformBounds(image.rect)
                 item.hasBounds = true
 
@@ -3889,7 +3892,7 @@ impl Drawing
         var alpha = image.opacity
 
         let drawingToSurface = painter.transform()
-        var placed           = image.transform
+        var placed = image.transform
         placed.multiply(drawingToSurface)
         painter.setTransform(placed)
         defer painter.setTransform(drawingToSurface)

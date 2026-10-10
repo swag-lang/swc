@@ -70,10 +70,18 @@ func smallOf(tag: u8, value: s16)->Small
     Swag.assert(intra.available and intra.intra and intra.refIdx == -1 and intra.mvX == 0 and intra.mvY == 0)
 
     let inter = motionOf(2, 3, -300, 12)
-    Swag.assert(inter.available and not inter.intra and inter.refIdx == 3 and inter.mvX == -300 and inter.mvY == 12)
+    Swag.assert(inter.available and
+                not inter.intra and
+                inter.refIdx == 3 and
+                inter.mvX == -300 and
+                inter.mvY == 12)
 
     let swapped = motionOf(3, -2, 40, -41)
-    Swag.assert(swapped.available and swapped.intra and swapped.refIdx == -2 and swapped.mvX == -41 and swapped.mvY == -41)
+    Swag.assert(swapped.available and
+                swapped.intra and
+                swapped.refIdx == -2 and
+                swapped.mvX == -41 and
+                swapped.mvY == -41)
 
     let positive = smallOf(9, 1234)
     Swag.assert(positive.tag == 9 and positive.flags == 0 and positive.value == 1234)

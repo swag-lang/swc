@@ -294,7 +294,10 @@ func nativeNonNullConstruction()->bool
 
     var mutable = holder
     Swag.init(mutable)(&second)
-    if mutable.required != &second or mutable.optional != null or mutable.legacy != null or mutable.count != 7 do
+    if mutable.required != &second or
+       mutable.optional != null or
+       mutable.legacy != null or
+       mutable.count != 7 do
         return false
 
     // Non-null values are initialized explicitly; no uninitialized escape exists.

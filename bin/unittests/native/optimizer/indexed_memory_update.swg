@@ -28,7 +28,10 @@ func subtract8(values: [*] u8, index: u64, value: u8)
     var values32: [4] u32 = [0, 1, 0x80000000, 0xFFFFFFFF]
     xor32(&values32[0], 1, 0xFFFFFFFF)
     xor32(&values32[0], 2, 0x80000001)
-    Swag.assert(values32[0] == 0 and values32[1] == 0xFFFFFFFE and values32[2] == 1 and values32[3] == 0xFFFFFFFF)
+    Swag.assert(values32[0] == 0 and
+                values32[1] == 0xFFFFFFFE and
+                values32[2] == 1 and
+                values32[3] == 0xFFFFFFFF)
 
     var values8: [4] u8 = [0, 1, 127, 255]
     subtract8(&values8[0], 0, 1)

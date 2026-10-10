@@ -253,7 +253,9 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     let highestZ = highestOutputBit(gates)
     for gate in gates
     {
-        if isOutputWire(gate.output) and parseWireIndex(gate.output) != highestZ and gate.op != GateOp.Xor do
+        if isOutputWire(gate.output) and
+           parseWireIndex(gate.output) != highestZ and
+           gate.op != GateOp.Xor do
             registerSuspect(suspectSlice, &result.suspectCount, gate.output)
 
         if not isOutputWire(gate.output) and

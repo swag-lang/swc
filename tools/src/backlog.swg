@@ -382,7 +382,9 @@ private func isBacklogScope(text: string)->bool
 private func isBacklogIdentifier(text: string)->bool
 {
     let suffixDot = Utf8.lastIndexOf(cast(const [..] u8, text), ".")
-    if suffixDot == Swag.U64.Max or suffixDot + 4 != text.count or not isBacklogScope(text[0 until suffixDot]) do
+    if suffixDot == Swag.U64.Max or
+       suffixDot + 4 != text.count or
+       not isBacklogScope(text[0 until suffixDot]) do
         return false
 
     for i in suffixDot + 1 until text.count

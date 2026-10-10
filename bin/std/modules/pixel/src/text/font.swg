@@ -603,6 +603,7 @@ impl GlyphCache
         {
         case .Msdf:
             discard try .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
+
         default:
             let penOffsetX = cast(f32, subpixel % SubpixelPositions) / cast(f32, SubpixelPositions)
             discard try .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic, penOffsetX)

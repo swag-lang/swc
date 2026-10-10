@@ -14,7 +14,11 @@ impl RuntimeArithAssignBox
 {
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(rhs: s32)
-        where op == .AddAssign or op == .SubAssign or op == .MulAssign or op == .DivAssign or op == .ModAssign
+        where op == .AddAssign or
+              op == .SubAssign or
+              op == .MulAssign or
+              op == .DivAssign or
+              op == .ModAssign
     {
         .calls += 1
         #static switch op
@@ -104,7 +108,11 @@ impl RuntimeBitAssignBox
 {
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(rhs: u32)
-        where op == .BitAndAssign or op == .BitOrAssign or op == .BitXorAssign or op == .ShlAssign or op == .ShrAssign
+        where op == .BitAndAssign or
+              op == .BitOrAssign or
+              op == .BitXorAssign or
+              op == .ShlAssign or
+              op == .ShrAssign
     {
         .calls += 1
         #static switch op

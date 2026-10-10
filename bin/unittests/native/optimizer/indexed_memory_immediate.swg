@@ -41,7 +41,10 @@ func orMask16(values: [*] u16, index: u64)
     var values32: [4] u32 = [0, 5, 6, 0xFFFFFFFF]
     subtractFive32(&values32[0], 0)
     subtractFive32(&values32[0], 2)
-    Swag.assert(values32[0] == 0xFFFFFFFB and values32[1] == 5 and values32[2] == 1 and values32[3] == 0xFFFFFFFF)
+    Swag.assert(values32[0] == 0xFFFFFFFB and
+                values32[1] == 5 and
+                values32[2] == 1 and
+                values32[3] == 0xFFFFFFFF)
 
     var values8: [4] u8 = [0, 1, 0x80, 0xFF]
     xorMask8(&values8[0], 0)

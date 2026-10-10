@@ -68,7 +68,10 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
         {
             var dropped = owner
             owner.capture(null)
-            valid = valid and owner.isEmpty() and ownedIntegerEquals(&dropped, 73) and ownedIntegerEquals(&moved, 41)
+            valid = valid and
+                    owner.isEmpty() and
+                    ownedIntegerEquals(&dropped, 73) and
+                    ownedIntegerEquals(&moved, 41)
         }
         moved.reset()
         moved.reset()

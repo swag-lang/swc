@@ -77,7 +77,12 @@ func splatU8(value: u8)->#simd [16] u8 => Swag.vecsplat(value)
     let sa = cast(#simd [8] s16, [32000, -32000, 100, -100, 1, -1, 30000, -30000])
     let sb = cast(#simd [8] s16, [1000, -1000, 1, -1, 0, 0, 3000, -3000])
     let sr = cast([8] s16, Swag.vecsatadd(sa, sb))
-    Swag.assert(sr[0] == 32767 and sr[1] == -32768 and sr[2] == 101 and sr[3] == -101 and sr[6] == 32767 and sr[7] == -32768)
+    Swag.assert(sr[0] == 32767 and
+                sr[1] == -32768 and
+                sr[2] == 101 and
+                sr[3] == -101 and
+                sr[6] == 32767 and
+                sr[7] == -32768)
 }
 
 #test
@@ -86,7 +91,14 @@ func splatU8(value: u8)->#simd [16] u8 => Swag.vecsplat(value)
     let lo = cast(#simd [8] s16, [-5, 0, 100, 255, 256, 300, 42, -1])
     let hi = cast(#simd [8] s16, [1, 2, 3, 4, 5, 6, 7, 8])
     let r  = cast([16] u8, Swag.vecpackus(lo, hi))
-    Swag.assert(r[0] == 0 and r[1] == 0 and r[2] == 100 and r[3] == 255 and r[4] == 255 and r[5] == 255 and r[6] == 42 and r[7] == 0)
+    Swag.assert(r[0] == 0 and
+                r[1] == 0 and
+                r[2] == 100 and
+                r[3] == 255 and
+                r[4] == 255 and
+                r[5] == 255 and
+                r[6] == 42 and
+                r[7] == 0)
     Swag.assert(r[8] == 1 and r[15] == 8)
 
     let rs = cast([8] s16, Swag.vecpackss(cast(#simd [4] s32, [70000, -70000, 5, -5]), cast(#simd [4] s32, [1, 2, 3, 4])))

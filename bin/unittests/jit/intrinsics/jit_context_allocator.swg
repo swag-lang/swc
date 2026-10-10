@@ -30,7 +30,9 @@ func compilerJitStableWithNullAllocatorContext()->bool
     cxt.allocator = null
     Swag.setContext(cxt)
 
-    let result = Swag.jit() and Swag.getContext().runtimeFlags == .FromCompiler and Swag.getContext().allocator == null
+    let result = Swag.jit() and
+                 Swag.getContext().runtimeFlags == .FromCompiler and
+                 Swag.getContext().allocator == null
 
     Swag.setContext(prev)
     return result and Swag.jit()

@@ -4,7 +4,7 @@
 // "has type '*Foo', but parameter needs '*Foo'" would read as nonsense. The wording is what is
 // checked.
 
-namespace SameNameLeft  { struct Foo { x: u32 } }
+namespace SameNameLeft { struct Foo { x: u32 } }
 namespace SameNameRight { struct Foo { y: u32 } }
 
 func sameNameTake(value: *SameNameRight.Foo) { discard value }

@@ -15,7 +15,11 @@ struct Stamp
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
-func same(a, b: const *Stamp)->bool => a.year == b.year and a.month == b.month and a.day == b.day and a.ticks == b.ticks and a.size == b.size
+func same(a, b: const *Stamp)->bool => a.year == b.year and
+                                       a.month == b.month and
+                                       a.day == b.day and
+                                       a.ticks == b.ticks and
+                                       a.size == b.size
 
 #[Swag.Optimize(true), Swag.NoInline]
 func earlierDay(a: const *Stamp, day: s8)->bool => a.day < day

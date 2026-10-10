@@ -32,7 +32,7 @@ func pushAfterRescale(v: *Velocity, dx: f64, scale: *f64)->f64
 {
     var s       = scale[]
     let product = dx * s
-    s           = v.vz
+    s    = v.vz
     v.vx += product
     return s
 }

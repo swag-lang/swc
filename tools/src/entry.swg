@@ -51,7 +51,11 @@ private func dispatch(name: string, root: string, script: string, tokens: const 
     if options.wantHelp do
         return printUsage(name)
 
-    if options.allConfigs and name != "build" and name != "tests" and name != "integrations" and name != "goldens"
+    if options.allConfigs and
+       name != "build" and
+       name != "tests" and
+       name != "integrations" and
+       name != "goldens"
     {
         Console.println("error: '--all-cfg' is supported only by build, tests, integrations, and goldens")
         Console.println("Use '-bc release' and '-bc devmode' for separate focused runs.")

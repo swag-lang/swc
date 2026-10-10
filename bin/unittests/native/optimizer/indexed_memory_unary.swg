@@ -28,7 +28,10 @@ func increment8(values: [*] u8, index: u64)
     var values32: [4] u32 = [0, 1, 0x80000000, 0xFFFFFFFF]
     decrement32(&values32[0], 0)
     decrement32(&values32[0], 3)
-    Swag.assert(values32[0] == 0xFFFFFFFF and values32[1] == 1 and values32[2] == 0x80000000 and values32[3] == 0xFFFFFFFE)
+    Swag.assert(values32[0] == 0xFFFFFFFF and
+                values32[1] == 1 and
+                values32[2] == 0x80000000 and
+                values32[3] == 0xFFFFFFFE)
 
     var values8: [4] u8 = [0, 1, 127, 255]
     increment8(&values8[0], 2)

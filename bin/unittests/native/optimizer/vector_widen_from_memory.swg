@@ -107,7 +107,10 @@ func widenLocalPastStore(dst: [*] u16, value: u8)
     var offsets:  [3] u64 = [0, 64, 192]
     var gathered: [3 * 8] u16
     gatherRows(&gathered[0], &plane[0], &offsets[0], 3)
-    Swag.assert(gathered[0] == 0 + 8 and gathered[8] == 64 + 72 and gathered[16] == 192 + 200 and gathered[23] == 199 + 207)
+    Swag.assert(gathered[0] == 0 + 8 and
+                gathered[8] == 64 + 72 and
+                gathered[16] == 192 + 200 and
+                gathered[23] == 199 + 207)
 
     var buffer: [16] u8
     for i in 16 do

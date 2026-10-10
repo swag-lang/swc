@@ -160,7 +160,7 @@ func day4BWithRegexRules()
     // A compiled expression owns its program, so a rule states no copy: build it in a local
     // and hand it over with '#move'.
     var rulesByField: HashTable'(string, Day4Rule)
-    var rule: Day4Rule
+    var rule:         Day4Rule
 
     rule = {expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1}
     rulesByField.add("byr", #move rule)
@@ -191,7 +191,7 @@ func day4BWithRegexRules()
         if lineIndex == lines.count - 1 or lines[lineIndex + 1].isEmpty()
         {
             validPassportCount += cast(s32, (validFields == 0b1111111))
-            validFields = 0
+            validFields        = 0
         }
     }
 

@@ -152,7 +152,13 @@ func fillCopyAndPass(out: [*] u32, a, b, c, d: u32)
     halves(&out[0], 3, 5)
     Swag.assert(out[0] == 3 and out[3] == 3 and out[4] == 5 and out[7] == 5)
     pairs(&out[0], 1, 2, 3, 4)
-    Swag.assert(out[0] == 1 and out[1] == 1 and out[2] == 2 and out[3] == 2 and out[4] == 3 and out[6] == 4 and out[7] == 4)
+    Swag.assert(out[0] == 1 and
+                out[1] == 1 and
+                out[2] == 2 and
+                out[3] == 2 and
+                out[4] == 3 and
+                out[6] == 4 and
+                out[7] == 4)
     distinctWords(&out[0], 10, 20, 30, 40, 50, 60, 70, 0xFFFF)
     Swag.assert(out[0] == 10 and
                 out[1] == 20 and

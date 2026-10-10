@@ -384,35 +384,50 @@ func lanesFloorFloat(values: *[8] f32)
 {
     var values: [12] f32 = [1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesAddFloatPairs(&values)
-    Swag.assert(values[8] == 11.0'f32 and values[9] == 22.0'f32 and values[10] == 33.0'f32 and values[11] == 44.0'f32)
+    Swag.assert(values[8] == 11.0'f32 and
+                values[9] == 22.0'f32 and
+                values[10] == 33.0'f32 and
+                values[11] == 44.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesMulFloatPairs(&values)
-    Swag.assert(values[8] == 10.0'f32 and values[9] == 40.0'f32 and values[10] == 90.0'f32 and values[11] == 160.0'f32)
+    Swag.assert(values[8] == 10.0'f32 and
+                values[9] == 40.0'f32 and
+                values[10] == 90.0'f32 and
+                values[11] == 160.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [10.0'f32, 20.0'f32, 30.0'f32, 40.0'f32, 2.0'f32, 4.0'f32, 5.0'f32, 8.0'f32, 0, 0, 0, 0]
     lanesDivFloatPairs(&values)
-    Swag.assert(values[8] == 5.0'f32 and values[9] == 5.0'f32 and values[10] == 6.0'f32 and values[11] == 5.0'f32)
+    Swag.assert(values[8] == 5.0'f32 and
+                values[9] == 5.0'f32 and
+                values[10] == 6.0'f32 and
+                values[11] == 5.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesMinFloatPairs(&values)
-    Swag.assert(values[8] == 1.0'f32 and values[9] == 2.0'f32 and values[10] == 3.0'f32 and values[11] == 4.0'f32)
+    Swag.assert(values[8] == 1.0'f32 and
+                values[9] == 2.0'f32 and
+                values[10] == 3.0'f32 and
+                values[11] == 4.0'f32)
 }
 
 #test
 {
     var values: [12] f32 = [10.0'f32, 2.0'f32, 30.0'f32, 4.0'f32, 1.0'f32, 20.0'f32, 3.0'f32, 40.0'f32, 0, 0, 0, 0]
     lanesMaxFloatPairs(&values)
-    Swag.assert(values[8] == 10.0'f32 and values[9] == 20.0'f32 and values[10] == 30.0'f32 and values[11] == 40.0'f32)
+    Swag.assert(values[8] == 10.0'f32 and
+                values[9] == 20.0'f32 and
+                values[10] == 30.0'f32 and
+                values[11] == 40.0'f32)
 }
 
 #test
@@ -433,7 +448,10 @@ func lanesFloorFloat(values: *[8] f32)
 {
     var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.25'f32, -4.0'f32, 0, 0, 0, 0]
     lanesAddFloatConstant(&values)
-    Swag.assert(values[4] == 0.0'f32 and values[5] == 1.5'f32 and values[6] == 3.75'f32 and values[7] == -2.5'f32)
+    Swag.assert(values[4] == 0.0'f32 and
+                values[5] == 1.5'f32 and
+                values[6] == 3.75'f32 and
+                values[7] == -2.5'f32)
 }
 
 #test
@@ -448,7 +466,10 @@ func lanesFloorFloat(values: *[8] f32)
 {
     var values: [8] f32 = [-1.5'f32, 0.0'f32, 2.75'f32, -4.0'f32, 0, 0, 0, 0]
     lanesFloorFloat(&values)
-    Swag.assert(values[4] == -2.0'f32 and values[5] == 0.0'f32 and values[6] == 2.0'f32 and values[7] == -4.0'f32)
+    Swag.assert(values[4] == -2.0'f32 and
+                values[5] == 0.0'f32 and
+                values[6] == 2.0'f32 and
+                values[7] == -4.0'f32)
 }
 
 #test

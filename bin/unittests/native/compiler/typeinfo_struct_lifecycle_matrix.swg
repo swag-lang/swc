@@ -250,12 +250,20 @@ func mixedLifecycleFlagsMatchPointers()->bool
     resetCounts()
     var value = MixedLifecycle{dropValue: DropOnly{}, copyValue: CopyOnly{value: 2}, moveValue: MoveOnly{value: 3}}
     runCopy(type, &value)
-    if DropHits != 0 or CopyHits != 1 or MoveHits != 0 or value.copyValue.value != 12 or value.moveValue.value != 3 do
+    if DropHits != 0 or
+       CopyHits != 1 or
+       MoveHits != 0 or
+       value.copyValue.value != 12 or
+       value.moveValue.value != 3 do
         return false
 
     resetCounts()
     runMove(type, &value)
-    if DropHits != 0 or CopyHits != 0 or MoveHits != 1 or value.moveValue.value != 103 or value.copyValue.value != 12 do
+    if DropHits != 0 or
+       CopyHits != 0 or
+       MoveHits != 1 or
+       value.moveValue.value != 103 or
+       value.copyValue.value != 12 do
         return false
 
     resetCounts()

@@ -52,7 +52,9 @@ func(T, V) functionLocalPartialBox()->bool
     }
 
     var data: Local
-    return #typeof(data.item.first) == T and #typeof(data.item.second) == string and #typeof(data.item.third) == V
+    return #typeof(data.item.first) == T and
+           #typeof(data.item.second) == string and
+           #typeof(data.item.third) == V
 }
 
 func(T) functionLocalExplicitPrefixValue()->bool
@@ -96,7 +98,9 @@ func(A, B) functionLocalRenamedPartialBox()->bool
     }
 
     var data: Local
-    return #typeof(data.item.first) == A and #typeof(data.item.second) == string and #typeof(data.item.third) == B
+    return #typeof(data.item.first) == A and
+           #typeof(data.item.second) == string and
+           #typeof(data.item.third) == B
 }
 
 func(U) functionLocalRenamedExplicitPrefixValue()->bool

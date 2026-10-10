@@ -387,7 +387,9 @@ func catchTryFailureInfo()->CatchInfo
 func catchStrictEnumFailureInfo()->bool
 {
     let value = catch alwaysFailStrictEnum(87) as err5
-    return value == cast(FailStrictEnumAlias, FailStrictEnum.Zero) and err5 != null and currentErrCode(err5) == 87
+    return value == cast(FailStrictEnumAlias, FailStrictEnum.Zero) and
+           err5 != null and
+           currentErrCode(err5) == 87
 }
 
 func dismissAggregateSuccess()->AggregateResult

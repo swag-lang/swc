@@ -248,7 +248,9 @@ func auditLan(connections: const [..] string)->LanAudit
 
                 if adjacency[edgeIndex(first, third)] and adjacency[edgeIndex(second, third)]
                 {
-                    if isLeadComputer(labels[first]) or isLeadComputer(labels[second]) or isLeadComputer(labels[third]) do
+                    if isLeadComputer(labels[first]) or
+                       isLeadComputer(labels[second]) or
+                       isLeadComputer(labels[third]) do
                         result.leadTripletCount += 1
                 }
             }

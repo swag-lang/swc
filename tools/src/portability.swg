@@ -490,7 +490,10 @@ private func portabilityCode(line: string, state: *PortabilityParseState)->Strin
     {
         if state.multilineText
         {
-            if index + 2 < line.count and line[index] == '"' and line[index + 1] == '"' and line[index + 2] == '"'
+            if index + 2 < line.count and
+               line[index] == '"' and
+               line[index + 1] == '"' and
+               line[index + 2] == '"'
             {
                 state.multilineText = false
                 index += 3

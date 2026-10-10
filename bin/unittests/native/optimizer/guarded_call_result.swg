@@ -25,7 +25,7 @@ func lookup(table: [*] u64, key, bias, scale: u64)->u64
 #test
 {
     var table: [8] u64 = [10, 11, 12, 13, 14, 15, 16, 17]
-    var sum   = 0'u64
+    var sum = 0'u64
     for key in 16'u64 do
         sum += lookup(&table[0], key, 5, 2)
 

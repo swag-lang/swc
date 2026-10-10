@@ -85,6 +85,23 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.127 — Reduce the PDF spill-slot regression to a standalone language test
+
+- Recorded: 2026-09-30 11:15
+- Updated: 2026-10-10 15:46 — Move the post-allocation spill-sinking regression to the optimization backlog.
+- Evidence: spill-store sinking compared raw stack displacements across outgoing-call stack adjustments and erased a distinct PDF parser spill. Comparing entry-relative addresses fixes the three PDF failures; the C++ Micro regression fails before the fix and covers both alias patterns. Forty-eight standalone loop reductions pass without the fix because their register allocation no longer reproduces the collision.
+- Next: reduce the interacting loops and register pressure while checking the pre-fix post-allocation stream; add a native-suite regression only if the source reproducer fails without the fix.
+- Complete when: a standalone native case reproduces the alias, alongside the C++ and PDF consumer tests.
+
+### compiler.optimization.128 — Bound code growth in WebP's reconstruction loops
+
+- Recorded: 2026-10-01 13:08
+- Updated: 2026-10-10 15:46 — Move the inlining and unrolling lead to the optimization backlog.
+- Evidence: October 1 DevMode profiles found a WebP reconstruction function taking 3 to 8 seconds of one code-generation slice. Last-call auto-inlining grows its caller without a cap, then loop unrolling repeats inlined work. Largest-first job scheduling removed late starts but not the oversized function; these timings are a dated baseline.
+- Next: bound caller growth from last-call auto-inlining and unrolling loops with inlined bodies; compare WebP decode speed and pixel build time.
+- Complete when: no bin/std function takes more than a tenth of module build time at 16 workers without a measurable WebP decode loss.
+- Related: compiler.core.069
+
 ### compiler.optimization.045 — Branch simplification is a quarter of the backend, and every new pattern taxes every function
 
 - Recorded: 2026-09-23 09:25
@@ -1134,7 +1151,7 @@ new language syntax.
   inline automatically, forbidden/oversized cases remain calls, and runtime, size, compile-time,
   and memory results justify the default policy. Import visibility never changes source validity.
 - Related: compiler.optimization.107, compiler.optimization.108, compiler.optimization.110,
-  compiler.core.071, compiler.optimization.022.
+  compiler.optimization.128, compiler.optimization.022.
 
 ### compiler.optimization.112 — Specialize ordinary calls on constants and known callbacks
 

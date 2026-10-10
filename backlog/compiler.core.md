@@ -6,6 +6,15 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.047 — Imported generic bodies intermittently lose or duplicate bindings
+
+- Recorded: 2026-09-16 09:28
+- Updated: 2026-10-10 15:46 — Combine the duplicate-local and missing-parameter sightings.
+- Evidence: imported generic specializations intermittently report a duplicate local in HashTable or an unknown parameter in Array.opSet, although the generated API contains the declaration. The first duplicate appeared while script smokes shared a checkout; the later parameter loss occurred during a forced dependency rebuild with no competing checkout command. Immediate retries and full forced rebuilds passed.
+- Reduction: 40 pixel rebuilds, 40 same-process dependency rebuilds, 60 randomized seeds, 30 two-process rounds, and 12 exact Core-then-brand replays did not reproduce the parameter loss. The earlier duplicate-local rerun and all 21 script smokes also passed.
+- Next: preserve a failing process and capture generic-instance ownership, parameter-scope restoration, and semantic restarts; then sweep the exact path before assigning the cause to parsing, publication, or scheduling.
+- Complete when: a bounded reproduction identifies and fixes the ordering fault, or the imported generic body is proved safe by construction.
+
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Recorded: 2026-10-09 12:37
@@ -70,29 +79,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Next: reduce and attribute per-worker retained scratch without reducing parallelism; share JIT code pages when patching no longer requires page-sized allocations.
 - Complete when: Core and hello builds stay below 250 MB and 40 MB on the campaign host, workloads remain within twice the best comparable implementation or record a reviewed exception, and campaign thresholds and variance are explicit.
 - Related: compiler.core.004, compiler.core.007, runtime.allocator.017.
-
-### compiler.core.081 — An imported generic method once lost its own parameter
-
-- Recorded: 2026-10-09 02:07
-- Evidence: at 2026-10-08 23:56 the first `tools/help.swgs dm` after the formatting commit
-  33f2aa0f3 stopped in the `brand.swgs` dependency build (gdi32, ogl, truetype, then pixel, all
-  rebuilt against a just-republished core API) with `unknown symbol 'arr'` at
-  `bin/std/.output/core/shared-library/devmode/x86_64/array.swg:135`, inside
-  `Array.opSet(arr: const [..] T) where Reflection.canCopy(T)`, noted "while checking generic
-  struct 'Array' with T = u8" from `core.swg:1410` (`ICodec.encode`). The generated file was
-  intact and the parameter is declared on the line above; the next run passed unchanged.
-- Reduction attempts, all green: 40 pixel-only rebuilds; 40 rebuilds of the same four modules
-  in one process; 60 `--randomize` seeds of that build; 30 two-process rounds (core rebuilt, then
-  its dependents); 12 replays of the exact core-then-`brand.swgs` sequence in the checkout. API
-  reads are captured under the publication lock, and the editor extension only runs `sema`, so
-  a torn file from a concurrent writer is unlikely: the race looks internal to sema of a
-  generic method instantiated from an imported API while several modules share it.
-- Next: when it reappears, keep the failing process's full log and rerun that exact command
-  under `--randomize --seed` sweeps; instrument parameter registration versus body lookup
-  for generic instance methods with a `where` clause (DevMode assertion that a body lookup
-  never runs before the instance's parameter scope is populated).
-- Complete when: the ordering is proved safe by construction or the race is reproduced and
-  fixed with a regression case in the `workspace` suite.
 
 ### compiler.core.080 — Published generic bodies call omitted helper declarations
 
@@ -160,53 +146,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   rule in the lifecycle resolution and cover both producers above in the `native` suite.
 - Complete when: a tuple local holding an owning field drops it exactly once at scope end, or
   the declaration is rejected with a diagnostic, and the two reproducers above are suite tests.
-
-### compiler.core.047 — Imported generic bodies intermittently lose or duplicate bindings
-
-- Recorded: 2026-09-16 09:28
-- Updated: 2026-10-07 12:09 — a forced documentation rebuild lost an imported method parameter.
-- Found while: validating the dynamic type-pattern migration with DevMode 0.1.675 and six workers.
-- Evidence: `bin/swc.dm.exe --num-cores 6 tools/scripts.swgs dm smoke --num-cores 6`
-  ran `2048.swgs`, then stopped while checking `asciiart.swgs`. The generated core API's
-  `hashtable.swg:521` reported that local `mask` was already defined; the previous-definition
-  note pointed to the same declaration. The specialization was
-  `HashTable(string, ConcatBufferPosition)`, requested by generated `core.swg:5311`.
-  Application tests and example builds were running concurrently in the same checkout.
-- Reduction status: an immediate isolated `tools/scripts.swgs dm smoke asciiart` rerun with
-  the same compiler, sources, cache, and six workers passed. A complete rerun of all 21
-  script smokes also passed. The cause and any relationship
-  to the type-pattern change are unestablished; no concurrency fix is included in that migration.
-- Further evidence: on 2026-10-07, `tools/help.swgs dm --num-cores 6` with the cast-call
-  compiler stopped during the forced standard-library rebuild: generated `array.swg:134`
-  reported unknown symbol `arr` inside `Array(u8).opSet(arr: const [..] T)`, while checking
-  the Pixel dependency. The parameter declaration remained present in the published source.
-  A direct doc retry passed, as did a complete forced tool rerun; a separate forced doc run
-  with baseline `ca107d2a9` and its compiler also passed. No other command in this checkout
-  was compiling when the first failure occurred. These observations do not establish a cause
-  or a relationship to the cast syntax change or the earlier duplicate-local report.
-- Next: replay the cached script import alongside module builds, capture generic-instance
-  ownership, parameter-scope restoration, and semantic restarts around the affected bindings,
-  and compare with the parent
-  compiler before attributing the failure to parsing, publication, or scheduling.
-- Complete when: a bounded reproducer identifies the duplicate visitation or publication,
-  the root cause is fixed, and the script passes repeated parallel imports with six workers.
-
-### compiler.core.078 — Reduce a suspected nested-owner release false positive
-
-- Recorded: 2026-10-07 10:42
-- Evidence: an experimental Windows OpenGL/DirectComposition context stored a separately
-  allocated composition object in `OglContext.composition`. `NativeRenderOgl.dropContext(rc:
-  OglContext)` deleted that field; its caller then deleted the separately allocated `OglContext`
-  carrier. The compiler reported that the carrier had already been freed. Embedding the
-  composition state removed the report, but changed the ownership shape and did not explain it.
-- Boundary: this was observed in the discarded composition prototype, not in the retained
-  layered presenter. It is a suspected false positive, not an established alias-analysis defect;
-  no standalone suite reproducer has yet been obtained.
-- Next: reduce a heap-allocated carrier with a separately allocated field, a by-value cleanup
-  callee, and the subsequent carrier delete to the safety suite. Check whether the inferred
-  release summary confuses a field's pointee with its enclosing allocation before changing it.
-- Complete when: a standalone regression explains the diagnostic as valid or protects the
-  corrected ownership summary without GUI or graphics dependencies.
 
 ### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
 
@@ -333,34 +272,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Complete when: every structure has one definition per distinct layout in a linked PDB, the
   `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
 
-### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
-
-- Recorded: 2026-09-15 12:47
-- Updated: 2026-10-06 09:49 — Measured what recording nothing from an assertion argument would touch.
-- Found while: the same change, on `bin/unittests/sanity/self_borrow_move.swg`.
-- Evidence: `Swag.assert(target.cursor![] == 13)` records the non-null proof for the rest of the
-  block, but `Swag.Safety(.Assert, false)` and the `release` preset drop the whole assertion,
-  including the `!` inside its argument. The proof survives compilation; the runtime guard does
-  not. `Swag.assert(p != null)` has the same property and the reference documents it as the
-  precondition form, which is why it reads as deliberate there; a `!` inside an argument does not
-  read as a precondition at all.
-- Cost: no unsoundness in `release`, where every guard is already off. In `devmode` with an
-  explicit safety override, a path can be used unguarded because of an assertion that was
-  compiled out.
-- Blast radius (2026-10-06): recording nothing from inside a `Swag.assert` argument is a
-  one-line change to `notNullRunsUnconditionally` (an `AstIntrinsicCallExpr` parent with
-  `IntrinsicAssert` returns false). `bin/` holds 89 assertions with a postfix `!` in an
-  argument, most of them in application and module tests, so any code after them that relies on
-  the proof would stop compiling; that needs every `bin/` test source compiled before it lands.
-  Recording the proof only where `Assert` safety is on would make the same source compile in one
-  configuration and not in another, which is worse.
-- Next: decide whether a proof recorded inside an argument of a removable intrinsic should be
-  kept. Either record nothing from inside a `Swag.assert` argument and compile every `bin/` test
-  source, or state the rule in `bin/reference/modules/language/src/004_007_pointers.swg` next to
-  the existing `Swag.assert` paragraph.
-- Complete when: the chosen rule is implemented or documented, with a case showing what
-  `Swag.Safety(.Assert, false)` does to the proof.
-
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
 - Recorded: 2026-10-01 14:25
@@ -419,29 +330,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   rebuild, with the workspace suite and `std` tests green under both compiler executables.
 - Related: compiler.core.069, compiler.core.007
 
-### compiler.core.071 — WebP's macroblock reconstruction takes seconds to generate and holds back `pixel`
-
-- Recorded: 2026-10-01 13:08
-- Updated: 2026-10-01 13:40 — traced to inlining and unrolling; code generation now starts the largest functions first
-- Evidence: in 16-worker DevMode `gui` rebuilds, the longest code-generation job is one WebP
-  function, `Pixel.Webp.decodeLossy` or `Pixel.Webp.vp8Reconstruct` depending on the run, 3–8 s in
-  one slice. The `pixel` module's first code-generation round lasts exactly that long: the round is
-  bounded by one job, not by when it starts. Per-pass timing on `decodeLossy` (DevMode, six
-  workers) spreads about 4 s over the whole pipeline — register allocation 0.8–0.9 s in one run,
-  branch-simplify 0.7 s, instcombine 0.5 s, const-fold 0.5 s, copy-elim 0.4 s, most pre-RA passes
-  running eight or nine times — so no single pass misbehaves; the function is simply enormous.
-  `vp8ReconstructMacroblock` runs two 4×4 loops that call `vp8Predict4` and `vp8InverseDct4`;
-  single-call auto-inlining (`K_AUTO_INLINE_LAST_CALL_COST`, 4 096 tokens per callee, no cap on
-  the caller's growth) folds the whole chain into its caller, and unrolling then repeats it sixteen
-  times. Code generation now enqueues functions largest first, estimated from their own size plus
-  what semantic analysis inlined into them, which removes late starts but not this length.
-- Next: bound the growth a caller may receive from last-call auto-inlining and from unrolling
-  loops whose bodies contain inlined calls, then compare WebP decoding speed and `pixel` build time
-  before and after with the benchmark harness.
-- Complete when: no single function's code generation in `bin/std` takes more than a tenth of its
-  module's wall time at 16 workers, without a measurable loss in WebP decoding speed.
-- Related: compiler.core.069
-
 ### compiler.core.069 — Measure where a module build loses its workers beyond six cores
 
 - Recorded: 2026-10-01 07:35
@@ -466,7 +354,7 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   and `rebuildFunctionInfos`) and what the semantic tail waits on (its longest job is 1.5–4 s);
   each becomes its own entry once named.
 - Complete when: each share above has an owning entry.
-- Related: compiler.core.071, compiler.core.072, compiler.core.073, compiler.core.065, compiler.core.068, compiler.core.007
+- Related: compiler.optimization.128, compiler.core.072, compiler.core.073, compiler.core.065, compiler.core.068, compiler.core.007
 
 ### compiler.core.068 — The job scheduler serializes every transition on one mutex
 
@@ -513,28 +401,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
   type-completion dependencies, with the sema suite, the C++ scheduler tests, and std release
   green under both compiler executables.
 - Related: compiler.core.069, compiler.core.007
-
-### compiler.core.063 — Reduce the PDF spill-slot regression to a standalone language test
-
-- Recorded: 2026-09-30 11:15
-- Updated: 2026-09-30 14:18 — retain only the standalone regression coverage still missing
-- Evidence: `sinkFrameStoreIntoBranchTarget` compared raw stack displacements across outgoing-call
-  stack adjustments. In `Pdf.parseContent`, a store at `[rsp + 0x1AA8]` under an eight-byte
-  adjustment belonged to the slot later read at `[rsp + 0x1AA0]`. The pass mistook it for another
-  loop's store at the first displacement and erased it. Comparing entry-relative addresses fixes
-  the three PDF failures; all eleven selected corpus/stroke tests pass in release JIT and native
-  execution. `PostRAPeephole_SpillStoreSinkingTracksStackDepth` fails before the fix and covers both
-  distinct slots with equal displacements and one slot with different displacements.
-- Remaining boundary: that regression is a C++ Micro test, not a standalone source under
-  `bin/unittests`. Extracting the parser and dash loop into a Core-only script passes even without
-  the fix. Forty-eight standalone two-loop variants, varying call arity from one to twelve and
-  live accumulator pressure, also pass without it. Those reductions change register allocation
-  and no longer place the two loops' spills at the conflicting adjusted displacements; retaining
-  the full GUI decoder would violate the standalone suite boundary.
-- Next: reduce the interacting loops and their register pressure while checking the pre-fix
-  post-allocation instruction stream, then keep a native suite case that fails without the fix.
-- Complete when: `bin/unittests/native` reproduces this stack-depth aliasing independently of GUI,
-  alongside the existing C++ regression and PDF consumer tests.
 
 ### compiler.core.061 — Type-info graph publication uses one serialization domain
 
@@ -637,33 +503,6 @@ the shared memory budget.
   cache reuse from shared code-generation state when cloning the macro's closure.
 - Complete when: a stable reproducer identifies the cause, the correction passes
   that reproducer repeatedly, and the full native suite remains green.
-
-### compiler.core.045 — A conditionally evaluated `!` cannot record the proof it makes
-
-- Recorded: 2026-09-15 12:47
-- Found while: making the postfix `!` prove its own path so a second one on that path is
-  rejected (`sema_err_notnull_already_proven`).
-- Evidence: a proof is recorded by mutating live frames in place, because pushing a frame with
-  an ancestor-anchored pop from the middle of a statement breaks the LIFO discipline of the
-  deferred pops. The right operand of `and`/`or`, a branch of `?:`, the fallback of `orelse` and
-  the tail of a `?.` chain are each evaluated on a decision taken to their left, and none of them
-  carries a frame of its own: `AstLogicalExpr::semaPostNodeChild` pushes one only when the left
-  side yielded facts, and the other three push none. A fact recorded inside one would therefore
-  outlive the region that justifies it, so `notNullRunsUnconditionally` in
-  `Sema.Function.Flow.cpp` refuses to record anything there.
-- Cost: `p!` written in those positions teaches the compiler nothing, so a later `!` on the same
-  path is not reported and its runtime guard is still emitted. Measured on the 2026-09-15 sweep:
-  246 assertions were removed across `bin/`, and the paths left untouched are dominated by
-  sibling `case` bodies (which are correctly out of scope) and by these conditional operands.
-- Next: give each conditionally evaluated operand its own frame unconditionally — the `and`/`or`
-  right side whatever the left side yielded, both branches of `?:`, the `orelse` fallback, and
-  the `?.` chain tail — then drop the `notNullRunsUnconditionally` guard and let the frame pop
-  scope the fact. Measure sema time on `bin/std` before and after: this adds a frame push per
-  logical expression.
-- Complete when: `p!` in an `and` right side proves the path for the rest of that operand and
-  for nothing beyond it, with a JIT case for each of the four forms in
-  `bin/unittests/jit/flow/nullable_narrow.swg` and the negative controls in
-  `bin/unittests/errors/sema/sema_err_notnull_already_proven.swg` still passing.
 
 ### compiler.core.038 — Measure the remaining semantic frame construction cost
 

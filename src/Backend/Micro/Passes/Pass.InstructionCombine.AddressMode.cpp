@@ -923,6 +923,23 @@ namespace InstructionCombine
         return false;
     }
 
+    namespace
+    {
+        bool instructionMayReadRegister(const MicroInstrDef& info)
+        {
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef) ||
+                info.special != MicroInstrRegSpecial::None)
+                return true;
+
+            for (const MicroInstrRegMode mode : info.regModes)
+            {
+                if (mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef)
+                    return true;
+            }
+            return false;
+        }
+    }
+
     bool Context::allFloatReadsFit(const MicroOpBits bits)
     {
         SWC_ASSERT(ssa);
@@ -938,6 +955,10 @@ namespace InstructionCombine
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
+            const MicroInstrDef& info = MicroInstr::info(it->op);
+            if (!instructionMayReadRegister(info))
+                continue;
+
             const auto* useDef = ssa->instrUseDef(it.current);
             if (!useDef)
                 return false;

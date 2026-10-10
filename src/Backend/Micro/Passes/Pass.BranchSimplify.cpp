@@ -3288,8 +3288,14 @@ namespace
         bool                        changed = false;
         LazyVirtualIntRegs          nextVirtualIntRegs{context};
         std::optional<TableScratch> tableScratch;
+        SmallVector<std::pair<uint64_t, uint32_t>, 16> cases;
+        SmallVector<uint32_t, 16>                      chainJumpTargets;
         for (size_t start = 0; start < count; ++start)
         {
+            // Candidate starts can overlap along a long compare chain. Reuse
+            // any grown buffers instead of reallocating them for each suffix.
+            cases.clear();
+            chainJumpTargets.clear();
             const MicroInstr* first = instAt(start);
             if (!first || first->op != MicroInstrOpcode::CmpRegImm)
                 continue;
@@ -3303,8 +3309,6 @@ namespace
 
             // The chain: compares of the key, each taking its case on equality,
             // or a case range `cmp X, LO; jb .SKIP; cmp X, HI; jbe .L; .SKIP:`.
-            SmallVector<std::pair<uint64_t, uint32_t>, 16> cases;
-            SmallVector<uint32_t, 16>                      chainJumpTargets;
             size_t                                         at            = start;
             bool                                           fallsIntoCase = false;
             uint32_t                                       fallDefaultId = 0;

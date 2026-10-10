@@ -6,6 +6,44 @@ Items are ordered from the most recently updated down. Every completion conditio
 
 As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `src/` contains 266,719 physical lines in 685 `.cpp` and `.h` files. `src/Compiler/Sema` accounts for 85,710 lines in 154 files. The compiler diagnostic catalog contains 561 ids carrying 643 message variants, and `swc format --dump-config` exposes 133 options. Recompute these figures when using them to prioritize work.
 
+### compiler.core.082 — Hot-path node containers that need more than a container swap
+
+- Recorded: 2026-10-09 12:37
+- Updated: 2026-10-10 15:44 — Retain only the remaining order and table-lifetime constraints.
+- Evidence: flat tables now replace node-based containers across sema, code generation, optimization, sanitization, linking, and native dependency walks. Per-run side tables are lazy, and type interning builds TypeInfo only for new types. Native listings and linked sections remain identical. A CallArgMapping reuse needs proof that attempted and selected generic functions agree; TypeGen's deep stackSet may be cheaper than scanning.
+- Remaining: order-preserving replacements for sanitizer sparse facts, mem2reg slots, SLP locations and entry values, web loads, LICM hoistSet, and native dependency rejections. A worker-kept FlatKeyMap also clears at the largest size seen, not the current function's size.
+- Next: replace one ordered map with an output-equivalent flat map, or benchmark a kept-table clear against rebuilding a fresh table.
+- Complete when: each remaining table is replaced with identical output and its owning tests pass, or its added design cost is shown not worthwhile.
+- Related: compiler.core.060.
+
+### compiler.core.074 — Repeated native rebuilds still vary in data layout
+
+- Recorded: 2026-10-01 17:08
+- Updated: 2026-10-10 15:44 — Narrow the remaining variation to empty-string placement and parallel global layout.
+- Evidence: normalized code, unwind data, debug data, exports, and imports are stable across repeated builds. A single-core lz77 build still shifts .rdata and relocations when an empty reflected type name points to an earlier shared string in one build and its own allocation in another. Global .data and .bss offsets also vary because sema assigns them concurrently.
+- Next: assign global layout at emission from a stable module, file, and declaration key while preserving JIT addresses; then compare normalized unwind records again.
+- Complete when: repeated builds have stable normalized code, data layout, and unwind records, with the native regression suite green.
+
+### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
+
+- Recorded: 2026-09-30 08:32
+- Updated: 2026-10-10 15:44 — Summarize the remaining walks and their invalidation constraints.
+- Evidence: compile-time calls still repeat four walks: relocation patching traverses constant closures per function; JIT preparation rebuilds call order before and after sema; runtime type hashing reconstructs scoped names already cached by symbols; and escape summaries rescan pending edges plus guarded return summaries. Patch walks now keep relocations inline.
+- Constraints: patched function addresses can move from work to patch addresses; JIT order also depends on ignored functions and macro attributes; scoped-name caching requires immutable scope chains; escape summaries must preserve guarded proofs and late completion.
+- Next: measure these costs on a gui Release rebuild and change only a bounded walk with a repeatable gain.
+- Complete when: each walk is removed with compile-time execution and safety coverage, or measured and retained as not worth its risk.
+- Related: compiler.core.030.
+
+### compiler.core.003 — Code-generation invalidation is module-wide
+
+- Recorded: 2026-08-09 11:30
+- Updated: 2026-10-10 15:44 — Condense the implemented cache layers and remaining invalidation work.
+- Current cache layers: workspace manifests reuse unchanged modules; interface-compatible dynamic dependency edits republish the DLL without rebuilding consumers; static dependency edits can relink persisted consumer objects; and non-debug executables reuse large relocation-free function members, including unwind data. Cache writes are atomic and best-effort; missing, changed, or malformed artifacts fall back to ordinary compilation. Imported native code run at compile time remains an invalidation boundary.
+- Next: admit relocation-bearing functions by fingerprinting referenced symbols, constant payloads, ABI, and inlinable bodies. Add debug records only when source identities and line mappings are deterministic; keep an adaptive threshold so cache work costs less than the code generation it saves.
+- Performance gate: compare clean, no-op, private-body, static-dependency, and public-API edits with compiler.core.004; clean builds must stay within the established noise band.
+- Complete when: safe native and JIT builds reuse body-only edits with correct dependency invalidation, fresh and cached artifacts are identical, and the campaign shows a repeatable gain without a clean-build regression.
+- Related: compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.030.
+
 ### compiler.core.030 — Every executable lowers the runtime's functions again
 
 - Recorded: 2026-09-05 22:13
@@ -32,147 +70,6 @@ As of 2026-09-04, excluding the vendored `src/Support/Memory/mimalloc` tree, `sr
 - Next: reduce and attribute per-worker retained scratch without reducing parallelism; share JIT code pages when patching no longer requires page-sized allocations.
 - Complete when: Core and hello builds stay below 250 MB and 40 MB on the campaign host, workloads remain within twice the best comparable implementation or record a reviewed exception, and campaign thresholds and variance are explicit.
 - Related: compiler.core.004, compiler.core.007, runtime.allocator.017.
-
-### compiler.core.082 — Hot-path node containers that need more than a container swap
-
-- Recorded: 2026-10-09 12:37
-- Updated: 2026-10-10 10:20 — Fresh flat tables in the remaining per-run pass and linker paths; the
-  ordered maps and the kept-table clear remain.
-- Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
-  and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
-  escape state, code generation node and variable payloads, value numbering, loop rotation and
-  unrolling labels, stack offsets, sanitizer counts, inline binding uses, linker tables, the JIT
-  address cache, the sanitizer register and stack facts, branch-simplify label and register
-  counts, the per-function call and relocation sets, loop-invariant code motion's relocation
-  chains, lifecycle type walks, switch case tables). It also stopped building tables most
-  objects never fill (struct and enum impl guards, node payload side tables, generic instance
-  indices, move-elision facts), formats the `where` instantiation text only when a constraint
-  fails, sorts a function's symbols for unused captures only when it has a capture, and takes
-  sema scopes from a per-Sema arena whose slots are never reused, because an inline payload keeps
-  the address of the scope it was expanded from. Optimizer listings of `bin/unittests/native`
-  compare equal before and after, in devmode and release. The sanitizer facts did not need an
-  ordered replacement: every pass over them keeps or drops each entry on its own.
-- Not worth the change: rebuilding the winner's `CallArgMapping` in `resolveFunctionCandidates`
-  is one pass over the arguments into inline vectors, and reusing an attempt's mapping would have
-  to prove that the attempted function and the selected one (possibly a generic instance) agree.
-  `TypeGen::processTypeInfo` keeps its `stackSet`: the stack it mirrors can be deep, so a scan of
-  it is not provably cheaper than the set.
-- October 10: `TypeManager` interns array and aggregate types from their parts with the same
-  hash, placement and equality, building a `TypeInfo` only for a new type; a compile-time run's
-  buffers live in its pending entry (one allocation instead of two); flat tables replaced the
-  per-run node containers of mem2reg, constant folding's constant addresses, loop-invariant use
-  counts, register allocation and stack normalization label depths, the post-allocation peephole
-  backtracks, SLP's definition scan (now shared by both lane widths) and register values, loop
-  load forwarding, the native dependency closure, branch simplification's diamond label counts
-  and referenced labels (`FlatKey64Set`, 64-bit keys) and implied-branch label uses,
-  induction-variable use and definition counts, mem2reg's address registers and access lookup,
-  definition summaries shared by loop-invariant code motion and SLP, loop-invariant code motion's
-  per-loop sets, dead-code float counts, web renaming's sets, the sanitizer's escaped locals, the
-  native function-info lookup and the module API dependency walk. Location sort keys convert a
-  file's path once and the sort compares file parts and token numbers without building keys.
-  Loop scans start and stop at a natural loop's body span. Pre-emit listings of eight bench tasks
-  in devmode and release compare equal before and after, and single-core executables and
-  `core.dll` keep identical code, unwind, debug, export and import sections.
-- These remain, each needing a design change:
-  - Node maps whose iteration order reaches the output: the sanitizer's sparse fact maps
-    (`movedFrom`, `aliasPtrSlots`, ...), mem2reg's `slots`, SLP's `locations` and
-    `entryValues`, web renaming's `loads`, loop-invariant code motion's `hoistSet`, and the native
-    dependency walk's `rejected`. Each needs an order-preserving replacement.
-  - A worker-kept `FlatKeyMap` (branch simplification's `BranchScan` counts among them) clears
-    its whole table, so a rebuild costs the largest function the worker has seen rather than the
-    current one. Bounding it (stamped slots, or a list of the occupied ones) trades a per-insert
-    cost for the clear; that tradeoff needs the benchmark campaign.
-- Next: an order-preserving flat map for the sanitizer's sparse facts, or measure the kept-table
-  clear against a fresh table at the benchmark campaign's next milestone.
-- Complete when: each item is replaced with identical output and its owning suites green, or
-  recorded here as not worth the change it needs.
-- Related: compiler.core.060.
-
-### compiler.core.074 — Repeated native rebuilds choose different prologues
-
-- Recorded: 2026-10-01 17:08
-- Updated: 2026-10-10 10:20 — A single-core `.rdata` difference traced to where an empty string lands.
-- Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
-  Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
-  3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
-  records without addresses finds eleven changed groups, including one removed leaf record,
-  different saved registers, and stack allocations changing from `0x700` to `0xAF0`.
-  Both commands cap the outer script and inner compiler at six workers and use isolated
-  temporary caches. No compiler rebuild occurs between them.
-- Scope: this was observed while removing the redundant sort in `X64UnwindWindows::buildInfo`.
-  That routine serializes already generated prologue operations; the record differences also
-  occur between runs of the same changed binary. This does not establish when the variation
-  was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
-- October 3: three causes found and fixed. A by-value aggregate argument that folds to a
-  constant (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached
-  by the folding cast and registered again on every sema rerun, each copy keeping a frame
-  slot: `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one
-  build of the same benchmark to the next. `.rdata` was laid out by constant shard and
-  creation offset, which follow job scheduling; it now follows the order the code reaches
-  each constant. And a source-location constant chose its shard from the function's address
-  and the source view's load index, so two locations in one file shared their file-name
-  string in some builds and not in others, shifting the whole section; the shard now comes
-  from the file and function names. Over five pairs each of `sort`, `wordfreq` and `nbody`
-  builds, the code (ignoring addresses), `.pdata` and `.xdata` no longer vary, and `.rdata`
-  differed in one pair only, by 41 bytes, next to a `.data` difference.
-- October 9: two consecutive `std.swgs build core -bc release --rebuild --num-cores 1` runs of the
-  same Release compiler (prompt-4 branch at `f3a0c10b3`) give `core.dll` files whose `.text`,
-  `.pdata`, `.xdata`, `.swagdbg`, `.edata` and `.data` sections are byte-identical, while `.rdata`
-  is 259,583 against 259,543 bytes (103,866 differing bytes from offset `0xb60`, the shifted
-  addresses of data-only references) and `.reloc` differs accordingly. Six-core rebuilds also
-  change the file size by 512 bytes. The code itself is stable; one `.rdata` allocation still
-  changes size or order between runs, even without parallel workers.
-- October 10: single-core builds of the same bench task by the same Release compiler still
-  differ in `.rdata` and `.reloc` alone, in about one build of two. In `lz77` the difference is
-  one empty-string payload: a reflected type value's empty name points into an allocation reached
-  early in one build, and into its own one-byte allocation emitted just before
-  `"[..] Swag.TypeValue"` in the other, shifting every later string by one byte. Type-info
-  strings come from shard 0's `DataSegment::addString`, which deduplicates per segment; which
-  allocation first holds `""` follows the order type infos are generated.
-- What still varies: the offsets of globals in `.data` and `.bss`. They are assigned while
-  sema runs in parallel, so the addresses that code and relocations use differ from one
-  build to the next (48 to 5,800 bytes per pair).
-- Next: give globals a layout decided at emission from a stable key (module, file, declaration
-  order) instead of first-come offsets, keeping the JIT's addresses valid; then repeat the
-  unwind record comparison to see whether another prologue cause remains.
-- Complete when: the source of the different prologues is explained and corrected at its
-  owning boundary, with stable normalized output and the affected native tests green.
-
-### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
-
-- Recorded: 2026-09-30 08:32
-- Updated: 2026-10-10 10:20 — The patch walk keeps relocations inline; two repeated name and order builds noted.
-- Area: compiler/JIT, compile-time execution, compilation time
-- Evidence: the remaining repeated work is visible in the current call paths:
-  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
-    patched function names, once per function, taking the allocation lock and the relocation lock
-    for every allocation it visits (each allocation's relocations are copied into an inline list
-    since October 10). The semantic walk over the same graph remembers an allocation per
-    relocation version; this one remembers nothing between functions. A patchable target is the
-    function's patch address once it has one and its work address before, so a slot patched early
-    can later receive a different address: a memo across functions must keep re-patching or prove
-    the address no longer moves.
-  - `prepareJitFunction` builds the JIT order once before waiting for sema and again after, only
-    to compare sizes. The order follows the call graph and the native init targets, which both
-    carry a version; reusing the first order when neither moved needs every other input of the
-    walk (ignored functions, macro attributes) to move one of them too.
-  - `TypeRuntimeHash::canonicalScopedNameHash` rebuilds a symbol's full scoped name for every
-    runtime hash that meets it, while `Symbol::scopedNameHash` caches the same value. Using the
-    cache needs proof that no symbol's scope chain changes after its hash is first taken;
-    otherwise a reflected type's identity could differ between modules.
-  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
-    memo keys on the count of semantically completed symbols, which moves while sema runs. The
-    unguarded path retains applied forwardings and appends only new edges, but each new signature
-    still scans the pending edges; an edge whose callee never frees its parameter stays pending.
-    The guarded path also reconstructs its closure-local return-summary table. A worklist keyed by
-    callee could revisit an edge only when its callee's mask or either end's completion changes.
-- Next: measure these remaining walks on a `gui` release rebuild. Before remembering patched
-  allocations across functions, preserve deferred-function registration and the `Pause` path;
-  a memo must account for both. Preserve the guarded return proofs and late completion when
-  replacing the release scan with a worklist.
-- Complete when: each item is either removed with compile-time execution and safety tests, or
-  recorded as measured and not worth its risk.
-- Related: compiler.core.030.
 
 ### compiler.core.081 — An imported generic method once lost its own parameter
 
@@ -717,72 +614,6 @@ the shared memory budget.
   from the `cpp` or `workspace` campaign. Check whether `compiler.core.047` (a generic local
   defined twice in `HashTable`) reproduces under the same stress before attributing it here.
 - Complete when: a repeatable test fails without the post-node ownership check and passes with it.
-
-### compiler.core.003 — Code-generation invalidation is module-wide
-
-- Recorded: 2026-08-09 11:30
-- Updated: 2026-09-19 12:32 — make every safe native cache part of the default build path
-
-**Current boundary.** Workspace manifests keep a completed module when its own inputs and the
-dependency API generations it consumed are unchanged. The default build keeps an executable image
-when only an interface-compatible dynamically linked implementation changed; the fresh DLL is
-republished before a run. It also persists one deterministic COFF object containing a non-debug
-executable's module-owned code and data. When only a static native dependency generation changes,
-the workspace reloads that object, resolves the fresh archives, and writes a new PE without running
-the consumer's front end or code generation. Imported native code executed at compile time remains
-a strict invalidation boundary. Cache publication is atomic and best-effort, and a missing or
-modified object falls back to a normal compilation.
-
-The next cache layer now fingerprints raw per-function microcode before optimization. For a
-non-debug executable, an unchanged function with at least 64 micro-instructions and no
-code relocation reuses its COFF archive member, including unwind metadata, and skips the micro
-passes and encoder. The cache remains one archive plus a compact index rather than one persistent
-file per function. Entries carry the compiler build and backend configuration identity; malformed,
-missing, renamed, or fingerprint-mismatched entries fall back to ordinary emission. The workspace
-regression changes one large leaf while observing another reported as reused, then verifies that
-`--rebuild` bypasses the cache.
-
-**Evidence for the next layer.** The first function slice deliberately excludes calls, referenced
-constants, debug information, and small functions: those need a canonical dependency fingerprint
-or cost more to serialize than they save. `NativeObjFileWriter` already serializes one function per
-archive member, and the integrated linker resolves those members lazily, so broader coverage should
-extend the fingerprint and admission policy rather than create another storage format.
-
-Do not content-hash the source tree in a separate warm-build pass. Reuse the manifest's read
-boundaries for the cheap eligibility decision; when content fingerprints are later needed, compute
-them while bytes are already being read. Do not write capsules for non-native outputs or failed
-builds, and allow the write to be skipped below a measured code-generation cost threshold. Record
-cache decision time, bytes read/written, and saved code-generation/link time so a hit that costs
-more than it saves is visible.
-
-**Next — broaden function-level code generation.** Admit functions with relocations by fingerprinting
-their referenced symbol identities, constant payloads, reachable ABI, and inlinable bodies. Add
-debug records only after their source identity and line mapping are deterministic. Measure an
-adaptive size/cost threshold so small functions never pay more hashing and archive work than their
-micro passes cost. Front-end state and binary module interfaces remain compiler.core.002 and
-compiler.core.001 respectively; this entry consumes their semantic fingerprints rather than
-inventing a second dependency graph.
-
-**Performance gate.** Compare clean, no-op, private-body edit, static-dependency edit, and public-API
-edit workloads with compiler.core.004. A clean build may not regress outside the established noise
-band, a no-op cache decision must stay cheaper than launching code generation, and cache writes may
-not extend the reported critical path. `--rebuild` remains the clean-build oracle while every safe
-cache is part of the normal DevMode and Release paths.
-
-**Complete when.**
-
-- A static-dependency implementation edit relinks a consumer without re-running its front end or
-  code generation. Done for non-debug executable build/run/smoke commands.
-- A body-only edit regenerates the changed function and any function whose generated code depends
-  on it, while unrelated functions are reused. Done for sufficiently large relocation-free leaf
-  functions in non-debug executables.
-- Reuse works for native and JIT builds, including debug and unwind metadata.
-- Clean and warm builds produce byte-identical deterministic cache entries and observably identical
-  programs, and reject compiler, target, configuration, ABI, API, and optimization changes.
-- The compiler.core.004 edit-build workloads demonstrate a material win with no measurable clean
-  build regression.
-
-**Related:** compiler.core.001, compiler.core.002, compiler.core.004, compiler.core.030.
 
 ### compiler.core.052 — Isolate a transient null-capture diagnosis in a macro binding
 

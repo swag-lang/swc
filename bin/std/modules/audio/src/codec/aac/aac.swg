@@ -34,7 +34,8 @@ private impl BitReader
             let bitIndex  = 7 - (.bitPos & 7)
             if byteIndex >= .length do
                 .overrun = true
-            value   = (value << 1) | (byteIndex < .length ? (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1 : 0)
+            value = (value << 1) |
+                    (byteIndex < .length ? (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1 : 0)
             .bitPos += 1
         }
 
@@ -430,7 +431,11 @@ private impl AacCodec
                 for band in value.maxSfb
                 {
                     let width = cast(s32, (offsets[band + 1] - offsets[band])) * value.groupLength[group]
-                    .dequantizeBand(channel, .books[channel, bandIndex], .scaleFactors[channel, bandIndex], line, line + width)
+                    .dequantizeBand(channel,
+                                    .books[channel, bandIndex],
+                                    .scaleFactors[channel, bandIndex],
+                                    line,
+                                    line + width)
                     line      += width
                     bandIndex += 1
                 }
@@ -440,7 +445,11 @@ private impl AacCodec
         {
             let offsets = swbLong(.sampleRateIndex)
             for band in value.maxSfb do
-                .dequantizeBand(channel, .books[channel, band], .scaleFactors[channel, band], offsets[band], offsets[band + 1])
+                .dequantizeBand(channel,
+                                .books[channel, band],
+                                .scaleFactors[channel, band],
+                                offsets[band],
+                                offsets[band + 1])
             for line in offsets[value.maxSfb] until FrameSamples do
                 .coefficients[channel, line] = 0
         }
@@ -482,7 +491,8 @@ private impl AacCodec
         let isShort  = value.windowSequence == 2
         let offsets  = isShort ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
         let numBands = isShort ? cast(s32, NumSwbShort[.sampleRateIndex]) : cast(s32, NumSwbLong[.sampleRateIndex])
-        var maximum  = isShort ? cast(s32, TnsMaxBandsShort[.sampleRateIndex]) : cast(s32, TnsMaxBandsLong[.sampleRateIndex])
+        var maximum  = isShort ? cast(s32, TnsMaxBandsShort[.sampleRateIndex]) :
+                       cast(s32, TnsMaxBandsLong[.sampleRateIndex])
         maximum = Math.min(maximum, value.maxSfb, numBands)
         let windowCount = isShort ? 8 : 1
         for window in windowCount
@@ -586,7 +596,8 @@ private impl AacCodec
                 let base      = 448 + 128 * window
                 for index in 256
                 {
-                    let windowValue = index < 128 ? g_ShortWindows[leftShape, index] : g_ShortWindows[currentShape, 255 - index]
+                    let windowValue = index < 128 ? g_ShortWindows[leftShape, index] :
+                                      g_ShortWindows[currentShape, 255 - index]
                     time[base + index] += transformed[index] * windowValue
                 }
             }

@@ -102,6 +102,7 @@ namespace
             case CommandKind::Format:
             case CommandKind::Syntax:
             case CommandKind::Sema:
+            case CommandKind::Service:
             case CommandKind::Doc:
             case CommandKind::Unittest:
                 return result;
@@ -270,6 +271,7 @@ namespace
                 break;
 
             case CommandKind::Sema:
+            case CommandKind::Service:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())

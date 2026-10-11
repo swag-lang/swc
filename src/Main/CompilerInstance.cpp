@@ -507,7 +507,7 @@ const std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind
 
 Result CompilerInstance::setupSema(TaskContext& ctx)
 {
-    if (cmdLine().editorService && typeMgr_)
+    if (isEditorServiceCommand(cmdLine().command) && typeMgr_)
         return Result::Continue;
 
     typeMgr_ = std::make_unique<TypeManager>();
@@ -630,6 +630,7 @@ void CompilerInstance::processCommand()
             Command::syntax(*this);
             break;
         case CommandKind::Sema:
+        case CommandKind::Service:
             Command::sema(*this);
             break;
         case CommandKind::Doc:
@@ -1108,7 +1109,7 @@ ExitCode CompilerInstance::run()
         exitCode = Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
     }
 
-    if (cmdLine().editorService)
+    if (isEditorServiceCommand(cmdLine().command))
     {
         for (OwnedJobStorage& storage : ownedJobs_)
             storage.jobs.clear();
@@ -1218,7 +1219,7 @@ const SourceFile* CompilerInstance::sourceViewFile(const Symbol& symbol) const
 
 void CompilerInstance::registerEditorSymbol(const Symbol& symbol, const FileRef fileRef, const uint64_t revision) const
 {
-    SWC_ASSERT(cmdLine().editorService);
+    SWC_ASSERT(isEditorServiceCommand(cmdLine().command));
     SWC_ASSERT(fileRef.isValid());
     SWC_ASSERT(file(fileRef).revisionId() == revision);
     const std::unique_lock lock(editorSymbolsMutex_);
@@ -1663,7 +1664,7 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 
 std::vector<SourceFile*> CompilerInstance::beginEditorAnalysisRevision(const std::span<SourceFile* const> inputFiles)
 {
-    SWC_ASSERT(cmdLine().editorService);
+    SWC_ASSERT(isEditorServiceCommand(cmdLine().command));
     if (!moduleNamespace_)
         return {inputFiles.begin(), inputFiles.end()};
 
@@ -1783,7 +1784,7 @@ std::vector<SourceFile*> CompilerInstance::beginEditorAnalysisRevision(const std
 
 void CompilerInstance::updateEditorDependencies(SourceFile& sourceFile)
 {
-    SWC_ASSERT(cmdLine().editorService);
+    SWC_ASSERT(isEditorServiceCommand(cmdLine().command));
     if (!sourceFile.ast().root().isValid())
         return;
 

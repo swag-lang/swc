@@ -30,6 +30,7 @@ void CommandLineParser::registerCommands()
                               {"format", CommandKind::Format},
                               {"syntax", CommandKind::Syntax},
                               {"sema", CommandKind::Sema},
+                              {"service", CommandKind::Service},
                               {"doc", CommandKind::Doc},
 #if SWC_HAS_UNITTEST
                               {"unittest", CommandKind::Unittest},
@@ -61,45 +62,41 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
         &cmdLine_->moduleFilePath,
         "Run this module setup file before compiling the rest of the module; derive the module root and relative input paths from its parent directory");
-    add(HelpOptionGroup::Input, "new clean sema doc test build run smoke", "--workspace", "-w",
+    add(HelpOptionGroup::Input, "new clean sema service doc test build run smoke", "--workspace", "-w",
         &cmdLine_->workspacePath,
         "Use a workspace containing modules/<module>/module.swg and modules/<module>/src; new creates the workspace when absent, while compilation owns its .output and .tmp directories and excludes --module, --module-file, --directory, and --file");
-    add(HelpOptionGroup::Input, "clean sema doc test build run smoke", "--workspace-module", "-m",
+    add(HelpOptionGroup::Input, "clean sema service doc test build run smoke", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
         "With --workspace, compile only this module and its internal workspace dependencies");
-    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-module", nullptr,
+    add(HelpOptionGroup::Input, "sema service doc test build run smoke", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
         "Resolve a generated public API dependency by module name through <compiler-root>/std/.output/<module>/<matching-config>");
-    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-dir", nullptr,
+    add(HelpOptionGroup::Input, "sema service doc test build run smoke", "--import-api-dir", nullptr,
         &cmdLine_->importApiDirs,
         "Add a read-only dependency root containing generated public API files (.swg/.swgs) under <module>/<backend>/<build-cfg>/<arch>");
-    add(HelpOptionGroup::Input, "sema doc test build run smoke", "--import-api-file", nullptr,
+    add(HelpOptionGroup::Input, "sema service doc test build run smoke", "--import-api-file", nullptr,
         &cmdLine_->importApiFiles,
         "Add one generated public API file (.swg/.swgs) to the compilation input");
-    add(HelpOptionGroup::Input, "sema doc build run smoke", "--export-api-dir", nullptr,
+    add(HelpOptionGroup::Input, "sema service doc build run smoke", "--export-api-dir", nullptr,
         &cmdLine_->exportApiDir,
         "Write the module public API to this directory after a successful semantic pass");
-    add(HelpOptionGroup::Target, "sema", "--editor-index", nullptr,
+    add(HelpOptionGroup::Target, "sema service", "--editor-index", nullptr,
         &cmdLine_->editorIndex,
         "Write resolved source symbols and types as a versioned JSON editor snapshot");
-    add(HelpOptionGroup::Input, "sema", "--editor-overlay", nullptr,
+    add(HelpOptionGroup::Input, "sema service", "--editor-overlay", nullptr,
         &cmdLine_->editorOverlay,
         "Read unsaved source buffers from a versioned editor overlay file");
-    add(HelpOptionGroup::Other, "sema", "--editor-service", nullptr,
-        &cmdLine_->editorService,
-        "Keep the compiler process alive for editor analysis requests",
-        false);
-    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--arch", "-a",
+    addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--arch", "-a",
             &cmdLine_->targetArch,
             {
                 {"x86_64", Runtime::TargetArch::X86_64},
             },
             "Set the target architecture used by #arch and compiler target queries");
-    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--build-cfg", "-bc",
+    addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--build-cfg", "-bc",
             &cmdLine_->buildCfg,
             std::move(buildCfgChoices),
             "Set the registered build configuration used by #cfg and Swag.compiler().getBuildCfg()");
-    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--artifact-kind", "-ak",
+    addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--artifact-kind", "-ak",
             &cmdLine_->backendKind,
             {
                 {"executable", Runtime::BuildCfgBackendKind::Executable},
@@ -110,22 +107,22 @@ void CommandLineParser::registerCommands()
             "Select the backend kind exposed through Swag.compiler().getBuildCfg(); export builds produce dependency and API output without a native artifact",
             true,
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
-    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--cpu", "-cpu",
+    add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--cpu", "-cpu",
         &cmdLine_->targetCpu,
         "Set the target CPU string used by #cpu and compiler target queries");
-    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--artifact-name", "-n",
+    add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--artifact-name", "-n",
         &cmdLine_->name,
         "Set the artifact name exposed through Swag.compiler().getBuildCfg() and used for native outputs");
-    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--module-namespace", nullptr,
+    add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--module-namespace", nullptr,
         &cmdLine_->moduleNamespace,
         "Override the module namespace exposed through Swag.compiler().getBuildCfg() and used as the semantic module root");
-    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--out-dir", "-od",
+    add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--out-dir", "-od",
         &cmdLine_->outDir,
         "Set the artifact output directory exposed through Swag.compiler().getBuildCfg()");
-    add(HelpOptionGroup::Target, "sema doc test build run smoke", "--work-dir", "-wd",
+    add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--work-dir", "-wd",
         &cmdLine_->workDir,
         "Set the work directory exposed through Swag.compiler().getBuildCfg()");
-    addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--optim-level", "-O",
+    addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--optim-level", "-O",
             &cmdLine_->optimLevel,
             {
                 {"0", Runtime::BuildCfgBackendOptimLevel::O0},
@@ -148,7 +145,7 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "all", "--num-cores", "-j",
         &cmdLine_->numCores,
         "Set the maximum CPU core count; use 0 to detect it automatically");
-    add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--tag", nullptr,
+    add(HelpOptionGroup::Compiler, "sema service doc test build run smoke", "--tag", nullptr,
         &cmdLine_->tags,
         "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value");
     add(HelpOptionGroup::Compiler, "test run smoke", "--run-arg", nullptr,
@@ -160,7 +157,7 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "test smoke", "--run-timeout", nullptr,
         &cmdLine_->runTimeoutSeconds,
         "Fail a test or smoke run whose executable has not finished after this many seconds");
-    add(HelpOptionGroup::Compiler, "sema doc test build run smoke", "--rebuild", nullptr,
+    add(HelpOptionGroup::Compiler, "sema service doc test build run smoke", "--rebuild", nullptr,
         &cmdLine_->rebuild,
         "Recompile every selected module even when all generated outputs are up to date, and rebuild the standard-library modules a script imports");
     add(HelpOptionGroup::Input, "clean", "--cache", nullptr,
@@ -262,7 +259,7 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--dry-run", "-dr",
         &cmdLine_->dryRun,
         "Preview planned stages, outputs, and external commands without executing compile-time code, native tools, tests, or emitted artifacts");
-    add(HelpOptionGroup::Development, "sema test build run smoke", "--print-micro", nullptr,
+    add(HelpOptionGroup::Development, "sema service test build run smoke", "--print-micro", nullptr,
         &cmdLine_->printMicro,
         "Print the microcode of the functions matching '<pattern>[:<stage>]' at that stage, 'pre-emit' by default, like 'Swag.PrintMicro'; the pattern matches a scoped name or its trailing part, '*' matches any run of characters, and a pattern matching nothing prints nothing");
     add(HelpOptionGroup::Development, "all", "--show-config", nullptr,

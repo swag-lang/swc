@@ -226,11 +226,11 @@ class EditorService
 
     async start()
     {
-        const args = ['sema', ...this.project.args];
+        const args = ['service', ...this.project.args];
         for (const directory of await standardApiDirectories(this.project, this.compilerPath))
             args.push('--import-api-dir', directory);
         args.push(
-            '--editor-service', '--editor-overlay', this.overlay, '--editor-index', this.index,
+            '--editor-overlay', this.overlay, '--editor-index', this.index,
             '--out-dir', path.join(this.directory, 'output'), '--work-dir', path.join(this.directory, 'work'),
             '--num-cores', '6', '--diagnostic-one-line', '--path-display', 'absolute', '--no-log-color');
         this.ready = new Promise((resolve, reject) => { this.resolveReady = resolve; this.rejectReady = reject; });

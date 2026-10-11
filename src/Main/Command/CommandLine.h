@@ -17,6 +17,7 @@ enum class CommandKind
     Format,
     Syntax,
     Sema,
+    Service,
     Doc,
     Unittest,
     Test,
@@ -45,6 +46,7 @@ inline constexpr CommandInfo COMMANDS[] = {
     {CommandKind::Format, "format", "Parse source files and write their canonical formatting back to disk"},
     {CommandKind::Syntax, "syntax", "Check source syntax without generating IR or backend code"},
     {CommandKind::Sema, "sema", "Analyze source semantics, including type checking"},
+    {CommandKind::Service, "service", "Serve persistent compiler analysis requests for editor integrations"},
     {CommandKind::Doc, "doc", "Compile source semantics and generate HTML documentation"},
 #if SWC_HAS_UNITTEST
     {CommandKind::Unittest, "unittest", "Run only the internal C++ unit tests"},
@@ -97,6 +99,7 @@ inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind comman
             return Runtime::CompilerCommand::Format;
         case CommandKind::Syntax:
         case CommandKind::Sema:
+        case CommandKind::Service:
         case CommandKind::Doc:
         case CommandKind::Unittest:
         case CommandKind::Build:
@@ -200,7 +203,6 @@ struct CommandLine
     bool lexOnly                 = false;
     bool syntaxOnly              = false;
     bool semaOnly                = false;
-    bool editorService           = false;
     bool output                  = true;
     bool outputDoc               = true;
     bool debugInfo               = false;
@@ -306,6 +308,8 @@ constexpr std::string_view commandName(const CommandKind command)
             return "syntax";
         case CommandKind::Sema:
             return "sema";
+        case CommandKind::Service:
+            return "service";
         case CommandKind::Doc:
             return "doc";
         case CommandKind::Unittest:
@@ -323,6 +327,11 @@ constexpr std::string_view commandName(const CommandKind command)
     }
 
     SWC_UNREACHABLE();
+}
+
+inline bool isEditorServiceCommand(const CommandKind command)
+{
+    return command == CommandKind::Service;
 }
 
 // Suffix carried by every file a build emits, so two commands that turn the same

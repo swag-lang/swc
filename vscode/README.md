@@ -96,7 +96,7 @@ and analysis cancellation. After building the compiler, set `SWAG_TEST_COMPILER`
 checkout's executable and run `npm run test:integration` for the LSP lifecycle, inferred
 types, overload selection, cross-file definitions, unsaved edits, and diagnostic repair.
 
-The compiler worker protocol is versioned and described by `swc help sema`: request markers are
+The compiler worker protocol is versioned and described by `swc help service`: request markers are
 written to both output streams so clients can wait until compiler output is flushed. The bridge
 writes JSON with `version: 1`, source texts, and byte-based symbol occurrences using
 `swc sema --editor-index <file>`. Occurrences can identify methods, intrinsic functions,

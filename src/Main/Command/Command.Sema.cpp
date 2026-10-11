@@ -81,7 +81,7 @@ namespace Command
         }
 
         std::vector<SourceFile*> parseFiles = inputFiles;
-        if (compiler.cmdLine().editorService)
+        if (isEditorServiceCommand(compiler.cmdLine().command))
             parseFiles = compiler.beginEditorAnalysisRevision(inputFiles);
 
         // Parser
@@ -116,7 +116,7 @@ namespace Command
 
         SmallVector<Ast*> moduleAsts;
         moduleAsts.reserve(inputFiles.size());
-        if (compiler.cmdLine().editorService)
+        if (isEditorServiceCommand(compiler.cmdLine().command))
         {
             for (SourceFile* f : inputFiles)
             {
@@ -182,7 +182,7 @@ namespace Command
             Sema::waitDone(ctx, clientId);
         }
 
-        if (compiler.cmdLine().editorService)
+        if (isEditorServiceCommand(compiler.cmdLine().command))
         {
             for (SourceFile* f : files)
                 compiler.updateEditorDependencies(*f);

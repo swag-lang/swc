@@ -8,7 +8,7 @@ SWC_BEGIN_NAMESPACE();
 TaskContext::TaskContext(const Global& global, const CommandLine& cmdLine) :
     global_(&global),
     cmdLine_(&cmdLine),
-    editorService_(cmdLine.editorService)
+    editorService_(isEditorServiceCommand(cmdLine.command))
 {
 }
 
@@ -17,7 +17,7 @@ TaskContext::TaskContext(CompilerInstance& compInst) :
 {
     global_  = &compInst.global();
     cmdLine_ = &compInst.cmdLine();
-    editorService_ = cmdLine_->editorService;
+    editorService_ = isEditorServiceCommand(cmdLine_->command);
 }
 
 TaskContext::TaskContext(const TaskContext& other) :

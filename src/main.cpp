@@ -179,11 +179,11 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    if (!cmdLine.editorService && swc::EditorIndex::loadOverlays(cmdLine) != swc::Result::Continue)
+    if (!swc::isEditorServiceCommand(cmdLine.command) && swc::EditorIndex::loadOverlays(cmdLine) != swc::Result::Continue)
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 
     int result;
-    if (cmdLine.editorService)
+    if (swc::isEditorServiceCommand(cmdLine.command))
         result = runEditorService(global, cmdLine);
     else
     {

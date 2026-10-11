@@ -39,37 +39,44 @@ namespace InstructionCombine
             if (!ctx.builder || !ctx.passContext || !source.isVirtualInt())
                 return;
 
-            const MicroInstrRef setRef = ctx.storage->findNextInstructionRef(cmpRef);
-            const MicroInstr*   set    = ctx.storage->ptr(setRef);
-            const auto*         setOps = set && set->op == MicroInstrOpcode::SetCondReg ? set->ops(*ctx.operands) : nullptr;
+            MicroStorage::Iterator patternIt{ctx.storage, cmpRef};
+            ++patternIt;
+            if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::SetCondReg)
+                return;
+            const MicroInstr*   set    = &*patternIt;
+            const auto*         setOps = set->ops(*ctx.operands);
             if (!setOps || !setOps[0].reg.isVirtualInt())
                 return;
 
-            MicroInstrRef     extRef = ctx.storage->findNextInstructionRef(setRef);
-            const MicroInstr* ext    = ctx.storage->ptr(extRef);
-            const auto*       extOps = ext && ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
+            ++patternIt;
+            if (!patternIt.current.isValid())
+                return;
+            const MicroInstr* ext    = &*patternIt;
+            const auto*       extOps = ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
             if (extOps && extOps[0].reg == setOps[0].reg && extOps[1].reg == setOps[0].reg &&
                 extOps[2].opBits == MicroOpBits::B32 && extOps[3].opBits == MicroOpBits::B8)
             {
-                extRef = ctx.storage->findNextInstructionRef(extRef);
-                ext    = ctx.storage->ptr(extRef);
-                extOps = ext && ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
+                ++patternIt;
+                if (!patternIt.current.isValid())
+                    return;
+                ext    = &*patternIt;
+                extOps = ext->op == MicroInstrOpcode::LoadZeroExtRegReg ? ext->ops(*ctx.operands) : nullptr;
             }
             if (!extOps || extOps[1].reg != setOps[0].reg || extOps[2].opBits != MicroOpBits::B64 || extOps[3].opBits != MicroOpBits::B8)
                 return;
 
             const CallConv&     conv    = CallConv::get(ctx.passContext->callConvKind);
-            const MicroInstrRef copyRef = ctx.storage->findNextInstructionRef(extRef);
-            const MicroInstr*   copy    = ctx.storage->ptr(copyRef);
-            const auto*         copyOps = copy && copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
+            ++patternIt;
+            if (!patternIt.current.isValid())
+                return;
+            const MicroInstr*   copy    = &*patternIt;
+            const auto*         copyOps = copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
             if (!copyOps || copyOps[0].reg != conv.intReturn || copyOps[1].reg != extOps[0].reg || copyOps[2].opBits != MicroOpBits::B64)
                 return;
 
-            const MicroInstrRef retRef = ctx.storage->findNextInstructionRef(copyRef);
-            const MicroInstr*   ret    = ctx.storage->ptr(retRef);
-            if (!ret || ret->op != MicroInstrOpcode::Ret)
+            ++patternIt;
+            if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::Ret)
                 return;
-
             ctx.builder->addVirtualRegForbiddenPhysReg(source, conv.intReturn);
         }
 
@@ -940,12 +947,13 @@ namespace InstructionCombine
         // the window, `toRef` being later in the straight line.
         bool noMemoryChangeBetween(const Context& ctx, MicroInstrRef fromRef, MicroInstrRef toRef)
         {
-            MicroInstrRef ref = ctx.storage->findNextInstructionRef(fromRef);
-            for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && ref.isValid(); ++step, ref = ctx.storage->findNextInstructionRef(ref))
+            MicroStorage::Iterator it{ctx.storage, fromRef};
+            ++it;
+            for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && it.current.isValid(); ++step, ++it)
             {
-                if (ref == toRef)
+                if (it.current == toRef)
                     return true;
-                const MicroInstr& inst = *ctx.storage->ptr(ref);
+                const MicroInstr& inst = *it;
                 if (writesMemory(inst) || MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
                     return false;
             }

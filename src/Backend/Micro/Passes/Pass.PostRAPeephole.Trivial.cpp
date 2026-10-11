@@ -822,12 +822,20 @@ namespace PostRaPeephole
             (firstCopy[2].opBits != MicroOpBits::B32 && firstCopy[2].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef xorRef       = ctx.nextRef(firstCopyRef);
-        const MicroInstrRef lastCopyRef  = ctx.nextRef(xorRef);
-        const MicroInstrRef retRef       = ctx.nextRef(lastCopyRef);
-        const MicroInstr*   xorInst      = ctx.instruction(xorRef);
-        const MicroInstr*   lastCopyInst = ctx.instruction(lastCopyRef);
-        const MicroInstr*   retInst      = ctx.instruction(retRef);
+        auto scanIt = MicroStorage::Iterator{ctx.storage, firstCopyRef};
+        ++scanIt;
+        const MicroInstrRef xorRef  = scanIt.current;
+        const MicroInstr*   xorInst = xorRef.isValid() ? &*scanIt : nullptr;
+        if (!xorInst)
+            return false;
+        ++scanIt;
+        const MicroInstrRef lastCopyRef  = scanIt.current;
+        const MicroInstr*   lastCopyInst = lastCopyRef.isValid() ? &*scanIt : nullptr;
+        if (!lastCopyInst)
+            return false;
+        ++scanIt;
+        const MicroInstrRef retRef  = scanIt.current;
+        const MicroInstr*   retInst = retRef.isValid() ? &*scanIt : nullptr;
         const auto*         xorOps       = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
         const auto*         lastCopy     = lastCopyInst ? lastCopyInst->ops(*ctx.operands) : nullptr;
         if (!xorInst || !lastCopyInst || !retInst || !xorOps || !lastCopy ||

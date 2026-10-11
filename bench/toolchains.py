@@ -79,8 +79,7 @@ def discover():
 
 
 def swc_path(explicit=None):
-    """The compiler under test. A campaign rebuilds it first, so the default is this
-    checkout's own binary."""
+    """The compiler under test; by default, use this checkout's own binary."""
     if explicit:
         return explicit
     env = os.environ.get("BENCH_SWC")

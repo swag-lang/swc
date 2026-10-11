@@ -1,4 +1,3 @@
-import contextlib
 import ctypes
 import json
 import os
@@ -24,41 +23,39 @@ class CampaignTests(unittest.TestCase):
         with (
             mock.patch.object(sys, "argv", ["campaign.py", "--quick", "--no-build", "--swc-cores", "6"]),
             mock.patch.dict(os.environ, {"BENCH_SWC": "unrelated-compiler.exe"}),
-            mock.patch.object(campaign, "build_directory") as build_directory,
+            mock.patch.object(campaign.os.path, "isfile", return_value=True),
             mock.patch.object(campaign, "run") as run,
         ):
             self.assertEqual(campaign.main(), 0)
 
         run.assert_called_once_with("driver.py", ["--swc", os.path.join(campaign.ROOT, "bin", "swc.exe"),
                                                 "--swc-cores", "6", "--quick"])
-        build_directory.assert_not_called()
-
-    def test_quick_campaign_does_not_rebuild_the_published_report(self):
+    def test_quick_campaign_runs_normal_build_and_uses_published_compiler(self):
         with (
             mock.patch.object(sys, "argv", ["campaign.py", "--quick"]),
-            mock.patch.object(campaign, "build_directory", return_value=contextlib.nullcontext("private-build")),
-            mock.patch.object(campaign, "build", return_value="fresh-swc.exe"),
+            mock.patch.object(campaign, "build", return_value=os.path.join(campaign.ROOT, "bin", "swc.exe")) as build,
             mock.patch.object(campaign, "run") as run,
             mock.patch.object(campaign, "warn_if_dirty") as warn_if_dirty,
         ):
             self.assertEqual(campaign.main(), 0)
 
-        self.assertEqual(run.call_args_list, [mock.call("driver.py", ["--swc", "fresh-swc.exe", "--quick"])])
+        self.assertEqual(run.call_args_list, [mock.call("driver.py", ["--swc", os.path.join(campaign.ROOT, "bin", "swc.exe"), "--quick"])])
+        build.assert_called_once_with()
         warn_if_dirty.assert_not_called()
 
-    def test_build_campaign_forwards_the_phase_and_rebuilds_the_report(self):
+    def test_build_phase_uses_the_published_compiler_and_rebuilds_the_report(self):
         with (
             mock.patch.object(sys, "argv", ["campaign.py", "--build"]),
-            mock.patch.object(campaign, "build_directory", return_value=contextlib.nullcontext("private-build")),
-            mock.patch.object(campaign, "build", return_value="fresh-swc.exe"),
+            mock.patch.object(campaign, "build", return_value=os.path.join(campaign.ROOT, "bin", "swc.exe")) as build,
             mock.patch.object(campaign, "run") as run,
             mock.patch.object(campaign, "warn_if_dirty"),
         ):
             self.assertEqual(campaign.main(), 0)
 
         self.assertEqual(run.call_args_list,
-                         [mock.call("driver.py", ["--swc", "fresh-swc.exe", "--build"]),
+                         [mock.call("driver.py", ["--swc", os.path.join(campaign.ROOT, "bin", "swc.exe"), "--build"]),
                           mock.call("mkpage.py", [])])
+        build.assert_called_once_with()
 
     def test_driver_phase_flags_are_exclusive_and_select_their_family(self):
         build = driver.parse_args(["--build"])

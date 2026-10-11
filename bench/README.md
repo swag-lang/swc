@@ -10,14 +10,11 @@ the campaign and standalone drivers use the compiler's default worker count when
 bin\swc.exe --num-cores 6 tools\bench.swgs --swc-cores 6 --label "what changed since last time"
 ```
 
-That rebuilds `swc.exe` with the same `swc.sln` Release x64 configuration as `release.bat`,
-including whole-program optimization and LTO, measures it against every other toolchain, appends
-the result to `history.json`, and regenerates `bench.html`. Each campaign owns a build directory
-under `%LOCALAPPDATA%/swc-bench-builds`, including its compiler, runtime sources and MSBuild
-intermediates. This lets the script's original compiler stay running while the fresh compiler
-is linked and measured. The standard library comes from this checkout's `bin/` through
-`SWAG_PATH`. The private build is removed after measurement, including on build or measurement
-failure. MSBuild and C++ compilation are capped at six workers.
+The campaign runs the normal `tools\release.bat` build, then uses the existing `bin\swc.exe` to
+measure the compiler against every other toolchain. MSBuild updates only outputs that are out of
+date; the compiler, intermediates and runtime stay in their usual locations. The campaign then
+appends the result to `history.json` and regenerates `bench.html`. The standard library comes
+from this checkout's `bin/` through `SWAG_PATH`.
 
 | | |
 |---|---|
@@ -25,7 +22,7 @@ failure. MSBuild and C++ compilation are capped at six workers.
 | `bin\swc.exe --num-cores 6 tools\bench.swgs --build --swc-cores 6` | measure compiler time only; execution is skipped, and only compilation series are added to the history and report |
 | `bin\swc.exe --num-cores 6 tools\bench.swgs --run --swc-cores 6` | measure program execution only; AOT programs are built outside the clock, and only execution series are added to the history and report |
 | `bin\swc.exe --num-cores 6 tools\bench.swgs --report-only` | rebuild the normalized history and page from raw campaigns, measure nothing |
-| `bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6` | measure the binary already in `bin/`, useful when iterating on the harness |
+| `bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6` | skip the normal Release build check and measure the binary already in `bin/` |
 | `py -3 bench/driver.py --tasks chacha --quick` | sweep one task while working on it; a partial sweep is **never** recorded |
 | `py -3 bench/driver.py --tasks chacha --quick --swc-cores 6` | cap every Swag compiler started by the sweep at six workers |
 | `py -3 bench/compile.py --against "C:\path\outside-checkout\baseline\swc.exe" --swc-cores 6 --admit` | A/B the edit-build loop between two compilers, order alternated; records nothing |
@@ -374,7 +371,7 @@ an asterisk in the report, because its commit alone will not reproduce it.
 | | |
 |---|---|
 | `../tools/bench.swgs` | the entry point |
-| `campaign.py` | rebuild, measure, report |
+| `campaign.py` | select the checkout compiler, measure, report |
 | `driver.py` | the sweep itself |
 | `compile.py` | the edit-build loop alone, on one compiler or A/B between two; records nothing |
 | `microdiff.py` | the final code of every task under two compilers: changed functions and loops, LOSS where one grew, checksums; records nothing |
@@ -420,8 +417,8 @@ Any of them can be overridden when it lives somewhere unusual: `BENCH_VS_ROOT`, 
 `BENCH_DOTNET`, `BENCH_SWIFTC`, `BENCH_SWIFT_ROOT`, `BENCH_NODE`, `BENCH_LUA`, `BENCH_LUAJIT`,
 `BENCH_PY`, `BENCH_ZIG`, `BENCH_LDC2`, and `BENCH_ODIN`. The standalone `driver.py`,
 `compile.py`, and `allocator/run.py` also accept `BENCH_SWC`; their explicit `--swc` argument
-takes precedence. A campaign selects its private Release build, or this checkout's `bin/swc.exe`
-with `--no-build`, independently of `BENCH_SWC`.
+takes precedence. A campaign runs `tools/release.bat` before selecting this checkout's
+`bin/swc.exe`, independently of `BENCH_SWC`; `--no-build` skips that Release build check.
 The added runtimes accept `BENCH_GO`, `BENCH_JAVAC`, `BENCH_JAVA`, `BENCH_PHP`,
 `BENCH_PHP_OPCACHE` (the OPcache DLL), and `BENCH_RUBY`.
 Zig, LDC and Odin are discovered through their override first, then `PATH`, then the

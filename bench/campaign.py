@@ -1,20 +1,15 @@
-"""Run a complete perf campaign: rebuild, measure, report.
+"""Run a complete perf campaign: measure, then report.
 
-Called by tools/bench.swgs. A campaign always rebuilds the compiler first, so what gets
-measured is the code currently in the tree rather than whatever binary happened to
-be lying around.
+Called by tools/bench.swgs. A campaign uses bin/swc.exe by default and checks its normal
+Release build before measuring. MSBuild updates only outputs that are out of date.
 
     py -3 campaign.py [--label TEXT] [--quick] [--no-build] [--report-only]
                       [--build | --run]
 """
 import argparse
-import contextlib
 import os
-import shutil
 import subprocess
 import sys
-import tempfile
-from pathlib import Path
 
 import toolchains as tc
 
@@ -41,47 +36,21 @@ def warn_if_dirty():
         print("      reproduce it. Commit first when the result is worth keeping.")
 
 
-def build_directory():
-    """Keep the compiler and all MSBuild intermediates outside the live checkout."""
-    local = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), "AppData", "Local")
-    parent = Path(local) / "swc-bench-builds"
-    parent.mkdir(parents=True, exist_ok=True)
-    return tempfile.TemporaryDirectory(prefix="campaign-", dir=parent)
-
-
-def build(directory):
-    vs = tc.discover()["vs"]
-    if not vs:
-        raise SystemExit("Visual Studio not found; set BENCH_VS_ROOT")
-    msbuild = os.path.join(vs, "MSBuild", "Current", "Bin", "amd64", "MSBuild.exe")
-    if not os.path.exists(msbuild):
-        msbuild = os.path.join(vs, "MSBuild", "Current", "Bin", "MSBuild.exe")
-    if not os.path.exists(msbuild):
-        raise SystemExit("MSBuild not found under %s" % vs)
-
-    output = Path(directory) / "bin"
-    intermediate = Path(directory) / "obj"
-    output.mkdir(parents=True, exist_ok=True)
-    # Runtime sources always resolve beside the executable; SWAG_PATH selects only std.
-    shutil.copytree(Path(ROOT) / "bin" / "runtime", output / "runtime")
-
-    print("building Release x64...")
+def build():
+    release = os.path.join(ROOT, "tools", "release.bat")
+    print("running tools/release.bat...")
     sys.stdout.flush()
-    r = subprocess.run([msbuild, os.path.join(ROOT, "swc.sln"),
-                        "-p:Configuration=Release", "-p:Platform=x64", "-m:6", "-v:m",
-                        "-p:SwcCompileJobs=6",
-                        "-p:SwcOutputDir=" + output.as_posix() + "/",
-                        "-p:OutDir=" + output.as_posix() + "/",
-                        "-p:IntDir=" + intermediate.as_posix() + "/"],
-                       cwd=ROOT, capture_output=True, text=True,
+    command = [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/c", release]
+    r = subprocess.run(command, cwd=ROOT, capture_output=True, text=True,
                        encoding="utf-8", errors="replace")
-    print("\n".join((r.stdout or "").splitlines()[-12:]))
+    if r.stdout:
+        print(r.stdout.rstrip())
     if r.returncode != 0:
         if r.stderr:
             print(r.stderr, file=sys.stderr)
-        raise SystemExit("the Release build failed; fix it before measuring")
+        raise SystemExit("tools/release.bat failed; build the Release compiler before measuring")
 
-    swc = str(output / "swc.exe")
+    swc = os.path.join(ROOT, "bin", "swc.exe")
     if not os.path.exists(swc):
         raise SystemExit("build reported success but %s is missing" % swc)
     print("compiler under test: %s (%d bytes)" % (swc, os.path.getsize(swc)))
@@ -101,7 +70,8 @@ def main():
     ap.add_argument("--label", default="", help="short note stored with this campaign")
     ap.add_argument("--quick", action="store_true",
                     help="1 sample, no warm-up; smoke test, not recorded")
-    ap.add_argument("--no-build", action="store_true", help="measure the binary already built")
+    ap.add_argument("--no-build", action="store_true",
+                    help="require and measure bin/swc.exe without building")
     ap.add_argument("--swc-cores", type=int, default=0,
                     help="cap Swag compiler workers; 0 uses the compiler default")
     ap.add_argument("--report-only", action="store_true",
@@ -120,34 +90,36 @@ def main():
         run("mkpage.py", [])
         return 0
 
-    total = 1 + int(not args.no_build) + int(not args.quick)
+    published_swc = os.path.join(ROOT, "bin", "swc.exe")
+    needs_build = not args.no_build
+    if args.no_build and not os.path.isfile(published_swc):
+        raise SystemExit("bin/swc.exe is missing; build it first or run without --no-build")
+
+    total = 1 + int(needs_build) + int(not args.quick)
     n = 0
 
-    # The Swag script host waits for this campaign, so linking its bin/swc.exe would
-    # replace an image that is still running. Own a separate build until measurement exits.
-    with contextlib.ExitStack() as resources:
-        swc = os.path.join(ROOT, "bin", "swc.exe")
-        if not args.no_build:
-            n += 1
-            step(n, total, "Rebuild the compiler under test")
-            swc = build(resources.enter_context(build_directory()))
-
+    swc = published_swc
+    if needs_build:
         n += 1
-        step(n, total, "Measure")
-        if not args.quick:
-            warn_if_dirty()
-        extra = ["--swc", swc]
-        if args.label:
-            extra += ["--label", args.label]
-        if args.swc_cores:
-            extra += ["--swc-cores", str(args.swc_cores)]
-        if args.quick:
-            extra.append("--quick")
-        if args.build:
-            extra.append("--build")
-        elif args.run:
-            extra.append("--run")
-        run("driver.py", extra)
+        step(n, total, "Build the compiler under test")
+        swc = build()
+
+    n += 1
+    step(n, total, "Measure")
+    if not args.quick:
+        warn_if_dirty()
+    extra = ["--swc", swc]
+    if args.label:
+        extra += ["--label", args.label]
+    if args.swc_cores:
+        extra += ["--swc-cores", str(args.swc_cores)]
+    if args.quick:
+        extra.append("--quick")
+    if args.build:
+        extra.append("--build")
+    elif args.run:
+        extra.append("--run")
+    run("driver.py", extra)
 
     if args.quick:
         print("\nQuick campaign complete. No history or report files were written.")

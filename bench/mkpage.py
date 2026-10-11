@@ -855,7 +855,7 @@ def main():
         "{{calib_start}}": fmt(R["calibration"]["start"], 1),
         "{{calib_end}}": fmt(R["calibration"]["end"], 1),
         "{{provenance}}": ("arbre modifi&eacute; au moment de la mesure" if m.get("dirty")
-                           else "Release x64 reconstruit depuis ce commit"),
+                           else "binaire Release x64 s&eacute;lectionn&eacute; dans ce checkout"),
         "{{commit}}": m.get("commit") or "?",
         "{{subject}}": (m.get("subject") or "").replace("&", "&amp;").replace("<", "&lt;")[:90],
         "{{date}}": m["date"][:10],

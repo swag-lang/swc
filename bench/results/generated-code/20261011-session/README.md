@@ -85,3 +85,30 @@ it. Full samples and binary hashes are retained in the linked records.
 The history update preserves all earlier entries byte for byte; 209 numerical
 serialization differences introduced by the report launcher were checked to be
 within 1e-12 relative tolerance and removed from the historical prefix.
+
+## Rejected eight-batch campaign
+
+[20261011-230337](../../rejected/20261011-230337.json) measured clean revision
+`d7ceec857`, including the three floating-point batches after the accepted
+five-batch campaign. All twelve checksums agreed across every runtime, and
+all fourteen allocator workloads completed. No session builds or tests ran
+alongside these measurements.
+
+The opening reference sample was 1,052.0 ms; subsequent reference samples
+were 40.4-55.2 ms and the closing sample was 49.7 ms. The worst local departure
+was **2,030.0%**, beyond the 40% limit, so the harness rejected the campaign.
+The unchanged build-control spread was 22.1%, within its separate 25% limit.
+The anomalous opening measurement is retained without adjustment or removal.
+
+The Release compiler was 8,130,560 bytes with SHA-256
+`9de216433e19ba32c59e5d518e99186ed57d876637aa275d00a6b6763578ba1f`.
+Command: `bin/swc.exe --num-cores 6 tools/bench.swgs --no-build --swc-cores 6
+--label "prompt 2 20261012 group 3"`.
+
+No history entry, corrected-index comparison or competitive-ratio claim is
+derived from this rejected campaign. The latest accepted campaign remains
+`20261011-205413`; all eight batches remain **landed, unconfirmed**. The 47
+historical entries were preserved byte for byte after checking and removing
+209 serialization-only floating-point differences introduced by report
+generation. The next work tests packed multiplication-addition contraction
+and investigates frame-address lifetimes across guarded context lookups.

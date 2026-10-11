@@ -72,9 +72,10 @@ namespace
         bool          hasReport = false;
         bool          jumpsAway = false;
         MicroInstrRef lastRef   = MicroInstrRef::invalid();
-        for (MicroInstrRef ref = firstRef; ref.isValid(); ref = storage.findNextInstructionRef(ref))
+        for (MicroStorage::ConstIterator it{&storage, firstRef}; it.current.isValid(); ++it)
         {
-            const MicroInstr*        inst = storage.ptr(ref);
+            const MicroInstrRef      ref  = it.current;
+            const MicroInstr*        inst = &*it;
             const MicroInstrOperand* ops  = inst->ops(operands);
 
             if (inst->op == MicroInstrOpcode::Label)

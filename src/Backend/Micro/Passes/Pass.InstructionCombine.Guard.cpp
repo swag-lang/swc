@@ -128,16 +128,17 @@ namespace InstructionCombine
         const MicroControlFlowGraph& cfg      = ctx.builder->controlFlowGraph();
         bool                         repeated = false;
         uint32_t                     steps    = 0;
-        for (MicroInstrRef ref = ctx.previousRef(cmpRef); ref.isValid() && !repeated && steps < K_MAX_SCAN; ++steps)
+        auto walker = MicroStorage::Iterator{ctx.storage, cmpRef};
+        --walker;
+        for (; walker.current.isValid() && !repeated && steps < K_MAX_SCAN; ++steps)
         {
-            const MicroInstr* inst = ctx.instruction(ref);
-            if (!inst)
-                return false;
+            const MicroInstrRef ref  = walker.current;
+            const MicroInstr*   inst = &*walker;
             if (inst->op != MicroInstrOpcode::Label)
             {
                 if (MicroInstrInfo::isTerminatorInstruction(*inst))
                     return false;
-                ref = ctx.previousRef(ref);
+                --walker;
                 continue;
             }
 
@@ -163,7 +164,8 @@ namespace InstructionCombine
             const MicroInstrRef earlierCmpRef = ctx.previousRef(earlierJumpRef);
             GuardTest           earlier;
             repeated = earlierCmpRef.isValid() && readGuardTest(earlier, ctx, earlierCmpRef, earlierOps[0].cpuCond) && earlier == test;
-            ref      = ctx.previousRef(earlierJumpRef);
+            walker   = MicroStorage::Iterator{ctx.storage, earlierJumpRef};
+            --walker;
         }
 
         if (!repeated)

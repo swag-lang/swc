@@ -15,7 +15,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
         attempts += 1
     }
 
-    Swag.assert(not result.isLoading!())
+    Swag.assert(not result.isLoading())
 }
 
 // The viewer remains a thin ABI adapter around the reusable GUI control.

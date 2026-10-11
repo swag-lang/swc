@@ -382,10 +382,10 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(view.frameIndex == 2 and not view.playing)
     view.seekRelative(-10)
     Swag.assert(view.seekOverlay!.isLocallyVisible() and
-                view.seekOverlay!.direction == -1 and
-                view.seekOverlay!.text == "-10")
-    Swag.assert(view.seekOverlay!.presentationOffset == {} and view.seekOverlay!.presentationScale == {1, 1})
-    Swag.assert(view.seekOverlay!.position.vertCenter() > view.clientRect().vertCenter())
+                view.seekOverlay.direction == -1 and
+                view.seekOverlay.text == "-10")
+    Swag.assert(view.seekOverlay.presentationOffset == {} and view.seekOverlay.presentationScale == {1, 1})
+    Swag.assert(view.seekOverlay.position.vertCenter() > view.clientRect().vertCenter())
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0)
     view.seekRelative(10)
@@ -445,12 +445,12 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.settleAnimations(&host.root, 4)
     host.setReducedMotion(false)
     view.showSeekFeedback(10)
-    Swag.assert(view.seekOverlay!.timer != null and view.seekOverlay!.presentationOffset.x < 0)
+    Swag.assert(view.seekOverlay!.timer != null and view.seekOverlay.presentationOffset.x < 0)
     host.advanceAnimations(0.15)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.document")
 
-    let overlayTimer = view.seekOverlay!.timer!
+    let overlayTimer = view.seekOverlay.timer
     host.fireTimer(overlayTimer)
     Swag.assert(not view.seekOverlay.isLocallyVisible() and view.seekOverlay.timer == null)
 
@@ -459,7 +459,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     view.showSeekFeedback(-10)
     Swag.assert(view.seekOverlay.backgroundStyle == .Transparent)
     Swag.assert(Voltage.contrastRatio(Ink) >= 4.5)
-    host.fireTimer(view.seekOverlay.timer!)
+    host.fireTimer(view.seekOverlay.timer)
 }
 
 #test

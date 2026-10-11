@@ -5695,26 +5695,43 @@ namespace SemaEscape
                 forwardings.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect});
         });
 
-        bool changed = !forwardings.empty();
+        size_t pendingCount = forwardings.size();
+        bool   changed      = pendingCount != 0;
         while (changed)
         {
-            changed = false;
-            for (const ForwardingEdge& edge : forwardings)
+            changed                 = false;
+            size_t nextPendingCount = 0;
+            for (size_t i = 0; i < pendingCount; ++i)
             {
+                const ForwardingEdge& edge = forwardings[i];
+
                 // Completion may still advance on another worker. Keep this live
                 // readiness check inside the fixpoint, as before filtering the edges.
-                if (!edge.caller->isSemaCompleted() || !edge.callee->isSemaCompleted())
-                    continue;
-
-                const uint64_t calleeBit  = 1ULL << edge.calleeParamIndex;
-                const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
-                const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
-                if ((edge.callee->freesParamsMask() & calleeBit) && !(callerMask & callerBit))
+                bool applied = false;
+                if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
                 {
-                    edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
-                    changed = true;
+                    const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
+                    if (edge.callee->freesParamsMask() & calleeBit)
+                    {
+                        const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
+                        const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
+                        if (!(callerMask & callerBit))
+                        {
+                            edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
+                            changed = true;
+                        }
+                        applied = true;
+                    }
+                }
+
+                if (!applied)
+                {
+                    if (nextPendingCount != i)
+                        forwardings[nextPendingCount] = edge;
+                    ++nextPendingCount;
                 }
             }
+            pendingCount = nextPendingCount;
         }
 
         ctx.compiler().noteFreesPropagationDone(signature);

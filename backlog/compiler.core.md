@@ -136,8 +136,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   and comparing a whole summary per edge, and reads callee and guard summaries by const reference
   instead of copying them per edge. It caches which completed functions have a direct return edge
   during the locked snapshot, so later completeness and mask sweeps skip empty or indirect-only
-  callers instead of repeating their table lookups. The DevMode C++ suite passes all 1,424 tests.
-  These are structural changes; no timing comparison was made.
+  callers instead of repeating their table lookups. The guarded frees fixpoint also compacts
+  applied edges while retaining incomplete callers and callees; a new boundary check completes a
+  return dependency after the first pass and verifies that its guard then permits propagation.
+  The DevMode C++ suite passes all 1,424 tests. These are structural changes; no timing comparison
+  was made.
 - Next: reduce repeated resolution work in the guarded return-summary closure with an edge
   worklist that preserves alias proofs and late completion. The relocation closure remains a
   separate lead: any memo must account for deferred-function registration, the `Pause` path, and

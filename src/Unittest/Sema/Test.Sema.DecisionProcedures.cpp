@@ -55,6 +55,11 @@ namespace
 
         void addEdge(const SemaEscapeSummaryEdge& edge) { ctx_->compiler().addEscapeSummaryEdge(edge); }
         void propagate() const { SemaEscape::propagateCompletedFreesSummaries(*ctx_, completed_); }
+        void completeFunction(SymbolFunction* function)
+        {
+            function->setSemaCompleted(*ctx_);
+            completed_.push_back(function);
+        }
 
     private:
         TaskContext*                       ctx_;
@@ -890,6 +895,13 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
         return Result::Error;
     // Completed return masks belong to parallel readers and must remain untouched.
     if (aliasWrapper->returnBorrowsParamsMask() || aliasWrapper->returnsStorageParamsMask())
+        return Result::Error;
+
+    unresolved->addReturnBorrowsParam(0);
+    unresolved->addReturnsStorageParam(0);
+    fixture.completeFunction(unresolved);
+    fixture.propagate();
+    if (incompleteAlias->freesParamsMask() || unresolvedOwner->freesParamsMask() != 1)
         return Result::Error;
 }
 SWC_TEST_END()

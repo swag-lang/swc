@@ -25,6 +25,12 @@ namespace
         size_t operator()(const AutoInlineName& name) const noexcept { return name.hash; }
     };
 
+    struct AutoInlineCallInfo
+    {
+        uint32_t count  = 0;
+        bool     inLoop = false;
+    };
+
     using AutoInlineNameSet = std::unordered_set<AutoInlineName, AutoInlineNameHash>;
     template<typename V>
     using AutoInlineNameMap = std::unordered_map<AutoInlineName, V, AutoInlineNameHash>;
@@ -255,8 +261,7 @@ namespace
 void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts)
 {
     AutoInlineNameSet                                     metaFunctionNames;
-    AutoInlineNameMap<uint32_t>                           callCounts;
-    AutoInlineNameSet                                      hotCallNames;
+    AutoInlineNameMap<AutoInlineCallInfo>                 callInfo;
     AutoInlineNameMap<uint32_t>                           useCounts;
     std::unordered_map<const Ast*, AutoInlineCallGraph>   callGraphs;
     std::unordered_map<const Ast*, AutoInlineNameSet>     unsupportedFunctionNames;
@@ -317,9 +322,10 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 const AutoInlineName name = autoInlineCallName(*ast, call->nodeExprRef);
                 if (!name.empty())
                 {
-                    callCounts[name]++;
+                    auto& info = callInfo[name];
+                    info.count++;
                     if (inLoop)
-                        hotCallNames.insert(name);
+                        info.inLoop = true;
                     if (bodyOf != AutoInlineCallGraph::K_NO_FUNCTION)
                         callGraph->addCall(bodyOf, name);
                 }
@@ -379,9 +385,9 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 }
             }
 
-            const auto it               = callCounts.find(name);
+            const auto it               = callInfo.find(name);
             bool       hasLastCallBonus = false;
-            if (it != callCounts.end() && it->second == 1)
+            if (it != callInfo.end() && it->second.count == 1)
             {
                 const auto useIt = useCounts.find(name);
                 hasLastCallBonus = useIt != useCounts.end() && useIt->second == 1;
@@ -389,8 +395,9 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             // Volunteer a small wrapper with calls when at least one site is in a loop.
             // Bound total duplication, including its cold call sites.
             const bool hotCallBody = bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS &&
-                                     it != callCounts.end() && uint64_t{decl->autoInlineCost} * it->second <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
-                                     hotCallNames.contains(name);
+                                     it != callInfo.end() &&
+                                     uint64_t{decl->autoInlineCost} * it->second.count <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
+                                     it->second.inLoop;
             if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
                 mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
         }

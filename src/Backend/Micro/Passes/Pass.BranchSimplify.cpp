@@ -7680,14 +7680,15 @@ namespace
     bool collectReturnPath(ReturnPath& out, const DiamondScan& scan, const CallConv& conv, const MicroInstrRef fromRef)
     {
         bool definedFlagsSoFar = false;
-        for (MicroInstrRef cur = scan.storage->findNextInstructionRef(fromRef); cur.isValid(); cur = scan.storage->findNextInstructionRef(cur))
+        MicroStorage::ConstIterator it{scan.storage, fromRef};
+        ++it;
+        for (; it.current.isValid(); ++it)
         {
+            const MicroInstrRef cur = it.current;
             if (scan.relocated->contains(cur.get()))
                 return false;
 
-            const MicroInstr* inst = scan.storage->ptr(cur);
-            if (!inst)
-                return false;
+            const MicroInstr* inst = &*it;
 
             if (inst->op == MicroInstrOpcode::Ret)
             {

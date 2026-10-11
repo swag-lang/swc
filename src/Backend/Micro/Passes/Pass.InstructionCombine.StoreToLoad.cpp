@@ -485,13 +485,16 @@ namespace InstructionCombine
             return false;
 
         constexpr uint32_t K_MAX_WINDOW = 32;
-        MicroInstrRef      ref          = ctx.storage->findPreviousInstructionRef(storeRef);
-        for (uint32_t step = 0; ref != def.instRef; ++step, ref = ctx.storage->findPreviousInstructionRef(ref))
+        MicroStorage::Iterator it{ctx.storage, storeRef};
+        --it;
+        for (uint32_t step = 0; it.current.isValid() && it.current != def.instRef; ++step, --it)
         {
-            const MicroInstr* inst = ref.isValid() ? ctx.storage->ptr(ref) : nullptr;
-            if (!inst || step >= K_MAX_WINDOW || isControlOrCall(*inst) || writesMemory(*inst))
+            const MicroInstr* inst = &*it;
+            if (step >= K_MAX_WINDOW || isControlOrCall(*inst) || writesMemory(*inst))
                 return false;
         }
+        if (it.current != def.instRef)
+            return false;
 
         if (!ctx.claimAll({storeRef}))
             return false;

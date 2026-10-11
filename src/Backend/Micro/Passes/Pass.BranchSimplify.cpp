@@ -4321,17 +4321,18 @@ namespace
 
             // Before the jump: the copy of A into B, then the setcc of the
             // flags the jump reads.
-            const MicroInstrRef copyRef = storage.findPreviousInstructionRef(jumpRef);
-            const MicroInstr*   copy    = copyRef.isValid() ? storage.ptr(copyRef) : nullptr;
-            if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            auto previousIt = it;
+            --previousIt;
+            if (!previousIt.current.isValid() || previousIt->op != MicroInstrOpcode::LoadRegReg)
                 continue;
+            const MicroInstr* copy = &*previousIt;
             const MicroInstrOperand* copyOps = copy->ops(operands);
             if (copyOps[2].opBits != MicroOpBits::B8 || !copyOps[0].reg.isVirtualInt())
                 continue;
-            const MicroInstrRef setRef = storage.findPreviousInstructionRef(copyRef);
-            const MicroInstr*   set    = setRef.isValid() ? storage.ptr(setRef) : nullptr;
-            if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            --previousIt;
+            if (!previousIt.current.isValid() || previousIt->op != MicroInstrOpcode::SetCondReg)
                 continue;
+            const MicroInstr* set = &*previousIt;
             const MicroInstrOperand* setOps = set->ops(operands);
             if (!setOps || setOps[0].reg != copyOps[1].reg)
                 continue;
@@ -4350,12 +4351,15 @@ namespace
             candidate.jumpRef    = jumpRef;
             candidate.result     = copyOps[0].reg;
             candidate.leftCond   = leftCond;
-            candidate.leftCmpRef = storage.findPreviousInstructionRef(setRef);
+            --previousIt;
+            candidate.leftCmpRef = previousIt.current;
 
             // The skipped part: a register compare, its setcc, an optional
             // widening of that byte, the copy into B, then the join.
-            MicroInstrRef     ref  = storage.findNextInstructionRef(jumpRef);
-            const MicroInstr* inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            auto patternIt = it;
+            ++patternIt;
+            MicroInstrRef     ref  = patternIt.current;
+            const MicroInstr* inst = ref.isValid() ? &*patternIt : nullptr;
             if (inst && inst->op != MicroInstrOpcode::CmpRegReg && inst->op != MicroInstrOpcode::CmpRegImm)
             {
                 // The one profitable pure RHS currently admitted here is the
@@ -4370,29 +4374,33 @@ namespace
                 const MicroReg    source   = decrementCopy[1].reg;
                 candidate.skippedDecrement = decrementCopy[0].reg;
 
-                ref                                = storage.findNextInstructionRef(ref);
-                inst                               = ref.isValid() ? storage.ptr(ref) : nullptr;
+                ++patternIt;
+                ref  = patternIt.current;
+                inst = ref.isValid() ? &*patternIt : nullptr;
                 const MicroInstrOperand* decrement = inst && inst->op == MicroInstrOpcode::OpBinaryRegImm ? inst->ops(operands) : nullptr;
                 if (!decrement || decrement[0].reg != candidate.skippedDecrement || decrement[1].opBits != bits ||
                     decrement[2].microOp != MicroOp::Subtract || decrement[3].hasWideImmediateValue() || decrement[3].valueU64 != 1)
                     continue;
 
-                ref                               = storage.findNextInstructionRef(ref);
-                inst                              = ref.isValid() ? storage.ptr(ref) : nullptr;
+                ++patternIt;
+                ref  = patternIt.current;
+                inst = ref.isValid() ? &*patternIt : nullptr;
                 const MicroInstrOperand* maskCopy = inst && inst->op == MicroInstrOpcode::LoadRegReg ? inst->ops(operands) : nullptr;
                 if (!maskCopy || maskCopy[1].reg != source || maskCopy[2].opBits != bits)
                     continue;
                 candidate.skippedMask = maskCopy[0].reg;
 
-                ref                           = storage.findNextInstructionRef(ref);
-                inst                          = ref.isValid() ? storage.ptr(ref) : nullptr;
+                ++patternIt;
+                ref  = patternIt.current;
+                inst = ref.isValid() ? &*patternIt : nullptr;
                 const MicroInstrOperand* mask = inst && inst->op == MicroInstrOpcode::OpBinaryRegReg ? inst->ops(operands) : nullptr;
                 if (!mask || mask[0].reg != candidate.skippedMask || mask[1].reg != candidate.skippedDecrement ||
                     mask[2].opBits != bits || mask[3].microOp != MicroOp::And)
                     continue;
 
-                ref                              = storage.findNextInstructionRef(ref);
-                inst                             = ref.isValid() ? storage.ptr(ref) : nullptr;
+                ++patternIt;
+                ref  = patternIt.current;
+                inst = ref.isValid() ? &*patternIt : nullptr;
                 const MicroInstrOperand* compare = inst && inst->op == MicroInstrOpcode::CmpRegImm ? inst->ops(operands) : nullptr;
                 if (!compare || compare[0].reg != candidate.skippedMask || compare[1].opBits != bits ||
                     compare[2].hasWideImmediateValue() || compare[2].valueU64 != 0)
@@ -4405,8 +4413,9 @@ namespace
                 continue;
             candidate.rightCmpRef = ref;
 
-            ref  = storage.findNextInstructionRef(ref);
-            inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            ++patternIt;
+            ref  = patternIt.current;
+            inst = ref.isValid() ? &*patternIt : nullptr;
             if (!inst || inst->op != MicroInstrOpcode::SetCondReg)
                 continue;
             candidate.rhs         = inst->ops(operands)[0].reg;
@@ -4414,16 +4423,18 @@ namespace
             if (!candidate.rhs.isVirtualInt() || candidate.rhs == candidate.result)
                 continue;
 
-            ref  = storage.findNextInstructionRef(ref);
-            inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+            ++patternIt;
+            ref  = patternIt.current;
+            inst = ref.isValid() ? &*patternIt : nullptr;
             if (inst && inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
             {
                 const MicroInstrOperand* extOps = inst->ops(operands);
                 if (extOps[0].reg != candidate.rhs || extOps[1].reg != candidate.rhs)
                     continue;
                 candidate.mentions += 2;
-                ref  = storage.findNextInstructionRef(ref);
-                inst = ref.isValid() ? storage.ptr(ref) : nullptr;
+                ++patternIt;
+                ref  = patternIt.current;
+                inst = ref.isValid() ? &*patternIt : nullptr;
             }
 
             if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
@@ -4433,8 +4444,9 @@ namespace
                 continue;
             candidate.mergeRef = ref;
 
-            const MicroInstrRef labelRef = storage.findNextInstructionRef(ref);
-            const MicroInstr*   label    = labelRef.isValid() ? storage.ptr(labelRef) : nullptr;
+            ++patternIt;
+            const MicroInstrRef labelRef = patternIt.current;
+            const MicroInstr*   label    = labelRef.isValid() ? &*patternIt : nullptr;
             uint32_t            labelId  = 0;
             if (!label || label->op != MicroInstrOpcode::Label ||
                 !tryGetLabelId(labelId, *label, label->ops(operands)) || labelId != joinId)

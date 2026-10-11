@@ -5542,6 +5542,11 @@ namespace SemaEscape
             uint64_t payload  = 0;
             bool     complete = true;
         };
+        struct ReturnEntry
+        {
+            const SymbolFunction* function = nullptr;
+            ReturnSummary         summary;
+        };
 
         // These functions completed before the edge snapshot is taken, so all their
         // return edges are present. Keep the fixpoint local: sema workers may still
@@ -5549,20 +5554,17 @@ namespace SemaEscape
         // The summaries sit in a vector, found by function through a flat table. Both fixpoints
         // below are monotone (completeness only drops, masks only grow), so the order they sweep
         // the summaries in changes how many sweeps they take, never what they converge to.
-        std::vector<const SymbolFunction*>        returnFunctions;
-        std::vector<ReturnSummary>                returnSummaries;
+        std::vector<ReturnEntry>                  returnEntries;
         PointerMap<SymbolFunction, ReturnSummary> returns;
-        returnFunctions.reserve(completedFunctions.size());
-        returnSummaries.reserve(completedFunctions.size());
+        returnEntries.reserve(completedFunctions.size());
         returns.reserve(completedFunctions.size());
         for (const SymbolFunction* fn : completedFunctions)
         {
             // Both production callers pass an order deduplicated by the JIT-order walk.
             if (!fn->isSemaCompleted())
                 continue;
-            returnFunctions.push_back(fn);
-            returnSummaries.push_back(ReturnSummary{fn->returnBorrowsParamsMask(), fn->returnsStorageParamsMask(), fn->returnsPayloadParamsMask()});
-            returns.set(fn, &returnSummaries.back());
+            returnEntries.push_back({fn, ReturnSummary{fn->returnBorrowsParamsMask(), fn->returnsStorageParamsMask(), fn->returnsPayloadParamsMask()}});
+            returns.set(fn, &returnEntries.back().summary);
         }
 
         ctx.compiler().withReturnEdgesByCaller([&](auto&& edgesOf) {
@@ -5573,13 +5575,14 @@ namespace SemaEscape
             while (changed)
             {
                 changed = false;
-                for (size_t entryIndex = 0; entryIndex < returnSummaries.size(); ++entryIndex)
+                for (size_t entryIndex = 0; entryIndex < returnEntries.size(); ++entryIndex)
                 {
-                    ReturnSummary& entry = returnSummaries[entryIndex];
+                    ReturnEntry&   returnEntry = returnEntries[entryIndex];
+                    ReturnSummary& entry       = returnEntry.summary;
                     if (!entry.complete)
                         continue;
 
-                    edgesOf(returnFunctions[entryIndex], [&](const SemaEscapeSummaryEdge& edge) {
+                    edgesOf(returnEntry.function, [&](const SemaEscapeSummaryEdge& edge) {
                         if (!entry.complete)
                             return;
                         if (edge.callerIndirect || edge.calleeIndirect)
@@ -5603,13 +5606,14 @@ namespace SemaEscape
             while (changed)
             {
                 changed = false;
-                for (size_t entryIndex = 0; entryIndex < returnSummaries.size(); ++entryIndex)
+                for (size_t entryIndex = 0; entryIndex < returnEntries.size(); ++entryIndex)
                 {
-                    ReturnSummary& entry = returnSummaries[entryIndex];
+                    ReturnEntry&   returnEntry = returnEntries[entryIndex];
+                    ReturnSummary& entry       = returnEntry.summary;
                     if (!entry.complete)
                         continue;
 
-                    edgesOf(returnFunctions[entryIndex], [&](const SemaEscapeSummaryEdge& edge) {
+                    edgesOf(returnEntry.function, [&](const SemaEscapeSummaryEdge& edge) {
                         if (!entry.complete)
                             return;
 

@@ -127,10 +127,17 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
     still scans the pending edges; an edge whose callee never frees its parameter stays pending.
     The guarded path also reconstructs its closure-local return-summary table. A worklist keyed by
     callee could revisit an edge only when its callee's mask or either end's completion changes.
-- Next: measure these remaining walks on a `gui` release rebuild. Before remembering patched
-  allocations across functions, preserve deferred-function registration and the `Pause` path;
-  a memo must account for both. Preserve the guarded return proofs and late completion when
-  replacing the release scan with a worklist.
+- October 11: the unguarded fixpoint now compacts successfully propagated edges while preserving
+  unresolved edges in their original order, and tracks the source-edge cursor separately so later
+  appends are copied once. This removes future visits to applied edges and the per-edge applied
+  flag. The guarded path's production callers already provide a deduplicated JIT order, so summary
+  construction skips a redundant membership lookup; function pointers and summaries now share one
+  reserved vector allocation. The DevMode C++ suite passes all 1,424 tests. These are structural
+  changes; no timing comparison was made.
+- Next: reduce repeated resolution work in the guarded return-summary closure with an edge
+  worklist that preserves alias proofs and late completion. The relocation closure remains a
+  separate lead: any memo must account for deferred-function registration, the `Pause` path, and
+  patchable targets whose addresses can move from work address to patch address.
 - Done when: each item is either removed with compile-time execution and safety tests, or
   recorded as measured and not worth its risk.
 - Related: compiler.core.030.

@@ -384,7 +384,7 @@ namespace
             stepOps[2].microOp != MicroOp::Add || stepOps[3].hasWideImmediateValue() || stepOps[3].valueU64 != 1 ||
             cmpOps[0].reg != loadOps[2].reg || cmpOps[1].opBits != MicroOpBits::B64 ||
             cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 < 64 ||
-            cmpOps[2].valueU64 % 4 != 0 || cmpOps[2].valueU64 > UINT32_MAX ||
+            cmpOps[2].valueU64 > UINT32_MAX ||
             jumpOps[0].cpuCond != MicroCond::Below)
             return false;
 
@@ -432,8 +432,11 @@ namespace
         }
 
         // Two independent packed accumulators shorten the XOR dependency chain
-        // when an exact group of eight is available.
-        const bool twoVectors = cmpOps[2].valueU64 >= 128 && cmpOps[2].valueU64 % 8 == 0;
+        // for larger reductions; the scalar loop below handles any remainder.
+        const uint64_t bound       = cmpOps[2].valueU64;
+        const bool     twoVectors = bound >= 128;
+        const uint64_t vectorWidth = twoVectors ? 8 : 4;
+        const bool     hasTail     = bound % vectorWidth != 0;
         uint32_t   nextInt    = 0;
         uint32_t   nextFloat  = 0;
         MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
@@ -451,6 +454,23 @@ namespace
         const MicroInstrRef headerRef     = order[headerOrdinal];
         const MicroInstrRef bodyRef       = order[headerOrdinal + 1];
         const MicroInstrRef afterRef      = order[jumpOrdinal + 1];
+        const MicroInstrOperand scalarCmp[3] = {cmpOps[0], cmpOps[1], cmpOps[2]};
+        const MicroInstrOperand scalarStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
+        const MicroInstrOperand jumpBits = jumpOps[1];
+        SmallVector<std::pair<MicroInstrOpcode, SmallVector<MicroInstrOperand, 8>>, 6> scalarBody;
+        if (hasTail)
+        {
+            for (uint32_t ordinal = headerOrdinal + 1; ordinal < headerOrdinal + 5; ++ordinal)
+            {
+                const MicroInstr* inst = storage.ptr(order[ordinal]);
+                SmallVector<MicroInstrOperand, 8> cloned;
+                cloned.append(inst->ops(operands), inst->numOperands);
+                scalarBody.emplace_back(inst->op, std::move(cloned));
+            }
+        }
+        const uint64_t groupId = builder.createLabel().get();
+        const uint64_t tailId = hasTail ? builder.createLabel().get() : 0;
+        const uint64_t doneId = hasTail ? builder.createLabel().get() : 0;
         MicroInstrOperand   vectorStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
         vectorStep[3].setImmediateValue(ApInt(twoVectors ? 8 : 4, 64));
         const auto insert = [&](MicroInstrRef before, MicroInstrOpcode op, std::span<const MicroInstrOperand> args) {
@@ -486,6 +506,10 @@ namespace
             args[2].opBits            = bits;
             insert(before, MicroInstrOpcode::LoadRegReg, args);
         };
+
+        MicroInstrOperand groupLabel[1] = {};
+        groupLabel[0].valueU64 = groupId;
+        insert(bodyRef, MicroInstrOpcode::Label, groupLabel);
 
         MicroInstrOperand clear[2] = {};
         clear[0].reg               = index;
@@ -548,8 +572,40 @@ namespace
         emitBinary(bodyRef, index, stride, MicroOp::VecAdd32, MicroOpBits::B128);
 
         insert(order[headerOrdinal + 5], MicroInstrOpcode::OpBinaryRegImm, vectorStep);
+        MicroInstrOperand* groupCmpOps = storage.ptr(order[headerOrdinal + 6])->ops(operands);
+        groupCmpOps[2].setImmediateValue(ApInt(bound - vectorWidth + 1, 64));
+        MicroInstrOperand* groupJumpOps = storage.ptr(order[jumpOrdinal])->ops(operands);
+        groupJumpOps[2].valueU64 = groupId;
         for (uint32_t o = headerOrdinal + 1; o <= headerOrdinal + 5; ++o)
             storage.erase(order[o]);
+
+        if (hasTail)
+        {
+            // The vector loop stops before its first incomplete group. Keep the
+            // original scalar loop for the remaining one to seven elements.
+            MicroInstrOperand tailLabel[1] = {};
+            tailLabel[0].valueU64 = tailId;
+            insert(afterRef, MicroInstrOpcode::Label, tailLabel);
+            MicroInstrOperand tailCmp[3] = {scalarCmp[0], scalarCmp[1], scalarCmp[2]};
+            insert(afterRef, MicroInstrOpcode::CmpRegImm, tailCmp);
+            MicroInstrOperand skipTail[3] = {};
+            skipTail[0].cpuCond = MicroCond::AboveOrEqual;
+            skipTail[1] = jumpBits;
+            skipTail[2].valueU64 = doneId;
+            insert(afterRef, MicroInstrOpcode::JumpCond, skipTail);
+            for (const auto& [op, args] : scalarBody)
+                insert(afterRef, op, args);
+            insert(afterRef, MicroInstrOpcode::OpBinaryRegImm, scalarStep);
+            insert(afterRef, MicroInstrOpcode::CmpRegImm, scalarCmp);
+            MicroInstrOperand tailJump[3] = {};
+            tailJump[0].cpuCond = MicroCond::Below;
+            tailJump[1] = jumpBits;
+            tailJump[2].valueU64 = tailId;
+            insert(afterRef, MicroInstrOpcode::JumpCond, tailJump);
+            MicroInstrOperand doneLabel[1] = {};
+            doneLabel[0].valueU64 = doneId;
+            insert(afterRef, MicroInstrOpcode::Label, doneLabel);
+        }
 
         if (twoVectors)
             emitBinary(afterRef, packed, upperAccum, MicroOp::VecXor, MicroOpBits::B128);

@@ -275,7 +275,7 @@ Result EditorIndex::write(CompilerInstance& compiler)
     {
         if (!file || !file->ast().hasSourceView())
             continue;
-        if (cmdLine.editorService && !file->isEditorActive())
+        if (isEditorServiceCommand(cmdLine.command) && !file->isEditorActive())
             continue;
 
         const std::string key      = pathKey(file->path());
@@ -311,7 +311,7 @@ Result EditorIndex::write(CompilerInstance& compiler)
     {
         if (!file || !file->ast().hasSourceView())
             continue;
-        if (cmdLine.editorService && !file->isEditorActive())
+        if (isEditorServiceCommand(cmdLine.command) && !file->isEditorActive())
             continue;
 
         const auto key = pathKey(file->path());

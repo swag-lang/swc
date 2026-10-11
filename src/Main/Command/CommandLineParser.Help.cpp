@@ -162,7 +162,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         addInfoEntry(entries, "Getting started", "https://www.swag-lang.org/getting-started.html", LogColor::BrightBlue);
         addInfoEntry(entries, "Language reference", "https://www.swag-lang.org/language.html", LogColor::BrightBlue);
         addInfoEntry(entries, "Examples", "https://github.com/swag-lang/swc/tree/master/bin/examples", LogColor::BrightBlue);
-        addInfoEntry(entries, "Editor protocol", "swc help sema documents the compiler protocol and the standard LSP server", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Editor protocol", "swc help service documents the compiler protocol and the standard LSP server", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "Native setup", "Install the MSVC x64 build tools and the Windows SDK");
         addInfoEntry(entries, "Command help", "swc help <command>", LogColor::White, 0, helpArgumentLabelColor());
         Logger::printFieldGroup(ctx, "Learn", entries, nextHelpGroupStyle(hasPrintedGroup, 22));
@@ -280,10 +280,10 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     if (!groupEntries.empty())
         Logger::printFieldGroup(ctx, helpOptionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
 
-    if (command == "sema")
+    if (command == "service")
     {
         entries.clear();
-        addInfoEntry(entries, "Launch", "swc sema --module <path> --editor-service --editor-overlay <buffers> --editor-index <snapshot>", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Launch", "swc service --module <path> --editor-overlay <buffers> --editor-index <snapshot>", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "Transport", "Protocol 1: UTF-8 lines on stdin; READY and request markers appear on both output streams", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "Analyze", "Send analyze<TAB><id> followed by a newline; await matching SWAG-EDITOR-SERVICE<TAB>1<TAB><id><TAB><exit-code> markers on both streams", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "Shutdown", "Send shutdown and a newline, or close stdin; compiler output may appear between marker lines", LogColor::White, 0, helpArgumentLabelColor());

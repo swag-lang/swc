@@ -213,6 +213,7 @@ namespace PostRaPeephole
     bool tryFoldNotIntoAndNot(Context& ctx, MicroInstrRef notRef, const MicroInstr& notInst);
     bool tryFoldMultiplyIntoResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldFloatBinaryIntoResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryFoldFloatSqrtResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldMultiplyShiftResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryEraseCompareAfterBranch(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldBorrowDifference(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

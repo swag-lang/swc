@@ -3426,6 +3426,105 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatReturnMinMaxUsesScalarInstruction)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_SqrtResultCopyTracksTheWholeValue)
+{
+    constexpr MicroReg source = MicroReg::floatReg(0);
+    constexpr MicroReg kept   = MicroReg::floatReg(1);
+    constexpr MicroReg other  = MicroReg::floatReg(2);
+    constexpr MicroReg base   = MicroReg::intReg(2);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (uint32_t variant = 0; variant < 10; ++variant)
+        {
+            MicroBuilder builder(ctx);
+            builder.emitOpBinaryRegReg(source, variant == 8 ? other : source, MicroOp::FloatSqrt, bits);
+            const auto root = builder.instructions().lastInstructionRef();
+            builder.emitLoadRegReg(kept, source, variant == 1 ? bits : MicroOpBits::B128);
+            const auto copy = builder.instructions().lastInstructionRef();
+            if (variant == 2)
+                builder.emitClearReg(kept, MicroOpBits::B128);
+            else if (variant == 3)
+                builder.placeLabel(builder.createLabel());
+            else if (variant == 4)
+                builder.emitCallReg(base, CallConvKind::Swag);
+            else if (variant == 5)
+                builder.emitOpBinaryRegReg(source, other, MicroOp::FloatAdd, bits);
+            else if (variant == 6)
+                builder.emitLoadRegReg(source, other, bits);
+            else if (variant == 7)
+                builder.emitRet();
+            else if (variant == 9)
+                builder.emitLoadMemReg(base, 0, source, MicroOpBits::B128);
+            builder.emitOpBinaryRegRegReg(source, other, source, MicroOp::FloatSubtract, bits);
+            const auto calculation = builder.instructions().lastInstructionRef();
+            builder.emitLoadMemReg(base, 16, kept, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 32, source, MicroOpBits::B128);
+            builder.emitRet();
+
+            X64Encoder              encoder(ctx);
+            PostRaPeephole::Context rewrite;
+            rewrite.storage    = &builder.instructions();
+            rewrite.operands   = &builder.operands();
+            rewrite.encoder    = &encoder;
+            const bool changed = PostRaPeephole::tryFoldFloatSqrtResultCopy(rewrite, copy, *builder.instructions().ptr(copy));
+            if (changed != (variant == 0 || variant == 8 || variant == 9))
+                return Result::Error;
+            for (const auto& action : rewrite.actions)
+                MicroPeephole::applyAction(rewrite, action);
+            if (changed && (builder.instructions().ptr(root)->ops(builder.operands())[0].reg != kept ||
+                            builder.instructions().ptr(calculation)->ops(builder.operands())[2].reg != kept))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_SqrtResultCopyPreservesScalarAndUpperLanes)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg source = MicroReg::floatReg(0);
+    constexpr MicroReg kept   = MicroReg::floatReg(1);
+    constexpr MicroReg other  = MicroReg::floatReg(2);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const double value : {0.0, -0.0, 4.0, -4.0, 0.25, 1.0e20, std::numeric_limits<double>::infinity()})
+        {
+            std::array<uint64_t, 8> reference{};
+            for (const bool optimize : {false, true})
+            {
+                std::array<uint64_t, 8> values = {0xA5A5A5A500000000, 0x123456789ABCDEF0, 0, 0xFEDCBA9876543210};
+                if (bits == MicroOpBits::B64)
+                {
+                    values[0] = std::bit_cast<uint64_t>(value);
+                    values[2] = std::bit_cast<uint64_t>(3.0);
+                }
+                else
+                {
+                    values[0] |= std::bit_cast<uint32_t>(static_cast<float>(value));
+                    values[2] = 0x5A5A5A5A00000000 | std::bit_cast<uint32_t>(3.0f);
+                }
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegMem(source, base, 0, MicroOpBits::B128);
+                builder.emitLoadRegMem(other, base, 16, MicroOpBits::B128);
+                builder.emitOpBinaryRegReg(source, source, MicroOp::FloatSqrt, bits);
+                builder.emitLoadRegReg(kept, source, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(source, other, source, MicroOp::FloatSubtract, bits);
+                builder.emitLoadMemReg(base, 32, source, MicroOpBits::B128);
+                builder.emitLoadMemReg(base, 48, kept, MicroOpBits::B128);
+                builder.emitRet();
+                SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                if (!optimize)
+                    reference = values;
+                else if (values != reference || hasLoadRegReg(builder, kept, source))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_ScalarReturnConversionDropsUpperLaneClear)
 {
     constexpr MicroReg xmm0 = MicroReg::floatReg(0);

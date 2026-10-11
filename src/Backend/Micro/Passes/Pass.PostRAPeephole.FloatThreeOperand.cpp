@@ -2,6 +2,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 // Fold the copy that legacy SSE forces in front of every float binary operation
@@ -1752,6 +1753,98 @@ namespace PostRaPeephole
         ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5}, /*allocNewBlock=*/true);
         ctx.emitErase(copyRef);
         return true;
+    }
+
+    // Keep a scalar root in the register that preserves it across a later
+    // calculation. Unlike a destructive binary operation, sqrt can write that
+    // register immediately. Redirect the old destination's remaining reads
+    // until a full write replaces it, without adding another live value.
+    bool tryFoldFloatSqrtResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (!ctx.encoder || ctx.isClaimed(copyRef))
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || !copy[0].reg.isFloat() || !copy[1].reg.isFloat() ||
+            copy[0].reg == copy[1].reg || copy[2].opBits != MicroOpBits::B128)
+            return false;
+
+        const MicroReg dst     = copy[0].reg;
+        const MicroReg src     = copy[1].reg;
+        const auto     rootRef = ctx.previousRef(copyRef);
+        const auto*    root    = ctx.instruction(rootRef);
+        const auto*    rootOps = root ? root->ops(*ctx.operands) : nullptr;
+        if (!rootOps || ctx.isClaimed(rootRef) || root->op != MicroInstrOpcode::OpBinaryRegReg ||
+            rootOps[0].reg != src || rootOps[3].microOp != MicroOp::FloatSqrt ||
+            (rootOps[2].opBits != MicroOpBits::B32 && rootOps[2].opBits != MicroOpBits::B64))
+            return false;
+
+        constexpr uint32_t                           K_MAX_WINDOW = 16;
+        SmallVector<MicroInstrRef, K_MAX_WINDOW + 2> observed;
+        SmallVector<Action, K_MAX_WINDOW>            rewrites;
+        observed.push_back(rootRef);
+        observed.push_back(copyRef);
+        auto walker = MicroStorage::Iterator{ctx.storage, copyRef};
+        for (++walker; walker.current.isValid() && observed.size() < K_MAX_WINDOW + 2; ++walker)
+        {
+            const auto  ref  = walker.current;
+            const auto& inst = *walker;
+            const auto& info = MicroInstr::info(inst.op);
+            if (ctx.isClaimed(ref) || inst.op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || inst.numOperands > Action::K_MAX_OPS)
+                return false;
+            observed.push_back(ref);
+            if (regTouch(ctx, inst, dst).def)
+                return false;
+            const auto  touch = regTouch(ctx, inst, src);
+            const auto* ops   = inst.ops(*ctx.operands);
+            const auto  modes = info.resolvedRegModes(ops);
+            Action      rewritten;
+            rewritten.ref    = ref;
+            rewritten.newOp  = inst.op;
+            rewritten.numOps = inst.numOperands;
+            std::copy_n(ops, inst.numOperands, rewritten.ops);
+            bool changed = false;
+            for (uint32_t operand = 0; operand < modes.size(); ++operand)
+            {
+                if (modes[operand] == MicroInstrRegMode::None || ops[operand].reg != src)
+                    continue;
+                if (modes[operand] == MicroInstrRegMode::UseDef)
+                    return false;
+                if (modes[operand] == MicroInstrRegMode::Use)
+                {
+                    rewritten.ops[operand].reg = dst;
+                    changed                    = true;
+                }
+            }
+            if (touch.use && !changed)
+                return false;
+            MicroConformanceIssue issue;
+            if (changed && ctx.encoder->queryConformanceIssue(issue, inst, rewritten.ops))
+                return false;
+            if (changed)
+                rewrites.push_back(rewritten);
+            if (!touch.def)
+                continue;
+
+            // Scalar register copies retain upper lanes. Only whole-register
+            // definitions end the interval whose old reads must be redirected.
+            if (ops[0].reg != src || modes[0] != MicroInstrRegMode::Def ||
+                (inst.op != MicroInstrOpcode::OpBinaryRegRegReg && inst.op != MicroInstrOpcode::ClearReg &&
+                 inst.op != MicroInstrOpcode::LoadRegMem &&
+                 !(inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[3].microOp == MicroOp::FloatSqrt)))
+                return false;
+            MicroInstrOperand result[4] = {rootOps[0], rootOps[1], rootOps[2], rootOps[3]};
+            result[0].reg               = dst;
+            if (ctx.encoder->queryConformanceIssue(issue, *root, result) || !ctx.claimAll(observed.span()))
+                return false;
+            ctx.emitRewrite(rootRef, root->op, result);
+            ctx.emitErase(copyRef);
+            for (const auto& rewrite : rewrites)
+                ctx.emitRewrite(rewrite.ref, rewrite.newOp, std::span{rewrite.ops, rewrite.numOps});
+            return true;
+        }
+        return false;
     }
 
     // Constant unsigned division can leave its magic multiply and logical

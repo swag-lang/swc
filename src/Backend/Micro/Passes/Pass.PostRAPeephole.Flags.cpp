@@ -244,16 +244,19 @@ namespace PostRaPeephole
             load[2].hasWideImmediateValue() || load[2].valueU64 > 1)
             return false;
 
-        const MicroInstrRef cmpRef = ctx.nextRef(loadRef);
-        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
+        auto                scanIt = MicroStorage::Iterator{ctx.storage, loadRef};
+        ++scanIt;
+        const MicroInstrRef cmpRef = scanIt.current;
+        const MicroInstr*   cmp    = cmpRef.isValid() ? &*scanIt : nullptr;
         const auto*         cmpOps = cmp ? cmp->ops(*ctx.operands) : nullptr;
         if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm || !cmpOps ||
             cmpOps[0].reg != load[0].reg || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 ||
             (cmpOps[1].opBits != MicroOpBits::B8 && cmpOps[1].opBits != MicroOpBits::B32 && cmpOps[1].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef setRef = ctx.nextRef(cmpRef);
-        const MicroInstr*   set    = ctx.instruction(setRef);
+        ++scanIt;
+        const MicroInstrRef setRef = scanIt.current;
+        const MicroInstr*   set    = setRef.isValid() ? &*scanIt : nullptr;
         const auto*         setOps = set ? set->ops(*ctx.operands) : nullptr;
         if (!set || set->op != MicroInstrOpcode::SetCondReg || !setOps || setOps[0].reg != load[0].reg ||
             !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, setRef, ctx.builder))

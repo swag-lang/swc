@@ -120,84 +120,19 @@ new language syntax.
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
-- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization.
-- Comparison: accepted campaign `20261001-103647`, built from `49f7e665d`, reports
-  native at 23.5431 ms, JIT at 25.9971 ms and Zig 0.15.2 at 16.45 ms, with
-  `CHECK=169096566666`. Native is 1.431x the current winner. The inspected Zig
-  `ReleaseFast` timestep has 348 non-NOP machine instructions, 101 memory operands,
-  four packed and two scalar square roots. This campaign predates the afternoon changes.
-- Current shape: main's timestep has 395 non-label Microinstructions (399 with labels),
-  131 actual memory accesses and 24 frame accesses. The position loop within it has
-  15 non-label instructions, six memory accesses and no frame access.
-  Contracting 31 additions and 19 subtractions of products removes 50 instructions from
-  the previous 445, with no extra memory access or larger frame. Nine benchmark checksums
-  stay exact; six other tasks keep their instruction/access counts, while raytrace and
-  csvagg also lose instructions. Contraction requires `fpMathFma`, a supported encoder and proof
-  that a distinct product is dead in every lane. Reusing a factor destination also preserves
-  the original upper-lane source or proves those output lanes dead. Explicit `Swag.muladd`
-  keeps its separate rounding.
-- The timestep's ten roots remain scalar. Its 33 register copies use the full width,
-  avoiding dependencies on old unused destination lanes. Earlier removal of integer/float
-  transfers replaced cached integer bits with fourteen more memory accesses (117 to 131);
-  that tradeoff still needs an accepted runtime comparison. The standalone `advance`
-  uses 422 non-label instructions, 134 memory and 44 frame accesses in a 368-byte frame.
-- Regression evidence: `20260930-152655` to `20260930-195406` changes native raw time
-  from 24.8768 to 30.3729 ms (+22.1%); different control factors amplify that to +38.5%
-  after normalization. JIT changes from 25.6579 to 24.8732 ms. At `f0a34dcf4`, native
-  `#main` inlines `advance`, but JIT `#run` retains its call. JIT's 470 non-label Micro
-  operations exactly match the native function at `819dd7872`, before borrowed-slice
-  inlining. The old inlined timestep's partial register copies and packed encodings of
-  scalar roots expose dependencies absent from the out-of-line shape. These are concrete
-  code differences; their individual runtime contributions have not been established.
-- Measurement limit: all four historical comparison cohorts on October 1 fail their
-  declared control gates (p90/p10 <= 1.20, half-window drift <= 15%). The 13:16 cohort,
-  after a 30-second warmup, has control spreads 1.292 for nbody and 1.549 for raytrace.
-  All samples remain recorded. The accepted noon campaign observes a lower native time
-  again, but its 17.35% calibration drift and different revision cannot establish a causal
-  speedup for one fix. Repeat attribution on a stable machine without relaxing the gates.
-- Rejected designs bound the next step: pairing roots after inlining extends coordinate
-  lifetimes and raises hot frame accesses from 24 to 76; retaining them in GP registers
-  still needs 73 and adds transfers. Late store-tree packing keeps scalar producers alive
-  while rebuilding vector producers, reaching 119 frame accesses. A narrower scalar-capture
-  trial removes one memory access but no instruction and leaves ten roots, with setup cost
-  not yet justified. These prototypes were removed.
-- October 3: the position loop now carries `base + i * 56` as a pointer (the induction-variable
-  pass carries any scale no address mode forms), so it no longer multiplies and is no longer
-  packed. Its packed form read vx/vy with one 16-byte load right after the timestep stored them
-  as two 8-byte values; hand-written variants put that store-forwarding stall at about 3% of
-  nbody (packed 24.61 ms min, scalar 23.85, packed with two 8-byte loads 23.88). The SLP pass
-  already refuses an overlapping store in the same block, and a probe found no packed load
-  after a narrower aliasing store in an earlier block or trip in the 12 tasks or in std core,
-  pixel and video, so no separate rule was kept. Pairing only the ten roots and divisions was
-  retried: 1.21-1.24x slower, frame accesses in `advance` 44 to 103.
-- Zig and Rust inline the timestep and keep the 35 body fields in registers across steps.
-  Swag calls `advance` once per step, saving and restoring ten XMM registers, and reloads the
-  bodies through the slice. Zig issues 6 roots and 6 divisions per step, Rust 7 + 7, clang and
-  Swag 10 + 10, in the order of their times (16.0, 19.7, 21.6 and 21.4 ms).
-- Remaining gap: pack coordinate producers, roots/divisions and their scalar consumers as
-  one plan, with a register-pressure estimate. Pairing only the expensive operations is
-  insufficient. The position loop already packs x/y updates without frame traffic.
-- October 10: post-RA contraction now reaches a product separated from its accumulation by the
-  accumulator load (`2f0ebbbd8`): the step loop went from 393 to 378 instructions per iteration with
-  131 memory operands and 24 frame accesses unchanged. The loop still carries 33 full-width register
-  copies per step: velocity values move between XMM registers at the unrolled pair boundaries
-  (`xmm7 = xmm9; xmm9 = xmm10; xmm4 = xmm11`), the interval walk splitting a long-lived value when a
-  pair temporary takes its register. Pre-RA the loop holds 100 float copies; the allocator coalesces
-  all but those. One accumulation per step stays unfused because its accumulator load reuses a factor
-  register (`xmm3 = xmm8 * xmm12; xmm3 = xmm3 * xmm10; xmm10 = [m]; xmm10 += xmm3`).
-- Rejected (October 10): canonicalizing the position loop (`%c = 5; H: cmp %c, 0; je X; ...; sub %c, 1;
-  jump H`) into the counted shape so it fully unrolls. The pointer step stays an in-place `add` per copy,
-  so no displacement folds; the forwarded velocities then live across the copies and spill, and main
-  grew from 721 to 806 instructions. A countdown unroll needs the pointer carried as per-copy constant
-  displacements and a pressure check on forwarded values first.
-- A source-shape probe based on Zig's `*[NB]Body` parameter confirmed the current Swag call is already
-  inlined. Adding `#[Swag.Inline]` leaves its Micro unchanged; changing `advance` from a slice to a fixed
-  array pointer grows the timed step loop from 378 instructions / 131 memory operands to 416 / 170.
-- Next: compare each interaction region against the winner and design shared producer
-  ownership before another SLP rewrite. Keep historical timing attribution separate from
-  the static optimization loop; a stable controlled cohort is still required for it.
-- Done when: the step retains or packs body state with no redundant pair work and
-  matches the winner's packed roots/divisions without a generated-code loss in other tasks.
+- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization
+- Evidence: the latest comparable native result has n-body about 1.43x slower than Zig, but noisy
+  control cohorts and intervening changes prevent attributing a runtime gain to any one rewrite.
+  The current timestep still has ten scalar roots, 131 memory accesses and 24 frame accesses;
+  contraction removed 50 instructions, while 33 full-width register copies remain across pairs.
+  Zig and Rust keep body state across steps; Swag still advances through a slice call. Checksums
+  remain exact.
+- Rejected direction: pairing roots alone extended live ranges and increased frame accesses. The
+  next change needs one register-pressure plan for producers, roots/divisions, and scalar consumers.
+- Next: inspect each interaction region against the winner and design that joint plan before another
+  SLP rewrite. Confirm any gain only in a stable controlled cohort; do not relax its noise gates.
+- Done when: the step retains or packs body state without redundant pair work and matches the
+  winner's packed roots/divisions without generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
 
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls

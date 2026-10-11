@@ -19,51 +19,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
-- Evidence: two consecutive full `native -bc release --rebuild` suite runs with the same
-  Release compiler (build 1173, prompt-4 working revision based on `656356844`) both pass
-  3,545 tests, but `dumpbin /unwindinfo` reports 6,713 and 6,712 function records. Comparing
-  records without addresses finds eleven changed groups, including one removed leaf record,
-  different saved registers, and stack allocations changing from `0x700` to `0xAF0`.
-  Both commands cap the outer script and inner compiler at six workers and use isolated
-  temporary caches. No compiler rebuild occurs between them.
-- Scope: this was observed while removing the redundant sort in `X64UnwindWindows::buildInfo`.
-  That routine serializes already generated prologue operations; the record differences also
-  occur between runs of the same changed binary. This does not establish when the variation
-  was introduced, nor whether its cause is semantic ordering, automatic inlining, or allocation.
-- October 3: three causes found and fixed. A by-value aggregate argument that folds to a
-  constant (`#curlocation` in every `Swag.panic` call) had its call-argument storage detached
-  by the folding cast and registered again on every sema rerun, each copy keeping a frame
-  slot: `allocatorCorruptedFreeList` in the runtime got a 0x40 to 0x130-byte frame from one
-  build of the same benchmark to the next. `.rdata` was laid out by constant shard and
-  creation offset, which follow job scheduling; it now follows the order the code reaches
-  each constant. And a source-location constant chose its shard from the function's address
-  and the source view's load index, so two locations in one file shared their file-name
-  string in some builds and not in others, shifting the whole section; the shard now comes
-  from the file and function names. Over five pairs each of `sort`, `wordfreq` and `nbody`
-  builds, the code (ignoring addresses), `.pdata` and `.xdata` no longer vary, and `.rdata`
-  differed in one pair only, by 41 bytes, next to a `.data` difference.
-- October 9: two consecutive `std.swgs build core -bc release --rebuild --num-cores 1` runs of the
-  same Release compiler (prompt-4 branch at `f3a0c10b3`) give `core.dll` files whose `.text`,
-  `.pdata`, `.xdata`, `.swagdbg`, `.edata` and `.data` sections are byte-identical, while `.rdata`
-  is 259,583 against 259,543 bytes (103,866 differing bytes from offset `0xb60`, the shifted
-  addresses of data-only references) and `.reloc` differs accordingly. Six-core rebuilds also
-  change the file size by 512 bytes. The code itself is stable; one `.rdata` allocation still
-  changes size or order between runs, even without parallel workers.
-- October 10: single-core builds of the same bench task by the same Release compiler still
-  differ in `.rdata` and `.reloc` alone, in about one build of two. In `lz77` the difference is
-  one empty-string payload: a reflected type value's empty name points into an allocation reached
-  early in one build, and into its own one-byte allocation emitted just before
-  `"[..] Swag.TypeValue"` in the other, shifting every later string by one byte. Type-info
-  strings come from shard 0's `DataSegment::addString`, which deduplicates per segment; which
-  allocation first holds `""` follows the order type infos are generated.
-- What still varies: the offsets of globals in `.data` and `.bss`. They are assigned while
-  sema runs in parallel, so the addresses that code and relocations use differ from one
-  build to the next (48 to 5,800 bytes per pair).
-- Next: give globals a layout decided at emission from a stable key (module, file, declaration
-  order) instead of first-come offsets, keeping the JIT's addresses valid; then repeat the
-  unwind record comparison to see whether another prologue cause remains.
-- Done when: the source of the different prologues is explained and corrected at its
-  owning boundary, with stable normalized output and the affected native tests green.
+- Evidence: repeated builds with the same compiler produce stable `.text`/unwind sections in some
+  cases but still vary in `.rdata` and relocations; global offsets in `.data` and `.bss` vary by
+  48?5,800 bytes because semantic jobs assign them concurrently. Type-info string deduplication can
+  also shift `.rdata` by one empty-string allocation. These section changes account for the varying
+  addresses seen in unwind records; the current cause is not code generation.
+- Next: assign globals at emission using a stable key such as module, file, and declaration order,
+  while keeping JIT addresses valid. Then repeat the normalized section and unwind comparison.
+- Done when: output differences are explained and corrected at their owning boundary, normalized
+  sections are stable across repeated builds, and affected native tests pass.
 
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
@@ -691,27 +655,21 @@ cache is part of the normal DevMode and Release paths.
 
 ### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
 
+**Evidence.** The benchmark harness records `core_rebuild`, `core_noop`, `core_touch`,
+`hello_build`, `doc_std`, and `format_tree` with samples and compilation context. The
+[20260906-143159 record](../bench/results/20260906-143159.json) covers these workloads but is not
+sufficient to establish the five-campaign baseline band. The harness now records timed-process peak
+working set separately from process-tree commit; the formatter input-opening bias remains in
+repo.tooling.007.
 
-**Evidence.** Since 2026-09-05 the campaign measures the edit-build loop beside the seven tasks: `core_rebuild`, `core_noop`, `core_touch`, `hello_build`, `doc_std` and `format_tree` (`bench/toolchains.py`, `make_compiler_workloads` and `make_hello_builds`), each recorded with wall time, every sample and peak memory, corrected by the campaign's compilation context and indexed against the first clean campaign that measured it (`history.py`, `index_loop`). `bench/compile.py` answers the round-by-round A/B between two compilers. On 2026-09-05, Release 0.1.366, six worker cores, medians of five on a quiet machine: `core_rebuild` 3 485 ms, `core_noop` 334 ms, `core_touch` 3 214 ms, `format_tree` 5.6 s at one busy core, `doc_std` 142 s and 3.3 GiB peak, the standard-library publish pass included. The four August protocol-2 records predate these workloads. The later
-[20260906-143159 record](../bench/results/20260906-143159.json) contains all five `loop`
-workloads and the separate hello-world build result. One such record does not establish the
-five-campaign baseline band required below.
-
-**Intent.** Record enough clean campaigns to know the resolution of each workload, then make the campaign report a regression instead of only plotting it.
-
-**Measurement caveat (2026-09-06).** The original benchmark memory field is process-tree peak
-committed memory. The instrument now records the timed process's peak working set separately;
-older samples have no resident-memory value and must not be used to set that threshold. Memory
-is not normalized by timing context. Formatter source mirrors now preserve `.swc-format` and
-the maintenance tool's complete input selection; the remaining input-opening bias is tracked
-in repo.tooling.007. Establish the baseline band using these corrected inputs and explicit
-compiler-worker counts.
+**Intent.** Establish each workload's noise band, then report regressions without silently moving
+its baseline.
 
 **Done when.**
 
-- At least five clean baseline campaigns establish the resolution band of every edit-build workload, as the null indices already do for the tasks.
-- The campaign reports a workload that moved past its band without silently rewriting the baseline.
-- Release and DevMode are measured where their behavior differs, and the report says which one a number belongs to.
+- Five clean baseline campaigns establish a resolution band for each edit-build workload.
+- A campaign reports a workload that moves beyond its band without rewriting the baseline.
+- Release and DevMode are measured where their behavior differs, and every result names its mode.
 
 **Related:** compiler.core.002, compiler.core.005, compiler.core.007.
 

@@ -252,15 +252,13 @@ namespace InstructionCombine
                     address[3].opBits != MicroOpBits::B64 || address[4].opBits != MicroOpBits::B64 || address[6].valueU64 != 0 ||
                     (address[5].valueU64 != 1 && address[5].valueU64 != 2 && address[5].valueU64 != 4 && address[5].valueU64 != 8))
                     return false;
-                MicroInstrRef cursor = defs[i].instRef;
-                for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+                auto scanIt = MicroStorage::Iterator{ctx.storage, defs[i].instRef};
+                for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && scanIt.current.isValid() && scanIt.current != ref; ++step, ++scanIt)
                 {
-                    const auto* current = ctx.instruction(cursor);
-                    if (!current || isBlockBoundary(*current))
+                    if (isBlockBoundary(*scanIt))
                         return false;
-                    cursor = ctx.nextRef(cursor);
                 }
-                if (cursor != ref)
+                if (scanIt.current != ref)
                     return false;
             }
             if (defs[0].instRef == defs[1].instRef || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
@@ -365,15 +363,13 @@ namespace InstructionCombine
                     return false;
                 if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
                     return false;
-                MicroInstrRef cursor = defs[i].instRef;
-                for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+                auto scanIt = MicroStorage::Iterator{ctx.storage, defs[i].instRef};
+                for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && scanIt.current.isValid() && scanIt.current != ref; ++step, ++scanIt)
                 {
-                    const auto* current = ctx.instruction(cursor);
-                    if (!current || isBlockBoundary(*current))
+                    if (isBlockBoundary(*scanIt))
                         return false;
-                    cursor = ctx.nextRef(cursor);
                 }
-                if (cursor != ref)
+                if (scanIt.current != ref)
                     return false;
             }
 

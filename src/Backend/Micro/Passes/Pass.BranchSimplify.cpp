@@ -6411,31 +6411,47 @@ namespace
                 continue;
             const MicroOpBits bits = cmpOps[4].opBits;
 
-            const MicroInstrRef rightSourceRef = storage.findPreviousInstructionRef(cmpRef);
-            const MicroInstr*   rightSource    = storage.ptr(rightSourceRef);
-            const auto*         rightSourceOps = rightSource ? rightSource->ops(operands) : nullptr;
-            if (!rightSource || rightSource->op != MicroInstrOpcode::LoadAmcRegMem || !rightSourceOps ||
+            MicroStorage::Iterator rightSourceIt = it;
+            --rightSourceIt;
+            const MicroInstrRef rightSourceRef = rightSourceIt.current;
+            const MicroInstr*   rightSource    = rightSourceRef.isValid() ? &*rightSourceIt : nullptr;
+            if (!rightSource)
+                continue;
+            const auto* rightSourceOps = rightSource->ops(operands);
+            if (rightSource->op != MicroInstrOpcode::LoadAmcRegMem || !rightSourceOps ||
                 rightSourceOps[0].reg != cmpOps[2].reg || rightSourceOps[3].opBits != bits ||
                 rightSourceOps[4].opBits != MicroOpBits::B64 || scan.relocated->contains(rightSourceRef.get()))
                 continue;
 
-            const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
-            const MicroInstr*   jump    = storage.ptr(jumpRef);
-            const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
-            if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
+            MicroStorage::Iterator jumpIt = it;
+            ++jumpIt;
+            const MicroInstrRef jumpRef = jumpIt.current;
+            const MicroInstr*   jump    = jumpRef.isValid() ? &*jumpIt : nullptr;
+            if (!jump)
+                continue;
+            const auto* jumpOps = jump->ops(operands);
+            if (jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
                 jumpOps[0].cpuCond != MicroCond::AboveOrEqual || scan.relocated->contains(jumpRef.get()))
                 continue;
 
-            const MicroInstrRef zeroRef = storage.findNextInstructionRef(jumpRef);
-            const MicroInstr*   zero    = storage.ptr(zeroRef);
-            const auto*         zeroOps = zero ? zero->ops(operands) : nullptr;
-            if (!zero || zero->op != MicroInstrOpcode::LoadRegImm || !zeroOps || zeroOps[2].valueU64 != 0 ||
+            MicroStorage::Iterator zeroIt = jumpIt;
+            ++zeroIt;
+            const MicroInstrRef zeroRef = zeroIt.current;
+            const MicroInstr*   zero    = zeroRef.isValid() ? &*zeroIt : nullptr;
+            if (!zero)
+                continue;
+            const auto* zeroOps = zero->ops(operands);
+            if (zero->op != MicroInstrOpcode::LoadRegImm || !zeroOps || zeroOps[2].valueU64 != 0 ||
                 !zeroOps[0].reg.isVirtualInt() || scan.relocated->contains(zeroRef.get()))
                 continue;
 
-            const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(zeroRef);
-            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
-            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || scan.relocated->contains(joinJumpRef.get()))
+            MicroStorage::Iterator joinJumpIt = zeroIt;
+            ++joinJumpIt;
+            const MicroInstrRef joinJumpRef = joinJumpIt.current;
+            const MicroInstr*   joinJump    = joinJumpRef.isValid() ? &*joinJumpIt : nullptr;
+            if (!joinJump)
+                continue;
+            if (joinJump->op != MicroInstrOpcode::JumpCond || scan.relocated->contains(joinJumpRef.get()))
                 continue;
             const auto* joinJumpOps = joinJump->ops(operands);
             if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
@@ -6449,42 +6465,70 @@ namespace
             if (scan.labelReferenceCount(armLabelId) != 1)
                 continue;
 
-            const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
-            const MicroInstr*   armLabel     = storage.ptr(armLabelRef);
+            MicroStorage::Iterator armLabelIt = joinJumpIt;
+            ++armLabelIt;
+            const MicroInstrRef armLabelRef = armLabelIt.current;
+            const MicroInstr*   armLabel    = armLabelRef.isValid() ? &*armLabelIt : nullptr;
+            if (!armLabel)
+                continue;
             uint32_t            foundLabelId = 0;
-            if (!armLabel || armLabel->op != MicroInstrOpcode::Label || scan.relocated->contains(armLabelRef.get()) ||
+            if (armLabel->op != MicroInstrOpcode::Label || scan.relocated->contains(armLabelRef.get()) ||
                 !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
                 continue;
 
-            const MicroInstrRef leftLoadRef   = storage.findNextInstructionRef(armLabelRef);
-            const MicroInstr*   leftLoad      = storage.ptr(leftLoadRef);
-            const auto*         leftLoadOps   = leftLoad ? leftLoad->ops(operands) : nullptr;
-            const MicroInstrRef rightLoadRef  = storage.findNextInstructionRef(leftLoadRef);
-            const MicroInstr*   rightLoad     = storage.ptr(rightLoadRef);
-            const auto*         rightLoadOps  = rightLoad ? rightLoad->ops(operands) : nullptr;
-            const MicroInstrRef subRef        = storage.findNextInstructionRef(rightLoadRef);
-            const MicroInstr*   sub           = storage.ptr(subRef);
-            const auto*         subOps        = sub ? sub->ops(operands) : nullptr;
-            const MicroInstrRef resultCopyRef = storage.findNextInstructionRef(subRef);
-            const MicroInstr*   resultCopy    = storage.ptr(resultCopyRef);
-            const auto*         resultCopyOps = resultCopy ? resultCopy->ops(operands) : nullptr;
-            if (!leftLoad || !leftLoadOps || !rightLoad || !rightLoadOps ||
-                !sub || sub->op != MicroInstrOpcode::OpBinaryRegReg || !subOps ||
+            MicroStorage::Iterator leftLoadIt = armLabelIt;
+            ++leftLoadIt;
+            const MicroInstrRef leftLoadRef = leftLoadIt.current;
+            const MicroInstr*   leftLoad    = leftLoadRef.isValid() ? &*leftLoadIt : nullptr;
+            if (!leftLoad)
+                continue;
+            const auto* leftLoadOps = leftLoad->ops(operands);
+            MicroStorage::Iterator rightLoadIt = leftLoadIt;
+            ++rightLoadIt;
+            const MicroInstrRef rightLoadRef = rightLoadIt.current;
+            const MicroInstr*   rightLoad    = rightLoadRef.isValid() ? &*rightLoadIt : nullptr;
+            if (!rightLoad)
+                continue;
+            const auto* rightLoadOps = rightLoad->ops(operands);
+            MicroStorage::Iterator subIt = rightLoadIt;
+            ++subIt;
+            const MicroInstrRef subRef = subIt.current;
+            const MicroInstr*   sub    = subRef.isValid() ? &*subIt : nullptr;
+            if (!sub)
+                continue;
+            const auto* subOps = sub->ops(operands);
+            if (!leftLoadOps || !rightLoadOps || sub->op != MicroInstrOpcode::OpBinaryRegReg || !subOps ||
                 subOps[0].reg != leftLoadOps[0].reg || subOps[1].reg != rightLoadOps[0].reg ||
-                subOps[2].opBits != bits || subOps[3].microOp != MicroOp::Subtract ||
-                !resultCopy || resultCopy->op != MicroInstrOpcode::LoadRegReg || !resultCopyOps ||
+                subOps[2].opBits != bits || subOps[3].microOp != MicroOp::Subtract)
+                continue;
+
+            MicroStorage::Iterator resultCopyIt = subIt;
+            ++resultCopyIt;
+            const MicroInstrRef resultCopyRef = resultCopyIt.current;
+            const MicroInstr*   resultCopy    = resultCopyRef.isValid() ? &*resultCopyIt : nullptr;
+            if (!resultCopy)
+                continue;
+            const auto* resultCopyOps = resultCopy->ops(operands);
+            if (resultCopy->op != MicroInstrOpcode::LoadRegReg || !resultCopyOps ||
                 resultCopyOps[0].reg != zeroOps[0].reg || resultCopyOps[1].reg != leftLoadOps[0].reg)
                 continue;
 
-            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(resultCopyRef);
-            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            MicroStorage::Iterator joinLabelIt = resultCopyIt;
+            ++joinLabelIt;
+            const MicroInstrRef joinLabelRef = joinLabelIt.current;
+            const MicroInstr*   joinLabel    = joinLabelRef.isValid() ? &*joinLabelIt : nullptr;
             if (!joinLabel || joinLabel->op != MicroInstrOpcode::Label ||
                 !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
                 continue;
-            const MicroInstrRef finalExtendRef = storage.findNextInstructionRef(joinLabelRef);
-            const MicroInstr*   finalExtend    = storage.ptr(finalExtendRef);
-            const auto*         finalExtendOps = finalExtend ? finalExtend->ops(operands) : nullptr;
-            if (!finalExtend || finalExtend->op != MicroInstrOpcode::LoadZeroExtRegReg || !finalExtendOps ||
+
+            MicroStorage::Iterator finalExtendIt = joinLabelIt;
+            ++finalExtendIt;
+            const MicroInstrRef finalExtendRef = finalExtendIt.current;
+            const MicroInstr*   finalExtend    = finalExtendRef.isValid() ? &*finalExtendIt : nullptr;
+            if (!finalExtend)
+                continue;
+            const auto* finalExtendOps = finalExtend->ops(operands);
+            if (finalExtend->op != MicroInstrOpcode::LoadZeroExtRegReg || !finalExtendOps ||
                 finalExtendOps[1].reg != zeroOps[0].reg || finalExtendOps[2].opBits != MicroOpBits::B64 ||
                 finalExtendOps[3].opBits != bits)
                 continue;

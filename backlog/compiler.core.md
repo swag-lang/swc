@@ -133,7 +133,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   flag. The guarded path's production callers already provide a deduplicated JIT order, so summary
   construction skips a redundant membership lookup; function pointers and summaries now share one
   reserved vector allocation. Its fixpoint sets newly added mask bits directly instead of copying
-  and comparing a whole summary per edge. The DevMode C++ suite passes all 1,424 tests. These are
+  and comparing a whole summary per edge, and reads callee and guard summaries by const reference
+  instead of copying them per edge. The DevMode C++ suite passes all 1,424 tests. These are
   structural changes; no timing comparison was made.
 - Next: reduce repeated resolution work in the guarded return-summary closure with an edge
   worklist that preserves alias proofs and late completion. The relocation closure remains a

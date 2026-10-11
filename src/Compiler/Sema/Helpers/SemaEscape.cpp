@@ -5619,12 +5619,12 @@ namespace SemaEscape
 
                         if (edge.callerIndirect || edge.calleeIndirect)
                             return;
-                        const ReturnSummary callee    = *returns.find(edge.callee);
-                        const uint64_t      calleeBit = 1ULL << edge.calleeParamIndex;
-                        const uint64_t      callerBit = 1ULL << edge.callerParamIndex;
-                        bool                borrows   = true;
-                        bool                storage   = true;
-                        bool                payload   = edge.viaOwnedPayload;
+                        const ReturnSummary& callee    = *returns.find(edge.callee);
+                        const uint64_t       calleeBit = 1ULL << edge.calleeParamIndex;
+                        const uint64_t       callerBit = 1ULL << edge.callerParamIndex;
+                        bool                 borrows   = true;
+                        bool                 storage   = true;
+                        bool                 payload   = edge.viaOwnedPayload;
                         for (const SemaEscapeDeferredGuard& guard : edge.returnGuards)
                         {
                             if (guard.indirect)
@@ -5633,8 +5633,8 @@ namespace SemaEscape
                                 storage = false;
                                 continue;
                             }
-                            const ReturnSummary source = *returns.find(guard.callee);
-                            const uint64_t      bit    = 1ULL << guard.paramIndex;
+                            const ReturnSummary& source = *returns.find(guard.callee);
+                            const uint64_t       bit    = 1ULL << guard.paramIndex;
                             borrows &= (source.borrows & bit) != 0;
                             storage &= (source.storage & bit) != 0;
                             payload |= (source.payload & bit) != 0;

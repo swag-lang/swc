@@ -4,6 +4,7 @@
 
 - Refine semantic highlighting for methods, intrinsic calls, interface fields, and symbols
   without a navigable source definition.
+- Preserve resolved semantic information when other parts of the module have errors.
 - Keep parameters and fields quiet, and tone down global variable color in Swag Dark.
 - Distinguish local and global variables in semantic tokens and the Swag Dark theme.
 - Add a compiler-backed language server with semantic highlighting, hover types, inferred

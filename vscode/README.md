@@ -63,10 +63,12 @@ starts a compiler process for each changed snapshot. It does not yet retain incr
 compiler state. Analyses are serialized and use at most six compiler workers; obsolete work
 is cancelled and never published over a newer document version.
 
-Semantic features require a successful module analysis. While the module has errors, compiler
-diagnostics and TextMate highlighting remain available, but semantic answers are cleared.
-References cover the current module. Imports use the compiler's on-disk dependency state;
-unsaved edits in another module are not incorporated. Imported definitions currently navigate
+Semantic features are returned for symbols the compiler resolved, even when other parts of the
+module have errors. Unresolved tokens keep TextMate highlighting, and navigation is available
+only when the compiler can map a definition to source. Implicit `try` hints require a successful
+module analysis. References cover the current module. Imports use the compiler's on-disk
+dependency state; unsaved edits in another module are not incorporated. Imported definitions
+currently navigate
 to generated API source when that is the source the compiler loaded. Generated expansions
 without a physical source mapping and ambiguous generic instances return no location.
 Completion, rename, original-source mappings for imported APIs, and incremental compilation

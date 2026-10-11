@@ -286,7 +286,7 @@ Result EditorIndex::write(CompilerInstance& compiler)
         modulePaths.insert(key);
         std::ostringstream occurrences;
         std::ostringstream propagations;
-        if (!Stats::hasError() && file->ast().root().isValid() && !file->isRuntime() && !file->isImportedApi())
+        if (file->ast().root().isValid() && !file->isRuntime() && !file->isImportedApi())
         {
             FileWriter writer{&compiler, &ctx, file, &occurrences, &targetFiles};
             Ast::visit(file->ast(), file->ast().root(), [&](AstNodeRef ref, const AstNode& node) {
@@ -294,8 +294,11 @@ Result EditorIndex::write(CompilerInstance& compiler)
                 return Ast::VisitResult::Continue;
             });
 
-            writer.out = &propagations;
-            writer.implicitPropagations();
+            if (!Stats::hasError())
+            {
+                writer.out = &propagations;
+                writer.implicitPropagations();
+            }
         }
         indexedSources.emplace(key, IndexedSource{.occurrences = occurrences.str(), .propagations = propagations.str()});
     }

@@ -5557,7 +5557,8 @@ namespace SemaEscape
         returns.reserve(completedFunctions.size());
         for (const SymbolFunction* fn : completedFunctions)
         {
-            if (!fn->isSemaCompleted() || returns.find(fn))
+            // Both production callers pass an order deduplicated by the JIT-order walk.
+            if (!fn->isSemaCompleted())
                 continue;
             returnFunctions.push_back(fn);
             returnSummaries.push_back(ReturnSummary{fn->returnBorrowsParamsMask(), fn->returnsStorageParamsMask(), fn->returnsPayloadParamsMask()});

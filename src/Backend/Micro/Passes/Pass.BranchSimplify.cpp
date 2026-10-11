@@ -2079,14 +2079,15 @@ namespace
             // The copies right before the jump back to their setcc; the last
             // copy's destination is the value the join receives.
             SmallVector<MicroInstrRef, K_MAX_CHAIN> chain;
-            MicroInstrRef                           setRef  = storage.findPreviousInstructionRef(jumpRef);
-            const MicroInstr*                       setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+            auto                                        chainIt = MicroStorage::Iterator{&storage, jumpRef};
+            --chainIt;
+            const MicroInstr* setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
             while (setInst && setInst->op != MicroInstrOpcode::SetCondReg && chain.size() < K_MAX_CHAIN &&
                    (setInst->op == MicroInstrOpcode::LoadRegReg || setInst->op == MicroInstrOpcode::LoadZeroExtRegReg))
             {
-                chain.push_back(setRef);
-                setRef  = storage.findPreviousInstructionRef(setRef);
-                setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+                chain.push_back(chainIt.current);
+                --chainIt;
+                setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
             }
             if (chain.empty() || !setInst || setInst->op != MicroInstrOpcode::SetCondReg)
                 continue;
@@ -2464,14 +2465,15 @@ namespace
             // the setcc that consumed the flags the jump reads. Copies and
             // self-extensions do not touch the flags.
             SmallVector<MicroInstrRef, K_MAX_CHAIN> chain;
-            MicroInstrRef                           setRef  = storage.findPreviousInstructionRef(jumpRef);
-            const MicroInstr*                       setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+            auto                                        chainIt = MicroStorage::Iterator{&storage, jumpRef};
+            --chainIt;
+            const MicroInstr* setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
             while (setInst && setInst->op != MicroInstrOpcode::SetCondReg && chain.size() < K_MAX_CHAIN &&
                    (setInst->op == MicroInstrOpcode::LoadRegReg || setInst->op == MicroInstrOpcode::LoadZeroExtRegReg))
             {
-                chain.push_back(setRef);
-                setRef  = storage.findPreviousInstructionRef(setRef);
-                setInst = setRef.isValid() ? storage.ptr(setRef) : nullptr;
+                chain.push_back(chainIt.current);
+                --chainIt;
+                setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
             }
             if (!setInst || setInst->op != MicroInstrOpcode::SetCondReg)
                 continue;

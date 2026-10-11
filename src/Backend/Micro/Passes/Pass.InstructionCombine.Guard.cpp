@@ -90,9 +90,12 @@ namespace InstructionCombine
         bool skipsReport(Context& ctx, const MicroInstrRef jumpRef, const MicroInstrRef joinRef)
         {
             bool hasReport = false;
-            for (MicroInstrRef ref = ctx.nextRef(jumpRef); ref != joinRef; ref = ctx.nextRef(ref))
+            auto walker = MicroStorage::Iterator{ctx.storage, jumpRef};
+            ++walker;
+            for (; walker.current != joinRef; ++walker)
             {
-                const MicroInstr* inst = ref.isValid() ? ctx.instruction(ref) : nullptr;
+                const MicroInstrRef ref  = walker.current;
+                const MicroInstr*   inst = ref.isValid() ? &*walker : nullptr;
                 if (!inst || inst->op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(*inst))
                     return false;
                 hasReport = hasReport || ctx.isReportCall(ref);

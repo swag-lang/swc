@@ -71,11 +71,13 @@ namespace PreRaPeephole
         MicroInstrRef skipCopiesToConsumer(const Context& ctx, MicroInstrRef fromRef, MicroReg addrReg, MicroReg inputA, MicroReg inputB, SmallVector<MicroInstrRef, K_MAX_ADDR_FORWARD_COPIES>& outCrossed, uint32_t& ioSteps)
         {
             outCrossed.clear();
-            MicroInstrRef cur = ctx.nextRef(fromRef);
-            for (; ioSteps < K_MAX_ADDR_FORWARD_COPIES && cur.isValid(); ++ioSteps)
+            auto walker = MicroStorage::Iterator{ctx.storage, fromRef};
+            ++walker;
+            for (; ioSteps < K_MAX_ADDR_FORWARD_COPIES && walker.current.isValid(); ++ioSteps)
             {
-                const MicroInstr* w = ctx.instruction(cur);
-                if (!w || ctx.isClaimed(cur))
+                const MicroInstrRef cur = walker.current;
+                const MicroInstr*   w   = &*walker;
+                if (ctx.isClaimed(cur))
                     return MicroInstrRef::invalid();
 
                 const MicroInstrDef& info = MicroInstr::info(w->op);
@@ -94,7 +96,7 @@ namespace PreRaPeephole
                     return MicroInstrRef::invalid(); // an addressing input changed.
 
                 outCrossed.push_back(cur);
-                cur = ctx.nextRef(cur);
+                ++walker;
             }
             return MicroInstrRef::invalid();
         }

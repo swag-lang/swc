@@ -176,20 +176,29 @@ bool MicroSsaState::updateUseDef(InstrInfo& info, const MicroInstr& inst, const 
     if (reuseUseDef)
         return true;
 
-    bool unchanged = false;
+    bool unchanged        = false;
+    bool replaceUseDef    = true;
+    MicroInstrUseDef useDef;
     if (comparePrevious)
     {
-        MicroInstrUseDef useDef;
         inst.collectUseDef(useDef, operands, encoder);
         unchanged = info.useDefCacheEpoch == useDefCacheEpoch_ &&
                     info.useDef.isCall == useDef.isCall && info.useDef.callConv == useDef.callConv &&
                     std::ranges::equal(info.useDef.defs, useDef.defs);
-        if (unchanged && !std::ranges::equal(info.useDef.uses, useDef.uses))
-            unchanged = removeUsesWithoutRenaming(info, useDef);
-        info.useDef = std::move(useDef);
+        if (unchanged)
+        {
+            const bool usesUnchanged = std::ranges::equal(info.useDef.uses, useDef.uses);
+            if (!usesUnchanged)
+                unchanged = removeUsesWithoutRenaming(info, useDef);
+            else
+                replaceUseDef = false;
+        }
     }
     else
         inst.collectUseDef(info.useDef, operands, encoder);
+
+    if (replaceUseDef && comparePrevious)
+        info.useDef = std::move(useDef);
 
     info.cachedOp         = inst.op;
     info.useDefCacheEpoch = useDefCacheEpoch_;

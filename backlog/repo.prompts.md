@@ -570,10 +570,11 @@ compiler.optimization.029, compiler.optimization.039 and compiler.optimization.0
 backlog/compiler.optimization.md. Use their existing profiles to choose a costly internal path and
 their rejected experiments to avoid repeating work. Start editing compiler code after this review.
 
-RELEASE COMPILER ONLY
+DEVMODE COMPILER ONLY
 
-Build and validate planned speed work only with the Release compiler, `bin/swc.exe`.
-Use an existing recent green Release campaign as the correctness reference.
+Build and validate planned speed work only with the DevMode compiler, `bin/swc.dm.exe`.
+Use an existing recent green DevMode campaign as the correctness reference. Do not build
+`bin/swc.exe` for this campaign; it does not measure compilation timings.
 
 GOAL
 
@@ -618,15 +619,15 @@ THE LOOP — PRIORITIZE CODE ITERATIONS
   1. Use a recent profile to select one costly internal stage. Give one concrete hypothesis and a
      predicted effect; spend minutes, not hours, on investigation before the first edit.
   2. Group related edits into a coherent code batch. Inspect the final diff for equivalent output
-     and a clear reduction in compiler work, then rebuild Release once for the batch. Rebuild
+     and a clear reduction in compiler work, then rebuild DevMode once for the batch. Rebuild
      earlier only when compiler output determines the next edit. Discard an uncertain tradeoff
      rather than timing it in this campaign.
   3. Retain a structurally proven saving after its focused correctness check. Record the operation
      removed without assigning a percentage or claiming a measured speedup. At a milestone,
      review accumulated changes for hidden CPU, memory, and generated-code tradeoffs; send any
      change that needs measurement to its owning campaign.
-  4. Before retaining a speed batch, use a focused Release-compiler check that exercises it.
-     Broader Release checks follow the shared milestone and risk rules.
+  4. Before retaining a speed batch, use a focused DevMode-compiler check that exercises it.
+     Broader DevMode checks follow the shared milestone and risk rules.
   5. Keep failed experiments out of retained batches; summarize their reason briefly so the same
      dead end is not retried.
 

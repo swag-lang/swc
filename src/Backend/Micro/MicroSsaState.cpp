@@ -63,7 +63,8 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         for (const MicroInstrRef instRef : instructionRefs_)
         {
             ++updatedUseDefCount;
-            if (!updateUseDef(instrInfos_[instRef.get()], *storage.ptr(instRef), operands, encoder, true))
+            const MicroInstr& inst = *MicroStorage::Iterator{&storage, instRef};
+            if (!updateUseDef(instrInfos_[instRef.get()], inst, operands, encoder, true))
             {
                 reuseValues = false;
                 break;
@@ -107,9 +108,8 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         // operand words a second time.
         if (instructionIndex >= updatedUseDefCount)
         {
-            const MicroInstr* inst = storage.ptr(instRef);
-            SWC_ASSERT(inst != nullptr);
-            updateUseDef(info, *inst, operands, encoder, false);
+            const MicroInstr& inst = *MicroStorage::Iterator{&storage, instRef};
+            updateUseDef(info, inst, operands, encoder, false);
         }
 
         for (const MicroReg reg : info.useDef.defs)

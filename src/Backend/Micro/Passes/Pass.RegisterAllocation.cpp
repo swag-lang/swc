@@ -2022,9 +2022,11 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
     if (!instructions_->ptr(copyRef))
         return false;
 
-    for (MicroInstrRef ref = instructions_->findNextInstructionRef(copyRef); ref.isValid(); ref = instructions_->findNextInstructionRef(ref))
+    auto walker = MicroStorage::Iterator{instructions_, copyRef};
+    ++walker;
+    for (; walker.current.isValid(); ++walker)
     {
-        const MicroInstr&    inst    = *instructions_->ptr(ref);
+        const MicroInstr&    inst    = *walker;
         const MicroInstrDef& info    = MicroInstr::info(inst.op);
         bool                 defined = false;
         if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||

@@ -754,14 +754,15 @@ excluded from lookup.
 
 ### compiler.core.083 — Define an embeddable compiler driver boundary
 
-- Evidence: `swc.vcxproj` builds an application and includes `src/main.cpp`. `main` owns process
-  setup and cleanup (allocator, Windows exception hook, stdio, and PID-scoped sandbox), but also
-  parses CLI arguments, initializes `Global`, dispatches commands, and runs `CompilerInstance`.
-  `Global`, `CommandLine`, diagnostics, and compiler state still assume a process-oriented
-  lifecycle, so moving those calls into another `.cpp` would not create a usable library API.
-- Next: define host ownership for configuration, diagnostics, cancellation, worker shutdown, and
-  repeated compiler instances; then separate the CLI driver from that API and prove a non-CLI
-  consumer can initialize, analyze, and shut down the compiler.
+- Evidence: `src/main.cpp` owns process setup and cleanup: allocator configuration, the Windows
+  host exception hook, stdio flushing, and the PID-scoped sandbox. CLI parsing and command
+  dispatch live in `src/Main/CompilerCli.cpp`; the persistent stdio transport lives in
+  `src/Main/EditorService.cpp`. `CompilerInstance` remains the internal compilation entry point.
+  `Global` still stores process-static services, `CommandLine` is coupled to CLI configuration,
+  and `swc.vcxproj` still builds one executable rather than a reusable library target.
+- Next: define a host-facing configuration and lifetime contract for diagnostics, cancellation,
+  worker shutdown, and repeated compiler instances; build a core library without the CLI and
+  process entry; prove a non-CLI consumer can initialize, analyze, and shut down the compiler.
 - Done when: the executable entry point and process-only setup are absent from a reusable compiler
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.

@@ -130,6 +130,7 @@
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="src\Main\EditorIndex.cpp"/>
+        <ClCompile Include="src\Main\EditorService.cpp"/>
         <ClCompile Include="src\Support\Math\Sha256.cpp"/>
         <ClCompile Include="src\Unittest\ABI\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ConstantManager.cpp"/>
@@ -415,6 +416,7 @@
         <ClCompile Include="src\Main\Command\Command.Test.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Build.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.cpp"/>
+        <ClCompile Include="src\Main\CompilerCli.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.Commands.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
@@ -753,6 +755,7 @@
         <ClInclude Include="src\Support\Core\RefTypes.h"/>
         <ClInclude Include="src\Main\Command\CommandLine.h"/>
         <ClInclude Include="src\Main\Command\CommandLineParser.h"/>
+        <ClInclude Include="src\Main\CompilerCli.h"/>
         <ClInclude Include="src\Main\Command\CommandPrint.h"/>
         <ClInclude Include="src\Main\Command\Command.h"/>
         <ClInclude Include="src\Main\Stats.h"/>
@@ -761,6 +764,7 @@
         <ClInclude Include="src\Main\TaskState.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
         <ClInclude Include="src\Main\EditorIndex.h"/>
+        <ClInclude Include="src\Main\EditorService.h"/>
         <ClInclude Include="src\Main\Global.h"/>
         <ClInclude Include="src\Main\CompilerMessageTypeInfoJob.h"/>
         <ClInclude Include="src\Main\CompilerTagRegistry.h"/>

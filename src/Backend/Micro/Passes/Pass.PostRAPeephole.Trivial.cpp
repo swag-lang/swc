@@ -608,11 +608,23 @@ namespace PostRaPeephole
             (loadOps[destBitsIndex].opBits != MicroOpBits::B32 && loadOps[destBitsIndex].opBits != MicroOpBits::B64) ||
             loadOps[sourceBitsIndex].opBits != MicroOpBits::B8)
             return false;
-        const MicroReg      reg        = loadOps[0].reg;
-        const MicroInstrRef cmpRef     = ctx.nextRef(ref);
-        const MicroInstrRef branchRef  = ctx.nextRef(cmpRef);
-        MicroInstrRef       subRef     = ctx.nextRef(branchRef);
-        const MicroInstr*   beforeSub  = ctx.instruction(subRef);
+        const MicroReg reg = loadOps[0].reg;
+        auto           scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        ++scanIt;
+        if (!scanIt.current.isValid())
+            return false;
+        const MicroInstrRef cmpRef = scanIt.current;
+        const MicroInstr*   cmp    = cmpRef.isValid() ? &*scanIt : nullptr;
+        ++scanIt;
+        if (!scanIt.current.isValid())
+            return false;
+        const MicroInstrRef branchRef = scanIt.current;
+        const MicroInstr*   branch    = branchRef.isValid() ? &*scanIt : nullptr;
+        ++scanIt;
+        if (!scanIt.current.isValid())
+            return false;
+        MicroInstrRef     subRef    = scanIt.current;
+        const MicroInstr* beforeSub = subRef.isValid() ? &*scanIt : nullptr;
         MicroInstrRef       addressRef = MicroInstrRef::invalid();
         // The decimal accumulator may prepare its LEA between the delimiter
         // branch and the byte subtraction. It cannot change this byte value.
@@ -625,13 +637,16 @@ namespace PostRaPeephole
                 std::ranges::find(useDef.defs, reg) != useDef.defs.end())
                 return false;
             addressRef = subRef;
-            subRef     = ctx.nextRef(subRef);
+            ++scanIt;
+            if (!scanIt.current.isValid())
+                return false;
+            subRef    = scanIt.current;
+            beforeSub = subRef.isValid() ? &*scanIt : nullptr;
         }
-        const MicroInstrRef extRef = ctx.nextRef(subRef);
-        const MicroInstr*   sub    = ctx.instruction(subRef);
-        const MicroInstr*   branch = ctx.instruction(branchRef);
-        const MicroInstr*   cmp    = ctx.instruction(cmpRef);
-        const MicroInstr*   ext    = ctx.instruction(extRef);
+        ++scanIt;
+        const MicroInstrRef extRef = scanIt.current;
+        const MicroInstr*   sub    = beforeSub;
+        const MicroInstr*   ext    = extRef.isValid() ? &*scanIt : nullptr;
         if (!sub || !branch || !cmp || !ext ||
             sub->op != MicroInstrOpcode::OpBinaryRegImm || branch->op != MicroInstrOpcode::JumpCond ||
             cmp->op != MicroInstrOpcode::CmpRegImm ||
@@ -668,10 +683,15 @@ namespace PostRaPeephole
         const MicroReg reg = load[0].reg;
         if (!reg.isInt())
             return false;
-        const MicroInstrRef subRef = ctx.nextRef(ref);
-        const MicroInstrRef extRef = ctx.nextRef(subRef);
-        const MicroInstr*   sub    = ctx.instruction(subRef);
-        const MicroInstr*   ext    = ctx.instruction(extRef);
+        auto                scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        ++scanIt;
+        if (!scanIt.current.isValid())
+            return false;
+        const MicroInstrRef subRef = scanIt.current;
+        const MicroInstr*   sub    = subRef.isValid() ? &*scanIt : nullptr;
+        ++scanIt;
+        const MicroInstrRef extRef = scanIt.current;
+        const MicroInstr*   ext    = extRef.isValid() ? &*scanIt : nullptr;
         if (!sub || !ext || sub->op != MicroInstrOpcode::OpBinaryRegImm ||
             ext->op != MicroInstrOpcode::LoadZeroExtRegReg)
             return false;

@@ -151,6 +151,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   root versions, explicit constant roots, and 17 relocation versions instead of hashing every
   function pointer in the completed order. Fixed-fingerprint tests isolate edge-version invalidation
   from mask changes, then isolate completion-count invalidation from edge changes.
+  The `#run` global-init offset filter now removes duplicate offsets after sorting the function
+  closure's lists, shortening the binary-search input when several functions reference the same
+  slot.
   A locked zero-edge check now exits before hashing the completed-function order; its regression
   calls the pass on an empty graph, then appends an edge and verifies that it is still propagated.
   The DevMode C++ suite passes all 1,425 tests, including after the zero-edge early check.

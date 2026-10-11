@@ -71,11 +71,15 @@ equal weight, regardless of its duration. A value of 2x means Swag builds twice 
 average; 1x means parity; below 1x means Swag is slower. Every Swag mode is excluded from the
 reference, and the fastest competitor can differ by task. All other build configurations,
 including bytecode generation, participate if they have valid times for every displayed task.
-The headline uses the latest accepted build campaign and all displayed tasks. Rankings show
-the winner's time in milliseconds, followed by each other runtime's time / winner time;
-2 means twice as slow. Execution rankings use the same display within each runtime group.
-Charts and the detailed raw-time matrices keep milliseconds. The separate `hello` workload
-is excluded from the aggregate.
+The headline uses the latest accepted build campaign and all displayed tasks. The execution
+and compilation sections also compare Swag release with each runtime or compiler separately:
+the geometric mean of competitor time / Swag release time across the same tasks. 2x means
+Swag release is twice as fast; 0.5x means it is twice as slow. A competitor appears only when
+it has a valid measurement for every displayed task. Rankings show the winner's time in
+milliseconds, followed by each other runtime's time / winner time; 2 means twice as slow.
+Execution rankings use the same display within each runtime group. Charts and the detailed
+raw-time matrices keep milliseconds. The separate `hello` workload is excluded from the
+aggregate.
 The `hello` column is a separate small program with a different import set; it is useful as a
 second data point, but subtracting it from a task does not remove library overhead reliably.
 It measures both Swag configurations and both C++ compilers. Older campaigns omitted Swag

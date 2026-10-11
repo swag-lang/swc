@@ -327,6 +327,34 @@ def ranked_table(tasks, runtimes, value, display):
     return "\n".join(out)
 
 
+def comparison_table(tasks, groups, value, reference):
+    """Compare complete runtimes with Swag release over the same tasks.
+
+    Ratios are geometric means of competitor time / Swag release time. Values above
+    one mean the competitor is slower; values below one mean it is faster. Each group
+    is ranked from the lowest ratio to the highest.
+    """
+    out = ['<div class="table-wrap"><table class="ranked"><tbody>']
+    for title, runtimes in groups:
+        ratios = []
+        for rt in runtimes:
+            if rt == reference:
+                continue
+            pairs = [(value(rt, task), value(reference, task)) for task in tasks]
+            if any(not competitor or competitor <= 0 or not swag or swag <= 0
+                   for competitor, swag in pairs):
+                continue
+            ratios.append((rt, geo([competitor / swag for competitor, swag in pairs])))
+        ratios.sort(key=lambda item: item[1])
+        out.append('<tr><th>%s</th><td><ol>' % title)
+        for rank, (rt, ratio) in enumerate(ratios, 1):
+            out.append('<li class="%s"><b>%d</b>%s<i>%s&nbsp;&times;</i></li>'
+                       % (lang_class(rt), rank, runtime_badge(rt), fmt(ratio)))
+        out.append("</ol></td></tr>")
+    out.append("</tbody></table></div>")
+    return "\n".join(out)
+
+
 def spark(values):
     """A 140x22 trend line, one point per campaign, over a rule at 1.00."""
     pts = [(i, v) for i, v in enumerate(values) if v is not None]
@@ -542,7 +570,6 @@ def history_section(entries):
     parts = ['<div class="small-mult">']
     for field, name, nd, unit in (
             ("exec_vs_best", "ex&eacute;cution vs le meilleur (&times;)", 2, "&times;"),
-            ("jit_gap_pct", "JIT swc vs natif swc (%)", 0, "%"),
             ("build_speedup", "build speedup vs fastest rival (&times;)", 2, "&times;")):
         vals = [e.get("headline", {}).get(field) for e in entries]
         parts.append('<div class="sm"><b>%s</b>%s</div>'
@@ -688,7 +715,6 @@ def main():
                    for t in TASK_IDS) for r in present}
 
     swag = gm["swag-release"]
-    jit_gap = (gm["swc-jit-release"] / swag - 1.0) * 100.0
     build_speedup = history.build_speedup(BT, TASK_IDS)
 
     def stat(value, unit, name):
@@ -697,7 +723,6 @@ def main():
 
     stats = "".join([
         stat(fmt(swag), "&times;", "ex&eacute;cution vs le meilleur"),
-        stat("%+.0f" % jit_gap, "%", "JIT swc vs natif swc"),
         stat(fmt(build_speedup), "&times;", "build speedup vs fastest rival"),
         stat("%d" % round(bmem["swag-release"]), "Mo", "pic m&eacute;moire du compilateur"),
     ])
@@ -707,10 +732,15 @@ def main():
     ex_chart = chart([(r, gm[r], fmt(gm[r])) for r in order], ex_lo, ex_hi, ex_ticks, "&times;")
     ex_matrix = matrix(TASK_IDS, present, ms, ms_text,
                        ("g&eacute;o &times;", gm, lambda v: fmt(v)))
-    native_run = [r for r in present if META[r][2] not in ("JIT", "interpreted", "interpr&eacute;t&eacute;")]
+    native_run = [r for r in present if META[r][2] not in
+                  ("JIT", "interpreted", "interpr&eacute;t&eacute;")]
     jit_run = [r for r in present if r not in native_run]
     ex_native_rank = ranked_table(TASK_IDS, native_run, ms, ms_text)
     ex_jit_rank = ranked_table(TASK_IDS, jit_run, ms, ms_text)
+    ex_comparison = comparison_table(
+        TASK_IDS,
+        [("natif / AOT", native_run), ("JIT / interpr&eacute;t&eacute;", jit_run)],
+        ms, "swag-release")
 
     border = sorted(aot, key=lambda r: bgeo[r])
     bu_lo, bu_hi, bu_ticks = log_axis([bgeo[r] for r in border])
@@ -725,6 +755,9 @@ def main():
                        ("g&eacute;o ms", bgeo, lambda v: fmt(v, 0)))
     bu_rank = ranked_table(TASK_IDS + ["hello"], aot, build_ms,
                            lambda v: fmt(v, 0) if v is not None else "&mdash;")
+    bu_comparison = comparison_table(
+        TASK_IDS, [("compilateur", aot)], lambda rt, task: build(rt, task, "wall_ms"),
+        "swag-release")
 
     # The edit-build loop of this campaign, from its condensed entry: that is where the
     # correction and the index live, and the raw file only holds what was measured.
@@ -818,15 +851,6 @@ def main():
         "A hello world compiles and links in %s ms."
         % fmt((B["hello_build"].get("swag-release") or {}).get("wall_ms"), 0),
         "",
-        "The JIT lands **within %s percent of the native backend** here, which is what makes "
-        "compile-time" % fmt(abs(jit_gap), 0),
-        "execution, `#test`, and script mode usable rather than a slow mode you avoid: on the "
-        "same programs it",
-        "is about **%sx faster than LuaJIT**, **%sx faster than Node**, and **%sx faster than "
-        "CPython**." % (fmt(gm["luajit2.1"] / gm["swc-jit-release"], 1),
-                        fmt(gm["node20"] / gm["swc-jit-release"], 1),
-                        fmt(gm["python3.12"] / gm["swc-jit-release"], 0)),
-        "",
         "> [!NOTE]",
         "> Raw milliseconds are not comparable between campaigns — the same machine drifts by "
         "more than ten",
@@ -845,7 +869,9 @@ def main():
         "{{runtime_legend}}": runtime_legend([r[0] for r in RUNTIMES if r[0] in set(present + aot)]),
         "{{ex_chart}}": ex_chart, "{{ex_matrix}}": ex_matrix,
         "{{ex_native_rank}}": ex_native_rank, "{{ex_jit_rank}}": ex_jit_rank,
+        "{{ex_comparison}}": ex_comparison,
         "{{bu_chart}}": bu_chart, "{{bu_matrix}}": bu_matrix, "{{bu_rank}}": bu_rank,
+        "{{bu_comparison}}": bu_comparison,
         "{{loop_table}}": loop_table,
         "{{allocator}}": allocator,
         "{{me_chart}}": me_chart, "{{rm_chart}}": rm_chart,
@@ -881,7 +907,7 @@ def main():
     left = set(re.findall(r"\{\{\w+\}\}", html))
     if left:
         print("WARNING unresolved placeholders:", left)
-    with open(OUTFILE, "w", encoding="utf-8", newline="\n") as f:
+    with open(OUTFILE, "w", encoding="utf-8", newline="\r\n") as f:
         f.write(html)
     print("written bench.html (%d bytes, %d campaign(s) in history)" % (len(html), len(entries)))
 

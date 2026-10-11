@@ -435,6 +435,9 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <div class="sh"><h2>Ex&eacute;cution</h2></div>
     <p class="cap">Moyenne g&eacute;om&eacute;trique du rapport au meilleur de chaque t&acirc;che, &eacute;chelle logarithmique.</p>
     {{ex_chart}}
+    <h3>Swag release face &agrave; chaque runtime</h3>
+    <p class="cap">Moyenne g&eacute;om&eacute;trique, sur les m&ecirc;mes t&acirc;ches, du temps du runtime divis&eacute; par celui de Swag release. Chaque ligne est rang&eacute;e du runtime le plus rapide au plus lent&nbsp;: 0,5&times; signifie que le runtime est deux fois plus rapide que Swag release&nbsp;; 2&times; signifie qu'il est deux fois plus lent.</p>
+    {{ex_comparison}}
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
     <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
     the others show time / best time for that row. 2 means twice as slow.
@@ -458,6 +461,9 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     All non-Swag build configurations, including bytecode generation, can be the reference.
     Each task has equal weight; hello is excluded.</p>
     {{bu_chart}}
+    <h3>Swag release face &agrave; chaque compilateur</h3>
+    <p class="cap">Moyenne g&eacute;om&eacute;trique, sur les m&ecirc;mes t&acirc;ches, du temps de compilation du concurrent divis&eacute; par celui de Swag release. Rang&eacute; du compilateur le plus rapide au plus lent&nbsp;: 0,5&times; signifie que le compilateur est deux fois plus rapide que Swag release&nbsp;; 2&times; signifie qu'il est deux fois plus lent.</p>
+    {{bu_comparison}}
     <h3>Classement par t&acirc;che</h3>
     <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
     the others show time / best time for that row. 2 means twice as slow.</p>

@@ -338,12 +338,10 @@ def _headline(results, panel):
     build_tasks = [t for t in tasks if t in panel["build"]] or list(tasks)
     run_geo = ratios_to_best(tasks, run_tasks, "run", "ms")
     native = run_geo.get("swag-release")
-    jit = run_geo.get("swc-jit-release")
     return {
         "tasks": len(run_tasks),
         "exec_vs_best": native,
         "exec_fastest": min(run_geo, key=lambda rt: run_geo[rt]) if run_geo else None,
-        "jit_gap_pct": (jit / native - 1.0) * 100.0 if native and jit else None,
         "build_speedup": build_speedup(tasks, build_tasks),
         "build_tasks": len(build_tasks),
     }
@@ -540,7 +538,7 @@ def load():
 
 
 def save(entries):
-    with open(HISTORY, "w", encoding="utf-8", newline="\n") as f:
+    with open(HISTORY, "w", encoding="utf-8", newline="\r\n") as f:
         json.dump(entries, f, indent=2)
 
 

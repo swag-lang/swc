@@ -423,7 +423,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <div class="wrap">
         <div class="rule"></div>
         <span class="eyebrow">12 t&acirc;ches &middot; 22 runtimes &middot; checksums identiques</span>
-        <div class="stats"><div class="stat"><div class="sv">1.08<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div></div><div class="stat"><div class="sv">+14<em>%</em></div><div class="sl">JIT swc vs natif swc</div></div><div class="stat"><div class="sv">1.86<em>&times;</em></div><div class="sl">build speedup vs fastest rival</div></div><div class="stat"><div class="sv">101<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div></div></div>
+        <div class="stats"><div class="stat"><div class="sv">1.08<em>&times;</em></div><div class="sl">ex&eacute;cution vs le meilleur</div></div><div class="stat"><div class="sv">1.86<em>&times;</em></div><div class="sl">build speedup vs fastest rival</div></div><div class="stat"><div class="sv">101<em>Mo</em></div><div class="sl">pic m&eacute;moire du compilateur</div></div></div>
     </div>
 </div>
 
@@ -465,6 +465,35 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <div class="row l-ruby"><div class="rl">Ruby <span class="mode">interpreted</span></div><div class="track"><span class="bar" style="width:85.659%"></span></div><div class="rv">115.58<em>&times;</em></div></div>
 <div class="row l-py"><div class="rl">CPython <span class="mode">interpr&eacute;t&eacute;</span></div><div class="track"><span class="bar" style="width:88.672%"></span></div><div class="rv">136.59<em>&times;</em></div></div>
 </figure>
+    <h3>Swag release face &agrave; chaque runtime</h3>
+    <p class="cap">Moyenne g&eacute;om&eacute;trique, sur les m&ecirc;mes t&acirc;ches, du temps du runtime divis&eacute; par celui de Swag release. Chaque ligne est rang&eacute;e du runtime le plus rapide au plus lent&nbsp;: 0,5&times; signifie que le runtime est deux fois plus rapide que Swag release&nbsp;; 2&times; signifie qu'il est deux fois plus lent.</p>
+    <div class="table-wrap"><table class="ranked"><tbody>
+<tr><th>natif / AOT</th><td><ol>
+<li class="l-zig"><b>1</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>1.24&nbsp;&times;</i></li>
+<li class="l-msvc"><b>2</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>1.26&nbsp;&times;</i></li>
+<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>1.26&nbsp;&times;</i></li>
+<li class="l-clang"><b>4</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>1.27&nbsp;&times;</i></li>
+<li class="l-odin"><b>5</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>1.32&nbsp;&times;</i></li>
+<li class="l-rust"><b>6</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.33&nbsp;&times;</i></li>
+<li class="l-go"><b>7</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>1.36&nbsp;&times;</i></li>
+<li class="l-swagdev"><b>8</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.47&nbsp;&times;</i></li>
+<li class="l-csaot"><b>9</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>1.66&nbsp;&times;</i></li>
+<li class="l-swift"><b>10</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>1.72&nbsp;&times;</i></li>
+</ol></td></tr>
+<tr><th>JIT / interpr&eacute;t&eacute;</th><td><ol>
+<li class="l-swagjit"><b>1</b><span class="runtime-badge l-swagjit" role="img" title="swag release (JIT)" aria-label="swag release (JIT)">S</span><i>1.14&nbsp;&times;</i></li>
+<li class="l-swagdevjit"><b>2</b><span class="runtime-badge l-swagdevjit" role="img" title="swag devmode (JIT)" aria-label="swag devmode (JIT)">S</span><i>1.57&nbsp;&times;</i></li>
+<li class="l-java"><b>3</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>2.48&nbsp;&times;</i></li>
+<li class="l-csjit"><b>4</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>2.68&nbsp;&times;</i></li>
+<li class="l-js"><b>5</b><span class="runtime-badge l-js" role="img" title="JavaScript / Node V8 (JIT)" aria-label="JavaScript / Node V8 (JIT)">V</span><i>4.34&nbsp;&times;</i></li>
+<li class="l-luajit"><b>6</b><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">L</span><i>5.43&nbsp;&times;</i></li>
+<li class="l-phpjit"><b>7</b><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">P</span><i>15.27&nbsp;&times;</i></li>
+<li class="l-lua"><b>8</b><span class="runtime-badge l-lua" role="img" title="Lua (interpreted)" aria-label="Lua (interpreted)">L</span><i>41.98&nbsp;&times;</i></li>
+<li class="l-php"><b>9</b><span class="runtime-badge l-php" role="img" title="PHP (interpreted)" aria-label="PHP (interpreted)">P</span><i>54.78&nbsp;&times;</i></li>
+<li class="l-ruby"><b>10</b><span class="runtime-badge l-ruby" role="img" title="Ruby (interpreted)" aria-label="Ruby (interpreted)">U</span><i>107.40&nbsp;&times;</i></li>
+<li class="l-py"><b>11</b><span class="runtime-badge l-py" role="img" title="CPython (interpreted)" aria-label="CPython (interpreted)">Y</span><i>126.93&nbsp;&times;</i></li>
+</ol></td></tr>
+</tbody></table></div>
     <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
     <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
     the others show time / best time for that row. 2 means twice as slow.
@@ -1162,6 +1191,24 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <div class="row l-go"><div class="rl">Go <span class="mode">native</span></div><div class="track"><span class="bar" style="width:94.831%"></span></div><div class="rv">6608<em>ms</em></div></div>
 <div class="row l-csaot"><div class="rl">C# NativeAOT <span class="mode">AOT</span></div><div class="track"><span class="bar" style="width:97.888%"></span></div><div class="rv">7503<em>ms</em></div></div>
 </figure>
+    <h3>Swag release face &agrave; chaque compilateur</h3>
+    <p class="cap">Moyenne g&eacute;om&eacute;trique, sur les m&ecirc;mes t&acirc;ches, du temps de compilation du concurrent divis&eacute; par celui de Swag release. Rang&eacute; du compilateur le plus rapide au plus lent&nbsp;: 0,5&times; signifie que le compilateur est deux fois plus rapide que Swag release&nbsp;; 2&times; signifie qu'il est deux fois plus lent.</p>
+    <div class="table-wrap"><table class="ranked"><tbody>
+<tr><th>compilateur</th><td><ol>
+<li class="l-swagdev"><b>1</b><span class="runtime-badge l-swagdev" role="img" title="swag devmode (native)" aria-label="swag devmode (native)">S</span><i>1.18&nbsp;&times;</i></li>
+<li class="l-rust"><b>2</b><span class="runtime-badge l-rust" role="img" title="Rust (native)" aria-label="Rust (native)">R</span><i>1.97&nbsp;&times;</i></li>
+<li class="l-d"><b>3</b><span class="runtime-badge l-d" role="img" title="D / LDC (native)" aria-label="D / LDC (native)">D</span><i>2.36&nbsp;&times;</i></li>
+<li class="l-odin"><b>4</b><span class="runtime-badge l-odin" role="img" title="Odin (native)" aria-label="Odin (native)">O</span><i>2.54&nbsp;&times;</i></li>
+<li class="l-msvc"><b>5</b><span class="runtime-badge l-msvc" role="img" title="C++ / MSVC (native)" aria-label="C++ / MSVC (native)">C</span><i>2.98&nbsp;&times;</i></li>
+<li class="l-clang"><b>6</b><span class="runtime-badge l-clang" role="img" title="C++ / clang-cl (native)" aria-label="C++ / clang-cl (native)">C</span><i>3.26&nbsp;&times;</i></li>
+<li class="l-java"><b>7</b><span class="runtime-badge l-java" role="img" title="Java HotSpot (JIT)" aria-label="Java HotSpot (JIT)">J</span><i>3.52&nbsp;&times;</i></li>
+<li class="l-swift"><b>8</b><span class="runtime-badge l-swift" role="img" title="Swift (native)" aria-label="Swift (native)">W</span><i>17.17&nbsp;&times;</i></li>
+<li class="l-csjit"><b>9</b><span class="runtime-badge l-csjit" role="img" title="C# CoreCLR (JIT)" aria-label="C# CoreCLR (JIT)">H</span><i>20.87&nbsp;&times;</i></li>
+<li class="l-zig"><b>10</b><span class="runtime-badge l-zig" role="img" title="Zig (native)" aria-label="Zig (native)">Z</span><i>27.85&nbsp;&times;</i></li>
+<li class="l-go"><b>11</b><span class="runtime-badge l-go" role="img" title="Go (native)" aria-label="Go (native)">G</span><i>40.79&nbsp;&times;</i></li>
+<li class="l-csaot"><b>12</b><span class="runtime-badge l-csaot" role="img" title="C# NativeAOT (AOT)" aria-label="C# NativeAOT (AOT)">H</span><i>46.32&nbsp;&times;</i></li>
+</ol></td></tr>
+</tbody></table></div>
     <h3>Classement par t&acirc;che</h3>
     <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
     the others show time / best time for that row. 2 means twice as slow.</p>
@@ -1841,17 +1888,6 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <text class="hlab" x="40.0" y="96" text-anchor="start">115fc00d0</text>
 <text class="hlab" x="288.0" y="96" text-anchor="end">00fea61ec</text>
 <polyline class="hline h-a" points="40.0,25.4 45.5,24.0 51.0,26.1 56.5,30.9 62.0,55.1 67.6,58.5 73.1,57.7 78.6,55.6 84.1,54.9 89.6,60.0 95.1,61.3 100.6,59.4 111.6,56.7 117.2,62.6 122.7,59.5 128.2,64.5 133.7,64.8 139.2,62.4 144.7,66.4 150.2,69.1 155.7,69.2 161.2,69.0 166.8,69.7 172.3,65.6 177.8,65.7 183.3,69.4 188.8,69.5 194.3,71.0 199.8,69.7 205.3,68.8 210.8,72.0 216.4,71.8 221.9,70.1 227.4,71.8 232.9,69.6 238.4,70.7 243.9,69.4 249.4,71.6 254.9,59.9 260.4,71.1 266.0,70.2 271.5,70.1 277.0,68.7 282.5,70.5 288.0,72.0"/>
-</svg></div>
-<div class="sm"><b>JIT swc vs natif swc (%)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
-<line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>
-<text class="hlab" x="34" y="87.5" text-anchor="end">-8</text>
-<line class="hgrid" x1="40" y1="48.0" x2="288" y2="48.0"/>
-<text class="hlab" x="34" y="51.5" text-anchor="end">12</text>
-<line class="hgrid" x1="40" y1="12.0" x2="288" y2="12.0"/>
-<text class="hlab" x="34" y="15.5" text-anchor="end">31</text>
-<text class="hlab" x="40.0" y="96" text-anchor="start">115fc00d0</text>
-<text class="hlab" x="288.0" y="96" text-anchor="end">00fea61ec</text>
-<polyline class="hline h-a" points="40.0,67.9 45.5,72.0 51.0,71.0 56.5,62.4 62.0,35.2 67.6,42.8 73.1,44.9 78.6,44.2 84.1,31.1 89.6,41.1 95.1,44.4 100.6,47.4 111.6,49.6 117.2,44.4 122.7,40.6 128.2,45.2 133.7,45.9 139.2,40.5 144.7,34.1 150.2,31.0 155.7,37.6 161.2,29.2 166.8,29.0 172.3,44.8 177.8,39.9 183.3,39.9 188.8,44.3 194.3,24.0 199.8,44.7 205.3,46.9 210.8,42.4 216.4,41.7 221.9,45.9 227.4,43.3 232.9,46.5 238.4,42.0 243.9,27.6 249.4,42.9 254.9,40.2 260.4,40.0 266.0,42.9 271.5,39.5 277.0,32.7 282.5,32.1 288.0,32.0"/>
 </svg></div>
 <div class="sm"><b>build speedup vs fastest rival (&times;)</b><svg class="hchart compact" viewBox="0 0 300 104" role="img" preserveAspectRatio="xMidYMid meet">
 <line class="hgrid" x1="40" y1="84.0" x2="288" y2="84.0"/>

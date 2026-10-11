@@ -1,0 +1,58 @@
+{
+  "before": {
+    "outer_addresses": [
+      "0x14000b2d0",
+      "0x14000bae5"
+    ],
+    "outer": {
+      "instructions": 379,
+      "nop": 1,
+      "memory": 131,
+      "calls": 0
+    },
+    "inner_addresses": [
+      "0x14000baa0",
+      "0x14000bad4"
+    ],
+    "inner": {
+      "instructions": 13,
+      "nop": 0,
+      "memory": 6,
+      "calls": 0
+    },
+    "per_timestep": {
+      "instructions": 431,
+      "nop": 1,
+      "memory": 155,
+      "calls": 0
+    }
+  },
+  "after": {
+    "outer_addresses": [
+      "0x14000b2d0",
+      "0x14000bac5"
+    ],
+    "outer": {
+      "instructions": 372,
+      "nop": 0,
+      "memory": 131,
+      "calls": 0
+    },
+    "inner_addresses": [
+      "0x14000ba80",
+      "0x14000bab4"
+    ],
+    "inner": {
+      "instructions": 13,
+      "nop": 0,
+      "memory": 6,
+      "calls": 0
+    },
+    "per_timestep": {
+      "instructions": 424,
+      "nop": 0,
+      "memory": 155,
+      "calls": 0
+    }
+  }
+}

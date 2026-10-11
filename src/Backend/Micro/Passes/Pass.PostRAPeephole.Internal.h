@@ -159,6 +159,7 @@ namespace PostRaPeephole
     bool tryFoldUnsignedAverage(Context& ctx, MicroInstrRef addRef, const MicroInstr& addInst);
     bool tryFoldNarrowUnsignedAverage(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
+    bool tryEraseUnobservedFloatSwapPair(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldCopyRoundTrip(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryRetargetUnaryResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryInvertResultZeroSelect(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

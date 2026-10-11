@@ -3426,6 +3426,139 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatReturnMinMaxUsesScalarInstruction)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FloatSwapPairRequiresUnobservedWholeValues)
+{
+    enum class Case
+    {
+        Straight,
+        Reversed,
+        DifferentScratch,
+        NarrowFirstCopy,
+        NarrowMiddleCopy,
+        NarrowLastCopy,
+        ObservedValue,
+        ChangedValue,
+        ObservedFirstScratch,
+        PartialFirstScratchWrite,
+        ObservedLastScratch,
+        PartialLastScratchWrite,
+        Label,
+        Call,
+        Branch,
+        ClaimedInstruction,
+        DifferentMiddleSource,
+    };
+    constexpr MicroReg first   = MicroReg::floatReg(0);
+    constexpr MicroReg second  = MicroReg::floatReg(1);
+    constexpr MicroReg scratch = MicroReg::floatReg(2);
+    constexpr MicroReg other   = MicroReg::floatReg(3);
+    constexpr MicroReg base    = MicroReg::intReg(2);
+    for (const auto test : {Case::Straight, Case::Reversed, Case::DifferentScratch, Case::NarrowFirstCopy,
+                            Case::NarrowMiddleCopy, Case::NarrowLastCopy, Case::ObservedValue, Case::ChangedValue,
+                            Case::ObservedFirstScratch, Case::PartialFirstScratchWrite, Case::ObservedLastScratch,
+                            Case::PartialLastScratchWrite, Case::Label, Case::Call, Case::Branch, Case::ClaimedInstruction, Case::DifferentMiddleSource})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegReg(scratch, first, test == Case::NarrowFirstCopy ? MicroOpBits::B64 : MicroOpBits::B128);
+        const auto start = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegReg(first, second, test == Case::NarrowMiddleCopy ? MicroOpBits::B64 : MicroOpBits::B128);
+        builder.emitLoadRegReg(second, scratch, MicroOpBits::B128);
+        if (test == Case::ObservedFirstScratch)
+            builder.emitLoadMemReg(base, 0, scratch, MicroOpBits::B128);
+        if (test == Case::PartialFirstScratchWrite)
+            builder.emitLoadRegReg(scratch, other, MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(scratch, base, 0, MicroOpBits::B64);
+        const auto scratchWrite = builder.instructions().lastInstructionRef();
+        if (test == Case::ObservedValue)
+            builder.emitLoadMemReg(base, 16, first, MicroOpBits::B128);
+        else if (test == Case::ChangedValue)
+            builder.emitClearReg(first, MicroOpBits::B128);
+        else if (test == Case::Label)
+            builder.placeLabel(builder.createLabel());
+        else if (test == Case::Call)
+            builder.emitCallReg(base, CallConvKind::Swag);
+        else if (test == Case::Branch)
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, builder.createLabel());
+        const auto nextFirst   = test == Case::Reversed ? second : first;
+        const auto nextSecond  = test == Case::Reversed ? first : second;
+        const auto nextScratch = test == Case::DifferentScratch ? other : scratch;
+        builder.emitLoadRegReg(nextScratch, nextFirst, MicroOpBits::B128);
+        builder.emitLoadRegReg(nextFirst, test == Case::DifferentMiddleSource ? other : nextSecond, MicroOpBits::B128);
+        builder.emitLoadRegReg(nextSecond, nextScratch, test == Case::NarrowLastCopy ? MicroOpBits::B64 : MicroOpBits::B128);
+        if (test == Case::ObservedLastScratch)
+            builder.emitLoadMemReg(base, 32, nextScratch, MicroOpBits::B128);
+        if (test == Case::PartialLastScratchWrite)
+            builder.emitLoadRegReg(nextScratch, first, MicroOpBits::B64);
+        else
+            builder.emitClearReg(nextScratch, MicroOpBits::B128);
+        builder.emitRet();
+
+        X64Encoder              encoder(ctx);
+        PostRaPeephole::Context rewrite;
+        rewrite.storage  = &builder.instructions();
+        rewrite.operands = &builder.operands();
+        rewrite.encoder  = &encoder;
+        if (test == Case::ClaimedInstruction)
+            rewrite.claimAll({scratchWrite});
+        const bool changed  = PostRaPeephole::tryEraseUnobservedFloatSwapPair(rewrite, start, *builder.instructions().ptr(start));
+        const bool expected = test == Case::Straight || test == Case::Reversed || test == Case::DifferentScratch;
+        if (changed != expected || (changed && rewrite.actions.size() != 6))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FloatSwapPairPreservesEveryLane)
+{
+    const auto         base    = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg first   = MicroReg::floatReg(0);
+    constexpr MicroReg second  = MicroReg::floatReg(1);
+    constexpr MicroReg scratch = MicroReg::floatReg(2);
+    constexpr MicroReg other   = MicroReg::floatReg(3);
+    for (const bool reverse : {false, true})
+    {
+        for (const bool differentScratch : {false, true})
+        {
+            std::array<uint64_t, 16> reference{};
+            for (const bool optimize : {false, true})
+            {
+                std::array<uint64_t, 16> values = {0xFEDCBA9876543210, 0x0123456789ABCDEF,
+                                                   0x8070605040302010, 0xFFEEDDCCBBAA9988,
+                                                   0x7FF0000000000001, 0xFFFFFFFFFFFFFFFF};
+                MicroBuilder             builder(ctx);
+                builder.emitLoadRegMem(first, base, 0, MicroOpBits::B128);
+                builder.emitLoadRegMem(second, base, 16, MicroOpBits::B128);
+                builder.emitLoadRegReg(scratch, first, MicroOpBits::B128);
+                builder.emitLoadRegReg(first, second, MicroOpBits::B128);
+                builder.emitLoadRegReg(second, scratch, MicroOpBits::B128);
+                builder.emitLoadRegMem(scratch, base, 32, MicroOpBits::B64);
+                builder.emitLoadMemReg(base, 48, scratch, MicroOpBits::B128);
+                const auto nextFirst   = reverse ? second : first;
+                const auto nextSecond  = reverse ? first : second;
+                const auto nextScratch = differentScratch ? other : scratch;
+                builder.emitLoadRegReg(nextScratch, nextFirst, MicroOpBits::B128);
+                builder.emitLoadRegReg(nextFirst, nextSecond, MicroOpBits::B128);
+                builder.emitLoadRegReg(nextSecond, nextScratch, MicroOpBits::B128);
+                builder.emitClearReg(nextScratch, MicroOpBits::B128);
+                builder.emitLoadMemReg(base, 64, first, MicroOpBits::B128);
+                builder.emitLoadMemReg(base, 80, second, MicroOpBits::B128);
+                builder.emitLoadMemReg(base, 96, scratch, MicroOpBits::B128);
+                builder.emitLoadMemReg(base, 112, nextScratch, MicroOpBits::B128);
+                builder.emitRet();
+                SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                if (!optimize)
+                    reference = values;
+                else if (values != reference)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_SqrtResultCopyTracksTheWholeValue)
 {
     constexpr MicroReg source = MicroReg::floatReg(0);

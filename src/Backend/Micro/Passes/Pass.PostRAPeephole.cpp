@@ -1092,6 +1092,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryInvertResultZeroSelect);
         r.add(MicroInstrOpcode::LoadRegReg, tryRetargetUnaryResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryEraseUnobservedFloatSwapPair);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldCopyRoundTrip);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIndexedByteSaturatingAdd);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldByteMultiplySelectCopies);

@@ -1,0 +1,16 @@
+{
+  "wordfreq": [],
+  "csvagg": [],
+  "sha256": [],
+  "dijkstra": [],
+  "raytrace": [],
+  "leven": [],
+  "chacha": [],
+  "nbody": [
+    "Nbody.__main_0"
+  ],
+  "fannkuch": [],
+  "binarytrees": [],
+  "lz77": [],
+  "sort": []
+}

@@ -111,16 +111,18 @@ new language syntax.
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization
-- Evidence: the latest comparable native result has n-body about 1.43x slower than Zig, but noisy
-  control cohorts and intervening changes prevent attributing a runtime gain to any one rewrite.
-  The current timestep still has ten scalar roots, 131 memory accesses and 24 frame accesses;
-  contraction removed 50 instructions, while 33 full-width register copies remain across pairs.
-  Zig and Rust keep body state across steps; Swag still advances through a slice call. Checksums
-  remain exact.
+- Evidence: accepted campaign `20261011-205413` has n-body 1.276x slower than Zig.
+  The current inlined timestep still has ten scalar roots, 155 executed memory
+  operands, 24 RSP operands and 31 full-width register copies. These counts
+  include all five iterations of the position-update loop, not just one copy
+  of its body. Zig uses four packed roots and two scalar roots per timestep.
 - Rejected direction: pairing roots alone extended live ranges and increased frame accesses. The
   next change needs one register-pressure plan for producers, roots/divisions, and scalar consumers.
-- Next: inspect each interaction region against the winner and design that joint plan before another
-  SLP rewrite. Confirm any gain only in a stable controlled cohort; do not relax its noise gates.
+- Next: first inspect the constant countdown emitted for the five-body slice
+  update: the full unroller currently recognizes only ascending bottom-tested
+  loops. Then design a joint producer/consumer packing plan for the interactions,
+  accounting for scalar users and the availability of shared magnitudes at the
+  insertion point. Do not repeat a roots-only or late whole-block packing trial.
 - Done when: the step retains or packs body state without redundant pair work and matches the
   winner's packed roots/divisions without generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.

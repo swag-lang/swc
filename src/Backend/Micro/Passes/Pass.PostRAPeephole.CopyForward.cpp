@@ -261,6 +261,101 @@ namespace PostRaPeephole
         return true;
     }
 
+    // T = A; A = B; B = T, then U = A; A = B; B = U, with no intervening
+    // observer of A or B. The inverse exchange may also start with U = B.
+    // Two unobserved exchanges cancel each other. Remove their six full-width
+    // copies only after each scratch value has been completely overwritten.
+    // Claim the whole straight line: a queued rewrite must not expose an
+    // intermediate register value that the original instructions did not read.
+    bool tryEraseUnobservedFloatSwapPair(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* initial = inst.ops(*ctx.operands);
+        if (ctx.isClaimed(ref) || !initial || initial[2].opBits != MicroOpBits::B128 ||
+            !initial[0].reg.isFloat() || !initial[1].reg.isFloat() || initial[0].reg == initial[1].reg)
+            return false;
+
+        constexpr uint32_t                       K_MAX_WINDOW = 64;
+        SmallVector<MicroInstrRef, K_MAX_WINDOW> observed;
+        SmallVector<MicroInstrRef, 6>            copies;
+        observed.push_back(ref);
+        copies.push_back(ref);
+        MicroReg first       = initial[1].reg;
+        MicroReg second      = MicroReg::invalid();
+        MicroReg scratch     = initial[0].reg;
+        bool     scratchDead = false;
+        auto     walker      = MicroStorage::Iterator{ctx.storage, ref};
+        for (++walker; walker.current.isValid() && observed.size() < K_MAX_WINDOW; ++walker)
+        {
+            const auto  cursor  = walker.current;
+            const auto& current = *walker;
+            const auto& info    = MicroInstr::info(current.op);
+            if (ctx.isClaimed(cursor) || current.op == MicroInstrOpcode::Label ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            observed.push_back(cursor);
+            const auto* ops      = current.ops(*ctx.operands);
+            const bool  fullCopy = current.op == MicroInstrOpcode::LoadRegReg && ops && ops[2].opBits == MicroOpBits::B128 &&
+                                  ops[0].reg.isFloat() && ops[1].reg.isFloat();
+            if (fullCopy)
+            {
+                bool matched = false;
+                if (copies.size() == 1 && ops[0].reg == first && ops[1].reg != first && ops[1].reg != scratch)
+                {
+                    second  = ops[1].reg;
+                    matched = true;
+                }
+                else if ((copies.size() == 2 || copies.size() == 5) && ops[0].reg == second && ops[1].reg == scratch)
+                    matched = true;
+                else if (copies.size() == 3 && scratchDead && (ops[1].reg == first || ops[1].reg == second) &&
+                         ops[0].reg != first && ops[0].reg != second)
+                {
+                    if (ops[1].reg == second)
+                        std::swap(first, second);
+                    scratch     = ops[0].reg;
+                    scratchDead = false;
+                    matched     = true;
+                }
+                else if (copies.size() == 4 && ops[0].reg == first && ops[1].reg == second)
+                    matched = true;
+                if (matched)
+                {
+                    copies.push_back(cursor);
+                    continue;
+                }
+            }
+
+            const auto firstTouch  = regTouch(ctx, current, first);
+            const auto secondTouch = second.isValid() ? regTouch(ctx, current, second) : RegTouch{};
+            if (copies.size() < 6 && (firstTouch.use || firstTouch.def || secondTouch.use || secondTouch.def))
+                return false;
+            const auto scratchTouch = regTouch(ctx, current, scratch);
+            if (copies.size() != 3 && copies.size() != 6)
+            {
+                if (scratchTouch.use || scratchTouch.def)
+                    return false;
+                continue;
+            }
+            if (scratchDead || (!scratchTouch.use && !scratchTouch.def))
+                continue;
+
+            // Scalar memory loads clear the remaining XMM lanes. Scalar
+            // register copies retain them and cannot end this proof.
+            if (scratchTouch.use || !scratchTouch.def || !ops || ops[0].reg != scratch ||
+                (current.op != MicroInstrOpcode::LoadRegMem && current.op != MicroInstrOpcode::ClearReg && !fullCopy))
+                return false;
+            scratchDead = true;
+            if (copies.size() != 6)
+                continue;
+            if (!ctx.claimAll(observed.span()))
+                return false;
+            for (const auto copy : copies)
+                ctx.emitErase(copy);
+            return true;
+        }
+        return false;
+    }
+
     // An address computation can write the final result even when it reads its
     // old destination as a base/index. Only that old result must be dead.
     namespace

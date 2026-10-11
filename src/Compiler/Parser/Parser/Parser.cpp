@@ -142,6 +142,16 @@ namespace
             }
         }
 
+        void prepareConstraints(const AutoInlineNameSet& metaNames, const AutoInlineNameSet* unsupportedNames)
+        {
+            if (constraintsPrepared_)
+                return;
+
+            findCycles();
+            findBlockedCalls(metaNames, unsupportedNames);
+            constraintsPrepared_ = true;
+        }
+
         InlineConstraint inlineConstraint(const AutoInlineName& name) const
         {
             const auto it = nameIndices_.find(name);
@@ -208,6 +218,7 @@ namespace
         std::vector<bool>                              onStack_;
         std::vector<bool>                              cyclic_;
         std::vector<uint8_t>                           blockedCalls_;
+        bool                                           constraintsPrepared_ = false;
         SmallVector<uint32_t>                          stack_;
         uint32_t                                       nextIndex_ = 0;
     };
@@ -342,24 +353,23 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
         }
     }
 
-    // Auto-inlining waits for the callee's resolved body before cloning it. A cycle of candidates
-    // would therefore turn a legal recursive call graph into a sema wait cycle. Detect it from the
-    // immutable parsed graph and leave every member out of line. Cross-Ast calls cannot auto-inline,
-    // so each Ast has its own graph; keeping unrelated names apart also avoids false cycles.
-    for (auto& [ast, callGraph] : callGraphs)
-    {
-        callGraph.findCycles();
-        const auto unsupportedIt = unsupportedFunctionNames.find(ast);
-        callGraph.findBlockedCalls(metaFunctionNames, unsupportedIt == unsupportedFunctionNames.end() ? nullptr : &unsupportedIt->second);
-    }
-
     for (size_t astIndex = 0; astIndex < moduleAsts.size(); ++astIndex)
     {
         Ast* ast = moduleAsts[astIndex];
-        if (!ast || ast->root().isInvalid())
+        if (!ast || ast->root().isInvalid() || functionDecls[astIndex].empty())
             continue;
 
         const auto callGraphIt = callGraphs.find(ast);
+        if (callGraphIt != callGraphs.end())
+        {
+            // Auto-inlining waits for the callee's resolved body before cloning it. A cycle of
+            // candidates would therefore turn a legal recursive call graph into a sema wait cycle.
+            // Prepare only Ast graphs that have an inline candidate; the walk built graphs for
+            // every function declaration, including those that can never be moved inline.
+            const auto unsupportedIt = unsupportedFunctionNames.find(ast);
+            callGraphIt->second.prepareConstraints(metaFunctionNames, unsupportedIt == unsupportedFunctionNames.end() ? nullptr : &unsupportedIt->second);
+        }
+
         for (const AstNodeRef nodeRef : functionDecls[astIndex])
         {
             auto*       mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);

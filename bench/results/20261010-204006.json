@@ -1,0 +1,6681 @@
+{
+  "tasks": {
+    "wordfreq": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 165.6125,
+          "peak_bytes": 99753984,
+          "peak_working_set_bytes": 93241344,
+          "exe_bytes": 111616,
+          "samples": [
+            174.9,
+            176.5,
+            169.1,
+            165.6,
+            191.6,
+            189.4
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 45.70080001,
+          "wall_ms": 98.6152,
+          "peak_bytes": 27504640,
+          "samples": [
+            90.83460001,
+            47.07449999,
+            51.99149999,
+            49.4324,
+            49.47860001,
+            49.70839999,
+            50.3301,
+            49.547,
+            53.6575,
+            45.70080001
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 183.7857,
+          "peak_bytes": 114507776,
+          "peak_working_set_bytes": 108388352,
+          "exe_bytes": 192512,
+          "samples": [
+            201.8,
+            183.8,
+            209.2,
+            215.8,
+            227.6,
+            311.9
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 60.515,
+          "wall_ms": 120.1987,
+          "peak_bytes": 27504640,
+          "samples": [
+            112.6755,
+            60.515,
+            64.354,
+            63.2835,
+            65.0342,
+            67.95150001,
+            68.1125,
+            61.7274
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 476.8103,
+          "peak_bytes": 72806400,
+          "peak_working_set_bytes": 14929920,
+          "exe_bytes": 142848,
+          "samples": [
+            476.8
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 50.3551,
+          "wall_ms": 103.653,
+          "peak_bytes": 26865664,
+          "samples": [
+            75.1905,
+            56.3217,
+            50.3551
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 522.2322,
+          "peak_bytes": 57012224,
+          "peak_working_set_bytes": 39890944,
+          "exe_bytes": 141824,
+          "samples": [
+            522.2
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 56.4337,
+          "wall_ms": 109.9092,
+          "peak_bytes": 26877952,
+          "samples": [
+            79.7321,
+            59.8592,
+            56.4337
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 361.8301,
+          "peak_bytes": 193900544,
+          "peak_working_set_bytes": 12460032,
+          "exe_bytes": 159232,
+          "samples": [
+            370.7,
+            361.8
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 53.761,
+          "wall_ms": 107.9954,
+          "peak_bytes": 26828800,
+          "samples": [
+            72.0188,
+            58.0398,
+            55.0802,
+            53.761
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4231.574,
+          "peak_bytes": 1615872000,
+          "peak_working_set_bytes": 252665856,
+          "exe_bytes": 500736,
+          "samples": [
+            4231.6
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 57.9719,
+          "wall_ms": 109.373,
+          "peak_bytes": 26869760,
+          "samples": [
+            76.6631,
+            62.2708,
+            57.9719
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 317.3875,
+          "peak_bytes": 152563712,
+          "peak_working_set_bytes": 115617792,
+          "exe_bytes": 457728,
+          "samples": [
+            317.4,
+            407.6
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 48.4914,
+          "wall_ms": 105.3373,
+          "peak_bytes": 29507584,
+          "samples": [
+            64.3405,
+            50.8083,
+            51.6882,
+            48.4914
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 367.9813,
+          "peak_bytes": 778080256,
+          "peak_working_set_bytes": 191504384,
+          "exe_bytes": 154112,
+          "samples": [
+            368.0,
+            430.9
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 58.9689,
+          "wall_ms": 109.2188,
+          "peak_bytes": 26992640,
+          "samples": [
+            66.8768,
+            60.9141,
+            59.5062,
+            58.9689
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6490.458,
+          "peak_bytes": 1009455104,
+          "peak_working_set_bytes": 29011968,
+          "exe_bytes": 2528768,
+          "samples": [
+            6490.5
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 45.2535,
+          "wall_ms": 101.7422,
+          "peak_bytes": 39665664,
+          "samples": [
+            62.3551,
+            53.4385,
+            64.6244,
+            45.2535
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2663.5419,
+          "peak_bytes": 182493184,
+          "peak_working_set_bytes": 42274816,
+          "exe_bytes": 28672,
+          "samples": [
+            2663.5
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 65.2007,
+          "wall_ms": 175.3172,
+          "peak_bytes": 29650944,
+          "samples": [
+            71.4374,
+            65.2007
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7268.7645,
+          "peak_bytes": 375341056,
+          "peak_working_set_bytes": 146554880,
+          "exe_bytes": 1126400,
+          "samples": [
+            7268.8
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 58.4249,
+          "wall_ms": 123.5768,
+          "peak_bytes": 29900800,
+          "samples": [
+            63.8273,
+            65.858,
+            65.0941,
+            58.4249
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3342.4543,
+          "peak_bytes": 124751872,
+          "peak_working_set_bytes": 130052096,
+          "exe_bytes": 7168,
+          "samples": [
+            3342.5
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 138.269,
+          "wall_ms": 262.2268,
+          "peak_bytes": 33464320,
+          "samples": [
+            138.4264,
+            138.269
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 610.0326,
+          "peak_bytes": 170590208,
+          "peak_working_set_bytes": 110239744,
+          "exe_bytes": 4615,
+          "samples": [
+            610.0
+          ]
+        },
+        "run": {
+          "check": 130489,
+          "ms": 86.8049,
+          "wall_ms": 227.1033,
+          "peak_bytes": 653516800,
+          "samples": [
+            89.0736,
+            86.8049
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 50.2171,
+          "wall_ms": 223.5785,
+          "peak_bytes": 118374400,
+          "samples": [
+            56.30739999,
+            51.97150001,
+            53.17449999,
+            51.31929999,
+            53.36200001,
+            52.09129999,
+            54.7776,
+            50.2171
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 65.36589999,
+          "wall_ms": 284.2214,
+          "peak_bytes": 131739648,
+          "samples": [
+            66.2859,
+            65.36589999,
+            66.4101,
+            66.58309999,
+            65.89870001,
+            68.06949999
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 181.05,
+          "wall_ms": 509.3181,
+          "peak_bytes": 248365056,
+          "samples": [
+            181.05,
+            187.187
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 134.0,
+          "wall_ms": 247.593,
+          "peak_bytes": 75554816,
+          "samples": [
+            134.0,
+            136.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 738.0,
+          "wall_ms": 1011.7986,
+          "peak_bytes": 104628224,
+          "samples": [
+            786.0,
+            738.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 2125.379,
+          "wall_ms": 2946.6882,
+          "peak_bytes": 78020608,
+          "samples": [
+            2125.379
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 879.02,
+          "wall_ms": 1173.5139,
+          "peak_bytes": 158363648,
+          "samples": [
+            879.02,
+            882.563
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 333.914,
+          "wall_ms": 555.0132,
+          "peak_bytes": 162033664,
+          "samples": [
+            333.914,
+            335.389
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 130489,
+          "ms": 2800.412,
+          "wall_ms": 4592.9287,
+          "peak_bytes": 433156096,
+          "samples": [
+            2800.412
+          ]
+        }
+      }
+    },
+    "csvagg": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 166.0367,
+          "peak_bytes": 103813120,
+          "peak_working_set_bytes": 97075200,
+          "exe_bytes": 113664,
+          "samples": [
+            166.0,
+            226.5,
+            192.5,
+            189.3,
+            210.2,
+            204.0
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 15.91449999,
+          "wall_ms": 50.3918,
+          "peak_bytes": 21286912,
+          "samples": [
+            32.9687,
+            16.9993,
+            17.40150001,
+            18.2532,
+            18.74299999,
+            19.34289999,
+            18.5471,
+            18.21170001,
+            18.958,
+            17.70299999,
+            18.20349999,
+            18.3998,
+            17.8242,
+            19.5942,
+            19.5899,
+            15.91449999
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 209.7088,
+          "peak_bytes": 119668736,
+          "peak_working_set_bytes": 112562176,
+          "exe_bytes": 195584,
+          "samples": [
+            210.9,
+            209.7,
+            239.4,
+            232.0,
+            272.6,
+            268.5
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 25.6641,
+          "wall_ms": 88.0316,
+          "peak_bytes": 21282816,
+          "samples": [
+            42.0422,
+            25.6641,
+            26.65310001,
+            26.77350001,
+            26.0171,
+            26.7608,
+            28.21429999,
+            28.19890001,
+            28.13380001,
+            29.54379999,
+            27.7205,
+            27.63839999,
+            26.3613
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 482.0871,
+          "peak_bytes": 72839168,
+          "peak_working_set_bytes": 14991360,
+          "exe_bytes": 144384,
+          "samples": [
+            482.1
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 16.1848,
+          "wall_ms": 51.0733,
+          "peak_bytes": 21327872,
+          "samples": [
+            24.102,
+            18.8529,
+            17.5623,
+            17.9935,
+            17.931,
+            16.1848
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 517.5543,
+          "peak_bytes": 72028160,
+          "peak_working_set_bytes": 46571520,
+          "exe_bytes": 144384,
+          "samples": [
+            517.6
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 17.6245,
+          "wall_ms": 53.9122,
+          "peak_bytes": 21336064,
+          "samples": [
+            28.2881,
+            18.9915,
+            18.3992,
+            17.9958,
+            18.7646,
+            17.6245
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 462.2289,
+          "peak_bytes": 190238720,
+          "peak_working_set_bytes": 12423168,
+          "exe_bytes": 161792,
+          "samples": [
+            462.2
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 21.3137,
+          "wall_ms": 59.3722,
+          "peak_bytes": 21340160,
+          "samples": [
+            29.7795,
+            23.0877,
+            22.1755,
+            22.8894,
+            23.7398,
+            21.3137
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4382.4783,
+          "peak_bytes": 1616134144,
+          "peak_working_set_bytes": 253452288,
+          "exe_bytes": 503296,
+          "samples": [
+            4382.5
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 16.5609,
+          "wall_ms": 51.3042,
+          "peak_bytes": 21327872,
+          "samples": [
+            29.8596,
+            18.1775,
+            17.6376,
+            17.9406,
+            17.3924,
+            16.5609
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 372.7993,
+          "peak_bytes": 152698880,
+          "peak_working_set_bytes": 117489664,
+          "exe_bytes": 460288,
+          "samples": [
+            372.8,
+            451.8
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 18.7153,
+          "wall_ms": 56.6754,
+          "peak_bytes": 23965696,
+          "samples": [
+            24.5614,
+            19.8028,
+            20.2528,
+            19.0499,
+            20.5782,
+            18.7153
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 414.5441,
+          "peak_bytes": 782204928,
+          "peak_working_set_bytes": 192909312,
+          "exe_bytes": 157184,
+          "samples": [
+            414.5
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 17.0156,
+          "wall_ms": 54.1889,
+          "peak_bytes": 21405696,
+          "samples": [
+            20.9859,
+            17.0156,
+            18.972,
+            17.2359,
+            18.9327,
+            17.8961
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6482.7476,
+          "peak_bytes": 995962880,
+          "peak_working_set_bytes": 27045888,
+          "exe_bytes": 2528768,
+          "samples": [
+            6482.7
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 18.9194,
+          "wall_ms": 182.4732,
+          "peak_bytes": 50008064,
+          "samples": [
+            26.4352,
+            18.9194
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3084.2588,
+          "peak_bytes": 184516608,
+          "peak_working_set_bytes": 42172416,
+          "exe_bytes": 29696,
+          "samples": [
+            3084.3
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 25.3611,
+          "wall_ms": 203.1315,
+          "peak_bytes": 24166400,
+          "samples": [
+            28.4186,
+            25.3611
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7912.3825,
+          "peak_bytes": 377204736,
+          "peak_working_set_bytes": 146587648,
+          "exe_bytes": 1128448,
+          "samples": [
+            7912.4
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 24.4253,
+          "wall_ms": 87.3164,
+          "peak_bytes": 40652800,
+          "samples": [
+            28.1512,
+            24.4253,
+            25.0002,
+            25.7181,
+            25.1303
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3348.1331,
+          "peak_bytes": 123568128,
+          "peak_working_set_bytes": 129957888,
+          "exe_bytes": 7680,
+          "samples": [
+            3348.1
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 47.5559,
+          "wall_ms": 213.6692,
+          "peak_bytes": 44511232,
+          "samples": [
+            51.3895,
+            47.5559
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 602.8043,
+          "peak_bytes": 178909184,
+          "peak_working_set_bytes": 107597824,
+          "exe_bytes": 5195,
+          "samples": [
+            602.8
+          ]
+        },
+        "run": {
+          "check": 24828641,
+          "ms": 62.6111,
+          "wall_ms": 218.7439,
+          "peak_bytes": 657960960,
+          "samples": [
+            62.6111,
+            63.5678
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 17.2912,
+          "wall_ms": 186.0882,
+          "peak_bytes": 114339840,
+          "samples": [
+            18.11780001,
+            17.2912,
+            18.39539999,
+            18.92839999,
+            18.4517,
+            17.84840001,
+            18.9105,
+            18.4128,
+            18.3546
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 25.64180001,
+          "wall_ms": 268.0163,
+          "peak_bytes": 129105920,
+          "samples": [
+            29.16840001,
+            28.127,
+            26.3981,
+            28.5673,
+            28.3815,
+            25.64180001,
+            28.36539999
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 86.718,
+          "wall_ms": 584.8827,
+          "peak_bytes": 263307264,
+          "samples": [
+            86.718,
+            89.6
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 85.0,
+          "wall_ms": 273.7877,
+          "peak_bytes": 78315520,
+          "samples": [
+            93.0,
+            85.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 1246.0,
+          "wall_ms": 1909.9785,
+          "peak_bytes": 78147584,
+          "samples": [
+            1246.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 2542.801,
+          "wall_ms": 3379.312,
+          "peak_bytes": 71585792,
+          "samples": [
+            2542.801
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 1130.147,
+          "wall_ms": 1463.395,
+          "peak_bytes": 170975232,
+          "samples": [
+            1130.147,
+            1164.072
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 398.865,
+          "wall_ms": 658.3849,
+          "peak_bytes": 174641152,
+          "samples": [
+            398.865,
+            406.081
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 24828641,
+          "ms": 1144.788,
+          "wall_ms": 2310.6231,
+          "peak_bytes": 343035904,
+          "samples": [
+            1144.788
+          ]
+        }
+      }
+    },
+    "sha256": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 140.9949,
+          "peak_bytes": 99418112,
+          "peak_working_set_bytes": 93249536,
+          "exe_bytes": 110592,
+          "samples": [
+            141.0,
+            197.6,
+            174.2,
+            199.9,
+            195.3,
+            205.2
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 35.78380001,
+          "wall_ms": 96.1553,
+          "peak_bytes": 18722816,
+          "samples": [
+            65.69660001,
+            39.9609,
+            37.33379999,
+            37.9731,
+            41.4996,
+            39.09040001,
+            41.9229,
+            39.23360001,
+            36.53020001,
+            35.78380001
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 176.6237,
+          "peak_bytes": 110100480,
+          "peak_working_set_bytes": 103436288,
+          "exe_bytes": 180736,
+          "samples": [
+            176.6,
+            195.6,
+            219.6,
+            218.3,
+            230.9,
+            264.2
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 55.37099999,
+          "wall_ms": 131.6423,
+          "peak_bytes": 18735104,
+          "samples": [
+            83.40039999,
+            57.68,
+            62.0028,
+            55.37099999,
+            64.7917,
+            57.07340001,
+            56.84010001,
+            55.9084
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 435.8113,
+          "peak_bytes": 72830976,
+          "peak_working_set_bytes": 14991360,
+          "exe_bytes": 141824,
+          "samples": [
+            435.8
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 45.9514,
+          "wall_ms": 91.9208,
+          "peak_bytes": 18788352,
+          "samples": [
+            63.3688,
+            45.9514,
+            49.8091,
+            46.9557
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 460.0751,
+          "peak_bytes": 58859520,
+          "peak_working_set_bytes": 39792640,
+          "exe_bytes": 142848,
+          "samples": [
+            460.1
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 42.4598,
+          "wall_ms": 94.9049,
+          "peak_bytes": 18771968,
+          "samples": [
+            65.6921,
+            51.2312,
+            42.4598
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 274.1664,
+          "peak_bytes": 190357504,
+          "peak_working_set_bytes": 12517376,
+          "exe_bytes": 155136,
+          "samples": [
+            274.2,
+            316.9
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 40.8225,
+          "wall_ms": 88.2925,
+          "peak_bytes": 18923520,
+          "samples": [
+            57.4145,
+            44.2745,
+            48.7725,
+            40.8225
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4150.2294,
+          "peak_bytes": 1614737408,
+          "peak_working_set_bytes": 252694528,
+          "exe_bytes": 500224,
+          "samples": [
+            4150.2
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 40.3221,
+          "wall_ms": 84.7292,
+          "peak_bytes": 18763776,
+          "samples": [
+            65.2282,
+            41.9158,
+            43.0957,
+            40.3221
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 292.2552,
+          "peak_bytes": 151375872,
+          "peak_working_set_bytes": 113737728,
+          "exe_bytes": 456192,
+          "samples": [
+            292.3,
+            409.5
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 41.073,
+          "wall_ms": 93.7165,
+          "peak_bytes": 20910080,
+          "samples": [
+            74.0661,
+            41.073,
+            43.5859
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 398.5331,
+          "peak_bytes": 778203136,
+          "peak_working_set_bytes": 190668800,
+          "exe_bytes": 153600,
+          "samples": [
+            398.5,
+            466.7
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 42.8444,
+          "wall_ms": 92.6564,
+          "peak_bytes": 18898944,
+          "samples": [
+            68.3724,
+            42.8444,
+            43.7191
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6533.8568,
+          "peak_bytes": 1011982336,
+          "peak_working_set_bytes": 27320320,
+          "exe_bytes": 2522624,
+          "samples": [
+            6533.9
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 33.4957,
+          "wall_ms": 100.9023,
+          "peak_bytes": 31965184,
+          "samples": [
+            49.7992,
+            39.988,
+            46.82,
+            33.4957
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2326.5284,
+          "peak_bytes": 180703232,
+          "peak_working_set_bytes": 42164224,
+          "exe_bytes": 24576,
+          "samples": [
+            2326.5
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 55.8675,
+          "wall_ms": 140.8522,
+          "peak_bytes": 21753856,
+          "samples": [
+            70.8243,
+            58.6175,
+            55.8675
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7377.6049,
+          "peak_bytes": 366276608,
+          "peak_working_set_bytes": 146636800,
+          "exe_bytes": 1124864,
+          "samples": [
+            7377.6
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 49.3516,
+          "wall_ms": 118.1668,
+          "peak_bytes": 22069248,
+          "samples": [
+            59.1346,
+            51.1561,
+            49.3516
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3467.1569,
+          "peak_bytes": 122793984,
+          "peak_working_set_bytes": 129904640,
+          "exe_bytes": 7168,
+          "samples": [
+            3467.2
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 51.0584,
+          "wall_ms": 198.6829,
+          "peak_bytes": 25853952,
+          "samples": [
+            56.1553,
+            51.0584
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 608.313,
+          "peak_bytes": 173879296,
+          "peak_working_set_bytes": 104435712,
+          "exe_bytes": 3659,
+          "samples": [
+            608.3
+          ]
+        },
+        "run": {
+          "check": 2503168387,
+          "ms": 80.2453,
+          "wall_ms": 194.6891,
+          "peak_bytes": 649392128,
+          "samples": [
+            87.0525,
+            80.2453
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 70.9504,
+          "wall_ms": 258.0976,
+          "peak_bytes": 113405952,
+          "samples": [
+            78.0484,
+            70.9504,
+            77.3493,
+            71.1012,
+            77.7614,
+            70.9566
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 105.901,
+          "wall_ms": 351.4681,
+          "peak_bytes": 124207104,
+          "samples": [
+            117.50040001,
+            127.1865,
+            112.39749999,
+            112.53709999,
+            105.901
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 643.947,
+          "wall_ms": 962.3469,
+          "peak_bytes": 439951360,
+          "samples": [
+            643.947,
+            644.854
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 590.0,
+          "wall_ms": 731.6735,
+          "peak_bytes": 271896576,
+          "samples": [
+            617.0,
+            590.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 10074.0,
+          "wall_ms": 10494.2578,
+          "peak_bytes": 540581888,
+          "samples": [
+            10074.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 24930.817,
+          "wall_ms": 26696.1781,
+          "peak_bytes": 35962880,
+          "samples": [
+            24930.817
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 5192.748,
+          "wall_ms": 5925.9901,
+          "peak_bytes": 30199808,
+          "samples": [
+            5192.748
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 1017.821,
+          "wall_ms": 1319.882,
+          "peak_bytes": 33853440,
+          "samples": [
+            1063.685,
+            1017.821
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 2503168387,
+          "ms": 37282.343,
+          "wall_ms": 39984.431,
+          "peak_bytes": 285589504,
+          "samples": [
+            37282.343
+          ]
+        }
+      }
+    },
+    "dijkstra": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 153.008,
+          "peak_bytes": 99065856,
+          "peak_working_set_bytes": 92839936,
+          "exe_bytes": 110592,
+          "samples": [
+            153.0,
+            179.2,
+            178.5,
+            182.4,
+            187.2,
+            213.3
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 29.0292,
+          "wall_ms": 50.5597,
+          "peak_bytes": 53223424,
+          "samples": [
+            45.70480001,
+            29.0292,
+            30.3709,
+            30.3807,
+            30.8893,
+            32.16829999,
+            32.81210001,
+            31.8839,
+            31.951,
+            33.22,
+            32.45699999,
+            30.52840001,
+            31.2877,
+            31.67930001,
+            32.55,
+            29.7863
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 191.773,
+          "peak_bytes": 113188864,
+          "peak_working_set_bytes": 106676224,
+          "exe_bytes": 192000,
+          "samples": [
+            191.8,
+            194.8,
+            212.1,
+            258.9,
+            243.5,
+            243.3
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 45.9387,
+          "wall_ms": 67.1074,
+          "peak_bytes": 53227520,
+          "samples": [
+            68.5048,
+            45.9387,
+            46.80910001,
+            46.3187,
+            48.58409999,
+            48.2206,
+            49.04130001,
+            50.1396,
+            47.6436,
+            50.28539999,
+            51.0143,
+            47.75119999,
+            47.75869999,
+            48.74679999,
+            50.27810001,
+            48.16990001
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 478.9216,
+          "peak_bytes": 72822784,
+          "peak_working_set_bytes": 14995456,
+          "exe_bytes": 141312,
+          "samples": [
+            478.9
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 43.7083,
+          "wall_ms": 64.5078,
+          "peak_bytes": 53268480,
+          "samples": [
+            72.5895,
+            45.4947,
+            47.1818,
+            48.5104,
+            43.7083
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 463.9308,
+          "peak_bytes": 56958976,
+          "peak_working_set_bytes": 39067648,
+          "exe_bytes": 139776,
+          "samples": [
+            463.9
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 31.3047,
+          "wall_ms": 51.8353,
+          "peak_bytes": 53280768,
+          "samples": [
+            44.0122,
+            31.9435,
+            32.8248,
+            33.7428,
+            33.4969,
+            31.3047
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 306.098,
+          "peak_bytes": 192323584,
+          "peak_working_set_bytes": 12537856,
+          "exe_bytes": 155648,
+          "samples": [
+            344.0,
+            306.1
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 47.6029,
+          "wall_ms": 69.1163,
+          "peak_bytes": 53399552,
+          "samples": [
+            69.3629,
+            49.1108,
+            50.1356,
+            50.1746,
+            47.6029
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4231.2336,
+          "peak_bytes": 1614766080,
+          "peak_working_set_bytes": 252039168,
+          "exe_bytes": 499712,
+          "samples": [
+            4231.2
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 43.7399,
+          "wall_ms": 64.4402,
+          "peak_bytes": 53284864,
+          "samples": [
+            64.9274,
+            45.298,
+            46.452,
+            48.5017,
+            43.7399
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 292.7212,
+          "peak_bytes": 151724032,
+          "peak_working_set_bytes": 114339840,
+          "exe_bytes": 455680,
+          "samples": [
+            292.7,
+            403.5
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 48.2696,
+          "wall_ms": 75.2625,
+          "peak_bytes": 55394304,
+          "samples": [
+            67.7106,
+            49.1306,
+            51.7686,
+            53.4496,
+            48.2696
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 354.6548,
+          "peak_bytes": 786530304,
+          "peak_working_set_bytes": 190107648,
+          "exe_bytes": 153088,
+          "samples": [
+            354.7,
+            416.5
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 42.5951,
+          "wall_ms": 63.6455,
+          "peak_bytes": 53403648,
+          "samples": [
+            56.284,
+            43.0406,
+            46.2341,
+            46.0277,
+            44.8522,
+            42.5951
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6631.4904,
+          "peak_bytes": 1047031808,
+          "peak_working_set_bytes": 26660864,
+          "exe_bytes": 2523136,
+          "samples": [
+            6631.5
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 48.2334,
+          "wall_ms": 80.6515,
+          "peak_bytes": 66707456,
+          "samples": [
+            65.9772,
+            50.0493,
+            55.1751,
+            60.5621,
+            48.2334
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2120.1174,
+          "peak_bytes": 181583872,
+          "peak_working_set_bytes": 42225664,
+          "exe_bytes": 24576,
+          "samples": [
+            2120.1
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 72.7012,
+          "wall_ms": 113.8837,
+          "peak_bytes": 56188928,
+          "samples": [
+            87.1166,
+            74.8224,
+            75.2047,
+            72.7012
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7470.5099,
+          "peak_bytes": 362655744,
+          "peak_working_set_bytes": 146792448,
+          "exe_bytes": 1124864,
+          "samples": [
+            7470.5
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 56.0498,
+          "wall_ms": 85.1867,
+          "peak_bytes": 56877056,
+          "samples": [
+            69.2317,
+            56.5352,
+            61.6662,
+            58.8152,
+            56.0498
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3661.1189,
+          "peak_bytes": 128679936,
+          "peak_working_set_bytes": 142585856,
+          "exe_bytes": 6144,
+          "samples": [
+            3661.1
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 134.6892,
+          "wall_ms": 221.0207,
+          "peak_bytes": 60424192,
+          "samples": [
+            142.9165,
+            134.6892
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 608.7216,
+          "peak_bytes": 172974080,
+          "peak_working_set_bytes": 102670336,
+          "exe_bytes": 2627,
+          "samples": [
+            608.7
+          ]
+        },
+        "run": {
+          "check": 4431000,
+          "ms": 90.1986,
+          "wall_ms": 178.3129,
+          "peak_bytes": 650788864,
+          "samples": [
+            103.8799,
+            90.1986
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 32.15319999,
+          "wall_ms": 171.8434,
+          "peak_bytes": 144736256,
+          "samples": [
+            36.32870001,
+            32.15319999,
+            33.2321,
+            51.3373,
+            36.4116,
+            35.235,
+            56.834,
+            35.5666,
+            34.95090001,
+            46.2982
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 47.0354,
+          "wall_ms": 215.157,
+          "peak_bytes": 156278784,
+          "samples": [
+            51.7313,
+            47.0354,
+            48.77970001,
+            49.50729999,
+            49.16560001,
+            49.0753,
+            48.7839,
+            47.3142
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 143.85,
+          "wall_ms": 233.5958,
+          "peak_bytes": 135061504,
+          "samples": [
+            148.55,
+            143.85
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 143.0,
+          "wall_ms": 181.4157,
+          "peak_bytes": 23953408,
+          "samples": [
+            143.0,
+            150.0,
+            150.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 703.0,
+          "wall_ms": 763.5665,
+          "peak_bytes": 44163072,
+          "samples": [
+            703.0,
+            730.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 2065.963,
+          "wall_ms": 2335.3295,
+          "peak_bytes": 80875520,
+          "samples": [
+            2065.963
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 1530.909,
+          "wall_ms": 1632.3217,
+          "peak_bytes": 185647104,
+          "samples": [
+            1530.909
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 706.552,
+          "wall_ms": 787.9775,
+          "peak_bytes": 189374464,
+          "samples": [
+            706.552,
+            722.088
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 4431000,
+          "ms": 1703.472,
+          "wall_ms": 1921.1323,
+          "peak_bytes": 101650432,
+          "samples": [
+            1703.472
+          ]
+        }
+      }
+    },
+    "raytrace": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 153.2865,
+          "peak_bytes": 96546816,
+          "peak_working_set_bytes": 90542080,
+          "exe_bytes": 111616,
+          "samples": [
+            153.3,
+            196.4,
+            184.0,
+            190.3,
+            210.8,
+            215.0
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 8.4121,
+          "wall_ms": 24.8818,
+          "peak_bytes": 1900544,
+          "samples": [
+            14.8338,
+            12.57939999,
+            9.90819999,
+            9.8128,
+            9.52400001,
+            9.4584,
+            9.561,
+            10.51009999,
+            9.5322,
+            9.53130001,
+            9.39640001,
+            9.3848,
+            9.49299999,
+            9.61580001,
+            9.5608,
+            8.4121
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 179.1191,
+          "peak_bytes": 108093440,
+          "peak_working_set_bytes": 101687296,
+          "exe_bytes": 178176,
+          "samples": [
+            179.1,
+            202.6,
+            208.7,
+            210.4,
+            239.5,
+            243.3
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 10.7536,
+          "wall_ms": 26.1966,
+          "peak_bytes": 1904640,
+          "samples": [
+            20.00070001,
+            11.70510001,
+            12.6251,
+            12.22229999,
+            12.1984,
+            12.1624,
+            12.2122,
+            12.2707,
+            13.8923,
+            13.2596,
+            11.99709999,
+            12.02600001,
+            12.3453,
+            12.3166,
+            12.1584,
+            10.7536
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 431.7893,
+          "peak_bytes": 72806400,
+          "peak_working_set_bytes": 14995456,
+          "exe_bytes": 142336,
+          "samples": [
+            431.8
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 10.0432,
+          "wall_ms": 25.7681,
+          "peak_bytes": 2052096,
+          "samples": [
+            18.8577,
+            12.046,
+            11.9177,
+            11.8887,
+            12.0432,
+            10.0432
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 436.1447,
+          "peak_bytes": 51449856,
+          "peak_working_set_bytes": 39034880,
+          "exe_bytes": 141824,
+          "samples": [
+            436.1
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 9.3147,
+          "wall_ms": 25.2368,
+          "peak_bytes": 2048000,
+          "samples": [
+            14.4613,
+            11.584,
+            10.7574,
+            10.7066,
+            10.6646,
+            9.3147
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 275.5537,
+          "peak_bytes": 190656512,
+          "peak_working_set_bytes": 12500992,
+          "exe_bytes": 157184,
+          "samples": [
+            295.9,
+            275.6
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 11.4412,
+          "wall_ms": 29.2659,
+          "peak_bytes": 2174976,
+          "samples": [
+            18.2255,
+            13.939,
+            13.3452,
+            13.4647,
+            12.9789,
+            11.4412
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4425.6701,
+          "peak_bytes": 1615601664,
+          "peak_working_set_bytes": 253648896,
+          "exe_bytes": 501248,
+          "samples": [
+            4425.7
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 10.9556,
+          "wall_ms": 30.7461,
+          "peak_bytes": 2060288,
+          "samples": [
+            16.0593,
+            13.3134,
+            12.3552,
+            12.6192,
+            12.866,
+            10.9556
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 299.7189,
+          "peak_bytes": 151445504,
+          "peak_working_set_bytes": 113909760,
+          "exe_bytes": 458752,
+          "samples": [
+            299.7,
+            386.8
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 11.3821,
+          "wall_ms": 32.5997,
+          "peak_bytes": 4706304,
+          "samples": [
+            17.5016,
+            12.6805,
+            13.4243,
+            12.4542,
+            12.4243,
+            11.3821
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 368.2916,
+          "peak_bytes": 777977856,
+          "peak_working_set_bytes": 189546496,
+          "exe_bytes": 155136,
+          "samples": [
+            368.3,
+            415.2
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 10.3998,
+          "wall_ms": 28.8107,
+          "peak_bytes": 2158592,
+          "samples": [
+            15.8517,
+            11.673,
+            10.965,
+            10.5533,
+            10.4432,
+            10.3998
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6751.118,
+          "peak_bytes": 892997632,
+          "peak_working_set_bytes": 27148288,
+          "exe_bytes": 2523648,
+          "samples": [
+            6751.1
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 9.5391,
+          "wall_ms": 27.9775,
+          "peak_bytes": 13783040,
+          "samples": [
+            14.6913,
+            11.0786,
+            10.6074,
+            10.1115,
+            10.3913,
+            9.5391
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2114.4771,
+          "peak_bytes": 176672768,
+          "peak_working_set_bytes": 42209280,
+          "exe_bytes": 25600,
+          "samples": [
+            2114.5
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 11.7126,
+          "wall_ms": 44.424,
+          "peak_bytes": 4923392,
+          "samples": [
+            19.6624,
+            13.4767,
+            13.5179,
+            13.0838,
+            13.0888,
+            11.7126
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7547.7737,
+          "peak_bytes": 372420608,
+          "peak_working_set_bytes": 146726912,
+          "exe_bytes": 1125888,
+          "samples": [
+            7547.8
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 10.8545,
+          "wall_ms": 33.5402,
+          "peak_bytes": 4476928,
+          "samples": [
+            15.1649,
+            12.0545,
+            11.9909,
+            11.7957,
+            11.6745,
+            10.8545
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3622.0272,
+          "peak_bytes": 127295488,
+          "peak_working_set_bytes": 141717504,
+          "exe_bytes": 8192,
+          "samples": [
+            3622.0
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 41.6475,
+          "wall_ms": 117.3613,
+          "peak_bytes": 7618560,
+          "samples": [
+            53.3703,
+            41.6475,
+            41.7615
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 682.5937,
+          "peak_bytes": 180862976,
+          "peak_working_set_bytes": 107159552,
+          "exe_bytes": 3581,
+          "samples": [
+            682.6
+          ]
+        },
+        "run": {
+          "check": 56061776,
+          "ms": 22.5966,
+          "wall_ms": 100.1587,
+          "peak_bytes": 647745536,
+          "samples": [
+            28.5196,
+            23.864,
+            23.38,
+            22.5966
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 8.84749999,
+          "wall_ms": 141.2304,
+          "peak_bytes": 92971008,
+          "samples": [
+            11.2272,
+            9.4809,
+            9.49719999,
+            9.74540001,
+            9.47420001,
+            9.6051,
+            9.477,
+            9.3455,
+            8.84749999
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 11.9881,
+          "wall_ms": 176.0357,
+          "peak_bytes": 104345600,
+          "samples": [
+            15.9647,
+            13.0263,
+            12.9401,
+            13.47310001,
+            12.5189,
+            12.34809999,
+            12.54489999,
+            11.9881
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 42.062,
+          "wall_ms": 105.0815,
+          "peak_bytes": 19320832,
+          "samples": [
+            51.738,
+            45.238,
+            42.062,
+            43.873
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 31.0,
+          "wall_ms": 53.998,
+          "peak_bytes": 2674688,
+          "samples": [
+            38.0,
+            32.0,
+            33.0,
+            33.0,
+            31.0,
+            34.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 265.0,
+          "wall_ms": 284.2405,
+          "peak_bytes": 2170880,
+          "samples": [
+            297.0,
+            265.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 846.107,
+          "wall_ms": 910.105,
+          "peak_bytes": 9781248,
+          "samples": [
+            903.083,
+            846.107
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 477.632,
+          "wall_ms": 523.6628,
+          "peak_bytes": 9175040,
+          "samples": [
+            502.473,
+            477.632
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 141.313,
+          "wall_ms": 197.7799,
+          "peak_bytes": 12869632,
+          "samples": [
+            141.313,
+            141.854
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 56061776,
+          "ms": 801.422,
+          "wall_ms": 847.8213,
+          "peak_bytes": 50343936,
+          "samples": [
+            840.994,
+            801.422
+          ]
+        }
+      }
+    },
+    "leven": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 156.752,
+          "peak_bytes": 98529280,
+          "peak_working_set_bytes": 92577792,
+          "exe_bytes": 110592,
+          "samples": [
+            156.8,
+            175.0,
+            167.0,
+            181.6,
+            199.1,
+            221.8
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 12.80349999,
+          "wall_ms": 31.0414,
+          "peak_bytes": 2666496,
+          "samples": [
+            22.62589999,
+            13.2778,
+            13.7543,
+            13.4254,
+            13.5803,
+            13.69570001,
+            13.99969999,
+            13.6533,
+            13.7331,
+            14.2009,
+            13.5941,
+            14.01899999,
+            15.2084,
+            15.392,
+            14.1634,
+            12.80349999
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 183.4926,
+          "peak_bytes": 111243264,
+          "peak_working_set_bytes": 104939520,
+          "exe_bytes": 182272,
+          "samples": [
+            183.5,
+            200.5,
+            213.2,
+            260.5,
+            275.5,
+            256.6
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 24.86200001,
+          "wall_ms": 41.0395,
+          "peak_bytes": 2666496,
+          "samples": [
+            42.4908,
+            25.1042,
+            26.658,
+            25.1952,
+            26.4967,
+            27.4583,
+            26.0076,
+            25.8439,
+            25.50910001,
+            26.40040001,
+            26.13639999,
+            25.9638,
+            25.7648,
+            26.1037,
+            27.577,
+            24.86200001
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 462.93,
+          "peak_bytes": 72830976,
+          "peak_working_set_bytes": 14995456,
+          "exe_bytes": 142336,
+          "samples": [
+            462.9
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 13.5952,
+          "wall_ms": 30.5256,
+          "peak_bytes": 2248704,
+          "samples": [
+            24.2777,
+            14.3422,
+            14.7761,
+            15.0793,
+            14.6478,
+            13.5952
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 445.0801,
+          "peak_bytes": 56135680,
+          "peak_working_set_bytes": 39157760,
+          "exe_bytes": 140800,
+          "samples": [
+            445.1
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 18.1369,
+          "wall_ms": 35.8552,
+          "peak_bytes": 2244608,
+          "samples": [
+            33.5744,
+            21.5109,
+            21.1624,
+            20.7708,
+            20.0757,
+            18.1369
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 420.7513,
+          "peak_bytes": 193814528,
+          "peak_working_set_bytes": 12599296,
+          "exe_bytes": 160768,
+          "samples": [
+            420.8
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 14.1827,
+          "wall_ms": 31.5352,
+          "peak_bytes": 2322432,
+          "samples": [
+            19.9572,
+            15.6564,
+            14.5913,
+            15.2012,
+            14.4518,
+            14.1827
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4359.2583,
+          "peak_bytes": 1615065088,
+          "peak_working_set_bytes": 252092416,
+          "exe_bytes": 500736,
+          "samples": [
+            4359.3
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 13.8239,
+          "wall_ms": 31.3285,
+          "peak_bytes": 2269184,
+          "samples": [
+            24.4195,
+            15.3535,
+            14.7695,
+            14.9015,
+            14.5987,
+            13.8239
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 324.2867,
+          "peak_bytes": 151076864,
+          "peak_working_set_bytes": 115994624,
+          "exe_bytes": 457216,
+          "samples": [
+            324.3,
+            393.5
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 13.4748,
+          "wall_ms": 36.3472,
+          "peak_bytes": 4894720,
+          "samples": [
+            23.9476,
+            15.5057,
+            14.6972,
+            14.4345,
+            14.5616,
+            13.4748
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 385.9433,
+          "peak_bytes": 777986048,
+          "peak_working_set_bytes": 191078400,
+          "exe_bytes": 154624,
+          "samples": [
+            385.9,
+            460.4
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 12.3914,
+          "wall_ms": 30.4413,
+          "peak_bytes": 2355200,
+          "samples": [
+            21.7906,
+            12.3914,
+            13.1666,
+            13.282,
+            12.8899,
+            12.9295
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6658.9054,
+          "peak_bytes": 1099284480,
+          "peak_working_set_bytes": 27283456,
+          "exe_bytes": 2522624,
+          "samples": [
+            6658.9
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 16.2224,
+          "wall_ms": 35.4958,
+          "peak_bytes": 14004224,
+          "samples": [
+            27.5737,
+            16.2224,
+            19.5612,
+            17.1466,
+            16.4562,
+            16.4001
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2839.9065,
+          "peak_bytes": 177967104,
+          "peak_working_set_bytes": 42246144,
+          "exe_bytes": 25600,
+          "samples": [
+            2839.9
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 13.9657,
+          "wall_ms": 46.1749,
+          "peak_bytes": 5042176,
+          "samples": [
+            23.8197,
+            14.6271,
+            14.0837,
+            14.1017,
+            24.7515,
+            13.9657
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7624.2073,
+          "peak_bytes": 379043840,
+          "peak_working_set_bytes": 146677760,
+          "exe_bytes": 1125888,
+          "samples": [
+            7624.2
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 24.8418,
+          "wall_ms": 47.8537,
+          "peak_bytes": 4636672,
+          "samples": [
+            44.1153,
+            24.8418,
+            26.791,
+            25.8766,
+            26.3582,
+            25.4526
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3709.2475,
+          "peak_bytes": 127049728,
+          "peak_working_set_bytes": 141783040,
+          "exe_bytes": 6144,
+          "samples": [
+            3709.2
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 25.6463,
+          "wall_ms": 106.4529,
+          "peak_bytes": 9080832,
+          "samples": [
+            39.9617,
+            25.8975,
+            25.6463
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 621.7519,
+          "peak_bytes": 173535232,
+          "peak_working_set_bytes": 105889792,
+          "exe_bytes": 2816,
+          "samples": [
+            621.8
+          ]
+        },
+        "run": {
+          "check": 67441,
+          "ms": 41.389,
+          "wall_ms": 124.0337,
+          "peak_bytes": 653443072,
+          "samples": [
+            62.0725,
+            45.0936,
+            41.389
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 16.8079,
+          "wall_ms": 159.874,
+          "peak_bytes": 93298688,
+          "samples": [
+            20.45730001,
+            17.2816,
+            16.8079,
+            17.66879999,
+            19.09449999,
+            17.8393,
+            17.7927,
+            17.39739999,
+            16.8824
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 26.1181,
+          "wall_ms": 199.2122,
+          "peak_bytes": 107335680,
+          "samples": [
+            30.4223,
+            26.7823,
+            26.1181,
+            26.4342,
+            26.49429999,
+            26.3197,
+            27.5056,
+            29.465
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 78.426,
+          "wall_ms": 147.076,
+          "peak_bytes": 18231296,
+          "samples": [
+            88.084,
+            79.168,
+            78.426
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 59.0,
+          "wall_ms": 84.974,
+          "peak_bytes": 3354624,
+          "samples": [
+            71.0,
+            62.0,
+            59.0,
+            62.0,
+            60.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 840.0,
+          "wall_ms": 871.1364,
+          "peak_bytes": 2793472,
+          "samples": [
+            869.0,
+            840.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 3340.951,
+          "wall_ms": 3418.4771,
+          "peak_bytes": 9613312,
+          "samples": [
+            3340.951
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 1093.778,
+          "wall_ms": 1144.851,
+          "peak_bytes": 9183232,
+          "samples": [
+            1108.883,
+            1093.778
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 393.727,
+          "wall_ms": 453.7514,
+          "peak_bytes": 12853248,
+          "samples": [
+            393.727,
+            398.581
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 67441,
+          "ms": 2640.672,
+          "wall_ms": 2694.6281,
+          "peak_bytes": 50642944,
+          "samples": [
+            2640.672
+          ]
+        }
+      }
+    },
+    "chacha": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 167.1095,
+          "peak_bytes": 105070592,
+          "peak_working_set_bytes": 98476032,
+          "exe_bytes": 111104,
+          "samples": [
+            167.1,
+            208.1,
+            192.8,
+            194.2,
+            204.1,
+            200.4
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 20.23539999,
+          "wall_ms": 54.7169,
+          "peak_bytes": 18718720,
+          "samples": [
+            48.60910001,
+            24.1402,
+            22.4875,
+            20.23539999,
+            23.30279999,
+            21.4484,
+            22.161,
+            21.70340001,
+            23.4625,
+            21.0576,
+            23.88620001,
+            21.5519,
+            24.01160001,
+            23.86150001
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 213.815,
+          "peak_bytes": 126500864,
+          "peak_working_set_bytes": 119132160,
+          "exe_bytes": 177664,
+          "samples": [
+            219.3,
+            213.8,
+            241.7,
+            247.9,
+            266.4,
+            256.6
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 33.28080001,
+          "wall_ms": 73.0343,
+          "peak_bytes": 18714624,
+          "samples": [
+            59.1962,
+            37.1338,
+            33.28080001,
+            33.98450001,
+            37.1058,
+            33.57,
+            40.80630001,
+            43.41879999,
+            35.9727,
+            38.1706,
+            38.15199999,
+            39.04169999,
+            38.8864,
+            46.4413
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 491.2586,
+          "peak_bytes": 72818688,
+          "peak_working_set_bytes": 14991360,
+          "exe_bytes": 141312,
+          "samples": [
+            491.3
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 23.0317,
+          "wall_ms": 53.1882,
+          "peak_bytes": 18751488,
+          "samples": [
+            41.1023,
+            25.3634,
+            23.0317,
+            25.6981,
+            29.7878
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 458.4631,
+          "peak_bytes": 57077760,
+          "peak_working_set_bytes": 39084032,
+          "exe_bytes": 140288,
+          "samples": [
+            458.5
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 27.5734,
+          "wall_ms": 59.0265,
+          "peak_bytes": 18763776,
+          "samples": [
+            42.3964,
+            27.5734,
+            29.9383,
+            31.8118,
+            31.7979
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 333.9126,
+          "peak_bytes": 191565824,
+          "peak_working_set_bytes": 12500992,
+          "exe_bytes": 155136,
+          "samples": [
+            343.2,
+            333.9
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 32.6938,
+          "wall_ms": 61.5671,
+          "peak_bytes": 18903040,
+          "samples": [
+            50.9348,
+            32.6938,
+            35.9668,
+            35.0259,
+            35.9329
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4306.0058,
+          "peak_bytes": 1615581184,
+          "peak_working_set_bytes": 253370368,
+          "exe_bytes": 499712,
+          "samples": [
+            4306.0
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 24.7365,
+          "wall_ms": 52.8601,
+          "peak_bytes": 18776064,
+          "samples": [
+            34.4709,
+            24.7365,
+            25.3072,
+            30.2094,
+            26.5578,
+            27.1423
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 321.5679,
+          "peak_bytes": 151625728,
+          "peak_working_set_bytes": 114749440,
+          "exe_bytes": 456192,
+          "samples": [
+            321.6,
+            419.9
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 31.8957,
+          "wall_ms": 64.0936,
+          "peak_bytes": 20889600,
+          "samples": [
+            46.4187,
+            31.8957,
+            35.2127,
+            34.9913,
+            40.605
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 387.1994,
+          "peak_bytes": 786518016,
+          "peak_working_set_bytes": 190885888,
+          "exe_bytes": 153600,
+          "samples": [
+            387.2,
+            470.2
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 23.1069,
+          "wall_ms": 51.4256,
+          "peak_bytes": 18882560,
+          "samples": [
+            32.3402,
+            23.1069,
+            23.2187,
+            25.4288,
+            26.3018,
+            26.3373
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6701.2043,
+          "peak_bytes": 1079382016,
+          "peak_working_set_bytes": 27496448,
+          "exe_bytes": 2521600,
+          "samples": [
+            6701.2
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 63.857,
+          "wall_ms": 110.3014,
+          "peak_bytes": 31989760,
+          "samples": [
+            63.857,
+            67.336,
+            72.9094,
+            71.5141
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 34011.4735,
+          "peak_bytes": 176381952,
+          "peak_working_set_bytes": 42221568,
+          "exe_bytes": 25088,
+          "samples": [
+            34011.5
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 56.4371,
+          "wall_ms": 112.8019,
+          "peak_bytes": 21696512,
+          "samples": [
+            63.3503,
+            66.2864,
+            57.0438,
+            56.4371
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7554.8093,
+          "peak_bytes": 367398912,
+          "peak_working_set_bytes": 146632704,
+          "exe_bytes": 1124352,
+          "samples": [
+            7554.8
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 188.6268,
+          "wall_ms": 230.4364,
+          "peak_bytes": 21274624,
+          "samples": [
+            197.226,
+            188.6268
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3755.097,
+          "peak_bytes": 127254528,
+          "peak_working_set_bytes": 142041088,
+          "exe_bytes": 6144,
+          "samples": [
+            3755.1
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 205.5053,
+          "wall_ms": 325.6432,
+          "peak_bytes": 25145344,
+          "samples": [
+            205.5053,
+            208.121
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 680.688,
+          "peak_bytes": 175034368,
+          "peak_working_set_bytes": 105078784,
+          "exe_bytes": 2221,
+          "samples": [
+            680.7
+          ]
+        },
+        "run": {
+          "check": 633277775,
+          "ms": 70.2696,
+          "wall_ms": 176.1497,
+          "peak_bytes": 652546048,
+          "samples": [
+            84.847,
+            80.2601,
+            70.2696
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 20.346,
+          "wall_ms": 177.9341,
+          "peak_bytes": 115310592,
+          "samples": [
+            29.00150001,
+            21.98060001,
+            20.346,
+            21.13030001,
+            22.8206,
+            23.13490001,
+            21.1137,
+            21.47179999
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 30.16759999,
+          "wall_ms": 218.8762,
+          "peak_bytes": 139505664,
+          "samples": [
+            41.8887,
+            30.16759999,
+            33.70479999,
+            35.16860001,
+            34.1568,
+            41.8449
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 328.724,
+          "wall_ms": 480.5387,
+          "peak_bytes": 35594240,
+          "samples": [
+            328.724,
+            342.888
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 1158.0,
+          "wall_ms": 1226.3778,
+          "peak_bytes": 53227520,
+          "samples": [
+            1354.0,
+            1158.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 13653.0,
+          "wall_ms": 13864.4047,
+          "peak_bytes": 103993344,
+          "samples": [
+            13653.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 36404.08,
+          "wall_ms": 37599.8191,
+          "peak_bytes": 199692288,
+          "samples": [
+            36404.08
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 8831.23,
+          "wall_ms": 9196.1725,
+          "peak_bytes": 114225152,
+          "samples": [
+            8831.23
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 1470.498,
+          "wall_ms": 1664.8648,
+          "peak_bytes": 117882880,
+          "samples": [
+            1470.498
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 633277775,
+          "ms": 79332.201,
+          "wall_ms": 81912.7846,
+          "peak_bytes": 491151360,
+          "samples": [
+            79332.201
+          ]
+        }
+      }
+    },
+    "nbody": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 150.0124,
+          "peak_bytes": 101818368,
+          "peak_working_set_bytes": 95248384,
+          "exe_bytes": 115712,
+          "samples": [
+            150.0,
+            178.4,
+            188.8,
+            192.8,
+            212.0,
+            214.7
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 23.32930001,
+          "wall_ms": 41.8521,
+          "peak_bytes": 1900544,
+          "samples": [
+            37.4471,
+            23.32930001,
+            24.22599999,
+            25.9143,
+            24.5149,
+            25.8164,
+            24.9562,
+            27.3463,
+            26.23470001,
+            25.3928,
+            27.23960001,
+            24.9088,
+            25.1267,
+            25.67820001,
+            24.6495,
+            24.1024
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 174.0346,
+          "peak_bytes": 107847680,
+          "peak_working_set_bytes": 101257216,
+          "exe_bytes": 177152,
+          "samples": [
+            174.0,
+            197.7,
+            225.2,
+            228.8,
+            258.3,
+            245.6
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 28.6245,
+          "wall_ms": 47.0506,
+          "peak_bytes": 1900544,
+          "samples": [
+            41.03380001,
+            36.83699999,
+            32.4059,
+            30.0101,
+            29.6136,
+            31.48799999,
+            29.56329999,
+            28.9604,
+            34.6064,
+            32.0637,
+            28.6245,
+            30.18640001,
+            29.8453,
+            29.94360001,
+            28.8937,
+            30.54940001
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 454.2596,
+          "peak_bytes": 72781824,
+          "peak_working_set_bytes": 14917632,
+          "exe_bytes": 142848,
+          "samples": [
+            454.3
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 22.3357,
+          "wall_ms": 42.1178,
+          "peak_bytes": 2056192,
+          "samples": [
+            33.8196,
+            22.9485,
+            23.8612,
+            23.8001,
+            24.8422,
+            22.3357
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 472.2301,
+          "peak_bytes": 59076608,
+          "peak_working_set_bytes": 41455616,
+          "exe_bytes": 142848,
+          "samples": [
+            472.2
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 28.3198,
+          "wall_ms": 46.5902,
+          "peak_bytes": 2056192,
+          "samples": [
+            42.2394,
+            30.5682,
+            28.3198,
+            28.8225,
+            28.4155,
+            31.7731
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 302.2018,
+          "peak_bytes": 189628416,
+          "peak_working_set_bytes": 12517376,
+          "exe_bytes": 157696,
+          "samples": [
+            303.0,
+            302.2
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 20.8112,
+          "wall_ms": 37.3793,
+          "peak_bytes": 2187264,
+          "samples": [
+            31.6349,
+            20.8403,
+            21.2721,
+            24.7711,
+            21.2591,
+            20.8112
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4243.8831,
+          "peak_bytes": 1614544896,
+          "peak_working_set_bytes": 251633664,
+          "exe_bytes": 502784,
+          "samples": [
+            4243.9
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 17.4965,
+          "wall_ms": 37.0477,
+          "peak_bytes": 2084864,
+          "samples": [
+            27.2932,
+            17.4965,
+            18.1034,
+            20.9978,
+            17.7487,
+            18.6006
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 362.7503,
+          "peak_bytes": 152276992,
+          "peak_working_set_bytes": 114769920,
+          "exe_bytes": 459264,
+          "samples": [
+            362.8,
+            443.6
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 22.4393,
+          "wall_ms": 44.584,
+          "peak_bytes": 4730880,
+          "samples": [
+            39.9571,
+            22.7166,
+            28.1823,
+            26.5259,
+            22.4393,
+            25.959
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 456.9285,
+          "peak_bytes": 786452480,
+          "peak_working_set_bytes": 189722624,
+          "exe_bytes": 153600,
+          "samples": [
+            456.9
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 26.5891,
+          "wall_ms": 46.8954,
+          "peak_bytes": 2154496,
+          "samples": [
+            36.8092,
+            27.12,
+            28.5122,
+            30.2748,
+            26.5891,
+            32.3412
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6434.4582,
+          "peak_bytes": 987754496,
+          "peak_working_set_bytes": 26849280,
+          "exe_bytes": 2523136,
+          "samples": [
+            6434.5
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 34.3581,
+          "wall_ms": 56.9196,
+          "peak_bytes": 13803520,
+          "samples": [
+            53.0972,
+            34.3581,
+            40.5157,
+            40.4701,
+            36.4274,
+            41.2308
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2601.4906,
+          "peak_bytes": 172793856,
+          "peak_working_set_bytes": 42450944,
+          "exe_bytes": 24576,
+          "samples": [
+            2601.5
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 23.4233,
+          "wall_ms": 62.3296,
+          "peak_bytes": 4894720,
+          "samples": [
+            29.3578,
+            25.4987,
+            26.1128,
+            23.4233,
+            23.9594,
+            23.8689
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 8445.0859,
+          "peak_bytes": 366067712,
+          "peak_working_set_bytes": 146849792,
+          "exe_bytes": 1125376,
+          "samples": [
+            8445.1
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 27.2992,
+          "wall_ms": 49.078,
+          "peak_bytes": 4481024,
+          "samples": [
+            34.2993,
+            27.2992,
+            30.5148,
+            29.6815,
+            27.734,
+            28.8287
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3588.9471,
+          "peak_bytes": 123916288,
+          "peak_working_set_bytes": 129957888,
+          "exe_bytes": 6656,
+          "samples": [
+            3588.9
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 117.9033,
+          "wall_ms": 204.3121,
+          "peak_bytes": 7892992,
+          "samples": [
+            130.6181,
+            117.9033
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 614.3843,
+          "peak_bytes": 172990464,
+          "peak_working_set_bytes": 103428096,
+          "exe_bytes": 3367,
+          "samples": [
+            614.4
+          ]
+        },
+        "run": {
+          "check": 169096566666,
+          "ms": 42.3247,
+          "wall_ms": 132.298,
+          "peak_bytes": 648081408,
+          "samples": [
+            44.1711,
+            44.1291,
+            42.3247
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 23.8851,
+          "wall_ms": 168.0679,
+          "peak_bytes": 93609984,
+          "samples": [
+            30.25380001,
+            25.11060001,
+            23.8851,
+            25.918,
+            25.38980001,
+            24.7505,
+            25.0347,
+            27.48090001,
+            25.69530001
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 30.0098,
+          "wall_ms": 184.5762,
+          "peak_bytes": 101539840,
+          "samples": [
+            31.5724,
+            32.443,
+            31.3416,
+            35.4064,
+            30.0098,
+            31.21300001,
+            30.8041,
+            33.1013
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 43.995,
+          "wall_ms": 105.9562,
+          "peak_bytes": 18350080,
+          "samples": [
+            47.35,
+            45.038,
+            46.675,
+            44.919,
+            43.995
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 74.0,
+          "wall_ms": 96.1458,
+          "peak_bytes": 2551808,
+          "samples": [
+            74.0,
+            74.0,
+            74.0,
+            75.0,
+            75.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 1133.0,
+          "wall_ms": 1156.2578,
+          "peak_bytes": 2187264,
+          "samples": [
+            1133.0,
+            1184.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 2655.165,
+          "wall_ms": 2734.2615,
+          "peak_bytes": 9678848,
+          "samples": [
+            2655.165
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 1680.809,
+          "wall_ms": 1732.9003,
+          "peak_bytes": 9154560,
+          "samples": [
+            1680.809
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 166.052,
+          "wall_ms": 227.0415,
+          "peak_bytes": 12836864,
+          "samples": [
+            166.052,
+            169.395
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 169096566666,
+          "ms": 3499.071,
+          "wall_ms": 3549.7624,
+          "peak_bytes": 49999872,
+          "samples": [
+            3499.071
+          ]
+        }
+      }
+    },
+    "fannkuch": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 170.713,
+          "peak_bytes": 97464320,
+          "peak_working_set_bytes": 91627520,
+          "exe_bytes": 109056,
+          "samples": [
+            170.7,
+            191.5,
+            177.4,
+            172.4,
+            185.9,
+            211.7
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 14.39510001,
+          "wall_ms": 30.133,
+          "peak_bytes": 1978368,
+          "samples": [
+            24.06299999,
+            15.7773,
+            15.4629,
+            16.76629999,
+            15.3829,
+            14.6957,
+            14.60849999,
+            15.3876,
+            14.80769999,
+            14.72570001,
+            14.9641,
+            14.9051,
+            14.39510001,
+            15.9004,
+            14.75799999,
+            14.45599999
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 183.6269,
+          "peak_bytes": 107171840,
+          "peak_working_set_bytes": 100605952,
+          "exe_bytes": 175616,
+          "samples": [
+            183.6,
+            192.8,
+            206.7,
+            203.9,
+            268.3,
+            239.9
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 18.4858,
+          "wall_ms": 34.995,
+          "peak_bytes": 1978368,
+          "samples": [
+            31.0451,
+            18.4858,
+            20.90050001,
+            19.9195,
+            19.6175,
+            20.09450001,
+            20.23810001,
+            19.52530001,
+            19.97340001,
+            19.7854,
+            18.7629,
+            19.7572,
+            19.0229,
+            21.5288,
+            23.7889,
+            18.89030001
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 504.445,
+          "peak_bytes": 72818688,
+          "peak_working_set_bytes": 14987264,
+          "exe_bytes": 140800,
+          "samples": [
+            504.4
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 16.7249,
+          "wall_ms": 34.2974,
+          "peak_bytes": 2076672,
+          "samples": [
+            24.847,
+            16.9511,
+            17.3201,
+            16.7249,
+            17.4246,
+            17.4255
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 494.3496,
+          "peak_bytes": 56164352,
+          "peak_working_set_bytes": 39038976,
+          "exe_bytes": 139264,
+          "samples": [
+            494.3
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 15.2109,
+          "wall_ms": 31.2612,
+          "peak_bytes": 2052096,
+          "samples": [
+            21.5355,
+            16.5284,
+            15.2109,
+            15.3761,
+            15.5071,
+            15.8008
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 283.1441,
+          "peak_bytes": 192897024,
+          "peak_working_set_bytes": 12509184,
+          "exe_bytes": 154624,
+          "samples": [
+            331.2,
+            283.1
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 14.3554,
+          "wall_ms": 31.7075,
+          "peak_bytes": 2170880,
+          "samples": [
+            20.9184,
+            15.6613,
+            14.6886,
+            17.1321,
+            14.8919,
+            14.3554
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4592.9816,
+          "peak_bytes": 1615908864,
+          "peak_working_set_bytes": 252481536,
+          "exe_bytes": 499200,
+          "samples": [
+            4593.0
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 18.9456,
+          "wall_ms": 35.6745,
+          "peak_bytes": 2068480,
+          "samples": [
+            25.7504,
+            19.9666,
+            18.9889,
+            19.4937,
+            18.9456,
+            19.0857
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 290.1062,
+          "peak_bytes": 151068672,
+          "peak_working_set_bytes": 113766400,
+          "exe_bytes": 455168,
+          "samples": [
+            290.1,
+            381.5
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 16.0572,
+          "wall_ms": 39.1285,
+          "peak_bytes": 4726784,
+          "samples": [
+            22.8174,
+            16.8954,
+            16.4301,
+            16.5025,
+            16.0572,
+            16.2553
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 350.1056,
+          "peak_bytes": 786518016,
+          "peak_working_set_bytes": 190066688,
+          "exe_bytes": 153088,
+          "samples": [
+            350.1,
+            437.8
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 17.6877,
+          "wall_ms": 34.468,
+          "peak_bytes": 2162688,
+          "samples": [
+            26.0696,
+            18.3145,
+            18.4116,
+            18.4152,
+            17.9437,
+            17.6877
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6826.3614,
+          "peak_bytes": 1111412736,
+          "peak_working_set_bytes": 27090944,
+          "exe_bytes": 2520064,
+          "samples": [
+            6826.4
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 17.0075,
+          "wall_ms": 35.7418,
+          "peak_bytes": 13725696,
+          "samples": [
+            27.712,
+            18.1457,
+            18.4417,
+            17.4284,
+            17.6043,
+            17.0075
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2142.2498,
+          "peak_bytes": 183193600,
+          "peak_working_set_bytes": 42217472,
+          "exe_bytes": 23040,
+          "samples": [
+            2142.2
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 17.9074,
+          "wall_ms": 52.3306,
+          "peak_bytes": 4886528,
+          "samples": [
+            24.365,
+            17.9074,
+            18.6032
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7546.6644,
+          "peak_bytes": 357584896,
+          "peak_working_set_bytes": 146563072,
+          "exe_bytes": 1123328,
+          "samples": [
+            7546.7
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 18.6164,
+          "wall_ms": 40.519,
+          "peak_bytes": 4464640,
+          "samples": [
+            24.4335,
+            19.5749,
+            19.8471,
+            20.2119,
+            18.6164,
+            19.0417
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3727.9554,
+          "peak_bytes": 127184896,
+          "peak_working_set_bytes": 142004224,
+          "exe_bytes": 5120,
+          "samples": [
+            3728.0
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 18.9812,
+          "wall_ms": 94.4279,
+          "peak_bytes": 7639040,
+          "samples": [
+            25.8746,
+            19.3353,
+            21.2402,
+            18.9812
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 614.4678,
+          "peak_bytes": 169267200,
+          "peak_working_set_bytes": 99606528,
+          "exe_bytes": 1498,
+          "samples": [
+            614.5
+          ]
+        },
+        "run": {
+          "check": 8629030,
+          "ms": 26.0828,
+          "wall_ms": 113.1669,
+          "peak_bytes": 649814016,
+          "samples": [
+            30.3128,
+            29.512,
+            26.0828,
+            30.9137
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 14.7273,
+          "wall_ms": 144.2884,
+          "peak_bytes": 91787264,
+          "samples": [
+            17.72890001,
+            16.3307,
+            15.2394,
+            15.20529999,
+            14.98029999,
+            15.21129999,
+            14.7273,
+            15.2046,
+            16.91970001,
+            14.8753
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 18.2493,
+          "wall_ms": 184.6896,
+          "peak_bytes": 101818368,
+          "samples": [
+            21.8002,
+            19.81299999,
+            18.5091,
+            18.8018,
+            19.7742,
+            19.23990001,
+            18.5358,
+            18.2493
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 36.657,
+          "wall_ms": 101.5234,
+          "peak_bytes": 16281600,
+          "samples": [
+            42.989,
+            36.979,
+            38.358,
+            36.657
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 48.0,
+          "wall_ms": 69.9372,
+          "peak_bytes": 2551808,
+          "samples": [
+            56.0,
+            51.0,
+            49.0,
+            48.0,
+            54.0,
+            57.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 286.0,
+          "wall_ms": 307.8864,
+          "peak_bytes": 2166784,
+          "samples": [
+            289.0,
+            286.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 1477.838,
+          "wall_ms": 1550.7843,
+          "peak_bytes": 9404416,
+          "samples": [
+            1477.838
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 662.045,
+          "wall_ms": 710.9248,
+          "peak_bytes": 9175040,
+          "samples": [
+            671.333,
+            662.045
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 228.448,
+          "wall_ms": 285.6849,
+          "peak_bytes": 12857344,
+          "samples": [
+            228.448,
+            229.708
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 8629030,
+          "ms": 839.448,
+          "wall_ms": 886.5843,
+          "peak_bytes": 49979392,
+          "samples": [
+            839.448,
+            863.001
+          ]
+        }
+      }
+    },
+    "binarytrees": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 152.6995,
+          "peak_bytes": 96563200,
+          "peak_working_set_bytes": 90869760,
+          "exe_bytes": 109056,
+          "samples": [
+            152.7,
+            203.9,
+            202.4,
+            212.8,
+            201.0,
+            217.1
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 11.1664,
+          "wall_ms": 28.2534,
+          "peak_bytes": 2519040,
+          "samples": [
+            17.5673,
+            14.459,
+            13.22620001,
+            11.8699,
+            12.7527,
+            12.44219999,
+            12.13629999,
+            11.63010001,
+            11.70030001,
+            11.63220001,
+            11.1664,
+            12.19369999,
+            12.24550001,
+            12.1066,
+            12.0836,
+            11.6686
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 173.8297,
+          "peak_bytes": 107560960,
+          "peak_working_set_bytes": 100745216,
+          "exe_bytes": 175616,
+          "samples": [
+            173.8,
+            191.9,
+            257.5,
+            226.5,
+            294.8,
+            233.3
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 13.98110001,
+          "wall_ms": 30.6765,
+          "peak_bytes": 2502656,
+          "samples": [
+            22.5163,
+            17.67249999,
+            16.09040001,
+            19.63529999,
+            19.33109999,
+            16.063,
+            14.7139,
+            14.03399999,
+            13.98110001,
+            14.65370001,
+            14.06640001,
+            14.4341,
+            15.1627,
+            14.64749999,
+            14.48680001,
+            14.02209999
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 420.1627,
+          "peak_bytes": 72818688,
+          "peak_working_set_bytes": 14979072,
+          "exe_bytes": 140800,
+          "samples": [
+            420.2
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 27.0375,
+          "wall_ms": 45.7977,
+          "peak_bytes": 2482176,
+          "samples": [
+            40.7694,
+            31.6433,
+            27.0491,
+            28.2652,
+            27.0697,
+            27.0375
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 418.8,
+          "peak_bytes": 47771648,
+          "peak_working_set_bytes": 39075840,
+          "exe_bytes": 140288,
+          "samples": [
+            418.8
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 26.7803,
+          "wall_ms": 44.8598,
+          "peak_bytes": 2486272,
+          "samples": [
+            41.897,
+            29.9465,
+            26.8638,
+            26.8599,
+            26.7803,
+            27.5962
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 253.0875,
+          "peak_bytes": 190648320,
+          "peak_working_set_bytes": 12480512,
+          "exe_bytes": 155648,
+          "samples": [
+            258.8,
+            253.1,
+            271.4
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 27.7186,
+          "wall_ms": 47.6652,
+          "peak_bytes": 2637824,
+          "samples": [
+            44.4805,
+            32.4331,
+            31.8305,
+            28.7672,
+            28.1552,
+            27.7186
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 9026.4143,
+          "peak_bytes": 1616056320,
+          "peak_working_set_bytes": 265723904,
+          "exe_bytes": 838656,
+          "samples": [
+            9026.4
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 29.9267,
+          "wall_ms": 48.0218,
+          "peak_bytes": 2785280,
+          "samples": [
+            41.1843,
+            34.8463,
+            30.207,
+            30.3863,
+            30.3811,
+            29.9267
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 280.4226,
+          "peak_bytes": 151236608,
+          "peak_working_set_bytes": 112484352,
+          "exe_bytes": 455680,
+          "samples": [
+            280.4,
+            384.0
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 28.9273,
+          "wall_ms": 52.3568,
+          "peak_bytes": 4952064,
+          "samples": [
+            39.8867,
+            31.834,
+            31.4929,
+            28.9344,
+            32.4801,
+            28.9273
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 354.9946,
+          "peak_bytes": 778010624,
+          "peak_working_set_bytes": 188768256,
+          "exe_bytes": 152576,
+          "samples": [
+            355.0,
+            423.5
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 53.0142,
+          "wall_ms": 71.9759,
+          "peak_bytes": 2928640,
+          "samples": [
+            78.8961,
+            58.4014,
+            53.0142,
+            57.8759,
+            54.1779
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6924.0668,
+          "peak_bytes": 925687808,
+          "peak_working_set_bytes": 27123712,
+          "exe_bytes": 2520576,
+          "samples": [
+            6924.1
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 10.6385,
+          "wall_ms": 30.8278,
+          "peak_bytes": 20238336,
+          "samples": [
+            18.1583,
+            11.6742,
+            11.4622,
+            11.0887,
+            11.5392,
+            10.6385
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 1747.7093,
+          "peak_bytes": 172060672,
+          "peak_working_set_bytes": 42295296,
+          "exe_bytes": 22528,
+          "samples": [
+            1747.7
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 42.236,
+          "wall_ms": 77.8768,
+          "peak_bytes": 5783552,
+          "samples": [
+            56.3996,
+            46.7161,
+            42.236,
+            44.8083,
+            42.5787
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7870.6035,
+          "peak_bytes": 370188288,
+          "peak_working_set_bytes": 146550784,
+          "exe_bytes": 1123840,
+          "samples": [
+            7870.6
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 10.4087,
+          "wall_ms": 35.5967,
+          "peak_bytes": 17457152,
+          "samples": [
+            14.9653,
+            11.3882,
+            10.9109,
+            10.708,
+            10.4087,
+            10.4792
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3660.7805,
+          "peak_bytes": 127074304,
+          "peak_working_set_bytes": 141832192,
+          "exe_bytes": 5632,
+          "samples": [
+            3660.8
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 13.013,
+          "wall_ms": 92.6571,
+          "peak_bytes": 20054016,
+          "samples": [
+            15.738,
+            13.8365,
+            13.013,
+            13.176
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 612.8921,
+          "peak_bytes": 168284160,
+          "peak_working_set_bytes": 97259520,
+          "exe_bytes": 1672,
+          "samples": [
+            612.9
+          ]
+        },
+        "run": {
+          "check": 674478,
+          "ms": 6.6373,
+          "wall_ms": 88.2433,
+          "peak_bytes": 648187904,
+          "samples": [
+            9.0141,
+            7.2812,
+            6.6373,
+            6.6796,
+            7.0552
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 14.44089999,
+          "wall_ms": 150.335,
+          "peak_bytes": 93069312,
+          "samples": [
+            18.7915,
+            16.06539999,
+            15.7305,
+            15.59720001,
+            15.02390001,
+            14.44089999,
+            14.4937,
+            15.6346,
+            14.4595
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 14.6908,
+          "wall_ms": 187.1138,
+          "peak_bytes": 103358464,
+          "samples": [
+            17.7621,
+            15.8678,
+            15.5977,
+            15.7669,
+            14.80429999,
+            15.0131,
+            14.74740001,
+            14.6908
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 9.591,
+          "wall_ms": 72.6101,
+          "peak_bytes": 20574208,
+          "samples": [
+            13.23,
+            10.81,
+            10.552,
+            9.591,
+            10.932,
+            10.095
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 40.0,
+          "wall_ms": 62.71,
+          "peak_bytes": 8331264,
+          "samples": [
+            48.0,
+            44.0,
+            40.0,
+            41.0,
+            40.0,
+            42.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 116.0,
+          "wall_ms": 136.2545,
+          "peak_bytes": 5545984,
+          "samples": [
+            135.0,
+            116.0,
+            122.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 139.523,
+          "wall_ms": 204.8616,
+          "peak_bytes": 9326592,
+          "samples": [
+            153.729,
+            139.523
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 102.511,
+          "wall_ms": 152.3163,
+          "peak_bytes": 9453568,
+          "samples": [
+            115.271,
+            102.511,
+            102.752
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 47.288,
+          "wall_ms": 105.9533,
+          "peak_bytes": 17289216,
+          "samples": [
+            50.311,
+            49.991,
+            47.288,
+            50.265
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 674478,
+          "ms": 85.768,
+          "wall_ms": 132.5339,
+          "peak_bytes": 50769920,
+          "samples": [
+            94.979,
+            85.768,
+            86.772
+          ]
+        }
+      }
+    },
+    "lz77": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 166.7201,
+          "peak_bytes": 99246080,
+          "peak_working_set_bytes": 93093888,
+          "exe_bytes": 110592,
+          "samples": [
+            166.7,
+            209.5,
+            175.7,
+            197.0,
+            197.1,
+            183.0
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 22.3135,
+          "wall_ms": 39.773,
+          "peak_bytes": 7057408,
+          "samples": [
+            33.3402,
+            22.4054,
+            22.88409999,
+            23.11719999,
+            23.1168,
+            23.18800001,
+            23.3953,
+            22.3793,
+            23.8845,
+            25.9751,
+            23.2578,
+            24.7948,
+            22.3135,
+            24.41719999,
+            23.17900001,
+            22.8719
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 193.4991,
+          "peak_bytes": 112943104,
+          "peak_working_set_bytes": 106401792,
+          "exe_bytes": 185344,
+          "samples": [
+            193.5,
+            198.0,
+            225.6,
+            228.2,
+            253.8,
+            245.5
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 37.63529999,
+          "wall_ms": 59.2191,
+          "peak_bytes": 7061504,
+          "samples": [
+            59.05669999,
+            38.9459,
+            39.4786,
+            40.4437,
+            39.8065,
+            37.7551,
+            40.49889999,
+            39.20130001,
+            42.33130001,
+            43.44729999,
+            40.622,
+            39.91050001,
+            39.8246,
+            37.63529999,
+            41.0882,
+            40.905
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 497.334,
+          "peak_bytes": 72798208,
+          "peak_working_set_bytes": 14987264,
+          "exe_bytes": 142336,
+          "samples": [
+            497.3
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 22.4078,
+          "wall_ms": 43.3936,
+          "peak_bytes": 6930432,
+          "samples": [
+            30.4334,
+            22.9313,
+            22.4078,
+            23.5771,
+            23.2828,
+            23.5744
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 492.6168,
+          "peak_bytes": 51175424,
+          "peak_working_set_bytes": 39182336,
+          "exe_bytes": 140800,
+          "samples": [
+            492.6
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 22.9508,
+          "wall_ms": 41.2428,
+          "peak_bytes": 6971392,
+          "samples": [
+            32.4639,
+            23.0187,
+            23.8905,
+            24.7375,
+            24.158,
+            22.9508
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 348.7015,
+          "peak_bytes": 192679936,
+          "peak_working_set_bytes": 12476416,
+          "exe_bytes": 156672,
+          "samples": [
+            363.6,
+            348.7
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 24.6228,
+          "wall_ms": 44.6856,
+          "peak_bytes": 7135232,
+          "samples": [
+            33.7274,
+            24.6228,
+            24.999,
+            26.4381,
+            28.8214,
+            25.1796
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4362.3574,
+          "peak_bytes": 1614893056,
+          "peak_working_set_bytes": 252243968,
+          "exe_bytes": 500736,
+          "samples": [
+            4362.4
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 22.6142,
+          "wall_ms": 42.7114,
+          "peak_bytes": 6979584,
+          "samples": [
+            32.1724,
+            22.6142,
+            23.2312,
+            23.9225,
+            23.1106,
+            23.8773
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 324.2871,
+          "peak_bytes": 151457792,
+          "peak_working_set_bytes": 115437568,
+          "exe_bytes": 457216,
+          "samples": [
+            324.3,
+            427.0
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 22.3155,
+          "wall_ms": 48.1225,
+          "peak_bytes": 9105408,
+          "samples": [
+            30.613,
+            22.5279,
+            24.1922,
+            23.7902,
+            22.3155,
+            24.3003
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 375.5515,
+          "peak_bytes": 778043392,
+          "peak_working_set_bytes": 191369216,
+          "exe_bytes": 154112,
+          "samples": [
+            375.6,
+            464.1
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 22.6327,
+          "wall_ms": 44.1421,
+          "peak_bytes": 7102464,
+          "samples": [
+            30.2009,
+            22.6327,
+            24.6482,
+            23.3304,
+            23.3121,
+            23.5721
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6791.5732,
+          "peak_bytes": 1062838272,
+          "peak_working_set_bytes": 26800128,
+          "exe_bytes": 2526208,
+          "samples": [
+            6791.6
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 26.6686,
+          "wall_ms": 49.8422,
+          "peak_bytes": 19890176,
+          "samples": [
+            38.8924,
+            27.7947,
+            28.8537,
+            28.8756,
+            26.7548,
+            26.6686
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2865.1139,
+          "peak_bytes": 178790400,
+          "peak_working_set_bytes": 42287104,
+          "exe_bytes": 26112,
+          "samples": [
+            2865.1
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 34.4029,
+          "wall_ms": 73.5638,
+          "peak_bytes": 9842688,
+          "samples": [
+            43.3825,
+            34.4029,
+            35.5145,
+            36.3875,
+            35.8097
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 8276.3416,
+          "peak_bytes": 368238592,
+          "peak_working_set_bytes": 150511616,
+          "exe_bytes": 1125376,
+          "samples": [
+            8276.3
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 25.0451,
+          "wall_ms": 51.7675,
+          "peak_bytes": 9248768,
+          "samples": [
+            31.8114,
+            25.7139,
+            26.3304,
+            25.82,
+            25.0451,
+            27.0689
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3596.2982,
+          "peak_bytes": 122576896,
+          "peak_working_set_bytes": 130023424,
+          "exe_bytes": 6144,
+          "samples": [
+            3596.3
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 25.0284,
+          "wall_ms": 109.6855,
+          "peak_bytes": 13615104,
+          "samples": [
+            32.1853,
+            25.9877,
+            25.0284,
+            26.6218
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 611.7827,
+          "peak_bytes": 173621248,
+          "peak_working_set_bytes": 103981056,
+          "exe_bytes": 2943,
+          "samples": [
+            611.8
+          ]
+        },
+        "run": {
+          "check": 622942003053,
+          "ms": 68.665,
+          "wall_ms": 165.2892,
+          "peak_bytes": 653869056,
+          "samples": [
+            68.665,
+            73.2068,
+            71.071
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 23.56279999,
+          "wall_ms": 172.331,
+          "peak_bytes": 98979840,
+          "samples": [
+            27.6156,
+            23.9784,
+            24.33700001,
+            23.7886,
+            24.363,
+            24.6321,
+            24.538,
+            23.56279999,
+            25.44350001
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 38.9511,
+          "wall_ms": 220.5546,
+          "peak_bytes": 111972352,
+          "samples": [
+            48.0423,
+            38.9511,
+            41.22239999,
+            39.8022,
+            40.34940001,
+            39.75340001,
+            43.05010001
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 56.248,
+          "wall_ms": 141.0094,
+          "peak_bytes": 23232512,
+          "samples": [
+            60.153,
+            56.248,
+            60.46
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 90.0,
+          "wall_ms": 125.7204,
+          "peak_bytes": 33820672,
+          "samples": [
+            100.0,
+            90.0,
+            93.0,
+            94.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 469.0,
+          "wall_ms": 537.0522,
+          "peak_bytes": 63696896,
+          "samples": [
+            495.0,
+            469.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 2684.624,
+          "wall_ms": 2916.787,
+          "peak_bytes": 45158400,
+          "samples": [
+            2684.624
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 826.389,
+          "wall_ms": 921.5768,
+          "peak_bytes": 118448128,
+          "samples": [
+            832.403,
+            826.389
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 230.656,
+          "wall_ms": 307.0708,
+          "peak_bytes": 122109952,
+          "samples": [
+            232.773,
+            230.656
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 622942003053,
+          "ms": 920.737,
+          "wall_ms": 1090.0186,
+          "peak_bytes": 84811776,
+          "samples": [
+            964.814,
+            920.737
+          ]
+        }
+      }
+    },
+    "sort": {
+      "swag-release": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 163.2205,
+          "peak_bytes": 95944704,
+          "peak_working_set_bytes": 90185728,
+          "exe_bytes": 109568,
+          "samples": [
+            163.2,
+            174.5,
+            202.5,
+            172.7,
+            190.7,
+            214.3
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 17.3111,
+          "wall_ms": 35.1816,
+          "peak_bytes": 4308992,
+          "samples": [
+            31.36919999,
+            20.21249999,
+            22.34380001,
+            25.04349999,
+            24.3355,
+            24.2859,
+            20.4824,
+            19.7075,
+            18.5816,
+            19.8329,
+            18.93199999,
+            19.56429999,
+            19.35019999,
+            21.8955,
+            20.1814,
+            17.3111
+          ]
+        }
+      },
+      "swag-fast-debug": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 175.8819,
+          "peak_bytes": 107925504,
+          "peak_working_set_bytes": 101355520,
+          "exe_bytes": 176640,
+          "samples": [
+            175.9,
+            178.9,
+            203.4,
+            206.0,
+            239.9,
+            271.5
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 21.6908,
+          "wall_ms": 40.5908,
+          "peak_bytes": 4308992,
+          "samples": [
+            37.3309,
+            21.6908,
+            32.05770001,
+            29.76040001,
+            24.19690001,
+            30.3227,
+            24.28469999,
+            22.7301,
+            22.94939999,
+            24.51850001,
+            22.8147,
+            25.17180001,
+            22.66619999,
+            24.47409999,
+            24.73939999,
+            21.8399
+          ]
+        }
+      },
+      "cpp-clang-cl": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 446.7337,
+          "peak_bytes": 72810496,
+          "peak_working_set_bytes": 14991360,
+          "exe_bytes": 140800,
+          "samples": [
+            446.7
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 17.1916,
+          "wall_ms": 35.649,
+          "peak_bytes": 4362240,
+          "samples": [
+            28.5447,
+            19.7518,
+            19.3117,
+            19.7279,
+            19.7206,
+            17.1916
+          ]
+        }
+      },
+      "cpp-msvc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 430.2353,
+          "peak_bytes": 58961920,
+          "peak_working_set_bytes": 39022592,
+          "exe_bytes": 139776,
+          "samples": [
+            430.2
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 17.3183,
+          "wall_ms": 36.2268,
+          "peak_bytes": 4366336,
+          "samples": [
+            28.7281,
+            25.2772,
+            19.221,
+            19.087,
+            20.1719,
+            17.3183
+          ]
+        }
+      },
+      "rust": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 280.9931,
+          "peak_bytes": 192253952,
+          "peak_working_set_bytes": 12480512,
+          "exe_bytes": 155648,
+          "samples": [
+            328.9,
+            281.0
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 19.8396,
+          "wall_ms": 38.5073,
+          "peak_bytes": 4505600,
+          "samples": [
+            29.3447,
+            28.1906,
+            21.4534,
+            22.0971,
+            21.6865,
+            19.8396
+          ]
+        }
+      },
+      "zig": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 4630.8438,
+          "peak_bytes": 1614659584,
+          "peak_working_set_bytes": 252305408,
+          "exe_bytes": 499200,
+          "samples": [
+            4630.8
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 18.0809,
+          "wall_ms": 36.878,
+          "peak_bytes": 4374528,
+          "samples": [
+            29.4707,
+            24.6539,
+            20.1407,
+            19.7178,
+            19.7868,
+            18.0809
+          ]
+        }
+      },
+      "d-ldc": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 297.6214,
+          "peak_bytes": 151175168,
+          "peak_working_set_bytes": 114286592,
+          "exe_bytes": 456192,
+          "samples": [
+            297.6,
+            360.4
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 17.6439,
+          "wall_ms": 41.1713,
+          "peak_bytes": 6492160,
+          "samples": [
+            31.6487,
+            22.6098,
+            24.5164,
+            19.1597,
+            19.3833,
+            17.6439
+          ]
+        }
+      },
+      "odin": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 372.9457,
+          "peak_bytes": 778022912,
+          "peak_working_set_bytes": 189190144,
+          "exe_bytes": 153088,
+          "samples": [
+            372.9,
+            413.0
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 17.1166,
+          "wall_ms": 35.9245,
+          "peak_bytes": 4513792,
+          "samples": [
+            31.8753,
+            20.5736,
+            20.305,
+            19.0228,
+            19.6707,
+            17.1166
+          ]
+        }
+      },
+      "go": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 6751.4245,
+          "peak_bytes": 986591232,
+          "peak_working_set_bytes": 26771456,
+          "exe_bytes": 2521088,
+          "samples": [
+            6751.4
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 19.1717,
+          "wall_ms": 39.4386,
+          "peak_bytes": 16494592,
+          "samples": [
+            33.3174,
+            22.9401,
+            23.5721,
+            20.8516,
+            21.7988,
+            19.1717
+          ]
+        }
+      },
+      "swift": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 2141.6193,
+          "peak_bytes": 176488448,
+          "peak_working_set_bytes": 42135552,
+          "exe_bytes": 23552,
+          "samples": [
+            2141.6
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 20.4394,
+          "wall_ms": 61.72,
+          "peak_bytes": 7237632,
+          "samples": [
+            38.759,
+            24.4134,
+            23.0102,
+            22.8113,
+            20.4394
+          ]
+        }
+      },
+      "csharp-aot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 7669.7286,
+          "peak_bytes": 366436352,
+          "peak_working_set_bytes": 147091456,
+          "exe_bytes": 1123840,
+          "samples": [
+            7669.7
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 20.536,
+          "wall_ms": 44.6804,
+          "peak_bytes": 6889472,
+          "samples": [
+            29.7454,
+            22.1576,
+            20.536
+          ]
+        }
+      },
+      "csharp-jit": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 3484.8285,
+          "peak_bytes": 122441728,
+          "peak_working_set_bytes": 130248704,
+          "exe_bytes": 5632,
+          "samples": [
+            3484.8
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 37.79,
+          "wall_ms": 121.286,
+          "peak_bytes": 10498048,
+          "samples": [
+            52.5019,
+            38.8312,
+            37.79
+          ]
+        }
+      },
+      "java-hotspot": {
+        "kind": "aot",
+        "build": {
+          "wall_ms": 573.4063,
+          "peak_bytes": 169934848,
+          "peak_working_set_bytes": 99766272,
+          "exe_bytes": 1808,
+          "samples": [
+            573.4
+          ]
+        },
+        "run": {
+          "check": 599499929,
+          "ms": 68.7629,
+          "wall_ms": 151.6921,
+          "peak_bytes": 653795328,
+          "samples": [
+            92.8184,
+            68.7629
+          ]
+        }
+      },
+      "swc-jit-release": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 18.90709999,
+          "wall_ms": 157.6953,
+          "peak_bytes": 94556160,
+          "samples": [
+            22.5204,
+            19.6818,
+            23.0629,
+            21.274,
+            19.15780001,
+            19.1525,
+            19.3265,
+            19.7167,
+            18.90709999
+          ]
+        }
+      },
+      "swc-jit-fast-debug": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 23.9484,
+          "wall_ms": 194.9737,
+          "peak_bytes": 105897984,
+          "samples": [
+            27.30099999,
+            27.135,
+            24.3582,
+            23.9484,
+            24.36730001,
+            24.05319999,
+            25.297,
+            23.9575
+          ]
+        }
+      },
+      "node20": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 57.597,
+          "wall_ms": 131.833,
+          "peak_bytes": 30593024,
+          "samples": [
+            68.399,
+            57.597,
+            58.993
+          ]
+        }
+      },
+      "luajit2.1": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 50.0,
+          "wall_ms": 76.1655,
+          "peak_bytes": 9134080,
+          "samples": [
+            58.0,
+            59.0,
+            56.0,
+            55.0,
+            50.0,
+            53.0
+          ]
+        }
+      },
+      "lua5.4": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 133.0,
+          "wall_ms": 167.8627,
+          "peak_bytes": 15785984,
+          "samples": [
+            177.0,
+            133.0
+          ]
+        }
+      },
+      "python3.12": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 489.749,
+          "wall_ms": 627.7199,
+          "peak_bytes": 21348352,
+          "samples": [
+            508.12,
+            489.749
+          ]
+        }
+      },
+      "php": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 276.774,
+          "wall_ms": 342.8324,
+          "peak_bytes": 19660800,
+          "samples": [
+            292.185,
+            276.774
+          ]
+        }
+      },
+      "php-jit": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 110.58,
+          "wall_ms": 177.0946,
+          "peak_bytes": 25456640,
+          "samples": [
+            111.218,
+            112.112,
+            110.58
+          ]
+        }
+      },
+      "ruby": {
+        "kind": "jit",
+        "run": {
+          "check": 599499929,
+          "ms": 421.709,
+          "wall_ms": 590.4321,
+          "peak_bytes": 72417280,
+          "samples": [
+            427.622,
+            421.709
+          ]
+        }
+      }
+    }
+  },
+  "hello_build": {
+    "zig": {
+      "wall_ms": 3748.6831,
+      "peak_bytes": 1615384576,
+      "peak_working_set_bytes": 252674048,
+      "exe_bytes": 499712,
+      "samples": [
+        3748.7
+      ]
+    },
+    "d-ldc": {
+      "wall_ms": 164.8845,
+      "peak_bytes": 84205568,
+      "peak_working_set_bytes": 42967040,
+      "exe_bytes": 455168,
+      "samples": [
+        164.9,
+        166.0,
+        195.9
+      ]
+    },
+    "odin": {
+      "wall_ms": 254.3745,
+      "peak_bytes": 727220224,
+      "peak_working_set_bytes": 115994624,
+      "exe_bytes": 121856,
+      "samples": [
+        254.4,
+        273.5,
+        285.1
+      ]
+    },
+    "go": {
+      "wall_ms": 6677.4996,
+      "peak_bytes": 997044224,
+      "peak_working_set_bytes": 28295168,
+      "exe_bytes": 2497024,
+      "samples": [
+        6677.5
+      ]
+    },
+    "java-hotspot": {
+      "wall_ms": 635.3824,
+      "peak_bytes": 147517440,
+      "peak_working_set_bytes": 93351936,
+      "exe_bytes": 406,
+      "samples": [
+        635.4
+      ]
+    },
+    "swag-release": {
+      "wall_ms": 147.284,
+      "peak_bytes": 92463104,
+      "peak_working_set_bytes": 86794240,
+      "exe_bytes": 107520,
+      "samples": [
+        204.5,
+        147.3,
+        167.1,
+        167.0,
+        176.6,
+        168.6
+      ]
+    },
+    "swag-fast-debug": {
+      "wall_ms": 176.3746,
+      "peak_bytes": 102068224,
+      "peak_working_set_bytes": 96247808,
+      "exe_bytes": 171520,
+      "samples": [
+        201.7,
+        176.4,
+        202.8,
+        219.2,
+        202.1,
+        206.2
+      ]
+    },
+    "cpp-clang-cl": {
+      "wall_ms": 158.8813,
+      "peak_bytes": 30961664,
+      "peak_working_set_bytes": 14999552,
+      "exe_bytes": 108032,
+      "samples": [
+        173.8,
+        158.9,
+        163.4
+      ]
+    },
+    "cpp-msvc": {
+      "wall_ms": 150.8312,
+      "peak_bytes": 42471424,
+      "peak_working_set_bytes": 24477696,
+      "exe_bytes": 138240,
+      "samples": [
+        220.5,
+        150.8,
+        158.9
+      ]
+    },
+    "rust": {
+      "wall_ms": 219.2451,
+      "peak_bytes": 189386752,
+      "peak_working_set_bytes": 12513280,
+      "exe_bytes": 123904,
+      "samples": [
+        267.7,
+        219.2
+      ]
+    },
+    "swift": {
+      "wall_ms": 492.3992,
+      "peak_bytes": 48926720,
+      "peak_working_set_bytes": 42233856,
+      "exe_bytes": 20480,
+      "samples": [
+        492.4
+      ]
+    },
+    "csharp-aot": {
+      "wall_ms": 8283.8084,
+      "peak_bytes": 367521792,
+      "peak_working_set_bytes": 147349504,
+      "exe_bytes": 1105408,
+      "samples": [
+        8283.8
+      ]
+    },
+    "csharp-jit": {
+      "wall_ms": 3283.2717,
+      "peak_bytes": 122753024,
+      "peak_working_set_bytes": 130019328,
+      "exe_bytes": 4608,
+      "samples": [
+        3283.3
+      ]
+    }
+  },
+  "hello_run": {
+    "swc-jit-release": {
+      "first_stdout_ms": 123.8193,
+      "peak_bytes": 87552000
+    },
+    "swc-jit-fast-debug": {
+      "first_stdout_ms": 148.1407,
+      "peak_bytes": 97492992
+    },
+    "node20": {
+      "first_stdout_ms": 58.1334,
+      "peak_bytes": 15892480
+    },
+    "luajit2.1": {
+      "first_stdout_ms": 21.1046,
+      "peak_bytes": 2498560
+    },
+    "lua5.4": {
+      "first_stdout_ms": 17.3194,
+      "peak_bytes": 2207744
+    },
+    "python3.12": {
+      "first_stdout_ms": 54.4635,
+      "peak_bytes": 9248768
+    },
+    "php": {
+      "first_stdout_ms": 44.7713,
+      "peak_bytes": 9203712
+    },
+    "php-jit": {
+      "first_stdout_ms": 52.5628,
+      "peak_bytes": 12886016
+    },
+    "ruby": {
+      "first_stdout_ms": 43.6229,
+      "peak_bytes": 49934336
+    }
+  },
+  "calibration": {
+    "probes": {
+      "wordfreq": 47.6076,
+      "csvagg": 41.6575,
+      "sha256": 43.8886,
+      "dijkstra": 42.9347,
+      "raytrace": 43.8429,
+      "leven": 43.4319,
+      "chacha": 46.1844,
+      "nbody": 44.4892,
+      "fannkuch": 53.2291,
+      "binarytrees": 43.2692,
+      "lz77": 45.8917,
+      "sort": 44.8238,
+      "allocator": 45.4614
+    },
+    "start": 38.8505,
+    "end": 43.3554,
+    "drift_pct": 11.595474961712222,
+    "spread_pct": 23.018451924232487,
+    "worst_moment": "fannkuch",
+    "build_controls": {
+      "reference": "20261010-191648",
+      "controls": {
+        "cpp-clang-cl": 1.1067728404478787,
+        "cpp-msvc": 1.1300354769835823,
+        "rust": 0.9885912431899933,
+        "zig": 1.0362165411443212,
+        "d-ldc": 0.8880587708257435,
+        "odin": 0.9871186219979461,
+        "go": 1.0136273357689076,
+        "swift": 0.9855852660068685,
+        "csharp-aot": 1.0015539146489647,
+        "csharp-jit": 0.9658791637390862,
+        "java-hotspot": 0.974869722689032
+      },
+      "spread_pct": 6.292822212805338
+    }
+  },
+  "skipped": [],
+  "loop": {
+    "core_rebuild": {
+      "wall_ms": 2769.0792,
+      "cpu_ms": 21718.75,
+      "peak_bytes": 650481664,
+      "peak_working_set_bytes": 609923072,
+      "samples": [
+        2769.1
+      ]
+    },
+    "core_noop": {
+      "wall_ms": 84.9332,
+      "cpu_ms": 62.5,
+      "peak_bytes": 7069696,
+      "peak_working_set_bytes": 11476992,
+      "samples": [
+        86.8,
+        87.7,
+        88.6,
+        92.3,
+        99.2,
+        84.9
+      ]
+    },
+    "core_touch": {
+      "wall_ms": 2230.2416,
+      "cpu_ms": 18375.0,
+      "peak_bytes": 629305344,
+      "peak_working_set_bytes": 580210688,
+      "samples": [
+        2230.2,
+        2281.2
+      ]
+    },
+    "doc_std": {
+      "wall_ms": 39546.3372,
+      "cpu_ms": 441593.75,
+      "peak_bytes": 3294744576,
+      "peak_working_set_bytes": 3208368128,
+      "samples": [
+        39546.3
+      ]
+    },
+    "format_tree": {
+      "wall_ms": 620.6714,
+      "cpu_ms": 7484.375,
+      "peak_bytes": 523833344,
+      "peak_working_set_bytes": 454426624,
+      "samples": [
+        651.4,
+        620.7,
+        646.5
+      ]
+    }
+  },
+  "allocator": {
+    "pair": {
+      "swag": {
+        "samples": [
+          36.59,
+          9.688,
+          9.425,
+          10.063,
+          10.113
+        ],
+        "peak_bytes": 4407296,
+        "peak_working_set_bytes": 7294976,
+        "ns": 10.063
+      },
+      "mimalloc": {
+        "samples": [
+          6.311,
+          5.398,
+          4.709,
+          5.103,
+          5.032
+        ],
+        "peak_bytes": 4939776,
+        "peak_working_set_bytes": 4956160,
+        "ns": 5.103
+      },
+      "crt": {
+        "samples": [
+          40.975,
+          34.109,
+          33.172,
+          35.353,
+          36.713
+        ],
+        "peak_bytes": 2428928,
+        "peak_working_set_bytes": 4087808,
+        "ns": 35.353
+      }
+    },
+    "trees": {
+      "swag": {
+        "samples": [
+          14.343,
+          12.086,
+          13.247,
+          15.411,
+          13.236
+        ],
+        "peak_bytes": 4870144,
+        "peak_working_set_bytes": 7811072,
+        "ns": 13.247
+      },
+      "mimalloc": {
+        "samples": [
+          7.958,
+          9.509,
+          8.442,
+          7.812,
+          7.493
+        ],
+        "peak_bytes": 5468160,
+        "peak_working_set_bytes": 5537792,
+        "ns": 7.958
+      },
+      "crt": {
+        "samples": [
+          49.636,
+          50.065,
+          48.174,
+          46.866,
+          49.273
+        ],
+        "peak_bytes": 3641344,
+        "peak_working_set_bytes": 4722688,
+        "ns": 49.273
+      }
+    },
+    "churn": {
+      "swag": {
+        "samples": [
+          30.513,
+          31.517,
+          31.961,
+          31.451,
+          33.982
+        ],
+        "peak_bytes": 30892032,
+        "peak_working_set_bytes": 27959296,
+        "ns": 31.517
+      },
+      "mimalloc": {
+        "samples": [
+          19.117,
+          18.7,
+          17.934,
+          18.841,
+          20.709
+        ],
+        "peak_bytes": 32133120,
+        "peak_working_set_bytes": 24342528,
+        "ns": 18.841
+      },
+      "crt": {
+        "samples": [
+          80.141,
+          80.911,
+          80.505,
+          81.568,
+          84.067
+        ],
+        "peak_bytes": 30924800,
+        "peak_working_set_bytes": 28868608,
+        "ns": 80.911
+      }
+    },
+    "medium": {
+      "swag": {
+        "samples": [
+          34.486,
+          34.455,
+          30.716,
+          32.87,
+          31.838
+        ],
+        "peak_bytes": 25427968,
+        "peak_working_set_bytes": 22102016,
+        "ns": 32.87
+      },
+      "mimalloc": {
+        "samples": [
+          39.228,
+          40.227,
+          41.065,
+          41.003,
+          39.274
+        ],
+        "peak_bytes": 23801856,
+        "peak_working_set_bytes": 19537920,
+        "ns": 40.227
+      },
+      "crt": {
+        "samples": [
+          362.228,
+          362.478,
+          353.738,
+          368.786,
+          366.082
+        ],
+        "peak_bytes": 17158144,
+        "peak_working_set_bytes": 16748544,
+        "ns": 362.478
+      }
+    },
+    "large": {
+      "swag": {
+        "samples": [
+          1857.265,
+          1998.53,
+          1961.595,
+          1946.145,
+          2009.04
+        ],
+        "peak_bytes": 43229184,
+        "peak_working_set_bytes": 45551616,
+        "ns": 1961.595
+      },
+      "mimalloc": {
+        "samples": [
+          1435.113,
+          1488.399,
+          1483.431,
+          1450.156,
+          1477.413
+        ],
+        "peak_bytes": 97988608,
+        "peak_working_set_bytes": 73973760,
+        "ns": 1477.413
+      },
+      "crt": {
+        "samples": [
+          10994.794,
+          11296.864,
+          11046.858,
+          10663.361,
+          10877.355
+        ],
+        "peak_bytes": 35618816,
+        "peak_working_set_bytes": 36470784,
+        "ns": 10994.794
+      }
+    },
+    "realloc": {
+      "swag": {
+        "samples": [
+          9694.667,
+          9988.694,
+          9917.306,
+          9606.222,
+          9714.833
+        ],
+        "peak_bytes": 14868480,
+        "peak_working_set_bytes": 13697024,
+        "ns": 9714.833
+      },
+      "mimalloc": {
+        "samples": [
+          9180.342,
+          9272.617,
+          8964.111,
+          8792.853,
+          9361.45
+        ],
+        "peak_bytes": 28299264,
+        "peak_working_set_bytes": 12435456,
+        "ns": 9180.342
+      },
+      "crt": {
+        "samples": [
+          73881.931,
+          74077.661,
+          75962.403,
+          73963.197,
+          74236.811
+        ],
+        "peak_bytes": 9785344,
+        "peak_working_set_bytes": 8900608,
+        "ns": 74077.661
+      }
+    },
+    "spread": {
+      "swag": {
+        "samples": [
+          2550.0,
+          2425.0,
+          2241.667,
+          2450.0,
+          2066.667
+        ],
+        "peak_bytes": 7491584,
+        "peak_working_set_bytes": 7561216,
+        "ns": 2425.0
+      },
+      "mimalloc": {
+        "samples": [
+          2644.167,
+          2226.667,
+          2582.5,
+          2266.667,
+          2672.5
+        ],
+        "peak_bytes": 8024064,
+        "peak_working_set_bytes": 5226496,
+        "ns": 2582.5
+      },
+      "crt": {
+        "samples": [
+          3088.333,
+          3551.667,
+          3316.667,
+          3152.5,
+          3330.833
+        ],
+        "peak_bytes": 3788800,
+        "peak_working_set_bytes": 4091904,
+        "ns": 3316.667
+      }
+    },
+    "grow": {
+      "swag": {
+        "samples": [
+          8.985,
+          8.81,
+          8.63,
+          8.714,
+          8.674
+        ],
+        "peak_bytes": 165056512,
+        "peak_working_set_bytes": 167198720,
+        "ns": 8.714
+      },
+      "mimalloc": {
+        "samples": [
+          7.245,
+          6.87,
+          6.67,
+          6.889,
+          6.652
+        ],
+        "peak_bytes": 165904384,
+        "peak_working_set_bytes": 165347328,
+        "ns": 6.87
+      },
+      "crt": {
+        "samples": [
+          28.98,
+          29.133,
+          29.836,
+          30.796,
+          30.063
+        ],
+        "peak_bytes": 240050176,
+        "peak_working_set_bytes": 228757504,
+        "ns": 29.836
+      }
+    },
+    "spread:8": {
+      "swag": {
+        "samples": [
+          805.208,
+          973.958,
+          1009.375,
+          750.0,
+          931.25
+        ],
+        "peak_bytes": 14708736,
+        "peak_working_set_bytes": 8450048,
+        "ns": 931.25
+      },
+      "mimalloc": {
+        "samples": [
+          1031.667,
+          962.812,
+          1165.833,
+          1012.604,
+          905.208
+        ],
+        "peak_bytes": 22306816,
+        "peak_working_set_bytes": 7049216,
+        "ns": 1012.604
+      },
+      "crt": {
+        "samples": [
+          2977.083,
+          2963.333,
+          3211.667,
+          3010.312,
+          3325.521
+        ],
+        "peak_bytes": 13611008,
+        "peak_working_set_bytes": 6787072,
+        "ns": 3010.312
+      }
+    },
+    "churn:4": {
+      "swag": {
+        "samples": [
+          10.797,
+          11.798,
+          11.879,
+          12.381,
+          10.574
+        ],
+        "peak_bytes": 103178240,
+        "peak_working_set_bytes": 84713472,
+        "ns": 11.798
+      },
+      "mimalloc": {
+        "samples": [
+          7.403,
+          7.635,
+          7.774,
+          8.298,
+          7.739
+        ],
+        "peak_bytes": 116408320,
+        "peak_working_set_bytes": 84647936,
+        "ns": 7.739
+      },
+      "crt": {
+        "samples": [
+          60.496,
+          51.82,
+          58.088,
+          63.395,
+          63.979
+        ],
+        "peak_bytes": 114733056,
+        "peak_working_set_bytes": 104087552,
+        "ns": 60.496
+      }
+    },
+    "medium:4": {
+      "swag": {
+        "samples": [
+          24.585,
+          15.105,
+          14.653,
+          18.72,
+          15.217
+        ],
+        "peak_bytes": 77438976,
+        "peak_working_set_bytes": 63016960,
+        "ns": 15.217
+      },
+      "mimalloc": {
+        "samples": [
+          14.333,
+          12.868,
+          13.596,
+          14.388,
+          11.697
+        ],
+        "peak_bytes": 101531648,
+        "peak_working_set_bytes": 65966080,
+        "ns": 13.596
+      },
+      "crt": {
+        "samples": [
+          1475.04,
+          1446.965,
+          1474.084,
+          1460.791,
+          1462.808
+        ],
+        "peak_bytes": 50753536,
+        "peak_working_set_bytes": 48099328,
+        "ns": 1462.808
+      }
+    },
+    "large:4": {
+      "swag": {
+        "samples": [
+          1201.89,
+          1143.389,
+          1262.075,
+          1248.629,
+          1211.436
+        ],
+        "peak_bytes": 121909248,
+        "peak_working_set_bytes": 123650048,
+        "ns": 1211.436
+      },
+      "mimalloc": {
+        "samples": [
+          679.879,
+          681.919,
+          679.514,
+          680.644,
+          684.675
+        ],
+        "peak_bytes": 312160256,
+        "peak_working_set_bytes": 229920768,
+        "ns": 680.644
+      },
+      "crt": {
+        "samples": [
+          5425.482,
+          4722.366,
+          4909.473,
+          4655.681,
+          5215.93
+        ],
+        "peak_bytes": 111370240,
+        "peak_working_set_bytes": 112005120,
+        "ns": 4909.473
+      }
+    },
+    "xfer:2": {
+      "swag": {
+        "samples": [
+          79.57,
+          79.134,
+          71.634,
+          75.325,
+          70.746
+        ],
+        "peak_bytes": 15282176,
+        "peak_working_set_bytes": 14077952,
+        "ns": 75.325
+      },
+      "mimalloc": {
+        "samples": [
+          68.177,
+          69.662,
+          71.142,
+          68.81,
+          67.358
+        ],
+        "peak_bytes": 15798272,
+        "peak_working_set_bytes": 11603968,
+        "ns": 68.81
+      },
+      "crt": {
+        "samples": [
+          108.884,
+          105.64,
+          105.456,
+          107.653,
+          103.897
+        ],
+        "peak_bytes": 10752000,
+        "peak_working_set_bytes": 11341824,
+        "ns": 105.64
+      }
+    },
+    "xfer:4": {
+      "swag": {
+        "samples": [
+          74.712,
+          79.29,
+          74.578,
+          80.358,
+          63.599
+        ],
+        "peak_bytes": 25464832,
+        "peak_working_set_bytes": 20197376,
+        "ns": 74.712
+      },
+      "mimalloc": {
+        "samples": [
+          68.011,
+          64.404,
+          67.745,
+          66.421,
+          55.646
+        ],
+        "peak_bytes": 25182208,
+        "peak_working_set_bytes": 15577088,
+        "ns": 66.421
+      },
+      "crt": {
+        "samples": [
+          89.59,
+          91.916,
+          90.939,
+          88.607,
+          94.736
+        ],
+        "peak_bytes": 16605184,
+        "peak_working_set_bytes": 16211968,
+        "ns": 90.939
+      }
+    }
+  },
+  "meta": {
+    "protocol": 2,
+    "settings": {
+      "pin_mask": "0x55401",
+      "pin_cores": 6,
+      "phases": [
+        "build",
+        "run"
+      ],
+      "swc_cores": 0,
+      "budget_ms": 2000,
+      "min_reps": 3,
+      "max_reps": 16,
+      "build_budget_ms": 2000,
+      "warmup_s": 30
+    },
+    "stamp": "20261010-204006",
+    "date": "2026-10-10T20:40:06+00:00",
+    "label": "",
+    "commit": "446d8e30a",
+    "subject": "docs: make prompt 2's static evidence exhaustive and its campaign mandatory",
+    "master": "446d8e30a",
+    "dirty": false,
+    "swc": "C:\\Users\\chris\\AppData\\Local\\swc-bench-builds\\campaign-7uurye7s\\bin\\swc.exe",
+    "swc_bytes": 7834112
+  }
+}

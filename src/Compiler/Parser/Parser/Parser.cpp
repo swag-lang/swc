@@ -256,7 +256,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
 {
     AutoInlineNameSet                                     metaFunctionNames;
     AutoInlineNameMap<uint32_t>                           callCounts;
-    AutoInlineNameMap<uint32_t>                           hotCallCounts;
+    AutoInlineNameSet                                      hotCallNames;
     AutoInlineNameMap<uint32_t>                           useCounts;
     std::unordered_map<const Ast*, AutoInlineCallGraph>   callGraphs;
     std::unordered_map<const Ast*, AutoInlineNameSet>     unsupportedFunctionNames;
@@ -319,7 +319,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 {
                     callCounts[name]++;
                     if (inLoop)
-                        hotCallCounts[name]++;
+                        hotCallNames.insert(name);
                     if (bodyOf != AutoInlineCallGraph::K_NO_FUNCTION)
                         callGraph->addCall(bodyOf, name);
                 }
@@ -390,7 +390,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             // Bound total duplication, including its cold call sites.
             const bool hotCallBody = bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS &&
                                      it != callCounts.end() && uint64_t{decl->autoInlineCost} * it->second <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
-                                     hotCallCounts.contains(name);
+                                     hotCallNames.contains(name);
             if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
                 mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
         }

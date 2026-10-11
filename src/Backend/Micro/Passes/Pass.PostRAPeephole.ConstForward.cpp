@@ -380,11 +380,12 @@ namespace PostRaPeephole
         if (!reg.isAnyInt())
             return false;
 
-        MicroInstrRef cursor = ctx.previousRef(defRef);
-        for (; cursor.isValid(); cursor = ctx.previousRef(cursor))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, defRef};
+        for (--scanIt; scanIt.current.isValid(); --scanIt)
         {
-            const MicroInstr* previous = ctx.instruction(cursor);
-            if (!previous || ctx.isClaimed(cursor))
+            const MicroInstrRef cursor   = scanIt.current;
+            const MicroInstr*   previous = &*scanIt;
+            if (ctx.isClaimed(cursor))
                 return false;
 
             const MicroInstrOperand* previousOps = previous->op == MicroInstrOpcode::LoadRegImm ? previous->ops(*ctx.operands) : nullptr;

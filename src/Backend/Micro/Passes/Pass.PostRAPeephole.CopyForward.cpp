@@ -3409,11 +3409,13 @@ namespace PostRaPeephole
         // every instruction crossed so later queued rewrites preserve that proof.
         SmallVector<MicroInstrRef, K_MAX_COPY_SOURCE_WINDOW + 1> observed;
         observed.push_back(copyRef);
-        MicroInstrRef nextRef = ctx.nextRef(copyRef);
-        for (uint32_t step = 0; step < K_MAX_COPY_SOURCE_WINDOW && nextRef.isValid(); ++step, nextRef = ctx.nextRef(nextRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
+        ++scanIt;
+        for (uint32_t step = 0; step < K_MAX_COPY_SOURCE_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            const MicroInstr* next = ctx.instruction(nextRef);
-            if (!next || ctx.isClaimed(nextRef))
+            const MicroInstrRef nextRef = scanIt.current;
+            const MicroInstr*   next    = &*scanIt;
+            if (ctx.isClaimed(nextRef))
                 return false;
             const auto& info = MicroInstr::info(next->op);
             if (next->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
@@ -3515,12 +3517,12 @@ namespace PostRaPeephole
         MicroInstrRef     prevRef = MicroInstrRef::invalid();
         const MicroInstr* prev    = nullptr;
         {
-            MicroInstrRef cur = ctx.previousRef(copyRef);
-            for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.previousRef(cur))
+            auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
+            --scanIt;
+            for (int step = 0; step < K_MAX_LIVENESS_WINDOW && scanIt.current.isValid(); ++step, --scanIt)
             {
-                const MicroInstr* inst = ctx.instruction(cur);
-                if (!inst)
-                    return false;
+                const MicroInstrRef cur  = scanIt.current;
+                const MicroInstr*   inst = &*scanIt;
                 if (ctx.isClaimed(cur))
                     return false;
 

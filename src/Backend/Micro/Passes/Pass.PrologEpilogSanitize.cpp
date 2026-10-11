@@ -506,16 +506,18 @@ namespace
         SmallVector<MicroInstrRef> releaseRefs;
         for (const MicroInstrRef retRef : rets)
         {
-            MicroInstrRef ref = context.instructions->findPreviousInstructionRef(retRef);
-            while (ref.isValid())
+            auto walker = MicroStorage::Iterator{context.instructions, retRef};
+            --walker;
+            while (walker.current.isValid())
             {
-                const MicroInstr* inst = context.instructions->ptr(ref);
+                const MicroInstr* inst = &*walker;
                 if (!inst || (inst->op != MicroInstrOpcode::Pop && inst->op != MicroInstrOpcode::Nop))
                     break;
-                ref = context.instructions->findPreviousInstructionRef(ref);
+                --walker;
             }
 
-            const MicroInstr* release   = ref.isValid() ? context.instructions->ptr(ref) : nullptr;
+            const MicroInstrRef ref = walker.current;
+            const MicroInstr*    release = ref.isValid() ? &*walker : nullptr;
             uint64_t          immediate = 0;
             if (!release || !isStackAdjustWithOp(*release, release->ops(*context.operands), stackPointer, MicroOp::Add, immediate) || immediate != frameSize)
                 return false;
@@ -1296,35 +1298,39 @@ namespace
 
     bool collectReturnTail(const MicroPassContext& context, const MicroReg stackPointer, const MicroInstrRef retRef, ReturnTail& tail)
     {
-        MicroInstrRef                 ref = context.instructions->findPreviousInstructionRef(retRef);
+        auto                          walker = MicroStorage::Iterator{context.instructions, retRef};
+        --walker;
         SmallVector<MicroInstrRef, 8> reversed;
         reversed.push_back(retRef);
-        while (const MicroInstr* inst = context.instructions->ptr(ref))
+        while (walker.current.isValid())
         {
+            const MicroInstr* inst = &*walker;
             if (inst->op != MicroInstrOpcode::Pop)
                 break;
-            reversed.push_back(ref);
-            ref = context.instructions->findPreviousInstructionRef(ref);
+            reversed.push_back(walker.current);
+            --walker;
         }
 
+        MicroInstrRef          ref = walker.current;
         const MicroInstr*        release       = context.instructions->ptr(ref);
         const MicroInstrOperand* releaseOps    = release ? release->ops(*context.operands) : nullptr;
         uint64_t                 releaseAmount = 0;
         if (!release || !isStackAdjustWithOp(*release, releaseOps, stackPointer, MicroOp::Add, releaseAmount) || !releaseAmount)
             return false;
         reversed.push_back(ref);
-        ref = context.instructions->findPreviousInstructionRef(ref);
+        --walker;
 
         uint32_t restoreCount = 0;
-        while (const MicroInstr* inst = context.instructions->ptr(ref))
+        while (walker.current.isValid())
         {
+            const MicroInstr*        inst = &*walker;
             const MicroInstrOperand* ops = inst->ops(*context.operands);
             if (inst->op != MicroInstrOpcode::LoadRegMem || !ops || !ops[0].reg.isFloat() ||
                 ops[1].reg != stackPointer || ops[2].opBits != MicroOpBits::B128)
                 break;
-            reversed.push_back(ref);
+            reversed.push_back(walker.current);
             ++restoreCount;
-            ref = context.instructions->findPreviousInstructionRef(ref);
+            --walker;
         }
         if (restoreCount < 2)
             return false;

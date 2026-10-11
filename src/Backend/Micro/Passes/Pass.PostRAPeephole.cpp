@@ -1190,6 +1190,9 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     forwardPrivateFrameReloads(ctx);
     runPerInstructionPatterns(ctx);
     optimizeScalarFloatInstructions(ctx);
+    // Memory operands must not take register products away from contraction
+    // or prevent a result copy from selecting the producer's destination.
+    foldNonDestructiveFloatMemoryOperands(ctx);
 
     if (ctx.actions.empty())
         return Result::Continue;

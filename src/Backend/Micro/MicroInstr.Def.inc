@@ -643,6 +643,20 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
         .opBitsMask            = (1 << 3),
     })
+// Scalar floating arithmetic with an independent destination and a memory
+// right operand: dst = left op [base + offset]. VEX copies upper lanes from left.
+SWC_MICRO_INSTR_DEF(
+    OpBinaryRegRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 4,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::RegisterDefsAtOutput,
+        .memBaseOperandIndex   = 2,
+        .memOffsetOperandIndex = 5,
+        .opBitsMask            = (1 << 3),
+    })
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegImm,
     MicroInstrDef{

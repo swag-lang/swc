@@ -4188,6 +4188,28 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
     }
 }
 
+void X64Encoder::encodeOpBinaryRegRegMem(MicroReg regDst, MicroReg regLeft, MicroReg memBase, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regDst.isFloat() && regLeft.isFloat());
+    SWC_ASSERT(memBase.isInt() || memBase.isInstructionPointer());
+    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+    SWC_ASSERT(op == MicroOp::FloatAdd || op == MicroOp::FloatSubtract || op == MicroOp::FloatMultiply ||
+               op == MicroOp::FloatDivide || op == MicroOp::FloatMin || op == MicroOp::FloatMax);
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
+
+    const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : 0xF3;
+    emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), microRegToX64Reg(memBase));
+    emitCpuOp(store_, op);
+    if (memBase.isInstructionPointer())
+    {
+        SWC_ASSERT(memOffset == 0);
+        emitModRm(store_, ModRmMode::Memory, encodeReg(regDst), MODRM_RM_RIP);
+        store_.pushU32(0);
+    }
+    else
+        emitModRm(store_, memOffset, encodeReg(regDst), memBase);
+}
+
 void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)
 {
     // SHLX/SHRX/SARX: the shift whose count comes from any register and whose

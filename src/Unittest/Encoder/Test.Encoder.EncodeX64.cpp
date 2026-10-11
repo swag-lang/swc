@@ -440,6 +440,10 @@ namespace
         ENCODE_CASE("op_binary_reg_imm_mul_imm32_b16", "45 0F BF ED 45 69 ED 01 01 00 00", b.emitOpBinaryRegImm(R13, ApInt(0x101, 16), MicroOp::MultiplySigned, MicroOpBits::B16););
         // VEX three-operand float arithmetic. The prefix carries the 0F escape,
         // so no 0F byte follows, and vvvv holds the first source complemented.
+        ENCODE_CASE("op_binary_reg_reg_mem_fadd_b64", "C5 F3 58 41 08", b.emitOpBinaryRegRegMem(XMM0, XMM1, RCX, 8, MicroOp::FloatAdd, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_mem_fsub_b32_extended", "C4 41 2A 5C 8D 34 12 00 00", b.emitOpBinaryRegRegMem(XMM9, XMM10, R13, 0x1234, MicroOp::FloatSubtract, MicroOpBits::B32););
+        ENCODE_CASE("op_binary_reg_reg_mem_fmul_b64_stack", "C5 EB 59 0C 24", b.emitOpBinaryRegRegMem(XMM1, XMM2, RSP, 0, MicroOp::FloatMultiply, MicroOpBits::B64););
+        ENCODE_CASE("op_binary_reg_reg_mem_fdiv_b32_rip", "C5 F2 5E 05 00 00 00 00", b.emitOpBinaryRegRegMem(XMM0, XMM1, MicroReg::instructionPointer(), 0, MicroOp::FloatDivide, MicroOpBits::B32); emitRipConstantRelocation(b););
         ENCODE_CASE("op_binary_reg_reg_reg_fmul_b64", "C5 EB 59 CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::FloatMultiply, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_reg_fadd_b64", "C5 F3 58 C2", b.emitOpBinaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatAdd, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_reg_fsub_b32", "C5 F2 5C C2", b.emitOpBinaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::FloatSubtract, MicroOpBits::B32););

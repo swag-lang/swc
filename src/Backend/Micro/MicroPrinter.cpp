@@ -992,14 +992,16 @@ namespace
             }
 
             case MicroInstrOpcode::OpBinaryRegRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegMem:
             {
                 // Three addresses, so the destination is not one of the sources:
                 // an infix operator names both of them instead of folding the
                 // destination into the left side.
                 const auto infixOp = binaryInfixOperator(ops[4].microOp);
+                const auto right   = inst.op == MicroInstrOpcode::OpBinaryRegRegMem ? memBaseOffsetString(ops[2].reg, ops[5].valueU64, regPrintMode, encoder) : regName(ops[2].reg, regPrintMode, encoder);
                 if (!infixOp.empty())
-                    return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, regName(ops[2].reg, regPrintMode, encoder));
-                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), regName(ops[1].reg, regPrintMode, encoder), regName(ops[2].reg, regPrintMode, encoder));
+                    return std::format("{} = {} {} {}", regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), infixOp, right);
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[4].microOp)), regName(ops[1].reg, regPrintMode, encoder), right);
             }
 
             case MicroInstrOpcode::OpTernaryRegRegReg:
@@ -2184,13 +2186,17 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::OpBinaryRegRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegMem:
                 appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
                 appendSep(out);
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
+                if (inst.op == MicroInstrOpcode::OpBinaryRegRegMem)
+                    appendMemBaseOffset(out, ctx, ops[2].reg, ops[5].valueU64, regPrintMode, encoder);
+                else
+                    appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[3].opBits);
                 break;

@@ -1,0 +1,50 @@
+[
+  {
+    "label": "A",
+    "compiler_sha256": "bcb20d4321e3b9f32d93a54ff2616842c196b5995c81c508cea159aa0a006e0b",
+    "checksum": "169096566666",
+    "exit": 0,
+    "wall_ms": 638.8443,
+    "first_stdout_ms": null,
+    "cpu_ms": 1546.875,
+    "peak_job_bytes": 263139328,
+    "peak_proc_bytes": 261865472,
+    "peak_working_set_bytes": 154611712
+  },
+  {
+    "label": "B",
+    "compiler_sha256": "f6c6128425f30a9555266cbc8957df91aa23936ce43cc4b8a78b06a3655824c9",
+    "checksum": "169096566666",
+    "exit": 0,
+    "wall_ms": 508.5376,
+    "first_stdout_ms": null,
+    "cpu_ms": 1562.5,
+    "peak_job_bytes": 272023552,
+    "peak_proc_bytes": 270753792,
+    "peak_working_set_bytes": 157077504
+  },
+  {
+    "label": "B",
+    "compiler_sha256": "f6c6128425f30a9555266cbc8957df91aa23936ce43cc4b8a78b06a3655824c9",
+    "checksum": "169096566666",
+    "exit": 0,
+    "wall_ms": 482.5942,
+    "first_stdout_ms": null,
+    "cpu_ms": 1734.375,
+    "peak_job_bytes": 275984384,
+    "peak_proc_bytes": 274702336,
+    "peak_working_set_bytes": 154267648
+  },
+  {
+    "label": "A",
+    "compiler_sha256": "bcb20d4321e3b9f32d93a54ff2616842c196b5995c81c508cea159aa0a006e0b",
+    "checksum": "169096566666",
+    "exit": 0,
+    "wall_ms": 527.982,
+    "first_stdout_ms": null,
+    "cpu_ms": 1703.125,
+    "peak_job_bytes": 281698304,
+    "peak_proc_bytes": 280416256,
+    "peak_working_set_bytes": 157802496
+  }
+]

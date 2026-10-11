@@ -1,0 +1,46 @@
+{
+  "start": "0x1400017a0",
+  "last_instruction": "0x140001bca",
+  "instructions": 201,
+  "memory_operands": 49,
+  "calls": 0,
+  "scalar_sqrt": 4,
+  "scalar_memory_arithmetic": [
+    [
+      "0x140001868",
+      "addsd\txmm12, qword ptr [rip + 0x184cf]"
+    ],
+    [
+      "0x14000187b",
+      "mulsd\txmm12, qword ptr [rip + 0x184c4]"
+    ],
+    [
+      "0x14000196c",
+      "addsd\txmm14, qword ptr [rip + 0x183cb]"
+    ],
+    [
+      "0x14000197f",
+      "mulsd\txmm14, qword ptr [rip + 0x183c0]"
+    ],
+    [
+      "0x1400019fb",
+      "addsd\txmm0, qword ptr [rip + 0x1837d]"
+    ],
+    [
+      "0x140001a41",
+      "addsd\txmm13, qword ptr [rip + 0x182f6]"
+    ],
+    [
+      "0x140001acf",
+      "addsd\txmm1, qword ptr [rip + 0x182b1]"
+    ],
+    [
+      "0x140001afb",
+      "addsd\txmm2, qword ptr [rip + 0x1828d]"
+    ],
+    [
+      "0x140001b0b",
+      "mulsd\txmm2, qword ptr [rip + 0x18235]"
+    ]
+  ]
+}

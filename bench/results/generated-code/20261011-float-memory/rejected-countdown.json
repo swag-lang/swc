@@ -1,0 +1,19 @@
+{
+  "baseline": "15f83c1ae",
+  "scope": "nbody",
+  "accepted": false,
+  "before": {
+    "executed_instructions": 424,
+    "memory": 155,
+    "rsp_memory": 24
+  },
+  "after": {
+    "executed_instructions": 434,
+    "memory": 172,
+    "rsp_memory": 29
+  },
+  "checksum": "169096566666",
+  "cpp_tests_passed": 1380,
+  "patch": "countdown-rejected.patch",
+  "reason": "Lost position-loop vectorization and fused multiplication-addition; extra spills and repeated pointer steps."
+}

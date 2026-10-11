@@ -118,11 +118,17 @@ new language syntax.
   of its body. Zig uses four packed roots and two scalar roots per timestep.
 - Rejected direction: pairing roots alone extended live ranges and increased frame accesses. The
   next change needs one register-pressure plan for producers, roots/divisions, and scalar consumers.
-- Next: first inspect the constant countdown emitted for the five-body slice
-  update: the full unroller currently recognizes only ascending bottom-tested
-  loops. Then design a joint producer/consumer packing plan for the interactions,
+- Rejected direction: directly unrolling the constant five-body slice countdown
+  preserves results but raises the weighted timestep from 424 instructions / 155
+  memory operands to 434 / 172 (RSP operands 24 to 29). Later position copies
+  retain pointer steps and lose multiplication-addition fusion; the original
+  loop's packed position updates also disappear. Unrolling needs an address,
+  fusion and register-pressure plan before another trial.
+- Next: design a joint producer/consumer packing plan for the interactions,
   accounting for scalar users and the availability of shared magnitudes at the
-  insertion point. Do not repeat a roots-only or late whole-block packing trial.
+  insertion point. Resolve the unrolled position copies' memory-source fusion
+  and pointer-step costs before enabling countdown unrolling. Do not repeat a
+  roots-only or late whole-block packing trial.
 - Done when: the step retains or packs body state without redundant pair work and matches the
   winner's packed roots/divisions without generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.

@@ -1,0 +1,106 @@
+{
+  "float-swap": {
+    "nbody": {
+      "outer_addresses": [
+        "0x14000b2d0",
+        "0x14000bac5"
+      ],
+      "inner_addresses": [
+        "0x14000ba80",
+        "0x14000bab4"
+      ],
+      "outer": {
+        "instructions": 372,
+        "padding": 0,
+        "memory_operands": 131,
+        "rsp_memory_operands": 24,
+        "calls": 0,
+        "fma": 65
+      },
+      "inner": {
+        "instructions": 13,
+        "padding": 0,
+        "memory_operands": 6,
+        "rsp_memory_operands": 0,
+        "calls": 0,
+        "fma": 0
+      },
+      "weighted_timestep": {
+        "instructions": 424,
+        "padding": 0,
+        "memory_operands": 155,
+        "rsp_memory_operands": 24,
+        "calls": 0,
+        "fma": 65
+      }
+    },
+    "raytrace": {
+      "addresses": [
+        "0x1400050e0",
+        "0x14000546c"
+      ],
+      "instructions": 173,
+      "padding": 0,
+      "memory_operands": 44,
+      "rsp_memory_operands": 22,
+      "calls": 0,
+      "fma": 16
+    },
+    "executables": {
+      "nbody": "fdf8ab8f2aebba51a896969bbeb25156f3883d06828f0362031025137f9cc3bf",
+      "raytrace": "7bc561d1e8ee0e797dc017850b03727d9f562059898f6e8cceec37598aa67125"
+    }
+  },
+  "float-memory-final": {
+    "nbody": {
+      "outer_addresses": [
+        "0x14000b290",
+        "0x14000ba85"
+      ],
+      "inner_addresses": [
+        "0x14000ba40",
+        "0x14000ba74"
+      ],
+      "outer": {
+        "instructions": 371,
+        "padding": 2,
+        "memory_operands": 131,
+        "rsp_memory_operands": 24,
+        "calls": 0,
+        "fma": 65
+      },
+      "inner": {
+        "instructions": 13,
+        "padding": 0,
+        "memory_operands": 6,
+        "rsp_memory_operands": 0,
+        "calls": 0,
+        "fma": 0
+      },
+      "weighted_timestep": {
+        "instructions": 423,
+        "padding": 2,
+        "memory_operands": 155,
+        "rsp_memory_operands": 24,
+        "calls": 0,
+        "fma": 65
+      }
+    },
+    "raytrace": {
+      "addresses": [
+        "0x1400050e0",
+        "0x14000545d"
+      ],
+      "instructions": 170,
+      "padding": 0,
+      "memory_operands": 44,
+      "rsp_memory_operands": 22,
+      "calls": 0,
+      "fma": 16
+    },
+    "executables": {
+      "nbody": "29f518951273a05fb59d04bae3db17f5974722b27f254ab034c87b71f4803b17",
+      "raytrace": "534456e6869f62891d81ed4be8ffd57db7822374144d2f8a4987ae842152694f"
+    }
+  }
+}

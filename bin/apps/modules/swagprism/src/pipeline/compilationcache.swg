@@ -23,7 +23,10 @@ impl BuildLease
     // Waits for the leased build to end; false when `cancelled` is raised first.
     mtd wait(cancelled: *u32)->bool
     {
-        while not .artifact!.task.isDone()
+        Swag.assert(.artifact != null)
+        let artifact = .artifact
+
+        while not artifact.task.isDone()
         {
             if Atomic.get(cancelled) do
                 return false

@@ -7,8 +7,11 @@ func htmlViewerFixturePath()->String => Path.combine(Path.combine(Path.directory
 
 func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
+    Swag.assert(result.isLoading != null)
+    let isLoading = result.isLoading
+
     var attempts: u32
-    while result.isLoading!() and attempts < 100
+    while isLoading() and attempts < 100
     {
         Threading.Thread.sleep(5'ms)
         host.app.runFrame()

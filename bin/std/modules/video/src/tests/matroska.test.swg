@@ -199,14 +199,21 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
     waitForMatroskaAudio(&reader, 2)
+    Swag.assert(reader.audioTrack(0) != null)
+
     var attempts: u32
-    while reader.audioTrack(0)!.durationInSeconds() < 100 and attempts < 5000
+    var hasCompleteAudio = false
+    while not hasCompleteAudio and attempts < 5000
     {
+        let audioTrack = reader.audioTrack(0)
+        if audioTrack do
+            hasCompleteAudio = audioTrack.durationInSeconds() >= 100
+
         Threading.Thread.sleep(1'ms)
         attempts += 1
     }
 
-    Swag.assert(reader.audioTrack(0)!.durationInSeconds() >= 100)
+    Swag.assert(hasCompleteAudio)
 }
 
 // Memory-backed Matroska uses the borrowed bytes for video and does not manufacture file cursors

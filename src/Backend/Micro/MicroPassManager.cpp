@@ -232,8 +232,13 @@ namespace
             storageRevisionBefore = context.instructions->revision();
 
 #if SWC_HAS_VALIDATE_MICRO
+        const bool verifyMicro = MicroVerify::isEnabled(context);
+#else
+        constexpr bool verifyMicro = false;
+#endif
+#if SWC_HAS_VALIDATE_MICRO
         uint64_t structuralHashBefore = 0;
-        if (MicroVerify::isEnabled(context))
+        if (verifyMicro)
         {
             const std::string stageNameBefore = passStageName(pass, true);
             SWC_RESULT(verifyCurrentState(context, stageNameBefore, verifyCache));
@@ -248,7 +253,7 @@ namespace
         SWC_RESULT(pass.run(context));
 
         uint64_t storageRevisionAfter = storageRevisionBefore;
-        if (context.instructions)
+        if (context.instructions && (context.passChanged || verifyMicro))
             storageRevisionAfter = context.instructions->revision();
 
         // passChanged is the invalidation contract between transforms and shared
@@ -267,7 +272,7 @@ namespace
             context.ssaState->invalidate();
 
 #if SWC_HAS_VALIDATE_MICRO
-        if (MicroVerify::isEnabled(context))
+        if (verifyMicro)
         {
             const std::string stageNameAfter = passStageName(pass, false);
             verifyCache.hasCurrentState      = false;

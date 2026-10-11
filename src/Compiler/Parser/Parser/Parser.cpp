@@ -27,8 +27,9 @@ namespace
 
     struct AutoInlineCallInfo
     {
-        uint32_t count  = 0;
-        bool     inLoop = false;
+        uint32_t count       = 0;
+        bool     inLoop      = false;
+        bool     inRecursion = false;
     };
 
     using AutoInlineNameSet = std::unordered_set<AutoInlineName, AutoInlineNameHash>;
@@ -93,8 +94,6 @@ namespace
                 return K_NO_FUNCTION;
             return indexOf(autoInlineName(ast.srcView(), decl.tokNameRef));
         }
-
-        void requireConstraints() noexcept { needsConstraints_ = true; }
 
         void addCall(const uint32_t sourceIndex, const AutoInlineName& targetName)
         {
@@ -165,7 +164,19 @@ namespace
             return cyclic_[it->second] ? InlineConstraint::Cycle : InlineConstraint::None;
         }
 
-        bool needsConstraints() const noexcept { return needsConstraints_; }
+        // A call directly inside a recursive component is repeated like a loop
+        // body. Keep this name-based fact as a cost heuristic, never a type proof.
+        void markRecursiveCallees(AutoInlineNameMap<AutoInlineCallInfo>& callInfo) const
+        {
+            std::vector<bool> repeated(edges_.size(), false);
+            for (uint32_t source = 0; source < edges_.size(); ++source)
+                if (cyclic_[source])
+                    for (const uint32_t target : edges_[source])
+                        repeated[target] = true;
+            for (const auto& [name, index] : nameIndices_)
+                if (repeated[index])
+                    callInfo[name].inRecursion = true;
+        }
 
     private:
         static constexpr uint8_t BLOCKED_TARGET = 1;
@@ -223,7 +234,6 @@ namespace
         std::vector<bool>                              cyclic_;
         std::vector<uint8_t>                           blockedCalls_;
         bool                                           constraintsPrepared_ = false;
-        bool                                           needsConstraints_    = false;
         SmallVector<uint32_t>                          stack_;
         uint32_t                                       nextIndex_ = 0;
     };
@@ -235,7 +245,7 @@ namespace
     {
         Ast::visit(ast, rootRef, [&](AstNodeRef nodeRef, const AstNode& node) {
             const auto* decl = node.safeCast<AstFunctionDecl>();
-            if (!decl || decl->autoInlineCost > K_AUTO_INLINE_MAX_BODY_TOKENS)
+            if (!decl || decl->autoInlineCost > K_AUTO_INLINE_MAX_BODY_TOKENS || decl->autoInlineHasNotNull)
                 return Ast::VisitResult::Continue;
 
             if (!decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls))
@@ -324,8 +334,6 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                     functionDecls[astIndex].push_back(nodeRef);
                 if (!callGraph)
                     callGraph = &callGraphs[ast];
-                if (inlineCandidate && decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls))
-                    callGraph->requireConstraints();
                 childrenBodyOf = AutoInlineCallGraph::K_NO_FUNCTION;
                 ownIndex       = callGraph->addFunction(*ast, *decl);
                 ownBodyRef     = decl->nodeBodyRef;
@@ -361,6 +369,17 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
         }
     }
 
+    // Recursive callers can live in a different source file from their small
+    // helper. Prepare every graph before selecting declarations in any Ast.
+    // Cyclic candidates stay out: waiting for their analyzed bodies would
+    // otherwise turn runtime recursion into a semantic-analysis wait cycle.
+    for (auto& [ast, graph] : callGraphs)
+    {
+        const auto unsupportedIt = unsupportedFunctionNames.find(ast);
+        graph.prepareConstraints(metaFunctionNames, unsupportedIt == unsupportedFunctionNames.end() ? nullptr : &unsupportedIt->second);
+        graph.markRecursiveCallees(callInfo);
+    }
+
     for (size_t astIndex = 0; astIndex < moduleAsts.size(); ++astIndex)
     {
         Ast* ast = moduleAsts[astIndex];
@@ -368,15 +387,6 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             continue;
 
         const auto callGraphIt = callGraphs.find(ast);
-        if (callGraphIt != callGraphs.end() && callGraphIt->second.needsConstraints())
-        {
-            // Auto-inlining waits for the callee's resolved body before cloning it. A cycle of
-            // candidates would therefore turn a legal recursive call graph into a sema wait cycle.
-            // Prepare only Ast graphs that have an inline candidate; the walk built graphs for
-            // every function declaration, including those that can never be moved inline.
-            const auto unsupportedIt = unsupportedFunctionNames.find(ast);
-            callGraphIt->second.prepareConstraints(metaFunctionNames, unsupportedIt == unsupportedFunctionNames.end() ? nullptr : &unsupportedIt->second);
-        }
 
         for (const AstNodeRef nodeRef : functionDecls[astIndex])
         {
@@ -409,6 +419,12 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 const auto useIt = useCounts.find(name);
                 hasLastCallBonus = useIt != useCounts.end() && useIt->second == 1;
             }
+            const bool repeatedLastCall = hasLastCallBonus && (it->second.inLoop || it->second.inRecursion);
+            if (repeatedLastCall)
+                mutableDecl->autoInlineRepeatedCall = true;
+            if (decl.autoInlineHasNotNull && !repeatedLastCall)
+                continue;
+
             // Volunteer a small wrapper with calls when at least one site is in a loop.
             // Bound total duplication, including its cold call sites.
             const bool hotCallBody = bodyHasCall && decl.autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS &&

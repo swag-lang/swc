@@ -10,6 +10,7 @@ namespace
         uint32_t numCalls      = 0;
         bool     blocked       = false;
         bool     staticStorage = false;
+        bool     hasNotNull    = false;
     };
 
     // A local function or closure re-binds its outer-scope access and owns a distinct code symbol.
@@ -36,8 +37,13 @@ namespace
         // to explicit inlining until their payload is remapped with the clone.
         if (node.is(AstNodeId::ErrorManagementExpr) || node.is(AstNodeId::ErrorManagementStmt))
         {
-            result.blocked = true;
-            return;
+            if (node.is(AstNodeId::ErrorManagementExpr) && firstToken[node.tokRef().get()].id == TokenId::SymBang)
+                result.hasNotNull = true;
+            else
+            {
+                result.blocked = true;
+                return;
+            }
         }
         // A `global` or `tls` declaration owns one storage for the whole program, and cloning
         // the body gives every copy a storage of its own.
@@ -89,10 +95,11 @@ namespace
 
 // Measure the body's stable parse-time cost. Sema rewrites body nodes in place, so the same walk
 // run during analysis can read nodes whose id and payload disagree.
-uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, bool& outStaticStorage, AstNodeRef bodyRef, TokenRef bodyStartRef) const
+uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, bool& outStaticStorage, bool& outHasNotNull, AstNodeRef bodyRef, TokenRef bodyStartRef) const
 {
     outHasCalls      = false;
     outStaticStorage = false;
+    outHasNotNull    = false;
     if (bodyRef.isInvalid() || bodyStartRef.isInvalid())
         return UINT32_MAX;
 
@@ -104,6 +111,7 @@ uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, bool& outStaticSto
     measureAutoInlineBody(shape, *ast_, bodyRef, firstToken_);
     outHasCalls      = shape.numCalls != 0;
     outStaticStorage = shape.staticStorage;
+    outHasNotNull    = shape.hasNotNull;
     if (shape.blocked)
         return UINT32_MAX;
 
@@ -394,7 +402,10 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
 
     bool autoInlineHasCalls    = false;
     bool autoInlineStaticStore = false;
-    nodePtr->autoInlineCost    = computeAutoInlineBodyCost(autoInlineHasCalls, autoInlineStaticStore, nodePtr->nodeBodyRef, bodyStartRef);
+    bool autoInlineHasNotNull  = false;
+    nodePtr->autoInlineCost    = computeAutoInlineBodyCost(autoInlineHasCalls, autoInlineStaticStore, autoInlineHasNotNull, nodePtr->nodeBodyRef, bodyStartRef);
+    if (autoInlineHasNotNull)
+        nodePtr->autoInlineHasNotNull = true;
     if (autoInlineHasCalls)
         nodePtr->addFlag(AstFunctionFlagsE::AutoInlineHasCalls);
     nodePtr->ownsStaticStorage = autoInlineStaticStore;

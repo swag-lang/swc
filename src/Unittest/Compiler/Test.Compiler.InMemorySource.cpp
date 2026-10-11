@@ -1277,6 +1277,91 @@ func foreignUnsupported()->func||()->s32
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AutoInlineAssertionsNeedOneRepeatedCallSite)
+{
+    static constexpr std::string_view PROVIDER     = R"(#global private
+func inLoop(value: *s32?)->s32 => value![]
+func inRecursion(value: *s32?)->s32 => value![]
+func inMutualRecursion(value: *s32?)->s32 => value![]
+func inSetup(value: *s32?)->s32 => value![]
+func addressTaken(value: *s32?)->s32 => value![]
+func managed(value: *s32?)->s32 => try fallibleRead(value)
+)";
+    static constexpr std::string_view CALLER       = R"(#global private
+func recursive(value: *s32?, depth: u32)->s32
+{
+    if depth == 0 do return 0
+    return inRecursion(value) + recursive(value, depth - 1)
+}
+func first(value: *s32?, depth: u32)->s32
+{
+    if depth == 0 do return 0
+    return inMutualRecursion(value) + second(value, depth - 1)
+}
+func second(value: *s32?, depth: u32)->s32
+{
+    return first(value, depth)
+}
+func use(value: *s32?, count: u32)
+{
+    let cold = inSetup(value)
+    let callback = addressTaken
+    for count
+    {
+        let hot = inLoop(value)
+        let addressed = addressTaken(value)
+        let handled = managed(value)
+    }
+}
+)";
+    const fs::path                    providerPath = Unittest::makeTestSourcePath("Compiler", "AutoInlineRepeatedProvider");
+    const fs::path                    callerPath   = Unittest::makeTestSourcePath("Compiler", "AutoInlineRepeatedCaller");
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Syntax;
+    cmdLine.name    = "compiler_auto_inline_repeated";
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, providerPath, PROVIDER);
+    Unittest::registerTestSource(compiler, callerPath, CALLER);
+    TaskContext compilerCtx(compiler);
+
+    SourceFile& provider = compiler.addFile(providerPath, FileFlagsE::CustomSrc);
+    SourceFile& caller   = compiler.addFile(callerPath, FileFlagsE::CustomSrc);
+    SWC_RESULT(provider.loadContent(compilerCtx));
+    SWC_RESULT(caller.loadContent(compilerCtx));
+    Lexer  lexer;
+    Parser parser;
+    for (SourceFile* source : {&provider, &caller})
+    {
+        lexer.tokenize(compilerCtx, source->ast().srcView(), LexerFlagsE::Default);
+        if (source->ast().srcView().mustSkip())
+            return Result::Error;
+        parser.parse(compilerCtx, source->ast());
+    }
+    const std::array moduleAsts = {&provider.ast(), &caller.ast()};
+    Parser::finalizeAutoInlineCandidates(moduleAsts);
+
+    for (const std::string_view name : {"inLoop", "inRecursion", "inMutualRecursion"})
+    {
+        const AstFunctionDecl* decl = findFunctionDecl(provider.ast(), name);
+        if (!decl || !decl->autoInlineHasNotNull || !decl->autoInlineRepeatedCall || !decl->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+    }
+    for (const std::string_view name : {"inSetup", "addressTaken", "managed"})
+    {
+        const AstFunctionDecl* decl = findFunctionDecl(provider.ast(), name);
+        if (!decl || decl->autoInlineRepeatedCall || decl->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+    }
+    for (const std::string_view name : {"recursive", "first", "second"})
+    {
+        const AstFunctionDecl* decl = findFunctionDecl(caller.ast(), name);
+        if (!decl || decl->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

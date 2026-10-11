@@ -1,0 +1,88 @@
+[
+  {
+    "task": "wordfreq",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "csvagg",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "sha256",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "dijkstra",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "raytrace",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "leven",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "chacha",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "nbody",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "fannkuch",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "binarytrees",
+    "changed_bodies": [
+      "Binarytrees.bottomUp",
+      "Binarytrees.release",
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "lz77",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "sort",
+    "changed_bodies": [
+      "__printPanicReport",
+      "__setupRuntime"
+    ]
+  }
+]

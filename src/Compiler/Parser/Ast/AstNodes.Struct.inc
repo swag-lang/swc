@@ -274,6 +274,10 @@ struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstFunctionFlags
     // every call site. The parser decides this for the same reason it decides the cost.
     bool ownsStaticStorage = false;
 
+    // Immutable parser facts used by module-wide automatic inlining.
+    bool autoInlineHasNotNull   = false;
+    bool autoInlineRepeatedCall = false;
+
     uint32_t   autoInlineCost = UINT32_MAX;
     SpanRef    spanGenericParamsRef;
     AstNodeRef nodeParamsRef;

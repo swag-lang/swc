@@ -1,0 +1,80 @@
+{
+  "addresses": {
+    "frame-escape": {
+      "bottomUp": 5368713248,
+      "release": 5368723840,
+      "benchAlloc": 5368737472,
+      "benchFree": 5368747232
+    },
+    "inline-repeat": {
+      "bottomUp": 5368713248,
+      "release": 5368724000
+    }
+  },
+  "paths": [
+    {
+      "path": "bottomUp",
+      "leaf": false,
+      "before": {
+        "instructions": 61,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 6,
+        "calls": 4
+      },
+      "after": {
+        "instructions": 53,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 6,
+        "calls": 3
+      }
+    },
+    {
+      "path": "release",
+      "leaf": false,
+      "before": {
+        "instructions": 53,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 4,
+        "calls": 4
+      },
+      "after": {
+        "instructions": 48,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 4,
+        "calls": 3
+      }
+    },
+    {
+      "path": "bottomUp",
+      "leaf": true,
+      "before": {
+        "instructions": 55,
+        "explicit_memory": 19,
+        "saved_register_stack_operations": 6,
+        "calls": 2
+      },
+      "after": {
+        "instructions": 47,
+        "explicit_memory": 19,
+        "saved_register_stack_operations": 6,
+        "calls": 1
+      }
+    },
+    {
+      "path": "release",
+      "leaf": true,
+      "before": {
+        "instructions": 44,
+        "explicit_memory": 15,
+        "saved_register_stack_operations": 4,
+        "calls": 2
+      },
+      "after": {
+        "instructions": 39,
+        "explicit_memory": 15,
+        "saved_register_stack_operations": 4,
+        "calls": 1
+      }
+    }
+  ]
+}

@@ -2665,6 +2665,7 @@ namespace
         if (decl->nodeBodyRef.isInvalid())
             return false;
         const bool bodyHasCalls = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
+        const bool repeatedCall = decl->autoInlineRepeatedCall;
         // The large budget is a last-call-to-static bonus: it only applies where this module owns
         // every possible caller and can truly eliminate the remaining call edge. Public helpers
         // may still be called by another module, so they keep only the former small leaf policy.
@@ -2675,7 +2676,7 @@ namespace
         if (fn.returnTypeRef().isValid())
         {
             const TypeInfo& returnType = sema.ctx().typeMgr().get(fn.returnTypeRef());
-            if ((bodyHasCalls && returnType.isNullable()) || isInlineAggregateType(returnType))
+            if ((bodyHasCalls && !repeatedCall && returnType.isNullable()) || isInlineAggregateType(returnType))
                 return false;
         }
         for (const SymbolVariable* param : fn.parameters())
@@ -2689,15 +2690,16 @@ namespace
             if (param->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
                 continue;
             const TypeInfo& paramType = param->type(sema.ctx());
-            // Nullable qualification is part of the callee's flow contract. The inline binding
-            // currently adopts the call-site expression type, which can narrow `nullable *T` to
-            // `*T` and make a valid null test in the cloned body ill-typed.
+            // Block-pointer bindings already retain their declared parameter type,
+            // including nullable qualification. Volunteer a body with calls only at
+            // one repeated site; other nullable bindings keep their existing boundary.
             // A non-null slice is a borrowed pointer/count descriptor. It does
             // not move or own the elements, and ordinary inline argument homes
             // already preserve its view conversion and single evaluation.
             const bool sliceView = paramType.isSlice() && !paramType.isNullable() &&
                                    !sema.ctx().typeMgr().get(paramType.payloadTypeRef()).isAggregate();
-            if ((bodyHasCalls && paramType.isNullable()) || (isInlineAggregateType(paramType) && !sliceView))
+            if (((bodyHasCalls || decl->autoInlineHasNotNull) && paramType.isNullable() && (!repeatedCall || !paramType.isBlockPointer())) ||
+                (isInlineAggregateType(paramType) && !sliceView))
                 return false;
             // A reference parameter to an aggregate (e.g. `const &{x, y}`) is excluded for the same
             // reason its by-value form is: the aggregate is not a scalar/pointer the auto-inline clone

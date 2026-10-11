@@ -15,7 +15,7 @@ inline argument materialization. Earlier measurements used the whole-hull alloca
 builds now use interval splitting, so those measurements identify workloads to recheck rather than
 current performance guarantees. `MicroSsaState` reconstructs SSA and phi values for analysis, while
 the executable Micro instruction stream has no explicit phi instruction. Since build 438, a call
-that the straight-line path steps over — a safety panic, a cold refill — no longer constrains the split
+that the straight-line path steps over â€” a safety panic, a cold refill â€” no longer constrains the split
 allocator: a value crossing it in a caller-saved register is parked in its home inside the cold
 block, and the hot path keeps the register.
 
@@ -85,40 +85,30 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.024 — Make implicit register claims operand-precise
+### compiler.optimization.024 â€” Make implicit register claims operand-precise
 
 - Evidence: the split allocator assigns full-instruction fixed intervals to remaining implicit operands such as variable shifts and compare-exchange. Those intervals can trigger avoidable register borrows; definition-only multiply outputs already use position-specific claims.
 - Attempt: a whole-library Release comparison showed no repeatable runtime gain for the retained multiply-output rule, so keep it only for its proved register-pressure benefit.
 - Next: audit shift and compare-exchange claims, then trace any remaining borrow from a representative `bin/std` build to the exact interval that requires it.
 - Done when: implicit operands use the narrowest sound interval, unnecessary borrows disappear, and focused allocator tests preserve all input/output constraints.
 - Related: compiler.optimization.016.
-### compiler.optimization.126 — Auto-inline cannot volunteer a body with a postfix `!` or a nullable signature
+### compiler.optimization.126 ? Preserve nullable value-pointer types in automatic inline bindings
 
 - Area: compiler/sema, automatic inlining and flow narrowing.
-- Evidence: binarytrees calls `benchAlloc` and `benchFree` once each per node and each has a single call
-  site, yet neither is inlined. `measureAutoInlineBody` in `Parser.Func.cpp` blocks every
-  `ErrorManagementExpr`, and the postfix not-null assertion shares that node (`allocator!`); then
-  `shouldAutoInline` refuses nullable parameters and returns when the body has calls. Exempting the
-  `!` token and lifting the nullable rule inlines both: `bottomUp` plus `benchAlloc` 91 -> 73 static
-  instructions, `release` plus `benchFree` 75 -> 63, two calls per node fewer; a scratch copy with
-  explicit `#[Swag.Inline]` ran 13-19 % faster in a noisy window.
-- Correctness repair retained: facts recorded while analyzing an inline body now stop at the frame
-  that opens that expansion. The reference compiler rejects the caller's second `value!` in the
-  standalone `inline_nullable_assert.swg` case, matching the earlier `m.alive!` failures in native
-  aoc2024 day11 and day21; the focused sema suite checks the file with the repair.
-- Rejected broad eligibility on the current revision: inlining both wrappers changed
-  `Binarytrees.__main_0` from 26 to 70 optimized Micro instructions in `bottomUp` and from 19 to 60
-  in `release`, with larger recursive frames. More decisively, `Wordfreq.__main_0` grew from 443 to
-  508 optimized Micro instructions, and the `while i < n` loop gained extra frame loads and stores.
-  This does not meet the sentinel no-loss rule; no timing was taken.
-- Next: make eligibility depend on the actual call-site type and body flow, then prove a hot-path
-  gain without volunteering one-time setup or adding frame traffic to sentinel loops.
-- Done when: single-call wrappers with `!` or nullable signatures auto-inline with no static
-  per-iteration loss on any bench hot loop.
+- Evidence: block-pointer inline bindings preserve their declared parameter type, but ordinary
+  value-pointer bindings can adopt the argument's narrower type. Volunteering a nullable value
+  pointer body can therefore invalidate a null test or postfix assertion after cloning.
+  Repeated single-site wrappers with nullable block pointers now qualify; the value-pointer
+  boundary remains deliberate. The inline frame also bounds flow facts so a callee assertion
+  cannot change the caller's subsequent `value!` (`inline_nullable_assert.swg`).
+- Next: preserve the declared nullable value-pointer contract without adding unnecessary homes
+  or widening eligibility for one-time setup. Broad nullable eligibility previously added frame
+  loads/stores to wordfreq's hot scan; keep that sentinel and inspect actual call-site conversions.
+- Done when: repeated wrappers with nullable value-pointer parameters auto-inline with their
+  flow contract intact and no static per-iteration loss on reachable benchmark hot paths.
 - Related: compiler.optimization.094, compiler.optimization.117.
 
-
-### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
+### compiler.optimization.104 â€” The n-body pair loop keeps its pairs scalar
 
 - Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization
 - Evidence: the latest comparable native result has n-body about 1.43x slower than Zig, but noisy
@@ -135,7 +125,7 @@ new language syntax.
   winner's packed roots/divisions without generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
 
-### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
+### compiler.optimization.055 â€” Keep both quicksort global pointers resident across comparator calls
 
 - Area: compiler/backend, loop-invariant code motion and call effects
 - Evidence: `wordfreq`'s `qsort` compares through file-level `late` globals `g_Idx` and `g_Cnt`.
@@ -148,13 +138,13 @@ new language syntax.
 - Done when: both pointers remain resident through comparator calls without extra spill traffic and
   checksums remain correct, or a current dump shows the gap has closed.
 
-### compiler.optimization.011 — Keep hot SIMD values out of the frame
+### compiler.optimization.011 â€” Keep hot SIMD values out of the frame
 
 - Evidence: `Video.H264.mcChroma`, `Hevc.Decoder.filterLumaEdge`, and `Hevc.Decoder.interpolateLuma` have had frame traffic in their hot loops. Previous measurements predate the split allocator and are no longer a current baseline.
 - Next: dump the current Release functions and measure per-segment time. Attribute each remaining spill to register pressure or a missed allocation/hoist opportunity before changing the backend.
 - Done when: current evidence identifies a profitable change with byte-exact decoder output, or shows the remaining frame traffic is necessary and the entry is removed.
 - Related: compiler.optimization.024.
-### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
+### compiler.optimization.015 â€” Extend carried-slot promotion beyond private 64-bit spills
 
 - Area: compiler/backend
 - Current boundary: post-allocation promotion caches private 64-bit spills across eligible loops,
@@ -170,7 +160,7 @@ new language syntax.
   multi-access rewrite.
 - Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
 
-### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
+### compiler.optimization.034 â€” Reuse the selected Dijkstra heap child across its comparison
 
 - Area: compiler/backend, memory optimization
 - Current evidence: the Release sift-up loop already retains its private heap
@@ -188,7 +178,7 @@ new language syntax.
 - Done when: the selected-child reload disappears with sound path availability,
   or a focused experiment identifies the register-residency constraint.
 
-### compiler.optimization.035 — Improve spill choices after register and memory promotion
+### compiler.optimization.035 â€” Improve spill choices after register and memory promotion
 
 - Area: compiler/backend, register allocation and live ranges
 - Evidence: after removing the permanent integer legalization reserve,
@@ -210,7 +200,7 @@ new language syntax.
   local allocation costs. No elapsed-time regression is inferred.
 - Done when: these local increases are removed or explained by a necessary tradeoff.
 
-### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
+### compiler.optimization.020 â€” Share the remaining frame alias proofs across memory passes
 
 - Area: compiler/backend, memory alias analysis
 - Current boundary: LICM and SLP consume MicroPassHelpers::analyzeFramePrivacy.
@@ -227,7 +217,7 @@ new language syntax.
   disjoint store in a real codec loop, and remaining local allocation costs are resolved.
 - Related: compiler.optimization.015.
 
-### compiler.optimization.032 — Control register pressure in wider partial unrolling
+### compiler.optimization.032 â€” Control register pressure in wider partial unrolling
 
 - Area: compiler/backend
 - Current boundary: exact even loops too large to fully unroll can group two straight-line
@@ -251,7 +241,7 @@ new language syntax.
   traffic, and the retained two-round form's outer spill cost is resolved.
 - Related: compiler.optimization.005, compiler.optimization.015, compiler.optimization.016.
 
-### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
+### compiler.optimization.022 â€” An inlined by-value aggregate argument is copied even when the body only reads it
 
 - Area: compiler/sema
 - Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
@@ -278,7 +268,7 @@ new language syntax.
 - Done when: the value-returning block transform is as cheap as its in-place shape on
   the video corpus, including bodies outside the retained pure-leaf boundary.
 
-### compiler.optimization.005 — Investigate the remaining Levenshtein outer-loop allocation costs
+### compiler.optimization.005 â€” Investigate the remaining Levenshtein outer-loop allocation costs
 
 - Area: compiler/backend
 - Evidence: the exact indexed load/store copy loop now has a four-way scalar unroll with the
@@ -291,7 +281,7 @@ new language syntax.
 - Done when: outer-region accesses are eliminated or attributed to unavoidable carry
   initialization/lifetime costs while preserving any confirmed inner-loop gain.
 
-### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
+### compiler.optimization.029 â€” Reduce SSA rebuilding after definition-changing and redirected-use rewrites
 
 - Area: compiler/backend, compilation time
 - Evidence: CFG identity and unchanged definitions now allow operand refresh and several analyses to
@@ -304,7 +294,7 @@ new language syntax.
   compiler-time gain is distinguishable from the measurement floor.
 - Related: compiler.core.004, compiler.core.030, compiler.optimization.005.
 
-### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
+### compiler.optimization.036 â€” Finish shared address folding and isolate its remaining allocation cost
 
 - Area: compiler/backend
 - Resolved: late pre-allocation scheduling folds a single-use constant-offset address into
@@ -326,7 +316,7 @@ new language syntax.
 - Done when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
 
-### compiler.optimization.105 — Prove lz77's signed remainder bounds
+### compiler.optimization.105 â€” Prove lz77's signed remainder bounds
 
 - Area: compiler/backend, value ranges and signed remainder lowering
 - Evidence: unsigned constant remainders with a proven bounded dividend already lower to a mask or
@@ -339,7 +329,7 @@ new language syntax.
 - Done when: every removed sign correction has a sound range proof, exact checksums, unrelated
   positive/negative coverage, and no generated-code loss elsewhere.
 
-### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
+### compiler.optimization.125 â€” Finish the AVX boundary cost and caller-state audit
 
 - Evidence: native, JIT, foreign-return and callback dirty-state probes now match clean-state
   numerical results and performance. Release dirty-state nbody falls from about 23 ms to 0.17 ms.
@@ -351,7 +341,7 @@ new language syntax.
 - Done when: the unmodified caller-state question is resolved and compiler cost is assessed.
 - Related: compiler.optimization.121, cpu.simd.001.
 
-### compiler.optimization.121 — Optimize final code and data layout with retained structure
+### compiler.optimization.121 â€” Optimize final code and data layout with retained structure
 
 - Evidence: local cold-block placement and loop alignment exist; the integrated linker owns final
   symbols/relocations. It can retain function/block boundaries and profile edges instead of
@@ -385,7 +375,7 @@ new language syntax.
 - Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
   compiler.core.074.
 
-### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
+### compiler.optimization.107 â€” Preserve resolved bodies before ABI lowering
 
 - Evidence: ordinary inlining clones and re-analyzes syntax in `SemaInline.cpp`. Automatic selection
   excludes generic and fallible functions and most aggregate signatures; all ordinary inline modes
@@ -407,7 +397,7 @@ new language syntax.
   consumes bodies without a second semantic analysis of ordinary function syntax.
 - Related: compiler.optimization.106, compiler.optimization.108.
 
-### compiler.optimization.123 — Generate profitable CPU variants across source modules
+### compiler.optimization.123 â€” Generate profitable CPU variants across source modules
 
 - Evidence: a final application may target a known CPU or a baseline with optional extensions.
   Source-visible dependency kernels can follow the same target policy as their callers instead of
@@ -429,7 +419,7 @@ new language syntax.
 - Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.120,
   cpu.simd.001.
 
-### compiler.optimization.106 — Resolve local implementations and optimization boundaries
+### compiler.optimization.106 â€” Resolve local implementations and optimization boundaries
 
 - Evidence: `shouldAutoInline` in
   [SemaInline.cpp](../src/Compiler/Sema/Helpers/SemaInline.cpp) rejects another module namespace.
@@ -469,7 +459,7 @@ new language syntax.
   binding; decision records identify the exact eligibility reason.
 - Related: compiler.optimization.107, compiler.optimization.109.
 
-### compiler.optimization.108 — Build a bounded global call index and optimization driver
+### compiler.optimization.108 â€” Build a bounded global call index and optimization driver
 
 - Evidence: [MicroPassManager.cpp](../src/Backend/Micro/MicroPassManager.cpp) operates on individual
   functions; semantic automatic inlining has a limited call graph; the linker resolves emitted
@@ -491,7 +481,7 @@ new language syntax.
   reusable; instrumentation accounts for time and memory by phase.
 - Related: compiler.optimization.107, compiler.optimization.109, compiler.core.073.
 
-### compiler.optimization.109 — Cache bodies and the assumptions used by callers
+### compiler.optimization.109 â€” Cache bodies and the assumptions used by callers
 
 - Evidence: [NativeBackendBuilder.cpp](../src/Backend/Native/NativeBackendBuilder.cpp) fingerprints
   Micro for its native function cache and currently excludes bodies with relocations. Importing
@@ -511,7 +501,7 @@ new language syntax.
   builds cannot publish partial artifacts. Measure cold, warm, and edit/rebuild costs separately.
 - Related: compiler.optimization.106, compiler.optimization.108, compiler.core.030.
 
-### compiler.optimization.110 — Infer interprocedural memory and value summaries
+### compiler.optimization.110 â€” Infer interprocedural memory and value summaries
 
 - Evidence: `SymbolFunction` already carries borrow/escape/release summaries; API publication exports
   `BorrowSummary` and `ReadOnly`; LICM and selected post-allocation passes consume direct readonly
@@ -532,7 +522,7 @@ new language syntax.
 - Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.055,
   compiler.optimization.020.
 
-### compiler.optimization.111 — Inline ordinary functions across module boundaries
+### compiler.optimization.111 â€” Inline ordinary functions across module boundaries
 
 - Evidence: the namespace guard in `shouldAutoInline` in `SemaInline.cpp` prevents automatic
   intermodule inlining. Its signature/body exclusions are correctness boundaries; deleting the guard
@@ -553,7 +543,7 @@ new language syntax.
 - Related: compiler.optimization.107, compiler.optimization.108, compiler.optimization.110,
   compiler.core.071, compiler.optimization.022.
 
-### compiler.optimization.112 — Specialize ordinary calls on constants and known callbacks
+### compiler.optimization.112 â€” Specialize ordinary calls on constants and known callbacks
 
 - Evidence: separately compiled functions lose call-site constants and callback identities. Existing
   generics and constant folding do not constitute a general intermodule residual-function pipeline.
@@ -573,7 +563,7 @@ new language syntax.
 - Related: compiler.optimization.109, compiler.optimization.110, compiler.optimization.111,
   compiler.optimization.120.
 
-### compiler.optimization.113 — Devirtualize interfaces, callbacks, and stable context regions
+### compiler.optimization.113 â€” Devirtualize interfaces, callbacks, and stable context regions
 
 - Evidence: `SemaInline::tryInlineCall` leaves dynamic interface dispatch intact. Global value flow
   can establish targets more precisely than an interface type; local source availability alone does
@@ -594,7 +584,7 @@ new language syntax.
   invalid region specialization.
 - Related: compiler.optimization.108, compiler.optimization.110, compiler.optimization.112.
 
-### compiler.optimization.114 — Specialize aggregate transport and internal signatures
+### compiler.optimization.114 â€” Specialize aggregate transport and internal signatures
 
 - Evidence: compiler.optimization.022 owns a local aggregate-copy gap. Cross-module body/use
   information additionally permits changing internal calls instead of transporting the entire
@@ -613,7 +603,7 @@ new language syntax.
   Report throughput, frame size, and code size.
 - Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.022.
 
-### compiler.optimization.115 — Eliminate proven temporary allocations across calls
+### compiler.optimization.115 â€” Eliminate proven temporary allocations across calls
 
 - Evidence: borrowing, escape, release, and ownership analysis already exists; imported bodies can
   expose producer/consumer lifetimes hidden by module calls. Nonescape alone does not permit
@@ -631,7 +621,7 @@ new language syntax.
   stack footprint, compilation cost, and runtime.
 - Related: compiler.optimization.110, compiler.optimization.113, compiler.optimization.114.
 
-### compiler.optimization.116 — Carry intermodule proofs into loop and vector optimization
+### compiler.optimization.116 â€” Carry intermodule proofs into loop and vector optimization
 
 - Evidence: Micro already has LICM, induction analysis, unrolling, and SLP. Existing leads identify
   lost alias/range facts; imported bodies can expose simpler loops and stronger facts to these passes.
@@ -649,7 +639,7 @@ new language syntax.
 - Related: compiler.optimization.110, compiler.optimization.111, compiler.optimization.112,
   compiler.optimization.020, compiler.optimization.105, compiler.safety.008.
 
-### compiler.optimization.117 — Inline fast paths while sharing cold continuations
+### compiler.optimization.117 â€” Inline fast paths while sharing cold continuations
 
 - Evidence: `MicroColdBlockLayoutPass` moves selected cold blocks within a function, but whole-body
   inlining can still duplicate refill, allocation, and error paths. Current allocator comparisons
@@ -664,7 +654,7 @@ new language syntax.
   correct shared slow path, growth is bounded, and failure/cleanup/stack-walking coverage passes.
 - Related: compiler.optimization.111, compiler.optimization.114, compiler.optimization.120.
 
-### compiler.optimization.118 — Use precise callee register contracts for internal calls
+### compiler.optimization.118 â€” Use precise callee register contracts for internal calls
 
 - Evidence: `ABICall`, `CallConv`, and register allocation represent concrete ABI register effects.
   A known direct implementation may clobber fewer registers than its ABI permits, even when
@@ -684,7 +674,7 @@ new language syntax.
   recursive/opaque cases remain sound, and runtime savings justify code-size and scheduling costs.
 - Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.114.
 
-### compiler.optimization.119 — Recompute whole-image liveness after specialization
+### compiler.optimization.119 â€” Recompute whole-image liveness after specialization
 
 - Evidence: `partitionArchiveObjects` already emits one function/read-only allocation per archive
   member; `PELinker::resolveSymbols` extracts demanded members and folds some identical functions/
@@ -705,7 +695,7 @@ new language syntax.
   text/data/startup gains are measured against the existing linker.
 - Related: compiler.optimization.108, compiler.optimization.112, compiler.optimization.113.
 
-### compiler.optimization.120 — Collect and consume stable application profiles
+### compiler.optimization.120 â€” Collect and consume stable application profiles
 
 - Evidence: no general profile-feedback pipeline was found in the inspected optimization/linking
   paths. Call frequency, branch bias, and target/value distributions can distinguish profitable
@@ -725,7 +715,7 @@ new language syntax.
 - Related: compiler.optimization.109, compiler.optimization.112, compiler.optimization.113,
   compiler.optimization.117.
 
-### compiler.optimization.122 — Partially evaluate dependency code and freeze eligible data
+### compiler.optimization.122 â€” Partially evaluate dependency code and freeze eligible data
 
 - Evidence: Swag already has compile-time execution and purity analysis. Imported resolved bodies
   could extend constant reasoning to ordinary functions with partly static inputs without explicit
@@ -745,7 +735,7 @@ new language syntax.
 - Related: compiler.optimization.107, compiler.optimization.110, compiler.optimization.112,
   compiler.optimization.119.
 
-### compiler.optimization.124 — Evaluate private data representation specialization
+### compiler.optimization.124 â€” Evaluate private data representation specialization
 
 - Evidence: global use/escape facts can expose internal data, but source availability alone does
   not allow changing Swag layout, reflection, addresses, or serialized representations. This is
@@ -766,7 +756,7 @@ new language syntax.
 - Related: compiler.optimization.110, compiler.optimization.114, compiler.optimization.115,
   compiler.optimization.119.
 
-### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
+### compiler.optimization.094 â€” Defer callee-saved XMM traffic past an early exit
 
 - Area: compiler/backend, register allocation, prologue and unwind information
 - Evidence: MSVC avoids saving and restoring four XMM registers on `raytrace`'s no-hit path by
@@ -780,7 +770,7 @@ new language syntax.
 - Done when: the short path skips unused saves and restores without adding spill traffic to the hit
   path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
 
-### compiler.optimization.016 — General value-web normalization still extends live ranges too far
+### compiler.optimization.016 â€” General value-web normalization still extends live ranges too far
 
 - Intent: give independent def-use webs separate virtual registers so LICM, value numbering
   and memory forwarding can distinguish computations that lowering gave the same name.
@@ -808,7 +798,7 @@ new language syntax.
   worsening the affected hot paths through additional transfers or spill traffic.
 - Related: compiler.optimization.015, compiler.optimization.104.
 
-### compiler.optimization.102 — Retain one floating zero across unrolled arms
+### compiler.optimization.102 â€” Retain one floating zero across unrolled arms
 
 - Area: compiler/backend, value numbering and register allocation
 - Evidence: the accepted raytrace winner is C++/MSVC. Its unrolled four-sphere `intersect` clears
@@ -838,7 +828,7 @@ new language syntax.
 - Done when the repeated clears disappear with no new spill traffic in `intersect`, an
   unrelated case improves under the same rule, and native/JIT behavior remains correct.
 
-### compiler.optimization.083 — Retain the probe mask without increasing spills
+### compiler.optimization.083 â€” Retain the probe mask without increasing spills
 
 - Area: compiler/backend, LICM and register allocation
 - Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
@@ -877,7 +867,7 @@ new language syntax.
   Zig's executed path; focus on register and frame traffic rather than its absent collisions.
 - Done when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
-### compiler.optimization.095 — Keep loop values off the stack on the common branch
+### compiler.optimization.095 â€” Keep loop values off the stack on the common branch
 
 - Area: compiler/backend, path-sensitive spill placement
 - Evidence: the wordfreq alphabetic path now places a proven reload and private spill store on cold
@@ -889,7 +879,7 @@ new language syntax.
 - Done when: the common path avoids index/bound spill traffic without cost to token processing or
   changed JIT/native behavior; otherwise retain only the proven reload placement.
 
-### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
+### compiler.optimization.092 â€” Reuse one relocation base for indexed constant arrays
 
 - Area: compiler/backend, constant-address relocation and indexed loads
 - Evidence: In the latest accepted full campaign (`20260928-051818`), raytrace's fastest other runtime is C++/MSVC (9.601 ms versus Swag's 10.742 ms; ratio 1.119). Its `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
@@ -900,7 +890,7 @@ new language syntax.
 - Next: design and validate a relocation-aware indexed displacement against one reusable base in JIT and native output. Compare eight-array code with MSVC; include unrelated arrays in different allocations and shards, a library artifact, and a negative case whose address cannot share the base. Account for register lifetime across the intervening call and JIT arena exhaustion before selecting the base.
 - Done when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and close the eight-materialization gap without extra spills.
 
-### compiler.optimization.093 — Keep unsigned 64-bit float conversion branchless in hot loops
+### compiler.optimization.093 â€” Keep unsigned 64-bit float conversion branchless in hot loops
 
 - Area: compiler/codegen, integer-to-float conversion
 - Evidence: The latest accepted campaign names C++/MSVC as csvagg's fastest other runtime (17.340 ms versus Swag's 18.304 ms; ratio 1.056). MSVC lowers each `u64` to `f64` price conversion with a signed conversion on the common lower half and a shift/or/double fallback for values with the high bit set. Swag instead uses a branchless packed low/high-32-bit conversion with two vector constants. Both have five instructions on the common path, but the operations and register pressure differ.
@@ -909,7 +899,7 @@ new language syntax.
 - Next: find a range proof that a conversion input stays below `2^63`, or a branchless lowering that uses fewer operations and less XMM pressure than the current packed conversion. Compare both sides of the range and an unrelated cast before revisiting the lowering.
 - Done when: a general rule improves the complete hot conversion path without extra branches or spills, and preserves full-range nearest-even results in native and JIT output; otherwise retain the current branchless algorithm.
 
-### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
+### compiler.optimization.074 â€” Eliminate the caller's redundant used-slot test after an inlined probe
 
 - Area: compiler/backend, post-allocation branch threading and private-frame load elimination
 - Evidence: after an inlined wordfreq probe, the caller's repeated `used[idx]` test is now removed
@@ -921,18 +911,18 @@ new language syntax.
 - Done when: broad validation and a clean full campaign confirm the gain without a runtime
   regression, or show that no further gap remains.
 
-### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
+### compiler.optimization.089 â€” Mixed scalar calls slow down with six independent argument lanes
 
 - Area: compiler/backend, Swag calling convention and register allocation
 - Evidence: with the independent six-integer/six-float Swag argument banks, a release
   executable making 20 million no-inline calls with alternating six `u64` and six `f64`
-  parameters takes about 61–64 ms after warmup, versus 34–36 ms with the prior
+  parameters takes about 61â€“64 ms after warmup, versus 34â€“36 ms with the prior
   positional convention on this machine. Both return the same value. Six-integer calls
-  improve from roughly 37–41 ms to 31–33 ms over 40 million calls; six-float calls stay
-  near 59–62 ms. These are process-wall microbenchmarks, not application measurements.
+  improve from roughly 37â€“41 ms to 31â€“33 ms over 40 million calls; six-float calls stay
+  near 59â€“62 ms. These are process-wall microbenchmarks, not application measurements.
   With the same twelve-parameter signature but an integer-only body, the candidate
-  improves to roughly 22–25 ms from 26–30 ms; with a floating-only body, it takes
-  56–60 ms against 26–30 ms. Full-width XMM copies, pruning unused XMM saves,
+  improves to roughly 22â€“25 ms from 26â€“30 ms; with a floating-only body, it takes
+  56â€“60 ms against 26â€“30 ms. Full-width XMM copies, pruning unused XMM saves,
   making XMM6/XMM7 volatile, and reducing Swag's float bank to three registers
   did not close the mixed-case gap in local experiments. The last result suggests
   that register count alone does not explain the slow floating body.
@@ -945,17 +935,17 @@ new language syntax.
   instructions alone do not explain the entire gap.
 - An experimental mapping that kept six independent integer lanes but assigned
   floating arguments by their position in the full signature measured roughly
-  37–42 ms on the mixed sum, close to the old 39–42 ms in the same run. It gives
+  37â€“42 ms on the mixed sum, close to the old 39â€“42 ms in the same run. It gives
   up independent floating lanes for mixed signatures, so it was not selected as
   the new Swag convention.
-- The preceding candidate used the already persistent XMM6–XMM11 as floating argument
+- The preceding candidate used the already persistent XMM6â€“XMM11 as floating argument
   lanes. Pre-prologue dead-definition elimination avoids saving unused persistent
   registers; a property-based loop pass hoists invariant persistent-argument copies.
   In five alternating call-matrix pairs, six-integer calls are about 10% faster,
   six-float calls about 16% faster, and alternating six/eight mixed calls remain
   about 3% slower than the preceding ABI. These backend passes apply by convention
   properties and remain useful even if the Swag ABI changes again.
-- The transient XMM0–XMM5 experiment removes two per-pixel row reloads from raytrace's
+- The transient XMM0â€“XMM5 experiment removes two per-pixel row reloads from raytrace's
   inner loop and reduces its `main` and `trace` from 155/201 to 136/173 optimized Micro
   instructions. All seven benchmark checksums remain unchanged; the six other tasks
   retain their instruction counts. C++ (1,147), native Release
@@ -967,14 +957,14 @@ new language syntax.
 - Done when: repeated paired runs put the mixed calls at parity or better and
   the six-integer and six-float gains remain.
 
-### compiler.optimization.085 — Measure short-key comparison cost against the current winner
+### compiler.optimization.085 â€” Measure short-key comparison cost against the current winner
 
 - Area: generated runtime code, wordfreq byte-map keys and comparators
-- Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
+- Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3â€“8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1â€“64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
 - Rejected short dispatch: the CRT's `<8` byte-loop branch inspired a guard around Swag's vector and word loops, but `Swag.memcmp` grew from 102 to 106 Micro instructions in all twelve tasks. The latest recorded campaign ranks Go ahead of Swag on wordfreq (49.697 ms vs 54.258 ms), so the CRT is not the current winner.
 - Current winner check: Go's emitted `byteMap.probe` keeps the FNV loop scalar and inlines
   `compareBytes`. Swag's emitted probe unrolls four FNV bytes and calls `Swag.memcmp` after
-  the length check; its generic comparator handles these 3–8-byte keys through 8/4/2/1-byte
+  the length check; its generic comparator handles these 3â€“8-byte keys through 8/4/2/1-byte
   chunks. Go calls `byteMap.probe` and saves live caller state; Swag inlines the probe into
   its timed `__main_0`, so the standalone probe's callee-save prologue is not paid there.
   Only the `memcmp` call remains as a possible difference, and the static listings do not

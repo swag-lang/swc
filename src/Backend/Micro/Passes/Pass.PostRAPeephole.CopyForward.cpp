@@ -572,11 +572,13 @@ namespace PostRaPeephole
         window[1] = ref;
         MicroInstrRef     compareRef;
         MicroInstrOperand compareOps[Action::K_MAX_OPS] = {};
-        MicroInstrRef     cursor                        = ctx.nextRef(ref);
-        for (uint32_t step = 0; step < maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        auto walker = MicroStorage::Iterator{ctx.storage, ref};
+        ++walker;
+        for (uint32_t step = 0; step < maxWindow && walker.current.isValid(); ++step, ++walker)
         {
-            const MicroInstr* current = ctx.instruction(cursor);
-            if (!current || ctx.isClaimed(cursor))
+            const MicroInstrRef cursor  = walker.current;
+            const MicroInstr*   current = &*walker;
+            if (ctx.isClaimed(cursor))
                 return false;
             const MicroInstrDef& info = MicroInstr::info(current->op);
             if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
@@ -644,11 +646,13 @@ namespace PostRaPeephole
         std::array<MicroInstrRef, maxWindow + 2> window;
         window[0]            = producerRef;
         window[1]            = copyRef;
-        MicroInstrRef cursor = ctx.nextRef(copyRef);
-        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        auto walker = MicroStorage::Iterator{ctx.storage, copyRef};
+        ++walker;
+        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
         {
-            const MicroInstr* current = ctx.instruction(cursor);
-            if (!current || ctx.isClaimed(cursor))
+            const MicroInstrRef cursor  = walker.current;
+            const MicroInstr*   current = &*walker;
+            if (ctx.isClaimed(cursor))
                 return false;
             const MicroInstrDef& info = MicroInstr::info(current->op);
             if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
@@ -729,11 +733,13 @@ namespace PostRaPeephole
         constexpr uint32_t                       maxWindow = 8;
         std::array<MicroInstrRef, maxWindow + 1> window;
         window[0]            = ref;
-        MicroInstrRef cursor = ctx.nextRef(ref);
-        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        auto walker = MicroStorage::Iterator{ctx.storage, ref};
+        ++walker;
+        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
         {
-            const MicroInstr* current = ctx.instruction(cursor);
-            if (!current || ctx.isClaimed(cursor))
+            const MicroInstrRef cursor  = walker.current;
+            const MicroInstr*   current = &*walker;
+            if (ctx.isClaimed(cursor))
                 return false;
             const MicroInstrDef& info = MicroInstr::info(current->op);
             if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||

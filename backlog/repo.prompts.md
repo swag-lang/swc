@@ -594,11 +594,13 @@ at milestones or before integration. The dedicated benchmark campaign owns elaps
 peak-memory measurements. If a change needs timing to establish that it saves work, discard it and
 try a change whose saving can be proved from the code.
 
-You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first,
-then compiler.core.004 and compiler.core.030 in backlog/compiler.core.md and
-compiler.optimization.029 and compiler.optimization.045 in backlog/compiler.optimization.md. Use
-their existing profiles to choose a costly internal path and
-their rejected experiments to avoid repeating work. Start editing compiler code after this review.
+You are running a compiler-speed campaign on swc. Read AGENTS.md and the skills it points to first.
+Then read the latest compilation campaign report under `bench/results/compilation/` and search
+`backlog/compiler.core.md` and `backlog/compiler.optimization.md` for unresolved entries about
+compilation time or compiler work. Confirm each lead is still current before relying on it; backlog
+entries may have been resolved or renumbered since this prompt was last edited. Use the report and
+current code evidence to choose a costly internal path, and check retained reports for rejected
+experiments before repeating them. Start editing compiler code after this review.
 
 DEVMODE COMPILER ONLY
 
@@ -621,21 +623,19 @@ measured command. The same source inputs must go through the same required compi
 produce equivalent output. A cache or pipeline change belongs to another campaign even if it
 improves one of the edit-loop numbers below.
 
-Targets, all on this machine. The readings below are from 2026-09-23 with Release 0.1.1056 and
-six workers; they are context for the dedicated benchmark campaign:
+Targets and latest recorded context from the 2026-09-25 speed campaign (Release build 1150,
+six workers; see `bench/results/compilation/20260925-speed/README.md`):
 
-  - std/core rebuild (360 files): 2.63 s. Target under 1.0 s.
-  - Warm no-op build of the same: 50 ms. Guardrail under 100 ms; not an optimization target here.
-  - Edit one file in core, rebuild: 2.41 s. Use it to expose repeated compiler work, but do not
+  - Full `std/core` rebuild (360 files): 2.241 s. Target under 1.0 s.
+  - Warm no-op build of the same: 42 ms. Guardrail under 100 ms; not an optimization target here.
+  - Edit one file in core, rebuild: 1.935 s. Use it to expose repeated compiler work, but do not
     solve it with cache or invalidation changes in this campaign.
-  - Hello world, source to linked executable: 211 ms. Target under 50 ms.
+  - Hello world, source to linked executable: 126 ms. Target under 50 ms.
 
-The hello-world reading is far above the 89 ms this prompt used to quote because runtime grew; see
-compiler.core.030. Do not repeatedly remeasure all four workloads between code hypotheses.
-
-For context on where the bar already is, from campaign 20260806-174758: swc builds the bench tasks
-in 93-132 ms against clang-cl's 481-647 ms and rustc's 425-585 ms. This campaign is not about
-beating them. It is about the loop a person actually sits in.
+These are historical measurements, not a current baseline. The dedicated benchmark campaign owns
+fresh timings and comparisons. Do not repeatedly remeasure all four workloads between code
+hypotheses, and do not infer a trend from these values. The cross-language task comparison belongs
+to the benchmark campaign; it is not the target of this compiler-work campaign.
 
 STRUCTURAL EVIDENCE
 

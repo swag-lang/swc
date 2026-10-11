@@ -149,11 +149,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   convergence when callers precede their dependencies in the given order.
   Production cache signatures now use a compact fingerprint of the JIT root, call-graph and global
   root versions, explicit constant roots, and 17 relocation versions instead of hashing every
-  function pointer in the completed order. A fixture repeats one fingerprint across edge appends
-  and late completion to cover the independent invalidators.
+  function pointer in the completed order. Fixed-fingerprint tests isolate edge-version invalidation
+  from mask changes, then isolate completion-count invalidation from edge changes.
   A locked zero-edge check now exits before hashing the completed-function order; its regression
   calls the pass on an empty graph, then appends an edge and verifies that it is still propagated.
-  The DevMode C++ suite passes all 1,424 tests, including after the zero-edge early check.
+  The DevMode C++ suite passes all 1,425 tests, including after the zero-edge early check.
   DevMode sema and sema-error fixtures also verify
   287 and 338 files respectively (neither suite contains executable tests). These are structural
   changes; no timing comparison was made.

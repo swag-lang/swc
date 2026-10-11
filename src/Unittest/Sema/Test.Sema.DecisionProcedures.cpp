@@ -926,6 +926,51 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_CompletedFreesSummaryFingerprintInvalidators)
+{
+    constexpr uint64_t orderFingerprint = 0x4D2A91B7ULL;
+    {
+        CompletedFreesFixture fixture(ctx);
+        auto*                 owner = fixture.addFunction();
+        auto*                 leaf  = fixture.addFunction();
+        auto*                 guard = fixture.addFunction();
+        leaf->addFreesParam(0);
+        fixture.addEdge({.caller = owner, .callee = leaf, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{guard, 0}}});
+        fixture.propagate(orderFingerprint);
+        if (owner->freesParamsMask())
+            return Result::Error;
+
+        // The same order and masks must not hide an edge published afterwards.
+        fixture.addEdge({.caller = owner, .callee = leaf, .callerParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+        fixture.propagate(orderFingerprint);
+        if (owner->freesParamsMask() != 4)
+            return Result::Error;
+    }
+
+    {
+        CompletedFreesFixture fixture(ctx);
+        auto*                 owner = fixture.addFunction();
+        auto*                 leaf  = fixture.addFunction();
+        auto*                 guard = fixture.addFunction(false);
+        leaf->addFreesParam(0);
+        guard->addReturnBorrowsParam(0);
+        guard->addReturnsStorageParam(0);
+        fixture.addEdge({.caller = owner, .callee = leaf, .callerParamIndex = 1, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{guard, 0}}});
+        fixture.propagate(orderFingerprint);
+        if (owner->freesParamsMask())
+            return Result::Error;
+
+        // No edge or mask changed in the first pass; only completing this source can unlock it.
+        fixture.completeFunction(guard);
+        fixture.propagate(orderFingerprint);
+        if (owner->freesParamsMask() != 2)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Sema_NarrowRootKillsPreserveSurvivorOrder)
 {
     SymbolVariable                     kept(nullptr, TokenRef::invalid(), IdentifierRef{1}, {});

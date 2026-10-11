@@ -89,7 +89,10 @@ namespace Command
             SWC_SCHED_PHASE(jobMgr, "parse");
             parseSourceFiles(ctx, inputFiles, parserOptions);
         }
-        if (Stats::getNumErrors() != errorsBefore)
+        // An editor index can still use semantic data from files that parsed successfully.
+        // Files with parser errors are filtered below; regular compilation remains fail-fast.
+        const bool editorIndex = !compiler.cmdLine().editorIndex.empty();
+        if (Stats::getNumErrors() != errorsBefore && !editorIndex)
             return;
 
         // Filter files

@@ -12,6 +12,24 @@ measured on this tree and is reproducible with the command next to it.
 Re-measure historical numbers when the campaign needs them; use a fresh source inventory for
 code-quality campaigns.
 
+## Backlog policy for every campaign
+
+The backlog is a shrinking list of unfinished work, not a campaign diary. This rule applies to all
+eight prompts, including campaign-specific protocols below. Keep each entry focused on one
+unresolved outcome and the minimum evidence needed to choose its next action.
+
+- Add a new entry only for a new, concrete, actionable issue that remains unresolved; search the
+  backlog first and do not duplicate an existing outcome.
+- Update an existing entry only when new evidence clarifies or changes the next action for work
+  that is still unresolved. Keep only the information needed to continue that work.
+- Delete an entry as soon as its outcome is complete, disproved, or no longer wanted. Do not append
+  repeated findings, completed work, dates, validation history, or campaign progress to keep it
+  alive. Git and the campaign report preserve history.
+- If a campaign produces no material change to an unresolved entry, leave the backlog untouched.
+
+`repo.prompts.md` holds reusable campaign instructions and current baselines, not per-session
+findings. Put campaign results in their reports and Git history.
+
 | Campaign | Target |
 | --- | --- |
 | [1. Repository health reset](#1-repository-health-reset) | Restore a clean, current, all-green baseline |
@@ -62,7 +80,7 @@ batch into local `master` promptly, then integrate coherent groups at most every
 retained batches and before ending a work session with a validated gain. Include required tests and
 documentation with the code. Bring the worktree up to date with concurrent `master` changes,
 resolve conflicts, and rerun only checks invalidated by the integration. Keep routine observations
-in the final report and update backlog at useful milestones; never merge a notes-only batch.
+in the final report. Update the backlog only under the policy above; never merge a notes-only batch.
 
 Rotate an unrelated focused check every few retained batches when it exercises a meaningful path.
 Run broad suites, cross-configuration checks, whole-tree sweeps, and full measurements about every
@@ -107,6 +125,11 @@ agent's in-flight code into the binary being validated.
 
 ```
 Prefix every commit of this campaign with [prompt 1].
+
+Backlog: keep only unresolved outcomes and the minimum evidence needed for their next action. Search
+before adding a new, actionable issue. Update an existing entry only when new evidence changes its
+next action while it remains unresolved; delete it when complete, disproved, or no longer wanted.
+Never use backlog entries as this campaign's log.
 
 You are running a repository-wide health reset on swc: execute the complete validation ladder,
 fix every failure it exposes at its root, and leave a clean, current, all-green baseline.
@@ -403,11 +426,14 @@ RULES AND STOPPING
     Preserve language semantics, including aliasing and FP policy.
   - A generated-code gain takes priority over compile time. Never reject an accepted batch
     because it makes compilation slower. State the algorithmic cost of every new or extended
-    analysis, keep it as cheap as the runtime benefit allows, and name the costly pass in the
-    matching backlog entry so the compilation-speed campaign can compensate.
-  - Keep rejected hypotheses with their code evidence in the existing matching backlog entry.
-    Search before allocating a new identifier, state a concrete next action, and do not repeat
-    experiments already ruled out under the same conditions.
+    analysis and keep it as cheap as the runtime benefit allows. If its compile-time cost informs
+    unresolved work for campaign 4, keep the costly pass as minimum evidence in that open entry so
+    the compilation-speed campaign can compensate.
+  - Record a rejected hypothesis in the matching backlog entry only when its evidence changes the
+    next action for an outcome that remains unresolved. Keep that evidence brief beside `Next:`;
+    otherwise preserve the experiment in the commit or campaign report, not the backlog. Search
+    before adding an entry, state a concrete next action, and do not repeat experiments already
+    ruled out under the same conditions.
   - Between some batches, audit a relevant pass's generality and its interaction with
     allocation or layout. Any resulting optimization follows the same acceptance rule.
 
@@ -1113,6 +1139,12 @@ Review project-owned Swag source under bin/ and improve its visual readability w
 its logic. Exclude `bin/unittests/` from readability review; its tests may still serve as
 validation. This is a periodic presentation pass, with the separate protocol below;
 the shared protocol for campaigns 2-7 does not apply.
+
+Backlog: keep only unresolved outcomes and the minimum evidence needed for their next action. Search
+before adding a new, actionable issue. Update an existing entry only when new evidence changes its
+next action while it remains unresolved; delete it when complete, disproved, or no longer wanted.
+Never use backlog entries as this campaign's log. Keep readability coverage and validation state in
+the external session files described below.
 
 Read AGENTS.md, modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code, and its
 references/readability.md first. Follow tools/README.md for command syntax. Keep repository

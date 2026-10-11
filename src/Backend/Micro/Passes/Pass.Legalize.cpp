@@ -100,9 +100,10 @@ namespace
         if (!context.instructions->ptr(instRef))
             return fallbackResult;
 
-        for (MicroInstrRef ref = context.instructions->findNextInstructionRef(instRef); ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
+        auto walker = MicroStorage::Iterator{context.instructions, instRef};
+        for (++walker; walker.current.isValid(); ++walker)
         {
-            const MicroInstr&    scanInst = *context.instructions->ptr(ref);
+            const MicroInstr&    scanInst = *walker;
             const MicroInstrDef& info     = MicroInstr::info(scanInst.op);
             if (scanInst.op == MicroInstrOpcode::Label ||
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||

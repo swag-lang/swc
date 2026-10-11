@@ -236,19 +236,17 @@ namespace
         auto&    instructions = *context.instructions;
         uint64_t total        = 0;
         outFirst              = MicroInstrRef::invalid();
-        for (MicroInstrRef cur = instructions.findPreviousInstructionRef(retRef); cur.isValid();
-             cur               = instructions.findPreviousInstructionRef(cur))
+        auto walker = MicroStorage::Iterator{&instructions, retRef};
+        for (--walker; walker.current.isValid(); --walker)
         {
-            const MicroInstr* inst = instructions.ptr(cur);
-            if (!inst)
-                break;
+            const MicroInstr* inst = &*walker;
             if (inst->op == MicroInstrOpcode::Nop)
                 continue;
             const MicroInstrOperand* ops = inst->ops(*context.operands);
             if (!isStackPointerAdjust(*inst, ops, stackPointer, MicroOp::Add) || ops[3].hasWideImmediateValue())
                 break;
             total += ops[3].valueU64;
-            outFirst = cur;
+            outFirst = walker.current;
         }
 
         return total;
@@ -786,17 +784,15 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         allocOps[3].valueU64 += savedRegsStackSubSize_;
 
         MicroInstrRef lastSub = insertBeforeRef;
-        for (MicroInstrRef cur = instructions.findNextInstructionRef(insertBeforeRef); cur.isValid();
-             cur               = instructions.findNextInstructionRef(cur))
+        auto walker = MicroStorage::Iterator{&instructions, insertBeforeRef};
+        for (++walker; walker.current.isValid(); ++walker)
         {
-            const MicroInstr* inst = instructions.ptr(cur);
-            if (!inst)
-                break;
+            const MicroInstr* inst = &*walker;
             if (inst->op == MicroInstrOpcode::Nop)
                 continue;
             if (!isStackPointerAdjust(*inst, inst->ops(operands), conv.stackPointer, MicroOp::Subtract))
                 break;
-            lastSub = cur;
+            lastSub = walker.current;
         }
         saveInsertBeforeRef = instructions.findNextInstructionRef(lastSub);
     }

@@ -296,8 +296,12 @@ namespace InstructionCombine
 
         MicroReg          opValue        = value;
         MicroInstrRef     preCopyRef     = MicroInstrRef::invalid();
-        MicroInstrRef     opRef          = ctx.storage->findNextInstructionRef(loadRef);
-        const MicroInstr* firstAfterLoad = ctx.storage->ptr(opRef);
+        MicroStorage::Iterator patternIt{ctx.storage, loadRef};
+        ++patternIt;
+        if (!patternIt.current.isValid())
+            return false;
+        MicroInstrRef     opRef          = patternIt.current;
+        const MicroInstr* firstAfterLoad = &*patternIt;
         if (firstAfterLoad && firstAfterLoad->op == MicroInstrOpcode::LoadRegReg)
         {
             const MicroInstrOperand* copyOps = firstAfterLoad->ops(*ctx.operands);
@@ -308,9 +312,12 @@ namespace InstructionCombine
                 return false;
             opValue    = copyOps[0].reg;
             preCopyRef = opRef;
-            opRef      = ctx.storage->findNextInstructionRef(preCopyRef);
+            ++patternIt;
+            if (!patternIt.current.isValid())
+                return false;
+            opRef = patternIt.current;
         }
-        const MicroInstr* op = ctx.storage->ptr(opRef);
+        const MicroInstr* op = &*patternIt;
         if (!op || (op->op != MicroInstrOpcode::OpBinaryRegReg && op->op != MicroInstrOpcode::OpBinaryRegImm && op->op != MicroInstrOpcode::OpUnaryReg))
             return false;
         const MicroInstrOperand* opOps = op->ops(*ctx.operands);
@@ -397,8 +404,11 @@ namespace InstructionCombine
 
         MicroReg          storedValue = opValue;
         MicroInstrRef     copyRef     = MicroInstrRef::invalid();
-        MicroInstrRef     storeRef    = ctx.storage->findNextInstructionRef(opRef);
-        const MicroInstr* maybeCopy   = ctx.storage->ptr(storeRef);
+        ++patternIt;
+        if (!patternIt.current.isValid())
+            return false;
+        MicroInstrRef     storeRef  = patternIt.current;
+        const MicroInstr* maybeCopy = &*patternIt;
         if (maybeCopy && maybeCopy->op == MicroInstrOpcode::LoadRegReg)
         {
             const MicroInstrOperand* copyOps = maybeCopy->ops(*ctx.operands);
@@ -408,10 +418,13 @@ namespace InstructionCombine
                 return false;
             storedValue = copyOps[0].reg;
             copyRef     = storeRef;
-            storeRef    = ctx.storage->findNextInstructionRef(copyRef);
+            ++patternIt;
+            if (!patternIt.current.isValid())
+                return false;
+            storeRef = patternIt.current;
         }
 
-        const MicroInstr* store = ctx.storage->ptr(storeRef);
+        const MicroInstr* store = &*patternIt;
         if (!store || store->op != MicroInstrOpcode::LoadAmcMemReg)
             return false;
         const MicroInstrOperand* storeOps = store->ops(*ctx.operands);
@@ -522,16 +535,23 @@ namespace InstructionCombine
             (loadOps[3].opBits != MicroOpBits::B32 && loadOps[3].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef decrementRef = ctx.storage->findNextInstructionRef(loadRef);
-        const MicroInstr*   decrement    = ctx.storage->ptr(decrementRef);
-        const auto*         decrementOps = decrement && decrement->op == MicroInstrOpcode::OpBinaryRegImm ? decrement->ops(*ctx.operands) : nullptr;
+        MicroStorage::Iterator patternIt{ctx.storage, loadRef};
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::OpBinaryRegImm)
+            return false;
+        const MicroInstrRef     decrementRef = patternIt.current;
+        const MicroInstr*       decrement    = &*patternIt;
+        const MicroInstrOperand* decrementOps = decrement->ops(*ctx.operands);
         if (!decrementOps || decrementOps[0].reg != loadOps[0].reg || decrementOps[1].opBits != loadOps[3].opBits ||
             decrementOps[2].microOp != MicroOp::Subtract || decrementOps[3].hasWideImmediateValue() || decrementOps[3].valueU64 != 1)
             return false;
 
-        const MicroInstrRef reloadRef = ctx.storage->findNextInstructionRef(decrementRef);
-        const MicroInstr*   reload    = ctx.storage->ptr(reloadRef);
-        const auto*         reloadOps = reload && reload->op == MicroInstrOpcode::LoadAmcRegMem ? reload->ops(*ctx.operands) : nullptr;
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadAmcRegMem)
+            return false;
+        const MicroInstrRef      reloadRef = patternIt.current;
+        const MicroInstr*        reload    = &*patternIt;
+        const MicroInstrOperand* reloadOps = reload->ops(*ctx.operands);
         if (!reloadOps || !reloadOps[0].reg.isVirtualInt() || reloadOps[0].reg == loadOps[0].reg)
             return false;
         if (reloadOps[1].reg != loadOps[1].reg || reloadOps[2].reg != loadOps[2].reg ||
@@ -539,9 +559,12 @@ namespace InstructionCombine
             reloadOps[5].valueU64 != loadOps[5].valueU64 || reloadOps[6].valueU64 != loadOps[6].valueU64)
             return false;
 
-        const MicroInstrRef andRef  = ctx.storage->findNextInstructionRef(reloadRef);
-        const MicroInstr*   andInst = ctx.storage->ptr(andRef);
-        const auto*         andOps  = andInst && andInst->op == MicroInstrOpcode::OpBinaryRegReg ? andInst->ops(*ctx.operands) : nullptr;
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::OpBinaryRegReg)
+            return false;
+        const MicroInstrRef      andRef  = patternIt.current;
+        const MicroInstr*        andInst = &*patternIt;
+        const MicroInstrOperand* andOps  = andInst->ops(*ctx.operands);
         if (!andOps || andOps[0].reg != reloadOps[0].reg || andOps[1].reg != loadOps[0].reg ||
             andOps[2].opBits != loadOps[3].opBits || andOps[3].microOp != MicroOp::And ||
             !valueHasSingleUse(*ctx.ssa, loadOps[0].reg, loadRef) ||

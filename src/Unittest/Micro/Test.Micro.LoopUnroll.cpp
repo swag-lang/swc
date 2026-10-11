@@ -328,6 +328,50 @@ SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_GroupsFourAndKeepsTail)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedCopy_GroupsFourAndKeepsTail)
+{
+    constexpr MicroReg counter = MicroReg::virtualIntReg(1);
+    constexpr MicroReg bound   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg base    = MicroReg::virtualIntReg(3);
+    constexpr MicroReg value   = MicroReg::virtualIntReg(4);
+    MicroBuilder       builder(ctx);
+    const auto         header = builder.createLabel();
+    builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+    builder.placeLabel(header);
+    builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, counter, 8, 0, MicroOpBits::B64);
+    builder.emitLoadAmcMemReg(base, counter, 8, 0, MicroOpBits::B64, value, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitCmpRegReg(counter, bound, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+    builder.emitRet();
+
+    SWC_RESULT(runLoopUnrollPass(builder));
+    std::array<uint32_t, 4> readDisplacements{};
+    std::array<uint32_t, 4> writeDisplacements{};
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::LoadAmcRegMem)
+        {
+            if (ops[6].valueU64 % 8 != 0 || ops[6].valueU64 / 8 >= readDisplacements.size())
+                return Result::Error;
+            ++readDisplacements[ops[6].valueU64 / 8];
+        }
+        else if (inst.op == MicroInstrOpcode::LoadAmcMemReg)
+        {
+            if (ops[6].valueU64 % 8 != 0 || ops[6].valueU64 / 8 >= writeDisplacements.size())
+                return Result::Error;
+            ++writeDisplacements[ops[6].valueU64 / 8];
+        }
+    }
+    if (readDisplacements != std::array<uint32_t, 4>{2, 1, 1, 1} ||
+        writeDisplacements != std::array<uint32_t, 4>{2, 1, 1, 1} ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 4)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_RejectsOtherCounterUses)
 {
     constexpr MicroReg counter = MicroReg::virtualIntReg(1);

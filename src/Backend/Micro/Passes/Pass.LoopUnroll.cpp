@@ -565,10 +565,10 @@ namespace
         return true;
     }
 
-    // A short, straight-line indexed read loop can pay one bound test for four
-    // reads. Keep the original loop as the scalar tail, and use displacements
-    // for the other three reads so its induction value advances only once.
-    bool partiallyUnrollIndexedReadLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
+    // A short indexed read or copy loop can pay one bound test for four
+    // elements. Keep the original loop as the scalar tail. Copy elements stay
+    // in source order so overlapping ranges retain their original behavior.
+    bool partiallyUnrollIndexedLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
     {
         if (headerOrdinal + 4 > jumpOrdinal || jumpOrdinal + 1 >= order.size())
             return false;
@@ -612,8 +612,14 @@ namespace
         if (!bodyCount || bodyCount > 12)
             return false;
         bool                         indexedRead = false;
+        bool                         indexedWrite = false;
+        bool                         sawStore = false;
+        bool                         allReadsHaveUnitStride = true;
         std::unordered_set<MicroReg> indexedBases;
         std::unordered_set<MicroReg> bodyDefs;
+        MicroReg                     loadedValue = MicroReg::invalid();
+        MicroOpBits                  loadedBits  = MicroOpBits::Zero;
+        uint64_t                     elementStride = 0;
         for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
         {
             const MicroInstrRef      ref  = order[ordinal];
@@ -621,12 +627,13 @@ namespace
             const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
             if (!inst || !ops || relocsBySlot.contains(ref.get()))
                 return false;
+            sawStore = sawStore || inst->op == MicroInstrOpcode::LoadAmcMemReg;
             const MicroInstrDef& info = MicroInstr::info(inst->op);
             if (inst->op == MicroInstrOpcode::Label ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                info.flags.has(MicroInstrFlagsE::WritesMemory) ||
+                (info.flags.has(MicroInstrFlagsE::WritesMemory) && inst->op != MicroInstrOpcode::LoadAmcMemReg) ||
                 MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops))
                 return false;
             const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
@@ -636,15 +643,38 @@ namespace
                 return false;
             if (std::ranges::find(useDef.uses, counter) == useDef.uses.end())
                 continue;
-            if ((inst->op != MicroInstrOpcode::LoadAmcRegMem && inst->op != MicroInstrOpcode::LoadZeroExtAmcRegMem) ||
-                ops[1].reg == counter ||
-                ops[2].reg != counter || ops[5].valueU64 != 1 ||
-                ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX - 3))
+            if (inst->op == MicroInstrOpcode::LoadAmcRegMem || inst->op == MicroInstrOpcode::LoadZeroExtAmcRegMem)
+            {
+                const uint64_t stride = ops[5].valueU64;
+                const MicroOpBits bits = inst->op == MicroInstrOpcode::LoadAmcRegMem ? ops[3].opBits : ops[4].opBits;
+                if (ops[1].reg == counter || ops[2].reg != counter || (stride != 1 && stride != 2 && stride != 4 && stride != 8) ||
+                    ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - 3 * stride)
+                    return false;
+                allReadsHaveUnitStride = allReadsHaveUnitStride && stride == 1;
+                indexedRead = true;
+                loadedValue = ops[0].reg;
+                loadedBits  = bits;
+                elementStride = stride;
+                indexedBases.insert(ops[1].reg);
+            }
+            else if (inst->op == MicroInstrOpcode::LoadAmcMemReg)
+            {
+                if (indexedWrite || !indexedRead || bodyCount != 2 || ordinal != bodyBegin + 1 ||
+                    ops[0].reg == counter || ops[1].reg != counter || ops[2].reg != loadedValue ||
+                    ops[3].opBits != loadedBits || ops[4].opBits != loadedBits || ops[5].valueU64 != elementStride ||
+                    ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - 3 * elementStride)
+                    return false;
+                indexedWrite = true;
+                indexedBases.insert(ops[0].reg);
+            }
+            else
                 return false;
-            indexedRead = true;
-            indexedBases.insert(ops[1].reg);
         }
         if (!indexedRead)
+            return false;
+        if (sawStore && (!indexedWrite || !indexedRead || bodyCount != 2))
+            return false;
+        if (!sawStore && !allReadsHaveUnitStride)
             return false;
         for (const MicroReg base : indexedBases)
         {
@@ -697,9 +727,13 @@ namespace
                 const MicroInstrOperand*          srcOps = src->ops(operands);
                 SmallVector<MicroInstrOperand, 8> cloned;
                 cloned.append(srcOps, src->numOperands);
-                if ((src->op == MicroInstrOpcode::LoadAmcRegMem || src->op == MicroInstrOpcode::LoadZeroExtAmcRegMem) &&
-                    cloned[2].reg == counter)
-                    cloned[6].valueU64 += copy;
+                if (src->op == MicroInstrOpcode::LoadAmcRegMem || src->op == MicroInstrOpcode::LoadZeroExtAmcRegMem)
+                {
+                    if (cloned[2].reg == counter)
+                        cloned[6].valueU64 += copy * elementStride;
+                }
+                else if (src->op == MicroInstrOpcode::LoadAmcMemReg && cloned[1].reg == counter)
+                    cloned[6].valueU64 += copy * elementStride;
                 storage.insertDerivedBefore(operands, headerRef, src->op, {cloned.data(), cloned.size()});
             }
         }
@@ -855,7 +889,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 break;
             }
             if (cmp->op == MicroInstrOpcode::CmpRegReg &&
-                partiallyUnrollIndexedReadLoop(context, storage, operands, builder, order, relocsBySlot, h, jccOrdinal, headerId))
+                partiallyUnrollIndexedLoop(context, storage, operands, builder, order, relocsBySlot, h, jccOrdinal, headerId))
             {
                 unrolledOne = true;
                 break;

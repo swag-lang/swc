@@ -94,6 +94,8 @@ namespace
             return indexOf(autoInlineName(ast.srcView(), decl.tokNameRef));
         }
 
+        void requireConstraints() noexcept { needsConstraints_ = true; }
+
         void addCall(const uint32_t sourceIndex, const AutoInlineName& targetName)
         {
             const uint32_t targetIndex = indexOf(targetName);
@@ -163,6 +165,8 @@ namespace
             return cyclic_[it->second] ? InlineConstraint::Cycle : InlineConstraint::None;
         }
 
+        bool needsConstraints() const noexcept { return needsConstraints_; }
+
     private:
         static constexpr uint8_t BLOCKED_TARGET = 1;
         static constexpr uint8_t BLOCKED_CALLER = 2;
@@ -219,6 +223,7 @@ namespace
         std::vector<bool>                              cyclic_;
         std::vector<uint8_t>                           blockedCalls_;
         bool                                           constraintsPrepared_ = false;
+        bool                                           needsConstraints_    = false;
         SmallVector<uint32_t>                          stack_;
         uint32_t                                       nextIndex_ = 0;
     };
@@ -314,10 +319,13 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             const auto* decl           = node.safeCast<AstFunctionDecl>();
             if (decl)
             {
-                if (decl->autoInlineCost <= K_AUTO_INLINE_LAST_CALL_COST && decl->tokNameRef.isValid())
+                const bool inlineCandidate = decl->autoInlineCost <= K_AUTO_INLINE_LAST_CALL_COST && decl->tokNameRef.isValid();
+                if (inlineCandidate)
                     functionDecls[astIndex].push_back(nodeRef);
                 if (!callGraph)
                     callGraph = &callGraphs[ast];
+                if (inlineCandidate && decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls))
+                    callGraph->requireConstraints();
                 childrenBodyOf = AutoInlineCallGraph::K_NO_FUNCTION;
                 ownIndex       = callGraph->addFunction(*ast, *decl);
                 ownBodyRef     = decl->nodeBodyRef;
@@ -360,7 +368,7 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             continue;
 
         const auto callGraphIt = callGraphs.find(ast);
-        if (callGraphIt != callGraphs.end())
+        if (callGraphIt != callGraphs.end() && callGraphIt->second.needsConstraints())
         {
             // Auto-inlining waits for the callee's resolved body before cloning it. A cycle of
             // candidates would therefore turn a legal recursive call graph into a sema wait cycle.

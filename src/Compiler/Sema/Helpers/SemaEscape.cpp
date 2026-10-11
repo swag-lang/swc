@@ -5449,9 +5449,6 @@ namespace SemaEscape
 
     void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions)
     {
-        if (!ctx.compiler().freeForwardingEdgeCount())
-            return;
-
         // What this pass concludes is a function of three things: the summary edges recorded so far,
         // the release masks they propagate, and — for a guarded edge only — the call graph it is
         // handed. A compile-time call that finds those unchanged would close exactly the same
@@ -5471,6 +5468,12 @@ namespace SemaEscape
 
         if (ctx.compiler().freesPropagationAlreadyDone(signature))
             return;
+
+        if (ctx.compiler().freeForwardingEdgeCount() == 0)
+        {
+            ctx.compiler().noteFreesPropagationDone(signature);
+            return;
+        }
 
         // Without a guard to judge, the closure is the module's own: it is kept across calls, and
         // an edge that has already handed its release on is never looked at again.

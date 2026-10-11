@@ -1413,7 +1413,6 @@ void CompilerInstance::addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
     if (isFreeForwardingEscapeSummaryEdge(edge))
     {
         freeForwardingEdgeIndices_.push_back(index);
-        freeForwardingEdgeCount_.fetch_add(1, std::memory_order_release);
         if (!edge.returnGuards.empty())
             guardedFreeForwardingEdgeCount_.fetch_add(1, std::memory_order_release);
     }
@@ -1448,6 +1447,12 @@ std::vector<SemaEscapeSummaryEdge> CompilerInstance::copyEscapeSummaryEdges() co
     return escapeSummaryEdges_;
 }
 
+size_t CompilerInstance::freeForwardingEdgeCount() const
+{
+    const std::shared_lock lock(deferredEscapeChecksMutex_);
+    return freeForwardingEdgeIndices_.size();
+}
+
 std::vector<SemaEscapeSummaryEdge> CompilerInstance::takeEscapeSummaryEdges()
 {
     // Match withFreesForwardings' lock order and invalidate its append cursor
@@ -1457,7 +1462,6 @@ std::vector<SemaEscapeSummaryEdge> CompilerInstance::takeEscapeSummaryEdges()
     freesForwardings_.clear();
     freesForwardingsEdgeCursor_ = 0;
     freeForwardingEdgeIndices_.clear();
-    freeForwardingEdgeCount_.store(0, std::memory_order_release);
     returnEdgeIndices_.clear();
     returnEdgesByCaller_.clear();
     guardedFreeForwardingEdgeCount_.store(0, std::memory_order_release);

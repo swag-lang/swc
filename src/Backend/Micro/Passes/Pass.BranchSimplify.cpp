@@ -7299,9 +7299,13 @@ namespace
             if (!tryMatchDiamondShape(diamond, scan, it.current, secondJumpInst, secondJumpOps, 2))
                 continue;
 
-            const MicroInstrRef secondCompareRef = storage.findPreviousInstructionRef(diamond.jumpRef);
-            const MicroInstrRef firstJumpRef     = storage.findPreviousInstructionRef(secondCompareRef);
-            const MicroInstrRef firstCompareRef  = storage.findPreviousInstructionRef(firstJumpRef);
+            auto compareIt = MicroStorage::Iterator{&storage, diamond.jumpRef};
+            --compareIt;
+            const MicroInstrRef secondCompareRef = compareIt.current;
+            --compareIt;
+            const MicroInstrRef firstJumpRef = compareIt.current;
+            --compareIt;
+            const MicroInstrRef firstCompareRef = compareIt.current;
             if (!secondCompareRef.isValid() || !firstJumpRef.isValid() || !firstCompareRef.isValid() ||
                 scan.relocated->contains(secondCompareRef.get()) || scan.relocated->contains(firstJumpRef.get()) ||
                 scan.relocated->contains(firstCompareRef.get()))

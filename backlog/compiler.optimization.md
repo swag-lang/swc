@@ -190,6 +190,9 @@ new language syntax.
   so no displacement folds; the forwarded velocities then live across the copies and spill, and main
   grew from 721 to 806 instructions. A countdown unroll needs the pointer carried as per-copy constant
   displacements and a pressure check on forwarded values first.
+- A source-shape probe based on Zig's `*[NB]Body` parameter confirmed the current Swag call is already
+  inlined. Adding `#[Swag.Inline]` leaves its Micro unchanged; changing `advance` from a slice to a fixed
+  array pointer grows the timed step loop from 378 instructions / 131 memory operands to 416 / 170.
 - Next: compare each interaction region against the winner and design shared producer
   ownership before another SLP rewrite. Keep historical timing attribution separate from
   the static optimization loop; a stable controlled cohort is still required for it.
@@ -381,9 +384,30 @@ new language syntax.
   compression round, two table/array reads and no frame accesses. All eight state values
   stay in registers after the legalization-reserve removal; its earlier `d`/`e` spill lead
   is complete. General multi-access promotion now belongs to compiler.optimization.015.
-- Next: trace the four added Levenshtein frame accesses outside its inner loop and decide
-  whether narrower carry residency or allocation can remove them without restoring the
-  two per-iteration row reads.
+- Current winner check: Odin's emitted Leven loop copies four `u64` row elements per
+  vector iteration (`movdqu` load/store pairs), then handles the tail scalarly. Swag's
+  emitted Micro retains the indexed scalar copy loop. The existing SLP pass only groups
+  straight-line blocks; it does not vectorize this loop. This is a concrete gap in the
+  current winner's generated code. Replaying the benchmark's deterministic length
+  generator gives 9,679,533 row-copy elements versus 8,519,897 DP inner-loop elements
+  across the timed inputs; 7,751,168 copy elements (80%) fall in Odin's four-element
+  vector groups, with a scalar tail for the rest. Swag's Micro roots the two arrays at
+  `rsp+0xF8` and `rsp+0x2F8`, 512 bytes apart, so this instance has a direct
+  frame-disjointness proof. A general loop-vectorization proof and cost rule are not yet
+  established.
+- October 11 Prompt 2 implementation: `MicroLoopUnrollPass` now recognizes only the exact
+  two-operation indexed load/store copy body, with equal element widths and strides. It emits
+  four copies per loop test in original source order, advances the counter by four, and leaves
+  the original scalar loop as the tail. This is scalar loop unrolling inspired by Odin's
+  four-element copy; it does not emit SIMD or rely on row disjointness. The Leven checksum
+  remains 67441, and all 1,425 focused loop-unroll tests pass. Micro grows the full Leven main
+  from 447 to 462 instructions because of the grouped body and guards. A 30-pair pinned
+  diagnostic run gave medians of 16.86 ms baseline and 15.90 ms candidate, but samples drifted
+  from roughly 13 ms to 34 ms, so that apparent gain is not accepted as timing evidence.
+- Next: run a quiet, controlled Leven comparison and inspect the emitted native code. Accept
+  this narrow transformation only if timing confirms the hot-path estimate without a hot loss;
+  otherwise revert it. A general SIMD loop-vectorization rule still needs an independent
+  alias/disjointness proof and cost model.
 - Done when: the outer-region accesses are eliminated or attributed to unavoidable
   carry initialization/lifetime costs with the inner-loop gain preserved.
 
@@ -483,6 +507,10 @@ new language syntax.
   register and removes its XMM2 transfer on each candidate. Main loses eight instructions
   and seven memory operations. The `l < limit` guard before the byte loop still remains
   where clang proves `n - i >= 4`.
+- Current winner check: campaign `20261010-191648` puts Go 1.27.1 at 17.376 ms, ahead of
+  Swag at 22.510 ms. Go's emitted `main` checks both slice bounds inside every byte-match
+  iteration. Swag's matching loop compares the same two bytes under a precomputed limit and
+  has no per-byte bounds checks, so that loop does not explain Go's lead.
 - October 10 Prompt 2: when SSA proves every use observes only the low `k` bits, a signed
   remainder by `2^k` becomes an `and (2^k - 1)`. The proof follows copies and phis, and
   accepts narrow zero-extensions or memory writes only when their observed width fits.
@@ -835,9 +863,14 @@ new language syntax.
 - Evidence: `MicroColdBlockLayoutPass` already moves selected cold blocks within functions.
   Whole-body inlining can still duplicate refill/allocation/error paths; rejecting the whole body
   also loses profitable small fast paths.
-- Next: identify a cheap guard/hot body plus a cold continuation, outline the continuation into a
-  shared worker, and inline only the profitable part across modules. Start from structural evidence,
-  then incorporate profile weights.
+- Current Prompt 2 check: Java HotSpot C2's emitted `Bench.bottomUp` allocates each 24-byte
+  node by advancing TLAB top, checking the end, then writing the header and child fields. But the
+  timed Java code drops tree references after checking them, while Swag recursively visits and frees
+  every node before stopping its timer. That extra Swag work makes the current ratio unsuitable for
+  attributing a gap to allocation code generation.
+- Next: revisit allocator specialization only after the timed task work is lifecycle-matched. Then
+  compare caller-plus-callee Micro work for the direct default `Allocator.alloc` fast path against
+  the indirect interface call, with custom allocator dispatch preserved and no hot loss elsewhere.
 - Contracts: preserve live-in/live-out values, stack/borrow lifetimes, cleanup ownership, error
   edges, and source locations. Keep call/return and unwind behavior valid; avoid charging the hot
   path for cold-only frame/register requirements where feasible.
@@ -1158,9 +1191,19 @@ new language syntax.
 - Done when: repeated paired runs put the mixed calls at parity or better and
   the six-integer and six-float gains remain.
 
-### compiler.optimization.085 — Measure short-key comparison cost against LDC
+### compiler.optimization.085 — Measure short-key comparison cost against the current winner
 
 - Area: generated runtime code, wordfreq byte-map keys and comparators
 - Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
-- Next: compare the issued short-key path against the C runtime used by LDC and recheck the wordfreq ratio only after further static gains, since the larger generic fallback alone does not establish a benchmark speedup.
+- Rejected short dispatch: the CRT's `<8` byte-loop branch inspired a guard around Swag's vector and word loops, but `Swag.memcmp` grew from 102 to 106 Micro instructions in all twelve tasks. The latest recorded campaign ranks Go ahead of Swag on wordfreq (49.697 ms vs 54.258 ms), so the CRT is not the current winner.
+- Current winner check: Go's emitted `byteMap.probe` keeps the FNV loop scalar and inlines
+  `compareBytes`. Swag's emitted probe unrolls four FNV bytes and calls `Swag.memcmp` after
+  the length check; its generic comparator handles these 3–8-byte keys through 8/4/2/1-byte
+  chunks. Go calls `byteMap.probe` and saves live caller state; Swag inlines the probe into
+  its timed `__main_0`, so the standalone probe's callee-save prologue is not paid there.
+  Only the `memcmp` call remains as a possible difference, and the static listings do not
+  establish a net hot-path gain from inlining it.
+- Next: inspect whether a shared fast-path inlining rule can remove caller and callee work for
+  short comparisons without growing the other task hot paths; require a concrete Micro gain
+  before editing.
 - Done when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.

@@ -213,18 +213,20 @@ and bench/README.md first.
 
 The campaign is judged by the machine-corrected execution index it leaves behind (the per-task
 `run_index` of bench/history.json), not by the number of batches it lands. Acceptance rests on
-correctness and on static evidence read from the final code of every benchmark task, so a batch
-can be accepted on a loaded machine. Other agents usually build and test on this same machine.
-Timing is a confirmation and a veto against a clear slowdown. It is never a gate a batch must
-wait for. A session that runs for an hour without landing an accepted batch has gone wrong:
+correctness and static evidence for the changed hot path, so a batch can be accepted on a loaded
+machine. Other agents usually build and test on this same machine. Timing is an occasional
+confirmation and a veto against a clear slowdown, never a gate that delays coding or a commit.
+Do not repeat the same checks after every small edit: make a coherent batch, verify it once, and
+commit it. A session that runs for an hour without landing an accepted batch has gone wrong;
 change the hypothesis or the task instead of measuring more.
 
 Static evidence is only safe when it covers everything the batch changed. On 2026-10-10 batches
 were accepted on their target loop and two or three hand-picked sentinels; the allocator fast
 paths every allocation-heavy task runs gained up to 22 memory operands in the same batches, and
 nobody looked. The same day, two targets lost 4-8 % of their instructions per iteration with no
-measurable effect. Neither is acceptable evidence any more: the static check is exhaustive, and
-the session's full campaign is mandatory.
+measurable effect. Avoid both blind spots by checking the affected code and the paths it can
+reach. Run the full cross-task comparison periodically and whenever a change materially broadens
+its reach, not after every narrow batch.
 
 GOAL
 
@@ -299,52 +301,53 @@ THE LOOP
      and inlined/out-of-line shape rather than assuming a standalone dump is what the benchmark
      runs.
 
-  3. Implement one coherent mechanism. Use general eligibility based on data flow, aliasing,
-     ranges, loop structure and estimated benefit. The smallest useful transformation may span
-     several passes; do not split it into unrelated peepholes, and do not bundle unrelated
-     peepholes into one batch.
+  3. Code before expanding the investigation. Once the hot-path shape and a plausible general
+     rule are clear, make a coherent batch of a few related edits without rebuilding or testing
+     after each one. Keep the batch focused on that rule; do not add unrelated peepholes.
 
-  4. Rebuild the needed compiler executable once for the batch and run
-     `py -3 bench\microdiff.py --base <baseline swc.exe> --new <candidate swc.exe>` over all
-     twelve tasks. It builds every task with both compilers from the same sources, compares
-     checksums, and lists each function and loop whose final code changed with its instruction,
-     memory-operand and call counts, marking LOSS where one grew. Read every task's section,
-     not only the target's. Then run the focused correctness tests, including native, JIT and
-     script coverage when the changed path can reach them, following validate-swag-changes.
-     A checksum mismatch rejects the batch.
+  4. Verify the batch once: rebuild the needed compiler executable, run the smallest focused
+     correctness suite that covers the changed path, and check the target benchmark checksum.
+     Inspect the final generated hot path against the baseline. A checksum mismatch or semantic
+     failure rejects the batch. If the mechanism can affect shared code outside the target,
+     inspect its actual callers and one or two relevant sentinels now; reserve the full twelve-task
+     `microdiff.py` for every third accepted batch, before integrating a broader pass change, or
+     when evidence shows the affected scope is wider than expected. Reuse existing dumps and
+     results when sources and compiler revision have not changed.
 
-  5. Decide with the acceptance rule below. An accepted batch is committed and integrated into
-     master within the next batch or two; do not accumulate accepted batches on the branch.
-     After integration, advance the baseline compiler to the integrated revision.
+  5. Commit an accepted batch immediately after this verification, with the evidence in the commit
+     body. Do not hold a verified change for a full campaign or another unrelated test suite. Keep
+     at most three accepted batches on the branch before integrating them together; then advance
+     the baseline compiler to the integrated revision.
 
-  6. Every few accepted batches, and when the machine is quiet, run a short paired timing of the
-     recent targets. Run a full cross-language campaign with tools/bench.swgs at the end of
-     every session that landed a batch (see SESSION CAMPAIGN). It is not optional.
+  6. Take a short paired timing after roughly three accepted batches, only when useful and
+     available; it may veto a clear regression but must not stall implementation. Run a full
+     cross-language campaign after integrating a group of batches, or once at the end of a longer
+     campaign session, rather than after every commit (see SESSION CAMPAIGN).
 
 ACCEPTANCE
 
 A batch is accepted when all of these hold:
 
-  - Correct: focused tests, benchmark checksums and the reachable native, JIT and script paths
-    pass on the combined revision.
+  - Correct: focused tests and the target benchmark checksum pass. Run native, JIT or script
+    coverage only when the changed mechanism reaches those paths, grouping that coverage into the
+    batch's single verification pass.
   - Static gain on the hot path: the final machine code of the target's dominant loop or call
     path does less work per execution than the baseline: fewer executed instructions, memory
     operands, spills, calls, or a shorter loop-carried dependency chain. Unchanged or cold code
     shrinking does not count.
-  - No static loss anywhere hot: in the microdiff of all twelve tasks, no LOSS on a function or
-    loop that a task executes in its timed region - its own loops, and the runtime functions
-    those loops call (the allocator for binarytrees, csvagg and wordfreq, interface dispatch,
-    copies). A trade (fewer pushes for more spills, one path shorter and another longer) is a
-    loss until the per-execution cost of each path, weighted by how often it runs, says
-    otherwise; state that weighting in the commit. Fix or narrow the mechanism before landing.
+  - No static loss on a hot path the mechanism can reach. Establish the scope from the pass's
+    eligibility and actual callers; at the periodic twelve-task comparison, fix or narrow any
+    newly exposed hot loss before integrating. A trade (fewer pushes for more spills, one path
+    shorter and another longer) needs a per-execution cost estimate, weighted by its trip count;
+    state that weighting in the commit.
   - General: the eligibility test is a data-flow, aliasing, range or loop property, never a
     benchmark name, an exact constant or a threshold fitted to one example.
 
 Commit an accepted batch with "[prompt 2]" and evidence in the message body: "Evidence: static,
 <task> hot loop <before> -> <after> <unit> per iteration" or "Evidence: measured, <ratio> vs
-A/A <spread>", followed by "Microdiff: <n> tasks changed, no hot LOSS" and one line per other
-task whose hot code moved. A batch accepted on static evidence is a landed change, not a proven
-speedup; report it that way until a campaign shows its task move.
+A/A <spread>". Include a concise scope, checksum and focused-test summary. Add a twelve-task
+microdiff summary only when one was run. A batch accepted on static evidence is a landed change,
+not a proven speedup; report it that way until a campaign shows its task move.
 
 Timing can only veto. A batch is reverted or revised when a timing shows a clear slowdown
 beyond its unchanged A/A control in two independent runs, on a target or a sentinel, even when
@@ -377,7 +380,8 @@ every checkout.
 
 SESSION CAMPAIGN
 
-A session that landed a batch ends with a full campaign of the final master revision:
+After integrating a group of up to three accepted batches, or at the end of a longer campaign
+session, run a full campaign of that combined revision:
 `bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6 --label "prompt 2 <date>"`
 after building that revision's swc.exe. Wait for a quiet window for this one run; if none comes
 before the session's end, say so plainly, and the next prompt 2 session starts with this
@@ -389,8 +393,8 @@ campaign before any new batch. Then read bench/history.json, not raw millisecond
     Hot code changed: the responsible batch is fixed or reverted before the session ends. Hot
     code unchanged: it is placement; fix it as above, never leave it.
   - A batch whose target's index did not improve beyond its band is reported as "landed,
-    unconfirmed", not as a gain. Two sessions in a row without a confirmed gain mean the
-    hypotheses are wrong: change the kind of mechanism, not the amount of measurement.
+    unconfirmed", not as a gain. If two successive grouped campaigns show no target improvement,
+    change the kind of mechanism instead of increasing measurement frequency.
 
 RULES AND STOPPING
 

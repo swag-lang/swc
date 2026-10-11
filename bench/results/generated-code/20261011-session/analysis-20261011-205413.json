@@ -1,0 +1,307 @@
+{
+  "previous": {
+    "protocol": 2,
+    "settings": {
+      "pin_mask": "0x55401",
+      "pin_cores": 6,
+      "phases": [
+        "build",
+        "run"
+      ],
+      "swc_cores": 0,
+      "budget_ms": 2000,
+      "min_reps": 3,
+      "max_reps": 16,
+      "build_budget_ms": 2000,
+      "warmup_s": 30
+    },
+    "stamp": "20261011-163035",
+    "date": "2026-10-11T16:30:35+00:00",
+    "label": "",
+    "commit": "00fea61ec",
+    "subject": "Refactor campaign process to use existing compiler binary and streamline build steps",
+    "master": "00fea61ec",
+    "dirty": false,
+    "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+    "swc_bytes": 8115200
+  },
+  "current": {
+    "protocol": 2,
+    "settings": {
+      "pin_mask": "0x55401",
+      "pin_cores": 6,
+      "phases": [
+        "build",
+        "run"
+      ],
+      "swc_cores": 6,
+      "budget_ms": 2000,
+      "min_reps": 3,
+      "max_reps": 16,
+      "build_budget_ms": 2000,
+      "warmup_s": 30
+    },
+    "stamp": "20261011-205413",
+    "date": "2026-10-11T20:54:13+00:00",
+    "label": "prompt 2 20261011 group 2",
+    "commit": "b1ef958c9",
+    "subject": "[prompt 2] Park shared guarded lookup values only on the slow path",
+    "master": "b1ef958c9",
+    "dirty": false,
+    "swc": "C:\\Perso\\swag-lang\\swc-prompt2-20261011-2036\\bin\\swc.exe",
+    "swc_bytes": 8122880
+  },
+  "rows": [
+    {
+      "task": "wordfreq",
+      "before": 0.6850694948675169,
+      "after": 0.7012670841544015,
+      "movement": 1.0236437170363526,
+      "band": [
+        0.9384494721728931,
+        1.104074820614258
+      ],
+      "previous_band": [
+        0.8624248409431812,
+        1.0678159223275498
+      ],
+      "winner": "cpp-clang-cl",
+      "competitive_ratio": 0.9486222789071335,
+      "status": "inside current band"
+    },
+    {
+      "task": "csvagg",
+      "before": 0.6237995271529537,
+      "after": 0.572527513346807,
+      "movement": 0.9178069049841151,
+      "band": [
+        0.8514713169468944,
+        1.2185573749076317
+      ],
+      "previous_band": [
+        0.8859488548081401,
+        1.0536204059712562
+      ],
+      "winner": "odin",
+      "competitive_ratio": 0.9336892057586541,
+      "status": "inside current band"
+    },
+    {
+      "task": "sha256",
+      "before": 0.5544209690770057,
+      "after": 0.553712932536219,
+      "movement": 0.9987229261152127,
+      "band": [
+        0.957088298563341,
+        1.3304274314476026
+      ],
+      "previous_band": [
+        0.9599389859553166,
+        1.1330640092214765
+      ],
+      "winner": "go",
+      "competitive_ratio": 0.8735571038392674,
+      "status": "inside current band"
+    },
+    {
+      "task": "dijkstra",
+      "before": 0.6575186266527677,
+      "after": 0.6109594618720805,
+      "movement": 0.9291895881068707,
+      "band": [
+        0.9453956834532374,
+        1.095103868739832
+      ],
+      "previous_band": [
+        0.9686231192666139,
+        1.0238683936425526
+      ],
+      "winner": "cpp-msvc",
+      "competitive_ratio": 0.9348129441744285,
+      "status": "improved beyond current band"
+    },
+    {
+      "task": "raytrace",
+      "before": 0.4805741834526146,
+      "after": 0.5457738752711743,
+      "movement": 1.135670400249431,
+      "band": [
+        0.9368238594422926,
+        1.1431069683335306
+      ],
+      "previous_band": [
+        0.9202132622395479,
+        1.0796197710911972
+      ],
+      "winner": "odin",
+      "competitive_ratio": 0.9635883637102097,
+      "status": "inside current band"
+    },
+    {
+      "task": "leven",
+      "before": 0.5571102308460228,
+      "after": 0.5451381821765943,
+      "movement": 0.9785104490878799,
+      "band": [
+        0.894527214582758,
+        1.1295764488118245
+      ],
+      "previous_band": [
+        0.9125060013620346,
+        1.1363507185655743
+      ],
+      "winner": "odin",
+      "competitive_ratio": 0.9141191396810053,
+      "status": "inside current band"
+    },
+    {
+      "task": "chacha",
+      "before": 0.6788679569251883,
+      "after": 0.6722545943113137,
+      "movement": 0.9902582489769755,
+      "band": [
+        0.9211634155181244,
+        1.1462736087107148
+      ],
+      "previous_band": [
+        0.8655590869044234,
+        1.2188768579169547
+      ],
+      "winner": "odin",
+      "competitive_ratio": 0.7883501666238413,
+      "status": "inside current band"
+    },
+    {
+      "task": "nbody",
+      "before": 0.7995714587216474,
+      "after": 0.7500500020685158,
+      "movement": 0.9380650020545926,
+      "band": [
+        0.8919744140402938,
+        1.264427663026298
+      ],
+      "previous_band": [
+        0.8923661049482129,
+        1.1510160900431428
+      ],
+      "winner": "zig",
+      "competitive_ratio": 1.275793500381953,
+      "status": "inside current band"
+    },
+    {
+      "task": "fannkuch",
+      "before": 0.8940229056354011,
+      "after": 0.9573071182542765,
+      "movement": 1.0707858962225336,
+      "band": [
+        0.8888563815500158,
+        1.0549627091884552
+      ],
+      "previous_band": [
+        0.8761936833106113,
+        1.1599596206154719
+      ],
+      "winner": "rust",
+      "competitive_ratio": 0.985205866054073,
+      "status": "investigate regression"
+    },
+    {
+      "task": "binarytrees",
+      "before": 0.2975630761623573,
+      "after": 0.2541950731289771,
+      "movement": 0.8542561006133785,
+      "band": [
+        0.8110955937496912,
+        1.298540575979247
+      ],
+      "previous_band": [
+        0.8741221127679342,
+        1.2510890093598137
+      ],
+      "winner": "java-hotspot",
+      "competitive_ratio": 1.3886773062507556,
+      "status": "inside current band"
+    },
+    {
+      "task": "lz77",
+      "before": 0.864929007174154,
+      "after": 0.9064267846992455,
+      "movement": 1.0479782469785246,
+      "band": [
+        0.9218596028357272,
+        1.1357338091949474
+      ],
+      "previous_band": [
+        0.907999178501696,
+        1.0728418604401235
+      ],
+      "winner": "odin",
+      "competitive_ratio": 1.0976341697774763,
+      "status": "inside current band"
+    },
+    {
+      "task": "sort",
+      "before": 0.9745598738572081,
+      "after": 0.9640771096041056,
+      "movement": 0.9892435913541024,
+      "band": [
+        0.921508193821603,
+        1.0392837355264
+      ],
+      "previous_band": [
+        0.9338041923638385,
+        1.0969426116107575
+      ],
+      "winner": "d-ldc",
+      "competitive_ratio": 1.0090398131731615,
+      "status": "inside current band"
+    }
+  ],
+  "geometric_ratio": 0.9975468887521409,
+  "headline": {
+    "tasks": 7,
+    "exec_vs_best": 1.0063633846283193,
+    "exec_fastest": "swag-release",
+    "build_speedup": 1.9475470002768216,
+    "build_tasks": 7
+  },
+  "calibration": {
+    "probes": {
+      "wordfreq": 55.7195,
+      "csvagg": 48.2445,
+      "sha256": 53.085,
+      "dijkstra": 43.3763,
+      "raytrace": 49.2987,
+      "leven": 48.0471,
+      "chacha": 44.2181,
+      "nbody": 40.7419,
+      "fannkuch": 51.9139,
+      "binarytrees": 42.9657,
+      "lz77": 43.6281,
+      "sort": 45.3321,
+      "allocator": 45.7457
+    },
+    "start": 50.7552,
+    "end": 42.4481,
+    "drift_pct": -16.36699293865457,
+    "spread_pct": 27.421401554664836,
+    "worst_moment": "fannkuch",
+    "build_controls": {
+      "reference": "20261011-163035",
+      "controls": {
+        "cpp-clang-cl": 0.8884784968252288,
+        "cpp-msvc": 0.8909632277193444,
+        "rust": 0.8954301521078549,
+        "zig": 1.1765996563365575,
+        "d-ldc": 0.9100914563801575,
+        "odin": 0.9266914933628453,
+        "go": 0.9683495652195548,
+        "swift": 1.045173564830394,
+        "csharp-aot": 1.047887200620771,
+        "csharp-jit": 1.1224486516987557,
+        "java-hotspot": 1.0550573089433473
+      },
+      "spread_pct": 17.826868623948823
+    }
+  }
+}

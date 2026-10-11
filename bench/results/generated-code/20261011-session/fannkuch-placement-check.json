@@ -1,0 +1,17 @@
+{
+  "before_campaign": "20261011-163035",
+  "after_campaign": "20261011-205413",
+  "before_rva": [
+    "0x2c80",
+    "0x2d8e"
+  ],
+  "after_rva": [
+    "0x8ba0",
+    "0x8cae"
+  ],
+  "bytes": 270,
+  "identical": true,
+  "sha256": "d1ff5a6f78776a4fb9979465bc187cb206beda9ee2ae87de0ab843982d580d02",
+  "shift_mod32": 0,
+  "shift_mod64": 32
+}

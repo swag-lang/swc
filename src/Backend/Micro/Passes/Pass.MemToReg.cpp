@@ -694,7 +694,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     bool          unknownSpaceEscaped = false;
     MicroInstrRef unknownFirstEscape  = MicroInstrRef::invalid();
     // The instruction pass 2 is classifying: where an escape it records happens.
-    MicroInstrRef escapingRef = MicroInstrRef::invalid();
+    MicroInstrRef              escapingRef = MicroInstrRef::invalid();
+    SmallVector<MicroInstrRef> frameEscapes;
 
     const auto ensureVarRangesReady = [&] {
         if (!rangesUsable || varRangesReady)
@@ -711,6 +712,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     auto poisonEscapedOffset = [&](const uint64_t offset) -> bool {
         if (!rangesUsable)
             return false;
+        // Every escape matters: a later textual escape can reach an earlier
+        // store through a back edge even when the first escape cannot.
+        frameEscapes.push_back(escapingRef);
         ensureVarRangesReady();
         bool found = false;
         for (FrameVarRange& range : varRanges)
@@ -1098,9 +1102,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // Reads the analysis resolved are compared byte for byte. Any other read
     // through the frame, or through the stack pointer, may reach the store and
     // keeps it. A read through some other pointer cannot reach an object whose
-    // address never escapes; nor, on the function's entry line, one whose first
-    // escape has not been executed yet, since nothing before that escape can
-    // have handed its address out. Calls, jumps and labels end the line.
+    // address never escapes, or one whose escape cannot reach that read.
+    // The entry line uses the first-escape order; other blocks use CFG
+    // reachability, including back edges. Calls, jumps and labels end the line.
     {
         // Only a store some other write overlaps can be killed.
         thread_local std::vector<std::pair<uint64_t, uint64_t>> writeRanges;
@@ -1165,12 +1169,21 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 int32_t       object    = -1;
                 bool          onEntry   = false;
             };
-            constexpr uint32_t         K_MAX_PENDING = 64;
-            SmallVector<PendingStore>  pendingStores;
-            SmallVector<MicroInstrRef> deadStores;
-            std::vector<uint8_t>       escapedNow(varRanges.size(), 0);
-            bool                       unknownEscapedNow = false;
-            bool                       onEntryLine       = true;
+            constexpr uint32_t                  K_MAX_PENDING = 64;
+            SmallVector<PendingStore>           pendingStores;
+            SmallVector<MicroInstrRef>          deadStores;
+            std::vector<uint8_t>                escapedNow(varRanges.size(), 0);
+            bool                                unknownEscapedNow = false;
+            bool                                onEntryLine       = true;
+            std::optional<std::vector<uint8_t>> escapeReachability;
+
+            const auto framePrivateAt = [&](MicroInstrRef ref) {
+                const auto& cfg = context.builder->controlFlowGraph();
+                if (!escapeReachability)
+                    escapeReachability = cfg.reachableFrom(frameEscapes.span());
+                const uint32_t index = cfg.indexOf(ref);
+                return index != MicroControlFlowGraph::K_NO_INDEX && !(*escapeReachability)[index];
+            };
 
             // Whether a read through a pointer the analysis does not track can
             // see the pending store's object at this point.
@@ -1288,8 +1301,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     pendingStores.clear();
                 else
                 {
-                    const auto removed = std::ranges::remove_if(pendingStores, reachableByUnknownPointer);
-                    pendingStores.resize(static_cast<size_t>(removed.begin() - pendingStores.begin()));
+                    // A branch does not expose the frame. After leaving the
+                    // entry line, keep the same proof until an actual escape
+                    // can reach this read, including one on a previous iteration.
+                    if (std::ranges::any_of(pendingStores, reachableByUnknownPointer) && !framePrivateAt(ref))
+                    {
+                        const auto removed = std::ranges::remove_if(pendingStores, reachableByUnknownPointer);
+                        pendingStores.resize(static_cast<size_t>(removed.begin() - pendingStores.begin()));
+                    }
                 }
             }
 

@@ -33,6 +33,44 @@ uint32_t MicroControlFlowGraph::indexOfLabel(const uint64_t labelRef) const
     return labelToInstructionIndex_[labelRef];
 }
 
+std::vector<uint8_t> MicroControlFlowGraph::reachableFrom(const std::span<const MicroInstrRef> roots) const
+{
+    std::vector<uint8_t> reachable(instructionCount(), 0);
+    if (hasUnsupportedControlFlowForCfgLiveness_ || !supportsDeadCodeLiveness_ || !addressTakenLabelIndices_.empty())
+    {
+        std::ranges::fill(reachable, 1);
+        return reachable;
+    }
+    std::vector<uint32_t> pending;
+    for (const MicroInstrRef root : roots)
+    {
+        const uint32_t index = indexOf(root);
+        if (index == K_NO_INDEX)
+        {
+            std::ranges::fill(reachable, 1);
+            return reachable;
+        }
+        if (!reachable[index])
+        {
+            reachable[index] = 1;
+            pending.push_back(index);
+        }
+    }
+    while (!pending.empty())
+    {
+        const uint32_t index = pending.back();
+        pending.pop_back();
+        for (const uint32_t next : successors(index))
+        {
+            if (reachable[next])
+                continue;
+            reachable[next] = 1;
+            pending.push_back(next);
+        }
+    }
+    return reachable;
+}
+
 void MicroControlFlowGraph::addEdge(const uint32_t source, const uint32_t target)
 {
     SWC_ASSERT(source < successors_.size());

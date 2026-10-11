@@ -604,35 +604,12 @@ namespace
             return false;
 
         // A later escape cannot alias an earlier access unless control flow
-        // can bring it back here. Include every predecessor, including cycles.
-        const auto& cfg = fn.context->builder->controlFlowGraph();
-        if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.addressTakenLabelIndices().empty())
-            return false;
+        // can bring it back here. Include every path, including cycles.
+        const auto&    cfg       = fn.context->builder->controlFlowGraph();
         const uint32_t lastIndex = cfg.indexOf(lastRef);
         if (lastIndex == MicroControlFlowGraph::K_NO_INDEX)
             return false;
-        std::vector<bool>     reachable(cfg.instructionCount());
-        std::vector<uint32_t> pending{lastIndex};
-        reachable[lastIndex] = true;
-        while (!pending.empty())
-        {
-            const uint32_t index = pending.back();
-            pending.pop_back();
-            for (const uint32_t predecessor : cfg.predecessors(index))
-            {
-                if (reachable[predecessor])
-                    continue;
-                reachable[predecessor] = true;
-                pending.push_back(predecessor);
-            }
-        }
-        for (const MicroInstrRef escape : fn.framePrivacy->escapes)
-        {
-            const uint32_t index = cfg.indexOf(escape);
-            if (index == MicroControlFlowGraph::K_NO_INDEX || reachable[index])
-                return false;
-        }
-        return true;
+        return !cfg.reachableFrom(fn.framePrivacy->escapes)[lastIndex];
     }
 
     uint32_t entryValueFor(BlockScan& scan, MicroReg reg)

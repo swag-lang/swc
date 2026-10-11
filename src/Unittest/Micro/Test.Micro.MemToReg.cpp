@@ -613,6 +613,8 @@ namespace
         ReadBeforeOverwrite,
         EscapeBeforeForeignRead,
         NotOnEntryLine,
+        EscapeOnPreviousIteration,
+        EscapeOnSeparateBranches,
         GlobalCopyInLoop,
         ConstantCopyInLoop,
         PointerConstantInLoop,
@@ -639,11 +641,18 @@ namespace
         const bool relocatedRead = tileCase == TileCase::GlobalCopyInLoop ||
                                    tileCase == TileCase::ConstantCopyInLoop ||
                                    tileCase == TileCase::PointerConstantInLoop;
-        if (tileCase == TileCase::NotOnEntryLine || relocatedRead)
+        const MicroLabelRef loop = builder.createLabel();
+        if (tileCase == TileCase::EscapeOnSeparateBranches)
         {
-            MicroLabelRef label;
-            builder.emitLabel(label);
+            builder.emitCmpRegImm(source, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+            builder.emitLoadAddressRegMem(rows, frame, 0x20, MicroOpBits::B64);
+            builder.emitLoadRegReg(MicroReg::intReg(1), rows, MicroOpBits::B64);
+            builder.emitRet();
         }
+        if (tileCase == TileCase::NotOnEntryLine || tileCase == TileCase::EscapeOnPreviousIteration ||
+            tileCase == TileCase::EscapeOnSeparateBranches || relocatedRead)
+            builder.placeLabel(loop);
         builder.emitClearReg(zero, MicroOpBits::B128);
         builder.emitStoreVecMemReg(frame, 0x20, zero, MicroOpBits::B128);
         builder.emitStoreVecMemReg(frame, 0x30, zero, MicroOpBits::B128);
@@ -678,6 +687,11 @@ namespace
             builder.emitStoreVecMemReg(rows, 0x10, row, MicroOpBits::B128);
         if (tileCase != TileCase::EscapeBeforeForeignRead)
             builder.emitLoadRegReg(MicroReg::intReg(1), rows, MicroOpBits::B64);
+        if (tileCase == TileCase::EscapeOnPreviousIteration || tileCase == TileCase::EscapeOnSeparateBranches || relocatedRead)
+        {
+            builder.emitCmpRegImm(source, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loop);
+        }
         builder.emitLoadRegMem(peek, frame, 0x38, MicroOpBits::B64);
         builder.emitLoadRegReg(MicroReg::intReg(0), peek, MicroOpBits::B64);
         builder.emitRet();
@@ -704,6 +718,9 @@ SWC_TEST_BEGIN(MemToReg_DeadFillIsErased)
     SWC_RESULT(runTileCase(ctx, TileCase::Overwritten, fillStores));
     if (fillStores != 0)
         return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::NotOnEntryLine, fillStores));
+    if (fillStores != 0)
+        return Result::Error;
     SWC_RESULT(runTileCase(ctx, TileCase::GlobalCopyInLoop, fillStores));
     if (fillStores != 0)
         return Result::Error;
@@ -716,9 +733,8 @@ SWC_TEST_END()
 
 // The clear stays wherever it may still be read: the half the second row only
 // partly overwrites, a byte read before the rows are written, an address
-// handed out before a foreign pointer is read, and a fill off the entry line
-// of an object whose address escapes, which an earlier pass through a loop
-// may have handed out.
+// handed out before a foreign pointer is read, or a fill reached again after
+// an earlier iteration handed out the object's address.
 SWC_TEST_BEGIN(MemToReg_LiveFillIsKept)
 {
     uint32_t fillStores = 0;
@@ -731,7 +747,10 @@ SWC_TEST_BEGIN(MemToReg_LiveFillIsKept)
     SWC_RESULT(runTileCase(ctx, TileCase::EscapeBeforeForeignRead, fillStores));
     if (fillStores != 2)
         return Result::Error;
-    SWC_RESULT(runTileCase(ctx, TileCase::NotOnEntryLine, fillStores));
+    SWC_RESULT(runTileCase(ctx, TileCase::EscapeOnPreviousIteration, fillStores));
+    if (fillStores != 2)
+        return Result::Error;
+    SWC_RESULT(runTileCase(ctx, TileCase::EscapeOnSeparateBranches, fillStores));
     if (fillStores != 2)
         return Result::Error;
     SWC_RESULT(runTileCase(ctx, TileCase::PointerConstantInLoop, fillStores));

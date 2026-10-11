@@ -196,7 +196,7 @@ SWC_DIAG_DEF(sema_err_named_argument_unknown, Error, "unknown named argument '{v
 SWC_DIAG_DEF(sema_err_named_argument_duplicate, Error, "argument '{value}' is already specified")
 SWC_DIAG_DEF(sema_err_named_argument_duplicate, Error, "argument '{value}' is already specified in call to '{sym}'")
 SWC_DIAG_DEF(sema_err_invalid_attribute_parameter_type, Error, "parameter type '{type}' is not allowed in an attribute; [help] use bool, char, string, integer, float, rune, enum, typeinfo, type, or a typed variadic of one of those")
-SWC_DIAG_DEF(sema_err_pointer_arithmetic_value_ptr, Error, "pointer arithmetic is not allowed on a value pointer of type '{type}'")
+SWC_DIAG_DEF(sema_err_pointer_arithmetic_value_ptr, Error, "pointer arithmetic needs an arithmetic pointer, found value pointer '{type}'")
 SWC_DIAG_DEF(sema_err_pointer_arithmetic_void_ptr, Error, "pointer arithmetic is not allowed on a pointer to void of type '{type}'")
 SWC_DIAG_DEF(sema_err_take_address_constant, Error, "cannot take the address of a constant expression; [help] store the value in a variable first if you need an address")
 SWC_DIAG_DEF(sema_err_closure_capture_invalid, Error, "closure capture needs a variable from an outer scope")

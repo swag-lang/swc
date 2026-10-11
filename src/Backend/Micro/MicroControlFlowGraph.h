@@ -36,6 +36,10 @@ public:
     uint32_t                  indexOf(MicroInstrRef ref) const;
     uint32_t                  indexOfLabel(uint64_t labelRef) const;
 
+    // Instructions reachable from any root, including the roots and cycles.
+    // An incomplete graph or a missing root conservatively marks every instruction.
+    std::vector<uint8_t> reachableFrom(std::span<const MicroInstrRef> roots) const;
+
     // Identifies this graph's contents during its lifetime. SSA also checks the graph
     // pointer and clears that association before starting another function.
     uint64_t buildId() const { return buildId_; }

@@ -657,8 +657,8 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 5,
         .opBitsMask            = (1 << 3),
     })
-// Scalar FMA with a memory third operand; the destination is also an input
-// and supplies its upper lanes, as in the register-only FMA form.
+// FMA with a memory third operand; the destination is also an input.
+// Scalar forms retain its upper lanes; packed forms read and write all lanes.
 SWC_MICRO_INSTR_DEF(
     OpTernaryRegRegMem,
     MicroInstrDef{

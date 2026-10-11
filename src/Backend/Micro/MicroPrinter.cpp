@@ -356,6 +356,22 @@ namespace
                 return "vec.permb";
             case MicroOp::VecBlendVB:
                 return "vec.blendvb";
+            case MicroOp::VecAddProductF32:
+                return "vec.addproductf32";
+            case MicroOp::VecAddProductF64:
+                return "vec.addproductf64";
+            case MicroOp::VecSubtractProductF32:
+                return "vec.subproductf32";
+            case MicroOp::VecSubtractProductF64:
+                return "vec.subproductf64";
+            case MicroOp::VecProductAddF32:
+                return "vec.productaddf32";
+            case MicroOp::VecProductAddF64:
+                return "vec.productaddf64";
+            case MicroOp::VecProductSubtractFromF32:
+                return "vec.productsubfromf32";
+            case MicroOp::VecProductSubtractFromF64:
+                return "vec.productsubfromf64";
             case MicroOp::VecAddF32:
                 return "vec.addf32";
             case MicroOp::VecAddF64:
@@ -1009,8 +1025,9 @@ namespace
             {
                 if (isFusedFloatMicroOp(ops[4].microOp))
                 {
-                    const bool productDestination = ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
-                    const bool subtract           = ops[4].microOp == MicroOp::FloatSubtractProduct || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
+                    const auto scalarOp           = scalarFusedFloatOp(ops[4].microOp);
+                    const bool productDestination = scalarOp == MicroOp::FloatProductAdd || scalarOp == MicroOp::FloatProductSubtractFrom;
+                    const bool subtract           = scalarOp == MicroOp::FloatSubtractProduct || scalarOp == MicroOp::FloatProductSubtractFrom;
                     const auto third              = inst.op == MicroInstrOpcode::OpTernaryRegRegMem ? memBaseOffsetString(ops[2].reg, ops[5].valueU64, regPrintMode, encoder) : regName(ops[2].reg, regPrintMode, encoder);
                     const auto first              = regName(ops[productDestination ? 0 : 1].reg, regPrintMode, encoder);
                     const auto second             = productDestination ? regName(ops[1].reg, regPrintMode, encoder) : third;

@@ -305,6 +305,17 @@ enum class MicroOp : uint8_t
     VecInsert8,
     VecInsert16,
     VecInsert32,
+
+    // Packed FMA, with the same operand roles as the scalar forms above.
+    // Keep each F32/F64 pair together for fusedFloatElementBits.
+    VecAddProductF32,
+    VecAddProductF64,
+    VecSubtractProductF32,
+    VecSubtractProductF64,
+    VecProductAddF32,
+    VecProductAddF64,
+    VecProductSubtractFromF32,
+    VecProductSubtractFromF64,
 };
 
 // True for the 128-bit packed operations: they run on the float register
@@ -317,10 +328,28 @@ inline bool isVecMicroOp(const MicroOp op)
     return op >= MicroOp::VecAdd32;
 }
 
+// Map packed FMA to its scalar operation to share operand-role decisions.
+inline MicroOp scalarFusedFloatOp(const MicroOp op)
+{
+    if (op < MicroOp::VecAddProductF32 || op > MicroOp::VecProductSubtractFromF64)
+        return op;
+    constexpr MicroOp scalar[] = {MicroOp::FloatAddProduct, MicroOp::FloatSubtractProduct, MicroOp::FloatProductAdd, MicroOp::FloatProductSubtractFrom};
+    return scalar[(static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecAddProductF32)) / 2];
+}
+
 inline bool isFusedFloatMicroOp(const MicroOp op)
 {
-    return op == MicroOp::FloatAddProduct || op == MicroOp::FloatSubtractProduct ||
-           op == MicroOp::FloatProductAdd || op == MicroOp::FloatProductSubtractFrom;
+    const auto scalar = scalarFusedFloatOp(op);
+    return scalar == MicroOp::FloatAddProduct || scalar == MicroOp::FloatSubtractProduct ||
+           scalar == MicroOp::FloatProductAdd || scalar == MicroOp::FloatProductSubtractFrom;
+}
+
+inline MicroOpBits fusedFloatElementBits(const MicroOp op, MicroOpBits bits)
+{
+    if (!isVecMicroOp(op))
+        return bits;
+    SWC_ASSERT(isFusedFloatMicroOp(op));
+    return (static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecAddProductF32)) & 1 ? MicroOpBits::B64 : MicroOpBits::B32;
 }
 
 enum class MicroCond : uint8_t

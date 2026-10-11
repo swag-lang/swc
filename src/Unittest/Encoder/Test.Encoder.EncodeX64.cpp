@@ -55,6 +55,7 @@ namespace
     constexpr MicroReg XMM3  = MicroReg::floatReg(3);
     constexpr MicroReg XMM9  = MicroReg::floatReg(9);
     constexpr MicroReg XMM10 = MicroReg::floatReg(10);
+    constexpr MicroReg XMM11 = MicroReg::floatReg(11);
 
     // An instruction-pointer-relative access carries the relocation whose
     // displacement the emitter binds; a case building one by hand registers it
@@ -479,6 +480,14 @@ namespace
 
     Result buildTernaryAndConvert(const RunCaseFn& runCase)
     {
+        ENCODE_CASE("op_ternary_vec_addproduct_f32", "C4 E2 71 B8 C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::VecAddProductF32, MicroOpBits::B128););
+        ENCODE_CASE("op_ternary_vec_addproduct_f64", "C4 E2 F1 B8 C2", b.emitOpTernaryRegRegReg(XMM0, XMM1, XMM2, MicroOp::VecAddProductF64, MicroOpBits::B128););
+        ENCODE_CASE("op_ternary_vec_subproduct_f32_extended", "C4 42 29 BC CB", b.emitOpTernaryRegRegReg(XMM9, XMM10, XMM11, MicroOp::VecSubtractProductF32, MicroOpBits::B128););
+        ENCODE_CASE("op_ternary_vec_subproduct_f64_extended", "C4 42 A9 BC CB", b.emitOpTernaryRegRegReg(XMM9, XMM10, XMM11, MicroOp::VecSubtractProductF64, MicroOpBits::B128););
+        ENCODE_CASE("op_ternary_vec_productadd_f32_memory", "C4 E2 71 A8 41 08", b.emitOpTernaryRegRegMem(XMM0, XMM1, RCX, 8, MicroOp::VecProductAddF32, MicroOpBits::B128););
+        ENCODE_CASE("op_ternary_vec_productadd_f64_stack", "C4 E2 E9 A8 0C 24", b.emitOpTernaryRegRegMem(XMM1, XMM2, RSP, 0, MicroOp::VecProductAddF64, MicroOpBits::B128););
+        ENCODE_CASE("op_ternary_vec_productsubfrom_f32_rip", "C4 E2 71 AC 05 00 00 00 00", b.emitOpTernaryRegRegMem(XMM0, XMM1, MicroReg::instructionPointer(), 0, MicroOp::VecProductSubtractFromF32, MicroOpBits::B128); emitRipConstantRelocation(b););
+        ENCODE_CASE("op_ternary_vec_productsubfrom_f64_extended", "C4 42 A9 AC 8D 34 12 00 00", b.emitOpTernaryRegRegMem(XMM9, XMM10, R13, 0x1234, MicroOp::VecProductSubtractFromF64, MicroOpBits::B128););
         ENCODE_CASE("op_ternary_memory_faddproduct_f64", "C4 E2 F1 B9 41 08", b.emitOpTernaryRegRegMem(XMM0, XMM1, RCX, 8, MicroOp::FloatAddProduct, MicroOpBits::B64););
         ENCODE_CASE("op_ternary_memory_fsubproduct_f32_extended", "C4 42 29 BD 8D 34 12 00 00", b.emitOpTernaryRegRegMem(XMM9, XMM10, R13, 0x1234, MicroOp::FloatSubtractProduct, MicroOpBits::B32););
         ENCODE_CASE("op_ternary_memory_fproductadd_stack", "C4 E2 E9 A9 0C 24", b.emitOpTernaryRegRegMem(XMM1, XMM2, RSP, 0, MicroOp::FloatProductAdd, MicroOpBits::B64););

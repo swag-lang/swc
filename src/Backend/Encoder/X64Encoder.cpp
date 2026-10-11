@@ -4411,14 +4411,15 @@ void X64Encoder::encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, 
     emitValue(store_, value, MicroOpBits::B8);
 }
 
-static uint8_t scalarFusedOpcode(MicroOp op)
+static uint8_t fusedFloatOpcode(MicroOp op)
 {
-    switch (op)
+    const uint8_t packed = isVecMicroOp(op) ? 1 : 0;
+    switch (scalarFusedFloatOp(op))
     {
-        case MicroOp::FloatAddProduct: return 0xB9;
-        case MicroOp::FloatSubtractProduct: return 0xBD;
-        case MicroOp::FloatProductAdd: return 0xA9;
-        case MicroOp::FloatProductSubtractFrom: return 0xAD;
+        case MicroOp::FloatAddProduct: return static_cast<uint8_t>(0xB9 - packed);
+        case MicroOp::FloatSubtractProduct: return static_cast<uint8_t>(0xBD - packed);
+        case MicroOp::FloatProductAdd: return static_cast<uint8_t>(0xA9 - packed);
+        case MicroOp::FloatProductSubtractFrom: return static_cast<uint8_t>(0xAD - packed);
         default: return 0;
     }
 }
@@ -4427,12 +4428,12 @@ void X64Encoder::encodeOpTernaryRegRegMem(MicroReg regDst, MicroReg regLeft, Mic
 {
     SWC_ASSERT(regDst.isFloat() && regLeft.isFloat());
     SWC_ASSERT(memBase.isInt() || memBase.isInstructionPointer());
-    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+    SWC_ASSERT(isVecMicroOp(op) ? opBits == MicroOpBits::B128 : opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
     SWC_ASSERT(isFusedFloatMicroOp(op));
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
-    emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), microRegToX64Reg(memBase), opBits == MicroOpBits::B64);
-    emitCpuOp(store_, scalarFusedOpcode(op));
+    emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), microRegToX64Reg(memBase), fusedFloatElementBits(op, opBits) == MicroOpBits::B64);
+    emitCpuOp(store_, fusedFloatOpcode(op));
     if (memBase.isInstructionPointer())
     {
         SWC_ASSERT(memOffset == 0);
@@ -4449,9 +4450,8 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     // destination doubles as the first source in vvvv, the second source
     // rides in r/m, and the mask register sits in the high nibble of the
     // trailing immediate.
-    if (isVecMicroOp(op))
+    if (op == MicroOp::VecBlendVB)
     {
-        SWC_ASSERT(op == MicroOp::VecBlendVB);
         SWC_ASSERT(opBits == MicroOpBits::B128 && reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
         const VecOpEncoding enc = vecOpEncoding(op);
         emitVex(store_, enc.prefix, enc.map, microRegToX64Reg(reg0), microRegToX64Reg(reg0), microRegToX64Reg(reg1));
@@ -4463,15 +4463,15 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
 
     ///////////////////////////////////////////
 
-    const uint8_t fusedOpcode = scalarFusedOpcode(op);
+    const uint8_t fusedOpcode = fusedFloatOpcode(op);
     if (fusedOpcode)
     {
         // The 231 forms keep the addend in dst; the 213 forms keep a factor there.
-        // Both scalar forms retain the destination's upper lanes.
-        // The x86-64-v3 target includes FMA; W selects the scalar element width.
+        // Scalar forms retain the destination's upper lanes; packed forms use all lanes.
+        // The x86-64-v3 target includes FMA; W selects the element width.
         SWC_ASSERT(reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
-        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
-        emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg0), microRegToX64Reg(reg1), microRegToX64Reg(reg2), opBits == MicroOpBits::B64);
+        SWC_ASSERT(isVecMicroOp(op) ? opBits == MicroOpBits::B128 : opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+        emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg0), microRegToX64Reg(reg1), microRegToX64Reg(reg2), fusedFloatElementBits(op, opBits) == MicroOpBits::B64);
         emitCpuOp(store_, fusedOpcode);
         emitModRm(store_, reg0, reg2);
         return;

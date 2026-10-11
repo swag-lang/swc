@@ -392,9 +392,13 @@ namespace PostRaPeephole
             // Pending rewrites are opaque, as in the function-wide lane analysis.
             thread_local std::vector<MicroInstrRef> suffix;
             suffix.clear();
-            for (auto ref = ctx.nextRef(afterRef); ref.isValid(); ref = ctx.nextRef(ref))
+            auto walker = afterRef.isInvalid() ? ctx.storage->view().begin() : MicroStorage::Iterator{ctx.storage, afterRef};
+            if (afterRef.isValid())
+                ++walker;
+            for (; walker.current.isValid(); ++walker)
             {
-                const auto* inst = ctx.instruction(ref);
+                const MicroInstrRef ref  = walker.current;
+                const auto*        inst = &*walker;
                 if (!inst || inst->op == MicroInstrOpcode::Label)
                     break;
                 suffix.push_back(ref);

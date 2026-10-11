@@ -167,9 +167,7 @@ struct SemaEscapeSummaryEdge
     std::vector<SemaEscapeDeferredGuard> returnGuards;
 };
 
-// One release forwarding, reduced to what closing the module's frees summaries needs. `applied`
-// records that the caller has already taken the bit: release masks only grow, so an edge that has
-// fired never has to be judged again.
+// One unresolved release forwarding, reduced to what closing the module's frees summaries needs.
 struct SemaEscapeFreesForwarding
 {
     SymbolFunction*       caller           = nullptr;
@@ -177,7 +175,6 @@ struct SemaEscapeFreesForwarding
     uint32_t              callerParamIndex = 0;
     uint32_t              calleeParamIndex = 0;
     bool                  callerIndirect   = false;
-    bool                  applied          = false;
 };
 
 // An edge that forwards a release: what the callee frees through its parameter, the caller frees

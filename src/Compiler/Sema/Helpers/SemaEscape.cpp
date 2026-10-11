@@ -5480,35 +5480,42 @@ namespace SemaEscape
         if (!needsReturnSummaries)
         {
             ctx.compiler().withFreesForwardings([](std::span<SemaEscapeFreesForwarding> forwardings) {
-                bool changed = true;
+                bool   changed      = true;
+                size_t pendingCount = forwardings.size();
                 while (changed)
                 {
-                    changed = false;
-                    for (SemaEscapeFreesForwarding& edge : forwardings)
+                    changed                 = false;
+                    size_t nextPendingCount = 0;
+                    for (size_t i = 0; i < pendingCount; ++i)
                     {
-                        if (edge.applied)
-                            continue;
+                        const SemaEscapeFreesForwarding edge = forwardings[i];
 
                         // Completion may still advance on another worker. Keep this live readiness
                         // check inside the fixpoint, as before filtering the edges.
-                        if (!edge.caller->isSemaCompleted() || !edge.callee->isSemaCompleted())
-                            continue;
-
-                        const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
-                        const uint64_t callerBit = 1ULL << edge.callerParamIndex;
-                        if (!(edge.callee->freesParamsMask() & calleeBit))
-                            continue;
-
-                        const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
-                        if (!(callerMask & callerBit))
+                        bool applied = false;
+                        if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
                         {
-                            edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
-                            changed = true;
+                            const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
+                            if (edge.callee->freesParamsMask() & calleeBit)
+                            {
+                                const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
+                                const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
+                                if (!(callerMask & callerBit))
+                                {
+                                    edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
+                                    changed = true;
+                                }
+                                applied = true;
+                            }
                         }
 
-                        edge.applied = true;
+                        if (!applied)
+                            forwardings[nextPendingCount++] = edge;
                     }
+                    pendingCount = nextPendingCount;
                 }
+
+                return pendingCount;
             });
 
             ctx.compiler().noteFreesPropagationDone(signature);

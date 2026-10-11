@@ -1460,6 +1460,7 @@ std::vector<SemaEscapeSummaryEdge> CompilerInstance::takeEscapeSummaryEdges()
     const std::scoped_lock fixpointLock(freesForwardingsMutex_);
     const std::unique_lock lock(deferredEscapeChecksMutex_);
     freesForwardings_.clear();
+    freesForwardingsEdgeCursor_ = 0;
     freeForwardingEdgeIndices_.clear();
     returnEdgeIndices_.clear();
     returnEdgesByCaller_.clear();

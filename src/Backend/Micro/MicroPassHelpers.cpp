@@ -550,7 +550,10 @@ void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& cont
 
 bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef, MicroBuilder* builder)
 {
-    for (MicroStorage::ConstIterator it{&storage, storage.findNextInstructionRef(afterRef)}; it.current.isValid(); ++it)
+    auto it = afterRef.isInvalid() ? storage.view().begin() : MicroStorage::ConstIterator{&storage, afterRef};
+    if (afterRef.isValid())
+        ++it;
+    for (; it.current.isValid(); ++it)
     {
         const MicroInstr* scanInst = &*it;
 
@@ -578,7 +581,10 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
 
 bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef instRef)
 {
-    for (MicroStorage::ConstIterator it{&storage, storage.findNextInstructionRef(instRef)}; it.current.isValid(); ++it)
+    auto it = instRef.isInvalid() ? storage.view().begin() : MicroStorage::ConstIterator{&storage, instRef};
+    if (instRef.isValid())
+        ++it;
+    for (; it.current.isValid(); ++it)
     {
         const MicroInstr* scanInst = &*it;
 

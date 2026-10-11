@@ -158,14 +158,18 @@ namespace
         // The compare may follow a few moves that leave the flags alone, as
         // the zero it reads being loaded.
         constexpr uint32_t K_MAX_MOVES = 3;
-        MicroInstrRef      cmpRef      = storage.findNextInstructionRef(instRef);
-        const MicroInstr*  cmp         = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
+        auto              cmpIt = instRef.isInvalid() ? storage.view().begin() : MicroStorage::Iterator{&storage, instRef};
+        if (instRef.isValid())
+            ++cmpIt;
+        MicroInstrRef     cmpRef = cmpIt.current;
+        const MicroInstr* cmp    = cmpRef.isValid() ? &*cmpIt : nullptr;
         for (uint32_t step = 0; step < K_MAX_MOVES && cmp && (cmp->op == MicroInstrOpcode::LoadRegImm || cmp->op == MicroInstrOpcode::LoadRegReg); ++step)
         {
             if (cmp->ops(operands)[0].reg == value)
                 return false;
-            cmpRef = storage.findNextInstructionRef(cmpRef);
-            cmp    = cmpRef.isValid() ? storage.ptr(cmpRef) : nullptr;
+            ++cmpIt;
+            cmpRef = cmpIt.current;
+            cmp    = cmpRef.isValid() ? &*cmpIt : nullptr;
         }
         if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
             return false;

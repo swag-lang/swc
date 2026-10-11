@@ -865,11 +865,12 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     auto*                 aliasLeaf       = fixture.addFunction();
     auto*                 payloadAlias    = fixture.addFunction();
     auto*                 borrowOnly      = fixture.addFunction();
-    auto*                 incompleteAlias = fixture.addFunction();
-    auto*                 unresolved      = fixture.addFunction(false);
-    auto*                 payloadOwner    = fixture.addFunction();
-    auto*                 nonAliasOwner   = fixture.addFunction();
-    auto*                 unresolvedOwner = fixture.addFunction();
+    auto*                 incompleteAlias   = fixture.addFunction();
+    auto*                 incompleteWrapper = fixture.addFunction();
+    auto*                 unresolved        = fixture.addFunction(false);
+    auto*                 payloadOwner      = fixture.addFunction();
+    auto*                 nonAliasOwner     = fixture.addFunction();
+    auto*                 unresolvedOwner   = fixture.addFunction();
     leaf->addFreesParam(2);
     aliasLeaf->addReturnBorrowsParam(2);
     aliasLeaf->addReturnsStorageParam(2);
@@ -884,9 +885,10 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     fixture.addEdge({.caller = middle, .callee = leaf, .callerParamIndex = 1, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{aliasWrapper, 1}}});
     fixture.addEdge({.caller = payloadOwner, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{aliasWrapper, 1}, {payloadAlias, 0}}});
     fixture.addEdge({.caller = nonAliasOwner, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{borrowOnly, 0}}});
-    fixture.addEdge({.caller = unresolvedOwner, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{incompleteAlias, 0}}});
+    fixture.addEdge({.caller = unresolvedOwner, .callee = leaf, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{incompleteWrapper, 0}}});
     fixture.addEdge({.caller = aliasWrapper, .callee = aliasLeaf, .callerParamIndex = 1, .calleeParamIndex = 2});
     fixture.addEdge({.caller = incompleteAlias, .callee = unresolved});
+    fixture.addEdge({.caller = incompleteWrapper, .callee = incompleteAlias});
     fixture.propagate();
 
     if (outer->freesParamsMask() != 1 || middle->freesParamsMask() != 2)
@@ -901,7 +903,7 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     unresolved->addReturnsStorageParam(0);
     fixture.completeFunction(unresolved);
     fixture.propagate();
-    if (incompleteAlias->freesParamsMask() || unresolvedOwner->freesParamsMask() != 1)
+    if (incompleteAlias->freesParamsMask() || incompleteWrapper->returnBorrowsParamsMask() || unresolvedOwner->freesParamsMask() != 1)
         return Result::Error;
 }
 SWC_TEST_END()

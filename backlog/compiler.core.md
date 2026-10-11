@@ -139,17 +139,19 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   callers instead of repeating their table lookups. The guarded frees fixpoint also compacts
   applied edges while retaining incomplete callers and callees; a new boundary check completes a
   return dependency after the first pass and verifies that its guard then permits propagation.
-  The guarded return fixpoints now snapshot each completed caller's return-edge range once under
-  the existing shared lock, then reuse that stable range on convergence sweeps instead of repeating
-  the caller-map lookup. The DevMode C++ suite passes all 1,424 tests. These are structural changes;
-  no timing comparison was made.
+  The guarded return fixpoints snapshot each completed caller's return-edge range once under the
+  existing shared lock. The completion closure propagates incompleteness through contiguous reverse
+  dependencies, and after initial evaluation the mask worklist revisits an edge only when its
+  callee or a guard summary grows. The late-completion test now includes a two-function return chain
+  behind an unresolved dependency, then verifies that completing it enables the guarded frees edge.
+  The DevMode C++ suite passes all 1,424 tests. These are structural changes; no timing comparison
+  was made.
 - Rejected October 11: a lock-free free-edge count could report zero while another worker was
   appending an edge and let the fixpoint return without seeing it. Writer tracking would add
   atomic work to every edge publication, so keep the shared-lock count instead.
-- Next: reduce repeated resolution work in the guarded return-summary closure with an edge
-  worklist that preserves alias proofs and late completion. The relocation closure remains a
-  separate lead: any memo must account for deferred-function registration, the `Pause` path, and
-  patchable targets whose addresses can move from work address to patch address.
+- Next: examine the relocation closure lead. Any memo must account for deferred-function
+  registration, the `Pause` path, and patchable targets whose addresses can move from work address
+  to patch address.
 - Done when: each item is either removed with compile-time execution and safety tests, or
   recorded as measured and not worth its risk.
 - Related: compiler.core.030.

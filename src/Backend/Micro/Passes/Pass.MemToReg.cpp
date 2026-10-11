@@ -449,10 +449,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (!inEntryRun)
                 {
-                    MicroInstrRef next = storage.findNextInstructionRef(it.current);
-                    while (next.isValid() && storage.ptr(next)->op == MicroInstrOpcode::Nop)
-                        next = storage.findNextInstructionRef(next);
-                    if (!next.isValid() || storage.ptr(next)->op != MicroInstrOpcode::Ret)
+                    auto next = MicroStorage::Iterator{&storage, it.current};
+                    ++next;
+                    while (next.current.isValid() && next->op == MicroInstrOpcode::Nop)
+                        ++next;
+                    if (!next.current.isValid() || next->op != MicroInstrOpcode::Ret)
                         spMoved = true;
                 }
                 continue;
@@ -542,8 +543,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             // An adjacent add/sub is an exact address even when its flags are
             // live and prevent folding the pair to LEA. No access can observe
             // the intermediate pointer between these adjacent instructions.
-            const MicroInstrRef nextRef = storage.findNextInstructionRef(it.current);
-            const MicroInstr*   next    = nextRef.isValid() ? storage.ptr(nextRef) : nullptr;
+            auto nextIt = MicroStorage::Iterator{&storage, it.current};
+            ++nextIt;
+            const MicroInstrRef nextRef = nextIt.current;
+            const MicroInstr*   next    = nextRef.isValid() ? &*nextIt : nullptr;
             if (next && next->op == MicroInstrOpcode::OpBinaryRegImm && ar.isVirtualInt() && ar != frameBase)
             {
                 const MicroInstrOperand* nextOps = next->ops(operands);

@@ -4560,10 +4560,6 @@ namespace
             RangeMerge    range;
         };
 
-        const auto previous = [&storage](const MicroInstrRef ref) -> const MicroInstr* {
-            return ref.isValid() ? storage.ptr(ref) : nullptr;
-        };
-
         SmallVector<Candidate> candidates;
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
@@ -4580,41 +4576,48 @@ namespace
             if (!candidate.rhs.isVirtualInt() || !result.isVirtualInt() || candidate.rhs == result)
                 continue;
 
-            MicroInstrRef     ref  = storage.findPreviousInstructionRef(it.current);
-            const MicroInstr* inst = previous(ref);
+            auto walker = MicroStorage::Iterator{&storage, it.current};
+            --walker;
+            MicroInstrRef     ref  = walker.current;
+            const MicroInstr* inst = ref.isValid() ? &*walker : nullptr;
             if (inst && inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
             {
                 const MicroInstrOperand* extOps = inst->ops(operands);
                 if (extOps[0].reg != candidate.rhs || extOps[1].reg != candidate.rhs)
                     continue;
                 candidate.mentions += 2;
-                ref  = storage.findPreviousInstructionRef(ref);
-                inst = previous(ref);
+                --walker;
+                ref  = walker.current;
+                inst = ref.isValid() ? &*walker : nullptr;
             }
             if (!inst || inst->op != MicroInstrOpcode::SetCondReg || inst->ops(operands)[0].reg != candidate.rhs)
                 continue;
             candidate.range.rightSetRef = ref;
 
-            ref  = storage.findPreviousInstructionRef(ref);
-            inst = previous(ref);
+            --walker;
+            ref  = walker.current;
+            inst = ref.isValid() ? &*walker : nullptr;
             if (!inst || inst->op != MicroInstrOpcode::CmpRegImm)
                 continue;
             candidate.range.rightCmpRef = ref;
 
-            ref  = storage.findPreviousInstructionRef(ref);
-            inst = previous(ref);
+            --walker;
+            ref  = walker.current;
+            inst = ref.isValid() ? &*walker : nullptr;
             if (!inst || inst->op != MicroInstrOpcode::LoadRegReg)
                 continue;
             const MicroInstrOperand* copyOps = inst->ops(operands);
             if (copyOps[0].reg != result || copyOps[2].opBits != MicroOpBits::B8)
                 continue;
 
-            ref  = storage.findPreviousInstructionRef(ref);
-            inst = previous(ref);
+            --walker;
+            ref  = walker.current;
+            inst = ref.isValid() ? &*walker : nullptr;
             if (!inst || inst->op != MicroInstrOpcode::SetCondReg || inst->ops(operands)[0].reg != copyOps[1].reg)
                 continue;
             candidate.range.leftCond   = inst->ops(operands)[1].cpuCond;
-            candidate.range.leftCmpRef = storage.findPreviousInstructionRef(ref);
+            --walker;
+            candidate.range.leftCmpRef = walker.current;
 
             if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, candidate.andRef))
                 continue;
@@ -5636,11 +5639,14 @@ namespace
     // pointer for the caller to classify.
     bool collectDiamondArm(DiamondArm& outArm, MicroInstrRef& outStopRef, const MicroInstr*& outStopInst, const DiamondScan& scan, MicroInstrRef fromRef)
     {
-        outStopRef  = scan.storage->findNextInstructionRef(fromRef);
+        auto walker = MicroStorage::ConstIterator{scan.storage, fromRef};
+        ++walker;
+        outStopRef = walker.current;
         outStopInst = nullptr;
-        while (outStopRef.isValid())
+        while (walker.current.isValid())
         {
-            outStopInst              = scan.storage->ptr(outStopRef);
+            outStopRef               = walker.current;
+            outStopInst              = &*walker;
             const MicroInstr*        inst = outStopInst;
             const MicroInstrOperand* ops  = nullptr;
             if (!inst || !isSpeculatableArmInstruction(*inst, *scan.operands, ops))
@@ -5648,8 +5654,9 @@ namespace
             if (outArm.refs.size() >= K_MAX_IF_CONVERT_ARM_INSTR || scan.relocated->contains(outStopRef.get()))
                 return false;
             outArm.refs.push_back(outStopRef);
-            outStopRef = scan.storage->findNextInstructionRef(outStopRef);
+            ++walker;
         }
+        outStopRef = MicroInstrRef::invalid();
         return false;
     }
 

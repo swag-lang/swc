@@ -1256,16 +1256,14 @@ namespace
             // successor remain valid throughout the suffix rewrite.
             const MicroInstrRef retRef   = it.current;
             MicroInstrRef       firstRef = retRef;
-            for (MicroInstrRef ref = context.instructions->findPreviousInstructionRef(retRef); ref.isValid(); ref = context.instructions->findPreviousInstructionRef(ref))
+            auto walker = MicroStorage::Iterator{context.instructions, retRef};
+            for (--walker; walker.current.isValid(); --walker)
             {
-                const MicroInstr* inst = context.instructions->ptr(ref);
-                if (!inst)
-                    break;
-
+                const MicroInstr*        inst = &*walker;
                 const MicroInstrOperand* ops = inst->ops(*context.operands);
                 if (!isEpilogueInstruction(*inst, ops, conv.stackPointer))
                     break;
-                firstRef = ref;
+                firstRef = walker.current;
             }
 
             // The first suffix instruction cannot be the erased second member

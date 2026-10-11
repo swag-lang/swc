@@ -427,13 +427,16 @@ namespace PostRaPeephole
         if (!MicroPassHelpers::invertCondition(inverted, ops[0].cpuCond))
             return false;
 
-        const MicroInstrRef      skipRef = ctx.nextRef(ref);
-        const MicroInstr*        skip    = ctx.instruction(skipRef);
+        auto                     scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        ++scanIt;
+        const MicroInstrRef      skipRef = scanIt.current;
+        const MicroInstr*        skip    = skipRef.isValid() ? &*scanIt : nullptr;
         const MicroInstrOperand* skipOps = skip && skip->op == MicroInstrOpcode::JumpCond ? skip->ops(*ctx.operands) : nullptr;
         if (!skipOps || skipOps[0].cpuCond != MicroCond::Unconditional)
             return false;
-        const MicroInstrRef      labelRef = ctx.nextRef(skipRef);
-        const MicroInstr*        label    = ctx.instruction(labelRef);
+        ++scanIt;
+        const MicroInstrRef      labelRef = scanIt.current;
+        const MicroInstr*        label    = labelRef.isValid() ? &*scanIt : nullptr;
         const MicroInstrOperand* labelOps = label && label->op == MicroInstrOpcode::Label ? label->ops(*ctx.operands) : nullptr;
         if (!labelOps || labelOps[0].valueU64 != ops[2].valueU64 || !ctx.claimAll({ref, skipRef}))
             return false;
@@ -454,12 +457,13 @@ namespace PostRaPeephole
         bool collectSimpleReturnTail(const Context& ctx, MicroInstrRef ref, std::array<MicroInstrRef, K_MAX_RETURN_TAIL>& refs, uint32_t& count)
         {
             count                  = 0;
-            const MicroInstr* inst = ctx.instruction(ref);
+            auto              scanIt = MicroStorage::Iterator{ctx.storage, ref};
+            const MicroInstr* inst   = scanIt.current.isValid() ? &*scanIt : nullptr;
             if (inst && inst->op == MicroInstrOpcode::LoadRegReg)
             {
-                refs[count++] = ref;
-                ref           = ctx.nextRef(ref);
-                inst          = ctx.instruction(ref);
+                refs[count++] = scanIt.current;
+                ++scanIt;
+                inst = scanIt.current.isValid() ? &*scanIt : nullptr;
             }
             if (inst && inst->op == MicroInstrOpcode::OpBinaryRegImm)
             {
@@ -467,19 +471,19 @@ namespace PostRaPeephole
                 if (!ops || ops[0].reg != ctx.stackPointer || ops[1].opBits != MicroOpBits::B64 ||
                     ops[2].microOp != MicroOp::Add)
                     return false;
-                refs[count++] = ref;
-                ref           = ctx.nextRef(ref);
-                inst          = ctx.instruction(ref);
+                refs[count++] = scanIt.current;
+                ++scanIt;
+                inst = scanIt.current.isValid() ? &*scanIt : nullptr;
             }
             while (inst && inst->op == MicroInstrOpcode::Pop && count + 1 < K_MAX_RETURN_TAIL)
             {
-                refs[count++] = ref;
-                ref           = ctx.nextRef(ref);
-                inst          = ctx.instruction(ref);
+                refs[count++] = scanIt.current;
+                ++scanIt;
+                inst = scanIt.current.isValid() ? &*scanIt : nullptr;
             }
             if (!inst || inst->op != MicroInstrOpcode::Ret || count >= K_MAX_RETURN_TAIL)
                 return false;
-            refs[count++] = ref;
+            refs[count++] = scanIt.current;
             return true;
         }
 

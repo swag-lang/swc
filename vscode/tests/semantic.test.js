@@ -51,14 +51,14 @@ test('implicit propagations become try hints before the fallible expression', ()
     assert.equal(snapshot.hints(uri, {start: {line: 1, character: 0}, end: {line: 2, character: 0}}).length, 1);
 });
 
-test('ambiguous instantiated types do not choose an arbitrary definition or hint', () =>
+test('ambiguous instantiated types keep safe token coloring without choosing a type or definition', () =>
 {
     const occurrence = type => ({start: 0, length: 5, name: 'value', kind: 'variable', type,
         definition: {path: filename, start: 0, length: 5}});
     const snapshot = new SemanticSnapshot({files: [{path: filename, text: 'value',
         occurrences: [occurrence('s32'), occurrence('string'), occurrence('string')]}]});
     assert.equal(snapshot.hover(uri, {line: 0, character: 0}), null);
-    assert.deepEqual(snapshot.tokens(uri), {data: []});
+    assert.deepEqual(snapshot.tokens(uri), {data: [0, 0, 5, 7, 0]});
 });
 
 test('overlay lengths count UTF-8 bytes and preserve empty buffers', () =>

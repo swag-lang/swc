@@ -112,6 +112,40 @@ void SourceFile::setContent(const std::string_view content)
         content_.push_back(0);
 }
 
+void SourceFile::beginEditorRevision(const std::string_view content, const bool force)
+{
+    SWC_ASSERT(nodePayloadContext_ != nullptr);
+    SWC_ASSERT(ast().hasSourceView());
+    if (!force && sourceView() == content)
+        return;
+
+    std::vector<char8_t> nextContent;
+    nextContent.reserve(content.size() + TRAILING_0);
+    nextContent.resize(content.size());
+    if (!content.empty())
+        std::memcpy(nextContent.data(), content.data(), content.size());
+    nextContent.insert(nextContent.end(), TRAILING_0, 0);
+
+    auto nextPayload = std::make_unique<NodePayload>();
+    nextPayload->retainEditorSymbols();
+    priorRevisions_.reserve(priorRevisions_.size() + 1);
+    PriorRevision previousRevision;
+    previousRevision.content     = std::move(content_);
+    previousRevision.nodePayload = std::move(nodePayloadContext_);
+    previousRevision.revisionId  = revisionId_;
+    priorRevisions_.push_back(std::move(previousRevision));
+
+    content_            = std::move(nextContent);
+    nodePayloadContext_ = std::move(nextPayload);
+    ++revisionId_;
+    hasError_   = false;
+    hasWarning_ = false;
+    {
+        const std::scoped_lock lock(errorLinesMutex_);
+        errorLineRanges_.clear();
+    }
+}
+
 void SourceFile::addErrorLineRange(const uint32_t lineStart, const uint32_t lineEnd) const
 {
     if (!lineStart || !lineEnd)

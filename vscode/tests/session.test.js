@@ -6,7 +6,7 @@ const {Session} = require('../src/session');
 const uri = 'file:///example.swg';
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-test('requests share analysis; edits cancel it and reject stale publication', async () =>
+test('requests share analysis; edits reject stale publication and preserve the active compiler pass', async () =>
 {
     let document = TextDocument.create(uri, 'swag', 1, 'old');
     const jobs = [], published = [], errors = [];
@@ -24,7 +24,7 @@ test('requests share analysis; edits cancel it and reject stale publication', as
         document = TextDocument.update(document, [{text: 'new'}], 2);
         session.invalidate();
         const next = session.snapshot(uri);
-        assert.equal(jobs[0].signal.aborted, true);
+        assert.equal(jobs[0].signal.aborted, false);
         assert.equal(jobs[0].documents[0].getText(), 'old');
         jobs[0].resolve({snapshot: {files: []}, output: ''});
         assert.equal(await first, undefined);

@@ -140,48 +140,261 @@ function runCompiler(executable, args, cwd, signal)
 
 async function analyze(project, documents, options, signal)
 {
-    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'swag-lsp-'));
-    try
+    if (signal.aborted) return undefined;
+    const service = await getEditorService(project, options);
+    return service.analyze(documents, signal);
+}
+
+const editorServices = new Map();
+let nextRequestId = 1;
+const EDITOR_SERVICE_IDLE_TIMEOUT = 10 * 60 * 1000;
+
+async function getEditorService(project, options)
+{
+    const compilerPath = options.compilerPath || 'swc';
+    const key = `${project.key}\0${compilerPath}`;
+    let servicePromise = editorServices.get(key);
+    if (!servicePromise)
     {
-        const overlay = path.join(directory, 'buffers');
-        const index = path.join(directory, 'index.json');
+        servicePromise = EditorService.create(key, project, compilerPath);
+        editorServices.set(key, servicePromise);
+        try
+        {
+            const service = await servicePromise;
+            service.onClose = () =>
+            {
+                if (editorServices.get(key) === servicePromise)
+                    editorServices.delete(key);
+            };
+            if (service.closeResult)
+                throw new Error('Swag editor service exited before accepting requests');
+        }
+        catch (error)
+        {
+            if (editorServices.get(key) === servicePromise)
+                editorServices.delete(key);
+            throw error;
+        }
+    }
+
+    const service = await servicePromise;
+    if (service.closeResult)
+        throw new Error('Swag editor service exited before accepting requests');
+    return service;
+}
+
+class EditorService
+{
+    static async create(key, project, compilerPath)
+    {
+        const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'swag-lsp-'));
+        const service = new EditorService(key, project, compilerPath, directory);
+        try
+        {
+            await service.start();
+            return service;
+        }
+        catch (error)
+        {
+            await service.dispose();
+            if (error.code === 'ENOENT')
+                throw new Error(`Cannot find the Swag compiler '${compilerPath}'; make it available on PATH and restart VS Code, or set swag.compilerPath to its executable`);
+            throw error;
+        }
+    }
+
+    constructor(key, project, compilerPath, directory)
+    {
+        Object.assign(this, {key, project, compilerPath, directory});
+        this.overlay = path.join(directory, 'buffers');
+        this.index = path.join(directory, 'index.json');
+        this.request = undefined;
+        this.stdoutBuffer = '';
+        this.stderrBuffer = '';
+        this.disposed = false;
+        this.readyStreams = new Set();
+        this.touch();
+    }
+
+    touch()
+    {
+        clearTimeout(this.idleTimer);
+        if (this.disposed) return;
+        this.idleTimer = setTimeout(() => { void this.dispose(); }, EDITOR_SERVICE_IDLE_TIMEOUT);
+        this.idleTimer.unref?.();
+    }
+
+    async start()
+    {
+        const args = ['sema', ...this.project.args];
+        for (const directory of await standardApiDirectories(this.project, this.compilerPath))
+            args.push('--import-api-dir', directory);
+        args.push(
+            '--editor-service', '--editor-overlay', this.overlay, '--editor-index', this.index,
+            '--out-dir', path.join(this.directory, 'output'), '--work-dir', path.join(this.directory, 'work'),
+            '--num-cores', '6', '--diagnostic-one-line', '--path-display', 'absolute', '--no-log-color');
+        this.ready = new Promise((resolve, reject) => { this.resolveReady = resolve; this.rejectReady = reject; });
+        this.child = spawn(this.compilerPath, args, {
+            cwd: this.project.directory, windowsHide: true, shell: false,
+            detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe']
+        });
+        this.child.stdout.setEncoding('utf8').on('data', chunk => this.onData('stdout', chunk));
+        this.child.stderr.setEncoding('utf8').on('data', chunk => this.onData('stderr', chunk));
+        this.child.on('error', error =>
+        {
+            this.rejectReady(error);
+            this.fail(error);
+        });
+        this.closed = new Promise(resolve => this.child.on('close', (code, signal) =>
+        {
+            this.closeResult = {code, signal};
+            const error = new Error(`Swag editor service exited${code === null ? ` (${signal || 'unknown signal'})` : ` with code ${code}`}`);
+            this.rejectReady(error);
+            this.fail(error);
+            this.disposed = true;
+            this.onClose?.();
+            void fs.rm(this.directory, {recursive: true, force: true}).catch(() => {});
+            resolve(this.closeResult);
+        }));
+        await this.ready;
+    }
+
+    onData(stream, chunk)
+    {
+        const bufferName = stream === 'stdout' ? 'stdoutBuffer' : 'stderrBuffer';
+        this[bufferName] += chunk;
+        let newline;
+        while ((newline = this[bufferName].indexOf('\n')) >= 0)
+        {
+            const line = this[bufferName].slice(0, newline).replace(/\r$/, '');
+            this[bufferName] = this[bufferName].slice(newline + 1);
+            this.onLine(stream, line);
+        }
+    }
+
+    onLine(stream, line)
+    {
+        if (line === 'SWAG-EDITOR-SERVICE\t1\tREADY')
+        {
+            this.readyStreams.add(stream);
+            if (this.readyStreams.size === 2) this.resolveReady();
+            return;
+        }
+        const marker = /^SWAG-EDITOR-SERVICE\t1\t(\d+)\t(-?\d+)$/.exec(line);
+        if (marker && this.request && Number(marker[1]) === this.request.id)
+        {
+            this.request[stream] = true;
+            if (stream === 'stdout') this.request.code = Number(marker[2]);
+            if (!this.request.stdout || !this.request.stderr) return;
+            const request = this.request;
+            this.request = undefined;
+            request.resolve({output: request.output, code: request.code});
+            return;
+        }
+        if (this.request)
+            this.request.output = `${this.request.output}${line}\n`.slice(-4 * 1024 * 1024);
+        else if (line)
+            this.startupOutput = `${this.startupOutput ?? ''}${line}\n`.slice(-1024 * 1024);
+    }
+
+    fail(error)
+    {
+        if (!this.request) return;
+        const request = this.request;
+        this.request = undefined;
+        request.reject(error);
+    }
+
+    async analyze(documents, signal)
+    {
+        if (this.disposed) throw new Error('Swag editor service is closed');
+        if (signal.aborted) return undefined;
+        this.touch();
         const selected = documents.filter(document =>
         {
             const key = pathKey(fileURLToPath(document.uri));
-            return project.args[0] === '--file' ? key === project.key : key.startsWith(project.key + '/');
+            return this.project.args[0] === '--file' ? key === this.project.key : key.startsWith(this.project.key + '/');
         });
-        await fs.writeFile(overlay, overlayBuffer(selected));
-        const args = ['sema', ...project.args];
-        for (const directory of await standardApiDirectories(project, options.compilerPath || 'swc'))
-            args.push('--import-api-dir', directory);
-        args.push(
-            '--editor-overlay', overlay, '--editor-index', index,
-            '--out-dir', path.join(directory, 'output'), '--work-dir', path.join(directory, 'work'),
-            '--num-cores', '6', '--diagnostic-one-line', '--path-display', 'absolute', '--no-log-color');
-        let execution;
-        try { execution = await runCompiler(options.compilerPath || 'swc', args, project.directory, signal); }
-        catch (error)
+        await fs.writeFile(this.overlay, overlayBuffer(selected));
+        await fs.rm(this.index, {force: true});
+        const id = nextRequestId++;
+        const execution = new Promise((resolve, reject) =>
         {
-            if (error.code === 'ENOENT')
-                throw new Error(`Cannot find the Swag compiler '${options.compilerPath || 'swc'}'; make it available on PATH and restart VS Code, or set swag.compilerPath to its executable`);
-            throw error;
+            this.request = {id, output: this.startupOutput ?? '', stdout: false, stderr: false, resolve, reject};
+            this.startupOutput = '';
+            this.child.stdin.write(`analyze\t${id}\n`, error => { if (error) this.fail(error); });
+        });
+        let abort;
+        const cancelled = new Promise(resolve =>
+        {
+            abort = () => resolve(undefined);
+            signal.addEventListener('abort', abort, {once: true});
+            if (signal.aborted) abort();
+        });
+        const result = await Promise.race([execution, cancelled]);
+        signal.removeEventListener('abort', abort);
+        if (signal.aborted)
+        {
+            await this.terminate();
+            return undefined;
         }
-        const {code, output} = execution;
-        if (signal.aborted) return undefined;
+        if (!result) return undefined;
         let snapshot;
-        try { snapshot = JSON.parse(await fs.readFile(index, 'utf8')); }
+        try { snapshot = JSON.parse(await fs.readFile(this.index, 'utf8')); }
         catch (error)
         {
-            throw new Error(`Swag produced no editor snapshot; check the compiler output and --editor-index support\n${output || error.message}`);
+            throw new Error(`Swag produced no editor snapshot; check the compiler output and --editor-index support\n${result.output || error.message}`);
         }
         if (snapshot.version !== 1 || !Array.isArray(snapshot.files))
             throw new Error('The compiler editor snapshot version is not supported');
-        return {snapshot, output, code};
+        this.touch();
+        return {snapshot, output: result.output, code: result.code};
     }
-    finally
+
+    async terminate()
     {
-        await fs.rm(directory, {recursive: true, force: true});
+        if (!this.child || this.closeResult) return;
+        const child = this.child;
+        if (child.pid)
+        {
+            if (process.platform === 'win32')
+            {
+                const killer = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {windowsHide: true, stdio: 'ignore'});
+                killer.on('error', () => child.kill());
+            }
+            else
+            {
+                try { process.kill(-child.pid, 'SIGKILL'); }
+                catch (error) { if (error.code !== 'ESRCH') child.kill(); }
+            }
+        }
+        await this.closed;
+        this.onClose?.();
+        await fs.rm(this.directory, {recursive: true, force: true});
+        this.disposed = true;
+    }
+
+    async dispose()
+    {
+        if (this.disposed) return;
+        this.disposed = true;
+        clearTimeout(this.idleTimer);
+        this.onClose?.();
+        if (this.child && !this.closeResult)
+        {
+            this.child.stdin.end('shutdown\n');
+            await this.closed;
+        }
+        this.onClose?.();
+        await fs.rm(this.directory, {recursive: true, force: true});
     }
 }
 
-module.exports = {analyze, projectFor, standardApiDirectories, pathKey, overlayBuffer, pathToFileURL, runCompiler};
+async function dispose()
+{
+    const services = [...editorServices.values()];
+    editorServices.clear();
+    await Promise.allSettled(services.map(service => service.then(value => value.dispose())));
+}
+
+module.exports = {analyze, dispose, projectFor, standardApiDirectories, pathKey, overlayBuffer, pathToFileURL, runCompiler};

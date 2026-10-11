@@ -7,6 +7,8 @@ SWC_BEGIN_NAMESPACE();
 
 class MatchContext;
 class SymbolImpl;
+class CompilerInstance;
+class SourceFile;
 
 // A snapshot of the impl blocks of a struct or an enum. Every lookup that reaches a struct asks
 // for one, and few types have more impl blocks than this holds inline.
@@ -17,13 +19,19 @@ class SymbolMap : public Symbol
     friend class SymbolStruct;
 
 public:
+    struct SourceRevision
+    {
+        StrongRef<SourceFile> fileRef  = StrongRef<SourceFile>::invalid();
+        uint64_t              revision = 0;
+    };
+
     explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
     Symbol*       addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
     Symbol*       addSingleSymbol(TaskContext& ctx, Symbol* symbol);
     Symbol*       addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void          addUsingSymMap(TaskContext& ctx, SymbolMap* symMap);
-    void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
+    void          addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, SourceRevision sourceRevision = {});
+    void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out, const CompilerInstance* compiler = nullptr) const;
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     const Symbol* findFirstNamespace(IdentifierRef idRef) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
@@ -64,8 +72,9 @@ protected:
 
     struct UsingSymMap
     {
-        SymbolMap*         symbol   = nullptr;
-        const UsingSymMap* previous = nullptr;
+        SymbolMap*         symbol         = nullptr;
+        SourceRevision     sourceRevision;
+        const UsingSymMap* previous       = nullptr;
     };
 
     static constexpr uint32_t SMALL_CAP        = 8;

@@ -9,6 +9,7 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -20,6 +21,7 @@
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/EditorIndex.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -505,6 +507,9 @@ const std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind
 
 Result CompilerInstance::setupSema(TaskContext& ctx)
 {
+    if (cmdLine().editorService && typeMgr_)
+        return Result::Continue;
+
     typeMgr_ = std::make_unique<TypeManager>();
     typeGen_ = std::make_unique<TypeGen>();
     cstMgr_  = std::make_unique<ConstantManager>();
@@ -1103,6 +1108,14 @@ ExitCode CompilerInstance::run()
         exitCode = Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
     }
 
+    if (cmdLine().editorService)
+    {
+        for (OwnedJobStorage& storage : ownedJobs_)
+            storage.jobs.clear();
+        const std::scoped_lock lock(externalJobsMutex_);
+        externalJobs_.clear();
+    }
+
     commandWallTimeNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - runStart).count();
     return exitCode;
 }
@@ -1201,6 +1214,29 @@ const SourceFile* CompilerInstance::sourceViewFile(SourceViewRef ref) const
 const SourceFile* CompilerInstance::sourceViewFile(const Symbol& symbol) const
 {
     return sourceViewFile(symbol.srcViewRef());
+}
+
+void CompilerInstance::registerEditorSymbol(const Symbol& symbol, const FileRef fileRef, const uint64_t revision) const
+{
+    SWC_ASSERT(cmdLine().editorService);
+    SWC_ASSERT(fileRef.isValid());
+    SWC_ASSERT(file(fileRef).revisionId() == revision);
+    const std::unique_lock lock(editorSymbolsMutex_);
+    editorSymbols_[fileRef][revision].push_back(&symbol);
+}
+
+std::vector<const Symbol*> CompilerInstance::editorSymbols(const FileRef fileRef, const uint64_t revision) const
+{
+    const std::shared_lock lock(editorSymbolsMutex_);
+    const auto             fileIt = editorSymbols_.find(fileRef);
+    if (fileIt == editorSymbols_.end())
+        return {};
+
+    const auto revisionIt = fileIt->second.find(revision);
+    if (revisionIt == fileIt->second.end())
+        return {};
+
+    return revisionIt->second;
 }
 
 bool CompilerInstance::isImportedApiSource(const Symbol& symbol) const
@@ -1623,6 +1659,159 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
         path = fs::absolute(path);
 
     return addResolvedFile(path.lexically_normal(), flags);
+}
+
+std::vector<SourceFile*> CompilerInstance::beginEditorAnalysisRevision(const std::span<SourceFile* const> inputFiles)
+{
+    SWC_ASSERT(cmdLine().editorService);
+    if (!moduleNamespace_)
+        return {inputFiles.begin(), inputFiles.end()};
+
+    std::unordered_set<FileRef>      changedFiles;
+    std::unordered_map<FileRef, Utf8> changedContents;
+    for (SourceFile* sourceFile : inputFiles)
+    {
+        if (!sourceFile)
+            continue;
+
+        const bool wasActive = sourceFile->isEditorActive();
+        if (!sourceFile->ast().hasSourceView())
+        {
+            sourceFile->setEditorActive(true);
+            changedFiles.insert(sourceFile->ref());
+            continue;
+        }
+
+        if (cmdLine().editorSources)
+        {
+            const auto it = cmdLine().editorSources->find(EditorIndex::pathKey(sourceFile->path()));
+            if (it != cmdLine().editorSources->end())
+            {
+                sourceFile->setEditorActive(true);
+                if (!wasActive || sourceFile->sourceView() != it->second)
+                {
+                    changedFiles.insert(sourceFile->ref());
+                    changedContents.emplace(sourceFile->ref(), it->second);
+                }
+                continue;
+            }
+        }
+
+        std::ifstream input(sourceFile->path(), std::ios::binary);
+        if (!input)
+        {
+            std::error_code ec;
+            if (!fs::exists(sourceFile->path(), ec) && !ec)
+            {
+                sourceFile->setEditorActive(false);
+                if (wasActive)
+                    changedFiles.insert(sourceFile->ref());
+            }
+            continue;
+        }
+        std::string content(std::istreambuf_iterator<char>(input), {});
+        sourceFile->setEditorActive(true);
+        if (!wasActive || sourceFile->sourceView() != content)
+        {
+            changedFiles.insert(sourceFile->ref());
+            changedContents.emplace(sourceFile->ref(), Utf8(content));
+        }
+    }
+
+    std::unordered_set<FileRef> affectedFiles = changedFiles;
+    std::vector<FileRef>         worklist(changedFiles.begin(), changedFiles.end());
+    for (SourceFile* sourceFile : inputFiles)
+    {
+        if (sourceFile && sourceFile->isEditorActive() && (sourceFile->hasError() || sourceFile->hasWarning()) && affectedFiles.insert(sourceFile->ref()).second)
+            worklist.push_back(sourceFile->ref());
+    }
+
+    for (size_t next = 0; next < worklist.size(); ++next)
+    {
+        const FileRef dependency = worklist[next];
+        for (const auto& [consumer, dependencies] : editorDependencies_)
+        {
+            if (dependencies.contains(dependency) && affectedFiles.insert(consumer).second)
+                worklist.push_back(consumer);
+        }
+    }
+
+    if (affectedFiles.empty())
+        return {};
+
+    TaskContext ctx(*this);
+    std::vector<SourceFile*> result;
+    result.reserve(affectedFiles.size());
+    for (SourceFile* sourceFile : inputFiles)
+    {
+        if (!sourceFile || !affectedFiles.contains(sourceFile->ref()))
+            continue;
+
+        const uint64_t previousRevision = sourceFile->revisionId();
+        for (const Symbol* symbol : editorSymbols(sourceFile->ref(), previousRevision))
+        {
+            if (symbol && !symbol->isNamespace())
+            {
+                const_cast<Symbol*>(symbol)->addFlag(SymbolFlagsE::EditorRetired);
+                const_cast<Symbol*>(symbol)->setIgnored(ctx);
+            }
+        }
+        {
+            const std::unique_lock lock(editorSymbolsMutex_);
+            const auto             fileIt = editorSymbols_.find(sourceFile->ref());
+            if (fileIt != editorSymbols_.end())
+            {
+                fileIt->second.erase(previousRevision);
+                if (fileIt->second.empty())
+                    editorSymbols_.erase(fileIt);
+            }
+        }
+
+        if (!sourceFile->isEditorActive())
+            continue;
+
+        const auto changed = changedContents.find(sourceFile->ref());
+        if (changed != changedContents.end())
+            sourceFile->beginEditorRevision(changed->second.view(), true);
+        else if (sourceFile->ast().hasSourceView())
+            sourceFile->beginEditorRevision(sourceFile->sourceView(), true);
+        result.push_back(sourceFile);
+    }
+
+    return result;
+}
+
+void CompilerInstance::updateEditorDependencies(SourceFile& sourceFile)
+{
+    SWC_ASSERT(cmdLine().editorService);
+    if (!sourceFile.ast().root().isValid())
+        return;
+
+    std::unordered_set<FileRef> dependencies;
+    const NodePayload& payload = sourceFile.nodePayloadContext();
+    Ast::visit(sourceFile.ast(), sourceFile.ast().root(), [&](const AstNodeRef nodeRef, const AstNode&) {
+        const auto resolved = payload.resolveSymbols(nodeRef);
+        const auto addDependency = [&](const Symbol* symbol) {
+            if (!symbol || !symbol->decl() || symbol->isIgnored())
+                return;
+            const SourceFile* declarationFile = sourceViewFile(*symbol);
+            if (declarationFile && declarationFile->ref() != sourceFile.ref())
+                dependencies.insert(declarationFile->ref());
+        };
+
+        for (const Symbol* symbol : resolved.symbols)
+            addDependency(symbol);
+        addDependency(payload.foldedSourceSymbol(nodeRef));
+        return Ast::VisitResult::Continue;
+    });
+
+    if (sourceFile.hasError())
+    {
+        auto& previous = editorDependencies_[sourceFile.ref()];
+        previous.insert(dependencies.begin(), dependencies.end());
+    }
+    else
+        editorDependencies_.insert_or_assign(sourceFile.ref(), std::move(dependencies));
 }
 
 SourceFile& CompilerInstance::addLoadedFile(fs::path path, FileFlags flags, const std::string_view content)

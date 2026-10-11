@@ -4,20 +4,22 @@ This backlog owns compiler-backed editor services: analysis snapshots, diagnosti
 
 Entries stay in one flat list. Keep each outcome testable.
 
-### compiler.language.service.001 — Language services still start a compiler for each edited snapshot
+### compiler.language.service.001 — Editor analysis rebuilds semantic state for each snapshot
 
 - Evidence: `vscode/src/server.js` keeps an LSP session with versioned open buffers, cancellation,
   shutdown, and module snapshots. `swc sema --editor-index` exports compiler-resolved symbols;
-  `--editor-overlay` supplies unsaved buffers without replacing disk files. Each changed snapshot
-  still starts a new compiler process and rebuilds its module's semantic state. A GUI analysis
-  covered 279 files and 776,906 tokens in 8.3 seconds; scheduler phases attributed 5.8 seconds to
-  semantic analysis, 60 ms to parsing, and 169 ms to module setup. Imported Core types were absent
-  when the server omitted the standard generated-API root; supplying it resolved `Input.KeyModifiers`
-  to `core.swg`.
-- Next: host the analysis service in the compiler, retaining source and semantic state between
-  edits. Prioritize semantic invalidation and reuse; a parse-only shortcut cannot preserve resolved
-  types and references. Keep the existing LSP integration tests as the transport-independent
-  contract.
+  `--editor-overlay` supplies unsaved buffers without replacing disk files. The editor worker now
+  retains one `CompilerInstance` per project/compiler pair. It reuses unchanged parsed and resolved
+  files, rebuilds changed files and the reverse dependency closure observed through resolved and
+  folded symbols, and ignores retired declarations while preserving unchanged module interfaces.
+  Cancellation of a stale LSP snapshot drops its result after the current pass so the retained
+  compiler can serve the next snapshot; a timeout still terminates that worker. Module manifest
+  changes start a fresh compiler instance. Dependency invalidation is conservative at file level,
+  and prior AST/source revisions remain alive because append-only symbol maps can still refer to
+  their declarations.
+- Next: fingerprint observed symbol interfaces so private body edits do not reanalyze consumers,
+  reclaim retired AST/source revisions safely, and add cancellation points inside compiler jobs.
+  Keep the existing LSP integration tests as the transport-independent contract.
 - Done when: requests call retained compiler-library services, obsolete analyses can be
   cancelled inside that service, and unchanged files and interfaces reuse their compiler state.
 - Related: compiler.core.001, compiler.core.002, compiler.language.service.002, compiler.language.service.006,

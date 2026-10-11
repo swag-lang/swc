@@ -3,7 +3,7 @@ const compiler = require('./compiler');
 const {SemanticSnapshot} = require('./semantic');
 
 // One compilation at a time per server. Requests share the same versioned analysis;
-// editing cancels obsolete work, while cancelling one hover does not cancel other readers.
+// edits discard stale results after the active compiler pass completes and keeps its session.
 class Session
 {
     constructor(documents, options, events, backend = compiler)
@@ -18,7 +18,6 @@ class Session
     invalidate()
     {
         ++this.revision;
-        this.active?.abort();
         this.pending.clear();
         clearTimeout(this.timer);
         if (!this.disposed)
@@ -89,8 +88,10 @@ class Session
     async dispose()
     {
         this.disposed = true;
+        this.active?.abort();
         this.invalidate();
         await this.queue;
+        await this.backend.dispose?.();
     }
 }
 

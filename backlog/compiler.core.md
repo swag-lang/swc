@@ -759,6 +759,17 @@ compiler-worker counts.
 
 **Intent.** Persist lexical, parsed, and semantic state per source file. Cache keys must include the source content, relevant build configuration, and fingerprints of imported public symbols actually observed by the file.
 
+**Implementation constraint.** The current AST is not an immutable parse cache: semantic analysis can
+replace source expressions with substitutions and append generated nodes to the same per-file AST.
+`SourceFile::setContent` rejects changing a file after its AST owns a source view; editor revisions
+retain the old source buffer and node payload while activating a fresh pair. The editor session now
+records symbols by source revision and derives conservative file-to-file dependencies from resolved
+and folded node symbols. It can therefore reuse unaffected files, but invalidation does not compare
+the public interfaces actually observed: changing a private body still reanalyzes every file that
+references the source. Semantic symbol maps remain append-only, so retired declaration ASTs cannot
+yet be reclaimed safely. Persisted `using` maps carry a source revision and stale entries are
+excluded from lookup.
+
 **Done when.**
 
 - Editing a private body reanalyzes only the changed file and its semantic dependents.
@@ -809,6 +820,20 @@ compiler-worker counts.
   compiler diagnoses the combination it can see.
 
 ---
+
+### compiler.core.083 — Define an embeddable compiler driver boundary
+
+- Evidence: `swc.vcxproj` builds an application and includes `src/main.cpp`. `main` owns process
+  setup and cleanup (allocator, Windows exception hook, stdio, and PID-scoped sandbox), but also
+  parses CLI arguments, initializes `Global`, dispatches commands, and runs `CompilerInstance`.
+  `Global`, `CommandLine`, diagnostics, and compiler state still assume a process-oriented
+  lifecycle, so moving those calls into another `.cpp` would not create a usable library API.
+- Next: define host ownership for configuration, diagnostics, cancellation, worker shutdown, and
+  repeated compiler instances; then separate the CLI driver from that API and prove a non-CLI
+  consumer can initialize, analyze, and shut down the compiler.
+- Done when: the executable entry point and process-only setup are absent from a reusable compiler
+  library target, and a host can use that target without parsing command-line arguments or
+  exchanging requests over process stdio.
 
 ## Deliberately out of scope
 

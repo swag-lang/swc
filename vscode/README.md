@@ -49,19 +49,34 @@ untrusted workspaces.
 The server finds the nearest ancestor `module.swg` and analyzes that module; a file outside
 a module is analyzed on its own. Open buffers in that module replace the compiler's source
 contents in memory. Unsaved buffers, the editor index, and the requested module working/output
-directories live in a per-analysis system temporary directory. Dependencies use the compiler's
+directories live in a per-service system temporary directory. Dependencies use the compiler's
 usual caches. Generated standard-library APIs are discovered from `SWAG_PATH`, the selected
 compiler's adjacent `std` directory, or a checkout's `bin/std` tree, so imported standard types
 remain navigable without hand-entering an API root.
 The index contains this module's sources and only imported API files needed by referenced
 declarations, so unrelated dependency and runtime sources are not copied into editor snapshots.
-The server uses the standard LSP protocol and can also run as `node src/server.js --stdio`
-with a `compilerPath` initialization option in another editor.
+The language server uses standard LSP over stdio and can run independently of VS Code. From this
+directory, install its locked dependencies with `npm ci`, then configure another IDE's LSP client
+to launch `node <path-to-this-directory>/src/server.js --stdio`. Pass this initialization options
+object (or its equivalent in the client):
 
-This first implementation keeps the LSP server alive and caches each module snapshot, but
-starts a compiler process for each changed snapshot. It does not yet retain incremental
-compiler state. Analyses are serialized and use at most six compiler workers; obsolete work
-is cancelled and never published over a newer document version.
+```json
+{
+  "compilerPath": "swc",
+  "analysisDelay": 500,
+  "analysisTimeout": 60000
+}
+```
+
+`compilerPath` may be an absolute path to the compiler executable. The server supports standard
+LSP initialization, document synchronization, diagnostics, hover, definition, references, document
+symbols, semantic tokens, and inlay hints. Its LSP transport is separate from the compiler worker
+protocol.
+
+The server keeps one persistent compiler worker per analyzed module and compiler executable.
+Workers retain compiler state between snapshots and shut down after ten minutes without a request.
+Analyses are serialized and use at most six compiler workers; obsolete results are never
+published over a newer document version.
 
 Semantic features are returned for symbols the compiler resolved, even when other parts of the
 module have errors. Unresolved tokens keep TextMate highlighting, and navigation is available
@@ -81,8 +96,10 @@ and analysis cancellation. After building the compiler, set `SWAG_TEST_COMPILER`
 checkout's executable and run `npm run test:integration` for the LSP lifecycle, inferred
 types, overload selection, cross-file definitions, unsaved edits, and diagnostic repair.
 
-The bridge writes JSON with `version: 1`, source texts, and byte-based symbol occurrences
-using `swc sema --editor-index <file>`. Occurrences can identify methods, intrinsic functions,
+The compiler worker protocol is versioned and described by `swc help sema`: request markers are
+written to both output streams so clients can wait until compiler output is flushed. The bridge
+writes JSON with `version: 1`, source texts, and byte-based symbol occurrences using
+`swc sema --editor-index <file>`. Occurrences can identify methods, intrinsic functions,
 and fields declared by interfaces as well as structs. Variable occurrences may include
 `storage: "local"` or `storage: "global"` for semantic coloring; an occurrence whose source
 definition has no physical mapping can still be colored, but its `definition` is `null` and it
@@ -90,4 +107,5 @@ does not support navigation. `--editor-overlay <file>` reads `SWAG-EDITOR-1\n`,
 followed by pairs of UTF-8 path and source strings. Each string is preceded by its decimal
 byte length and a newline; its exact bytes follow immediately, including for empty buffers.
 Source paths retain their identity. The index is converted to LSP UTF-16 positions by the
-server. These versioned formats are internal to the compiler/editor integration.
+server. IDEs should generally use the standard LSP server above; the compiler worker protocol is
+available to integrations that need the snapshot interface directly.

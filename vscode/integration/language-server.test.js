@@ -6,7 +6,7 @@ const os = require('node:os');
 const {spawn} = require('node:child_process');
 const {pathToFileURL, fileURLToPath} = require('node:url');
 const {createMessageConnection, StreamMessageReader, StreamMessageWriter} = require('vscode-jsonrpc/node');
-const {analyze, projectFor, pathKey} = require('../src/compiler');
+const {analyze, dispose: disposeCompilerServices, projectFor, pathKey} = require('../src/compiler');
 const {SemanticSnapshot} = require('../src/semantic');
 const {TextDocument} = require('vscode-languageserver-textdocument');
 
@@ -68,6 +68,17 @@ test('LSP uses compiler semantics across files and unsaved document versions', {
         assert.equal((await request('definition', {position: {line: 2, character: 19}}))?.range.start.line, 1);
         assert.equal(await fs.readFile(file, 'utf8'), initial);
 
+        const libraryUri = pathToFileURL(library).href;
+        const changedLibrary = 'func choose(value: s32)->s32 => value\nfunc choose(_: string)->s32 => 1\n';
+        await fs.writeFile(library, changedLibrary);
+        connection.sendNotification('workspace/didChangeWatchedFiles', {changes: [{uri: libraryUri, type: 2}]});
+        assert.match((await request('hover', {position: use}))?.contents.value ?? '', /result: s32/,
+            `${messages.join('\n')}\n${stderr}\n${JSON.stringify(diagnostics)}`);
+
+        await fs.writeFile(library, 'func choose(value: s32)->s32 => value\nfunc choose(value: string)->string => value\n');
+        connection.sendNotification('workspace/didChangeWatchedFiles', {changes: [{uri: libraryUri, type: 2}]});
+        assert.match((await request('hover', {position: use}))?.contents.value ?? '', /result: string/, messages.join('\n'));
+
         connection.sendNotification('textDocument/didChange', {textDocument: {uri, version: 3}, contentChanges: [{text: initial.replace('42', 'true')}]});
         assert.equal(await request('hover', {position: use}), null);
         assert.ok(diagnostics.some(item => item.uri === uri && item.version === 3 && item.diagnostics.some(diagnostic => diagnostic.severity === 1)));
@@ -82,13 +93,27 @@ test('LSP uses compiler semantics across files and unsaved document versions', {
     }
     finally
     {
-        connection?.dispose();
         if (child && child.exitCode === null)
         {
             const closed = new Promise(resolve => child.once('close', resolve));
-            child.kill();
-            await closed;
+            if (connection)
+            {
+                try
+                {
+                    await Promise.race([connection.sendRequest('shutdown'), closed]);
+                    connection.sendNotification('exit');
+                    await Promise.race([closed, new Promise(resolve => setTimeout(resolve, 5000))]);
+                }
+                catch {}
+            }
+            if (child.exitCode === null)
+            {
+                child.kill();
+                await closed;
+            }
         }
+        connection?.dispose();
+        await disposeCompilerServices();
         await fs.rm(root, {recursive: true, force: true});
     }
 });
@@ -111,7 +136,11 @@ test('implicit propagation in a Swag.Propagate body becomes a try hint', {timeou
         const hints = new SemanticSnapshot(result.snapshot).hints(uri, {start: {line: 0, character: 0}, end: {line: 8, character: 0}});
         assert.deepEqual(hints.filter(hint => hint.label === 'try').map(hint => hint.position), [{line: 4, character: 12}]);
     }
-    finally { await fs.rm(root, {recursive: true, force: true}); }
+    finally
+    {
+        await disposeCompilerServices();
+        await fs.rm(root, {recursive: true, force: true});
+    }
 });
 
 test('standalone scripts use compiler script setup and unsaved buffers', {timeout: 39000}, async () =>
@@ -133,5 +162,9 @@ test('standalone scripts use compiler script setup and unsaved buffers', {timeou
         assert.ok(source.occurrences.some(item => item.name === 'value' && item.type === 'string'), result.output);
         assert.equal(await fs.readFile(file, 'utf8'), text);
     }
-    finally { await fs.rm(root, {recursive: true, force: true}); }
+    finally
+    {
+        await disposeCompilerServices();
+        await fs.rm(root, {recursive: true, force: true});
+    }
 });

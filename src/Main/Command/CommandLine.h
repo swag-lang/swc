@@ -200,6 +200,7 @@ struct CommandLine
     bool lexOnly                 = false;
     bool syntaxOnly              = false;
     bool semaOnly                = false;
+    bool editorService           = false;
     bool output                  = true;
     bool outputDoc               = true;
     bool debugInfo               = false;

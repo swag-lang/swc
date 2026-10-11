@@ -80,6 +80,10 @@ namespace Command
             inputFiles.push_back(f);
         }
 
+        std::vector<SourceFile*> parseFiles = inputFiles;
+        if (compiler.cmdLine().editorService)
+            parseFiles = compiler.beginEditorAnalysisRevision(inputFiles);
+
         // Parser
         const uint64_t         errorsBefore  = Stats::getNumErrors();
         const ParserJobOptions parserOptions = {
@@ -87,7 +91,7 @@ namespace Command
         };
         {
             SWC_SCHED_PHASE(jobMgr, "parse");
-            parseSourceFiles(ctx, inputFiles, parserOptions);
+            parseSourceFiles(ctx, parseFiles, parserOptions);
         }
         // An editor index can still use semantic data from files that parsed successfully.
         // Files with parser errors are filtered below; regular compilation remains fail-fast.
@@ -97,8 +101,8 @@ namespace Command
 
         // Filter files
         std::vector<SourceFile*> files;
-        files.reserve(inputFiles.size());
-        for (SourceFile* f : inputFiles)
+        files.reserve(parseFiles.size());
+        for (SourceFile* f : parseFiles)
         {
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
@@ -111,30 +115,49 @@ namespace Command
         }
 
         SmallVector<Ast*> moduleAsts;
-        moduleAsts.reserve(files.size());
-        for (SourceFile* f : files)
-            moduleAsts.push_back(&f->ast());
+        moduleAsts.reserve(inputFiles.size());
+        if (compiler.cmdLine().editorService)
+        {
+            for (SourceFile* f : inputFiles)
+            {
+                if (!f || !f->isEditorActive() || !f->ast().hasSourceView() || !f->ast().root().isValid() || f->hasError())
+                    continue;
+                const SourceView& srcView = f->ast().srcView();
+                if (!srcView.mustSkip() && srcView.runsSema())
+                    moduleAsts.push_back(&f->ast());
+            }
+        }
+        else
+        {
+            for (SourceFile* f : files)
+                moduleAsts.push_back(&f->ast());
+        }
         SWC_SCHED_PHASE(jobMgr, "sema setup");
         Parser::finalizeAutoInlineCandidates(moduleAsts.span());
 
         if (compiler.setupSema(ctx) == Result::Error)
             return;
 
-        auto* symModule           = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-        Utf8  moduleNamespaceName = buildModuleNamespaceName(compiler);
+        SymbolNamespace* moduleNamespace = compiler.moduleNamespace();
+        if (!moduleNamespace)
+        {
+            auto* symModule = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            Utf8  moduleNamespaceName = buildModuleNamespaceName(compiler);
 
-        constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
-        const IdentifierRef   idRef           = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
-        auto*                 moduleNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, namespaceFlags);
-        symModule->addSingleSymbol(ctx, moduleNamespace);
-        compiler.setSymModule(symModule);
+            constexpr SymbolFlags namespaceFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+            const IdentifierRef   idRef          = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
+            moduleNamespace                      = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), idRef, namespaceFlags);
+            symModule->addSingleSymbol(ctx, moduleNamespace);
+            compiler.setSymModule(symModule);
+            compiler.setModuleNamespace(moduleNamespace);
 
-        // Empty-named root namespace hosting symbols imported from other modules (see importRootNamespace).
-        // Owned by the module symbol (like the module namespace) so it is treated as a module-root when
-        // collecting namespace paths (collectSymbolMapNamespacePath) and contributes no name prefix.
-        auto* importRootNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), namespaceFlags);
-        importRootNamespace->setOwnerSymMap(symModule);
-        compiler.setImportRootNamespace(importRootNamespace);
+            // Empty-named root namespace hosting symbols imported from other modules (see importRootNamespace).
+            // Owned by the module symbol (like the module namespace) so it is treated as a module-root when
+            // collecting namespace paths (collectSymbolMapNamespacePath) and contributes no name prefix.
+            auto* importRootNamespace = Symbol::make<SymbolNamespace>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), namespaceFlags);
+            importRootNamespace->setOwnerSymMap(symModule);
+            compiler.setImportRootNamespace(importRootNamespace);
+        }
 
         for (SourceFile* f : files)
         {
@@ -159,9 +182,15 @@ namespace Command
             Sema::waitDone(ctx, clientId);
         }
 
+        if (compiler.cmdLine().editorService)
+        {
+            for (SourceFile* f : files)
+                compiler.updateEditorDependencies(*f);
+        }
+
         {
             SWC_SCHED_PHASE(jobMgr, "api export");
-            if (!Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
+            if (!files.empty() && !Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
                 return;
         }
 

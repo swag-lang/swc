@@ -142,7 +142,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   The guarded return fixpoints snapshot each completed caller's return-edge range once under the
   existing shared lock. The completion closure propagates incompleteness through contiguous reverse
   dependencies, and after initial evaluation the mask worklist revisits an edge only when its
-  callee or a guard summary grows. The late-completion test now includes a two-function return chain
+  callee or a guard summary grows; a bounded ring buffer holds each pending function at most once.
+  The late-completion test now includes a two-function return chain
   behind an unresolved dependency, then verifies that completing it enables the guarded frees edge.
   A seeded two-function return cycle, supplied before its third-function mask source, also checks
   convergence when callers precede their dependencies in the given order.

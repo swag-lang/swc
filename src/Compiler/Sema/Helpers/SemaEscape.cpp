@@ -5736,20 +5736,30 @@ namespace SemaEscape
                 }
             }
 
-            std::deque<size_t>   worklist;
+            std::vector<size_t> worklist(returnEntries.size());
+            size_t              worklistHead  = 0;
+            size_t              worklistTail  = 0;
+            size_t              worklistCount = 0;
+            const auto enqueue = [&](const size_t index) {
+                SWC_ASSERT(worklistCount < worklist.size());
+                worklist[worklistTail] = index;
+                if (++worklistTail == worklist.size())
+                    worklistTail = 0;
+                ++worklistCount;
+                queued[index] = 1;
+            };
             for (size_t i = 0; i < returnEntries.size(); ++i)
             {
                 if (returnEntries[i].summary.complete)
-                {
-                    worklist.push_back(i);
-                    queued[i] = 1;
-                }
+                    enqueue(i);
             }
 
-            while (!worklist.empty())
+            while (worklistCount)
             {
-                const size_t dependencyIndex = worklist.front();
-                worklist.pop_front();
+                const size_t dependencyIndex = worklist[worklistHead];
+                if (++worklistHead == worklist.size())
+                    worklistHead = 0;
+                --worklistCount;
                 queued[dependencyIndex] = 0;
                 for (size_t dependentIndex = dependentOffsets[dependencyIndex]; dependentIndex < dependentOffsets[dependencyIndex + 1]; ++dependentIndex)
                 {
@@ -5798,10 +5808,7 @@ namespace SemaEscape
                     }
 
                     if (changed && !queued[dependent.callerIndex])
-                    {
-                        worklist.push_back(dependent.callerIndex);
-                        queued[dependent.callerIndex] = 1;
-                    }
+                        enqueue(dependent.callerIndex);
                 }
             }
         });

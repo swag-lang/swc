@@ -8,7 +8,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Evidence: several remaining node maps are iterated in ways that affect diagnostics or output:
-  sanitizer sparse facts, mem2reg `slots`, SLP `locations` and `entryValues`, web-renaming
+  sanitizer sparse facts, mem2reg `slots`, SLP `locations`, web-renaming
   `loads`, and the native dependency walk's `rejected` set. A worker-kept `FlatKeyMap` also clears
   its largest previously used capacity on each rebuild.
 - Next: identify the required traversal order for one remaining map and design an order-preserving

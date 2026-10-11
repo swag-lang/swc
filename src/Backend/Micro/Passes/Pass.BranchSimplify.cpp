@@ -4122,23 +4122,31 @@ namespace
             if (it->op != MicroInstrOpcode::JumpCond)
                 continue;
 
-            const MicroInstrRef copyRef = storage.findPreviousInstructionRef(it.current);
-            const MicroInstr*   copy    = storage.ptr(copyRef);
-            if (!copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            MicroStorage::Iterator copyIt = it;
+            --copyIt;
+            if (!copyIt.current.isValid() || copyIt->op != MicroInstrOpcode::LoadRegReg)
                 continue;
-            const MicroInstrRef setRef = storage.findPreviousInstructionRef(copyRef);
-            const MicroInstr*   set    = storage.ptr(setRef);
-            if (!set || set->op != MicroInstrOpcode::SetCondReg)
+            const MicroInstrRef copyRef = copyIt.current;
+            MicroStorage::Iterator setIt = copyIt;
+            --setIt;
+            if (!setIt.current.isValid() || setIt->op != MicroInstrOpcode::SetCondReg)
                 continue;
-            const MicroInstrRef leftCmpRef = storage.findPreviousInstructionRef(setRef);
-            const MicroInstr*   leftCmp    = storage.ptr(leftCmpRef);
-            if (!leftCmp || (leftCmp->op != MicroInstrOpcode::CmpAmcReg && leftCmp->op != MicroInstrOpcode::CmpAmcImm))
+            const MicroInstrRef setRef = setIt.current;
+            const MicroInstr*   set    = &*setIt;
+            MicroStorage::Iterator leftCmpIt = setIt;
+            --leftCmpIt;
+            if (!leftCmpIt.current.isValid() ||
+                (leftCmpIt->op != MicroInstrOpcode::CmpAmcReg && leftCmpIt->op != MicroInstrOpcode::CmpAmcImm))
                 continue;
+            const MicroInstrRef leftCmpRef = leftCmpIt.current;
+            const MicroInstr*   leftCmp    = &*leftCmpIt;
 
-            const MicroInstrRef rightCmpRef = storage.findNextInstructionRef(it.current);
-            const MicroInstr*   rightCmp    = storage.ptr(rightCmpRef);
-            if (!rightCmp || rightCmp->op != MicroInstrOpcode::CmpAmcImm)
+            MicroStorage::Iterator rightCmpIt = it;
+            ++rightCmpIt;
+            if (!rightCmpIt.current.isValid() || rightCmpIt->op != MicroInstrOpcode::CmpAmcImm)
                 continue;
+            const MicroInstrRef rightCmpRef = rightCmpIt.current;
+            const MicroInstr*   rightCmp    = &*rightCmpIt;
 
             const auto& relocated = relocationCache.get(context);
             if (relocated.contains(it.current.get()) || relocated.contains(leftCmpRef.get()) || relocated.contains(rightCmpRef.get()))
@@ -4157,12 +4165,14 @@ namespace
                 continue;
 
             bool safe = true;
-            for (MicroInstrRef ref = storage.findNextInstructionRef(leftCmpRef); ref.isValid() && ref != rightCmpRef; ref = storage.findNextInstructionRef(ref))
+            MicroStorage::Iterator betweenIt = leftCmpIt;
+            ++betweenIt;
+            for (; betweenIt.current.isValid() && betweenIt.current != rightCmpRef; ++betweenIt)
             {
-                const MicroInstr*    between = storage.ptr(ref);
-                const MicroInstrDef& info    = MicroInstr::info(between->op);
+                const MicroInstr&    between = *betweenIt;
+                const MicroInstrDef& info    = MicroInstr::info(between.op);
                 if (info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                    definesEitherRegister(*between, operands, context.encoder, leftOps[0].reg, leftOps[1].reg))
+                    definesEitherRegister(between, operands, context.encoder, leftOps[0].reg, leftOps[1].reg))
                 {
                     safe = false;
                     break;

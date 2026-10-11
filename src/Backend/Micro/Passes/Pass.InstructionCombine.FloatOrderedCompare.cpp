@@ -46,11 +46,12 @@ namespace InstructionCombine
         // a mismatch. Control-flow boundaries end the search.
         const MicroInstr* previousChainStep(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef fromRef, MicroReg valueReg, MicroReg guardReg, MicroInstrRef& outRef)
         {
-            for (MicroInstrRef scanRef = storage.findPreviousInstructionRef(fromRef); scanRef.isValid(); scanRef = storage.findPreviousInstructionRef(scanRef))
+            MicroStorage::ConstIterator it{&storage, fromRef};
+            --it;
+            for (; it.current.isValid(); --it)
             {
-                const MicroInstr* scanInst = storage.ptr(scanRef);
-                if (!scanInst)
-                    return nullptr;
+                const MicroInstrRef scanRef  = it.current;
+                const MicroInstr*   scanInst = &*it;
 
                 const MicroInstrFlags flags = MicroInstr::info(scanInst->op).flags;
                 if (scanInst->op == MicroInstrOpcode::Label ||

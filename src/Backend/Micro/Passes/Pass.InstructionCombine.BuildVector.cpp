@@ -248,11 +248,13 @@ namespace InstructionCombine
             uint32_t coveredBytes = 0;
             outLaneBytes          = 0;
 
-            MicroInstrRef ref = ctx.storage->findPreviousInstructionRef(loadRef);
-            for (uint32_t step = 0; ref.isValid() && step < K_MAX_BUILD_WINDOW && coveredBytes < 16; ++step, ref = ctx.storage->findPreviousInstructionRef(ref))
+            MicroStorage::Iterator it{ctx.storage, loadRef};
+            --it;
+            for (uint32_t step = 0; it.current.isValid() && step < K_MAX_BUILD_WINDOW && coveredBytes < 16; ++step, --it)
             {
-                const MicroInstr* inst = ctx.storage->ptr(ref);
-                if (!inst || isControlOrCall(*inst))
+                const MicroInstrRef ref  = it.current;
+                const MicroInstr*   inst = &*it;
+                if (isControlOrCall(*inst))
                     return false;
                 const MicroInstrOperand* ops = inst->ops(*ctx.operands);
                 if (!ops)
@@ -817,12 +819,14 @@ namespace InstructionCombine
             // Once every byte is known, the walk goes on only to pick up the
             // stores the later ones overwrote, and stops quietly where the
             // straight line or the slot's own stores end.
-            MicroInstrRef ref = ctx.storage->findPreviousInstructionRef(loadRef);
-            for (uint32_t step = 0; ref.isValid() && step < K_MAX_BUILD_WINDOW; ++step, ref = ctx.storage->findPreviousInstructionRef(ref))
+            MicroStorage::Iterator it{ctx.storage, loadRef};
+            --it;
+            for (uint32_t step = 0; it.current.isValid() && step < K_MAX_BUILD_WINDOW; ++step, --it)
             {
-                const bool        trailing = covered == full;
-                const MicroInstr* inst     = ctx.storage->ptr(ref);
-                if (!inst || isControlOrCall(*inst))
+                const MicroInstrRef ref      = it.current;
+                const bool          trailing = covered == full;
+                const MicroInstr*   inst     = &*it;
+                if (isControlOrCall(*inst))
                     return trailing;
                 const MicroInstrOperand* ops = inst->ops(*ctx.operands);
                 if (!ops)

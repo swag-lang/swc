@@ -128,11 +128,11 @@ namespace
     {
         if (!reg.isValid())
             return false;
-        for (MicroInstrRef cur = storage.findPreviousInstructionRef(atRef); cur.isValid(); cur = storage.findPreviousInstructionRef(cur))
+        MicroStorage::Iterator it{&storage, atRef};
+        --it;
+        for (; it.current.isValid(); --it)
         {
-            const MicroInstr* inst = storage.ptr(cur);
-            if (!inst)
-                return false;
+            const MicroInstr* inst = &*it;
             const MicroInstrOperand* ops = inst->ops(operands);
             if (!ops)
                 continue;

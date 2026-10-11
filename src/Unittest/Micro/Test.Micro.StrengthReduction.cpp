@@ -481,8 +481,39 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivisionOfMaskedDividendIsUnsigned)
         builder.emitRet();
 
         SWC_RESULT(runStrengthReductionPass(builder));
-        if ((countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight) == 0) != (mode != 2) || countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0)
+        if ((Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) == 0) != (mode != 2) || countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0)
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(StrengthReduction_SignedModuloSelectUsesEncodableBias)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const uint32_t shift : {1u, 2u, 15u, 30u, 31u, 32u, 62u})
+        {
+            if (shift >= getNumBits(bits) - 1)
+                continue;
+            constexpr MicroReg value = MicroReg::virtualIntReg(1);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegReg(value, MicroReg::intReg(2), bits);
+            builder.emitOpBinaryRegImm(value, ApInt(uint64_t{1} << shift, getNumBits(bits)), MicroOp::ModuloSigned, bits);
+            builder.emitLoadMemReg(MicroReg::intReg(3), 0, value, bits);
+            builder.emitRet();
+
+            SWC_RESULT(runStrengthReductionPass(builder));
+            const bool select = shift > 1 && shift < 32;
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != (select ? 1u : 0u))
+                return Result::Error;
+            if (select && (!hasBinaryRegImm(builder, MicroOp::And, getBitsMask(bits) & ~((uint64_t{1} << shift) - 1)) ||
+                           countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight) != 0 ||
+                           countBinaryRegImmOp(builder, MicroOp::ShiftRight) != 0))
+                return Result::Error;
+            if (countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0)
+                return Result::Error;
+        }
     }
     return Result::Continue;
 }
@@ -499,8 +530,8 @@ SWC_TEST_BEGIN(StrengthReduction_NarrowSignedRemainderKeepsLowBits)
         constexpr MicroReg result   = MicroReg::virtualIntReg(2);
         constexpr MicroReg copy     = MicroReg::virtualIntReg(3);
         constexpr MicroReg sink     = MicroReg::intReg(3);
-        const uint64_t    divisor   = mode == 1 ? 128 : 256;
-        MicroBuilder      builder(ctx);
+        const uint64_t     divisor  = mode == 1 ? 128 : 256;
+        MicroBuilder       builder(ctx);
         builder.emitLoadRegReg(dividend, MicroReg::intReg(2), MicroOpBits::B64);
         builder.emitOpBinaryRegImm(dividend, ApInt(divisor, 64), MicroOp::ModuloSigned, MicroOpBits::B64);
         MicroReg narrowedSrc = dividend;
@@ -525,20 +556,20 @@ SWC_TEST_BEGIN(StrengthReduction_NarrowSignedRemainderKeepsLowBits)
 
         SWC_RESULT(runStrengthReductionPass(builder));
 
-        const bool narrowed = mode == 0 || mode == 4 || mode == 5 || mode == 6;
-        const bool hasMask = hasBinaryRegImm(builder, MicroOp::And, divisor - 1);
-        const uint32_t arithmeticShifts = countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight);
-        const uint32_t remainders = countBinaryRegImmOp(builder, MicroOp::ModuloSigned);
-        if ((narrowed && !hasMask) || (arithmeticShifts != 0) == narrowed || remainders != 0)
+        const bool     narrowed       = mode == 0 || mode == 4 || mode == 5 || mode == 6;
+        const bool     hasMask        = hasBinaryRegImm(builder, MicroOp::And, divisor - 1);
+        const uint32_t signSelections = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg);
+        const uint32_t remainders     = countBinaryRegImmOp(builder, MicroOp::ModuloSigned);
+        if ((narrowed && !hasMask) || (signSelections != 0) == narrowed || remainders != 0)
         {
             return Result::Error;
         }
     }
 
-    constexpr MicroReg dividend = MicroReg::virtualIntReg(1);
-    constexpr MicroReg result   = MicroReg::virtualIntReg(2);
-    constexpr MicroReg sink     = MicroReg::intReg(3);
-    MicroBuilder       builder(ctx);
+    constexpr MicroReg  dividend = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  result   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  sink     = MicroReg::intReg(3);
+    MicroBuilder        builder(ctx);
     const MicroLabelRef alternate = builder.createLabel();
     const MicroLabelRef join      = builder.createLabel();
     builder.emitCmpRegImm(MicroReg::intReg(4), ApInt(uint64_t{0}, 64), MicroOpBits::B64);

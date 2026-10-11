@@ -21,12 +21,12 @@ The baseline includes the caller and its wrapper, without recursively counting
 its children or the allocator implementation. Both versions use an initialized
 low TLS slot, successful allocation, and a non-null released node.
 
-| Path per node | Instructions before ? after | Explicit memory before ? after | Calls before ? after |
+| Path per node | Instructions before to after | Explicit memory before to after | Calls before to after |
 | --- | --- | --- | --- |
-| Allocate internal node | 61 ? 53 | 20 ? 20 | 4 ? 3 |
-| Allocate leaf | 55 ? 47 | 19 ? 19 | 2 ? 1 |
-| Release internal node | 53 ? 48 | 20 ? 20 | 4 ? 3 |
-| Release leaf | 44 ? 39 | 15 ? 15 | 2 ? 1 |
+| Allocate internal node | 61 to 53 | 20 to 20 | 4 to 3 |
+| Allocate leaf | 55 to 47 | 19 to 19 | 2 to 1 |
+| Release internal node | 53 to 48 | 20 to 20 | 4 to 3 |
+| Release leaf | 44 to 39 | 15 to 15 | 2 to 1 |
 
 This removes 13 instructions and two call edges per allocated/released node,
 regardless of the internal/leaf weighting: 8,768,214 instructions and 1,348,956
@@ -83,5 +83,5 @@ callee before declaration selection. The additional marking is O(V + E)
 with an O(V) bit vector. Graphs remain separate; this does not claim to find
 recursion whose cycle itself crosses files. Body cost remains immutable.
 One diagnostic binarytrees compile, including all Micro printing, changed
-350.3 ? 352.7 ms wall time and 252.3 ? 254.0 MiB peak job commit; these are
+350.3 to 352.7 ms wall time and 252.3 to 254.0 MiB peak job commit; these are
 single samples, not a compiler-performance claim.

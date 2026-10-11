@@ -232,44 +232,17 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Related: compiler.core.001, compiler.core.038.
 ### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
 
-- Area: compiler
-- Found while: rerunning `tools/tests.swgs dm --all-cfg` after an unrelated intermittent
-  semantic-completion assertion had passed on immediate focused rerun.
-- Observation: a later multi-configuration pass ended with a mimalloc corrupted-free-list report
-  and a hardware exception while type generation traversed a struct's declared methods. The same
-  compiler and sources had completed the full Release campaign immediately beforehand, and the
-  equality suites had already passed in all three build configurations, so the failure appears
-  scheduling-dependent rather than tied to one deterministic source construct.
-- Evidence: mimalloc reported a corrupted 32-byte free-list entry. The stack ran through
-  `appendImplFunctions` and `SymbolStruct::declaredMethods` in `Symbol.Struct.cpp`,
-  `findGeneratedImplicitMethod`, `findGeneratedLifecycleWrapper`, `initStruct`,
-  `TypeGen::processTypeInfo`, and then function-candidate implicit-conversion probing. The isolated
-  command is `swc tools/tests.swgs dm --all-cfg`; it failed only in a downstream standard-library
-  leg after lexer, parser, sema, JIT, safety, sanity, native, and workspace suites had passed in all
-  three configurations.
-- Current validation (2026-09-14): 100 Release 0.1.571 rebuilds of `core` completed with
-  byte-identical sets of 24 published API files. Another 20 Release and 20 DevMode rebuilds
-  of `ogl` completed without a crash. The current declared-method traversal copies impl and
-  interface lists under shared locks, and `SymbolMap::getAllSymbols` snapshots each map under
-  its corresponding lock. This session also fixed mutable attribute snapshots and lifecycle
-  pointer publication, with regression tests. These results establish non-recurrence under
-  those workloads; they do not identify the writer that caused the original free-list damage.
-- Next step: re-evaluate on the next occurrence only. The 2026-08-12 sanification pass eliminated
-  three writers able to corrupt or misread memory underneath a stack like this one: a struct
-  layout republished through transient zero and partially accumulated sizes on every post-node
-  resume (`SymbolStruct::computeLayout`, now computed into locals and published once, atomically);
-  imported native modules keeping `Swag.processInfos().args` slices into a destroyed compiler instance's
-  storage (`ensureProcessInfosRunArgs`, now interning into process-lifetime storage); and the call
-  matcher reading the signature type of a selected candidate before that type was published
-  (`Match::resolveFunctionCandidates`, which now parks until the winner is typed — caught live as
-  a `typeRef.isValid()` assertion under `finalizeAutoEnumArgs` while building the generated `ogl`
-  wrappers, one run in ~20; in Release that read returned an out-of-bounds `TypeInfo`). A mimalloc
-  report now appends the reporting thread's stack (`Allocator.cpp`), so a recurrence preserves its
-  detection stack; if one does recur, persist the failing module and stress parallel type
-  generation as originally planned.
-- Done when: a recurrence is attributed through its captured stack and fixed with a
-  regression, or a parallel type-generation stress run over the whole standard library under both
-  compiler executables stays clean and the lead is retired.
+- Evidence: one multi-configuration test campaign reported mimalloc free-list corruption with a
+  stack through `appendImplFunctions`, `SymbolStruct::declaredMethods`, and generated type
+  processing. Snapshotting impl/interface lists and symbol maps under their locks, plus fixes to
+  attribute snapshots and lifecycle-pointer publication, stopped the observed corruption in 100
+  Release `core` rebuilds and 20 each of Release and DevMode `ogl` rebuilds. These runs do not
+  identify the original writer. The allocator now captures the reporting thread's stack.
+- Next: investigate the next recurrence from its captured stack; otherwise retire this lead only
+  after a parallel type-generation stress run over the standard library stays clean under both
+  compiler executables.
+- Done when: a recurrence is attributed and fixed with a regression, or the specified stress run
+  stays clean and the lead is retired.
 
 ### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
 

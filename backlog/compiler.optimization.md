@@ -174,14 +174,9 @@ new language syntax.
   Swag calls `advance` once per step, saving and restoring ten XMM registers, and reloads the
   bodies through the slice. Zig issues 6 roots and 6 divisions per step, Rust 7 + 7, clang and
   Swag 10 + 10, in the order of their times (16.0, 19.7, 21.6 and 21.4 ms).
-- The current SLP boundary explains why the interaction loop stays scalar: groups start from
-  final stores at contiguous offsets, and `buildLoad` only accepts a contiguous memory chunk.
-  N-body's pair lanes read coordinates from bodies 56 bytes apart and update separate scalar
-  velocity fields. Zig forms packed pair intermediates, then feeds the scalar updates through
-  lane unpacking. The position loop already packs x/y updates without frame traffic.
-- Remaining gap: pack coordinate producers, roots/divisions and scalar consumers as one plan,
-  while accounting for the unpacks and peak register pressure. Pairing only the expensive
-  operations is insufficient.
+- Remaining gap: pack coordinate producers, roots/divisions and their scalar consumers as
+  one plan, with a register-pressure estimate. Pairing only the expensive operations is
+  insufficient. The position loop already packs x/y updates without frame traffic.
 - October 10: post-RA contraction now reaches a product separated from its accumulation by the
   accumulator load (`2f0ebbbd8`): the step loop went from 393 to 378 instructions per iteration with
   131 memory operands and 24 frame accesses unchanged. The loop still carries 33 full-width register
@@ -198,11 +193,9 @@ new language syntax.
 - A source-shape probe based on Zig's `*[NB]Body` parameter confirmed the current Swag call is already
   inlined. Adding `#[Swag.Inline]` leaves its Micro unchanged; changing `advance` from a slice to a fixed
   array pointer grows the timed step loop from 378 instructions / 131 memory operands to 416 / 170.
-- Next: prototype a producer-rooted plan for two independent pair interactions that gathers
-  their coordinates, shares the packed distance/root/division chain, and returns scalar lanes to
-  the existing velocity updates. Estimate peak XMM liveness before extending it across more
-  interactions. Keep historical timing attribution separate; a stable controlled cohort is
-  still required for a runtime claim.
+- Next: compare each interaction region against the winner and design shared producer
+  ownership before another SLP rewrite. Keep historical timing attribution separate from
+  the static optimization loop; a stable controlled cohort is still required for it.
 - Done when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.
@@ -210,12 +203,15 @@ new language syntax.
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 
 - Area: compiler/backend, loop-invariant code motion and call effects
-- Evidence: LDC keeps `g_Idx` and `g_Cnt` pointers outside wordfreq's inner quicksort comparisons; Swag previously reloaded them from RIP-relative globals each turn. An earlier LICM experiment using `SymbolFunction::isPure()` did not help because the bodyless `Swag.memcmp` declaration was not pure; increasing the purity budget and recognizing `Swag.vecmask` also left it impure. A `ReadOnly` call contract now explicitly promises no caller-visible writes and survives module API export. LICM uses that contract only for direct 64-bit global loads. The resulting `qsort` initially grew from 126 to 134 instructions because it spilled hoisted pointers. The allocator then proved to reserve a whole persistent register for legalization solely because `mayNeedLegalizeScratchRegister` reported `true` for a zero-operand `ret` (its only reported instruction in `qsort`). Correcting that answer lets the allocation use `r15` and removes two instructions: the first comparator loop drops from 10 instructions and 5 memory operands per unequal-count iteration to 9 and 4, and the second from 9 and 4 to 8 and 3. The full function has 132 instructions. An experiment admitting the preferred local-stack-base register to the interval pool alone changed no emitted instructions and was reverted. The wordfreq checksum remains 130489. Csvagg's 1,076-instruction `main`, 271-instruction row span, and checksum 24828641 remain unchanged. The 1,107 C++, 3,480 native, and 1,500 JIT tests pass. No timing sample informed the decision.
-- Current evidence: the new loop-guided wrapper rule inlines both `less` calls in `qsort`. Its optimized body grows from 72 to 132 Micro instructions, while each unequal-count comparison now reads the retained `g_Idx` and `g_Cnt` pointers without a `less` call or a global reload. The tie path still calls `memcmp`, and the second comparator loop reloads both global pointers on entry. LDC also retains its pointers during the unequal-count loop and reloads after a call. Wordfreq's checksum is 130489; csvagg's selected function counts and checksum are unchanged. No timing sample informed the rule.
-- A value-numbering trial preserved mutable global loads across a direct `ReadOnly` call. It removed four instructions from `qsort` as a whole (132 to 128), including a repeated global pointer load after `memcmp`, and kept checksum 130489. The extra live value changed allocation in the first comparator loop: each increment path acquired a stack reload of the count pointer and an unconditional back-edge jump. That hot-path regression outweighed the colder tie-path saving, so the trial was reverted without timing it. A direct-call regression test for this trial was reverted with the rule.
-- Since that dump: LICM hoists a load of a private global (one no other module names and whose address no use binds) past pointer stores, but only out of an innermost loop (`ba4e255d4`, then `baedb50db` after a 22% wordfreq regression when the hoisted `g_Text` had to outlive nested loops), and value numbering reuses unmodified private globals across disjoint writes (`a172a3428`). `g_Idx` and `g_Cnt` are file-level `late var` globals in `bench/src/swag/wordfreq.swg`; no `qsort` dump has been taken since these changes.
-- Next: dump the current Release `qsort`. If the post-call and second-loop reloads are gone, retire the entry; otherwise compare the tie path and post-call pointer recovery against LDC, then use paired runs when machine load permits to decide whether the remaining reloads warrant a focused allocation change.
-- Done when: both pointers remain resident through the comparator calls without extra spill traffic and checksums remain correct, or the current dump shows this gap has already closed and the entry is retired.
+- Evidence: `wordfreq`'s `qsort` compares through file-level `late` globals `g_Idx` and `g_Cnt`.
+  Existing LICM and private-global value-numbering changes postdate the last dump, so the current
+  reload and spill behavior is unknown. An earlier value-numbering trial reduced total instructions
+  but added a hot-path spill reload and branch; do not repeat that unchanged variant.
+- Next: inspect the current Release `qsort`. Retire this entry if both pointers stay resident through
+  comparator calls without hot-path spill traffic; otherwise compare the remaining tie and post-call
+  paths with LDC and measure a focused allocator change.
+- Done when: both pointers remain resident through comparator calls without extra spill traffic and
+  checksums remain correct, or a current dump shows the gap has closed.
 
 ### compiler.optimization.011 — Keep hot SIMD values out of the frame
 
@@ -226,49 +222,17 @@ new language syntax.
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Area: compiler/backend
-- Current boundary: post-allocation promotion now keeps a private 64-bit integer spill
-  in a caller-saved XMM register free across a call-free loop. Every matching load/store
-  becomes a register transfer; one seed precedes the header and each distinct exclusive
-  exit writes the current value back. Mixed/overlapping accesses, indexed or derived stack
-  addresses and changing stack pointers remain conservative barriers.
-- Evidence: across 334 H.264 bodies, explicit RSP accesses fall from 2,249 to 2,213 and
-  memory operations from 9,995 to 9,959, with seven extra instructions overall and no extra
-  pushes. Five residualCabac instances lose 13 memory operations with unchanged instruction
-  count. The 282 native optimizer, 23 H.264 and nine HEVC decoder tests pass in Release
-  (JIT and native). The [rewrite and per-function tradeoffs](../bench/results/generated-code/20261006-carried-spill-cache/README.md)
-  retain the structural evidence; no runtime speedup was measured.
-- Extended boundary: write-only private 64-bit homes use the same cache and exit write-back
-  proof. This removes the per-two-round SHA spill introduced by partial unrolling; see the
-  [retained evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
-- Read-only homes now cross conditional calls, multiple outside entries and shared exits:
-  seed every entry and restore only clobbered caches after calls. A static reuse check bounds
-  the added reads. Writable homes can now cross those calls and shared exits by retaining
-  their stores and updating the cache at each write. The literal-path Inflate latch loses
-  its final frame reload; H.264 loses three more memory operations. The full 3,634 native,
-  21 compression and 23 H.264 tests pass in Release; see the
-  [write-through evidence](../bench/results/generated-code/20261006-private-write-through/README.md).
-- Call-free loops with shared exits now retain coherent stores instead of being
-  rejected. H.264 halfHorizontalAvg, halfCenter and buildImplicitWeights each lose
-  three memory operations, with unchanged instruction and push counts. Later
-  cleanup removes unobserved stores too. The other 331 bodies and CSV are unchanged;
-  [comparison](../bench/results/generated-code/20261006-shared-exit-cache/README.md).
-- Idle integer registers already saved by the prologue are now preferred when
-  dead at every entry and untouched in the loop. A cache preserved by all calls
-  also admits mandatory-call loops: H.264 extendPlane loses twelve memory accesses
-  with unchanged instruction/push counts; see the
-  [comparison](../bench/results/generated-code/20261006-gp-spill-cache/README.md).
-- The prologue now records its actual saved SIMD registers. Idle members of that
-  set also serve as caches without adding preservation traffic. H.264
-  predictIntraPlane loses eleven instructions and sixteen memory operations;
-  [comparison](../bench/results/generated-code/20261006-saved-xmm-cache/README.md).
-- Next: inspect hot source-object slots and mixed-width spills. Removing retained
-  stores from called loops needs an exit-liveness proof or edge-specific write-backs.
-  Caches clobbered on every trip are still excluded, even when a home has several
-  reads between calls. Any extension should prove reuse within each call-delimited
-  path; counting reads on mutually exclusive arms can overstate the avoided work.
-- Done when: current codec dumps identify and resolve the remaining promotion boundary
-  with aliasing, exit-path and reference-frame coverage; do not repeat the completed private
-  64-bit multi-access rewrite.
+- Current boundary: post-allocation promotion caches private 64-bit spills across eligible loops,
+  including call and shared-exit cases when entry seeding, clobber handling, and write-back are
+  proven. Mixed-width and source-object slots remain outside the rule.
+- Evidence: retained codec rewrites show fewer hot-loop frame operations without extra pushes;
+  detailed per-function diffs and correctness results are in the linked generated-code reports in
+  Git history. No runtime speedup has been established.
+- Next: inspect hot source-object slots and mixed-width spills. Any extension must prove reuse on
+  each call-delimited path and account for aliases, exits, and write-back.
+- Done when: current codec dumps identify and resolve the remaining promotion boundary with
+  aliasing, exit-path, and reference-frame coverage; do not repeat the completed private 64-bit
+  multi-access rewrite.
 - Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
 
 ### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
@@ -382,78 +346,28 @@ new language syntax.
 ### compiler.optimization.005 — Investigate the remaining Levenshtein outer-loop allocation costs
 
 - Area: compiler/backend
-- Current evidence: Levenshtein carries both adjacent row values between iterations.
-  Its inner loop has 19 instructions and three memory operations, with no frame access
-  (previously 18 / five). The whole main function gains seven instructions and four
-  explicit RSP accesses outside that inner loop. See the
-  [retained code and validation](../bench/results/generated-code/20261006-loop-load-forward/README.md).
-- Scope correction: a fresh October 6 Release listing has 50 instructions in SHA-256's
-  compression round, two table/array reads and no frame accesses. All eight state values
-  stay in registers after the legalization-reserve removal; its earlier `d`/`e` spill lead
-  is complete. General multi-access promotion now belongs to compiler.optimization.015.
-- Current winner check: Odin's emitted Leven loop copies four `u64` row elements per
-  vector iteration (`movdqu` load/store pairs), then handles the tail scalarly. Swag's
-  emitted Micro retains the indexed scalar copy loop. The existing SLP pass only groups
-  straight-line blocks; it does not vectorize this loop. This is a concrete gap in the
-  current winner's generated code. Replaying the benchmark's deterministic length
-  generator gives 9,679,533 row-copy elements versus 8,519,897 DP inner-loop elements
-  across the timed inputs; 7,751,168 copy elements (80%) fall in Odin's four-element
-  vector groups, with a scalar tail for the rest. Swag's Micro roots the two arrays at
-  `rsp+0xF8` and `rsp+0x2F8`, 512 bytes apart, so this instance has a direct
-  frame-disjointness proof. A general loop-vectorization proof and cost rule are not yet
-  established.
-- October 11 Prompt 2 implementation: `MicroLoopUnrollPass` now recognizes only the exact
-  two-operation indexed load/store copy body, with equal element widths and strides. It emits
-  four copies per loop test in original source order, advances the counter by four, and leaves
-  the original scalar loop as the tail. This is scalar loop unrolling inspired by Odin's
-  four-element copy; it does not emit SIMD or rely on row disjointness. The Leven checksum
-  remains 67441, and all 1,425 focused loop-unroll tests pass. Micro grows the full Leven main
-  from 447 to 462 instructions because of the grouped body and guards. A 30-pair pinned
-  diagnostic run gave medians of 16.86 ms baseline and 15.90 ms candidate, but samples drifted
-  from roughly 13 ms to 34 ms, so that apparent gain is not accepted as timing evidence.
-- Next: run a quiet, controlled Leven comparison and inspect the emitted native code. Accept
-  this narrow transformation only if timing confirms the hot-path estimate without a hot loss;
-  otherwise revert it. A general SIMD loop-vectorization rule still needs an independent
-  alias/disjointness proof and cost model.
-- Done when: the outer-region accesses are eliminated or attributed to unavoidable
-  carry initialization/lifetime costs with the inner-loop gain preserved.
+- Evidence: the exact indexed load/store copy loop now has a four-way scalar unroll with the
+  original loop retained as its tail. Leven's checksum is unchanged, but its full `main` grows by
+  15 instructions and noisy paired samples do not establish a timing gain. Odin vectorizes the
+  row-copy loop; Swag's SLP pass does not, and a general vectorization proof is still absent.
+- Next: compare the current candidate with a clean paired Leven run and inspect native code. Keep
+  the unroll only if measurements confirm the hot-path estimate without a loss; investigate SIMD
+  separately with an alias/disjointness proof and cost model.
+- Done when: outer-region accesses are eliminated or attributed to unavoidable carry
+  initialization/lifetime costs while preserving any confirmed inner-loop gain.
 
 ### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
 
 - Area: compiler/backend, compilation time
-- Evidence: the Sep 23 Release profile measured 300,712 SSA builds over 33,062 functions,
-  about nine per function, and 7.05% of busy CPU in SSA construction. These counts predate
-  current caching and convergence changes; they are a lead, not a current performance claim.
-- Resolved scope: CFG identity already preserves blocks, dominators and frontiers. Operand
-  refresh now also retains values, phi inputs and reaching definitions when the register
-  definitions stay identical and reads only disappear. It filters each affected use list once,
-  retaining operand multiplicity and visit order. Added reads, changed definitions and changed
-  control flow still take the full rebuild. Comparison against freshly rebuilt SSA covers
-  loops, phis, duplicate reads and fallback after a partially inspected prefix. The 1,293
-  internal C++ tests and 275 native optimizer tests in Release pass. Compiler time and peak
-  memory were not measured in this iteration.
-- Dominance reuse: induction analysis, LICM, loop vector promotion, signed-strength reduction
-  and InstructionCombine now reuse a current SSA rename tree instead of reconstructing an
-  instruction-level dominator tree. CFG identity/build id and an existing rename walk are
-  required; invalid states, nonzero entries and graphs without virtual definitions fall back.
-  The two output interval arrays are still copied, with no additional persistent instruction
-  storage. This removes graph traversal and iterative dominance construction from eligible
-  queries; no compiler timing gain is claimed. The remaining definition-changing rebuilds
-  described below are unchanged. The 281 native optimizer tests in Release pass, and
-  [five Inflate bodies stay identical](../bench/results/compiler-work/20261006-ssa-dominance/README.md).
-- Next: recheck the remaining rebuild callers at a measurement milestone. Copy elimination
-  still rebuilds internally after redirecting operands, and other rewrites change definitions.
-  Any further mutation contract must preserve reaching-value identities, phi edges, duplicate
-  uses, and their order, including fallback when a later instruction invalidates the contract.
-- Rejected evidence to retain: the Sep 16 copy-elimination alternatives replaced its internal
-  rebuild with reaching-use scans or adjusted use counts plus backward phi propagation. Both
-  passed focused tests, but alternating Release gui builds did not resolve a gain; both were
-  discarded. Revisit with the SSA rename work, not another pass-local liveness substitute.
-  Likewise, queue-time visit marking was withdrawn on Oct 4: changing depth-first priority
-  can delay early exits. Keep visit order when removing duplicate work.
-- Done when: the remaining rebuild reduction preserves generated code and a repeatable
-  compiler gain is resolved against the measurement floor at a later milestone.
-- Related: compiler.core.004, compiler.core.030, compiler.optimization.039.
+- Evidence: CFG identity and unchanged definitions now allow operand refresh and several analyses to
+  reuse current SSA values, phi inputs, reaching definitions, and rename trees. Definition-changing
+  rewrites still rebuild SSA; copy elimination is one remaining caller.
+- Next: identify remaining rebuild callers at a measurement milestone. Any reuse contract must
+  preserve reaching values, phi edges, duplicate uses, and visit order, with a safe fallback when a
+  later instruction invalidates its assumptions.
+- Done when: remaining rebuilds are reduced without changing generated code and a repeatable
+  compiler-time gain is distinguishable from the measurement floor.
+- Related: compiler.core.004, compiler.core.030, compiler.optimization.005.
 
 ### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
 
@@ -479,81 +393,16 @@ new language syntax.
 
 ### compiler.optimization.105 — Prove lz77's signed remainder bounds
 
-- Area: compiler/backend, value ranges and signed remainder lowering.
-- Comparison: accepted campaign `20261001-103647` names Zig 0.15.2 `ReleaseFast` as the
-  fastest other runtime at 19.9267 ms, versus Swag native at 21.3543 ms. Its candidate
-  loop has 29 non-NOP instructions and three actual memory accesses; its byte-match
-  loop has six instructions and two reads. Swag now matches those counts after
-  caching the invariant index in an otherwise unused caller-saved SIMD register.
-  The latch transfers its bits back to a GP register; one seed load runs before
-  the loop. These static changes have not been timed in a new full campaign.
-- Remaining evidence: `cand % WINDOW` is already a mask, justified by `cand >= 0`.
-  Swag's signed `i` and `p` remainders retain sign correction. Zig uses `@mod`, whose
-  floor-modulo result for a positive power-of-two divisor permits masking even for
-  negative inputs; Swag's signed remainder has a different contract. The previously
-  inspected C++/Clang 20.1.8 winner also retained sign correction. Simplifying Swag's
-  remaining remainders requires proving the counters' bounds under its own semantics.
-- October 3: an unsigned remainder by a constant whose dividend is bounded multiplies by a
-  dword magic number, so the checksum loop `hc = (hc * 31 + comp[k]) % 1000003` has 12
-  instructions instead of 18 and a carried chain of about 12 cycles (clang's two-way unrolled
-  loop takes about 13 per element). Paired lz77 medians were 0.961 in two controlled windows;
-  the second window's spread overlaps its unchanged-binary control.
-- Rejected on October 3, measured with an unchanged-binary control on a quiet machine (41 to
-  61 rounds), each rule alone on master `1898124b1`:
-  - Byte and word loads whose upper bits are dead as `movzx` (`2b23c932f` on
-    `perf/prompt2-int-20261003`): lz77 0.998 against a 0.999 control, and fannkuch 1.046 and
-    1.050 in two windows against 1.003: its main loop is byte-identical but sits 0x50 bytes
-    later because each `movzx` is one byte longer, moving the flips loop within its cache line.
-  - A multiplication by 2^n+1 or 2^n-1 as a shift and an add or subtract (`27ef513e8`, same
-    branch): every task inside its control spread (lz77 1.003).
-  - Post-RA copy forwarding through indexed loads (`aacbe30d8` on
-    `perf/prompt2-int-lot3-20261003`): the candidate loop loses
-    `mov rax, [rsi + 8 * r10]; mov r10, rax` (19 to 18 instructions) and 10 to 15 copies go
-    per executable, but lz77 is 1.000 against a 1.005 control; the core renames such moves away.
-- October 6: removing the legalization reserve keeps the invariant index in an integer
-  register and removes its XMM2 transfer on each candidate. Main loses eight instructions
-  and seven memory operations. The `l < limit` guard before the byte loop still remains
-  where clang proves `n - i >= 4`.
-- Current winner check: campaign `20261010-191648` puts Go 1.27.1 at 17.376 ms, ahead of
-  Swag at 22.510 ms. Go's emitted `main` checks both slice bounds inside every byte-match
-  iteration. Swag's matching loop compares the same two bytes under a precomputed limit and
-  has no per-byte bounds checks, so that loop does not explain Go's lead.
-- October 10 Prompt 2: when SSA proves every use observes only the low `k` bits, a signed
-  remainder by `2^k` becomes an `and (2^k - 1)`. The proof follows copies and phis, and
-  accepts narrow zero-extensions or memory writes only when their observed width fits.
-  LZ77's emitted match token reduces the `% 256` path from nine Micro instructions to two
-  (`dist - 1` and the byte store). Native and JIT checksums both remain `622942003053`;
-  the SHA-256 sentinel's unsigned `% 256` path is unchanged (`CHECK=2503168387`), and
-  fannkuch's parity test remains a single `test` (`CHECK=8629030`). These are static shape
-  and correctness checks; no timing gain is claimed.
-- Next: follow the loop-carried counters through SSA ranges and exit conditions.
-  Establish nonnegativity before replacing sign correction; retain negative-input
-  controls and do not infer a bound merely from this benchmark's current inputs.
-- Done when: each removable sign correction has a sound range proof, exact
-  checksums and unrelated positive/negative coverage, with the candidate and byte
-  loops retaining their instruction and memory counts without a loss elsewhere.
-
-### compiler.optimization.039 — Locate the remaining optimization sweep-budget outliers
-
-- Area: compiler/backend, compilation time
-- Evidence: the pre-RA loop has a twenty-four-sweep cap. The Sep 30 standard-module test
-  campaign found a 404-instruction `#test` at that cap; its current source identity and
-  convergence still need to be recovered. The other known outlier, `expectedCountOnes16`,
-  now takes six Release sweeps instead of twenty, with the same 99 final Micro instructions.
-  Constant folding follows scaled address chains in one run; select narrowing walks queued
-  candidates backwards and uses only already accepted narrow-reader rewrites. The Release
-  optimizer selection passes 275 tests, including every u16 input and wrapping mask chains.
-  No compiler timing or memory comparison was made in this iteration.
-- October 10: the combined Release standard-module suite completed 2,465 tests across twelve
-  modules without an unconverged optimization-loop diagnostic. The historical test identity
-  remains unrecovered; this run does not report per-function sweep counts, so it rules out the
-  old cap failure without establishing that every function stays within sixteen sweeps.
-- Next: reopen when a reproducible Release standard-module failure identifies the function and
-  remaining rewrite chain. Do not repeat the completed constant-address or select-width chain
-  work, or add convergence instrumentation to pursue an unlocated historical outlier.
-- Done when: no standard-module function, tests included, needs more than sixteen sweeps,
-  or each longer chain is identified and bounded.
-- Related: compiler.optimization.029, compiler.core.004.
+- Area: compiler/backend, value ranges and signed remainder lowering
+- Evidence: unsigned constant remainders with a proven bounded dividend already lower to a mask or
+  multiply by a magic number. The remaining signed `i` and `p` remainders need a proof of
+  nonnegativity under Swag's truncating remainder semantics; Zig's floor-modulo behavior is not
+  equivalent for negative inputs. Recent static changes match the winner's loop instruction counts,
+  but no new full-campaign timing confirms a gain.
+- Next: follow the loop-carried counters through SSA ranges and exit conditions. Prove
+  nonnegativity before removing sign correction, and retain negative-input controls.
+- Done when: every removed sign correction has a sound range proof, exact checksums, unrelated
+  positive/negative coverage, and no generated-code loss elsewhere.
 
 ### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
 
@@ -867,25 +716,17 @@ new language syntax.
 
 ### compiler.optimization.117 — Inline fast paths while sharing cold continuations
 
-- Evidence: `MicroColdBlockLayoutPass` already moves selected cold blocks within functions.
-  Whole-body inlining can still duplicate refill/allocation/error paths; rejecting the whole body
-  also loses profitable small fast paths.
-- Current Prompt 2 check: Java HotSpot C2's emitted `Bench.bottomUp` allocates each 24-byte
-  node by advancing TLAB top, checking the end, then writing the header and child fields. But the
-  timed Java code drops tree references after checking them, while Swag recursively visits and frees
-  every node before stopping its timer. That extra Swag work makes the current ratio unsuitable for
-  attributing a gap to allocation code generation.
-- Next: revisit allocator specialization only after the timed task work is lifecycle-matched. Then
-  compare caller-plus-callee Micro work for the direct default `Allocator.alloc` fast path against
-  the indirect interface call, with custom allocator dispatch preserved and no hot loss elsewhere.
-- Contracts: preserve live-in/live-out values, stack/borrow lifetimes, cleanup ownership, error
-  edges, and source locations. Keep call/return and unwind behavior valid; avoid charging the hot
-  path for cold-only frame/register requirements where feasible.
-- Cost: account for new marshaling/spills as well as saved bytes. Share equivalent continuations
-  only when state, effects, and identity permit.
-- Done when: a package-local refill or checked-operation pattern gains an inlined fast path
-  and one correct shared slow path, measured growth is bounded, and failure/cleanup/stack-walking
-  coverage remains green.
+- Evidence: `MicroColdBlockLayoutPass` moves selected cold blocks within a function, but whole-body
+  inlining can still duplicate refill, allocation, and error paths. Current allocator comparisons
+  are not attributable: Java drops tree references after checking them, while Swag visits and frees
+  each node inside the timed region.
+- Next: match the timed work and object lifetimes first. Then compare caller-plus-callee Micro work
+  for the direct default `Allocator.alloc` fast path against the indirect interface call, preserving
+  custom allocator dispatch.
+- Contracts: preserve live-in/live-out values, stack and borrow lifetimes, cleanup ownership, error
+  edges, and source locations. Share continuations only when state, effects, and identity permit.
+- Done when: a package-local refill or checked-operation pattern gains an inlined fast path and one
+  correct shared slow path, growth is bounded, and failure/cleanup/stack-walking coverage passes.
 - Related: compiler.optimization.111, compiler.optimization.114, compiler.optimization.120.
 
 ### compiler.optimization.118 — Use precise callee register contracts for internal calls
@@ -993,29 +834,16 @@ new language syntax.
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 
 - Area: compiler/backend, register allocation, prologue and unwind information
-- Evidence: The latest accepted campaign (`20260928-105618`) names C++/MSVC as raytrace's fastest other runtime (9.249 ms versus Swag's 10.469 ms; ratio 1.132). In `trace`, Swag saves XMM6–XMM15 before its first `intersect` call and reloads all ten on the no-hit return. MSVC saves six XMM registers before that call; after `g_HitI >= 0` it saves XMM9 and XMM13–XMM15, which the no-hit path never touches. The no-hit path therefore avoids four stores and four loads in MSVC. Swag's frame reserves `0x168` bytes and MSVC's `0x128`, though allocation size alone does not measure the path cost.
-- Unwind evidence: `dumpbin /unwindinfo` on the accepted MSVC executable shows a primary `trace` range `0x1440–0x14DA` with six `SAVE_XMM128` records and a chained range `0x14DA–0x16F0` with saves for XMM9/XMM13/XMM14/XMM15 plus RBX/RDI. The no-hit return at object offset `0x74` lies in the primary range; the four later saves begin at offset `0xB4`. Two further chained ranges describe later control-flow regions. Swag currently builds one `UNWIND_INFO` blob in `X64UnwindWindows`, one native `.pdata` entry per function in `DebugInfoCodeView`, and one JIT `RUNTIME_FUNCTION` per allocation in `Os.Windows`. Those three interfaces must represent multiple code ranges before a delayed save can be correct under Windows unwinding.
-- Contract: [Microsoft's x64 unwind specification](https://learn.microsoft.com/en-us/cpp/build/exception-handling-x64?view=msvc-170#chained-unwind-info-structures) permits chained code regions for delayed register saves, but excludes an additional push or fixed stack allocation in the delayed region. The save slots must therefore remain in the entry frame. The encoder currently closes unwind tracking after the first ordinary instruction, while `MachineCode` exposes a single unwind byte array; `DebugInfoCodeView::appendUnwindSections` writes one `.pdata` record, and `Os::addHostJitFunctionTable` registers one runtime range. `PrologEpilogSanitize` also shares identical return tails, so the early and hit exits must carry the right saved-register state after that rewrite.
-- Binarytrees audit (Node 20.15.1 winner in `20260930-152655`): the retained `check`
-  is 25 instructions/three memory operands, including two pushes and two pops (excluded
-  from the memory-operand count). A leaf still pays the prologue and restores. Delaying that work across the first null guard is not a local
-  peephole: the current single unwind range cannot describe the leaf's different frame.
-- Rejected short-tail sharing: admitting the four-instruction scalar epilogue in
-  `collectReturnTail` changes `check` from 25/3 to 23/3 static instructions/memory operands,
-  but adds one executed unconditional jump to the recursive return and removes no executed
-  restore. Nbody, Raytrace, ChaCha and SHA-256 counts and all five checksums are unchanged.
-  This is a size tradeoff, not a speed-path improvement; the existing two-XMM-restore gate
-  was retained. Together with the two nbody root schedules, this ends the focused static
-  round after three consecutive attempts without a retained gain. Eight earlier batches
-  remain integrated; the winner mechanisms have not yet converged. No further local
-  rewrite is justified by the evidence: the remaining work needs register-pressure-aware
-  vector plans, allocator strategy, or multiple unwind ranges.
-- Final retained-code validation: 1205 C++ tests, 3532 native-suite tests in each of
-  devmode and release (JIT and native), semantic positive/negative suites, scripts, the
-  repository checks and all five inspected benchmark checksums pass. Restoring the failed
-  prototypes restores the accepted instruction counts. No new timing campaign was run.
-- Next: represent unwind ranges and parent links in `MachineCode`, emit them from the final physical instruction stream, and publish all ranges in native `.pdata` and the JIT function table. Then move only saves for registers first defined below the guard, with a proof for each path to a restore. Test both arms, nested calls and exceptional unwinding before and after the delayed saves in native and JIT output; compare no-hit and hit paths against MSVC.
-- Done when: the short path skips unused saves and restores without adding spill traffic to the hit path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
+- Evidence: MSVC avoids saving and restoring four XMM registers on `raytrace`'s no-hit path by
+  saving them only after the early guard. Swag's native and JIT unwind interfaces currently publish
+  one range per function/allocation, so delayed saves cannot yet describe every path correctly.
+  The save slots must remain in the entry frame and each return path needs the matching unwind state.
+- Next: represent chained unwind ranges in `MachineCode`, emit them from the final instruction
+  stream, and publish all ranges in native `.pdata` and the JIT function table. Then delay only saves
+  for registers first defined below the guard. Cover both arms, nested calls, and exceptional unwind
+  in native and JIT output; compare hit and no-hit paths with MSVC.
+- Done when: the short path skips unused saves and restores without adding spill traffic to the hit
+  path, and unwind and ABI checks pass; otherwise keep the current eager save plan.
 
 ### compiler.optimization.016 — General value-web normalization still extends live ranges too far
 
@@ -1117,11 +945,14 @@ new language syntax.
 ### compiler.optimization.095 — Keep loop values off the stack on the common branch
 
 - Area: compiler/backend, path-sensitive spill placement
-- Evidence: In wordfreq's character scan, the alphabetic path reaches a join where `r12` still holds the index, while token processing may reuse `r12`. The interval allocator had put the reload from `[rsp+0x210]` at that join, so every alphabetic character read the index from the stack. A post-allocation rule now moves the reload to the join's fallthrough edge only when every direct jump into the join can trace the same register value back to a matching frame store or reload without an intervening register definition, memory write, or call. It rejects a cyclic proof through the reload being moved. The common path loses one memory read; `main` grows from 448 to 450 static Micro instructions because subsequent branch layout changes, with no new instruction on that path. The checksum remains 130489; the other six benchmark checksums and selected function counts are unchanged. C++ (1,154), native Release (3,483), and JIT Release (1,500) tests pass. No timing sample was taken for this edit.
-- A second post-allocation rule now moves a private spill store to the cold branch that dominates its sole read. It checks every explicit access to the eight-byte slot, rejects overlapping or indexed accesses, proves that the register still equals the slot on every incoming path, and tracks balanced stack-pointer adjustments along paths to the read. It removes later writes only when the new store lies on every route to the read. It applies only when at least one redundant write is removed: wordfreq's header and latch stores become one cold-entry store. The common alphabetic path now avoids the header store, join reload, and latch store, while `main` has 448 static Micro instructions and checksum 130489. A wider version moved a store in Leven without removing another write and raised its `main` from 474 to 478 instructions; the narrower rule restores 474 and checksum 67441. The other five benchmark checksums and selected function counts are unchanged. C++ (1,155), native Release (3,483), and JIT Release (1,500) tests pass with the final rule, as do all seven benchmark checksums. No timing sample was taken for this edit.
-- The bound reload is placed the same way: once on the cold edge before the join and once after loop exit.
-- Next: obtain a clean paired measurement at a campaign milestone.
-- Done when: the common character path has no index or bound spill traffic without adding costs to the token-processing path or changing JIT/native behavior; otherwise retain only the proven reload placement.
+- Evidence: the wordfreq alphabetic path now places a proven reload and private spill store on cold
+  edges, avoiding common-path frame operations without adding an instruction to that path. A wider
+  store motion regressed Leven's code shape and was narrowed. No timing sample establishes a runtime
+  gain.
+- Next: obtain a clean paired measurement. Preserve the path proof across all incoming edges,
+  intervening writes/calls, and stack-pointer adjustments.
+- Done when: the common path avoids index/bound spill traffic without cost to token processing or
+  changed JIT/native behavior; otherwise retain only the proven reload placement.
 
 ### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
 
@@ -1146,11 +977,14 @@ new language syntax.
 ### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
 
 - Area: compiler/backend, post-allocation branch threading and private-frame load elimination
-- Evidence: In both wordfreq token-finalization paths, the inlined probe returns an index, then the caller loads the `used` pointer from its private frame, tests the indexed byte, branches if occupied, and loads the same pointer into the same physical register again on the empty fallthrough before storing. A guarded post-allocation rule removes that second load only when the base is the compiler-identified private stack base, the intervening operations are one read-only indexed compare and conditional jump, and both pointer loads have identical width and address. Wordfreq's `main` falls from 456 to 454 Micro instructions. Csvagg's `main` remains at 1,001; neither hash/collision loop changes. Both programs pass `--validate-micro` with checksums 130489 and 24828641. A C++ regression covers a private frame, a nonprivate base, and a different reload address. All 1,128 C++, 3,480 native, and 1,500 JIT tests pass. No elapsed-time sample informed the decision.
-- Before branch threading, the loop-guided wrapper rule inlined both `mapProbe` call sites in wordfreq `main`, which grew from 327 to 451 optimized Micro instructions. Both paths still tested the `used[idx]` byte after the inlined probe's empty-slot exit; the probe could also return an occupied matching key after `memcmp`, so deleting the second test required a proof over the predecessor paths. The checksum was 130489. The other six benchmark tasks kept their optimized function counts and checksums. No timing sample informed that change.
-- The post-allocation loop-layout pass now proves the indexed byte's zero/nonzero state backward along every incoming edge of the two adjacent return labels. It stops at a memory write, an address-register definition, an unannotated call, an unsupported edge, or a cycle; direct `ReadOnly` calls preserve the fact. It also keeps a label when an indirect jump targets it, since that jump cannot be retargeted here. Proven direct incoming jumps go straight to the caller's empty or occupied arm, and the repeated compare and branch disappear. Both wordfreq token-finalization paths make this change: `main` falls from 451 to 443 instructions, and an occupied key found by `memcmp` now branches directly to the value increment. LDC's winning `main` also follows its successful `memcmp` with a collision branch and a direct value increment, without a second `used` comparison. Csvagg's corresponding row path falls from 996 to 993 instructions; Odin's winner similarly goes straight from successful `memcmp` to its occupied update. The collision loop has no extra hot-path instruction. Checksums remain 130489 and 24828641 with `--validate-micro`; the other five tasks retain their selected function counts and checksums. A C++ regression covers both branch directions, a writable call, an intervening memory write, an index change, a different cell, and an indirect incoming jump. All 1,149 C++, 3,483 native Release, and 1,500 JIT Release tests pass. No timing sample informed the change.
-- Next: recheck a full accepted benchmark campaign when the shared machine stays quiet.
-- Done when: broad validation and a clean full campaign confirm the generated-code gain without a runtime regression; retire the entry if no further path gap remains.
+- Evidence: after an inlined wordfreq probe, the caller's repeated `used[idx]` test is now removed
+  only when backward path analysis proves the indexed byte's state at every incoming edge. The
+  proof stops at writes, changed address registers, unannotated calls, indirect edges, and cycles.
+  Wordfreq and csvagg checksums remain unchanged; no elapsed-time result is available.
+- Next: confirm the generated-code change in a clean full campaign. Retire this entry if the campaign
+  shows no regression and no further path gap remains.
+- Done when: broad validation and a clean full campaign confirm the gain without a runtime
+  regression, or show that no further gap remains.
 
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 

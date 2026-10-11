@@ -124,36 +124,19 @@ is the current scorecard.
   with a repeatable comparison and the safety/sanity behavior preserved.
 - Related: compiler.core.005.
 
-### compiler.safety.008 — Dynamic bounds checking is switched off in release instead of being made cheap
+### compiler.safety.008 — Release bound guards still impose measurable hot-loop cost
 
 - Area: compiler/backend, optimization
-- Evidence: `buildCfg.safetyGuards` is `None` in `release`, so `a[i]` with a runtime `i` has no
-  bounds guard; an invalid access may read unrelated storage or fault. The same invalid index
-  gets a located panic in `devmode`. The static half still covers what it can
-  prove — a constant index, and an index the value analysis folds to a constant, are rejected at
-  compile time *in release* — but a genuinely dynamic index is unchecked.
-- Prior decision (2026-07-08, do not re-litigate on the same evidence): the cost was measured at
-  +7-8% on a worst-case tight indexed-sum loop and +2% on a data-dependent double lookup, and
-  `release` deliberately kept `safetyGuards = None`.
-- Done 2026-09-30, with every guard kept: the report of a guard is laid out behind the function
-  (`MicroColdBlockLayoutPass`), so the passing path takes no jump; a guard whose test the operand
-  ranges settle is resolved, and so is one that repeats the test of an earlier guard on the same
-  value (`tryResolveRangeProvedBranch`, `tryDropRepeatedGuard`); `devmode` inlines automatically.
-  On the twelve `bench/` programs `devmode` went from 1.96x to 1.45x the time of `release`
-  (geometric mean; sha256 175 -> 60 ms, leven 54 -> 27 ms, chacha 76 -> 40 ms). The same build
-  without runtime guards is at 1.17x, so the guards still cost 1.24x.
-- What remains is the guards no local proof removes: an index bounded by a loop test
-  (`for j in lb + 1 do row0[j]` in leven), a count read again from memory before each access, a
-  `late` global checked on every read inside a loop (dijkstra, wordfreq), and 64-bit sums of
-  values loaded from memory (sha256's `KTAB[i] + w[i]`).
-- Next: bound an index by the dominating loop or branch test that already compares it with the
-  same count (induction-variable range against the container's `.count`), and hoist the check of
-  a `late` global out of a loop that does not assign it. Re-measure the two loops of the prior
-  decision with guards on.
-- Done when: a loop-bounded index needs no guard, the residual cost of `.BoundCheck` on the
-  two loops above is recorded next to the 2026-07-08 numbers, and `devmode` compile time is
-  measured before and after.
-- Related: [compiler.optimization.md](compiler.optimization.md) owns the pass once it is scoped.
+- Evidence: dynamic bounds guards now remain enabled in Release. Range and repeated-guard proofs,
+  plus cold-block layout, avoid checks when their conditions are established or move the failure
+  path off the common path. The remaining guards still cost about 1.24x across the twelve
+  `bench/` programs relative to the same build without runtime guards. Hot gaps include
+  loop-bounded indices, repeatedly loaded counts, and loop-invariant `late` checks.
+- Next: prove an index against the dominating loop bound and hoist a `late` check from a loop that
+  does not assign it. Measure the affected loops with guards enabled and disabled.
+- Done when: loop-bounded indices and invariant `late` values need no repeated guard, and the
+  residual cost of runtime guards is measured on the affected loops with behavior preserved.
+- Related: compiler.optimization.105.
 
 ### compiler.safety.024 — A mutable cast can write through an any that borrows a literal
 
@@ -174,149 +157,34 @@ is the current scorecard.
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
 - Area: language
-- Evidence: a short list of operations can produce a pointer to anything, and none of them is
-  subject to one common unsafe opt-in or a compiler mode that excludes all of them. Individual
-  casts and intrinsics are visible, but no single marker identifies the boundary:
-  - `cast(*T, someInteger)` — an arbitrary integer becomes a pointer;
-  - `cast(*Big, &small)` — CLOSED on 2026-09-08: a pointer cast between two structs with no `using`
-    path either way is `sema_err_cast_unrelated_structs`, and the deliberate reinterpretation is
-    spelled `cast(*Big, cast(*void, &small))`;
-  - `Swag.makeSlice(ptr, count)` / `makeString` / `makeAny` / `makeInterface` — a length paired with
-    storage that need not have it, after which every bounds check faithfully checks the lie;
-  - pointer arithmetic on `[*] T`, which has neither provenance nor extent;
-  - reading a `union` member that was not the one written, which turns an integer into a pointer
-    with no cast at all;
-  - `Swag.memcpy` / `memset` / `memmove`, whose byte count is unrelated to either operand;
-  - `#relocate` and `#nodrop`, which suspend the lifecycle;
-  - any call to a `#[Swag.Foreign]` function (compiler.safety.007).
-  Each was verified to compile and to read out of bounds with no diagnostic, except the struct-pointer
-  one, now closed.
-- Historical census (2026-09-08): the rule rejected **32 sites in 3 files** in the
-  `bin/` build exercised then, and every one of them is a Win32/COM binding -
-  `audio/driver/xaudio2.swg` (10, a COM voice handed to a base-voice entry point),
-  `gui/dragdrop.win32.swg` (7) and its test (15), which recover a Swag object from the OLE
-  interface pointer it starts with. That run reported none in its application, example, reference, or runtime selections.
-  This is historical evidence, not a census of all four current applications and tagged tests;
-  the health reset subsequently corrected a cast in Vault's explicitly tagged COM integration test.
-  Those rejected struct reinterpretations form a binding-layer boundary, and `*void` makes each
-  deliberate hop visible to `rg`. They are only one part of the unsafe operation list above;
-  their count does not measure raw memory intrinsics, foreign calls, or unchecked downcasts.
-- Consequence: Swag cannot state what its safe subset guarantees, because it has no safe subset —
-  only a set of checks with no boundary. That is the difference between "the compiler catches a lot"
-  and "this class of fault cannot occur here", and it is the difference a reader arriving from Rust
-  is actually asking about.
-- The proposed shape is Swag's. A block that swallows a page of code is the wrong unit here:
-  the operations above are single expressions, and Swag already spells a compiler instruction on an
-  expression with `#`. A modifier on the operation (`#unsafe cast(*T, addr)`) plus one file-level
-  opt-in (`#global #[Swag.Unsafe]`) for a binding or codec layer would make the boundary visible
-  to `rg`. Neither spelling is implemented; the remaining census must account for the checked
-  downcast forms now available.
-- The census the previous next action asked for, run on 2026-09-08 13:34 over `bin/` with the vendored
-  `.dep` and `.output` copies and `bin/unittests` excluded, so every number is a shipped site:
-
-  | Operation | std | apps | examples | reference | runtime | shipped |
-  | --- | --- | --- | --- | --- | --- | --- |
-  | pointer-producing `cast` | 889 | 551 | 13 | 24 | 116 | **1593** |
-  | `Swag.makeSlice` | 348 | 55 | 2 | 11 | 10 | 426 |
-  | `Swag.makeString` | 79 | 32 | 1 | 4 | 13 | 129 |
-  | `Swag.memcpy` / `memset` / `memmove` | 27 | 25 | 0 | 12 | 20 | 84 |
-  | `Swag.makeInterface` | 35 | 2 | 0 | 3 | 3 | 43 |
-  | `#relocate` | 26 | 0 | 0 | 6 | 0 | 32 |
-  | `#nodrop` | 26 | 0 | 0 | 6 | 0 | 32 |
-  | `Swag.makeAny` | 5 | 0 | 0 | 4 | 2 | 11 |
-  | `#[Swag.Foreign]` | 9, plus 21 in the win32 family | 13 | 0 | 7 | 3 | 53 |
-
-- What the count answers is not what the question expected: the cast row is the whole
-  problem, and it is not pointer forging. Of the 551 casts in the applications, 537 name a
-  user type and 9 name a primitive; 343 of them read as `cast(*MainWnd) cxt.wnd!`,
-  `cast(*HexViewer) wnd`, `cast(*TextView) session.view!` — recovering a concrete type from
-  a base pointer in a hand-rolled hierarchy. `bin/std` is the same story, 404 user types
-  against 56 primitives, plus the opaque-handle round trip the drivers and the generic
-  containers are written with. An integer becoming a pointer is nowhere in that population.
-- Downcasts now have explicit language forms: `#[Swag.DynCast]` attaches allocation identity to
-  struct storage while ordinary pointers remain one word. `try cast(*T, value)` and
-  `expect cast(*T, value)` always check and report a conversion error; `assume cast(*T, value)`
-  checks the invariant only when `.Assume` safety is enabled (`102f0efb4`). The same forms cover
-  `any`, interfaces and runtime type descriptors. Boolean `is` and conditional type bindings
-  share those checked conversions. Expression `as` and `Swag.typeAs`/`typeIs` remain removed,
-  and `Wnd` uses the language-managed identity.
-- The census above predates that migration. Its cast total cannot be used as the size of the
-  remaining unsafe surface: distinguish checked views from deliberate reinterpretation and
-  from assumptions whose runtime check is disabled.
-- Next: recount each remaining operation family across current `bin/`, including tagged native
-  integration tests. Use that population to choose expression and file-level opt-ins for ABI
-  reinterpretation, raw memory, foreign calls, lifecycle bypasses and unchecked assumptions.
-  Then define and enforce the guarantee of the safe subset.
+- Evidence: Swag has no common opt-in or compiler mode for operations that can violate memory
+  safety: integer-to-pointer casts, unchecked raw-memory construction and access, pointer
+  arithmetic, union reinterpretation, byte-copy intrinsics, lifecycle bypasses, and foreign calls.
+  Pointer casts between unrelated structs are already rejected. Checked dynamic casts have explicit
+  `try`, `expect`, and `assume` forms and must be distinguished from unchecked assumptions.
+- Next: inventory the remaining operation families across shipped `bin/` sources and tagged native
+  integration tests. Use that inventory to choose expression-level and file-level opt-ins, then
+  define and enforce which faults the safe subset excludes.
 - Done when: the unsafe operation list is fixed and documented, safe code cannot reach any of
   them without a visible marker, `bin/` compiles with the boundary enforced, and the reference
   states which faults the safe subset excludes.
-- Related: language.design.002 narrows the union bullet rather than removing it. The census in that
-  entry found eight anonymous unions in `bin/`: two sum types that a tag would check, five C-ABI
-  bindings that must stay byte-compatible, and one deliberate bit view. The untagged form therefore
-  survives at the interop and bit-punning boundary, which is where the marker belongs and where it
-  joins compiler.safety.007. Also compiler.safety.014.
+- Related: language.design.002, compiler.safety.007, compiler.safety.014.
 
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
 - Area: compiler/sema, `SemaEscape`
-- The half that no longer needs anything: a release helper that reaches for what it just
-  released is proven inside its own BODY, because the receiver names the object there and
-  no summary has to cross a call. `mtd releaseThenTouch() { heapFree(.data!, 4); .data![] = 0 }`
-  is a compile-time error, while the same method putting the field back - with null or with
-  a fresh allocation - stays silent. What remains is the CALLER side alone.
-- Evidence: two shapes, one blocker. A release reached through a FIELD of the receiver:
-
-  ```
-  impl Node { mtd release() { if .data != null do heapFree(.data!, 4) } }
-  var node: Node
-  node.data = cast(*s32) heapAlloc(4)
-  node.release()
-  return node.data![]     // silent
-  ```
-
-  and a release of what a GLOBAL owns:
-
-  ```
-  var owned: *s32?
-  owned = cast(*s32) heapAlloc(4)
-  heapFree(owned!, 4)
-  return owned![]         // silent
-  ```
-
-  Every other storage class a program keeps a pointer in — a parameter, an element of a
-  local table, a field of a local, a copy into another local, and the return itself — is
-  proven. These two are what is left.
-- The per-field summary was implemented end to end and reverted, because a release is not
-  on its own a statement about what the storage holds on return:
-
-  ```
-  mtd reset() { heapFree(.data!, 4); .data = cast(*s32) heapAlloc(4) }
-  node.reset()
-  node.data![] = 1     // CORRECT, and a per-field FREES mark reports it
-  ```
-
-  A release helper normally does something with the storage afterwards, and the summary
-  cannot tell that apart from leaving it dangling. The global shape has the same hole from
-  the other side: any callee may write any global, so the freeing call is itself what would
-  invalidate the fact it creates.
-- Why this is not a small addition: the missing half is a NEGATIVE fact — *the callee does
-  not write this storage before returning*. A positive fact needs one witness; a negative
-  one needs every write form excluded, including a store through a pointer that could reach
-  the storage, which is alias analysis. That is the honest size of this entry, and it is why
-  the implemented half was not shipped on its own.
-- What the attempt established, for whoever takes it: the seeding (a call argument whose
-  storage projection is a field of one of the caller's parameters), a `FieldToFrees` summary
-  edge kind, and the fact that the chaining must ALSO run in
-  `propagateCompletedFreesSummaries` — the early fixpoint — because the backend reads these
-  summaries while it lowers, and a fact only the final drain publishes arrives after the
-  call site it judges. `storageProjection` now sees through `x!`; nullable receiver paths
-  are covered by `bin/unittests/sanity/borrow_invalidation.swg`.
-- Next: decide whether the negative fact is affordable at all. The cheaper direction this
-  entry named has since landed on its own — the body of a release helper is judged where it
-  is written — so what is left is only the caller, and only for a helper whose body the
-  caller cannot see. Weigh that against the cost before building it.
-- Done when: both shapes above are compile-time errors, the `reset` shape and the
-  carrier case stay silent, and all of them are in `bin/unittests/sanity/use_after_free.swg`.
+- Evidence: caller-side use after a call can escape detection for receiver fields and globals.
+  The body-local release/use check is already covered; this entry is only about what the caller can
+  prove after a callee returns.
+- A per-field summary was prototyped and reverted because a release does not prove the storage
+  remains empty on return. The missing proof is negative: the callee did not restore storage
+  reachable from the caller. Establishing it requires excluding writes through aliases, so a
+  release-only summary is insufficient.
+- Next: assess whether the required alias proof is affordable and identify the smallest sound summary
+  for callees whose bodies are unavailable.
+- Done when: caller-side releases through receiver fields and globals are diagnosed without
+  rejecting a reset that restores valid storage, with both cases covered in
+  `bin/unittests/sanity/use_after_free.swg`.
 - Related: compiler.safety.017.
 
 ### compiler.safety.011 — `!` and `late` stop asserting in release

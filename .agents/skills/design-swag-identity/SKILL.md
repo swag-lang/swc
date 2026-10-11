@@ -307,8 +307,10 @@ test its opening path, not only a menu constructed directly by the test.
 ## Match Every Syntax Surface
 
 `vscode/themes/swag-dark.json`, the generated documentation colorizer, and
-`RichEditLexerSwag` use the same token colors, so code looks the same in VSCode, on a page,
-and in a Swag GUI editor. The mapping is fixed:
+`RichEditLexerSwag` use the same lexical token colors, so code looks the same in VSCode, on a
+page, and in a Swag GUI editor. VSCode can refine resolved symbols with semantic tokens; keep
+those refinements restrained and based on the symbol's role, not another accent color:
+parameters use body text in italics, and fields use a quiet grey-blue. The mapping is:
 
 | Token | Color | Documentation class |
 | --- | --- | --- |
@@ -317,6 +319,8 @@ and in a Swag GUI editor. The mapping is fixed:
 | keyword.control | `#C48FD0` | `SLgc` |
 | entity.name.function | `#E8A06A` | `SFct` |
 | entity.name.function.intrinsic | `#CBB45C` | `SItr` |
+| resolved parameter (VSCode semantic token) | `#D5D5DD`, italic | semantic token only |
+| resolved field (VSCode semantic token) | `#B8C4CC` | semantic token only |
 | built-in `Swag` namespace | `#94A3B8` | `SNsp` |
 | entity.name.type, class | `#56C2B3` | `SCst` |
 | storage.type | `#E0B464` | `STpe` |
@@ -325,10 +329,12 @@ and in a Swag GUI editor. The mapping is fixed:
 | preprocessor, attribute | `#9A9AA6` | `SCmp`, `SAtr` |
 | invalid | `#FF6666` | `SInv` |
 
-Change one surface and change the other two in the same commit. The RichEdit lexer passes these
-dark-palette values through `Color.ensureContrast` so the same hues remain legible on every GUI
-theme. When the compiler intrinsic catalog changes, compare both syntax lexers against
-`Tokens.Def.inc`; neither keeps a partial hand-written catalog.
+Change one lexical surface and change the other two in the same commit. Semantic tokens refine
+VSCode's lexical colors only when the language server resolves a symbol; unresolved code keeps
+the shared lexical palette. The RichEdit lexer passes these dark-palette values through
+`Color.ensureContrast` so the same hues remain legible on every GUI theme. When the compiler
+intrinsic catalog changes, compare both syntax lexers against `Tokens.Def.inc`; neither keeps a
+partial hand-written catalog.
 
 ## Keep The Voice
 

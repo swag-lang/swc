@@ -3,8 +3,11 @@
 	"name": "Swag Dark",
 	"semanticHighlighting": true,
 	"semanticTokenColors": {
-		"parameter": "#E8A06A",
-		"property": "#61D0E8",
+		"parameter": {
+			"foreground": "#D5D5DD",
+			"italic": true
+		},
+		"property": "#B8C4CC",
 		"variable.local": "#D5D5DD",
 		"variable.global": "#38BDF8"
 	},

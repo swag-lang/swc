@@ -112,62 +112,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 ### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
 
 - Area: compiler/JIT, compile-time execution, compilation time
-- Evidence: the remaining repeated work is visible in the current call paths:
-  - `patchConstantFunctionRelocationsRec` walks the whole constant closure of each constant a
-    patched function names, once per function, taking the allocation lock and the relocation lock
-    for every allocation it visits (each allocation's relocations are copied into an inline list
-    since October 10). The semantic walk over the same graph remembers an allocation per
-    relocation version; this one remembers nothing between functions. A patchable target is the
-    function's patch address once it has one and its work address before, so a slot patched early
-    can later receive a different address: a memo across functions must keep re-patching or prove
-    the address no longer moves.
-  - `SemaEscape::propagateCompletedFreesSummaries` runs twice per prepared compile-time call. Its
-    memo keys on the count of semantically completed symbols, which moves while sema runs. The
-    unguarded path retains applied forwardings and appends only new edges, but each new signature
-    still scans the pending edges; an edge whose callee never frees its parameter stays pending.
-    The guarded path also reconstructs its closure-local return-summary table. A worklist keyed by
-    callee could revisit an edge only when its callee's mask or either end's completion changes.
-- October 11: the unguarded fixpoint now compacts successfully propagated edges while preserving
-  unresolved edges in their original order, and tracks the source-edge cursor separately so later
-  appends are copied once. This removes future visits to applied edges and the per-edge applied
-  flag. The guarded path's production callers already provide a deduplicated JIT order, so summary
-  construction skips a redundant membership lookup; function pointers and summaries now share one
-  reserved vector allocation. Its fixpoint sets newly added mask bits directly instead of copying
-  and comparing a whole summary per edge, and reads callee and guard summaries by const reference
-  instead of copying them per edge. It caches which completed functions have a direct return edge
-  during the locked snapshot, so later completeness and mask sweeps skip empty or indirect-only
-  callers instead of repeating their table lookups. The guarded frees fixpoint also compacts
-  applied edges while retaining incomplete callers and callees; a new boundary check completes a
-  return dependency after the first pass and verifies that its guard then permits propagation.
-  The guarded return fixpoints snapshot each completed caller's return-edge range once under the
-  existing shared lock. The completion closure propagates incompleteness through contiguous reverse
-  dependencies, and after initial evaluation the mask worklist revisits an edge only when its
-  callee or a guard summary grows; a bounded ring buffer holds each pending function at most once.
-  The late-completion test now includes a two-function return chain
-  behind an unresolved dependency, then verifies that completing it enables the guarded frees edge.
-  A seeded two-function return cycle, supplied before its third-function mask source, also checks
-  convergence when callers precede their dependencies in the given order.
-  Production cache signatures now use a compact fingerprint of the JIT root, call-graph and global
-  root versions, explicit constant roots, and 17 relocation versions instead of hashing every
-  function pointer in the completed order. Fixed-fingerprint tests isolate edge-version invalidation
-  from mask changes, then isolate completion-count invalidation from edge changes.
-  The `#run` global-init offset filter now removes duplicate offsets after sorting the function
-  closure's lists, shortening the binary-search input when several functions reference the same
-  slot.
-  A locked zero-edge check now exits before hashing the completed-function order; its regression
-  calls the pass on an empty graph, then appends an edge and verifies that it is still propagated.
-  The DevMode C++ suite passes all 1,425 tests, including after the zero-edge early check.
-  DevMode sema and sema-error fixtures also verify
-  287 and 338 files respectively (neither suite contains executable tests). These are structural
-  changes; no timing comparison was made.
-- Rejected October 11: a lock-free free-edge count could report zero while another worker was
-  appending an edge and let the fixpoint return without seeing it. Writer tracking would add
-  atomic work to every edge publication, so keep the shared-lock count instead.
-- Next: examine the relocation closure lead. Any memo must account for deferred-function
-  registration, the `Pause` path, and patchable targets whose addresses can move from work address
-  to patch address.
-- Done when: each item is either removed with compile-time execution and safety tests, or
-  recorded as measured and not worth its risk.
+- Evidence: `patchConstantFunctionRelocationsRec` walks and snapshots the constant-relocation
+  closure for each patched function. Reusing that work must still account for relocation changes,
+  deferred-function registration, `Pause`, and targets that move from work address to patch address.
+- Next: assess whether versioned relocation snapshots can avoid repeated allocation lookups and
+  copies while target resolution and deferred registration still run for every function.
+- Done when: an equivalent implementation removes a proven repeated walk with focused JIT checks,
+  or no statically provable saving remains without changing those behaviors.
 - Related: compiler.core.030.
 
 ### compiler.core.081 — An imported generic method once lost its own parameter

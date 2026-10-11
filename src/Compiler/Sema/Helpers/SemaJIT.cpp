@@ -488,6 +488,7 @@ namespace
         StampedKeySet                                 visitedAllocations;
         PointerSet<SymbolFunction>                    seenStrictTargets;
         PointerSet<SymbolFunction>                    seenOptionalTargets;
+        uint32_t                                       seenShardMask = 0;
 
         void reset()
         {
@@ -496,6 +497,7 @@ namespace
             visitedAllocations.clear();
             seenStrictTargets.clear();
             seenOptionalTargets.clear();
+            seenShardMask = 0;
         }
     };
 
@@ -517,18 +519,13 @@ namespace
 
             // The answer is reusable only while every shard it read is still at the version it
             // was read at, so each one is recorded as the walk reaches it.
-            bool knownShard = false;
-            for (const auto& [recordedShard, recordedVersion] : walk.shardVersions)
+            SWC_ASSERT(current.shardIndex < ConstantManager::SHARD_COUNT);
+            const uint32_t shardBit = 1u << current.shardIndex;
+            if (!(walk.seenShardMask & shardBit))
             {
-                if (recordedShard == current.shardIndex)
-                {
-                    knownShard = true;
-                    break;
-                }
-            }
-
-            if (!knownShard)
+                walk.seenShardMask |= shardBit;
                 walk.shardVersions.push_back({current.shardIndex, version});
+            }
 
             DataSegmentAllocation allocation;
             if (walkedIsCurrent)

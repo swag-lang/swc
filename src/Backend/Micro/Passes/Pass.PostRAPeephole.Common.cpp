@@ -316,10 +316,12 @@ namespace PostRaPeephole
         if (!ctx.isPrivateFrameBase(baseReg) || sourceReg == baseReg)
             return false;
 
-        MicroInstrRef scanRef = ctx.previousRef(storeRef);
-        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanRef.isValid(); ++step, scanRef = ctx.previousRef(scanRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, storeRef};
+        --scanIt;
+        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanIt.current.isValid(); ++step, --scanIt)
         {
-            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            const MicroInstrRef scanRef = scanIt.current;
+            const MicroInstr*   scanInst = &*scanIt;
             if (!scanInst)
                 return false;
             const MicroInstrOperand* scanOps = scanInst->ops(*ctx.operands);
@@ -372,10 +374,12 @@ namespace PostRaPeephole
         if (!ctx.isPrivateFrameBase(baseReg))
             return false;
 
-        MicroInstrRef scanRef = ctx.nextRef(storeRef);
-        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanRef.isValid(); ++step, scanRef = ctx.nextRef(scanRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, storeRef};
+        ++scanIt;
+        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            const MicroInstrRef scanRef = scanIt.current;
+            const MicroInstr*   scanInst = &*scanIt;
             if (!scanInst)
                 return false;
             const MicroInstrOperand* scanOps = scanInst->ops(*ctx.operands);
@@ -491,10 +495,12 @@ namespace PostRaPeephole
         if (!ctx.isPrivateFrameBase(baseReg))
             return false;
 
-        MicroInstrRef scanRef = ctx.nextRef(storeRef);
-        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanRef.isValid(); ++step, scanRef = ctx.nextRef(scanRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, storeRef};
+        ++scanIt;
+        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            const MicroInstrRef scanRef = scanIt.current;
+            const MicroInstr*   scanInst = &*scanIt;
             if (!scanInst)
                 return false;
             const MicroInstrOperand* scanOps = scanInst->ops(*ctx.operands);

@@ -285,7 +285,6 @@ namespace
 
     struct Attempt
     {
-        SymbolFunction* fn        = nullptr;
         Candidate       candidate = {};
         MatchFailure    fail      = {};
         bool            viable    = false;
@@ -1193,8 +1192,8 @@ namespace
 
             count++;
             diag.addNote(overloadCandidateDiagnosticId(a.fail, ufcsArg));
-            diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->isTyped() ? a.fn->type(ctx).toName(ctx) : Utf8{a.fn->name(ctx)});
-            fillMatchDiagnostic(sema, diag.last(), diag, *a.fn, a.fail, args, ufcsArg, true);
+            diag.last().addArgument(Diagnostic::ARG_SYM, a.candidate.fn->isTyped() ? a.candidate.fn->type(ctx).toName(ctx) : Utf8{a.candidate.fn->name(ctx)});
+            fillMatchDiagnostic(sema, diag.last(), diag, *a.candidate.fn, a.fail, args, ufcsArg, true);
         }
     }
 
@@ -1204,9 +1203,9 @@ namespace
 
         Diagnostic         diag         = reportMatchFailure(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee, primary.fail, args, ufcsArg);
         DiagnosticElement& errorElement = primaryDiagnosticElement(diag);
-        errorElement.addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
-        errorElement.addArgument(Diagnostic::ARG_WHAT, makeGenericInstantiationFailureText(*primary.fn, primary.fail, ufcsArg, ctx));
-        fillMatchDiagnostic(sema, errorElement, diag, *primary.fn, primary.fail, args, ufcsArg, false);
+        errorElement.addArgument(Diagnostic::ARG_SYM, primary.candidate.fn->name(ctx));
+        errorElement.addArgument(Diagnostic::ARG_WHAT, makeGenericInstantiationFailureText(*primary.candidate.fn, primary.fail, ufcsArg, ctx));
+        fillMatchDiagnostic(sema, errorElement, diag, *primary.candidate.fn, primary.fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1219,7 +1218,7 @@ namespace
         uint32_t                   order = 0;
         for (const Attempt& a : attempts)
         {
-            if (!a.fn || a.viable)
+            if (!a.candidate.fn || a.viable)
             {
                 order++;
                 continue;
@@ -1264,7 +1263,7 @@ namespace
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef());
         if (!attempts.empty())
-            primaryDiagnosticElement(diag).addArgument(Diagnostic::ARG_SYM, attempts.front().fn->name(ctx));
+            primaryDiagnosticElement(diag).addArgument(Diagnostic::ARG_SYM, attempts.front().candidate.fn->name(ctx));
 
         addOverloadFailureNotes(sema, diag, sorted, args, ufcsArg, [](const Attempt&) { return false; });
 
@@ -2313,7 +2312,7 @@ namespace
             SWC_ASSERT(fn != nullptr);
 
             Attempt a;
-            a.fn = fn;
+            a.candidate.fn = fn;
 
             if (fn->isGenericRoot())
             {
@@ -2538,7 +2537,7 @@ namespace
         if (functions.empty())
             return errorNotCallable(sema, nodeCallee);
         if (functions.size() == 1)
-            return errorBadMatch(sema, nodeCallee, *attempts.front().fn, attempts.front().fail, args, ufcsArg);
+            return errorBadMatch(sema, nodeCallee, *attempts.front().candidate.fn, attempts.front().fail, args, ufcsArg);
         return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 

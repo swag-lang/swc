@@ -177,7 +177,7 @@ fs::path FileSystem::normalizePath(const fs::path& path)
 
     {
         const std::unique_lock lock(cache.mutex);
-        cache.entries.emplace(std::move(key), result);
+        cache.entries.try_emplace(std::move(key), result);
     }
 
     return result;

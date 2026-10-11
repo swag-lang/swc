@@ -10,8 +10,9 @@ the campaign and standalone drivers use the compiler's default worker count when
 bin\swc.exe --num-cores 6 tools\bench.swgs --swc-cores 6 --label "what changed since last time"
 ```
 
-That rebuilds `swc.exe` in Release, measures it against every other toolchain, appends the
-result to `history.json`, and regenerates `bench.html`. Each campaign owns a build directory
+That rebuilds `swc.exe` with the same `swc.sln` Release x64 configuration as `release.bat`,
+including whole-program optimization and LTO, measures it against every other toolchain, appends
+the result to `history.json`, and regenerates `bench.html`. Each campaign owns a build directory
 under `%LOCALAPPDATA%/swc-bench-builds`, including its compiler, runtime sources and MSBuild
 intermediates. This lets the script's original compiler stay running while the fresh compiler
 is linked and measured. The standard library comes from this checkout's `bin/` through

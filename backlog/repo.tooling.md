@@ -157,17 +157,17 @@ being compiled by it.
 - Done when: a checked-in producer reproducibly creates both small header cases and tests
   verify timestamp-derived frame rate and non-square display geometry without private media.
 
-### repo.tooling.009 — Reassess Release LTO after iteration costs are controlled
+### repo.tooling.009 — Measure Release LTO build cost and compiler throughput
 
 - Evidence: Release LTCG links took several minutes during the constant-address investigation,
-  including after a change to one semantic-analysis source. The owner requested disabling LTO
-  for current development and reconsidering it later. `swc.vcxproj` now disables whole-program
-  optimization and link-time code generation while retaining the other Release optimizations.
+  including after a change to one semantic-analysis source. Release now enables whole-program
+  optimization and link-time code generation; the benchmark builds through the same project
+  configuration in its private output tree.
 - Next: measure compiler throughput, binary size, peak memory and incremental link time with
-  and without LTO under comparable load before restoring it; consider a separate distribution
-  build if shipping performance justifies the cost but routine iteration does not.
-- Done when: the documented build policy preserves practical Release iteration and any
-  restored LTO has a measured benefit and an explicit place in the build workflow.
+  and without LTO under comparable load; consider a separate fast-iteration build if the costs
+  outweigh the measured compiler throughput benefit.
+- Done when: comparable measurements support the Release policy and any fast-iteration option
+  has an explicit place in the build workflow.
 
 ### repo.tooling.008 — Record module timings with load observed during each sample
 

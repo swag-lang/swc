@@ -25,8 +25,7 @@
         <ConfigurationType>Application</ConfigurationType>
         <UseDebugLibraries>false</UseDebugLibraries>
         <PlatformToolset>v145</PlatformToolset>
-        <!-- Keep Release iteration fast; restore LTO separately when link costs are acceptable. -->
-        <WholeProgramOptimization>false</WholeProgramOptimization>
+        <WholeProgramOptimization>true</WholeProgramOptimization>
         <CharacterSet>Unicode</CharacterSet>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'" Label="Configuration">
@@ -93,7 +92,7 @@
             <EnableCOMDATFolding>true</EnableCOMDATFolding>
             <OptimizeReferences>true</OptimizeReferences>
             <GenerateDebugInformation>false</GenerateDebugInformation>
-            <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+            <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
             <StackReserveSize>8388608</StackReserveSize>
         </Link>
         <Manifest>

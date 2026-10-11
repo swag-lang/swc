@@ -871,6 +871,10 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     auto*                 payloadOwner      = fixture.addFunction();
     auto*                 nonAliasOwner     = fixture.addFunction();
     auto*                 unresolvedOwner   = fixture.addFunction();
+    auto*                 cycleHead         = fixture.addFunction();
+    auto*                 cycleBody         = fixture.addFunction();
+    auto*                 cycleSeed         = fixture.addFunction();
+    auto*                 cycleOwner        = fixture.addFunction();
     leaf->addFreesParam(2);
     aliasLeaf->addReturnBorrowsParam(2);
     aliasLeaf->addReturnsStorageParam(2);
@@ -878,6 +882,8 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     payloadAlias->addReturnsStorageParam(0);
     payloadAlias->addReturnsPayloadParam(0);
     borrowOnly->addReturnBorrowsParam(0);
+    cycleSeed->addReturnBorrowsParam(0);
+    cycleSeed->addReturnsStorageParam(0);
 
     fixture.addEdge({.caller = outer, .callee = middle, .calleeParamIndex = 1, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
     fixture.addEdge({.caller = middle, .callee = leaf, .callerParamIndex = 1, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{aliasWrapper, 1}}});
@@ -887,12 +893,16 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     fixture.addEdge({.caller = aliasWrapper, .callee = aliasLeaf, .callerParamIndex = 1, .calleeParamIndex = 2});
     fixture.addEdge({.caller = incompleteAlias, .callee = unresolved});
     fixture.addEdge({.caller = incompleteWrapper, .callee = incompleteAlias});
+    fixture.addEdge({.caller = cycleHead, .callee = cycleBody});
+    fixture.addEdge({.caller = cycleBody, .callee = cycleHead});
+    fixture.addEdge({.caller = cycleBody, .callee = cycleSeed});
+    fixture.addEdge({.caller = cycleOwner, .callee = leaf, .callerParamIndex = 3, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{cycleHead, 0}}});
     // Keep callers before dependencies to exercise both reverse-dependency worklists.
     fixture.propagate();
 
     if (outer->freesParamsMask() != 1 || middle->freesParamsMask() != 2)
         return Result::Error;
-    if (payloadOwner->freesParamsMask() || nonAliasOwner->freesParamsMask() || unresolvedOwner->freesParamsMask())
+    if (payloadOwner->freesParamsMask() || nonAliasOwner->freesParamsMask() || unresolvedOwner->freesParamsMask() || cycleOwner->freesParamsMask() != 8)
         return Result::Error;
     // Completed return masks belong to parallel readers and must remain untouched.
     if (aliasWrapper->returnBorrowsParamsMask() || aliasWrapper->returnsStorageParamsMask())

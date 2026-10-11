@@ -346,9 +346,6 @@ const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
             globalInitOffsetsCache_.push_back(relocation.targetAddress);
     }
 
-    std::ranges::sort(globalInitOffsetsCache_);
-    const auto duplicates = std::ranges::unique(globalInitOffsetsCache_);
-    globalInitOffsetsCache_.erase(duplicates.begin(), duplicates.end());
     globalInitOffsetsComputed_ = true;
     return globalInitOffsetsCache_;
 }

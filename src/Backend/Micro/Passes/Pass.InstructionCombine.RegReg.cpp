@@ -2037,24 +2037,29 @@ namespace InstructionCombine
         const MicroReg    result = subOps[0].reg;
         const MicroReg    mask   = subOps[1].reg;
 
-        const MicroInstrRef      xorRef  = ctx.storage->findPreviousInstructionRef(subRef);
-        const MicroInstr*        xorInst = xorRef.isValid() ? ctx.storage->ptr(xorRef) : nullptr;
+        auto walker = MicroStorage::Iterator{ctx.storage, subRef};
+        --walker;
+        const MicroInstrRef      xorRef  = walker.current;
+        const MicroInstr*        xorInst = xorRef.isValid() ? &*walker : nullptr;
         const MicroInstrOperand* xorOps  = xorInst && xorInst->op == MicroInstrOpcode::OpBinaryRegReg ? xorInst->ops(*ctx.operands) : nullptr;
         if (!xorOps || xorOps[0].reg != result || xorOps[1].reg != mask || xorOps[2].opBits != bits || xorOps[3].microOp != MicroOp::Xor)
             return false;
 
-        const MicroInstrRef      shiftRef = ctx.storage->findPreviousInstructionRef(xorRef);
-        const MicroInstr*        shift    = shiftRef.isValid() ? ctx.storage->ptr(shiftRef) : nullptr;
+        --walker;
+        const MicroInstrRef      shiftRef = walker.current;
+        const MicroInstr*        shift    = shiftRef.isValid() ? &*walker : nullptr;
         const MicroInstrOperand* shiftOps = shift && shift->op == MicroInstrOpcode::OpBinaryRegImm ? shift->ops(*ctx.operands) : nullptr;
         if (!shiftOps || shiftOps[0].reg != mask || shiftOps[1].opBits != bits || shiftOps[2].microOp != MicroOp::ShiftArithmeticRight ||
             shiftOps[3].hasWideImmediateValue() || shiftOps[3].valueU64 != getNumBits(bits) - 1)
             return false;
 
-        const MicroInstrRef      maskCopyRef   = ctx.storage->findPreviousInstructionRef(shiftRef);
-        const MicroInstr*        maskCopy      = maskCopyRef.isValid() ? ctx.storage->ptr(maskCopyRef) : nullptr;
+        --walker;
+        const MicroInstrRef      maskCopyRef   = walker.current;
+        const MicroInstr*        maskCopy      = maskCopyRef.isValid() ? &*walker : nullptr;
         const MicroInstrOperand* maskCopyOps   = maskCopy && maskCopy->op == MicroInstrOpcode::LoadRegReg ? maskCopy->ops(*ctx.operands) : nullptr;
-        const MicroInstrRef      resultCopyRef = ctx.storage->findPreviousInstructionRef(maskCopyRef);
-        const MicroInstr*        resultCopy    = resultCopyRef.isValid() ? ctx.storage->ptr(resultCopyRef) : nullptr;
+        --walker;
+        const MicroInstrRef      resultCopyRef = walker.current;
+        const MicroInstr*        resultCopy    = resultCopyRef.isValid() ? &*walker : nullptr;
         const MicroInstrOperand* resultCopyOps = resultCopy && resultCopy->op == MicroInstrOpcode::LoadRegReg ? resultCopy->ops(*ctx.operands) : nullptr;
         if (!maskCopyOps || !resultCopyOps || maskCopyOps[0].reg != mask || resultCopyOps[0].reg != result ||
             maskCopyOps[1].reg != resultCopyOps[1].reg || !maskCopyOps[1].reg.isVirtualInt() ||
@@ -2549,13 +2554,14 @@ namespace InstructionCombine
         }
         // Four references must occur on one straight line. Moving the read to
         // the root then preserves every byte observed by the original loads.
-        uint32_t      seen = 0;
-        MicroInstrRef scan = ctx.storage->findPreviousInstructionRef(ref);
-        for (uint32_t step = 0; scan.isValid() && step < 64 && seen != 0xF;
-             ++step, scan = ctx.storage->findPreviousInstructionRef(scan))
+        uint32_t seen = 0;
+        auto     scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        --scanIt;
+        for (uint32_t step = 0; scanIt.current.isValid() && step < 64 && seen != 0xF; ++step, --scanIt)
         {
-            const auto* between = ctx.storage->ptr(scan);
-            if (!between || ctx.isClaimed(scan) || isControlOrCall(*between) || writesMemory(*between) ||
+            const auto*        between = &*scanIt;
+            const MicroInstrRef scan   = scanIt.current;
+            if (ctx.isClaimed(scan) || isControlOrCall(*between) || writesMemory(*between) ||
                 between->op == MicroInstrOpcode::LoadVolatileRegMem)
                 return false;
             for (uint32_t i = 0; i < 4; ++i)

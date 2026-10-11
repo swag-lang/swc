@@ -373,11 +373,10 @@ namespace
     // registers. True when `addRef` starts such a run.
     bool isFrameRelease(const MicroPassContext& context, const MicroInstrRef addRef)
     {
-        for (MicroInstrRef ref = context.instructions->findNextInstructionRef(addRef); ref.isValid(); ref = context.instructions->findNextInstructionRef(ref))
+        auto walker = MicroStorage::Iterator{context.instructions, addRef};
+        for (++walker; walker.current.isValid(); ++walker)
         {
-            const MicroInstr* inst = context.instructions->ptr(ref);
-            if (!inst)
-                return false;
+            const MicroInstr* inst = &*walker;
             if (inst->op == MicroInstrOpcode::Ret)
                 return true;
             if (inst->op == MicroInstrOpcode::Pop || inst->op == MicroInstrOpcode::Nop)

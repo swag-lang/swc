@@ -845,9 +845,13 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesFollowAppendedAndReplacementEdges)
     // Replacing the graph with equally many edges must forget all old cache
     // entries, including their completion markers.
     ctx.compiler().takeEscapeSummaryEdges();
+    if (ctx.compiler().freeForwardingEdgeCount())
+        return Result::Error;
     auto* replacement = fixture.addFunction();
     for (uint32_t i = 0; i < 3; ++i)
         fixture.addEdge({.caller = replacement, .callee = leaf, .callerParamIndex = i, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
+    if (ctx.compiler().freeForwardingEdgeCount() != 3)
+        return Result::Error;
     fixture.propagate();
     if (replacement->freesParamsMask() != 7)
         return Result::Error;

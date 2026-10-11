@@ -300,7 +300,7 @@ public:
             visit(escapeSummaryEdges_[index]);
     }
 
-    size_t freeForwardingEdgeCount() const;
+    uint32_t freeForwardingEdgeCount() const noexcept { return freeForwardingEdgeCount_.load(std::memory_order_acquire); }
 
     // Runs `fn(edgesOf)` under one shared lock, where `edgesOf(caller, visit)` hands `visit` the
     // return edges recorded for that caller. The return fixpoint only judges the functions it was
@@ -687,6 +687,7 @@ private:
     // as the edges arrive: that pass runs once per compile-time call and must not rescan the
     // module's whole edge list to find the handful it cares about.
     std::vector<uint32_t>                                            freeForwardingEdgeIndices_;
+    std::atomic<uint32_t>                                            freeForwardingEdgeCount_ = 0;
     std::vector<uint32_t>                                            returnEdgeIndices_;
     std::unordered_map<const SymbolFunction*, std::vector<uint32_t>> returnEdgesByCaller_;
     std::atomic<uint32_t>                                            guardedFreeForwardingEdgeCount_{0};

@@ -167,14 +167,14 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumRejectsDynamicInputAndLiveFlags)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesOnlyExactGroups)
+SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesFullGroupsAndKeepsScalarTail)
 {
     constexpr MicroReg base    = MicroReg::virtualIntReg(1);
     constexpr MicroReg counter = MicroReg::virtualIntReg(2);
     constexpr MicroReg loaded  = MicroReg::virtualIntReg(3);
     constexpr MicroReg value   = MicroReg::virtualIntReg(4);
     constexpr MicroReg accum   = MicroReg::virtualIntReg(5);
-    for (const auto [bound, escapedValue] : {std::pair<uint64_t, bool>{64, false}, {128, false}, {66, false}, {64, true}})
+    for (const auto [bound, escapedValue] : {std::pair<uint64_t, bool>{64, false}, {128, false}, {66, false}, {129, false}, {130, false}, {131, false}, {64, true}})
     {
         MicroBuilder builder(ctx);
         const auto   header = builder.createLabel();
@@ -194,19 +194,27 @@ SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesOnlyExactGroups)
         builder.emitRet();
 
         SWC_RESULT(runLoopUnrollPass(builder));
-        const bool vectorized = (bound == 64 || bound == 128) && !escapedValue;
-        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != (vectorized ? (bound == 128 ? 2u : 1u) : 0u) ||
-            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (vectorized ? 0u : 1u) ||
-            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+        const bool     vectorized = bound >= 64 && !escapedValue;
+        const uint64_t vectorWidth = bound >= 128 ? 8 : 4;
+        const bool     hasTail = bound % vectorWidth != 0;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != (vectorized ? (vectorWidth == 8 ? 2u : 1u) : 0u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (vectorized && !hasTail ? 0u : 1u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != (vectorized && hasTail ? 3u : 1u))
             return Result::Error;
+        bool sawVectorStep = false;
+        bool sawScalarStep = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
             if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
                 continue;
             const auto* ops = inst.ops(builder.operands());
-            if (ops[0].reg == counter && ops[3].valueU64 != (vectorized ? (bound == 128 ? 8u : 4u) : 1u))
-                return Result::Error;
+            if (ops[0].reg != counter)
+                continue;
+            sawVectorStep |= vectorized && ops[3].valueU64 == vectorWidth;
+            sawScalarStep |= ops[3].valueU64 == 1;
         }
+        if (sawVectorStep != vectorized || sawScalarStep != (!vectorized || hasTail))
+            return Result::Error;
     }
     return Result::Continue;
 }

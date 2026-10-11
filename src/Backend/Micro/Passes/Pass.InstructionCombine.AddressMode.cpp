@@ -174,12 +174,13 @@ namespace InstructionCombine
             address[4].opBits != MicroOpBits::B64 || address[6].valueU64 > INT32_MAX)
             return false;
 
-        MicroInstrRef candidateRef = ctx.storage->findPreviousInstructionRef(ref);
-        for (uint32_t steps        = 0; candidateRef.isValid() && steps < 24; ++steps,
-                      candidateRef = ctx.storage->findPreviousInstructionRef(candidateRef))
+        auto candidateIt = MicroStorage::Iterator{ctx.storage, ref};
+        --candidateIt;
+        for (uint32_t steps = 0; candidateIt.current.isValid() && steps < 24; ++steps, --candidateIt)
         {
-            const MicroInstr* candidate = ctx.storage->ptr(candidateRef);
-            if (!candidate || candidate->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+            const MicroInstrRef candidateRef = candidateIt.current;
+            const MicroInstr*   candidate    = &*candidateIt;
+            if (candidate->op != MicroInstrOpcode::LoadAddrAmcRegMem)
                 continue;
             const MicroInstrOperand* other = candidate->ops(*ctx.operands);
             if (!other || !other[0].reg.isVirtualInt() || other[0].reg == load[2].reg ||

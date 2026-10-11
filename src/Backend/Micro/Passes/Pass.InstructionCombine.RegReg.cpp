@@ -684,16 +684,16 @@ namespace InstructionCombine
             if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
             bool          seenSecond = false;
-            MicroInstrRef cursor     = defs[0].instRef;
-            for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+            auto          walker     = MicroStorage::Iterator{ctx.storage, defs[0].instRef};
+            for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && walker.current.isValid() && walker.current != ref; ++step, ++walker)
             {
-                const auto* current = ctx.storage->ptr(cursor);
-                if (!current || isBlockBoundary(*current))
+                const auto*        current = &*walker;
+                const MicroInstrRef cursor  = walker.current;
+                if (isBlockBoundary(*current))
                     return false;
                 seenSecond |= cursor == defs[1].instRef;
-                cursor = ctx.storage->findNextInstructionRef(cursor);
             }
-            if (cursor != ref || !seenSecond ||
+            if (walker.current != ref || !seenSecond ||
                 !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, inputs[0].instRef, inputs[1].instRef,
                                copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
                 return false;
@@ -1843,18 +1843,18 @@ namespace InstructionCombine
                 return false;
 
             bool          seenSecond = false;
-            MicroInstrRef cursor     = defs[0].instRef;
-            for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && cursor.isValid() && cursor != ref; ++step)
+            auto          walker     = MicroStorage::Iterator{ctx.storage, defs[0].instRef};
+            for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && walker.current.isValid() && walker.current != ref; ++step, ++walker)
             {
-                const MicroInstr* current = ctx.storage->ptr(cursor);
-                if (!current || isBlockBoundary(*current))
+                const MicroInstr* current = &*walker;
+                const MicroInstrRef cursor = walker.current;
+                if (isBlockBoundary(*current))
                     return false;
                 seenSecond |= cursor == defs[1].instRef;
                 if (cursor == lhsCopy && !seenSecond)
                     return false;
-                cursor = ctx.storage->findNextInstructionRef(cursor);
             }
-            if (cursor != ref || !seenSecond || !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, initial[0].instRef, initial[1].instRef, lhsCopy.isValid() ? lhsCopy : ref}))
+            if (walker.current != ref || !seenSecond || !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef, initial[0].instRef, initial[1].instRef, lhsCopy.isValid() ? lhsCopy : ref}))
                 return false;
 
             MicroInstrOperand first[3];

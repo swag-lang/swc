@@ -6002,33 +6002,49 @@ namespace
                 !cmpOps[0].reg.isVirtualInt() || !cmpOps[1].reg.isVirtualInt())
                 continue;
 
-            const MicroInstrRef sourceLoadRef = storage.findPreviousInstructionRef(cmpRef);
-            const MicroInstr*   sourceLoad    = storage.ptr(sourceLoadRef);
-            const auto*         sourceLoadOps = sourceLoad ? sourceLoad->ops(operands) : nullptr;
-            if (!sourceLoad || sourceLoad->op != MicroInstrOpcode::LoadAmcRegMem || !sourceLoadOps ||
+            MicroStorage::Iterator sourceLoadIt = it;
+            --sourceLoadIt;
+            const MicroInstrRef sourceLoadRef = sourceLoadIt.current;
+            const MicroInstr*   sourceLoad    = sourceLoadRef.isValid() ? &*sourceLoadIt : nullptr;
+            if (!sourceLoad)
+                continue;
+            const auto* sourceLoadOps = sourceLoad->ops(operands);
+            if (sourceLoad->op != MicroInstrOpcode::LoadAmcRegMem || !sourceLoadOps ||
                 scan.relocated->contains(sourceLoadRef.get()) || sourceLoadOps[0].reg != cmpOps[1].reg ||
                 sourceLoadOps[3].opBits != cmpOps[2].opBits)
                 continue;
 
-            const MicroInstrRef jumpRef = storage.findNextInstructionRef(cmpRef);
-            const MicroInstr*   jump    = storage.ptr(jumpRef);
-            const auto*         jumpOps = jump ? jump->ops(operands) : nullptr;
-            if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
+            MicroStorage::Iterator jumpIt = it;
+            ++jumpIt;
+            const MicroInstrRef jumpRef = jumpIt.current;
+            const MicroInstr*   jump    = jumpRef.isValid() ? &*jumpIt : nullptr;
+            if (!jump)
+                continue;
+            const auto* jumpOps = jump->ops(operands);
+            if (jump->op != MicroInstrOpcode::JumpCond || !jumpOps ||
                 jumpOps[0].cpuCond == MicroCond::Unconditional || !conditionSupportsConditionalMove(jumpOps[0].cpuCond) ||
                 scan.relocated->contains(jumpRef.get()))
                 continue;
 
-            const MicroInstrRef fallthroughRef = storage.findNextInstructionRef(jumpRef);
-            const MicroInstr*   fallthrough    = storage.ptr(fallthroughRef);
-            const auto*         fallthroughOps = fallthrough ? fallthrough->ops(operands) : nullptr;
-            if (!fallthrough || fallthrough->op != MicroInstrOpcode::LoadRegReg || !fallthroughOps ||
+            MicroStorage::Iterator fallthroughIt = jumpIt;
+            ++fallthroughIt;
+            const MicroInstrRef fallthroughRef = fallthroughIt.current;
+            const MicroInstr*   fallthrough    = fallthroughRef.isValid() ? &*fallthroughIt : nullptr;
+            if (!fallthrough)
+                continue;
+            const auto* fallthroughOps = fallthrough->ops(operands);
+            if (fallthrough->op != MicroInstrOpcode::LoadRegReg || !fallthroughOps ||
                 fallthroughOps[1].reg != cmpOps[0].reg || fallthroughOps[2].opBits != cmpOps[2].opBits ||
                 scan.relocated->contains(fallthroughRef.get()))
                 continue;
 
-            const MicroInstrRef joinJumpRef = storage.findNextInstructionRef(fallthroughRef);
-            const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
-            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond || scan.relocated->contains(joinJumpRef.get()))
+            MicroStorage::Iterator joinJumpIt = fallthroughIt;
+            ++joinJumpIt;
+            const MicroInstrRef joinJumpRef = joinJumpIt.current;
+            const MicroInstr*   joinJump    = joinJumpRef.isValid() ? &*joinJumpIt : nullptr;
+            if (!joinJump)
+                continue;
+            if (joinJump->op != MicroInstrOpcode::JumpCond || scan.relocated->contains(joinJumpRef.get()))
                 continue;
             const auto* joinJumpOps = joinJump->ops(operands);
             if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
@@ -6042,36 +6058,48 @@ namespace
             if (scan.labelReferenceCount(armLabelId) != 1)
                 continue;
 
-            const MicroInstrRef armLabelRef  = storage.findNextInstructionRef(joinJumpRef);
-            const MicroInstr*   armLabel     = storage.ptr(armLabelRef);
+            MicroStorage::Iterator armLabelIt = joinJumpIt;
+            ++armLabelIt;
+            const MicroInstrRef armLabelRef = armLabelIt.current;
+            const MicroInstr*   armLabel    = armLabelRef.isValid() ? &*armLabelIt : nullptr;
+            if (!armLabel)
+                continue;
             uint32_t            foundLabelId = 0;
-            if (!armLabel || armLabel->op != MicroInstrOpcode::Label || scan.relocated->contains(armLabelRef.get()) ||
+            if (armLabel->op != MicroInstrOpcode::Label || scan.relocated->contains(armLabelRef.get()) ||
                 !tryGetLabelId(foundLabelId, *armLabel, armLabel->ops(operands)) || foundLabelId != armLabelId)
                 continue;
 
-            const MicroInstrRef reloadRef = storage.findNextInstructionRef(armLabelRef);
-            const MicroInstr*   reload    = storage.ptr(reloadRef);
-            const auto*         reloadOps = reload ? reload->ops(operands) : nullptr;
-            if (!reload || reload->op != MicroInstrOpcode::LoadAmcRegMem || !reloadOps ||
+            MicroStorage::Iterator reloadIt = armLabelIt;
+            ++reloadIt;
+            const MicroInstrRef reloadRef = reloadIt.current;
+            const MicroInstr*   reload    = reloadRef.isValid() ? &*reloadIt : nullptr;
+            if (!reload)
+                continue;
+            const auto* reloadOps = reload->ops(operands);
+            if (reload->op != MicroInstrOpcode::LoadAmcRegMem || !reloadOps ||
                 scan.relocated->contains(reloadRef.get()) || reloadOps[0].reg != fallthroughOps[0].reg ||
                 reloadOps[1].reg != sourceLoadOps[1].reg || reloadOps[2].reg != sourceLoadOps[2].reg ||
                 reloadOps[3].opBits != sourceLoadOps[3].opBits || reloadOps[4].opBits != sourceLoadOps[4].opBits ||
                 reloadOps[5].valueU64 != sourceLoadOps[5].valueU64 || reloadOps[6].valueU64 != sourceLoadOps[6].valueU64)
                 continue;
 
-            const MicroInstrRef joinLabelRef = storage.findNextInstructionRef(reloadRef);
-            const MicroInstr*   joinLabel    = storage.ptr(joinLabelRef);
+            MicroStorage::Iterator joinLabelIt = reloadIt;
+            ++joinLabelIt;
+            const MicroInstrRef joinLabelRef = joinLabelIt.current;
+            const MicroInstr*   joinLabel    = joinLabelRef.isValid() ? &*joinLabelIt : nullptr;
             if (!joinLabel || joinLabel->op != MicroInstrOpcode::Label ||
                 !tryGetLabelId(foundLabelId, *joinLabel, joinLabel->ops(operands)) || foundLabelId != joinLabelId)
                 continue;
 
             bool safe = true;
-            for (MicroInstrRef ref = storage.findNextInstructionRef(sourceLoadRef); ref.isValid() && ref != reloadRef; ref = storage.findNextInstructionRef(ref))
+            MicroStorage::Iterator betweenIt = sourceLoadIt;
+            ++betweenIt;
+            for (; betweenIt.current.isValid() && betweenIt.current != reloadRef; ++betweenIt)
             {
-                const MicroInstr*    between = storage.ptr(ref);
-                const MicroInstrDef& info    = MicroInstr::info(between->op);
+                const MicroInstr&    between = *betweenIt;
+                const MicroInstrDef& info    = MicroInstr::info(between.op);
                 if (info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                    definesEitherRegister(*between, operands, context.encoder, sourceLoadOps[1].reg, sourceLoadOps[2].reg))
+                    definesEitherRegister(between, operands, context.encoder, sourceLoadOps[1].reg, sourceLoadOps[2].reg))
                 {
                     safe = false;
                     break;

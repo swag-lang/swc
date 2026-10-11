@@ -554,32 +554,37 @@ namespace InstructionCombine
 
         // The reader right after the compare, and nothing after it that reads
         // the flags a subtraction would leave different.
-        const MicroInstrRef readerRef = ctx.storage->findNextInstructionRef(ref);
-        const MicroInstr*   reader    = readerRef.isValid() ? ctx.storage->ptr(readerRef) : nullptr;
-        if (!reader || (reader->op != MicroInstrOpcode::LoadCondRegReg && reader->op != MicroInstrOpcode::SetCondReg && reader->op != MicroInstrOpcode::JumpCond))
+        MicroStorage::Iterator patternIt{ctx.storage, ref};
+        ++patternIt;
+        if (!patternIt.current.isValid() ||
+            (patternIt->op != MicroInstrOpcode::LoadCondRegReg && patternIt->op != MicroInstrOpcode::SetCondReg && patternIt->op != MicroInstrOpcode::JumpCond))
             return false;
+        const MicroInstrRef readerRef = patternIt.current;
 
         // Walk back to `sub T, right` whose T held `left`.
         SmallVector<MicroInstrRef, 8> between;
-        MicroInstrRef                 subRef = ctx.storage->findPreviousInstructionRef(ref);
-        for (uint32_t step = 0; step < K_MAX_WINDOW && subRef.isValid(); ++step)
+        auto           scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        --scanIt;
+        MicroInstrRef subRef = MicroInstrRef::invalid();
+        for (uint32_t step = 0; step < K_MAX_WINDOW && scanIt.current.isValid(); ++step)
         {
-            const MicroInstr* candidate = ctx.storage->ptr(subRef);
-            if (!candidate)
-                return false;
+            const MicroInstr*        candidate    = &*scanIt;
             const MicroInstrOperand* candidateOps = candidate->ops(*ctx.operands);
             if (candidate->op == MicroInstrOpcode::OpBinaryRegReg && candidateOps[3].microOp == MicroOp::Subtract &&
                 candidateOps[1].reg == right && candidateOps[2].opBits == bits && candidateOps[0].reg.isVirtualInt() &&
                 candidateOps[0].reg != left && candidateOps[0].reg != right)
+            {
+                subRef = scanIt.current;
                 break;
+            }
             if (candidate->op == MicroInstrOpcode::Label || MicroPassHelpers::instructionActuallyUsesCpuFlags(*candidate, candidateOps))
                 return false;
             const MicroInstrFlags flags = MicroInstr::info(candidate->op).flags;
             if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return false;
-            between.push_back(subRef);
-            subRef = ctx.storage->findPreviousInstructionRef(subRef);
+            between.push_back(scanIt.current);
+            --scanIt;
         }
         if (!subRef.isValid() || between.size() >= K_MAX_WINDOW || ctx.isClaimed(subRef))
             return false;

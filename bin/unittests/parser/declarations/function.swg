@@ -8,5 +8,7 @@ func(T) toto(a, b: ...) => 0
 func(T, const N: s32) toto(a, b: bool...) => 0
 func(T, N: s32) toto(a, b: bool...) => 0
 
+#assert(func|mask = base | (bit)|()->s32 { return mask })
+
 func declarationWithoutBody()
 func declarationWithoutBody(value: s32)->s32 fail

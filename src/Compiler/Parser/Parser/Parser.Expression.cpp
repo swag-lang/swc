@@ -173,8 +173,7 @@ void Parser::markCallCalleeNode(AstNodeRef nodeRef)
 
 bool Parser::isClosureCaptureEndPipe() const
 {
-    if (!is(TokenId::SymPipe) ||
-        !hasContextFlag(ParserContextFlagsE::InClosureCapture) ||
+    if (!hasContextFlag(ParserContextFlagsE::InClosureCapture) ||
         depthParen_ != closureCaptureStopDepthParen_ ||
         depthBracket_ != closureCaptureStopDepthBracket_ ||
         depthCurly_ != closureCaptureStopDepthCurly_ ||
@@ -304,7 +303,7 @@ AstNodeRef Parser::parseBinaryExpr(int minPrecedence)
     while (true)
     {
         const TokenId opId = id();
-        if (isClosureCaptureEndPipe())
+        if (opId == TokenId::SymPipe && isClosureCaptureEndPipe())
             break;
 
         const int precedence = getBinaryPrecedence(opId);

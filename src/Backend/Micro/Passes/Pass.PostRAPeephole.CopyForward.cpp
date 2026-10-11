@@ -186,11 +186,13 @@ namespace PostRaPeephole
         if (dst == src || !dst.isInt() || !src.isInt())
             return false;
 
-        MicroInstrRef cur = ctx.previousRef(copyRef);
-        for (int step = 0; step < K_MAX_SAME_COPY_WINDOW && cur.isValid(); ++step, cur = ctx.previousRef(cur))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
+        --scanIt;
+        for (int step = 0; step < K_MAX_SAME_COPY_WINDOW && scanIt.current.isValid(); ++step, --scanIt)
         {
-            const MicroInstr* inst = ctx.instruction(cur);
-            if (!inst || ctx.isClaimed(cur))
+            const MicroInstrRef cur  = scanIt.current;
+            const MicroInstr*   inst = &*scanIt;
+            if (ctx.isClaimed(cur))
                 return false;
 
             const MicroInstrDef& info = MicroInstr::info(inst->op);
@@ -335,11 +337,13 @@ namespace PostRaPeephole
         uint32_t                                                                  rewriteCount  = 0;
         bool                                                                      sourceChanged = false;
         window[0]                                                                               = ref;
-        MicroInstrRef cursor                                                                    = ctx.nextRef(ref);
-        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.nextRef(cursor))
+        auto walker = MicroStorage::Iterator{ctx.storage, ref};
+        ++walker;
+        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
         {
-            const MicroInstr* current = ctx.instruction(cursor);
-            if (!current || ctx.isClaimed(cursor))
+            const MicroInstrRef cursor  = walker.current;
+            const MicroInstr*   current = &*walker;
+            if (ctx.isClaimed(cursor))
                 return false;
             const MicroInstrDef& info = MicroInstr::info(current->op);
             if (current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||

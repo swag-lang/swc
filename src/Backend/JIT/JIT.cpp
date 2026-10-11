@@ -1337,8 +1337,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
         if (sortedReferencedGlobalInitOffsets.empty())
             return Result::Continue;
         std::ranges::sort(sortedReferencedGlobalInitOffsets);
-        const auto duplicates = std::ranges::unique(sortedReferencedGlobalInitOffsets);
-        sortedReferencedGlobalInitOffsets.erase(duplicates.begin(), duplicates.end());
+        // The only consumer tests range membership with lower_bound, which tolerates duplicates.
     }
 
     // The address cache grows with the functions actually resolved. Sizing it for every global

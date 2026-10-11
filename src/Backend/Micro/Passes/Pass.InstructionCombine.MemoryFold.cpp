@@ -169,8 +169,6 @@ namespace InstructionCombine
         if (frameBase && ctx.isInsideLoop(loadRef))
             return false;
 
-        if (!ctx.storage->ptr(loadRef))
-            return false;
         MicroStorage::Iterator walker{ctx.storage, loadRef};
         ++walker;
 

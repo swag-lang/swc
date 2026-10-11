@@ -443,14 +443,17 @@ namespace PostRaPeephole
         if (source == store[0].reg || (!source.isFloat() && !source.isInt()))
             return false;
 
-        const MicroInstrRef overwriteRef = ctx.nextRef(storeRef);
-        const MicroInstr*   overwrite    = ctx.instruction(overwriteRef);
+        auto scanIt = MicroStorage::Iterator{ctx.storage, storeRef};
+        ++scanIt;
+        const MicroInstrRef overwriteRef = scanIt.current;
+        const MicroInstr*   overwrite    = overwriteRef.isValid() ? &*scanIt : nullptr;
         const auto*         copy         = overwrite && overwrite->op == MicroInstrOpcode::LoadRegReg ? overwrite->ops(*ctx.operands) : nullptr;
         if (!copy || copy[0].reg != source || copy[2].opBits != MicroOpBits::B64)
             return false;
 
-        const MicroInstrRef reloadRef = ctx.nextRef(overwriteRef);
-        const MicroInstr*   reload    = ctx.instruction(reloadRef);
+        ++scanIt;
+        const MicroInstrRef reloadRef = scanIt.current;
+        const MicroInstr*   reload    = reloadRef.isValid() ? &*scanIt : nullptr;
         const auto*         load      = reload && reload->op == MicroInstrOpcode::LoadRegMem ? reload->ops(*ctx.operands) : nullptr;
         if (!load || load[1].reg != store[0].reg || load[2].opBits != MicroOpBits::B64 ||
             load[3].valueU64 != store[3].valueU64)

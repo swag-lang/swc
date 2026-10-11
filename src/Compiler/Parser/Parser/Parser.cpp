@@ -362,11 +362,11 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
         const auto callGraphIt = callGraphs.find(ast);
         for (const AstNodeRef nodeRef : functionDecls[astIndex])
         {
-            const auto& decl = *ast->node<AstNodeId::FunctionDecl>(nodeRef);
+            auto*       mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
+            const auto& decl        = *mutableDecl;
 
-            const AutoInlineName   name        = autoInlineName(ast->srcView(), decl.tokNameRef);
-            auto*                  mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
-            const bool             bodyHasCall = decl.hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
+            const AutoInlineName name        = autoInlineName(ast->srcView(), decl.tokNameRef);
+            const bool           bodyHasCall = decl.hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
             // Calls to macros and mixins keep their existing expansion context. Re-sema of an
             // inlined wrapper can also expand an explicitly-inline callee. If that
             // callee owns a closure, local function, error-management scope, or another construct

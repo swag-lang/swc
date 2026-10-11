@@ -865,8 +865,8 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     auto*                 aliasLeaf       = fixture.addFunction();
     auto*                 payloadAlias    = fixture.addFunction();
     auto*                 borrowOnly      = fixture.addFunction();
-    auto*                 incompleteAlias   = fixture.addFunction();
     auto*                 incompleteWrapper = fixture.addFunction();
+    auto*                 incompleteAlias   = fixture.addFunction();
     auto*                 unresolved        = fixture.addFunction(false);
     auto*                 payloadOwner      = fixture.addFunction();
     auto*                 nonAliasOwner     = fixture.addFunction();
@@ -878,8 +878,6 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     payloadAlias->addReturnsStorageParam(0);
     payloadAlias->addReturnsPayloadParam(0);
     borrowOnly->addReturnBorrowsParam(0);
-    incompleteAlias->addReturnBorrowsParam(0);
-    incompleteAlias->addReturnsStorageParam(0);
 
     fixture.addEdge({.caller = outer, .callee = middle, .calleeParamIndex = 1, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
     fixture.addEdge({.caller = middle, .callee = leaf, .callerParamIndex = 1, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{aliasWrapper, 1}}});
@@ -889,6 +887,7 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     fixture.addEdge({.caller = aliasWrapper, .callee = aliasLeaf, .callerParamIndex = 1, .calleeParamIndex = 2});
     fixture.addEdge({.caller = incompleteAlias, .callee = unresolved});
     fixture.addEdge({.caller = incompleteWrapper, .callee = incompleteAlias});
+    // Keep callers before dependencies to exercise both reverse-dependency worklists.
     fixture.propagate();
 
     if (outer->freesParamsMask() != 1 || middle->freesParamsMask() != 2)

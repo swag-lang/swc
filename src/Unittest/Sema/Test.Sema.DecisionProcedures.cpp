@@ -828,6 +828,7 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesFollowAppendedAndReplacementEdges)
     auto*                 leaf    = fixture.addFunction();
     auto*                 pending = fixture.addFunction(false);
     leaf->addFreesParam(2);
+    fixture.propagate(); // The empty-graph fast path must not suppress edges appended later.
     fixture.addEdge({.caller = first, .callee = leaf, .callerParamIndex = 0, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
     fixture.addEdge({.caller = pending, .callee = leaf, .callerParamIndex = 1, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores});
     fixture.propagate();

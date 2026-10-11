@@ -147,7 +147,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   behind an unresolved dependency, then verifies that completing it enables the guarded frees edge.
   A seeded two-function return cycle, supplied before its third-function mask source, also checks
   convergence when callers precede their dependencies in the given order.
-  The DevMode C++ suite passes all 1,424 tests. DevMode sema and sema-error fixtures also verify
+  A locked zero-edge check now exits before hashing the completed-function order; its regression
+  calls the pass on an empty graph, then appends an edge and verifies that it is still propagated.
+  The DevMode C++ suite passes all 1,424 tests, including after the zero-edge early check.
+  DevMode sema and sema-error fixtures also verify
   287 and 338 files respectively (neither suite contains executable tests). These are structural
   changes; no timing comparison was made.
 - Rejected October 11: a lock-free free-edge count could report zero while another worker was

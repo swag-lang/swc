@@ -1,0 +1,160 @@
+[
+  {
+    "task": "wordfreq",
+    "changed_bodies": [
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "Wordfreq.benchAlloc",
+      "Wordfreq.benchFree",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "csvagg",
+    "changed_bodies": [
+      "Csvagg.benchAlloc",
+      "Csvagg.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "sha256",
+    "changed_bodies": [
+      "Sha256.benchAlloc",
+      "Sha256.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "dijkstra",
+    "changed_bodies": [
+      "Dijkstra.benchAlloc",
+      "Dijkstra.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "raytrace",
+    "changed_bodies": [
+      "Raytrace.benchAlloc",
+      "Raytrace.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "leven",
+    "changed_bodies": [
+      "Leven.benchAlloc",
+      "Leven.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "chacha",
+    "changed_bodies": [
+      "Chacha.benchAlloc",
+      "Chacha.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "nbody",
+    "changed_bodies": [
+      "Nbody.benchAlloc",
+      "Nbody.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "fannkuch",
+    "changed_bodies": [
+      "Fannkuch.benchAlloc",
+      "Fannkuch.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "binarytrees",
+    "changed_bodies": [
+      "Binarytrees.benchAlloc",
+      "Binarytrees.benchFree",
+      "Binarytrees.bottomUp",
+      "Binarytrees.release",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "lz77",
+    "changed_bodies": [
+      "Lz77.benchAlloc",
+      "Lz77.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  },
+  {
+    "task": "sort",
+    "changed_bodies": [
+      "Sort.benchAlloc",
+      "Sort.benchFree",
+      "Swag.installAllocator",
+      "Swag.jit",
+      "Swag.runtimeFlags",
+      "__resetRuntimeContext",
+      "__runtimeAllocator",
+      "__setupRuntime"
+    ]
+  }
+]

@@ -41,7 +41,7 @@ and saves two instead of reserving 0x38 with no saved registers. The old
 out-of-line wrappers separately reserved 0xa0/0x98 bytes. Inlining retains
 request space across recursion but adds no executed frame loads/stores.
 The maximum depth is fourteen levels; the larger recursive working stack
-stays below 3 KiB in each traversal. This is a stack-capacity trade, not a
+is about 3 KiB in each traversal. This is a stack-capacity trade, not a
 claim that a function's larger instruction total is itself a gain.
 
 Java/HotSpot remains the fastest competing runtime in accepted campaign

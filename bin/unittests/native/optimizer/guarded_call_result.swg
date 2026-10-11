@@ -22,6 +22,17 @@ func lookup(table: [*] u64, key, bias, scale: u64)->u64
     return value * scale + bias + key
 }
 
+// Two independent guards reach one slow block. Both must preserve every value
+// live across the call, while the cached fast path avoids the call's spills.
+#[Swag.Optimize(true), Swag.NoInline]
+func lookupAlternative(table: [*] u64, key, bias, scale: u64)->u64
+{
+    var value = key
+    if key >= 8 or table[key] == 0 do
+        value = slowLookup(key)
+    return value * scale + bias + key
+}
+
 #test
 {
     var table: [8] u64 = [10, 11, 12, 13, 14, 15, 16, 17]
@@ -38,4 +49,18 @@ func lookup(table: [*] u64, key, bias, scale: u64)->u64
 
     Swag.assert(sum == expected)
     Swag.assert(g_SlowCalls == 8)
+
+    table[2]    = 0
+    g_SlowCalls = 0
+    sum         = 0
+    expected    = 0
+    for key in 16'u64
+    {
+        sum += lookupAlternative(&table[0], key, 5, 2)
+        let value = key < 8 and key != 2 ? key : key * 3 + 1
+        expected += value * 2 + 5 + key
+    }
+
+    Swag.assert(sum == expected)
+    Swag.assert(g_SlowCalls == 9)
 }

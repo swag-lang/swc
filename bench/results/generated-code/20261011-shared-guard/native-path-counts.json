@@ -1,0 +1,218 @@
+{
+  "addresses": {
+    "inline-repeat": {
+      "bottomUp": 5368713248,
+      "release": 5368724000,
+      "benchAlloc": 5368737952,
+      "benchFree": 5368747872
+    },
+    "shared-guard-value": {
+      "bottomUp": 5368713248,
+      "release": 5368724000,
+      "benchAlloc": 5368738016,
+      "benchFree": 5368747936
+    }
+  },
+  "paths": [
+    {
+      "path": "bottomUp",
+      "leaf": false,
+      "tls_fast": true,
+      "before": {
+        "instructions": 53,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 6,
+        "calls": 3
+      },
+      "after": {
+        "instructions": 51,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 4,
+        "calls": 3
+      }
+    },
+    {
+      "path": "release",
+      "leaf": false,
+      "tls_fast": true,
+      "before": {
+        "instructions": 48,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 4,
+        "calls": 3
+      },
+      "after": {
+        "instructions": 46,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 2,
+        "calls": 3
+      }
+    },
+    {
+      "path": "bottomUp",
+      "leaf": true,
+      "tls_fast": true,
+      "before": {
+        "instructions": 47,
+        "explicit_memory": 19,
+        "saved_register_stack_operations": 6,
+        "calls": 1
+      },
+      "after": {
+        "instructions": 45,
+        "explicit_memory": 19,
+        "saved_register_stack_operations": 4,
+        "calls": 1
+      }
+    },
+    {
+      "path": "release",
+      "leaf": true,
+      "tls_fast": true,
+      "before": {
+        "instructions": 39,
+        "explicit_memory": 15,
+        "saved_register_stack_operations": 4,
+        "calls": 1
+      },
+      "after": {
+        "instructions": 37,
+        "explicit_memory": 15,
+        "saved_register_stack_operations": 2,
+        "calls": 1
+      }
+    },
+    {
+      "path": "benchAlloc",
+      "tls_fast": true,
+      "before": {
+        "instructions": 39,
+        "explicit_memory": 18,
+        "saved_register_stack_operations": 2,
+        "calls": 1
+      },
+      "after": {
+        "instructions": 39,
+        "explicit_memory": 18,
+        "saved_register_stack_operations": 2,
+        "calls": 1
+      }
+    },
+    {
+      "path": "benchFree",
+      "tls_fast": true,
+      "before": {
+        "instructions": 35,
+        "explicit_memory": 14,
+        "saved_register_stack_operations": 4,
+        "calls": 1
+      },
+      "after": {
+        "instructions": 33,
+        "explicit_memory": 14,
+        "saved_register_stack_operations": 2,
+        "calls": 1
+      }
+    },
+    {
+      "path": "bottomUp",
+      "leaf": false,
+      "tls_fast": false,
+      "before": {
+        "instructions": 56,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 6,
+        "calls": 4
+      },
+      "after": {
+        "instructions": 56,
+        "explicit_memory": 22,
+        "saved_register_stack_operations": 4,
+        "calls": 4
+      }
+    },
+    {
+      "path": "release",
+      "leaf": false,
+      "tls_fast": false,
+      "before": {
+        "instructions": 51,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 4,
+        "calls": 4
+      },
+      "after": {
+        "instructions": 51,
+        "explicit_memory": 22,
+        "saved_register_stack_operations": 2,
+        "calls": 4
+      }
+    },
+    {
+      "path": "bottomUp",
+      "leaf": true,
+      "tls_fast": false,
+      "before": {
+        "instructions": 50,
+        "explicit_memory": 19,
+        "saved_register_stack_operations": 6,
+        "calls": 2
+      },
+      "after": {
+        "instructions": 50,
+        "explicit_memory": 21,
+        "saved_register_stack_operations": 4,
+        "calls": 2
+      }
+    },
+    {
+      "path": "release",
+      "leaf": true,
+      "tls_fast": false,
+      "before": {
+        "instructions": 42,
+        "explicit_memory": 15,
+        "saved_register_stack_operations": 4,
+        "calls": 2
+      },
+      "after": {
+        "instructions": 42,
+        "explicit_memory": 17,
+        "saved_register_stack_operations": 2,
+        "calls": 2
+      }
+    },
+    {
+      "path": "benchAlloc",
+      "tls_fast": false,
+      "before": {
+        "instructions": 42,
+        "explicit_memory": 18,
+        "saved_register_stack_operations": 2,
+        "calls": 2
+      },
+      "after": {
+        "instructions": 44,
+        "explicit_memory": 20,
+        "saved_register_stack_operations": 2,
+        "calls": 2
+      }
+    },
+    {
+      "path": "benchFree",
+      "tls_fast": false,
+      "before": {
+        "instructions": 38,
+        "explicit_memory": 14,
+        "saved_register_stack_operations": 4,
+        "calls": 2
+      },
+      "after": {
+        "instructions": 38,
+        "explicit_memory": 16,
+        "saved_register_stack_operations": 2,
+        "calls": 2
+      }
+    }
+  ]
+}

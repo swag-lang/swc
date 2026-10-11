@@ -861,23 +861,56 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
         // result the region keeps still ends it: only register copies may follow
         // it - the result out of its return register, then into the variable it
         // is assigned to - as a slow path that computes a value has them.
-        bool     regionIsGuard = true;
-        bool     endsInCall    = false;
-        uint32_t inner         = idx + 1;
+        bool     regionIsGuard     = true;
+        bool     endsInCall        = false;
+        bool     conditionalEntry  = false;
+        bool     hasCallResultCopy = false;
+        uint32_t inner             = idx + 1;
         for (auto innerIt = std::next(it); regionIsGuard && inner < targetIdx; ++innerIt, ++inner)
         {
-            if (jumpOver && inner == idx + 1)
-                regionIsGuard = innerIt->op == MicroInstrOpcode::Label;
-            else if (innerIt->op == MicroInstrOpcode::Label)
+            if (innerIt->op == MicroInstrOpcode::Label)
+            {
+                regionIsGuard = inner == idx + 1;
+                if (regionIsGuard && !jumpOver)
+                {
+                    conditionalEntry = true;
+                    // Several forward guards may enter the same slow call (an
+                    // unsupported fast-path index, then an absent cached value).
+                    // A back edge, indirect entry or unconditional predecessor
+                    // does not establish that same guarded-entry shape.
+                    regionIsGuard = !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
+                                    std::ranges::find(controlFlowGraph_->addressTakenLabelIndices(), inner) == controlFlowGraph_->addressTakenLabelIndices().end();
+                    for (const uint32_t pred : controlFlowGraph_->predecessors(inner))
+                    {
+                        if (!regionIsGuard || pred == idx)
+                            continue;
+                        const MicroInstr*        entry    = instructions_->ptr(controlFlowGraph_->instructionRefs()[pred]);
+                        const MicroInstrOperand* entryOps = entry->ops(*operands_);
+                        regionIsGuard                     = pred < idx && entryOps &&
+                                        (entry->op == MicroInstrOpcode::JumpCond || entry->op == MicroInstrOpcode::JumpCondImm) &&
+                                        !MicroInstrInfo::isUnconditionalJumpInstruction(*entry, entryOps);
+                    }
+                }
+            }
+            else if (jumpOver && inner == idx + 1)
                 regionIsGuard = false;
             else if (MicroInstrInfo::isTerminatorInstruction(*innerIt))
                 regionIsGuard = false;
             else if (instructionUseDefs_[inner].isCall)
-                endsInCall = true;
+            {
+                endsInCall        = true;
+                hasCallResultCopy = false;
+            }
             else if (endsInCall)
-                endsInCall = innerIt->op == MicroInstrOpcode::LoadRegReg;
+            {
+                endsInCall        = innerIt->op == MicroInstrOpcode::LoadRegReg;
+                hasCallResultCopy = endsInCall;
+            }
         }
-        regionIsGuard = regionIsGuard && endsInCall;
+        // A labeled conditional entry qualifies as the alternate producer of
+        // a joined value. Applying the same new preference to void report
+        // blocks can add spill frames while retaining every persistent save.
+        regionIsGuard = regionIsGuard && endsInCall && (!conditionalEntry || hasCallResultCopy);
 
         if (!regionIsGuard)
             continue;

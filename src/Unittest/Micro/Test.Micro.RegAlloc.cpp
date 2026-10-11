@@ -2136,6 +2136,57 @@ SWC_TEST_BEGIN(RegAlloc_ScalarSpillIgnoresNonWidthOperands)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_SharedGuardedResultKeepsTransientCarrier)
+{
+    for (const auto callConvKind : testedCallConvs())
+    {
+        for (const bool returnsValue : {false, true})
+        {
+            for (const bool conditionalEntry : {false, true})
+            {
+                const CallConv& conv = CallConv::get(callConvKind);
+                MicroBuilder    builder(ctx);
+                builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+                const MicroReg      carry = MicroReg::virtualIntReg(0);
+                const MicroReg      value = MicroReg::virtualIntReg(1);
+                const MicroLabelRef slow  = builder.createLabel();
+                const MicroLabelRef join  = builder.createLabel();
+                builder.emitLoadRegMem(carry, conv.intArgRegs[0], 0, MicroOpBits::B64);
+                const MicroInstrRef carryDef = builder.instructions().lastInstructionRef();
+                builder.emitLoadRegReg(value, conv.intArgRegs[1], MicroOpBits::B64);
+                builder.emitCmpRegImm(value, ApInt(8, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(conditionalEntry ? MicroCond::AboveOrEqual : MicroCond::Unconditional, MicroOpBits::B32, slow);
+                builder.emitCmpRegImm(value, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, join);
+                builder.placeLabel(slow);
+                builder.emitCallReg(conv.intReturn, callConvKind, 0, 0);
+                if (returnsValue)
+                    builder.emitLoadRegReg(value, conv.intReturn, MicroOpBits::B64);
+                builder.placeLabel(join);
+                builder.emitOpBinaryRegReg(carry, value, MicroOp::Add, MicroOpBits::B64);
+                builder.emitLoadRegReg(conv.intReturn, carry, MicroOpBits::B64);
+                builder.emitRet();
+
+                MicroRegisterAllocationPass pass;
+                MicroPassManager            passes;
+                passes.addStartPass(pass);
+                MicroPassContext passCtx;
+                passCtx.callConvKind = callConvKind;
+                SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+                SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+                SWC_RESULT(verifyCallConvConformity(builder, conv));
+                const MicroInstr* load = builder.instructions().ptr(carryDef);
+                if (!passCtx.intervalAllocated || !load || load->op != MicroInstrOpcode::LoadRegMem)
+                    return Result::Error;
+                const bool persistent = conv.isIntPersistentReg(load->ops(builder.operands())[0].reg);
+                if (persistent == (returnsValue && conditionalEntry))
+                    return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

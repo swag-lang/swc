@@ -136,9 +136,13 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
     // so a block never sees another one's relocated half.
     SmallVector<ColdBlock> blocks;
     MicroInstrRef          previousRef = MicroInstrRef::invalid();
-    for (MicroInstrRef ref = storage.findNextInstructionRef(MicroInstrRef::invalid()); ref.isValid();)
+    const auto view  = storage.view();
+    auto       it    = view.begin();
+    const auto endIt = view.end();
+    while (it != endIt)
     {
-        const MicroInstr*        inst = storage.ptr(ref);
+        const MicroInstrRef      ref  = it.current;
+        const MicroInstr*        inst = &*it;
         const MicroInstrOperand* ops  = inst->ops(operands);
         ColdBlock                block;
         bool                     matched = false;
@@ -149,7 +153,9 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
             MicroCond inverted = MicroCond::Unconditional;
             if (MicroPassHelpers::invertCondition(inverted, ops[0].cpuCond))
             {
-                matched        = matchColdBlock(block, context, reportCalls, storage.findNextInstructionRef(ref), &targetId);
+                auto nextIt = it;
+                ++nextIt;
+                matched        = matchColdBlock(block, context, reportCalls, nextIt.current, &targetId);
                 block.skipped  = true;
                 block.guardRef = ref;
             }
@@ -167,13 +173,14 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
         if (!matched)
         {
             previousRef = ref;
-            ref         = storage.findNextInstructionRef(ref);
+            ++it;
             continue;
         }
 
         blocks.push_back(block);
         previousRef = block.lastRef;
-        ref         = storage.findNextInstructionRef(block.lastRef);
+        it          = MicroStorage::Iterator{&storage, block.lastRef};
+        ++it;
     }
 
     if (blocks.empty())

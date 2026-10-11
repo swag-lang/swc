@@ -32,10 +32,11 @@ namespace PostRaPeephole
         // as "not provably live") so callers only act on certain liveness.
         bool regUsedBeforeRedef(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
         {
-            MicroInstrRef cur = ctx.nextRef(fromRef);
-            for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.nextRef(cur))
+            auto scanIt = MicroStorage::Iterator{ctx.storage, fromRef};
+            ++scanIt;
+            for (int step = 0; step < K_MAX_LIVENESS_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
             {
-                const MicroInstr* inst = ctx.instruction(cur);
+                const MicroInstr* inst = &*scanIt;
                 if (!inst)
                     return false;
 

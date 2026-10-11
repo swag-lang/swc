@@ -134,9 +134,11 @@ namespace PostRaPeephole
             return false;
 
         const uint64_t targetLabel = ops[2].valueU64;
-        for (MicroInstrRef scanRef = ctx.nextRef(ref); scanRef.isValid(); scanRef = ctx.nextRef(scanRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        for (++scanIt; scanIt.current.isValid(); ++scanIt)
         {
-            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            const MicroInstrRef scanRef = scanIt.current;
+            const MicroInstr*   scanInst = &*scanIt;
             if (!scanInst)
                 return false;
             if (scanInst->op == MicroInstrOpcode::Nop)
@@ -202,10 +204,12 @@ namespace PostRaPeephole
     {
         constexpr int K_MAX_LIVENESS_WINDOW = 32;
 
-        MicroInstrRef cur = ctx.nextRef(fromRef);
-        for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.nextRef(cur))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, fromRef};
+        ++scanIt;
+        for (int step = 0; step < K_MAX_LIVENESS_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            const MicroInstr* inst = ctx.instruction(cur);
+            const MicroInstrRef cur  = scanIt.current;
+            const MicroInstr*   inst = &*scanIt;
             if (!inst)
                 return false;
 
@@ -257,10 +261,12 @@ namespace PostRaPeephole
         if (!ctx.isPrivateFrameBase(baseReg))
             return false;
 
-        MicroInstrRef scanRef = ctx.nextRef(storeRef);
-        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanRef.isValid(); ++step, scanRef = ctx.nextRef(scanRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, storeRef};
+        ++scanIt;
+        for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            const MicroInstrRef scanRef = scanIt.current;
+            const MicroInstr*   scanInst = &*scanIt;
             if (!scanInst)
                 return false;
             const MicroInstrOperand* scanOps = scanInst->op == MicroInstrOpcode::LoadMemReg ? scanInst->ops(*ctx.operands) : nullptr;

@@ -350,18 +350,26 @@ Result SymbolFunction::emit(TaskContext& ctx)
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
-    // Every compile-time call asks this of each function it reaches, and nearly all of them are
-    // lowered already: that answer is read under a shared lock, so the callers do not queue
-    // behind one another to be told the same thing.
+    if (hasFlag(SymbolFlagsE::MachineCodeEmitted))
+        return Result::Continue;
+
+    // Some paths prepopulate machine code without going through this function, so keep the lock
+    // as a fallback for code that did not publish the flag.
     {
         const std::shared_lock lock(emitMutex_);
         if (hasLoweredCode())
+        {
+            addFlag(SymbolFlagsE::MachineCodeEmitted);
             return Result::Continue;
+        }
     }
 
     const std::unique_lock lock(emitMutex_);
     if (hasLoweredCode())
+    {
+        addFlag(SymbolFlagsE::MachineCodeEmitted);
         return Result::Continue;
+    }
     auto& builder = microInstrBuilder(ctx);
     // Mark which return ABI register bank the function may write. Later backend
     // passes use this to preserve live return registers through epilog generation.
@@ -394,6 +402,8 @@ Result SymbolFunction::emit(TaskContext& ctx)
     // Lowered machine code keeps the emitted bytes/debug info/relocations.
     // The micro builder itself is transient and otherwise retains per-function IR memory.
     releaseMicroInstrBuilder();
+    if (hasLoweredCode())
+        addFlag(SymbolFlagsE::MachineCodeEmitted);
 
     ctx.compiler().notifyAlive();
     return Result::Continue;

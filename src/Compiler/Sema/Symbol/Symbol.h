@@ -102,6 +102,7 @@ enum class SymbolFlagsE : uint16_t
     Private             = 1 << 9,
     ConstraintsResolved = 1 << 10,
     EditorRetired       = 1 << 11,
+    MachineCodeEmitted  = 1 << 12,
 };
 
 using SymbolFlags             = AtomicEnumFlags<SymbolFlagsE>;

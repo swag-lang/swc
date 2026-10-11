@@ -1267,9 +1267,13 @@ namespace
 
             // The first suffix instruction cannot be the erased second member
             // of a pair. Survivors keep their opcode and remain in this suffix.
-            for (MicroInstrRef ref = firstRef; ref != retRef;)
+            auto mergeIt = MicroStorage::Iterator{context.instructions, firstRef};
+            while (mergeIt.current != retRef)
             {
-                const MicroInstrRef nextRef = context.instructions->findNextInstructionRef(ref);
+                auto nextIt = mergeIt;
+                ++nextIt;
+                const MicroInstrRef ref     = mergeIt.current;
+                const MicroInstrRef nextRef = nextIt.current;
                 if (nextRef == retRef)
                     break;
 
@@ -1278,10 +1282,10 @@ namespace
                     changedAny = true;
                     // Preserve retries of earlier rejected pairs after a
                     // neighboring immediate changes, including conformance.
-                    ref = firstRef;
+                    mergeIt = MicroStorage::Iterator{context.instructions, firstRef};
                 }
                 else
-                    ref = nextRef;
+                    mergeIt = nextIt;
             }
         }
 

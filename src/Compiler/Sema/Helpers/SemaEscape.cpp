@@ -5640,18 +5640,34 @@ namespace SemaEscape
                             payload |= (source.payload & bit) != 0;
                         }
 
-                        ReturnSummary&      summary = entry;
-                        const ReturnSummary before  = summary;
+                        ReturnSummary& summary = entry;
                         if (borrows && (callee.borrows & calleeBit))
-                            summary.borrows |= callerBit;
+                        {
+                            if (!(summary.borrows & callerBit))
+                            {
+                                summary.borrows |= callerBit;
+                                changed = true;
+                            }
+                        }
                         if (borrows && storage && !edge.viaStoredField)
                         {
                             if (callee.storage & calleeBit)
-                                summary.storage |= callerBit;
+                            {
+                                if (!(summary.storage & callerBit))
+                                {
+                                    summary.storage |= callerBit;
+                                    changed = true;
+                                }
+                            }
                             if ((callee.payload & calleeBit) || (payload && (callee.storage & calleeBit)))
-                                summary.payload |= callerBit;
+                            {
+                                if (!(summary.payload & callerBit))
+                                {
+                                    summary.payload |= callerBit;
+                                    changed = true;
+                                }
+                            }
                         }
-                        changed |= before.borrows != summary.borrows || before.storage != summary.storage || before.payload != summary.payload;
                     });
                 }
             }

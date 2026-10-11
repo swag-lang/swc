@@ -5537,10 +5537,12 @@ namespace SemaEscape
 
         struct ReturnSummary
         {
-            uint64_t borrows  = 0;
-            uint64_t storage  = 0;
-            uint64_t payload  = 0;
-            bool     complete = true;
+            uint64_t borrows          = 0;
+            uint64_t storage          = 0;
+            uint64_t payload          = 0;
+            bool     complete         = true;
+            bool     edgesScanned     = false;
+            bool     hasRelevantEdges = false;
         };
         struct ReturnEntry
         {
@@ -5571,6 +5573,8 @@ namespace SemaEscape
             // Code generation may have removed a call whose semantic return edge still
             // exists. An unresolved route can later reveal an owned payload, so absence
             // of a payload bit is not an alias proof until every return dependency closes.
+            // The locked edge table is stable; remember callers with no direct return edges
+            // so later fixpoint sweeps can skip their map lookup.
             bool changed = true;
             while (changed)
             {
@@ -5579,14 +5583,16 @@ namespace SemaEscape
                 {
                     ReturnEntry&   returnEntry = returnEntries[entryIndex];
                     ReturnSummary& entry       = returnEntry.summary;
-                    if (!entry.complete)
+                    if (!entry.complete || (entry.edgesScanned && !entry.hasRelevantEdges))
                         continue;
 
+                    entry.edgesScanned = true;
                     edgesOf(returnEntry.function, [&](const SemaEscapeSummaryEdge& edge) {
                         if (!entry.complete)
                             return;
                         if (edge.callerIndirect || edge.calleeIndirect)
                             return;
+                        entry.hasRelevantEdges = true;
 
                         const ReturnSummary* callee = returns.find(edge.callee);
                         if (!callee || !callee->complete ||
@@ -5610,7 +5616,7 @@ namespace SemaEscape
                 {
                     ReturnEntry&   returnEntry = returnEntries[entryIndex];
                     ReturnSummary& entry       = returnEntry.summary;
-                    if (!entry.complete)
+                    if (!entry.complete || !entry.hasRelevantEdges)
                         continue;
 
                     edgesOf(returnEntry.function, [&](const SemaEscapeSummaryEdge& edge) {

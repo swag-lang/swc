@@ -3,13 +3,23 @@
 	"name": "Swag Dark",
 	"semanticHighlighting": true,
 	"semanticTokenColors": {
+		"namespace": "#94A3B8",
+		"type": "#56C2B3",
+		"struct": "#56C2B3",
+		"interface": "#56C2B3",
+		"enum": "#56C2B3",
+		"enumMember": "#B8C4CC",
+		"function": "#E8A06A",
+		"function.intrinsic": "#CBB45C",
+		"method.intrinsic": "#CBB45C",
+		"method": "#D7A17F",
 		"parameter": {
 			"foreground": "#D5D5DD",
 			"italic": true
 		},
 		"property": "#B8C4CC",
 		"variable.local": "#D5D5DD",
-		"variable.global": "#38BDF8"
+		"variable.global": "#94A3B8"
 	},
 	"colors": {
 		"checkbox.border": "#6B6B6B",

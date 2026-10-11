@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Give resolved parameters a quiet italic style and soften the field color in Swag Dark.
+- Refine semantic highlighting for methods, intrinsic calls, interface fields, and symbols
+  without a navigable source definition.
+- Keep parameters and fields quiet, and tone down global variable color in Swag Dark.
 - Distinguish local and global variables in semantic tokens and the Swag Dark theme.
 - Add a compiler-backed language server with semantic highlighting, hover types, inferred
   type hints, definition navigation, module references, document symbols, and diagnostics.

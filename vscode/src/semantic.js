@@ -1,9 +1,9 @@
 const {TextDocument} = require('vscode-languageserver-textdocument');
 const {pathKey, pathToFileURL} = require('./compiler');
 
-const tokenTypes = ['namespace', 'type', 'struct', 'interface', 'enum', 'enumMember', 'function', 'variable', 'parameter', 'property'];
-const tokenModifiers = ['declaration', 'readonly', 'local', 'global'];
-const symbolKinds = {namespace: 3, type: 5, struct: 23, interface: 11, enum: 10, enumMember: 22, function: 12, variable: 13, parameter: 13, property: 7};
+const tokenTypes = ['namespace', 'type', 'struct', 'interface', 'enum', 'enumMember', 'function', 'variable', 'parameter', 'property', 'method'];
+const tokenModifiers = ['declaration', 'readonly', 'local', 'global', 'intrinsic'];
+const symbolKinds = {namespace: 3, type: 5, struct: 23, interface: 11, enum: 10, enumMember: 22, function: 12, variable: 13, parameter: 13, property: 7, method: 6};
 const implicitTryTooltip = 'Propagates its error: the function has #[Swag.Propagate]';
 
 class Source
@@ -21,6 +21,7 @@ class Source
             else if (this.bytes[i] === 13 && this.bytes[i + 1] !== 10) this.lines.push(i + 1);
         }
         this.occurrences = [];
+        this.semanticOccurrences = [];
         this.propagations = [];
     }
 
@@ -68,24 +69,35 @@ class SemanticSnapshot
         for (const file of snapshot.files)
         {
             const source = this.files.get(pathKey(file.path));
-            const candidates = new Map();
+            const semanticCandidates = new Map();
+            const navigationCandidates = new Map();
             for (const item of file.occurrences)
             {
                 const range = source.range(item.start, item.length);
+                if (!range || !tokenTypes.includes(item.kind)) continue;
+                const previousSemantic = semanticCandidates.get(item.start);
+                if (previousSemantic && (previousSemantic.kind !== item.kind || previousSemantic.readonly !== item.readonly ||
+                    previousSemantic.storage !== item.storage || previousSemantic.intrinsic !== item.intrinsic))
+                    semanticCandidates.set(item.start, {ambiguous: true});
+                else if (!previousSemantic)
+                    semanticCandidates.set(item.start, {...item, range, offset: source.offset(item.start), end: source.offset(item.start + item.length)});
+
+                if (!item.definition) continue;
                 const target = this.files.get(pathKey(item.definition.path));
                 const targetRange = target?.range(item.definition.start, item.definition.length);
-                if (!range || !targetRange || !tokenTypes.includes(item.kind)) continue;
+                if (!targetRange) continue;
                 const identity = `${pathKey(item.definition.path)}:${item.definition.start}`;
-                const previous = candidates.get(item.start);
+                const previous = navigationCandidates.get(item.start);
                 // Multiple instantiations at one written position have no unique answer.
                 if (previous && (previous.identity !== identity || previous.type !== item.type))
-                    candidates.set(item.start, {ambiguous: true});
+                    navigationCandidates.set(item.start, {ambiguous: true});
                 else if (!previous)
-                    candidates.set(item.start, {...item, range, identity,
+                    navigationCandidates.set(item.start, {...item, range, identity,
                         offset: source.offset(item.start), end: source.offset(item.start + item.length),
                         location: {uri: target.uri, range: targetRange}});
             }
-            source.occurrences = [...candidates.values()].filter(item => !item.ambiguous).sort((a, b) => a.offset - b.offset);
+            source.occurrences = [...navigationCandidates.values()].filter(item => !item.ambiguous).sort((a, b) => a.offset - b.offset);
+            source.semanticOccurrences = [...semanticCandidates.values()].filter(item => !item.ambiguous).sort((a, b) => a.offset - b.offset);
             // Fallible expressions a '#[Swag.Propagate]' body reads as an unwritten 'try'.
             source.propagations = (file.propagations ?? []).map(byte => source.offset(byte))
                 .filter(offset => offset !== undefined).sort((a, b) => a - b);
@@ -158,13 +170,14 @@ class SemanticSnapshot
     {
         const data = [];
         let previousLine = 0, previousCharacter = 0;
-        for (const item of this.source(uri)?.occurrences ?? [])
+        for (const item of this.source(uri)?.semanticOccurrences ?? [])
         {
             const {start, end} = item.range;
             if (start.line !== end.line) continue;
             const storageModifier = item.storage === 'local' ? 4 : item.storage === 'global' ? 8 : 0;
             data.push(start.line - previousLine, start.line === previousLine ? start.character - previousCharacter : start.character,
-                end.character - start.character, tokenTypes.indexOf(item.kind), (item.declaration ? 1 : 0) | (item.readonly ? 2 : 0) | storageModifier);
+                end.character - start.character, tokenTypes.indexOf(item.kind), (item.declaration ? 1 : 0) | (item.readonly ? 2 : 0) |
+                    storageModifier | (item.intrinsic ? 16 : 0));
             previousLine = start.line;
             previousCharacter = start.character;
         }

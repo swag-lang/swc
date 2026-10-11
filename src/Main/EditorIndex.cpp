@@ -55,11 +55,11 @@ namespace
             case SymbolKind::Enum: return "enum";
             case SymbolKind::EnumValue: return "enumMember";
             case SymbolKind::Alias: return "type";
-            case SymbolKind::Function: return "function";
+            case SymbolKind::Function: return symbol.cast<SymbolFunction>().isMethod() ? "method" : "function";
             case SymbolKind::Variable:
                 if (symbol.cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::Parameter))
                     return "parameter";
-                if (symbol.ownerSymMap() && symbol.ownerSymMap()->isStruct())
+                if (symbol.ownerSymMap() && (symbol.ownerSymMap()->isStruct() || symbol.ownerSymMap()->isInterface()))
                     return "property";
                 return "variable";
             case SymbolKind::Constant: return "variable";
@@ -73,7 +73,8 @@ namespace
             return {};
 
         const auto& variable = symbol.cast<SymbolVariable>();
-        if (variable.hasExtraFlag(SymbolVariableFlagsE::Parameter) || (symbol.ownerSymMap() && symbol.ownerSymMap()->isStruct()))
+        if (variable.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+            (symbol.ownerSymMap() && (symbol.ownerSymMap()->isStruct() || symbol.ownerSymMap()->isInterface())))
             return {};
         if (variable.hasGlobalStorage())
             return "global";
@@ -125,16 +126,17 @@ namespace
 
             const SourceView& target = compiler->srcView(symbol.srcViewRef());
             // Generated views can reuse a physical file with different offsets. Until they have a
-            // canonical source mapping, returning that file would navigate to unrelated text.
-            if (!target.file() || target.ref() != target.file()->ast().srcView().ref())
-                return;
-            const Token& targetToken = target.token(symbol.tokRef());
-            targetFiles->insert(target.file());
-            const bool  declaration = target.ref() == source.ref() && symbol.tokRef() == tokenRef;
+            // canonical source mapping, omit navigation while keeping the resolved token kind.
+            const bool  hasDefinition = target.file() && target.ref() == target.file()->ast().srcView().ref();
+            const Token* targetToken  = symbol.tokRef().isInvalid() ? nullptr : &target.token(symbol.tokRef());
+            if (hasDefinition)
+                targetFiles->insert(target.file());
+            const bool  declaration = hasDefinition && target.ref() == source.ref() && symbol.tokRef() == tokenRef;
             const auto* variable    = symbol.decl()->safeCast<AstSingleVarDecl>();
             const bool  inferred    = declaration && variable && variable->nodeTypeRef.isInvalid() && variable->nodeInitRef.isValid();
             const bool  readonly    = symbol.isConstant() || symbol.isEnumValue() || symbol.isLetVariable();
             const auto  storage     = variableStorage(symbol);
+            const bool  intrinsic   = symbol.isFunction() && targetToken && Token::isIntrinsic(targetToken->id);
 
             if (!first)
                 *out << ',';
@@ -151,9 +153,16 @@ namespace
                 *out << ",\"storage\":";
                 writeString(*out, storage);
             }
-            *out << ",\"inferred\":" << (inferred ? "true" : "false") << ",\"definition\":{\"path\":";
-            writePath(*out, target.file()->path());
-            *out << ",\"start\":" << target.tokenByteStart(targetToken) << ",\"length\":" << targetToken.byteLength << "}}";
+            *out << ",\"intrinsic\":" << (intrinsic ? "true" : "false")
+                 << ",\"inferred\":" << (inferred ? "true" : "false") << ",\"definition\":";
+            if (hasDefinition && targetToken)
+            {
+                *out << "{\"path\":";
+                writePath(*out, target.file()->path());
+                *out << ",\"start\":" << target.tokenByteStart(*targetToken) << ",\"length\":" << targetToken->byteLength << "}}";
+            }
+            else
+                *out << "null}";
         }
 
         void visit(AstNodeRef ref, const AstNode& node)

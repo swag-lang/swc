@@ -1005,16 +1005,17 @@ namespace
             }
 
             case MicroInstrOpcode::OpTernaryRegRegReg:
+            case MicroInstrOpcode::OpTernaryRegRegMem:
             {
-                if (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct ||
-                    ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom)
+                if (isFusedFloatMicroOp(ops[4].microOp))
                 {
-                    const bool     productDestination = ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
-                    const bool     subtract           = ops[4].microOp == MicroOp::FloatSubtractProduct || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
-                    const MicroReg first              = ops[productDestination ? 0 : 1].reg;
-                    const MicroReg second             = ops[productDestination ? 1 : 2].reg;
-                    const MicroReg addend             = ops[productDestination ? 2 : 0].reg;
-                    return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(subtract ? "fnma" : "fma"), regName(first, regPrintMode, encoder), regName(second, regPrintMode, encoder), regName(addend, regPrintMode, encoder));
+                    const bool productDestination = ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
+                    const bool subtract           = ops[4].microOp == MicroOp::FloatSubtractProduct || ops[4].microOp == MicroOp::FloatProductSubtractFrom;
+                    const auto third              = inst.op == MicroInstrOpcode::OpTernaryRegRegMem ? memBaseOffsetString(ops[2].reg, ops[5].valueU64, regPrintMode, encoder) : regName(ops[2].reg, regPrintMode, encoder);
+                    const auto first              = regName(ops[productDestination ? 0 : 1].reg, regPrintMode, encoder);
+                    const auto second             = productDestination ? regName(ops[1].reg, regPrintMode, encoder) : third;
+                    const auto addend             = productDestination ? third : regName(ops[0].reg, regPrintMode, encoder);
+                    return std::format("{} = {}({}, {}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(subtract ? "fnma" : "fma"), first, second, addend);
                 }
                 const auto infixOp = binaryInfixOperator(ops[4].microOp);
                 if (!infixOp.empty())
@@ -2202,13 +2203,17 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::OpTernaryRegRegReg:
+            case MicroInstrOpcode::OpTernaryRegRegMem:
                 appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[4].microOp));
                 appendSep(out);
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
                 appendSep(out);
-                appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
+                if (inst.op == MicroInstrOpcode::OpTernaryRegRegMem)
+                    appendMemBaseOffset(out, ctx, ops[2].reg, ops[5].valueU64, regPrintMode, encoder);
+                else
+                    appendRegister(out, ctx, ops[2].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[3].opBits);
                 break;

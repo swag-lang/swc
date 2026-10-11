@@ -1192,7 +1192,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     optimizeScalarFloatInstructions(ctx);
     // Memory operands must not take register products away from contraction
     // or prevent a result copy from selecting the producer's destination.
-    foldNonDestructiveFloatMemoryOperands(ctx);
+    foldScalarFloatMemoryOperands(ctx);
 
     if (ctx.actions.empty())
         return Result::Continue;

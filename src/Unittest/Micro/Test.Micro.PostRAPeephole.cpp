@@ -3840,7 +3840,7 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
         context.floatReturn = CallConv::get(CallConvKind::C).floatReturn;
         if (test == Case::ClaimedGap)
             context.claimAll({gapRef});
-        PostRaPeephole::foldNonDestructiveFloatMemoryOperands(context);
+        PostRaPeephole::foldScalarFloatMemoryOperands(context);
         const bool folded = context.isClaimed(loadRef);
         if (folded != (test == Case::Direct || test == Case::Commute))
             return Result::Error;
@@ -5880,6 +5880,325 @@ SWC_TEST_BEGIN(PostRAPeephole_LoadFeedsFloatBeforeRetainedIntegerCopy)
             }
         }
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FusedFloatMemoryPreservesEveryLane)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg result = MicroReg::floatReg(0);
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const std::array<uint64_t, 5> samples = bits == MicroOpBits::B32
+                                                    ? std::array<uint64_t, 5>{0x3FC00000, 0x80000000, 0x7FC01234, 0x7F801234, 0x7F800000}
+                                                    : std::array<uint64_t, 5>{0x3FF8000000000000, 0x8000000000000000, 0x7FF8000000001234, 0x7FF0000000001234, 0x7FF0000000000000};
+        for (const auto op : {MicroOp::FloatAddProduct, MicroOp::FloatSubtractProduct, MicroOp::FloatProductAdd, MicroOp::FloatProductSubtractFrom})
+        {
+            for (const uint64_t accumulator : samples)
+            {
+                for (const uint64_t factor : samples)
+                {
+                    for (const uint64_t memory : samples)
+                    {
+                        std::array<uint64_t, 10> reference{};
+                        for (const bool optimize : {false, true})
+                        {
+                            std::array<uint64_t, 10> values = {accumulator | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567,
+                                                               factor | (bits == MicroOpBits::B32 ? 0x7654321000000000 : 0), 0x0123456789ABCDEF, memory, UINT64_MAX};
+                            MicroBuilder             builder(ctx);
+                            builder.emitLoadRegMem(result, base, 0, MicroOpBits::B128);
+                            builder.emitLoadRegMem(left, base, 16, MicroOpBits::B128);
+                            builder.emitLoadRegMem(loaded, base, 32, bits);
+                            builder.emitOpTernaryRegRegReg(result, left, loaded, op, bits);
+                            builder.emitClearReg(loaded, MicroOpBits::B128);
+                            builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+                            builder.emitLoadMemReg(base, 64, left, MicroOpBits::B128);
+                            builder.emitRet();
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                reference = values;
+                            else if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpTernaryRegRegMem) != 1)
+                                return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FusedFloatMemoryChecksMotionAndLanes)
+{
+    enum class Case
+    {
+        Direct,
+        LiveCarrier,
+        LiveUpper,
+        AliasStore,
+        ChangedBase,
+        ClaimedGap,
+        LoadedDestination,
+        LoadedLeft,
+        Indexed,
+        Branch,
+        WidthMismatch
+    };
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg result = MicroReg::floatReg(3);
+    for (const auto test : {Case::Direct, Case::LiveCarrier, Case::LiveUpper, Case::AliasStore, Case::ChangedBase, Case::ClaimedGap, Case::LoadedDestination, Case::LoadedLeft, Case::Indexed, Case::Branch, Case::WidthMismatch})
+    {
+        MicroBuilder builder(ctx);
+        if (test == Case::Indexed)
+            builder.emitLoadAmcRegMem(loaded, MicroOpBits::B64, base, MicroReg::intReg(8), 8, 16, MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(loaded, base, 16, MicroOpBits::B64);
+        const auto loadRef = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegImm(MicroReg::intReg(9), ApInt(17, 64), MicroOpBits::B64);
+        const auto gapRef = builder.instructions().lastInstructionRef();
+        if (test == Case::AliasStore)
+            builder.emitLoadMemReg(base, 16, left, MicroOpBits::B64);
+        if (test == Case::ChangedBase)
+            builder.emitOpBinaryRegImm(base, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        if (test == Case::Branch)
+            builder.placeLabel(builder.createLabel());
+        builder.emitOpTernaryRegRegReg(test == Case::LoadedDestination ? loaded : result, test == Case::LoadedLeft ? loaded : left, loaded, MicroOp::FloatProductAdd, test == Case::WidthMismatch ? MicroOpBits::B32 : MicroOpBits::B64);
+        const auto opRef = builder.instructions().lastInstructionRef();
+        if (test == Case::LiveUpper)
+            builder.emitLoadRegReg(loaded, left, MicroOpBits::B64);
+        if (test == Case::LiveCarrier || test == Case::LiveUpper)
+            builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B128);
+        builder.emitClearReg(loaded, MicroOpBits::B128);
+        builder.emitRet();
+
+        X64Encoder              encoder(ctx);
+        PostRaPeephole::Context context;
+        context.builder     = &builder;
+        context.storage     = &builder.instructions();
+        context.operands    = &builder.operands();
+        context.encoder     = &encoder;
+        context.floatReturn = CallConv::get(CallConvKind::C).floatReturn;
+        if (test == Case::ClaimedGap)
+            context.claimAll({gapRef});
+        PostRaPeephole::foldScalarFloatMemoryOperands(context);
+        const bool folded = context.isClaimed(loadRef);
+        if (folded != (test == Case::Direct))
+            return Result::Error;
+        if (folded && (!context.isClaimed(gapRef) || !context.isClaimed(opRef)))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FusedFloatMemoryMovesOneRelocation)
+{
+    for (const bool duplicate : {false, true})
+    {
+        MicroBuilder       builder(ctx);
+        constexpr MicroReg left   = MicroReg::floatReg(1);
+        constexpr MicroReg loaded = MicroReg::floatReg(2);
+        constexpr MicroReg result = MicroReg::floatReg(3);
+        builder.emitLoadRegMem(loaded, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        const auto            loadRef = builder.instructions().lastInstructionRef();
+        const MicroRelocation relocation{
+            .kind           = MicroRelocation::Kind::GlobalInitAddress,
+            .form           = MicroRelocation::Form::Relative32,
+            .instructionRef = loadRef,
+            .targetAddress  = 0x1000,
+        };
+        builder.addRelocation(relocation);
+        if (duplicate)
+            builder.addRelocation(relocation);
+        builder.emitOpTernaryRegRegReg(result, left, loaded, MicroOp::FloatProductSubtractFrom, MicroOpBits::B64);
+        const auto opRef = builder.instructions().lastInstructionRef();
+        builder.emitClearReg(loaded, MicroOpBits::B128);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpTernaryRegRegMem) != (duplicate ? 0u : 1u))
+            return Result::Error;
+        for (const auto& moved : builder.codeRelocations())
+            if (moved.instructionRef != (duplicate ? loadRef : opRef) || !moved.hasSameTarget(relocation))
+                return Result::Error;
+        if (!duplicate)
+        {
+            const auto* op     = builder.instructions().ptr(opRef);
+            const auto  useDef = op->collectUseDef(builder.operands(), &encoder);
+            if (useDef.defs.size() != 1 || useDef.defs[0] != result ||
+                std::ranges::find(useDef.uses, result) == useDef.uses.end() ||
+                std::ranges::find(useDef.uses, left) == useDef.uses.end() ||
+                std::ranges::find(useDef.uses, loaded) != useDef.uses.end())
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_MemoryProductContractionRespectsMotionAndPolicy)
+{
+    enum class Case
+    {
+        Direct,
+        Disabled,
+        LiveProduct,
+        LiveUpper,
+        AliasStore,
+        ChangedBase,
+        ChangedFactor,
+        ClaimedGap,
+        ClaimMultiply,
+        ClaimAccumulate,
+        Branch,
+        Rip,
+        DuplicateRelocation
+    };
+    constexpr MicroReg accumulator = MicroReg::floatReg(0);
+    constexpr MicroReg factor      = MicroReg::floatReg(1);
+    constexpr MicroReg product     = MicroReg::floatReg(2);
+    constexpr MicroReg base        = MicroReg::intReg(8);
+    for (const auto test : {Case::Direct, Case::Disabled, Case::LiveProduct, Case::LiveUpper, Case::AliasStore, Case::ChangedBase, Case::ChangedFactor, Case::ClaimedGap, Case::ClaimMultiply, Case::ClaimAccumulate, Case::Branch, Case::Rip, Case::DuplicateRelocation})
+    {
+        MicroBuilder builder(ctx);
+        auto         cfg = builder.backendBuildCfg();
+        cfg.fpMathFma    = test != Case::Disabled;
+        builder.setBackendBuildCfg(cfg);
+        const bool rip = test == Case::Rip || test == Case::DuplicateRelocation;
+        builder.emitOpBinaryRegRegMem(product, factor, rip ? MicroReg::instructionPointer() : base, rip ? 0 : 8, MicroOp::FloatMultiply, MicroOpBits::B64);
+        const auto multiply = builder.instructions().lastInstructionRef();
+        if (rip)
+        {
+            const MicroRelocation relocation{
+                .kind           = MicroRelocation::Kind::GlobalInitAddress,
+                .form           = MicroRelocation::Form::Relative32,
+                .instructionRef = multiply,
+                .targetAddress  = 0x1000,
+            };
+            builder.addRelocation(relocation);
+            if (test == Case::DuplicateRelocation)
+                builder.addRelocation(relocation);
+        }
+        builder.emitLoadRegMem(accumulator, base, 16, MicroOpBits::B128);
+        const auto gap = builder.instructions().lastInstructionRef();
+        if (test == Case::AliasStore)
+            builder.emitLoadMemReg(base, 8, factor, MicroOpBits::B64);
+        if (test == Case::ChangedBase)
+            builder.emitOpBinaryRegImm(base, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        if (test == Case::ChangedFactor)
+            builder.emitClearReg(factor, MicroOpBits::B128);
+        if (test == Case::Branch)
+        {
+            const auto join = builder.createLabel();
+            builder.emitCmpRegImm(base, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+            builder.emitNop();
+            builder.placeLabel(join);
+        }
+        builder.emitOpBinaryRegReg(accumulator, product, MicroOp::FloatAdd, MicroOpBits::B64);
+        const auto accumulate = builder.instructions().lastInstructionRef();
+        if (test == Case::LiveUpper)
+            builder.emitLoadRegReg(product, factor, MicroOpBits::B64);
+        if (test == Case::LiveProduct || test == Case::LiveUpper)
+            builder.emitLoadMemReg(base, 32, product, MicroOpBits::B128);
+        builder.emitClearReg(product, MicroOpBits::B128);
+        builder.emitLoadMemReg(base, 48, accumulator, MicroOpBits::B128);
+        builder.emitRet();
+
+        X64Encoder              encoder(ctx);
+        PostRaPeephole::Context context;
+        context.builder     = &builder;
+        context.storage     = &builder.instructions();
+        context.operands    = &builder.operands();
+        context.encoder     = &encoder;
+        context.floatReturn = CallConv::get(CallConvKind::C).floatReturn;
+        if (test == Case::ClaimedGap)
+            context.claimAll({gap});
+        if (test == Case::ClaimMultiply)
+            context.claimAll({multiply});
+        if (test == Case::ClaimAccumulate)
+            context.claimAll({accumulate});
+        PostRaPeephole::optimizeScalarFloatInstructions(context);
+        const bool fused = std::ranges::any_of(context.actions, [accumulate](const auto& action) { return action.ref == accumulate && action.newOp == MicroInstrOpcode::OpTernaryRegRegMem; });
+        if (fused != (test == Case::Direct || test == Case::Rip))
+            return Result::Error;
+        if (fused && (!context.isClaimed(multiply) || !context.isClaimed(gap) || !context.isClaimed(accumulate)))
+            return Result::Error;
+        if (rip)
+            for (const auto& relocation : builder.codeRelocations())
+                if (relocation.instructionRef != (fused ? accumulate : multiply))
+                    return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_MemoryProductContractionMatchesFusedRounding)
+{
+    const auto         base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg accumulator = MicroReg::floatReg(0);
+    constexpr MicroReg factor      = MicroReg::floatReg(1);
+    constexpr MicroReg product     = MicroReg::floatReg(2);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        // The first product rounds to one when computed separately. FMA keeps
+        // its small residual after adding minus one, so this detects contraction.
+        const std::array<std::array<uint64_t, 3>, 4> samples = bits == MicroOpBits::B32
+                                                                   ? std::array<std::array<uint64_t, 3>, 4>{{{0xBF800000, 0x3F800001, 0x3F7FFFFE}, {0x80000000, 0, 0x80000000}, {0x7FC01234, 0x3F800000, 0x40000000}, {0x7F800000, 0xBF800000, 0x7F800000}}}
+                                                                   : std::array<std::array<uint64_t, 3>, 4>{{{0xBFF0000000000000, 0x3FF0000000000001, 0x3FEFFFFFFFFFFFFE}, {0x8000000000000000, 0, 0x8000000000000000}, {0x7FF8000000001234, 0x3FF0000000000000, 0x4000000000000000}, {0x7FF0000000000000, 0xBFF0000000000000, 0x7FF0000000000000}}};
+        for (const auto op : {MicroOp::FloatAdd, MicroOp::FloatSubtract})
+        {
+            for (const bool independentProduct : {false, true})
+            {
+                for (const auto& sample : samples)
+                {
+                    std::array<uint64_t, 10> reference{};
+                    for (const bool contract : {false, true})
+                    {
+                        std::array<uint64_t, 10> values = {sample[0] | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567, sample[1], 0x0123456789ABCDEF, sample[2], UINT64_MAX};
+                        MicroBuilder             builder(ctx);
+                        auto                     cfg = builder.backendBuildCfg();
+                        cfg.fpMathFma                = true;
+                        builder.setBackendBuildCfg(cfg);
+                        builder.emitLoadRegMem(factor, base, 16, MicroOpBits::B128);
+                        if (contract)
+                        {
+                            if (independentProduct)
+                                builder.emitOpBinaryRegRegMem(product, factor, base, 32, MicroOp::FloatMultiply, bits);
+                            else
+                            {
+                                builder.emitLoadRegReg(product, factor, MicroOpBits::B128);
+                                builder.emitOpBinaryRegMem(product, base, 32, MicroOp::FloatMultiply, bits);
+                            }
+                            builder.emitLoadRegMem(accumulator, base, 0, MicroOpBits::B128);
+                            builder.emitOpBinaryRegReg(accumulator, product, op, bits);
+                        }
+                        else
+                        {
+                            builder.emitLoadRegMem(accumulator, base, 0, MicroOpBits::B128);
+                            builder.emitLoadRegMem(product, base, 32, bits);
+                            builder.emitOpTernaryRegRegReg(accumulator, factor, product, op == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct, bits);
+                        }
+                        builder.emitClearReg(product, MicroOpBits::B128);
+                        builder.emitLoadMemReg(base, 48, accumulator, MicroOpBits::B128);
+                        builder.emitLoadMemReg(base, 64, factor, MicroOpBits::B128);
+                        builder.emitRet();
+                        SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), contract));
+                        if (!contract)
+                            reference = values;
+                        else if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpTernaryRegRegMem) != 1)
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
 }
 SWC_TEST_END()
 

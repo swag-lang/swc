@@ -657,6 +657,20 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 5,
         .opBitsMask            = (1 << 3),
     })
+// Scalar FMA with a memory third operand; the destination is also an input
+// and supplies its upper lanes, as in the register-only FMA form.
+SWC_MICRO_INSTR_DEF(
+    OpTernaryRegRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 4,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands,
+        .memBaseOperandIndex   = 2,
+        .memOffsetOperandIndex = 5,
+        .opBitsMask            = (1 << 3),
+    })
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegImm,
     MicroInstrDef{

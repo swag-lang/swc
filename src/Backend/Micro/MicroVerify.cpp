@@ -150,6 +150,7 @@ namespace
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::OpBinaryRegMem:
             case MicroInstrOpcode::OpBinaryRegRegMem:
+            case MicroInstrOpcode::OpTernaryRegRegMem:
             case MicroInstrOpcode::OpBinaryMemImm:
             case MicroInstrOpcode::OpBinaryMemReg:
             case MicroInstrOpcode::OpUnaryMem:
@@ -270,6 +271,7 @@ namespace
 
             case MicroInstrOpcode::OpTernaryRegRegRegImm:
             case MicroInstrOpcode::OpBinaryRegRegMem:
+            case MicroInstrOpcode::OpTernaryRegRegMem:
                 return 6;
 
             case MicroInstrOpcode::LoadAmcRegMem:
@@ -521,6 +523,7 @@ namespace
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::OpBinaryRegMem:
             case MicroInstrOpcode::OpBinaryRegRegMem:
+            case MicroInstrOpcode::OpTernaryRegRegMem:
             case MicroInstrOpcode::OpBinaryMemImm:
             case MicroInstrOpcode::OpBinaryMemReg:
             case MicroInstrOpcode::OpUnaryMem:

@@ -317,6 +317,12 @@ inline bool isVecMicroOp(const MicroOp op)
     return op >= MicroOp::VecAdd32;
 }
 
+inline bool isFusedFloatMicroOp(const MicroOp op)
+{
+    return op == MicroOp::FloatAddProduct || op == MicroOp::FloatSubtractProduct ||
+           op == MicroOp::FloatProductAdd || op == MicroOp::FloatProductSubtractFrom;
+}
+
 enum class MicroCond : uint8_t
 {
     Above,

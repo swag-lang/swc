@@ -1,0 +1,184 @@
+[
+  {
+    "task": "wordfreq",
+    "checksum": "130489",
+    "changes": {}
+  },
+  {
+    "task": "csvagg",
+    "checksum": "24828641",
+    "changes": {}
+  },
+  {
+    "task": "sha256",
+    "checksum": "2503168387",
+    "changes": {}
+  },
+  {
+    "task": "dijkstra",
+    "checksum": "4431000",
+    "changes": {}
+  },
+  {
+    "task": "raytrace",
+    "checksum": "56061776",
+    "changes": {
+      "Raytrace.intersect": [
+        [
+          [
+            [
+              170,
+              44,
+              0
+            ],
+            []
+          ]
+        ],
+        [
+          [
+            [
+              169,
+              44,
+              0
+            ],
+            []
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "task": "leven",
+    "checksum": "67441",
+    "changes": {}
+  },
+  {
+    "task": "chacha",
+    "checksum": "633277775",
+    "changes": {}
+  },
+  {
+    "task": "nbody",
+    "checksum": "169096566666",
+    "changes": {
+      "Nbody.__main_0": [
+        [
+          [
+            [
+              679,
+              280,
+              3
+            ],
+            [
+              [
+                5,
+                2,
+                0
+              ],
+              [
+                10,
+                4,
+                0
+              ],
+              [
+                13,
+                6,
+                0
+              ],
+              [
+                369,
+                131,
+                0
+              ]
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              677,
+              280,
+              3
+            ],
+            [
+              [
+                5,
+                2,
+                0
+              ],
+              [
+                10,
+                4,
+                0
+              ],
+              [
+                12,
+                6,
+                0
+              ],
+              [
+                367,
+                131,
+                0
+              ]
+            ]
+          ]
+        ]
+      ],
+      "Nbody.advance": [
+        [
+          [
+            [
+              401,
+              135,
+              0
+            ],
+            [
+              [
+                13,
+                6,
+                0
+              ]
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              400,
+              135,
+              0
+            ],
+            [
+              [
+                13,
+                6,
+                0
+              ]
+            ]
+          ]
+        ]
+      ]
+    }
+  },
+  {
+    "task": "fannkuch",
+    "checksum": "8629030",
+    "changes": {}
+  },
+  {
+    "task": "binarytrees",
+    "checksum": "674478",
+    "changes": {}
+  },
+  {
+    "task": "lz77",
+    "checksum": "622942003053",
+    "changes": {}
+  },
+  {
+    "task": "sort",
+    "checksum": "599499929",
+    "changes": {}
+  }
+]

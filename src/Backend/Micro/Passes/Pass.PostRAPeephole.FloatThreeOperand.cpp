@@ -94,21 +94,23 @@ namespace PostRaPeephole
         // The consumer a reload folds into: a binary operation reading the
         // loaded register as its source, or a compare reading it on the left,
         // which is the side `cmp [mem], reg` names.
-        bool isFoldableConsumer(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg loaded, const bool isFloat, bool independentDestination)
+        bool isFoldableConsumer(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg loaded, const bool isFloat, bool lateScalarMemory)
         {
             if (!ops)
                 return false;
-            if (!independentDestination && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
+            if (!lateScalarMemory && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
                 return ops[1].reg == loaded && ops[0].reg != loaded;
             if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
             {
-                if (independentDestination)
+                if (lateScalarMemory)
                     return ops[0].reg != ops[1].reg && ops[0].reg != loaded &&
                            ((ops[2].reg == loaded && ops[1].reg != loaded) || (ops[1].reg == loaded && ops[2].reg != loaded));
                 return ops[2].reg == loaded &&
                        ((ops[0].reg == ops[1].reg && ops[0].reg != loaded) || (ops[0].reg == loaded && ops[1].reg != loaded));
             }
-            if (!independentDestination && !isFloat && inst.op == MicroInstrOpcode::CmpRegReg && inst.numOperands >= 3)
+            if (lateScalarMemory && isFloat && inst.op == MicroInstrOpcode::OpTernaryRegRegReg && inst.numOperands >= 5 && isFusedFloatMicroOp(ops[4].microOp))
+                return ops[2].reg == loaded && ops[0].reg != loaded && ops[1].reg != loaded;
+            if (!lateScalarMemory && !isFloat && inst.op == MicroInstrOpcode::CmpRegReg && inst.numOperands >= 3)
                 return ops[0].reg == loaded && ops[1].reg != loaded;
             return false;
         }
@@ -225,13 +227,13 @@ namespace PostRaPeephole
                 return;
             }
 
-            if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg && (ops[4].microOp == MicroOp::FloatAddProduct || ops[4].microOp == MicroOp::FloatSubtractProduct ||
-                                                                    ops[4].microOp == MicroOp::FloatProductAdd || ops[4].microOp == MicroOp::FloatProductSubtractFrom))
+            if ((inst.op == MicroInstrOpcode::OpTernaryRegRegReg || inst.op == MicroInstrOpcode::OpTernaryRegRegMem) && isFusedFloatMicroOp(ops[4].microOp))
             {
                 const uint8_t mask = FloatLaneDemand::mask(ops[3].opBits);
                 demand.read(ops[0].reg, mask);
                 demand.read(ops[1].reg, mask);
-                demand.read(ops[2].reg, mask);
+                if (inst.op == MicroInstrOpcode::OpTernaryRegRegReg)
+                    demand.read(ops[2].reg, mask);
                 return;
             }
 
@@ -440,6 +442,24 @@ namespace PostRaPeephole
 
     namespace
     {
+        bool findUniqueMemoryRelocation(Context& ctx, MicroRelocation*& out, MicroInstrRef ref, MicroReg base)
+        {
+            out = nullptr;
+            if (!base.isInstructionPointer())
+                return true;
+            if (!ctx.builder)
+                return false;
+            for (MicroRelocation& relocation : ctx.builder->codeRelocations())
+            {
+                if (relocation.instructionRef != ref)
+                    continue;
+                if (out || relocation.form != MicroRelocation::Form::Relative32)
+                    return false;
+                out = &relocation;
+            }
+            return out != nullptr;
+        }
+
         struct ScalarFloatBinary
         {
             MicroReg    dst;
@@ -447,18 +467,25 @@ namespace PostRaPeephole
             MicroReg    right;
             MicroOpBits bits;
             MicroOp     op;
+            bool        memory = false;
+            uint64_t    offset = 0;
         };
 
-        bool scalarFloatBinary(ScalarFloatBinary& out, const MicroInstr& inst, const MicroOperandStorage& operands)
+        bool scalarFloatBinary(ScalarFloatBinary& out, const MicroInstr& inst, const MicroOperandStorage& operands, bool allowMemory = false)
         {
             const auto* ops = inst.ops(operands);
             if (inst.op == MicroInstrOpcode::OpBinaryRegReg)
                 out = {ops[0].reg, ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].microOp};
             else if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg)
                 out = {ops[0].reg, ops[1].reg, ops[2].reg, ops[3].opBits, ops[4].microOp};
+            else if (allowMemory && inst.op == MicroInstrOpcode::OpBinaryRegMem)
+                out = {ops[0].reg, ops[0].reg, ops[1].reg, ops[2].opBits, ops[3].microOp, true, ops[4].valueU64};
+            else if (allowMemory && inst.op == MicroInstrOpcode::OpBinaryRegRegMem)
+                out = {ops[0].reg, ops[1].reg, ops[2].reg, ops[3].opBits, ops[4].microOp, true, ops[5].valueU64};
             else
                 return false;
-            return out.dst.isFloat() && out.left.isFloat() && out.right.isFloat() &&
+            return out.dst.isFloat() && out.left.isFloat() &&
+                   (out.memory ? out.right.isAnyInt() || out.right.isInstructionPointer() : out.right.isFloat()) &&
                    (out.bits == MicroOpBits::B32 || out.bits == MicroOpBits::B64);
         }
 
@@ -468,7 +495,7 @@ namespace PostRaPeephole
                 return false;
             ScalarFloatBinary multiply;
             ScalarFloatBinary accumulate;
-            if (!scalarFloatBinary(multiply, *ctx.storage->ptr(multiplyRef), *ctx.operands) ||
+            if (!scalarFloatBinary(multiply, *ctx.storage->ptr(multiplyRef), *ctx.operands, true) ||
                 !scalarFloatBinary(accumulate, *ctx.storage->ptr(accumulateRef), *ctx.operands) ||
                 multiply.op != MicroOp::FloatMultiply || (accumulate.op != MicroOp::FloatAdd && accumulate.op != MicroOp::FloatSubtract) || multiply.bits != accumulate.bits)
                 return false;
@@ -483,16 +510,19 @@ namespace PostRaPeephole
             if (addend == multiply.dst)
                 return false;
 
-            MicroInstrOperand fused[5] = {};
-            fused[0].reg               = accumulate.dst;
-            fused[3].opBits            = accumulate.bits;
+            const auto        opcode      = multiply.memory ? MicroInstrOpcode::OpTernaryRegRegMem : MicroInstrOpcode::OpTernaryRegRegReg;
+            const uint32_t    numOperands = multiply.memory ? 6 : 5;
+            MicroInstrOperand fused[6]    = {};
+            fused[5].valueU64             = multiply.offset;
+            fused[0].reg                  = accumulate.dst;
+            fused[3].opBits               = accumulate.bits;
             if (accumulate.dst == addend)
             {
                 fused[1].reg     = multiply.left;
                 fused[2].reg     = multiply.right;
                 fused[4].microOp = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatAddProduct : MicroOp::FloatSubtractProduct;
             }
-            else if (accumulate.dst == multiply.left || accumulate.dst == multiply.right)
+            else if (!multiply.memory && (accumulate.dst == multiply.left || accumulate.dst == multiply.right))
             {
                 fused[1].reg     = accumulate.dst == multiply.left ? multiply.right : multiply.left;
                 fused[2].reg     = addend;
@@ -510,16 +540,39 @@ namespace PostRaPeephole
             const MicroReg upperSource = accumulate.left == multiply.dst ? multiply.left : accumulate.left;
             if (upperSource != accumulate.dst && (demand.lanes[accumulate.dst.index()] & ~FloatLaneDemand::mask(accumulate.bits)))
                 return false;
-            if (!encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpTernaryRegRegReg, fused))
+            MicroRelocation* relocation = nullptr;
+            if (multiply.memory && !findUniqueMemoryRelocation(ctx, relocation, multiplyRef, multiply.right))
+                return false;
+            if (relocation)
+                for (const auto& other : ctx.builder->codeRelocations())
+                    if (other.instructionRef == accumulateRef)
+                        return false;
+            if (!encoderAcceptsAsIs(ctx, opcode, std::span{fused, numOperands}))
                 return false;
             auto before = demand;
             transferFloatLaneDemand(before, ctx, accumulateRef);
             transferFloatLaneDemand(before, ctx, multiplyRef);
-            if (!ctx.claimAll({multiplyRef, accumulateRef}))
+            if (multiply.memory)
+            {
+                // The memory read moves to the accumulation. Reserve every
+                // intervening instruction so pending rewrites cannot change it.
+                SmallVector<MicroInstrRef, 8> window;
+                for (auto it = MicroStorage::Iterator{ctx.storage, multiplyRef};; ++it)
+                {
+                    window.push_back(it.current);
+                    if (it.current == accumulateRef)
+                        break;
+                }
+                if (!ctx.claimAll(window.span()))
+                    return false;
+            }
+            else if (!ctx.claimAll({multiplyRef, accumulateRef}))
                 return false;
+            if (relocation)
+                relocation->instructionRef = accumulateRef;
             demand = before;
             ctx.emitErase(multiplyRef);
-            ctx.emitRewrite(accumulateRef, MicroInstrOpcode::OpTernaryRegRegReg, fused, true);
+            ctx.emitRewrite(accumulateRef, opcode, std::span{fused, numOperands}, true);
             return true;
         }
     }
@@ -546,7 +599,7 @@ namespace PostRaPeephole
                 const uint32_t    candidateIndex = accumulateIndex - back;
                 const MicroInstr* candidate      = ctx.storage->ptr(refs[candidateIndex]);
                 ScalarFloatBinary multiply;
-                if (!candidate || ctx.isClaimed(refs[candidateIndex]) || !scalarFloatBinary(multiply, *candidate, *ctx.operands) ||
+                if (!candidate || ctx.isClaimed(refs[candidateIndex]) || !scalarFloatBinary(multiply, *candidate, *ctx.operands, true) ||
                     multiply.op != MicroOp::FloatMultiply || (multiply.dst != accumulate.left && multiply.dst != accumulate.right))
                     continue;
 
@@ -556,7 +609,8 @@ namespace PostRaPeephole
                     if (!inst || ctx.isClaimed(refs[gap]))
                         return false;
                     const auto flags = MicroInstr::info(inst->op).flags;
-                    if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                        (multiply.memory && flags.has(MicroInstrFlagsE::WritesMemory)))
                         return false;
                     inst->collectUseDef(useDef, *ctx.operands, ctx.encoder);
                     if (std::ranges::find(useDef.uses, multiply.dst) != useDef.uses.end())
@@ -998,7 +1052,7 @@ namespace PostRaPeephole
     // register the value was staged in. The integer side covers the same
     // shape for the operations x64 reads from memory, and a compare whose
     // left operand is the reload.
-    static bool tryFoldLoadIntoBinaryForm(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst, bool independentDestination)
+    static bool tryFoldLoadIntoBinaryForm(Context& ctx, const MicroInstrRef loadRef, const MicroInstr& loadInst, bool lateScalarMemory)
     {
         const bool indexed = loadInst.op == MicroInstrOpcode::LoadAmcRegMem;
         if ((!indexed && loadInst.op != MicroInstrOpcode::LoadRegMem) || loadInst.numOperands < (indexed ? 7 : 4))
@@ -1020,21 +1074,8 @@ namespace PostRaPeephole
         // arithmetic instruction can carry it instead, but only when this is
         // the one ordinary rel32 relocation the memory form expects.
         MicroRelocation* loadRelocation = nullptr;
-        if (base.isInstructionPointer())
-        {
-            if (!isFloat || !ctx.builder)
-                return false;
-            for (MicroRelocation& relocation : ctx.builder->codeRelocations())
-            {
-                if (relocation.instructionRef != loadRef)
-                    continue;
-                if (loadRelocation || relocation.form != MicroRelocation::Form::Relative32)
-                    return false;
-                loadRelocation = &relocation;
-            }
-            if (!loadRelocation)
-                return false;
-        }
+        if ((base.isInstructionPointer() && !isFloat) || !findUniqueMemoryRelocation(ctx, loadRelocation, loadRef, base))
+            return false;
 
         // The integer rewrite is probed against the encoder before it lands.
         if (!isFloat && !ctx.encoder)
@@ -1058,7 +1099,7 @@ namespace PostRaPeephole
             if (!candidate)
                 return false;
 
-            if (isFoldableConsumer(*candidate, ctx.operandsFor(opRef), loaded, isFloat, independentDestination))
+            if (isFoldableConsumer(*candidate, ctx.operandsFor(opRef), loaded, isFloat, lateScalarMemory))
             {
                 opInst = candidate;
                 break;
@@ -1132,12 +1173,15 @@ namespace PostRaPeephole
             return true;
         }
 
-        const bool        threeOperand = opInst->op == MicroInstrOpcode::OpBinaryRegRegReg;
+        const bool fused        = opInst->op == MicroInstrOpcode::OpTernaryRegRegReg;
+        const bool threeOperand = opInst->op == MicroInstrOpcode::OpBinaryRegRegReg || fused;
+        if (fused && indexed)
+            return false;
         const MicroOpBits consumerBits = consumerOps[threeOperand ? 3 : 2].opBits;
         const MicroOp     op           = consumerOps[threeOperand ? 4 : 3].microOp;
         if (consumerBits != opBits)
             return false;
-        if (isFloat ? (!hasThreeOperandForm(op) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
+        if (isFloat ? (!(fused ? isFusedFloatMicroOp(op) : hasThreeOperandForm(op)) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
         // FloatAnd/FloatXor use the packed 128-bit SSE memory form even for a
         // scalar value. A scalar load may read only four or eight bytes from
@@ -1147,15 +1191,15 @@ namespace PostRaPeephole
         if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
-        if (isFloat && threeOperand && !indexed && consumerOps[0].reg != consumerOps[1].reg && consumerOps[0].reg != loaded)
+        if (fused || (isFloat && threeOperand && !indexed && consumerOps[0].reg != consumerOps[1].reg && consumerOps[0].reg != loaded))
         {
-            if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
+            if (!ctx.encoder || (fused ? !ctx.encoder->supportsFusedFloatMultiplyAdd() : !ctx.encoder->supportsNonDestructiveFloatBinary()))
                 return false;
             // A queued copy rewrite can expose contraction on the next sweep.
             // Keep that product in registers until its accumulation is settled.
             if (op == MicroOp::FloatMultiply && mayContractFollowingAccumulation(ctx, opRef))
                 return false;
-            const bool commute = consumerOps[1].reg == loaded;
+            const bool commute = !fused && consumerOps[1].reg == loaded;
             if (commute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply) ||
                             !ctx.builder || !ctx.builder->backendBuildCfg().fpMathNoNaN ||
                             !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
@@ -1170,7 +1214,8 @@ namespace PostRaPeephole
             direct[3].opBits            = opBits;
             direct[4].microOp           = op;
             direct[5]                   = loadOps[3];
-            if (!encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpBinaryRegRegMem, direct))
+            const auto opcode           = fused ? MicroInstrOpcode::OpTernaryRegRegMem : MicroInstrOpcode::OpBinaryRegRegMem;
+            if (!encoderAcceptsAsIs(ctx, opcode, direct))
                 return false;
 
             // Reserve the complete motion window: another queued rewrite must
@@ -1186,7 +1231,7 @@ namespace PostRaPeephole
                 return false;
             if (loadRelocation)
                 loadRelocation->instructionRef = opRef;
-            ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegMem, direct, true);
+            ctx.emitRewrite(opRef, opcode, direct, true);
             ctx.emitErase(loadRef);
             return true;
         }
@@ -1280,7 +1325,7 @@ namespace PostRaPeephole
         return tryFoldLoadIntoBinaryForm(ctx, loadRef, loadInst, false);
     }
 
-    void foldNonDestructiveFloatMemoryOperands(Context& ctx)
+    void foldScalarFloatMemoryOperands(Context& ctx)
     {
         if (!ctx.encoder || !ctx.encoder->supportsNonDestructiveFloatBinary())
             return;

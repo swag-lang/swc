@@ -4411,6 +4411,38 @@ void X64Encoder::encodeOpTernaryRegRegRegImm(MicroReg regDst, MicroReg regSrc1, 
     emitValue(store_, value, MicroOpBits::B8);
 }
 
+static uint8_t scalarFusedOpcode(MicroOp op)
+{
+    switch (op)
+    {
+        case MicroOp::FloatAddProduct: return 0xB9;
+        case MicroOp::FloatSubtractProduct: return 0xBD;
+        case MicroOp::FloatProductAdd: return 0xA9;
+        case MicroOp::FloatProductSubtractFrom: return 0xAD;
+        default: return 0;
+    }
+}
+
+void X64Encoder::encodeOpTernaryRegRegMem(MicroReg regDst, MicroReg regLeft, MicroReg memBase, uint64_t memOffset, MicroOp op, MicroOpBits opBits)
+{
+    SWC_ASSERT(regDst.isFloat() && regLeft.isFloat());
+    SWC_ASSERT(memBase.isInt() || memBase.isInstructionPointer());
+    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+    SWC_ASSERT(isFusedFloatMicroOp(op));
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
+
+    emitVex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), microRegToX64Reg(memBase), opBits == MicroOpBits::B64);
+    emitCpuOp(store_, scalarFusedOpcode(op));
+    if (memBase.isInstructionPointer())
+    {
+        SWC_ASSERT(memOffset == 0);
+        emitModRm(store_, ModRmMode::Memory, encodeReg(regDst), MODRM_RM_RIP);
+        store_.pushU32(0);
+    }
+    else
+        emitModRm(store_, memOffset, encodeReg(regDst), memBase);
+}
+
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
 {
     // vpblendvb xmm1, xmm2, xmm3, xmm4 (VEX.128.66.0F3A 4C /r /is4): the
@@ -4431,15 +4463,7 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
 
     ///////////////////////////////////////////
 
-    uint8_t fusedOpcode = 0;
-    switch (op)
-    {
-        case MicroOp::FloatAddProduct: fusedOpcode = 0xB9; break;
-        case MicroOp::FloatSubtractProduct: fusedOpcode = 0xBD; break;
-        case MicroOp::FloatProductAdd: fusedOpcode = 0xA9; break;
-        case MicroOp::FloatProductSubtractFrom: fusedOpcode = 0xAD; break;
-        default: break;
-    }
+    const uint8_t fusedOpcode = scalarFusedOpcode(op);
     if (fusedOpcode)
     {
         // The 231 forms keep the addend in dst; the 213 forms keep a factor there.

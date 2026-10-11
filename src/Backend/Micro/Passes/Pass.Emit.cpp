@@ -623,6 +623,14 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
                 bindRel32RelocationOffset(context, instructionRef, opStart, encoder.size());
             break;
         }
+        case MicroInstrOpcode::OpTernaryRegRegMem:
+        {
+            const uint32_t opStart = encoder.size();
+            encoder.encodeOpTernaryRegRegMem(ops[0].reg, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[4].microOp, ops[3].opBits);
+            if (ops[2].reg.isInstructionPointer())
+                bindRel32RelocationOffset(context, instructionRef, opStart, encoder.size());
+            break;
+        }
         case MicroInstrOpcode::OpBinaryAmcMemReg:
             encoder.encodeOpBinaryAmcMemReg(ops[0].reg, ops[1].reg, ops[5].valueU64, ops[6].valueU64, ops[2].reg, ops[7].microOp, ops[4].opBits);
             break;

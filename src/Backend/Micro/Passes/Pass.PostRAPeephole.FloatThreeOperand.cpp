@@ -748,8 +748,10 @@ namespace PostRaPeephole
             (load[2].opBits != MicroOpBits::B32 && load[2].opBits != MicroOpBits::B64))
             return false;
 
-        MicroInstrRef     extRef    = ctx.nextRef(ref);
-        const MicroInstr* ext       = ctx.instruction(extRef);
+        auto              scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        ++scanIt;
+        MicroInstrRef     extRef = scanIt.current;
+        const MicroInstr* ext    = extRef.isValid() ? &*scanIt : nullptr;
         MicroInstrRef     shiftRef  = MicroInstrRef::invalid();
         uint64_t          shiftBits = 0;
         uint32_t          extIndex  = ctx.instructionIndex + 1;
@@ -762,8 +764,9 @@ namespace PostRaPeephole
                 return false;
             shiftBits = shift[3].valueU64;
             shiftRef  = extRef;
-            extRef    = ctx.nextRef(extRef);
-            ext       = ctx.instruction(extRef);
+            ++scanIt;
+            extRef = scanIt.current;
+            ext    = extRef.isValid() ? &*scanIt : nullptr;
             ++extIndex;
         }
         if (!ext || ext->op != MicroInstrOpcode::LoadZeroExtRegReg)
@@ -822,8 +825,10 @@ namespace PostRaPeephole
             (clear[1].opBits != MicroOpBits::B32 && clear[1].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef convertRef = ctx.nextRef(clearRef);
-        const MicroInstr*   convert    = ctx.instruction(convertRef);
+        auto                scanIt = MicroStorage::Iterator{ctx.storage, clearRef};
+        ++scanIt;
+        const MicroInstrRef convertRef = scanIt.current;
+        const MicroInstr*   convert    = convertRef.isValid() ? &*scanIt : nullptr;
         const auto*         convertOps = convert ? convert->ops(*ctx.operands) : nullptr;
         if (!convert || convert->op != MicroInstrOpcode::OpBinaryRegReg || !convertOps ||
             convertOps[0].reg != clear[0].reg || !convertOps[1].reg.isInt() ||
@@ -832,8 +837,9 @@ namespace PostRaPeephole
              convertOps[3].microOp != MicroOp::ConvertInt32ToFloat64))
             return false;
 
-        const MicroInstrRef retRef = ctx.nextRef(convertRef);
-        const MicroInstr*   ret    = ctx.instruction(retRef);
+        ++scanIt;
+        const MicroInstrRef retRef = scanIt.current;
+        const MicroInstr*   ret    = retRef.isValid() ? &*scanIt : nullptr;
         if (!ret || ret->op != MicroInstrOpcode::Ret || !ctx.claimAll({clearRef, convertRef}))
             return false;
 

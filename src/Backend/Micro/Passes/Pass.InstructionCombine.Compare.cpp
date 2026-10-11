@@ -285,19 +285,22 @@ namespace InstructionCombine
             cmpOps[6].hasWideImmediateValue() || cmpOps[6].valueU64 != 0)
             return false;
 
-        const MicroInstrRef setRef = ctx.storage->findNextInstructionRef(cmpRef);
-        const MicroInstr*   set    = setRef.isValid() ? ctx.storage->ptr(setRef) : nullptr;
-        if (!set || set->op != MicroInstrOpcode::SetCondReg)
+        MicroStorage::Iterator patternIt{ctx.storage, cmpRef};
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::SetCondReg)
             return false;
+        const MicroInstrRef setRef = patternIt.current;
+        const MicroInstr*   set    = &*patternIt;
         const MicroInstrOperand* setOps = set->ops(*ctx.operands);
         if (!setOps || setOps[1].cpuCond != MicroCond::Less || !setOps[0].reg.isVirtualInt() ||
             !valueHasSingleUse(*ctx.ssa, setOps[0].reg, setRef))
             return false;
 
-        const MicroInstrRef extendRef = ctx.storage->findNextInstructionRef(setRef);
-        const MicroInstr*   extend    = extendRef.isValid() ? ctx.storage->ptr(extendRef) : nullptr;
-        if (!extend || extend->op != MicroInstrOpcode::LoadZeroExtRegReg)
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadZeroExtRegReg)
             return false;
+        const MicroInstrRef extendRef = patternIt.current;
+        const MicroInstr*   extend    = &*patternIt;
         const MicroInstrOperand* extendOps = extend->ops(*ctx.operands);
         if (!extendOps || extendOps[1].reg != setOps[0].reg || extendOps[2].opBits != cmpOps[2].opBits ||
             extendOps[3].opBits != MicroOpBits::B8 || !extendOps[0].reg.isVirtualInt() ||

@@ -966,9 +966,12 @@ namespace InstructionCombine
         // equality, up to the next flag write in the same block.
         bool flagsReadOnlyUnsigned(const Context& ctx, MicroInstrRef ref)
         {
-            for (MicroInstrRef scanRef = ctx.nextRef(ref); scanRef.isValid(); scanRef = ctx.nextRef(scanRef))
+            auto scanIt = MicroStorage::Iterator{ctx.storage, ref};
+            ++scanIt;
+            for (; scanIt.current.isValid(); ++scanIt)
             {
-                const MicroInstr* scan = ctx.instruction(scanRef);
+                const MicroInstrRef scanRef = scanIt.current;
+                const MicroInstr*   scan    = &*scanIt;
                 if (!scan || scan->op == MicroInstrOpcode::Label)
                     return false;
                 const MicroInstrOperand* scanOps = scan->ops(*ctx.operands);

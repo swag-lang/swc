@@ -1346,15 +1346,16 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
     for (const SymbolVariable* symVar : globals)
     {
         SWC_ASSERT(symVar != nullptr);
+
+        if (patchReferencedGlobalsOnly &&
+            !referencesGlobalInitRange(sortedReferencedGlobalInitOffsets, symVar->offset(), sizeof(uint64_t)))
+            continue;
+
         SWC_ASSERT(symVar->hasGlobalStorage());
         SWC_ASSERT(symVar->globalStorageKind() == DataSegmentKind::GlobalInit);
 
         SymbolFunction* targetFunction = symVar->globalFunctionInit();
         SWC_ASSERT(targetFunction != nullptr);
-
-        if (patchReferencedGlobalsOnly &&
-            !referencesGlobalInitRange(sortedReferencedGlobalInitOffsets, symVar->offset(), sizeof(uint64_t)))
-            continue;
 
         const TypeInfo& storageType = ctx.typeMgr().get(symVar->typeRef());
         const uint64_t  storageSize = storageType.sizeOf(ctx);

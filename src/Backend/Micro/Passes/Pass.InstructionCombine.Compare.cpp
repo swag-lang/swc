@@ -164,14 +164,17 @@ namespace InstructionCombine
             (cmp[4].opBits != MicroOpBits::B32 && cmp[4].opBits != MicroOpBits::B64))
             return false;
 
-        const MicroInstrRef jumpRef = ctx.storage->findNextInstructionRef(cmpRef);
-        const MicroInstr*   jump    = ctx.storage->ptr(jumpRef);
-        if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+        MicroStorage::Iterator patternIt{ctx.storage, cmpRef};
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::JumpCond)
             return false;
-        const MicroInstrRef loadRef = ctx.storage->findNextInstructionRef(jumpRef);
-        const MicroInstr*   load    = ctx.storage->ptr(loadRef);
-        if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem)
+        const MicroInstrRef jumpRef = patternIt.current;
+        const MicroInstr*   jump    = &*patternIt;
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadAmcRegMem)
             return false;
+        const MicroInstrRef loadRef = patternIt.current;
+        const MicroInstr*   load    = &*patternIt;
         const MicroInstrOperand* jumpOps = jump->ops(*ctx.operands);
         const MicroInstrOperand* loadOps = load->ops(*ctx.operands);
         if (!jumpOps || !loadOps || jumpOps[0].cpuCond == MicroCond::Unconditional ||
@@ -212,13 +215,17 @@ namespace InstructionCombine
         if (!copy || copy[2].opBits != MicroOpBits::B64 ||
             !copy[0].reg.isVirtualInt() || !copy[1].reg.isVirtualInt() || copy[0].reg == copy[1].reg)
             return false;
-        const MicroInstrRef cmpRef   = ctx.storage->findNextInstructionRef(copyRef);
-        const MicroInstrRef jumpRef  = ctx.storage->findNextInstructionRef(cmpRef);
-        const MicroInstr*   cmpInst  = ctx.storage->ptr(cmpRef);
-        const MicroInstr*   jumpInst = ctx.storage->ptr(jumpRef);
-        if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegReg ||
-            !jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
+        MicroStorage::Iterator patternIt{ctx.storage, copyRef};
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::CmpRegReg)
             return false;
+        const MicroInstrRef cmpRef  = patternIt.current;
+        const MicroInstr*   cmpInst = &*patternIt;
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::JumpCond)
+            return false;
+        const MicroInstrRef jumpRef  = patternIt.current;
+        const MicroInstr*   jumpInst = &*patternIt;
         const MicroInstrOperand* cmp = cmpInst->ops(*ctx.operands);
         if (!cmp || cmp[2].opBits != MicroOpBits::B64 ||
             (cmp[0].reg != copy[1].reg && cmp[1].reg != copy[1].reg))

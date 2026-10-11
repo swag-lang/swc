@@ -1253,7 +1253,8 @@ namespace
     // boundaries (labels, terminators, jumps, calls) report failure.
     MicroInstrRef previousFlagChainInstruction(MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef fromRef, MicroReg trackedReg, bool stopOnFlagUse)
     {
-        MicroStorage::Iterator walker{&storage, storage.findPreviousInstructionRef(fromRef)};
+        MicroStorage::Iterator walker{&storage, fromRef};
+        --walker;
         for (; walker.current.isValid(); --walker)
         {
             const MicroInstrRef scanRef  = walker.current;

@@ -177,7 +177,8 @@ namespace InstructionCombine
         {
             if (reg == ctx.stackPointer)
                 return false;
-            MicroStorage::Iterator walker{ctx.storage, ctx.storage->findPreviousInstructionRef(atRef)};
+            MicroStorage::Iterator walker{ctx.storage, atRef};
+            --walker;
             for (uint32_t step = 0; step < K_MAX_ENTRY_WALK; ++step, --walker)
             {
                 if (!walker.current.isValid())
@@ -263,7 +264,8 @@ namespace InstructionCombine
         // register.
         bool readMovesToReader(const Context& ctx, const MicroInstrRef loadRef, const MicroInstrRef useRef, const LoadAddress& address, const bool baseFromOutside)
         {
-            MicroStorage::Iterator walker{ctx.storage, ctx.storage->findNextInstructionRef(loadRef)};
+            MicroStorage::Iterator walker{ctx.storage, loadRef};
+            ++walker;
             for (uint32_t step = 0; walker.current.isValid() && step < K_MAX_VECFOLD_WINDOW; ++step, ++walker)
             {
                 if (walker.current == useRef)

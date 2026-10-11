@@ -1019,9 +1019,12 @@ namespace PostRaPeephole
         // overwritten. Anything that uses an unsafe condition, or any flags
         // user we don't recognize, aborts the rewrite.
         SmallVector<MicroInstrRef, 4> signReaders;
-        for (MicroInstrRef scanRef = ctx.nextRef(cmpRef); scanRef.isValid(); scanRef = ctx.nextRef(scanRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, cmpRef};
+        ++scanIt;
+        for (; scanIt.current.isValid(); ++scanIt)
         {
-            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            const MicroInstrRef scanRef  = scanIt.current;
+            const MicroInstr*   scanInst = &*scanIt;
             if (!scanInst)
                 return false;
 
@@ -2910,9 +2913,12 @@ namespace PostRaPeephole
         if (!isCompareInstruction(inst.op))
             return false;
 
-        for (MicroInstrRef scanRef = ctx.nextRef(ref); scanRef.isValid(); scanRef = ctx.nextRef(scanRef))
+        auto scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        ++scanIt;
+        for (; scanIt.current.isValid(); ++scanIt)
         {
-            const MicroInstr* scanInst = ctx.instruction(scanRef);
+            const MicroInstrRef scanRef  = scanIt.current;
+            const MicroInstr*   scanInst = &*scanIt;
             if (!scanInst)
                 return false;
 

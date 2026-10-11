@@ -177,15 +177,15 @@ namespace InstructionCombine
         {
             if (reg == ctx.stackPointer)
                 return false;
-            MicroInstrRef ref = ctx.storage->findPreviousInstructionRef(atRef);
-            for (uint32_t step = 0; step < K_MAX_ENTRY_WALK; ++step, ref = ctx.storage->findPreviousInstructionRef(ref))
+            MicroStorage::Iterator walker{ctx.storage, ctx.storage->findPreviousInstructionRef(atRef)};
+            for (uint32_t step = 0; step < K_MAX_ENTRY_WALK; ++step, --walker)
             {
-                if (!ref.isValid())
+                if (!walker.current.isValid())
                     return true;
-                const MicroInstr* inst = ctx.storage->ptr(ref);
-                if (!inst || isControlOrCall(*inst))
+                const MicroInstr& inst = *walker;
+                if (isControlOrCall(inst))
                     return false;
-                const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(ref);
+                const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(walker.current);
                 if (useDef && std::ranges::find(useDef->defs, reg) != useDef->defs.end())
                     return false;
             }
@@ -263,17 +263,17 @@ namespace InstructionCombine
         // register.
         bool readMovesToReader(const Context& ctx, const MicroInstrRef loadRef, const MicroInstrRef useRef, const LoadAddress& address, const bool baseFromOutside)
         {
-            MicroInstrRef ref = ctx.storage->findNextInstructionRef(loadRef);
-            for (uint32_t step = 0; ref.isValid() && step < K_MAX_VECFOLD_WINDOW; ++step, ref = ctx.storage->findNextInstructionRef(ref))
+            MicroStorage::Iterator walker{ctx.storage, ctx.storage->findNextInstructionRef(loadRef)};
+            for (uint32_t step = 0; walker.current.isValid() && step < K_MAX_VECFOLD_WINDOW; ++step, ++walker)
             {
-                if (ref == useRef)
+                if (walker.current == useRef)
                     return true;
-                const MicroInstr* inst = ctx.storage->ptr(ref);
-                if (!inst || isControlOrCall(*inst))
+                const MicroInstr& inst = *walker;
+                if (isControlOrCall(inst))
                     return false;
-                if (writesMemory(*inst) && !(baseFromOutside && storesIntoFrame(ctx, *inst, ref)))
+                if (writesMemory(inst) && !(baseFromOutside && storesIntoFrame(ctx, inst, walker.current)))
                     return false;
-                const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(ref);
+                const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(walker.current);
                 if (!useDef)
                     continue;
                 if (std::ranges::find(useDef->defs, address.base) != useDef->defs.end())

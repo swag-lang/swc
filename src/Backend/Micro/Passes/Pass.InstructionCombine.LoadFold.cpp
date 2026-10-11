@@ -1077,10 +1077,12 @@ namespace InstructionCombine
         {
             MicroSsaState::ReachingDef baseValue;
             MicroSsaState::ReachingDef indexValue;
-            MicroInstrRef              ref = ctx.storage->findNextInstructionRef(fromRef);
-            for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && ref.isValid(); ++step, ref = ctx.storage->findNextInstructionRef(ref))
+            MicroStorage::Iterator it{ctx.storage, fromRef};
+            ++it;
+            for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && it.current.isValid(); ++step, ++it)
             {
-                const MicroInstr&    inst = *ctx.storage->ptr(ref);
+                const MicroInstrRef  ref  = it.current;
+                const MicroInstr&    inst = *it;
                 const MicroInstrDef& info = MicroInstr::info(inst.op);
                 if (writesMemory(inst) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                     return false;
@@ -1291,15 +1293,16 @@ namespace InstructionCombine
             return false;
 
         bool          reached = false;
-        MicroInstrRef scan    = ctx.storage->findNextInstructionRef(initial.instRef);
-        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && scan.isValid(); ++step, scan = ctx.storage->findNextInstructionRef(scan))
+        MicroStorage::Iterator scanIt{ctx.storage, initial.instRef};
+        ++scanIt;
+        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            if (scan == ref)
+            if (scanIt.current == ref)
             {
                 reached = true;
                 break;
             }
-            const auto& between = *ctx.storage->ptr(scan);
+            const auto& between = *scanIt;
             if (isControlOrCall(between) || writesMemory(between) || between.op == MicroInstrOpcode::LoadVolatileRegMem)
                 return false;
         }

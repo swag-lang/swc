@@ -367,18 +367,25 @@ namespace InstructionCombine
             return false;
         const MicroOpBits bits = cmpOps[2].opBits;
 
-        const MicroInstrRef selectRef = ctx.storage->findNextInstructionRef(cmpRef);
-        const MicroInstr*   select    = selectRef.isValid() ? ctx.storage->ptr(selectRef) : nullptr;
-        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg)
+        MicroStorage::Iterator patternIt{ctx.storage, cmpRef};
+        ++patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadCondRegReg)
             return false;
+        const MicroInstrRef selectRef = patternIt.current;
+        const MicroInstr*   select    = &*patternIt;
         const MicroInstrOperand* selectOps = select->ops(*ctx.operands);
         if (!selectOps || selectOps[2].cpuCond != MicroCond::BelowOrEqual || selectOps[3].opBits != bits ||
             !selectOps[0].reg.isVirtualInt() || !selectOps[1].reg.isVirtualInt())
             return false;
 
+        auto previousIt = MicroStorage::Iterator{ctx.storage, cmpRef};
+        --previousIt;
+        if (!previousIt.current.isValid())
+            return false;
+        const MicroInstrRef previousRef = previousIt.current;
         const MicroSsaState::ReachingDef sumDef = ctx.ssa->reachingDef(selectOps[1].reg, selectRef);
         if (!sumDef.valid() || sumDef.isPhi || !sumDef.inst || sumDef.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
-            sumDef.instRef != ctx.storage->findPreviousInstructionRef(cmpRef))
+            sumDef.instRef != previousRef)
             return false;
         const MicroInstrOperand* addOps = sumDef.inst->ops(*ctx.operands);
         if (!addOps || addOps[0].reg != selectOps[1].reg || addOps[2].opBits != bits || addOps[3].microOp != MicroOp::Add)
@@ -444,18 +451,25 @@ namespace InstructionCombine
         if (result == right)
             return false;
 
-        const MicroInstrRef      cmpRef = ctx.storage->findPreviousInstructionRef(selectRef);
-        const MicroInstr*        cmp    = cmpRef.isValid() ? ctx.storage->ptr(cmpRef) : nullptr;
-        const MicroInstrOperand* cmpOps = cmp && cmp->op == MicroInstrOpcode::CmpRegReg ? cmp->ops(*ctx.operands) : nullptr;
+        MicroStorage::Iterator patternIt{ctx.storage, selectRef};
+        --patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::CmpRegReg)
+            return false;
+        const MicroInstrRef      cmpRef = patternIt.current;
+        const MicroInstr*        cmp    = &*patternIt;
+        const MicroInstrOperand* cmpOps = cmp->ops(*ctx.operands);
         if (!cmpOps || cmpOps[1].reg != right || cmpOps[2].opBits != bits || !cmpOps[0].reg.isVirtualInt())
             return false;
         const MicroReg left = cmpOps[0].reg;
         if (left == right || left == result)
             return false;
 
-        const MicroInstrRef      copyRef = ctx.storage->findPreviousInstructionRef(cmpRef);
-        const MicroInstr*        copy    = copyRef.isValid() ? ctx.storage->ptr(copyRef) : nullptr;
-        const MicroInstrOperand* copyOps = copy && copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
+        --patternIt;
+        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadRegReg)
+            return false;
+        const MicroInstrRef      copyRef = patternIt.current;
+        const MicroInstr*        copy    = &*patternIt;
+        const MicroInstrOperand* copyOps = copy->ops(*ctx.operands);
         if (!copyOps || copyOps[0].reg != result || copyOps[1].reg != left || getNumBits(copyOps[2].opBits) < getNumBits(bits) ||
             !valueHasSingleUse(*ctx.ssa, result, copyRef))
             return false;

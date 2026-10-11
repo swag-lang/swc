@@ -287,7 +287,6 @@ namespace
     {
         Candidate       candidate = {};
         MatchFailure    fail      = {};
-        bool            viable    = false;
     };
 
     struct SortedAttempt
@@ -1218,7 +1217,7 @@ namespace
         uint32_t                   order = 0;
         for (const Attempt& a : attempts)
         {
-            if (!a.candidate.fn || a.viable)
+            if (!a.candidate.fn || a.candidate.viable)
             {
                 order++;
                 continue;
@@ -2303,7 +2302,7 @@ namespace
         const auto appendAttempt = [&](Attempt&& attempt) {
             outAttempts.push_back(std::move(attempt));
             const Attempt* appended = &outAttempts.back();
-            if (appended->viable)
+            if (appended->candidate.viable)
                 outViable.push_back(appended);
         };
 
@@ -2320,24 +2319,18 @@ namespace
                 Candidate    candidate;
                 SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail));
                 if (candidate.viable)
-                {
-                    a.viable    = true;
                     a.candidate = std::move(candidate);
-                }
 
-                if (!a.viable && ufcsArg.isValid())
+                if (!a.candidate.viable && ufcsArg.isValid())
                 {
                     candidate = {};
                     fail      = {};
                     SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail));
                     if (candidate.viable)
-                    {
-                        a.viable    = true;
                         a.candidate = std::move(candidate);
-                    }
                 }
 
-                if (!a.viable)
+                if (!a.candidate.viable)
                     a.fail = std::move(fail);
 
                 appendAttempt(std::move(a));
@@ -2350,10 +2343,7 @@ namespace
             // First: non-UFCS call shape.
             SWC_RESULT(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, candidate, fail));
             if (candidate.viable)
-            {
-                a.viable    = true;
                 a.candidate = std::move(candidate);
-            }
             else if (ufcsArg.isValid())
             {
                 // Second: UFCS call shape (implicit arg0).
@@ -2361,20 +2351,15 @@ namespace
                 fail      = {};
                 SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail));
                 if (candidate.viable)
-                {
-                    a.viable    = true;
                     a.candidate = std::move(candidate);
-                }
                 else
                 {
-                    a.viable = false;
-                    a.fail   = std::move(fail);
+                    a.fail = std::move(fail);
                 }
             }
             else
             {
-                a.viable = false;
-                a.fail   = std::move(fail);
+                a.fail = std::move(fail);
             }
 
             appendAttempt(std::move(a));
@@ -2395,7 +2380,7 @@ namespace
         outViable.reserve(attempts.size());
         for (const Attempt& a : attempts)
         {
-            if (a.viable)
+            if (a.candidate.viable)
                 outViable.push_back(&a);
         }
     }

@@ -153,7 +153,7 @@ internal func isHtmlBlockStart(line: string)->bool
     return false
 }
 
-internal func parseBlocks(source: string, headingsOnly = false, inheritedReferences: const [..] Reference? = null)->Array'Block
+internal func parseBlocks(source: string, headingsOnly = false, inheritedReferences: const [..] Reference? = null, frontmatter = true)->Array'Block
 {
     var result:     retval
     let lines = Tokenize.splitLines(Utf8.startsWith(source, "\uFEFF") ? source[3 to] : source)
@@ -173,7 +173,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
         }
     }
 
-    if lines.count and Latin1.trim(lines[0]) == "---"
+    if frontmatter and lines.count and Latin1.trim(lines[0]) == "---"
     {
         var metadata: String
         index = 1
@@ -408,7 +408,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                         index    += 1
                     }
 
-                    var nested = parseBlocks(markdown.toString(), headingsOnly, references.toSlice())
+                    var nested = parseBlocks(markdown.toString(), headingsOnly, references.toSlice(), false)
                     for &block in nested
                     {
                         block.sourceOffset += markdownOffset

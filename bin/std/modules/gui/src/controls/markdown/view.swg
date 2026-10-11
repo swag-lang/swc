@@ -692,9 +692,9 @@ private impl View
         if source.isEmpty() do
             return false
 
-        .pendingBlocks = parseBlocks(source.toString())
         let sourceSize   = .sourceCarry.length + source.length
         let sourceOffset = .bytesRead >= sourceSize ? .bytesRead - sourceSize : 0
+        .pendingBlocks = parseBlocks(source.toString(), frontmatter: sourceOffset == 0)
         for &block in .pendingBlocks do
             block.sourceOffset += sourceOffset
         return not .pendingBlocks.isEmpty()

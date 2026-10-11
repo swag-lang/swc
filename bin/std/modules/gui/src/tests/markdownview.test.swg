@@ -207,6 +207,52 @@ using Swag, Core
     Swag.assert(afterComment.count == 2 and afterComment[0].text == "<b>Visible</b>")
 }
 
+// A chapter after several stream reads keeps Markdown parsing after a split horizontal rule.
+#test
+{
+    let imagePath = Testing.tempFilePath("markdown_streamed_chapter-", ".svg")
+    let fileName = Testing.tempFilePath("markdown_streamed_html_chapter-", ".md")
+    defer discard catch File.delete(imagePath)
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(imagePath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"60\"/>")
+
+    var source: String
+    source.reserve(40 * 1024)
+    for 4
+    {
+        source += "<!--"
+        for 8_181 do
+            source += "x"
+        source += "-->\n\n"
+    }
+    source += "    \n\n---\n\n# 530 — Le premier chant\n\n"
+    let imageName = Path.fileName(imagePath.toString())!
+    source += Format.toString("<div align=\"center\">\n\n<img src=\"%\" width=\"49%%\"> <img src=\"%\" width=\"49%%\">\n\n", imageName, imageName)
+    source += "> *FIG. 10 — **Bourges au centre.** The caption keeps its Markdown formatting.*\n\n</div>\n\n"
+    source += "## Tendre l'oreille\n\nThe next section remains a Markdown paragraph."
+    let parsed = Markdown.parseBlocks(source.toString())
+    var hasCaption: bool
+    for &block in parsed where block.kind == .Quote do
+        hasCaption = Utf8.contains(block.text.toString(), "FIG. 10 — <b>Bourges au centre.")
+    Swag.assert(hasCaption)
+    discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
+
+    var host: Testing.HeadlessHost
+    host.setup(720, 480)
+    defer host.shutdown()
+    let view = Markdown.View.createFile(&host.root, fileName)
+    view.resize(720, 480)
+    view.applyLayout()
+    for 64 where view.hasUnloadedSource() do
+        host.fireTimers()
+
+    Swag.assert(view.failureReason.isEmpty() and not view.hasUnloadedSource())
+    Swag.assert(view.findText("530 — Le premier chant"))
+    Swag.assert(view.findText("FIG. 10 — Bourges au centre."))
+    Swag.assert(view.findText("Tendre l'oreille"))
+    Swag.assert(not view.findText("# 530") and not view.findText("> *FIG."))
+}
+
 // The document image cache accepts local vectors as well as raster images.
 #test
 {

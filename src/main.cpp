@@ -53,6 +53,88 @@ namespace
 #endif
 }
 
+namespace
+{
+    constexpr std::string_view EDITOR_SERVICE_PREFIX = "SWAG-EDITOR-SERVICE\t1\t";
+
+    std::optional<std::string> editorModuleConfiguration(const swc::CommandLine& cmdLine)
+    {
+        fs::path moduleFilePath = cmdLine.moduleFilePath;
+        if (moduleFilePath.empty() && !cmdLine.modulePath.empty())
+            moduleFilePath = cmdLine.modulePath / "module.swg";
+        if (moduleFilePath.empty())
+            return std::nullopt;
+
+        if (cmdLine.editorSources)
+        {
+            const auto it = cmdLine.editorSources->find(swc::EditorIndex::pathKey(moduleFilePath));
+            if (it != cmdLine.editorSources->end())
+                return it->second;
+        }
+
+        std::ifstream input(moduleFilePath, std::ios::binary);
+        if (!input)
+            return std::nullopt;
+        return std::string(std::istreambuf_iterator<char>(input), {});
+    }
+
+    int runEditorService(swc::Global& global, swc::CommandLine& cmdLine)
+    {
+        std::println(stdout, "{}READY", EDITOR_SERVICE_PREFIX);
+        std::println(stderr, "{}READY", EDITOR_SERVICE_PREFIX);
+        (void) std::fflush(stdout);
+        (void) std::fflush(stderr);
+
+        std::string request;
+        std::unique_ptr<swc::CompilerInstance> compiler;
+        std::optional<std::string>             moduleConfiguration;
+        bool                                   hasModuleConfigurationSnapshot = false;
+        while (std::getline(std::cin, request))
+        {
+            if (request == "shutdown")
+                return static_cast<int>(swc::ExitCode::Success);
+
+            constexpr std::string_view ANALYZE_PREFIX = "analyze\t";
+            const std::string_view requestView(request);
+            const std::string_view idText = requestView.starts_with(ANALYZE_PREFIX) ? requestView.substr(ANALYZE_PREFIX.size()) : std::string_view{};
+            uint64_t                requestId = 0;
+            const auto              parsedId  = std::from_chars(idText.data(), idText.data() + idText.size(), requestId);
+            int                     result    = static_cast<int>(swc::ExitCode::ErrorCmdLine);
+            if (!idText.empty() && parsedId.ec == std::errc{} && parsedId.ptr == idText.data() + idText.size())
+            {
+                result = static_cast<int>(swc::ExitCode::ErrorCommand);
+                if (swc::EditorIndex::loadOverlays(cmdLine) == swc::Result::Continue)
+                {
+                    std::optional<std::string> nextModuleConfiguration = editorModuleConfiguration(cmdLine);
+                    if (hasModuleConfigurationSnapshot && moduleConfiguration != nextModuleConfiguration)
+                        compiler.reset();
+                    moduleConfiguration = std::move(nextModuleConfiguration);
+                    hasModuleConfigurationSnapshot = true;
+
+                    if (!compiler)
+                        compiler = std::make_unique<swc::CompilerInstance>(global, cmdLine);
+                    {
+                        result = static_cast<int>(compiler->run());
+                        if (swc::EditorIndex::write(*compiler) != swc::Result::Continue)
+                            result = static_cast<int>(swc::ExitCode::ErrorCommand);
+                    }
+                }
+            }
+
+            std::cout.flush();
+            std::cerr.flush();
+            (void) std::fflush(stdout);
+            (void) std::fflush(stderr);
+            std::println(stdout, "{}{}\t{}", EDITOR_SERVICE_PREFIX, requestId, result);
+            std::println(stderr, "{}{}\t{}", EDITOR_SERVICE_PREFIX, requestId, result);
+            (void) std::fflush(stdout);
+            (void) std::fflush(stderr);
+        }
+
+        return static_cast<int>(swc::ExitCode::Success);
+    }
+}
+
 int main(int argc, char* argv[])
 {
     swc::Allocator::configure();
@@ -97,14 +179,19 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    if (swc::EditorIndex::loadOverlays(cmdLine) != swc::Result::Continue)
+    if (!cmdLine.editorService && swc::EditorIndex::loadOverlays(cmdLine) != swc::Result::Continue)
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 
-    swc::CompilerInstance compiler(global, cmdLine);
-
-    auto result = static_cast<int>(compiler.run());
-    if (!cmdLine.editorIndex.empty() && swc::EditorIndex::write(compiler) != swc::Result::Continue)
-        result = static_cast<int>(swc::ExitCode::ErrorCommand);
+    int result;
+    if (cmdLine.editorService)
+        result = runEditorService(global, cmdLine);
+    else
+    {
+        swc::CompilerInstance compiler(global, cmdLine);
+        result = static_cast<int>(compiler.run());
+        if (!cmdLine.editorIndex.empty() && swc::EditorIndex::write(compiler) != swc::Result::Continue)
+            result = static_cast<int>(swc::ExitCode::ErrorCommand);
+    }
 #if SWC_DEV_MODE
     if (cmdLine.devSchedStats)
         global.jobMgr().printStats(startupCtx);

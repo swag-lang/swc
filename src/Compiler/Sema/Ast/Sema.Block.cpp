@@ -255,7 +255,14 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
         }
 
         if (ownerSymMap)
-            ownerSymMap->addUsingSymMap(sema.ctx(), usingSymMap);
+        {
+            const SourceFile* sourceFile = sema.file();
+            const SymbolMap::SourceRevision sourceRevision{
+                .fileRef  = sourceFile ? sourceFile->ref() : FileRef::invalid(),
+                .revision = sourceFile ? sourceFile->revisionId() : 0,
+            };
+            ownerSymMap->addUsingSymMap(sema.ctx(), usingSymMap, sourceRevision);
+        }
     }
 
     return Result::Continue;

@@ -147,13 +147,13 @@ namespace
         lookUpCxt.replaceWithSingleSymbol(own);
     }
 
-    void addPersistedUsingSymMaps(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchPriority& priority)
+    void addPersistedUsingSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchPriority& priority)
     {
         if (!symMap)
             return;
 
         SmallVector<const SymbolMap*> usingSymMaps;
-        symMap->copyUsingSymMaps(usingSymMaps);
+        symMap->copyUsingSymMaps(usingSymMaps, &sema.compiler());
         for (const SymbolMap* usingSymMap : usingSymMaps)
         {
             const MatchPriority usingPriority{.scopeDepth = priority.scopeDepth, .visibility = VisibilityTier::UsingDirective};
@@ -189,7 +189,7 @@ namespace
             return;
 
         addSymMap(lookUpCxt, symMap, priority);
-        addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
+        addPersistedUsingSymMaps(sema, lookUpCxt, symMap, priority);
     }
 
     const SymbolMap* importedApiModuleRoot(Sema& sema, const SymbolMap* importRoot)
@@ -282,7 +282,7 @@ namespace
             }
 
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
-            addPersistedUsingSymMaps(lookUpCxt, lookUpCxt.symMapHint, priority);
+            addPersistedUsingSymMaps(sema, lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct() && !lookUpCxt.skipUsingFieldMembers)
@@ -308,7 +308,7 @@ namespace
                 {
                     const MatchPriority priority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::LocalScope};
                     addSymMap(lookUpCxt, symMap, priority);
-                    addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
+                    addPersistedUsingSymMaps(sema, lookUpCxt, symMap, priority);
                 }
             }
 
@@ -351,7 +351,7 @@ namespace
 
         const MatchPriority fileRootPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 1), .visibility = VisibilityTier::FileNamespace};
         addSymMap(lookUpCxt, fileNamespace, fileRootPriority);
-        addPersistedUsingSymMaps(lookUpCxt, fileNamespace, fileRootPriority);
+        addPersistedUsingSymMaps(sema, lookUpCxt, fileNamespace, fileRootPriority);
 
         // Symbols imported from other modules live under the empty-named import-root namespace
         // (as siblings of this module's namespace) so they keep their own hierarchy (e.g. `Pixel`,
@@ -372,12 +372,12 @@ namespace
         {
             const MatchPriority importedModuleRootPriority{.scopeDepth = moduleRootDepth++, .visibility = VisibilityTier::ModuleNamespace};
             addSymMap(lookUpCxt, importedModuleRoot, importedModuleRootPriority);
-            addPersistedUsingSymMaps(lookUpCxt, importedModuleRoot, importedModuleRootPriority);
+            addPersistedUsingSymMaps(sema, lookUpCxt, importedModuleRoot, importedModuleRootPriority);
         }
 
         const MatchPriority moduleRootPriority{.scopeDepth = moduleRootDepth, .visibility = VisibilityTier::ModuleNamespace};
         addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
-        addPersistedUsingSymMaps(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
+        addPersistedUsingSymMaps(sema, lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
 
         // Expose the imported module namespaces (Core, Pixel, ...) as siblings. Do NOT pull in
         // importRoot's persisted `using` directives: those accumulate every imported file's usings

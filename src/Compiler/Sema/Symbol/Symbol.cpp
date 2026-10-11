@@ -276,6 +276,16 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
     ctx.compiler().notifyAlive();
 }
 
+void Symbol::registerEditorSourceRevision(const TaskContext& ctx)
+{
+    if (!decl_)
+        return;
+
+    const SourceFile* sourceFile = ctx.compiler().sourceViewFile(decl_->srcViewRef());
+    if (sourceFile)
+        ctx.compiler().registerEditorSymbol(*this, sourceFile->ref(), sourceFile->revisionId());
+}
+
 void Symbol::setExcludedByCondition(TaskContext& ctx) noexcept
 {
     // Unlike a declaration that failed sema, an excluded declaration must not

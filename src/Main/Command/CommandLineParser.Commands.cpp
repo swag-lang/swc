@@ -85,6 +85,10 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "sema", "--editor-overlay", nullptr,
         &cmdLine_->editorOverlay,
         "Read unsaved source buffers from a versioned editor overlay file");
+    add(HelpOptionGroup::Other, "sema", "--editor-service", nullptr,
+        &cmdLine_->editorService,
+        "Keep the compiler process alive for editor analysis requests",
+        false);
     addEnum(HelpOptionGroup::Target, "sema doc test build run smoke", "--arch", "-a",
             &cmdLine_->targetArch,
             {

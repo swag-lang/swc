@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 
@@ -6,7 +7,8 @@ SWC_BEGIN_NAMESPACE();
 
 TaskContext::TaskContext(const Global& global, const CommandLine& cmdLine) :
     global_(&global),
-    cmdLine_(&cmdLine)
+    cmdLine_(&cmdLine),
+    editorService_(cmdLine.editorService)
 {
 }
 
@@ -15,6 +17,7 @@ TaskContext::TaskContext(CompilerInstance& compInst) :
 {
     global_  = &compInst.global();
     cmdLine_ = &compInst.cmdLine();
+    editorService_ = cmdLine_->editorService;
 }
 
 TaskContext::TaskContext(const TaskContext& other) :
@@ -26,6 +29,7 @@ TaskContext::TaskContext(const TaskContext& other) :
     muteOutput_(other.muteOutput_),
     hasError_(other.hasError_),
     hasWarning_(other.hasWarning_),
+    editorService_(other.editorService_),
     state_(other.state_)
 {
 }
@@ -43,6 +47,7 @@ TaskContext& TaskContext::operator=(const TaskContext& other)
     muteOutput_       = other.muteOutput_;
     hasError_         = other.hasError_;
     hasWarning_       = other.hasWarning_;
+    editorService_    = other.editorService_;
     state_            = other.state_;
     genericNodeRunCache_.reset();
     genericInstanceNodeRunCache_.reset();

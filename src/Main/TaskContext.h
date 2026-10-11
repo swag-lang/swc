@@ -26,6 +26,7 @@ public:
     const Global&           global() const { return *(global_); }
     const CommandLine&      cmdLine() const { return *(cmdLine_); }
     bool                    hasCompiler() const { return compilerInstance_ != nullptr; }
+    bool                    isEditorService() const { return editorService_; }
     CompilerInstance&       compiler() { return *(compilerInstance_); }
     const CompilerInstance& compiler() const { return *(compilerInstance_); }
 
@@ -79,6 +80,7 @@ private:
     bool                                          muteOutput_       = false;
     bool                                          hasError_         = false;
     bool                                          hasWarning_       = false;
+    bool                                          editorService_    = false;
     TaskState                                     state_;
     std::shared_ptr<void>                         genericNodeRunCache_;
     std::shared_ptr<void>                         genericInstanceNodeRunCache_;

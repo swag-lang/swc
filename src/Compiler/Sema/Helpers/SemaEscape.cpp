@@ -5548,6 +5548,8 @@ namespace SemaEscape
         {
             const SymbolFunction* function = nullptr;
             ReturnSummary         summary;
+            size_t                edgeBegin = 0;
+            size_t                edgeEnd   = 0;
         };
 
         // These functions completed before the edge snapshot is taken, so all their
@@ -5557,6 +5559,7 @@ namespace SemaEscape
         // below are monotone (completeness only drops, masks only grow), so the order they sweep
         // the summaries in changes how many sweeps they take, never what they converge to.
         std::vector<ReturnEntry>                  returnEntries;
+        std::vector<const SemaEscapeSummaryEdge*> returnEdges;
         PointerMap<SymbolFunction, ReturnSummary> returns;
         returnEntries.reserve(completedFunctions.size());
         returns.reserve(completedFunctions.size());
@@ -5573,8 +5576,19 @@ namespace SemaEscape
             // Code generation may have removed a call whose semantic return edge still
             // exists. An unresolved route can later reveal an owned payload, so absence
             // of a payload bit is not an alias proof until every return dependency closes.
-            // The locked edge table is stable; remember callers with no direct return edges
-            // so later fixpoint sweeps can skip their map lookup.
+            // Snapshot each caller's edges once: the table stays stable under this shared lock,
+            // and both fixpoints revisit these same ranges until they converge.
+            for (ReturnEntry& returnEntry : returnEntries)
+            {
+                returnEntry.edgeBegin = returnEdges.size();
+                edgesOf(returnEntry.function, [&](const SemaEscapeSummaryEdge& edge) {
+                    returnEdges.push_back(&edge);
+                    if (!edge.callerIndirect && !edge.calleeIndirect)
+                        returnEntry.summary.hasRelevantEdges = true;
+                });
+                returnEntry.edgeEnd = returnEdges.size();
+            }
+
             bool changed = true;
             while (changed)
             {
@@ -5587,12 +5601,13 @@ namespace SemaEscape
                         continue;
 
                     entry.edgesScanned = true;
-                    edgesOf(returnEntry.function, [&](const SemaEscapeSummaryEdge& edge) {
+                    for (size_t edgeIndex = returnEntry.edgeBegin; edgeIndex < returnEntry.edgeEnd; ++edgeIndex)
+                    {
+                        const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
                         if (!entry.complete)
-                            return;
+                            break;
                         if (edge.callerIndirect || edge.calleeIndirect)
-                            return;
-                        entry.hasRelevantEdges = true;
+                            continue;
 
                         const ReturnSummary* callee = returns.find(edge.callee);
                         if (!callee || !callee->complete ||
@@ -5604,7 +5619,7 @@ namespace SemaEscape
                             entry.complete = false;
                             changed        = true;
                         }
-                    });
+                    }
                 }
             }
 
@@ -5619,12 +5634,14 @@ namespace SemaEscape
                     if (!entry.complete || !entry.hasRelevantEdges)
                         continue;
 
-                    edgesOf(returnEntry.function, [&](const SemaEscapeSummaryEdge& edge) {
+                    for (size_t edgeIndex = returnEntry.edgeBegin; edgeIndex < returnEntry.edgeEnd; ++edgeIndex)
+                    {
+                        const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
                         if (!entry.complete)
-                            return;
+                            break;
 
                         if (edge.callerIndirect || edge.calleeIndirect)
-                            return;
+                            continue;
                         const ReturnSummary& callee    = *returns.find(edge.callee);
                         const uint64_t       calleeBit = 1ULL << edge.calleeParamIndex;
                         const uint64_t       callerBit = 1ULL << edge.callerParamIndex;
@@ -5674,7 +5691,7 @@ namespace SemaEscape
                                 }
                             }
                         }
-                    });
+                    }
                 }
             }
         });

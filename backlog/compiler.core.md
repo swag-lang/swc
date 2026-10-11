@@ -139,8 +139,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   callers instead of repeating their table lookups. The guarded frees fixpoint also compacts
   applied edges while retaining incomplete callers and callees; a new boundary check completes a
   return dependency after the first pass and verifies that its guard then permits propagation.
-  The DevMode C++ suite passes all 1,424 tests. These are structural changes; no timing comparison
-  was made.
+  The guarded return fixpoints now snapshot each completed caller's return-edge range once under
+  the existing shared lock, then reuse that stable range on convergence sweeps instead of repeating
+  the caller-map lookup. The DevMode C++ suite passes all 1,424 tests. These are structural changes;
+  no timing comparison was made.
 - Rejected October 11: a lock-free free-edge count could report zero while another worker was
   appending an edge and let the fixpoint return without seeing it. Writer tracking would add
   atomic work to every edge publication, so keep the shared-lock count instead.

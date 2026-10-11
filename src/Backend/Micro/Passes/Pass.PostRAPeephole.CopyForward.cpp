@@ -1309,13 +1309,13 @@ namespace PostRaPeephole
             MicroInstrOpcode::LoadCondRegReg,
         };
         std::array<MicroInstrRef, expected.size()> refs;
-        MicroInstrRef                              cursor = ctx.previousRef(extendRef);
+        auto walker = MicroStorage::Iterator{ctx.storage, extendRef};
         for (size_t i = expected.size(); i > 0; --i)
         {
-            if (!cursor.isValid())
+            --walker;
+            if (!walker.current.isValid())
                 return false;
-            refs[i - 1] = cursor;
-            cursor      = ctx.previousRef(cursor);
+            refs[i - 1] = walker.current;
         }
 
         std::array<MicroReg, 16> known    = {};

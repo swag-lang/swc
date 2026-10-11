@@ -1212,12 +1212,14 @@ namespace PostRaPeephole
         constexpr uint32_t kMaxScan = 12;
 
         bool          loadFound = false;
-        MicroInstrRef cursor    = ctx.previousRef(opRef);
+        auto          walker    = MicroStorage::Iterator{ctx.storage, opRef};
+        --walker;
         for (uint32_t step = 0; step < kMaxScan && !loadFound; ++step)
         {
-            const MicroInstr* candidate = ctx.instruction(cursor);
-            if (!candidate)
+            if (!walker.current.isValid())
                 return false;
+            const MicroInstrRef cursor    = walker.current;
+            const MicroInstr*   candidate = &*walker;
 
             const MicroInstrDef& info = MicroInstr::info(candidate->op);
             if (candidate->op == MicroInstrOpcode::Label ||
@@ -1246,7 +1248,7 @@ namespace PostRaPeephole
                     return false;
             }
 
-            cursor = ctx.previousRef(cursor);
+            --walker;
         }
 
         if (!loadFound || !ctx.claimAll({opRef}))

@@ -174,9 +174,14 @@ new language syntax.
   Swag calls `advance` once per step, saving and restoring ten XMM registers, and reloads the
   bodies through the slice. Zig issues 6 roots and 6 divisions per step, Rust 7 + 7, clang and
   Swag 10 + 10, in the order of their times (16.0, 19.7, 21.6 and 21.4 ms).
-- Remaining gap: pack coordinate producers, roots/divisions and their scalar consumers as
-  one plan, with a register-pressure estimate. Pairing only the expensive operations is
-  insufficient. The position loop already packs x/y updates without frame traffic.
+- The current SLP boundary explains why the interaction loop stays scalar: groups start from
+  final stores at contiguous offsets, and `buildLoad` only accepts a contiguous memory chunk.
+  N-body's pair lanes read coordinates from bodies 56 bytes apart and update separate scalar
+  velocity fields. Zig forms packed pair intermediates, then feeds the scalar updates through
+  lane unpacking. The position loop already packs x/y updates without frame traffic.
+- Remaining gap: pack coordinate producers, roots/divisions and scalar consumers as one plan,
+  while accounting for the unpacks and peak register pressure. Pairing only the expensive
+  operations is insufficient.
 - October 10: post-RA contraction now reaches a product separated from its accumulation by the
   accumulator load (`2f0ebbbd8`): the step loop went from 393 to 378 instructions per iteration with
   131 memory operands and 24 frame accesses unchanged. The loop still carries 33 full-width register
@@ -193,9 +198,11 @@ new language syntax.
 - A source-shape probe based on Zig's `*[NB]Body` parameter confirmed the current Swag call is already
   inlined. Adding `#[Swag.Inline]` leaves its Micro unchanged; changing `advance` from a slice to a fixed
   array pointer grows the timed step loop from 378 instructions / 131 memory operands to 416 / 170.
-- Next: compare each interaction region against the winner and design shared producer
-  ownership before another SLP rewrite. Keep historical timing attribution separate from
-  the static optimization loop; a stable controlled cohort is still required for it.
+- Next: prototype a producer-rooted plan for two independent pair interactions that gathers
+  their coordinates, shares the packed distance/root/division chain, and returns scalar lanes to
+  the existing velocity updates. Estimate peak XMM liveness before extending it across more
+  interactions. Keep historical timing attribution separate; a stable controlled cohort is
+  still required for a runtime claim.
 - Done when: the step retains or packs body state with no redundant pair work and
   matches the winner's packed roots/divisions without a generated-code loss in other tasks.
 - Related: compiler.optimization.016, language.design.037.

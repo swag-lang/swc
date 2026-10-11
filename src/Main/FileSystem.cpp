@@ -128,7 +128,7 @@ namespace
     // (the working directory and on-disk symlink topology do not change during a build). Memoize it.
     struct NormalizePathCache
     {
-        std::mutex                                mutex;
+        std::shared_mutex                        mutex;
         std::unordered_map<std::string, fs::path> entries;
     };
 
@@ -167,7 +167,7 @@ fs::path FileSystem::normalizePath(const fs::path& path)
     NormalizePathCache& cache = normalizePathCache();
 
     {
-        const std::scoped_lock lock(cache.mutex);
+        const std::shared_lock lock(cache.mutex);
         const auto             it = cache.entries.find(key);
         if (it != cache.entries.end())
             return it->second;
@@ -176,7 +176,7 @@ fs::path FileSystem::normalizePath(const fs::path& path)
     fs::path result = computeNormalizePath(path);
 
     {
-        const std::scoped_lock lock(cache.mutex);
+        const std::unique_lock lock(cache.mutex);
         cache.entries.emplace(std::move(key), result);
     }
 

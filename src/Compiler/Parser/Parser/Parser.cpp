@@ -303,7 +303,8 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             const auto* decl           = node.safeCast<AstFunctionDecl>();
             if (decl)
             {
-                functionDecls[astIndex].push_back(nodeRef);
+                if (decl->autoInlineCost <= K_AUTO_INLINE_LAST_CALL_COST && decl->tokNameRef.isValid())
+                    functionDecls[astIndex].push_back(nodeRef);
                 if (!callGraph)
                     callGraph = &callGraphs[ast];
                 childrenBodyOf = AutoInlineCallGraph::K_NO_FUNCTION;
@@ -361,13 +362,11 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
         const auto callGraphIt = callGraphs.find(ast);
         for (const AstNodeRef nodeRef : functionDecls[astIndex])
         {
-            const auto* decl = ast->node(nodeRef).safeCast<AstFunctionDecl>();
-            if (!decl || decl->autoInlineCost > K_AUTO_INLINE_LAST_CALL_COST || decl->tokNameRef.isInvalid())
-                continue;
+            const auto& decl = *ast->node<AstNodeId::FunctionDecl>(nodeRef);
 
-            const AutoInlineName   name        = autoInlineName(ast->srcView(), decl->tokNameRef);
+            const AutoInlineName   name        = autoInlineName(ast->srcView(), decl.tokNameRef);
             auto*                  mutableDecl = ast->node<AstNodeId::FunctionDecl>(nodeRef);
-            const bool             bodyHasCall = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
+            const bool             bodyHasCall = decl.hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
             // Calls to macros and mixins keep their existing expansion context. Re-sema of an
             // inlined wrapper can also expand an explicitly-inline callee. If that
             // callee owns a closure, local function, error-management scope, or another construct
@@ -394,11 +393,11 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             }
             // Volunteer a small wrapper with calls when at least one site is in a loop.
             // Bound total duplication, including its cold call sites.
-            const bool hotCallBody = bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS &&
+            const bool hotCallBody = bodyHasCall && decl.autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS &&
                                      it != callInfo.end() &&
-                                     uint64_t{decl->autoInlineCost} * it->second.count <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
+                                     uint64_t{decl.autoInlineCost} * it->second.count <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
                                      it->second.inLoop;
-            if ((!bodyHasCall && decl->autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
+            if ((!bodyHasCall && decl.autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
                 mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
         }
     }

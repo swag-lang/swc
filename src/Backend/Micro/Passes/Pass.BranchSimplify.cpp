@@ -4849,13 +4849,15 @@ namespace
             if (!tryGetJumpTargetLabelId(falseLabelId, *it, firstJumpOps))
                 continue;
 
-            const MicroInstrRef secondCmpRef = storage.findNextInstructionRef(candidate.firstJumpRef);
-            const MicroInstr*   secondCmp    = storage.ptr(secondCmpRef);
-            candidate.secondJumpRef          = storage.findNextInstructionRef(secondCmpRef);
-            const MicroInstr* secondJump     = storage.ptr(candidate.secondJumpRef);
-            if (!secondCmp || (secondCmp->op != MicroInstrOpcode::CmpRegReg && secondCmp->op != MicroInstrOpcode::CmpRegImm) ||
-                !secondJump || secondJump->op != MicroInstrOpcode::JumpCond)
+            auto patternIt = it;
+            ++patternIt;
+            if (patternIt == endIt || (patternIt->op != MicroInstrOpcode::CmpRegReg && patternIt->op != MicroInstrOpcode::CmpRegImm))
                 continue;
+            ++patternIt;
+            if (patternIt == endIt || patternIt->op != MicroInstrOpcode::JumpCond)
+                continue;
+            candidate.secondJumpRef = patternIt.current;
+            const MicroInstr* secondJump = &*patternIt;
             const auto* secondJumpOps = secondJump->ops(operands);
             if (!secondJumpOps || secondJumpOps[0].cpuCond == MicroCond::Unconditional)
                 continue;
@@ -4867,10 +4869,11 @@ namespace
             if (jumpLabelReferenceCount(labelReferences, falseLabelId) != 2)
                 continue;
 
-            candidate.oneRef         = storage.findNextInstructionRef(candidate.secondJumpRef);
-            const MicroInstr* one    = storage.ptr(candidate.oneRef);
-            if (!one || one->op != MicroInstrOpcode::LoadRegImm)
+            ++patternIt;
+            if (patternIt == endIt || patternIt->op != MicroInstrOpcode::LoadRegImm)
                 continue;
+            candidate.oneRef = patternIt.current;
+            const MicroInstr* one = &*patternIt;
             const auto* oneOps = one->ops(operands);
             if (!oneOps || oneOps[2].hasWideImmediateValue() || oneOps[2].valueU64 != 1 ||
                 (oneOps[1].opBits != MicroOpBits::B32 && oneOps[1].opBits != MicroOpBits::B64))
@@ -4880,10 +4883,11 @@ namespace
             if (!candidate.result.isVirtualInt())
                 continue;
 
-            candidate.joinJumpRef         = storage.findNextInstructionRef(candidate.oneRef);
-            const MicroInstr* joinJump    = storage.ptr(candidate.joinJumpRef);
-            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond)
+            ++patternIt;
+            if (patternIt == endIt || patternIt->op != MicroInstrOpcode::JumpCond)
                 continue;
+            candidate.joinJumpRef = patternIt.current;
+            const MicroInstr* joinJump = &*patternIt;
             const auto* joinJumpOps = joinJump->ops(operands);
             if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
@@ -4891,25 +4895,30 @@ namespace
             if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || jumpLabelReferenceCount(labelReferences, joinLabelId) != 1)
                 continue;
 
-            candidate.falseLabelRef           = storage.findNextInstructionRef(candidate.joinJumpRef);
-            const MicroInstr* falseLabel      = storage.ptr(candidate.falseLabelRef);
+            ++patternIt;
+            if (patternIt == endIt || patternIt->op != MicroInstrOpcode::Label)
+                continue;
+            candidate.falseLabelRef = patternIt.current;
+            const MicroInstr* falseLabel = &*patternIt;
             uint32_t          foundFalseLabel = 0;
-            if (!falseLabel || falseLabel->op != MicroInstrOpcode::Label ||
-                !tryGetLabelId(foundFalseLabel, *falseLabel, falseLabel->ops(operands)) || foundFalseLabel != falseLabelId)
+            if (!tryGetLabelId(foundFalseLabel, *falseLabel, falseLabel->ops(operands)) || foundFalseLabel != falseLabelId)
                 continue;
-            candidate.zeroRef         = storage.findNextInstructionRef(candidate.falseLabelRef);
-            const MicroInstr* zero    = storage.ptr(candidate.zeroRef);
-            if (!zero || zero->op != MicroInstrOpcode::LoadRegImm)
+            ++patternIt;
+            if (patternIt == endIt || patternIt->op != MicroInstrOpcode::LoadRegImm)
                 continue;
+            candidate.zeroRef = patternIt.current;
+            const MicroInstr* zero = &*patternIt;
             const auto* zeroOps = zero->ops(operands);
             if (!zeroOps || zeroOps[0].reg != candidate.result ||
                 zeroOps[1].opBits != candidate.resultBits || zeroOps[2].hasWideImmediateValue() || zeroOps[2].valueU64 != 0)
                 continue;
-            candidate.joinLabelRef           = storage.findNextInstructionRef(candidate.zeroRef);
-            const MicroInstr* joinLabel      = storage.ptr(candidate.joinLabelRef);
+            ++patternIt;
+            if (patternIt == endIt || patternIt->op != MicroInstrOpcode::Label)
+                continue;
+            candidate.joinLabelRef = patternIt.current;
+            const MicroInstr* joinLabel = &*patternIt;
             uint32_t          foundJoinLabel = 0;
-            if (!joinLabel || joinLabel->op != MicroInstrOpcode::Label ||
-                !tryGetLabelId(foundJoinLabel, *joinLabel, joinLabel->ops(operands)) || foundJoinLabel != joinLabelId ||
+            if (!tryGetLabelId(foundJoinLabel, *joinLabel, joinLabel->ops(operands)) || foundJoinLabel != joinLabelId ||
                 !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, candidate.joinLabelRef, context.builder))
                 continue;
 

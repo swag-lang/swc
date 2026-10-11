@@ -512,8 +512,8 @@ private:
     mutable std::atomic<uint32_t>                 inlinedCost_           = 0;
     mutable std::shared_mutex                     jitOrderCacheMutex_;
     mutable std::vector<uint64_t>                 globalInitOffsetsCache_;
-    mutable bool                                  globalInitOffsetsComputed_ = false;
-    mutable std::shared_mutex                     globalInitOffsetsMutex_;
+    mutable std::atomic<bool>                     globalInitOffsetsComputed_ = false;
+    mutable std::mutex                            globalInitOffsetsMutex_;
     mutable ConstantJitTargets                    constantJitTargets_;
     mutable std::shared_mutex                     constantJitTargetsMutex_;
     std::vector<SymbolFunction*>                  callDependencies_;

@@ -328,16 +328,11 @@ void SymbolFunction::refreshJitOrderCache() const
 
 const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
 {
-    // Computed once and read at every compile-time call that runs through this function: the
-    // readers share the lock, and only the one computation takes it alone.
-    {
-        const std::shared_lock lock(globalInitOffsetsMutex_);
-        if (globalInitOffsetsComputed_)
-            return globalInitOffsetsCache_;
-    }
+    if (globalInitOffsetsComputed_.load(std::memory_order_acquire))
+        return globalInitOffsetsCache_;
 
     const std::unique_lock lock(globalInitOffsetsMutex_);
-    if (globalInitOffsetsComputed_)
+    if (globalInitOffsetsComputed_.load(std::memory_order_relaxed))
         return globalInitOffsetsCache_;
 
     for (const MicroRelocation& relocation : loweredCode().codeRelocations)
@@ -346,7 +341,7 @@ const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
             globalInitOffsetsCache_.push_back(relocation.targetAddress);
     }
 
-    globalInitOffsetsComputed_ = true;
+    globalInitOffsetsComputed_.store(true, std::memory_order_release);
     return globalInitOffsetsCache_;
 }
 

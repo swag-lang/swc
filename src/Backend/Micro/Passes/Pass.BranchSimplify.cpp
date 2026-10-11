@@ -1253,20 +1253,20 @@ namespace
     // boundaries (labels, terminators, jumps, calls) report failure.
     MicroInstrRef previousFlagChainInstruction(MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef fromRef, MicroReg trackedReg, bool stopOnFlagUse)
     {
-        for (MicroInstrRef scanRef = storage.findPreviousInstructionRef(fromRef); scanRef.isValid(); scanRef = storage.findPreviousInstructionRef(scanRef))
+        MicroStorage::Iterator walker{&storage, storage.findPreviousInstructionRef(fromRef)};
+        for (; walker.current.isValid(); --walker)
         {
-            const MicroInstr* scanInst = storage.ptr(scanRef);
-            if (!scanInst)
-                return MicroInstrRef::invalid();
+            const MicroInstrRef scanRef  = walker.current;
+            const MicroInstr&   scanInst = *walker;
 
-            const MicroInstrFlags flags = MicroInstr::info(scanInst->op).flags;
-            if (scanInst->op == MicroInstrOpcode::Label ||
+            const MicroInstrFlags flags = MicroInstr::info(scanInst.op).flags;
+            if (scanInst.op == MicroInstrOpcode::Label ||
                 flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 flags.has(MicroInstrFlagsE::JumpInstruction) ||
                 flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return MicroInstrRef::invalid();
 
-            const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+            const MicroInstrDef& info = MicroInstr::info(scanInst.op);
             bool                mayDefineTrackedReg = trackedReg.isValid() &&
                                                      (info.special != MicroInstrRegSpecial::None || flags.has(MicroInstrFlagsE::EncoderRegUseDef));
             if (trackedReg.isValid() && !mayDefineTrackedReg)
@@ -1287,20 +1287,20 @@ namespace
             // Likewise, read-only register modes cannot end the tracked-value
             // search, so they need no operand decode on that path.
             const MicroInstrOperand* scanOps = nullptr;
-            const bool needsFlagOps = flags.has(MicroInstrFlagsE::DefinesCpuFlags) && MicroPassHelpers::instructionCpuFlagsDependOnOperands(*scanInst);
+            const bool needsFlagOps = flags.has(MicroInstrFlagsE::DefinesCpuFlags) && MicroPassHelpers::instructionCpuFlagsDependOnOperands(scanInst);
             if (mayDefineTrackedReg || needsFlagOps)
-                scanOps = scanInst->ops(operands);
+                scanOps = scanInst.ops(operands);
             if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
                 return scanRef;
             if (flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
-                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*scanInst, scanOps))
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(scanInst, scanOps))
                 return scanRef;
 
             if (mayDefineTrackedReg)
             {
                 if (!scanOps)
                     continue;
-                const auto modes = MicroInstr::info(scanInst->op).resolvedRegModes(scanOps);
+                const auto modes = MicroInstr::info(scanInst.op).resolvedRegModes(scanOps);
                 for (size_t i = 0; i < modes.size(); ++i)
                 {
                     if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && scanOps[i].reg == trackedReg)

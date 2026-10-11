@@ -7,58 +7,14 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
-  and listing-order slots; the other order-sensitive maps and the kept-table clear remain.
-- Evidence: the October 9 prompt-4 pass replaced the node-based containers that sat on hot paths
-  and could be swapped for flat ones with identical results (sema visited sets, impl snapshots,
-  escape state, code generation node and variable payloads, value numbering, loop rotation and
-  unrolling labels, stack offsets, sanitizer counts, inline binding uses, linker tables, the JIT
-  address cache, the sanitizer register and stack facts, branch-simplify label and register
-  counts, the per-function call and relocation sets, loop-invariant code motion's relocation
-  chains, lifecycle type walks, switch case tables). It also stopped building tables most
-  objects never fill (struct and enum impl guards, node payload side tables, generic instance
-  indices, move-elision facts), formats the `where` instantiation text only when a constraint
-  fails, sorts a function's symbols for unused captures only when it has a capture, and takes
-  sema scopes from a per-Sema arena whose slots are never reused, because an inline payload keeps
-  the address of the scope it was expanded from. Optimizer listings of `bin/unittests/native`
-  compare equal before and after, in devmode and release. The sanitizer facts did not need an
-  ordered replacement: every pass over them keeps or drops each entry on its own.
-- Not worth the change: rebuilding the winner's `CallArgMapping` in `resolveFunctionCandidates`
-  is one pass over the arguments into inline vectors, and reusing an attempt's mapping would have
-  to prove that the attempted function and the selected one (possibly a generic instance) agree.
-  `TypeGen::processTypeInfo` keeps its `stackSet`: the stack it mirrors can be deep, so a scan of
-  it is not provably cheaper than the set.
-- October 10: `TypeManager` interns array and aggregate types from their parts with the same
-  hash, placement and equality, building a `TypeInfo` only for a new type; a compile-time run's
-  buffers live in its pending entry (one allocation instead of two); flat tables replaced the
-  per-run node containers of mem2reg, constant folding's constant addresses, loop-invariant use
-  counts, register allocation and stack normalization label depths, the post-allocation peephole
-  backtracks, SLP's definition scan (now shared by both lane widths) and register values, loop
-  load forwarding, the native dependency closure, branch simplification's diamond label counts
-  and referenced labels (`FlatKey64Set`, 64-bit keys) and implied-branch label uses,
-  induction-variable use and definition counts, mem2reg's address registers and access lookup,
-  definition summaries shared by loop-invariant code motion and SLP, loop-invariant code motion's
-  per-loop sets, dead-code float counts, web renaming's sets, the sanitizer's escaped locals, the
-  native function-info lookup and the module API dependency walk. Location sort keys convert a
-  file's path once and the sort compares file parts and token numbers without building keys.
-  Loop scans start and stop at a natural loop's body span. Pre-emit listings of eight bench tasks
-  in devmode and release compare equal before and after, and single-core executables and
-  `core.dll` keep identical code, unwind, debug, export and import sections.
-- October 10: loop-invariant code motion replaces its node-based `hoistSet` and temporary `keep`
-  set with `FlatKeySet` membership plus slots retained in listing order; emitted clones remain
-  sorted by slot. The DevMode C++ suite passes all 1,420 tests.
-- These remain, each needing a design change:
-  - Node maps whose iteration order reaches the output: the sanitizer's sparse fact maps
-    (`movedFrom`, `aliasPtrSlots`, ...), mem2reg's `slots`, SLP's `locations` and
-    `entryValues`, web renaming's `loads`, and the native dependency walk's `rejected`. Each needs
-    an order-preserving replacement.
-  - A worker-kept `FlatKeyMap` clears its whole table, so a rebuild costs the largest function the
-    worker has seen rather than the current one. Bounding it (stamped slots, or a list of the
-    occupied ones) trades a per-insert cost for the clear; that tradeoff needs the benchmark
-    campaign.
-- Next: design an order-preserving flat map for the sanitizer's sparse facts, then audit the
-  other listed node maps against their output ordering requirements.
-- Done when: each item is replaced with identical output and its owning suites green, or
-  recorded here as not worth the change it needs.
+- Evidence: several remaining node maps are iterated in ways that affect diagnostics or output:
+  sanitizer sparse facts, mem2reg `slots`, SLP `locations` and `entryValues`, web-renaming
+  `loads`, and the native dependency walk's `rejected` set. A worker-kept `FlatKeyMap` also clears
+  its largest previously used capacity on each rebuild.
+- Next: identify the required traversal order for one remaining map and design an order-preserving
+  flat representation; leave the kept-table reset tradeoff for measurement.
+- Done when: each remaining map has an equivalent replacement, or code evidence shows that no
+  lower-work representation preserves its traversal contract.
 - Related: compiler.core.060.
 
 ### compiler.core.074 — Repeated native rebuilds choose different prologues

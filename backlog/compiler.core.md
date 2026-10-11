@@ -147,6 +147,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   behind an unresolved dependency, then verifies that completing it enables the guarded frees edge.
   A seeded two-function return cycle, supplied before its third-function mask source, also checks
   convergence when callers precede their dependencies in the given order.
+  Production cache signatures now use a compact fingerprint of the JIT root, call-graph and global
+  root versions, explicit constant roots, and 17 relocation versions instead of hashing every
+  function pointer in the completed order. A fixture repeats one fingerprint across edge appends
+  and late completion to cover the independent invalidators.
   A locked zero-edge check now exits before hashing the completed-function order; its regression
   calls the pass on an empty graph, then appends an edge and verifies that it is still propagated.
   The DevMode C++ suite passes all 1,424 tests, including after the zero-edge early check.

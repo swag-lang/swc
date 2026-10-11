@@ -733,6 +733,25 @@ namespace
             appendGlobalFunctionInitJitOrder(sema, out, seen);
     }
 
+    uint64_t jitOrderFingerprint(Sema& sema, const SymbolFunction& symFn, std::span<SymbolFunction* const> extraRoots, const uint64_t callGraphVersion, const uint64_t targetsVersion)
+    {
+        uint64_t fingerprint = 1469598103934665603ULL;
+        const auto mix = [&fingerprint](const uint64_t value) { fingerprint = (fingerprint ^ value) * 1099511628211ULL; };
+        mix(reinterpret_cast<uintptr_t>(&symFn));
+        mix(callGraphVersion);
+        mix(targetsVersion);
+        mix(extraRoots.size());
+        for (const SymbolFunction* root : extraRoots)
+            mix(reinterpret_cast<uintptr_t>(root));
+
+        // Constant function roots can appear without changing the call graph. Their source is
+        // the relocation graph across these shards; its versions are a compact invalidation key.
+        for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
+            mix(sema.cstMgr().shardDataSegment(shardIndex).relocationVersion());
+        mix(sema.compiler().globalInitSegment().relocationVersion());
+        return fingerprint ? fingerprint : 1;
+    }
+
     bool jitEntryNeedsRuntimeSetup(Sema& sema, const SymbolFunction& symFn)
     {
         if (sema.idMgr().runtimeFunctionKind(symFn.idRef()) == IdentifierManager::RuntimeFunctionKind::SetupRuntime)
@@ -806,7 +825,8 @@ namespace
             if (SymbolFunction::callGraphVersion() == orderCallGraphVersion &&
                 sema.compiler().nativeGlobalFunctionInitTargetsVersion() == orderTargetsVersion)
             {
-                SemaEscape::propagateCompletedFreesSummaries(ctx, semaOrder.span());
+                const uint64_t orderFingerprint = jitOrderFingerprint(sema, symFn, {}, orderCallGraphVersion, orderTargetsVersion);
+                SemaEscape::propagateCompletedFreesSummaries(ctx, semaOrder.span(), orderFingerprint);
                 break;
             }
 
@@ -826,6 +846,8 @@ namespace
         SmallVector<SymbolFunction*> stableJitOrder;
         while (true)
         {
+            uint64_t stableCallGraphVersion = 0;
+            uint64_t stableTargetsVersion   = 0;
             while (true)
             {
                 const uint64_t orderCallGraphVersion = SymbolFunction::callGraphVersion();
@@ -849,6 +871,8 @@ namespace
                     // waited on, so this snapshot is the definitive order and every function in it
                     // has had waitCodeGenPreSolved called.
                     stableJitOrder = std::move(jitOrder);
+                    stableCallGraphVersion = orderCallGraphVersion;
+                    stableTargetsVersion   = orderTargetsVersion;
                     break;
                 }
             }
@@ -856,7 +880,8 @@ namespace
             // The module-wide summary fixpoint runs after sema drains, but #run must emit
             // and execute this completed call graph now. Publish its transitive frees first
             // so the static lifecycle pass sees the same facts as ordinary code generation.
-            SemaEscape::propagateCompletedFreesSummaries(ctx, stableJitOrder.span());
+            const uint64_t orderFingerprint = jitOrderFingerprint(sema, symFn, constantRoots.span(), stableCallGraphVersion, stableTargetsVersion);
+            SemaEscape::propagateCompletedFreesSummaries(ctx, stableJitOrder.span(), orderFingerprint);
             for (SymbolFunction* function : stableJitOrder)
             {
                 SWC_RESULT(function->emit(ctx));

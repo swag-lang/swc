@@ -54,7 +54,7 @@ namespace
         }
 
         void addEdge(const SemaEscapeSummaryEdge& edge) { ctx_->compiler().addEscapeSummaryEdge(edge); }
-        void propagate() const { SemaEscape::propagateCompletedFreesSummaries(*ctx_, completed_); }
+        void propagate(const uint64_t orderFingerprint = 0) const { SemaEscape::propagateCompletedFreesSummaries(*ctx_, completed_, orderFingerprint); }
         void completeFunction(SymbolFunction* function)
         {
             function->setSemaCompleted(*ctx_);
@@ -876,6 +876,7 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     auto*                 cycleBody         = fixture.addFunction();
     auto*                 cycleSeed         = fixture.addFunction();
     auto*                 cycleOwner        = fixture.addFunction();
+    auto*                 lateGuardedOwner  = fixture.addFunction();
     leaf->addFreesParam(2);
     aliasLeaf->addReturnBorrowsParam(2);
     aliasLeaf->addReturnsStorageParam(2);
@@ -899,7 +900,8 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     fixture.addEdge({.caller = cycleBody, .callee = cycleSeed});
     fixture.addEdge({.caller = cycleOwner, .callee = leaf, .callerParamIndex = 3, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{cycleHead, 0}}});
     // Keep callers before dependencies to exercise both reverse-dependency worklists.
-    fixture.propagate();
+    constexpr uint64_t orderFingerprint = 0x4D2A91B7ULL;
+    fixture.propagate(orderFingerprint);
 
     if (outer->freesParamsMask() != 1 || middle->freesParamsMask() != 2)
         return Result::Error;
@@ -909,10 +911,16 @@ SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
     if (aliasWrapper->returnBorrowsParamsMask() || aliasWrapper->returnsStorageParamsMask())
         return Result::Error;
 
+    // A stable order key still misses its cache when the summary-edge graph grows.
+    fixture.addEdge({.caller = lateGuardedOwner, .callee = leaf, .callerParamIndex = 4, .calleeParamIndex = 2, .kind = SemaEscapeSummaryEdgeKind::StoresToStores, .returnGuards = {{aliasWrapper, 1}}});
+    fixture.propagate(orderFingerprint);
+    if (lateGuardedOwner->freesParamsMask() != 16)
+        return Result::Error;
+
     unresolved->addReturnBorrowsParam(0);
     unresolved->addReturnsStorageParam(0);
     fixture.completeFunction(unresolved);
-    fixture.propagate();
+    fixture.propagate(orderFingerprint);
     if (incompleteAlias->freesParamsMask() || incompleteWrapper->returnBorrowsParamsMask() || unresolvedOwner->freesParamsMask() != 1)
         return Result::Error;
 }

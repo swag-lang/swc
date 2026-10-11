@@ -5447,7 +5447,7 @@ namespace SemaEscape
         return Result::Error;
     }
 
-    void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions)
+    void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions, const uint64_t orderFingerprint)
     {
         if (ctx.compiler().freeForwardingEdgeCount() == 0)
             return;
@@ -5464,9 +5464,14 @@ namespace SemaEscape
         signature          = signature * 1099511628211ULL + ctx.compiler().semaCompletedSymbolCount();
         if (needsReturnSummaries)
         {
-            signature = signature * 1099511628211ULL + completedFunctions.size();
-            for (const SymbolFunction* function : completedFunctions)
-                signature = signature * 1099511628211ULL + reinterpret_cast<uintptr_t>(function);
+            if (orderFingerprint)
+                signature = signature * 1099511628211ULL + orderFingerprint;
+            else
+            {
+                signature = signature * 1099511628211ULL + completedFunctions.size();
+                for (const SymbolFunction* function : completedFunctions)
+                    signature = signature * 1099511628211ULL + reinterpret_cast<uintptr_t>(function);
+            }
         }
 
         if (ctx.compiler().freesPropagationAlreadyDone(signature))

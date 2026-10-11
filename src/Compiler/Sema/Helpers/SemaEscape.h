@@ -53,7 +53,7 @@ namespace SemaEscape
 
     // Compile-time execution can lower a completed call graph before the module-wide
     // summary pass. Publish the transitive release facts available for that graph first.
-    void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions);
+    void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions, uint64_t orderFingerprint = 0);
 }
 
 SWC_END_NAMESPACE();

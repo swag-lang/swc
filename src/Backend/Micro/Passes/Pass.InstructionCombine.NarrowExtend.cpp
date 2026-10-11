@@ -491,11 +491,12 @@ namespace InstructionCombine
         // across instructions that leave the flags alone.
         MicroInstrRef findFlagSource(const Context& ctx, MicroInstrRef ref)
         {
-            MicroInstrRef at = ref;
+            auto walker = MicroStorage::Iterator{ctx.storage, ref};
             for (uint32_t step = 0; step < K_MAX_FLAG_WALK; ++step)
             {
-                at                     = ctx.storage->findPreviousInstructionRef(at);
-                const MicroInstr* inst = at.isValid() ? ctx.storage->ptr(at) : nullptr;
+                --walker;
+                const MicroInstrRef at = walker.current;
+                const MicroInstr*   inst = at.isValid() ? &*walker : nullptr;
                 if (!inst)
                     return MicroInstrRef::invalid();
                 if (inst->op == MicroInstrOpcode::CmpRegReg || inst->op == MicroInstrOpcode::CmpRegImm)

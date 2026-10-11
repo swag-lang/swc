@@ -5676,8 +5676,6 @@ namespace SemaEscape
             std::vector<size_t>().swap(completionDependents);
             std::vector<size_t>().swap(completionCursor);
             std::vector<size_t>().swap(incompleteWorklist);
-            std::vector<uint8_t>().swap(queued);
-            queued.resize(returnEntries.size(), 0);
 
             struct DependentReturnEdge
             {
@@ -5738,8 +5736,7 @@ namespace SemaEscape
                 }
             }
 
-            std::vector<size_t>   worklist;
-            worklist.reserve(returnEntries.size());
+            std::deque<size_t>   worklist;
             for (size_t i = 0; i < returnEntries.size(); ++i)
             {
                 if (returnEntries[i].summary.complete)
@@ -5749,10 +5746,10 @@ namespace SemaEscape
                 }
             }
 
-            size_t worklistCursor = 0;
-            while (worklistCursor < worklist.size())
+            while (!worklist.empty())
             {
-                const size_t dependencyIndex = worklist[worklistCursor++];
+                const size_t dependencyIndex = worklist.front();
+                worklist.pop_front();
                 queued[dependencyIndex] = 0;
                 for (size_t dependentIndex = dependentOffsets[dependencyIndex]; dependentIndex < dependentOffsets[dependencyIndex + 1]; ++dependentIndex)
                 {

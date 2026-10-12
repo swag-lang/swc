@@ -320,3 +320,19 @@ is the current scorecard.
 - Done when: the foreign boundary has one documented default, and the reference says what
   crossing it suspends.
 - Related: compiler.safety.006.
+
+### compiler.safety.029 — Converting an indexed heap pointer invents a container borrow
+
+- Area: compiler/sema, `SemaEscape::indexEscapeInfo`
+- Evidence: storing allocated blocks in `[2] ([*] u8?)` and passing `blocks[0]` to an
+  inline release wrapper taking `[*] void?` reports `sanity_err_free_borrowed` against
+  the local array. Reading the element through value iteration is accepted. The
+  allocator benchmark's aligned batch exposed this with `Core.Memory.free`.
+- Next: distinguish the element's type before a contextual pointer conversion from
+  the converted result while retaining the stored pointee's provenance. Reading
+  only the index's stored type accepts the owned case, but also loses the diagnostic
+  for a slice over an array containing a pointer to a local. Trace that alias back to
+  its element projection; do not treat every indexed pointer as independently owned.
+- Done when: releasing owned pointer elements works through arrays, slices, and
+  pointer conversions, while releases of local borrows stored in those containers
+  remain diagnosed by focused sanity tests.

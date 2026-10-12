@@ -861,20 +861,10 @@ namespace
         return true;
     }
 
-    Result scheduleCodeGen(NativeBackendBuilder& builder, const std::span<SymbolFunction* const> functions)
+    Result scheduleCodeGen(NativeBackendBuilder& builder, SourceFile* firstFile, const std::span<SymbolFunction* const> functions)
     {
         if (functions.empty())
             return Result::Continue;
-
-        SourceFile* firstFile = nullptr;
-        for (SourceFile* file : builder.compiler().files())
-        {
-            if (file && file->moduleNamespace())
-            {
-                firstFile = file;
-                break;
-            }
-        }
 
         if (!firstFile)
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
@@ -1624,6 +1614,8 @@ Result NativeBackendBuilder::prepare()
     // nothing has been lowered since: only the constant dependencies appended after them are new.
     size_t                     callsWalked          = 0;
     bool                       functionsNeedSort    = true;
+    SourceFile*                codeGenSource        = nullptr;
+    bool                       codeGenSourceChecked = false;
     PointerSet<SymbolFunction> seenCodeGenFunctions = memberSetOf(functions);
     while (true)
     {
@@ -1633,7 +1625,19 @@ Result NativeBackendBuilder::prepare()
             SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
             functionsNeedSort = false;
         }
-        SWC_RESULT(scheduleCodeGen(*this, functions));
+        if (!functions.empty() && !codeGenSourceChecked)
+        {
+            codeGenSourceChecked = true;
+            for (SourceFile* file : compiler_->files())
+            {
+                if (file && file->moduleNamespace())
+                {
+                    codeGenSource = file;
+                    break;
+                }
+            }
+        }
+        SWC_RESULT(scheduleCodeGen(*this, codeGenSource, functions));
 
         size_t     nextCallDependencyIndex = 0;
         const bool addedCallDeps           = appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, nextCallDependencyIndex);

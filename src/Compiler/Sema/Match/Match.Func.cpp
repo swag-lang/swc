@@ -35,10 +35,9 @@ namespace
 {
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
 
+    // Every call site supplies a newly constructed output vector.
     void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
     {
-        outArgs.clear();
-
         if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
         {
             if (quotedExpr->nodeSuffixRef.isValid())

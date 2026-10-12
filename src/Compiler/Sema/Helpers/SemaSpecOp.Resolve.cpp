@@ -1903,9 +1903,9 @@ namespace
         candidates.resize(filteredCount);
     }
 
+    // Every call site passes a fresh local result.
     Result probeBinarySpecOp(Sema& sema, const AstBinaryExpr& node, const BinarySpecOpProbeRequest& request, BinarySpecOpResolution& out)
     {
-        out             = {};
         out.receiverRef = request.receiverRef;
 
         SWC_ASSERT(request.receiverView != nullptr);

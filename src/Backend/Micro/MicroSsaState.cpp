@@ -944,7 +944,7 @@ void MicroSsaState::placePhiNodes()
         }
 
         const uint32_t currentStamp = stamp++;
-        workList.clear();
+        // Every register traversal drains the list before the next one begins.
         workList.reserve(defBlocks.size());
         for (const uint32_t blockIndex : defBlocks)
         {

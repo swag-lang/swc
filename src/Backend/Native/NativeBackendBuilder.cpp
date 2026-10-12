@@ -878,13 +878,20 @@ namespace
         // round. The order changes when each function is generated, never what is generated.
         std::vector<uint32_t> order(functions.size());
         std::vector<uint64_t> estimates(functions.size());
+        size_t               orderCount = 0;
         for (uint32_t index = 0; index < functions.size(); ++index)
         {
-            const auto* decl = functions[index]->decl() ? functions[index]->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            SymbolFunction* symbol = functions[index];
+            SWC_ASSERT(symbol != nullptr);
+            if (symbol->isCodeGenCompleted() || !symbol->loweredCode().bytes.empty())
+                continue;
+
+            const auto* decl = symbol->decl() ? symbol->decl()->safeCast<AstFunctionDecl>() : nullptr;
             const auto  own  = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
-            order[index]     = index;
-            estimates[index] = uint64_t{own} + functions[index]->inlinedCost();
+            order[orderCount++] = index;
+            estimates[index]  = uint64_t{own} + symbol->inlinedCost();
         }
+        order.resize(orderCount);
         std::ranges::stable_sort(order, [&](uint32_t lhs, uint32_t rhs) { return estimates[lhs] > estimates[rhs]; });
 
         Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);

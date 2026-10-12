@@ -603,7 +603,7 @@ Result MicroVecLoopPromotePass::run(MicroPassContext& context)
         return Result::Continue;
 
     const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
-    if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
+    if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
         return Result::Continue;
 
     const uint32_t n = cfg.instructionCount();

@@ -218,7 +218,7 @@ namespace
         MicroOperandStorage& operands = *context.operands;
 
         const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
-        if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
+        if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
             return false;
 
         const uint32_t n = cfg.instructionCount();

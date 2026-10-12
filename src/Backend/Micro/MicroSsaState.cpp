@@ -540,7 +540,8 @@ const MicroSsaState::PhiInfo* MicroSsaState::phiInfoForValue(const uint32_t valu
 void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
 {
     // Block discovery overwrites every entry before successor mapping reads it.
-    instructionToBlock_.resize(instructionRefs_.size());
+    if (instructionToBlock_.size() < instructionRefs_.size())
+        instructionToBlock_.resize(instructionRefs_.size());
 
     if (instructionRefs_.empty())
     {

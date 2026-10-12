@@ -749,8 +749,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         if (rootBlock == K_INVALID)
             break;
 
-        dfsStack.clear();
         postOrder.clear();
+        // The preceding DFS drains this stack before the next component starts.
         dfsStack.push_back({rootBlock, 0});
         visited[rootBlock] = visitedMark;
 
@@ -928,7 +928,6 @@ void MicroSsaState::placePhiNodes()
         inWorkStamp.resize(blocks_.size(), 0);
     if (hasPhiStamp.size() < blocks_.size())
         hasPhiStamp.resize(blocks_.size(), 0);
-    workList.clear();
     uint32_t    stamp = phiStamp_;
     const auto& regs  = trackedRegs_.regs();
     for (uint32_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)

@@ -385,7 +385,6 @@ namespace
         outFound            = false;
         outGenericRoot      = nullptr;
         outGenericRootIdRef = IdentifierRef::invalid();
-        outGenericArgs.clear();
         if (identRef.isInvalid())
             return Result::Continue;
 
@@ -1359,8 +1358,6 @@ namespace SemaGeneric
 {
     void collectFunctionParamDescs(Sema& sema, const SymbolFunction& function, SmallVector<GenericFunctionParamDesc>& outParams)
     {
-        outParams.clear();
-
         const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
         if (!decl)
             return;

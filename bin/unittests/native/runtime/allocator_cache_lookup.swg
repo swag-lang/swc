@@ -57,6 +57,19 @@ using Swag
     itf.alloc(&request)
     Swag.assert(request.address != null and cast(u64, request.address) != largeAddress)
     itf.free(&request)
+
+    // Reservations are 256 KiB and 128 KiB: a block exactly at the reuse limit fits.
+    allocator.trim()
+    request.size = 200_000
+    itf.alloc(&request)
+    Swag.assert(request.address != null)
+    let limitAddress = cast(u64, request.address)
+    itf.free(&request)
+
+    request.size = 100_000
+    itf.alloc(&request)
+    Swag.assert(request.address != null and cast(u64, request.address) == limitAddress)
+    itf.free(&request)
     Swag.assert(allocator.stats().countAlloc == 0)
     Swag.assert(allocator.stats().sizeAlloc == 0)
 }

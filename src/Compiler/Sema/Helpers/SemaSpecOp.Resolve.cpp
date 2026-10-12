@@ -925,9 +925,10 @@ namespace
 
     void applyIndexReadSpecOpResult(Sema& sema, AstNodeRef indexExprRef, SymbolFunction& calledFn)
     {
-        const AstNodeRef inlineRootRef = sema.hasSubstitute(indexExprRef) ? sema.resolvedNodeRef(indexExprRef) : AstNodeRef::invalid();
-        auto*            payload       = sema.compiler().allocate<IndexSpecOpSemaPayload>();
-        payload->calledFn              = &calledFn;
+        const AstNodeRef resolvedIndexExprRef = sema.resolvedNodeRef(indexExprRef);
+        const AstNodeRef inlineRootRef        = resolvedIndexExprRef == indexExprRef ? AstNodeRef::invalid() : resolvedIndexExprRef;
+        auto*            payload              = sema.compiler().allocate<IndexSpecOpSemaPayload>();
+        payload->calledFn                     = &calledFn;
         // A re-resolved clone (a detached binding expression carried its source's
         // selection) legitimately replaces the previous selection.
         sema.clearSemaPayload(indexExprRef);
@@ -1627,12 +1628,6 @@ namespace
 
         if (!sema.viewConstant(indexExprRef).hasConstant())
             applyIndexReadSpecOpResult(sema, indexExprRef, *calledFn);
-
-        if (sema.hasSubstitute(indexExprRef))
-        {
-            outHandled = true;
-            return Result::Continue;
-        }
 
         outHandled = true;
         return Result::Continue;

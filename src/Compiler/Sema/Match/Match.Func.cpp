@@ -1716,10 +1716,11 @@ namespace
         return required;
     }
 
-    bool checkGenericNamedCallArguments(Sema& sema, MatchFailure& outFail, const SymbolFunction& fn, std::span<const GenericRootCallParam> params, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    bool checkGenericNamedCallArguments(Sema& sema, MatchFailure& outFail, const SymbolFunction& fn, std::span<const GenericRootCallParam> params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<AstNodeRef>& assignedArgs)
     {
-        const uint32_t          paramStart = ufcsArg.isValid() ? 1u : 0u;
-        SmallVector<AstNodeRef> assignedArgs(params.size(), AstNodeRef::invalid());
+        const uint32_t paramStart = ufcsArg.isValid() ? 1u : 0u;
+        assignedArgs.clear();
+        assignedArgs.resize(params.size(), AstNodeRef::invalid());
         if (paramStart && !params.empty())
             assignedArgs[0] = ufcsArg;
 
@@ -1770,9 +1771,10 @@ namespace
 
     struct GenericCallShapeContext
     {
-        bool           hasNamedArgsChecked = false;
-        bool           hasNamedArgs        = false;
-        CallArgMapping mapping;
+        bool                    hasNamedArgsChecked = false;
+        bool                    hasNamedArgs        = false;
+        CallArgMapping          mapping;
+        SmallVector<AstNodeRef> namedArgs;
     };
 
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail, CallArgMapping& mapping);
@@ -1816,7 +1818,7 @@ namespace
             // Parameter names are available before their dependent types. Reject a malformed
             // mapping here so deduction cannot replace it with a missing generic parameter.
             const AstNodeRef mappedUfcsArg = prependUfcsArg ? ufcsArg : AstNodeRef::invalid();
-            if (shapeContext.hasNamedArgs && !checkGenericNamedCallArguments(sema, outFail, fn, params.span(), args, mappedUfcsArg))
+            if (shapeContext.hasNamedArgs && !checkGenericNamedCallArguments(sema, outFail, fn, params.span(), args, mappedUfcsArg, shapeContext.namedArgs))
                 return Result::Continue;
 
             if (!variadic && numArgs > numParams)

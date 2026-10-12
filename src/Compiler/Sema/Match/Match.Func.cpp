@@ -1921,11 +1921,9 @@ namespace
         const auto     numParams = static_cast<uint32_t>(params.size());
         const uint32_t numArgs   = countCallArgs(args, ufcsArg);
 
-        outCandidate.fn = &fn;
         outCandidate.perArg.clear();
         outCandidate.usedDefaults = 0;
         outCandidate.viable       = false;
-        outCandidate.ufcsUsed     = ufcsArg.isValid();
 
         TaskContext&       ctx = sema.ctx();
         const VariadicInfo vi  = getVariadicInfo(sema, fn);
@@ -2112,7 +2110,9 @@ namespace
             }
         }
 
-        outCandidate.viable = true;
+        outCandidate.fn       = &fn;
+        outCandidate.ufcsUsed = ufcsArg.isValid();
+        outCandidate.viable   = true;
         return Result::Continue;
     }
 

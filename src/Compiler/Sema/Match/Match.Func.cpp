@@ -192,7 +192,6 @@ namespace
     }
 
     using SemaHelpers::callableTypeFunction;
-    using SemaSymbolLookup::removeEmptyFunctionDeclarations;
 
     bool isCallableForMode(const Symbol& sym, Match::ResolveCallMode mode)
     {
@@ -2485,7 +2484,7 @@ namespace
         SmallVector<Symbol*> fallbackRuntimeSymbols;
         SmallVector<Symbol*> fallbackConcreteSymbols;
         SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
-        removeEmptyFunctionDeclarations(fallbackRuntimeSymbols.span(), fallbackConcreteSymbols);
+        SemaSymbolLookup::appendNonemptyFunctionDeclarations(fallbackRuntimeSymbols.span(), fallbackConcreteSymbols);
 
         CandidateAttempts fallback;
         SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg, {}, mode));
@@ -3252,7 +3251,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
     SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols, runtimeSymbols));
-    removeEmptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
+    SemaSymbolLookup::appendNonemptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
@@ -3285,7 +3284,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
     SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols, runtimeSymbols));
-    removeEmptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
+    SemaSymbolLookup::appendNonemptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());

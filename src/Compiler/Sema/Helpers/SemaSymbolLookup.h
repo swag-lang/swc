@@ -25,9 +25,8 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
-    void removeEmptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
+    void appendNonemptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
     {
-        outSymbols.clear();
         if (inSymbols.size() == 1)
         {
             // A lone symbol cannot hide an empty declaration behind a concrete function.
@@ -62,6 +61,13 @@ namespace SemaSymbolLookup
 
             outSymbols.push_back(sym);
         }
+    }
+
+    template<typename T>
+    void removeEmptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
+    {
+        outSymbols.clear();
+        appendNonemptyFunctionDeclarations(inSymbols, outSymbols);
     }
 
     template<typename T>
@@ -106,7 +112,7 @@ namespace SemaSymbolLookup
     Result bindResolvedSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> foundSymbols)
     {
         SmallVector<T> filteredSymbols;
-        removeEmptyFunctionDeclarations(foundSymbols, filteredSymbols);
+        appendNonemptyFunctionDeclarations(foundSymbols, filteredSymbols);
 
         SmallVector<T> runtimeSymbols;
         SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, filteredSymbols.span(), runtimeSymbols));
@@ -133,7 +139,7 @@ namespace SemaSymbolLookup
     Result bindSymbolList(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> symbols)
     {
         SmallVector<T> filteredSymbols;
-        removeEmptyFunctionDeclarations(symbols, filteredSymbols);
+        appendNonemptyFunctionDeclarations(symbols, filteredSymbols);
 
         SmallVector<T> runtimeSymbols;
         SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, filteredSymbols.span(), runtimeSymbols));

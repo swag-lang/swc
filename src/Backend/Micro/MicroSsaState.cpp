@@ -676,10 +676,13 @@ bool MicroSsaState::computeDominators(const bool acyclic)
                 continue;
             }
 
-            uint32_t root    = K_INVALID_BLOCK;
-            uint32_t newIdom = K_INVALID_BLOCK;
-            for (const uint32_t predecessorBlock : predecessors)
+            const uint32_t firstPredecessor = predecessors.front();
+            SWC_ASSERT(firstPredecessor < blockIndex);
+            uint32_t root    = componentRoots[firstPredecessor];
+            uint32_t newIdom = firstPredecessor;
+            for (size_t predecessorIndex = 1; predecessorIndex < predecessors.size(); ++predecessorIndex)
             {
+                const uint32_t predecessorBlock = predecessors[predecessorIndex];
                 SWC_ASSERT(predecessorBlock < blockIndex);
                 const uint32_t predecessorRoot = componentRoots[predecessorBlock];
                 if (predecessorRoot < root)

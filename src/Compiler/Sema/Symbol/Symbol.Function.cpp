@@ -399,15 +399,21 @@ namespace
         outOverloads.clear();
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
         {
-            for (const SymbolFunction* candidate : ownerStruct->declaredMethods())
-            {
-                if (!candidate || candidate->idRef() != symbol.idRef())
-                    continue;
-                if (!isPublicApiExportedOverload(*candidate))
-                    continue;
+            const auto appendOverloads = [&](const SymbolImplList& impls) {
+                for (const SymbolImpl* symImpl : impls)
+                {
+                    if (!symImpl)
+                        continue;
 
-                outOverloads.push_back(candidate);
-            }
+                    symImpl->forEachSymbolById(symbol.idRef(), false, [&](const Symbol* candidateBase) {
+                        const auto* candidate = candidateBase->safeCast<SymbolFunction>();
+                        if (candidate && isPublicApiExportedOverload(*candidate))
+                            outOverloads.push_back(candidate);
+                    });
+                }
+            };
+            appendOverloads(ownerStruct->impls());
+            appendOverloads(ownerStruct->interfaces());
 
             return;
         }

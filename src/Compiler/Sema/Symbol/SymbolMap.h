@@ -36,10 +36,22 @@ public:
     const Symbol* findFirstNamespace(IdentifierRef idRef) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
-    uint64_t      countSymbols(SymbolKind kind) const;
-    bool          hasClosureCapture() const;
-    bool          empty() const noexcept;
-    uint32_t      count() const noexcept { return count_.load(std::memory_order_relaxed); }
+    template<typename F>
+    void forEachSymbolById(IdentifierRef idRef, bool includeIgnored, const F& fn) const
+    {
+        for (const Symbol* symbol = findHead(idRef); symbol; symbol = symbol->nextHomonym())
+        {
+            if (!includeIgnored && symbol->isIgnored())
+                continue;
+
+            fn(symbol);
+        }
+    }
+
+    uint64_t countSymbols(SymbolKind kind) const;
+    bool     hasClosureCapture() const;
+    bool     empty() const noexcept;
+    uint32_t count() const noexcept { return count_.load(std::memory_order_relaxed); }
 
 protected:
     // A small entry is written once, before 'smallSize_' publishes it, so readers scan the
@@ -72,9 +84,9 @@ protected:
 
     struct UsingSymMap
     {
-        SymbolMap*         symbol         = nullptr;
+        SymbolMap*         symbol = nullptr;
         SourceRevision     sourceRevision;
-        const UsingSymMap* previous       = nullptr;
+        const UsingSymMap* previous = nullptr;
     };
 
     static constexpr uint32_t SMALL_CAP        = 8;

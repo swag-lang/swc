@@ -169,7 +169,7 @@ void SymbolMap::addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, const Source
     auto* entry           = ctx.allocate<UsingSymMap>();
     entry->symbol         = symMap;
     entry->sourceRevision = sourceRevision;
-    entry->previous      = head;
+    entry->previous       = head;
     usingSymMaps_.store(entry, std::memory_order_release);
 }
 

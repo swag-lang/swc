@@ -82,7 +82,6 @@ namespace
         // Rebuilding a sema context for generic instantiation must restore the
         // namespace path as source code would see it. Impl maps are transparent and
         // route through their owning type's namespace.
-        outPath.clear();
         SymbolAccess access = SymbolAccess::Private;
         for (const SymbolMap* current = symMap; current;)
         {

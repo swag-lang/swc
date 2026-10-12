@@ -990,7 +990,6 @@ namespace
 
     Result lowerStructDefaultPayload(CodeGen& codeGen, SmallVector<std::byte>& outStorage, std::span<const std::byte>& outPayloadBytes, const TypeInfo& typeInfo)
     {
-        outStorage.clear();
         outPayloadBytes = {};
 
         SWC_ASSERT(typeInfo.isStruct());

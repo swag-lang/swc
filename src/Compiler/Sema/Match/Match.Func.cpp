@@ -2270,7 +2270,8 @@ namespace
                 continue;
 
             outFunctionSymbols.push_back(fn);
-            hasGenericRoot |= fn->isGenericRoot();
+            const bool genericRoot = fn->isGenericRoot();
+            hasGenericRoot |= genericRoot;
         }
 
         // Only overloads that accept the call shape can make instantiation speculative.
@@ -2288,19 +2289,29 @@ namespace
         uint32_t                             matchingShapes = 0;
         if (hasGenericRoot && outFunctionSymbols.size() > 1)
         {
-            shapeChecks.resize(outFunctionSymbols.size());
-            for (size_t index = 0; index < outFunctionSymbols.size(); ++index)
+            for (const SymbolFunction* fn : outFunctionSymbols)
             {
-                const SymbolFunction* fn    = outFunctionSymbols[index];
-                GenericShapePrecheck& check = shapeChecks[index];
-                check.primaryChecked        = true;
-                SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), check.primaryFailure));
-                if (check.primaryFailure.active && ufcsArg.isValid())
+                MatchFailure          localFailure;
+                GenericShapePrecheck* check = nullptr;
+                if (fn->isGenericRoot())
                 {
-                    check.ufcsChecked = true;
-                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, check.ufcsFailure));
+                    check                 = &shapeChecks.emplace_back();
+                    check->primaryChecked = true;
+                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), check->primaryFailure));
+                    if (check->primaryFailure.active && ufcsArg.isValid())
+                    {
+                        check->ufcsChecked = true;
+                        SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, check->ufcsFailure));
+                    }
                 }
-                const bool shapeFailed = check.ufcsChecked ? check.ufcsFailure.active : check.primaryFailure.active;
+                else
+                {
+                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), localFailure));
+                    if (localFailure.active && ufcsArg.isValid())
+                        SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, localFailure));
+                }
+
+                const bool shapeFailed = check ? (check->ufcsChecked ? check->ufcsFailure.active : check->primaryFailure.active) : localFailure.active;
                 if (!shapeFailed && ++matchingShapes > 1)
                     break;
             }
@@ -2316,9 +2327,9 @@ namespace
                 outViable.push_back(appended);
         };
 
-        for (size_t index = 0; index < outFunctionSymbols.size(); ++index)
+        size_t genericRootIndex = 0;
+        for (SymbolFunction* fn : outFunctionSymbols)
         {
-            SymbolFunction* fn = outFunctionSymbols[index];
             SWC_ASSERT(fn != nullptr);
 
             Attempt a;
@@ -2326,10 +2337,11 @@ namespace
 
             if (fn->isGenericRoot())
             {
-                const GenericShapePrecheck* shapeCheck = index < shapeChecks.size() ? &shapeChecks[index] : nullptr;
-                MatchFailure                fail;
-                Candidate                   candidate;
-                const MatchFailure*         primaryShapeFailure = shapeCheck && shapeCheck->primaryChecked ? &shapeCheck->primaryFailure : nullptr;
+                const GenericShapePrecheck* shapeCheck = genericRootIndex < shapeChecks.size() ? &shapeChecks[genericRootIndex] : nullptr;
+                ++genericRootIndex;
+                MatchFailure        fail;
+                Candidate           candidate;
+                const MatchFailure* primaryShapeFailure = shapeCheck && shapeCheck->primaryChecked ? &shapeCheck->primaryFailure : nullptr;
                 SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, primaryShapeFailure));
                 if (candidate.viable)
                     a.candidate = std::move(candidate);

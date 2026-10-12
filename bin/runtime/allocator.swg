@@ -1135,6 +1135,7 @@ impl Allocator
     // already committed and touched, so handing out a larger one costs no memory, while a miss costs a
     // reservation, a commit, and a page fault per page. Returns null when nothing fits, and the reserved and
     // committed sizes of the block it returns.
+    #[Swag.Safety(.Overflow, false)]
     mtd popCachedBlock(size: u64, blockSize: *u64, commitSize: *u64)->[*] u8?
     {
         if .cachedBlockCount == 0 do
@@ -1143,17 +1144,20 @@ impl Allocator
         .mutex.lock()
         defer .mutex.unlock()
 
-        let limit    = size > Swag.U64.Max / 2 ? Swag.U64.Max : size * 2
-        var best     = .cachedBlockCount
-        var bestSize = Swag.U64.Max
+        let limit = size > Swag.U64.Max / 2 ? Swag.U64.Max : size * 2
+        var best  = .cachedBlockCount
+
+        // An undersized block wraps past the allowed slack. One comparison therefore
+        // rejects it, enforces the reuse limit, and keeps the closest fit.
+        var bestSlack = limit - size + 1
         for i in .cachedBlockCount
         {
-            let reserved = .cachedBlocks[i].reserved
-            if reserved >= size and reserved <= limit and reserved < bestSize
+            let slack = .cachedBlocks[i].reserved - size
+            if slack < bestSlack
             {
-                best     = i
-                bestSize = reserved
-                if reserved == size do
+                best      = i
+                bestSlack = slack
+                if slack == 0 do
                     break
             }
         }

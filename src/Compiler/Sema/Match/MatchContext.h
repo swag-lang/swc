@@ -61,6 +61,8 @@ public:
     void addIgnoredSymbol(const Priority& priority);
     void collectCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const;
     void collectCallableSymbols(SmallVector<const Symbol*>& outSymbols) const;
+    void appendCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const;
+    void appendCallableSymbols(SmallVector<const Symbol*>& outSymbols) const;
 
     struct LocalSymbol
     {

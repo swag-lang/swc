@@ -1104,7 +1104,7 @@ namespace
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
 
         SmallVector<const Symbol*> callableSymbols;
-        lookUpCxt.collectCallableSymbols(callableSymbols);
+        lookUpCxt.appendCallableSymbols(callableSymbols);
         if (callableSymbols.empty())
             return Result::Continue;
 

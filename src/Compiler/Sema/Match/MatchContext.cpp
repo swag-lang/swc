@@ -99,7 +99,11 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
 void MatchContext::collectCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const
 {
     outSymbols.clear();
+    appendCallFallbackSymbols(outSymbols);
+}
 
+void MatchContext::appendCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const
+{
     if (symbols_.empty())
         return;
 
@@ -121,7 +125,11 @@ void MatchContext::collectCallFallbackSymbols(SmallVector<const Symbol*>& outSym
 void MatchContext::collectCallableSymbols(SmallVector<const Symbol*>& outSymbols) const
 {
     outSymbols.clear();
+    appendCallableSymbols(outSymbols);
+}
 
+void MatchContext::appendCallableSymbols(SmallVector<const Symbol*>& outSymbols) const
+{
     for (const Symbol* symbol : allSymbols_)
     {
         if (!symbol || !symbol->isFunction())

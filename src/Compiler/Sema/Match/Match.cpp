@@ -576,7 +576,7 @@ Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCalle
         return Result::Continue;
 
     SmallVector<const Symbol*> fallbackSymbols;
-    lookUpCxt.collectCallFallbackSymbols(fallbackSymbols);
+    lookUpCxt.appendCallFallbackSymbols(fallbackSymbols);
     if (fallbackSymbols.size() <= lookUpCxt.count())
         return Result::Continue;
 

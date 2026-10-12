@@ -168,7 +168,7 @@ namespace
         const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
 
         SmallVector<uint32_t> registerParamIndices;
-        CodeGenParameterReg::collectRegisterParameterIndices(registerParamIndices, params, paramInfos);
+        CodeGenParameterReg::appendRegisterParameterIndices(registerParamIndices, params, paramInfos);
 
         MicroBuilder&                                              builder = codeGen.builder();
         SmallVector<CodeGenParameterReg::RegisterParameterPayload> registerPayloads;

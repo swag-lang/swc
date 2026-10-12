@@ -28,10 +28,9 @@ namespace CodeGenParameterReg
         return callConv.intArgRegs[paramInfo.registerIndex];
     }
 
-    inline void collectRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
+    inline void appendRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         SWC_ASSERT(paramInfos.size() == params.size());
-        outIndices.clear();
         // Register parameters fit the inline buffer for the supported conventions.
         // Reserving for every parameter would also allocate for the stack-only tail.
         for (size_t i = 0; i < params.size(); ++i)
@@ -40,6 +39,12 @@ namespace CodeGenParameterReg
             if (paramInfos[i].isRegisterArg)
                 outIndices.push_back(static_cast<uint32_t>(i));
         }
+    }
+
+    inline void collectRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
+    {
+        outIndices.clear();
+        appendRegisterParameterIndices(outIndices, params, paramInfos);
     }
 
     inline void collectFutureSourceRegs(SmallVector<MicroReg>& outRegs, const CallConv& callConv, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos, std::span<const uint32_t> registerParamIndices, size_t currentIndex, bool currentIsFloat)

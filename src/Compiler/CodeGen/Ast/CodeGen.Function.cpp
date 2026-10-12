@@ -321,7 +321,7 @@ namespace
         SWC_ASSERT(paramInfos.size() == params.size());
 
         SmallVector<uint32_t> registerParamIndices;
-        CodeGenParameterReg::collectRegisterParameterIndices(registerParamIndices, params, paramInfos);
+        CodeGenParameterReg::appendRegisterParameterIndices(registerParamIndices, params, paramInfos);
         SmallVector<CodeGenParameterReg::RegisterParameterPayload> registerPayloads;
         registerPayloads.reserve(registerParamIndices.size());
 

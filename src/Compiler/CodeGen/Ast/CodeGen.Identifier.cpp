@@ -85,7 +85,6 @@ namespace
 
     void recoverFunctionVariableDeclSymbols(const CodeGen& codeGen, const AstNodeRef declRef, std::span<const TokenRef> tokRefs, SmallVector<Symbol*>& outSymbols)
     {
-        outSymbols.clear();
         outSymbols.reserve(tokRefs.size());
 
         for (const TokenRef tokRef : tokRefs)

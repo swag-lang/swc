@@ -417,8 +417,6 @@ namespace
 
     Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, bool preferBindingTypes)
     {
-        outCandidates.clear();
-
         SmallVector<const SymbolVariable*>        bindingVars;
         SmallVector<TypeRef>                      bindingTypes;
         SmallVector<SemaScope::AutoMemberBinding> autoMemberBindings;
@@ -603,7 +601,6 @@ namespace
 
     Result probeAutoMemberCandidates(Sema& sema, const SourceCodeRef& codeRef, IdentifierRef idRef, std::span<const AutoMemberCandidate> candidates, SmallVector2<AutoMemberMatch>& outMatches)
     {
-        outMatches.clear();
         for (const AutoMemberCandidate& candidate : candidates)
         {
             if (!candidate.symMap)
@@ -646,7 +643,6 @@ namespace
 
     void mergeAutoMemberMatches(std::span<const AutoMemberMatch> matches, SmallVector<const Symbol*>& outSymbols)
     {
-        outSymbols.clear();
         for (const auto& m : matches)
         {
             for (const Symbol* s : m.symbols)

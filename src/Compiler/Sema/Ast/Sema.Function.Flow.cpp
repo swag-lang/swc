@@ -810,13 +810,10 @@ namespace
             }
         }
 
-        if (!hasCallableCalleeSymbols(sema, outSymbols))
-        {
-            SmallVector<Symbol*> memberSymbols;
-            collectMemberCalleeSymbols(sema, *nodeCallee.node(), memberSymbols);
-            if (hasCallableCalleeSymbols(sema, memberSymbols.span()))
-                outSymbols = std::move(memberSymbols);
-        }
+        SmallVector<Symbol*> memberSymbols;
+        collectMemberCalleeSymbols(sema, *nodeCallee.node(), memberSymbols);
+        if (hasCallableCalleeSymbols(sema, memberSymbols.span()))
+            outSymbols = std::move(memberSymbols);
 
         if (outSymbols.empty() && sema.isValue(nodeCallee.nodeRef()))
         {

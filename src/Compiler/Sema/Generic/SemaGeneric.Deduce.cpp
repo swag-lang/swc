@@ -602,7 +602,7 @@ namespace
 
         SmallVector<SemaGeneric::GenericParamDesc> rootParams;
         const SpanRef                              rootParamSpan = genericStructParamSpan(*rootDecl);
-        SemaGeneric::collectGenericParams(*rootSema, *rootDecl, rootParamSpan, rootParams);
+        SemaGeneric::appendGenericParams(*rootSema, *rootDecl, rootParamSpan, rootParams);
         if (rootParams.size() != patternArgs.size())
             return Result::Continue;
 
@@ -1547,7 +1547,7 @@ namespace SemaGeneric
         }
 
         SmallVector<GenericParamDesc> genericParams;
-        collectGenericParams(*declSema, *decl, decl->spanGenericParamsRef, genericParams);
+        appendGenericParams(*declSema, *decl, decl->spanGenericParamsRef, genericParams);
         if (genericParams.empty())
         {
             outTypeRef = declSema->viewType(param.typeRef).typeRef();

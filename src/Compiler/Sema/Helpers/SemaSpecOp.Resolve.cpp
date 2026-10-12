@@ -395,7 +395,7 @@ namespace
             return false;
 
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
+        SemaGeneric::appendGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
         if (genericArgNodes.size() > params.size())
             return false;
 

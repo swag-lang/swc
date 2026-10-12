@@ -126,9 +126,8 @@ namespace
 namespace SemaGeneric
 {
 
-    void collectGenericParams(Sema& sema, const AstNode& declNode, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
+    void appendGenericParams(Sema& sema, const AstNode& declNode, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
     {
-        outParams.clear();
         if (spanRef.isInvalid())
             return;
 
@@ -151,7 +150,7 @@ namespace SemaGeneric
 
         SmallVector<AstNodeRef> params;
         ast->appendNodes(params, spanRef);
-        outParams.reserve(params.size());
+        outParams.reserve(outParams.size() + params.size());
 
         for (const AstNodeRef paramRef : params)
             appendCollectedGenericParam(sema, ast->node(paramRef), paramRef, outParams);
@@ -202,15 +201,14 @@ namespace SemaGeneric
         return ctx.typeMgr().unwrapAliasEnumOrSelf(ctx, typeRef);
     }
 
-    void collectGenericParams(Sema& sema, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
+    void appendGenericParams(Sema& sema, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
     {
-        outParams.clear();
         if (spanRef.isInvalid())
             return;
 
         SmallVector<AstNodeRef> params;
         sema.ast().appendNodes(params, spanRef);
-        outParams.reserve(params.size());
+        outParams.reserve(outParams.size() + params.size());
         for (const AstNodeRef paramRef : params)
             appendCollectedGenericParam(sema, sema.node(paramRef), paramRef, outParams);
     }

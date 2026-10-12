@@ -822,7 +822,7 @@ namespace
             return false;
 
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, spanGenericParamsRef, params);
+        SemaGeneric::appendGenericParams(sema, *decl, spanGenericParamsRef, params);
         if (params.empty())
             return false;
 

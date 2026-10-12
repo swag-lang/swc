@@ -515,9 +515,9 @@ namespace SemaGeneric
 
             SmallVector<GenericParamDesc> params;
             if (genericRoot.decl())
-                collectGenericParams(*sourceSema, *genericRoot.decl(), spanRef, params);
+                appendGenericParams(*sourceSema, *genericRoot.decl(), spanRef, params);
             else
-                collectGenericParams(*sourceSema, spanRef, params);
+                appendGenericParams(*sourceSema, spanRef, params);
             if (genericArgNodes.size() > params.size())
             {
                 if (reportStructFailure)
@@ -817,7 +817,7 @@ namespace SemaGeneric
             sourceSema = &sema;
 
         SmallVector<GenericParamDesc> params;
-        collectGenericParams(*sourceSema, *decl, decl->spanGenericParamsRef, params);
+        appendGenericParams(*sourceSema, *decl, decl->spanGenericParamsRef, params);
         if (params.empty())
             return Result::Continue;
         if (explicitGenericArgNodes.size() > params.size())
@@ -897,7 +897,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         SmallVector<GenericParamDesc> targetParams;
-        collectGenericParams(*targetSema, *targetDecl, spanGenericParamsRef, targetParams);
+        appendGenericParams(*targetSema, *targetDecl, spanGenericParamsRef, targetParams);
 
         SmallVector<GenericResolvedArg> resolvedArgs(targetParams.size());
         resolveStructArgsFromContext(sema, genericRoot, targetParams.span(), resolvedArgs.span());

@@ -79,7 +79,7 @@ namespace SemaGeneric
             if (!decl || spanGenericParamsRef.isInvalid())
                 return false;
 
-            collectGenericParams(sema, *decl, spanGenericParamsRef, outParams);
+            appendGenericParams(sema, *decl, spanGenericParamsRef, outParams);
             if (outParams.empty())
                 return false;
 
@@ -108,7 +108,7 @@ namespace SemaGeneric
             if (!decl || decl->spanGenericParamsRef.isInvalid())
                 return false;
 
-            collectGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
+            appendGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
             if (outParams.empty())
                 return false;
 

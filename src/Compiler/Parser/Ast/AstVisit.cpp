@@ -141,6 +141,35 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
 
 AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
 {
+    if (!preChildVisitor_ && !postChildVisitor_)
+    {
+        if (frame.pendingPostChild)
+        {
+            frame.pendingPostChild = false;
+            frame.postChildState   = Frame::CallState::NotCalled;
+        }
+
+        while (frame.nextChildIx < frame.numChildren)
+        {
+            const uint32_t   globalIx = frame.firstChildIx + frame.nextChildIx++;
+            const AstNodeRef childRef = children_[globalIx];
+            if (childRef.isInvalid())
+            {
+                frame.preChildState = Frame::CallState::NotCalled;
+                continue;
+            }
+
+            frame.pendingPostChild = true;
+            frame.postChildState   = Frame::CallState::NotCalled;
+            frame.preChildState    = Frame::CallState::NotCalled;
+            resetFrame(stack_.emplace_back(), childRef);
+            return AstVisitResult::Continue;
+        }
+
+        frame.stage = Frame::Stage::Post;
+        return AstVisitResult::Continue;
+    }
+
     while (true)
     {
         if (frame.pendingPostChild)

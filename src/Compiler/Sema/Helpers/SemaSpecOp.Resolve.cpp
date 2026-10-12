@@ -1891,17 +1891,16 @@ namespace
 
     void filterCommutativeBinaryCandidates(Sema& sema, SmallVector<Symbol*>& candidates, SpecOperator op)
     {
-        SmallVector<Symbol*> filtered;
-        filtered.reserve(candidates.size());
+        size_t filteredCount = 0;
         for (Symbol* candidate : candidates)
         {
             if (!candidate || !candidate->isFunction())
                 continue;
             if (isCommutativeForOp(sema, candidate->cast<SymbolFunction>(), op))
-                filtered.push_back(candidate);
+                candidates[filteredCount++] = candidate;
         }
 
-        candidates = std::move(filtered);
+        candidates.resize(filteredCount);
     }
 
     Result probeBinarySpecOp(Sema& sema, const AstBinaryExpr& node, const BinarySpecOpProbeRequest& request, BinarySpecOpResolution& out)

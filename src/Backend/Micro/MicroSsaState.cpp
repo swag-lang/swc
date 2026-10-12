@@ -695,20 +695,12 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     if (idomValues.size() < blocks_.size())
         idomValues.resize(blocks_.size());
     std::ranges::fill(idomValues.begin(), idomValues.begin() + blocks_.size(), K_INVALID_BLOCK);
-    auto&                    visited     = blockMarks_;
-    const uint8_t            visitedMark = nextBlockMarkEpoch();
-    SmallVector<uint32_t, 8> roots;
-    roots.push_back(0);
-    for (uint32_t blockIndex = 1; blockIndex < blocks_.size(); ++blockIndex)
-    {
-        if (blocks_[blockIndex].predecessors.empty())
-            roots.push_back(blockIndex);
-    }
-
-    auto& dfsStack    = domDfsStack_;
-    auto& postOrder   = domPostOrder_;
-    auto& rpoPosition = domRpoPosition_;
-    auto& rpoStamp    = domRpoStamp_;
+    auto&         visited     = blockMarks_;
+    const uint8_t visitedMark = nextBlockMarkEpoch();
+    auto&         dfsStack    = domDfsStack_;
+    auto&         postOrder   = domPostOrder_;
+    auto&         rpoPosition = domRpoPosition_;
+    auto&         rpoStamp    = domRpoStamp_;
     dfsStack.clear();
     postOrder.clear();
     // A position is read only for a block stamped into the current component.
@@ -725,10 +717,10 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     while (true)
     {
         uint32_t rootBlock = K_INVALID;
-        while (rootCursor < roots.size())
+        while (rootCursor < blocks_.size())
         {
-            const uint32_t candidate = roots[rootCursor++];
-            if (visited[candidate] != visitedMark)
+            const uint32_t candidate = static_cast<uint32_t>(rootCursor++);
+            if ((candidate == 0 || blocks_[candidate].predecessors.empty()) && visited[candidate] != visitedMark)
             {
                 rootBlock = candidate;
                 break;

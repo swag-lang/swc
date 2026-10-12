@@ -402,13 +402,11 @@ namespace
         if (const auto* quotedExpr = identNode.safeCast<AstQuotedExpr>())
         {
             exprRef = quotedExpr->nodeExprRef;
-            outGenericArgs.clear();
             SemaGeneric::appendQuotedGenericArgs(*quotedExpr, outGenericArgs);
         }
         else if (const auto* quotedList = identNode.safeCast<AstQuotedListExpr>())
         {
             exprRef = quotedList->nodeExprRef;
-            outGenericArgs.clear();
             SemaGeneric::appendQuotedGenericArgs(sema.ast(), *quotedList, outGenericArgs);
         }
         else

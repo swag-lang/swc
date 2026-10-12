@@ -153,8 +153,11 @@ void TaskState::setSemaParsing(AstNodeRef currentNodeRef, const SourceCodeRef& c
 {
     if (kind == TaskStateKind::SemaParsing)
     {
-        nodeRef = currentNodeRef;
-        codeRef = currentCodeRef;
+        if (nodeRef != currentNodeRef)
+        {
+            nodeRef = currentNodeRef;
+            codeRef = currentCodeRef;
+        }
         return;
     }
 
@@ -173,8 +176,11 @@ void TaskState::setCodeGenParsing(const SymbolFunction* function, AstNodeRef cur
 {
     if (kind == TaskStateKind::CodeGenParsing && codeGenFunction == function)
     {
-        nodeRef = currentNodeRef;
-        codeRef = currentCodeRef;
+        if (nodeRef != currentNodeRef)
+        {
+            nodeRef = currentNodeRef;
+            codeRef = currentCodeRef;
+        }
         return;
     }
 

@@ -653,7 +653,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         // visits entry first, then predecessor-less roots in order. At a join
         // reachable from several roots, the first root owns that block.
         // Each idom is written before any later block can read it.
-        idomValues.resize(blocks_.size());
+        if (idomValues.size() < blocks_.size())
+            idomValues.resize(blocks_.size());
         auto& componentRoots = domRpoPosition_;
         if (componentRoots.size() < blocks_.size())
             componentRoots.resize(blocks_.size());
@@ -691,7 +692,9 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     // Seed roots: entry block plus any predecessor-less block (covers unreachable
     // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
     // from any seed.
-    idomValues.assign(blocks_.size(), K_INVALID_BLOCK);
+    if (idomValues.size() < blocks_.size())
+        idomValues.resize(blocks_.size());
+    std::ranges::fill(idomValues.begin(), idomValues.begin() + blocks_.size(), K_INVALID_BLOCK);
     auto&                    visited     = blockMarks_;
     const uint8_t            visitedMark = nextBlockMarkEpoch();
     SmallVector<uint32_t, 8> roots;
@@ -856,7 +859,7 @@ bool MicroSsaState::finalizeDominators(std::vector<uint32_t>& idomValues)
     const uint32_t blockCount    = static_cast<uint32_t>(blocks_.size());
     const uint32_t stampBase     = blockCount < K_INVALID_BLOCK / 2 ? blockCount : 0;
     if (!stampBase)
-        std::ranges::fill(frontierVisit, K_INVALID_BLOCK);
+        std::ranges::fill(frontierVisit.begin(), frontierVisit.begin() + blockCount, K_INVALID_BLOCK);
     bool hasFrontier = false;
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
     {

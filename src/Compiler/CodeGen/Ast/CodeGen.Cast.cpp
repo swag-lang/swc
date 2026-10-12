@@ -124,7 +124,6 @@ namespace
 
     bool resolveUsingStructCastPath(CodeGen& codeGen, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps)
     {
-        outSteps.clear();
         const TypeManager& typeMgr = codeGen.typeMgr();
 
         if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())

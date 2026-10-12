@@ -68,8 +68,6 @@ namespace
 
     bool resolveStructMemberPath(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym, SmallVector<StructUsingPathStep>& outSteps)
     {
-        outSteps.clear();
-
         const SymbolMap* ownerSymMap = memberSym.ownerSymMap();
         const auto*      ownerStruct = ownerSymMap ? ownerSymMap->safeCast<SymbolStruct>() : nullptr;
         if (!ownerStruct)

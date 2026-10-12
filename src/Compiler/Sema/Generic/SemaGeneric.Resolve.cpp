@@ -238,11 +238,10 @@ namespace SemaGeneric
         outBindings.push_back(binding);
     }
 
-    void collectResolvedGenericBindings(std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, size_t count, SmallVector<SemaClone::ParamBinding>& outBindings)
+    void appendResolvedGenericBindings(std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, size_t count, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        outBindings.clear();
         const size_t n = std::min(count, params.size());
-        outBindings.reserve(n);
+        outBindings.reserve(outBindings.size() + n);
         for (size_t i = 0; i < n; ++i)
             appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
     }

@@ -605,7 +605,7 @@ namespace SemaGeneric
 
         void buildPartialGenericContextBindings(Sema& sema, const Symbol& root, const ResolvedGenericBindingSource& source, size_t count, SmallVector<SemaClone::ParamBinding>& outBindings)
         {
-            collectResolvedGenericBindings(source.params, source.resolvedArgs, count, outBindings);
+            appendResolvedGenericBindings(source.params, source.resolvedArgs, count, outBindings);
             appendEnclosingGenericCloneBindings(sema, root, outBindings);
         }
     }

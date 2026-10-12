@@ -2573,7 +2573,6 @@ namespace
 
     void fillFunctionCandidateProbe(Match::FunctionCandidateProbe& outProbe, const Attempt& selectedAttempt)
     {
-        outProbe.perArgRanks.clear();
         outProbe.perArgRanks.append(selectedAttempt.candidate.perArg.data(), selectedAttempt.candidate.perArg.size());
 
         outProbe.fn              = selectedAttempt.candidate.fn;

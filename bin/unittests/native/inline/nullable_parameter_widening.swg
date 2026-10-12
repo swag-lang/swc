@@ -49,6 +49,18 @@ func optionalString(value: string?)->u64
     return stringLength(value)
 }
 
+#[Swag.Inline]
+func copyPointers(destination: [*] void?, source: const [*] void?, size: u64)
+{
+    if size do
+        Swag.memcpy(destination, source, size)
+}
+
+func optionalSlicePointer(source: const [..] u8)
+{
+    copyPointers(null, source.buffer + 1, 0)
+}
+
 #test
 {
     var storage = 37'u64
@@ -68,4 +80,8 @@ func optionalString(value: string?)->u64
     let text: string = "allocator"
     Swag.assert(optionalString(text) == 9)
     Swag.assert(optionalString(null) == 0)
+
+    var bytes = [1'u8, 2]
+    let byteSlice: [..] u8 = bytes
+    optionalSlicePointer(byteSlice)
 }

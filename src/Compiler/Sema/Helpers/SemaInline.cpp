@@ -1938,10 +1938,23 @@ namespace
         // has no such storage either, even when its expression retains a symbol.
         if (context.isOrdinaryInline && !isCaptured && paramType.isNullable() && binding.exprRef.isValid())
         {
-            SmallVector4<const Symbol*> sourcePath;
-            const bool                  hasNullableStorage = SemaHelpers::extractNarrowPath(sema, binding.exprRef, sourcePath) &&
-                                            sourcePath.back()->typeRef().isValid() && sema.typeMgr().get(sourcePath.back()->typeRef()).isNullable();
-            mat.forNullableType = !hasNullableStorage || sema.viewConstant(binding.exprRef).hasConstant();
+            const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
+            if (sourceTypeRef.isValid())
+            {
+                const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+                const bool sourceIsNullable = sourceType.isNullable();
+                const bool isConstant = sourceIsNullable && sema.viewConstant(binding.exprRef).hasConstant();
+                mat.forNullableType = !sourceIsNullable || isConstant;
+
+                const AstCastExpr* explicitCast = sema.node(binding.exprRef).safeCast<AstCastExpr>();
+                if (sourceIsNullable && explicitCast && explicitCast->hasFlag(AstCastExprFlagsE::Explicit))
+                {
+                    SmallVector4<const Symbol*> sourcePath;
+                    const bool hasSourcePath = SemaHelpers::extractNarrowPath(sema, binding.exprRef, sourcePath);
+                    const bool hasNullableStorage = hasSourcePath && sourcePath.back()->typeRef().isValid() && sema.typeMgr().get(sourcePath.back()->typeRef()).isNullable();
+                    mat.forNullableType = !hasNullableStorage || isConstant;
+                }
+            }
         }
 
         // A reference or proven stable plain array can survive indexed/foreach

@@ -2237,7 +2237,8 @@ namespace
         outFunctionSymbols.clear();
         outViable.clear();
 
-        bool hasGenericRoot = false;
+        bool                       hasGenericRoot = false;
+        PointerSet<SymbolFunction> seenFunctions;
         for (Symbol* s : symbols)
         {
             if (!s)
@@ -2265,17 +2266,7 @@ namespace
             if (!explicitGenericArgNodes.empty() && !fn->isGenericRoot() && !fn->isGenericInstance())
                 continue;
 
-            bool alreadyAdded = false;
-            for (const SymbolFunction* addedFn : outFunctionSymbols)
-            {
-                if (addedFn == fn)
-                {
-                    alreadyAdded = true;
-                    break;
-                }
-            }
-
-            if (alreadyAdded)
+            if (!seenFunctions.insert(fn))
                 continue;
 
             outFunctionSymbols.push_back(fn);

@@ -7,6 +7,7 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
@@ -247,8 +248,19 @@ Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeStartupInfo& s
 
 Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols, const bool splitRDataReferences) const
 {
+    Utf8        generatedOwnerName;
+    const Utf8* ownerName = &owner.debugName;
     for (const auto& relocation : code.codeRelocations)
-        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, owner.debugName, relocation, textSection, allowUnresolvedSymbols, splitRDataReferences));
+    {
+        if (ownerName->empty() && relocation.kind == MicroRelocation::Kind::ConstantAddress)
+        {
+            SWC_ASSERT(owner.symbol != nullptr);
+            generatedOwnerName = owner.symbol->getFullScopedName(builder_->ctx());
+            ownerName           = &generatedOwnerName;
+        }
+
+        SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, *ownerName, relocation, textSection, allowUnresolvedSymbols, splitRDataReferences));
+    }
     return Result::Continue;
 }
 

@@ -789,7 +789,8 @@ namespace
             info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
         else
             info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
-        info.debugName = symbol.getFullScopedName(builder.ctx());
+        if (builder.compiler().buildCfg().backend.debugInfo)
+            info.debugName = symbol.getFullScopedName(builder.ctx());
         info.exported  = exportPublicSymbol;
         return info;
     }
@@ -926,9 +927,13 @@ namespace
                 if (file && file->hasError())
                     continue;
 
-                const auto  info         = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
-                const Utf8& reportedName = info.debugName.empty() ? info.symbolName : info.debugName;
-                return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, reportedName);
+                const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
+                if (!info.debugName.empty())
+                    return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, info.debugName);
+                return builder.reportError(
+                    DiagnosticId::cmd_err_native_codegen_machine_code_missing,
+                    Diagnostic::ARG_SYM,
+                    symbol->getFullScopedName(builder.ctx()));
             }
         }
 

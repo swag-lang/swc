@@ -38,7 +38,7 @@ Result NativeRDataCollector::collectFunctionRoots()
         if (!info.machineCode)
             continue;
 
-        SWC_RESULT(collectCodeRoots(info.debugName, info.machineCode->codeRelocations));
+        SWC_RESULT(collectCodeRoots(info.debugName, info.machineCode->codeRelocations, info.symbol));
     }
 
     return Result::Continue;
@@ -91,14 +91,23 @@ Result NativeRDataCollector::collectPendingAllocations()
     return Result::Continue;
 }
 
-Result NativeRDataCollector::collectCodeRoots(const Utf8& ownerName, const std::span<const MicroRelocation> relocations)
+Result NativeRDataCollector::collectCodeRoots(const Utf8& ownerName, const std::span<const MicroRelocation> relocations, const SymbolFunction* ownerSymbol)
 {
+    Utf8        generatedOwnerName;
+    const Utf8* rootOwnerName = &ownerName;
     for (const MicroRelocation& relocation : relocations)
     {
         if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
             continue;
 
-        SWC_RESULT(enqueueConstantRelocation(ownerName, relocation));
+        if (rootOwnerName->empty())
+        {
+            SWC_ASSERT(ownerSymbol != nullptr);
+            generatedOwnerName = ownerSymbol->getFullScopedName(builder_->ctx());
+            rootOwnerName       = &generatedOwnerName;
+        }
+
+        SWC_RESULT(enqueueConstantRelocation(*rootOwnerName, relocation));
     }
 
     return Result::Continue;

@@ -7,6 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class NativeBackendBuilder;
+class SymbolFunction;
 
 // Collects the constant-shard allocations that are reachable from emitted native code or globals
 // and remaps their internal relocations into the merged .rdata section.
@@ -37,7 +38,7 @@ private:
     };
 
     Result collectPendingAllocations();
-    Result collectCodeRoots(const Utf8& ownerName, std::span<const MicroRelocation> relocations);
+    Result collectCodeRoots(const Utf8& ownerName, std::span<const MicroRelocation> relocations, const SymbolFunction* ownerSymbol = nullptr);
     Result enqueueConstantRelocation(const Utf8& ownerName, const MicroRelocation& relocation);
     Result enqueueSourceOffset(const Utf8& ownerName, uint32_t shardIndex, uint32_t sourceOffset);
     Result emitReachableAllocations();

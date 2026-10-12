@@ -2260,12 +2260,9 @@ namespace
     // Evaluate every reachable function symbol in source order. Generic roots are probed
     // through speculative instantiation; concrete functions are probed first as regular
     // calls and then, if relevant, as UFCS/member-style calls with an injected receiver.
+    // Every caller supplies a fresh CandidateAttempts object, so its scratch vectors are empty.
     Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, SmallVector<const Attempt*>& outViable, std::span<Symbol* const> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
-        outAttempts.clear();
-        outFunctionSymbols.clear();
-        outViable.clear();
-
         bool                       hasGenericRoot = false;
         PointerSet<SymbolFunction> seenFunctions;
         for (Symbol* s : symbols)

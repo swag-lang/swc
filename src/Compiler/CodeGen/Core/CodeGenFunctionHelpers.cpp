@@ -374,12 +374,12 @@ namespace
         result.opBits            = functionParameterLoadBits(type.isFloat, type.numBits);
     }
 
-    void setParameterLocationInfo(CodeGenFunctionHelpers::FunctionParameterInfo& result, const CallConv& callConv, std::span<const ABICall::ArgLayout> argLayouts, uint32_t registerIndex)
+    void setParameterLocationInfo(CodeGenFunctionHelpers::FunctionParameterInfo& result, const CallConv& callConv, ABICall::ArgRegisterState& registerState, ABICall::ArgStackState& stackState, uint32_t slotIndex, const ABITypeNormalize::NormalizedType& type)
     {
-        result.registerIndex = registerIndex;
+        setParameterTypeInfo(result, type, slotIndex);
+        result.registerIndex = registerState.next(callConv, slotIndex, type.isFloat);
         result.isRegisterArg = result.registerIndex != UINT32_MAX;
-        // Only stack arguments load from an incoming frame slot.
-        result.stackOffset = result.isRegisterArg ? 0 : ABICall::incomingArgFrameOffset(callConv, argLayouts, result.slotIndex);
+        result.stackOffset   = result.isRegisterArg ? 0 : 2 * sizeof(void*) + stackState.next(callConv, static_cast<uint8_t>(type.numBits ? type.numBits : 64));
     }
 }
 
@@ -387,33 +387,27 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
 {
     SWC_ASSERT(symVar.hasParameterIndex());
 
-    FunctionParameterInfo                  result;
-    const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
-    const uint32_t                         parameterIndex  = symVar.parameterIndex();
-    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
-
-    setParameterTypeInfo(result, normalizedParam, parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u));
-
-    // Register lanes and incoming stack offsets depend only on this prefix.
-    // Register home offsets would need the full layout, but are not used here.
-    const auto& params = symbolFunc.parameters();
+    FunctionParameterInfo result;
+    const CallConv&       callConv       = CallConv::get(symbolFunc.callConvKind());
+    const uint32_t        parameterIndex = symVar.parameterIndex();
+    const uint32_t        hiddenArgCount = (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
+    const auto&           params         = symbolFunc.parameters();
     SWC_ASSERT(parameterIndex < params.size());
     SWC_ASSERT(params[parameterIndex] == &symVar);
-    SmallVector<ABICall::ArgLayout> argLayouts;
-    argLayouts.reserve(result.slotIndex + 1);
-    if (hasIndirectReturnArg)
-        argLayouts.push_back({});
-    if (hasClosureContextArg)
-        argLayouts.push_back({});
-    for (uint32_t i = 0; i < parameterIndex; ++i)
+
+    ABICall::ArgRegisterState registerState{.intLane = hiddenArgCount};
+    ABICall::ArgStackState    stackState;
+    for (uint32_t i = 0; i <= parameterIndex; ++i)
     {
         const SymbolVariable* param = params[i];
         SWC_ASSERT(param != nullptr);
-        const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
-        argLayouts.push_back({.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat});
+        const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
+        const uint32_t                         slotIndex = i + hiddenArgCount;
+        FunctionParameterInfo                  currentInfo;
+        setParameterLocationInfo(currentInfo, callConv, registerState, stackState, slotIndex, type);
+        if (i == parameterIndex)
+            result = currentInfo;
     }
-    argLayouts.push_back({.numBits = static_cast<uint8_t>(normalizedParam.numBits ? normalizedParam.numBits : 64), .isFloat = normalizedParam.isFloat});
-    setParameterLocationInfo(result, callConv, argLayouts, ABICall::argumentRegisterIndex(callConv, argLayouts, result.slotIndex));
     return result;
 }
 
@@ -442,10 +436,7 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
         const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex = param->parameterIndex() + hiddenArgCount;
         FunctionParameterInfo&                 paramInfo = outParamInfos[i];
-        setParameterTypeInfo(paramInfo, type, slotIndex);
-        paramInfo.registerIndex = registerState.next(callConv, slotIndex, type.isFloat);
-        paramInfo.isRegisterArg = paramInfo.registerIndex != UINT32_MAX;
-        paramInfo.stackOffset   = paramInfo.isRegisterArg ? 0 : 2 * sizeof(void*) + stackState.next(callConv, static_cast<uint8_t>(type.numBits ? type.numBits : 64));
+        setParameterLocationInfo(paramInfo, callConv, registerState, stackState, slotIndex, type);
     }
 }
 

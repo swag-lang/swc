@@ -47,13 +47,14 @@ namespace SemaSymbolLookup
         }
 
         const bool hasConcreteFunction = hasConcreteFunctionCandidate<T>(symbols.span());
-        size_t     writeIndex          = 0;
+        // These call candidates were already filtered for runtime access, which removed null symbols.
+        if (!hasConcreteFunction)
+            return;
+
+        size_t writeIndex = 0;
         for (const T sym : symbols)
         {
-            if (!sym)
-                continue;
-
-            if (hasConcreteFunction && sym->isFunction())
+            if (sym->isFunction())
             {
                 const auto& fn = sym->template cast<SymbolFunction>();
                 if (!fn.isForeign() && fn.isEmpty())

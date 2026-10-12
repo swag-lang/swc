@@ -1133,13 +1133,6 @@ namespace
         return sema.topSymMap();
     }
 
-    SourceCodeRef currentCodeRef(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (!nodeRef.isValid())
-            return SourceCodeRef::invalid();
-        return sema.node(nodeRef).codeRef();
-    }
-
     AstNodeRef fallbackWaitNodeRef(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isValid())
@@ -1743,7 +1736,7 @@ Result Sema::runCurrentVisit()
     while (true)
     {
         const AstNodeRef nodeRef = visit_.currentNodeRef();
-        ctx().state().setSemaParsing(nodeRef, currentCodeRef(*this, nodeRef));
+        ctx().state().setSemaParsing(nodeRef, node(nodeRef).codeRef());
 
         // AstVisit owns the pre/post traversal cursor. Sema only translates its pause,
         // error and stop states into job-level results, which keeps resumable semantic

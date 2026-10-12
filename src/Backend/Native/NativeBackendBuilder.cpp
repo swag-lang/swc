@@ -514,8 +514,8 @@ namespace
         if (!visitedAllocations.insert(allocationKey))
             return false;
 
-        bool                               changed = false;
-        std::vector<DataSegmentRelocation> relocations;
+        bool                                  changed = false;
+        SmallVector<DataSegmentRelocation, 4> relocations;
         segment.copyRelocations(relocations, allocation.offset, allocation.size);
         for (const DataSegmentRelocation& relocation : relocations)
         {

@@ -129,7 +129,7 @@ namespace SemaRuntime
 
     // Every call site supplies a newly constructed output vector.
     template<typename T>
-    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<std::remove_const_t<T>>& outSymbols)
+    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<std::remove_const_t<T>>& outSymbols, auto&& shouldKeep)
     {
         outSymbols.reserve(inSymbols.size());
 
@@ -137,7 +137,7 @@ namespace SemaRuntime
         const Symbol* compilerOnlySymbol = nullptr;
         for (T symbol : inSymbols)
         {
-            if (!symbol)
+            if (!symbol || !shouldKeep(symbol))
                 continue;
 
             const auto* baseSymbol = static_cast<const Symbol*>(symbol);
@@ -155,6 +155,12 @@ namespace SemaRuntime
             return Result::Continue;
 
         return SemaError::raiseRuntimeUsesCompilerOnlySymbol(sema, nodeRef, *compilerOnlySymbol);
+    }
+
+    template<typename T>
+    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<std::remove_const_t<T>>& outSymbols)
+    {
+        return filterRuntimeAccessibleSymbols(sema, nodeRef, inSymbols, outSymbols, [](T) { return true; });
     }
 }
 

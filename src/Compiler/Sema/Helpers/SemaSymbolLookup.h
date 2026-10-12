@@ -64,6 +64,18 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
+    bool isNonemptyFunctionDeclaration(T symbol, bool hasConcreteFunction)
+    {
+        if (!symbol)
+            return false;
+        if (!hasConcreteFunction || !symbol->isFunction())
+            return true;
+
+        const auto& fn = symbol->template cast<SymbolFunction>();
+        return fn.isForeign() || !fn.isEmpty();
+    }
+
+    template<typename T>
     void removeEmptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
     {
         outSymbols.clear();
@@ -140,11 +152,9 @@ namespace SemaSymbolLookup
     template<typename T>
     Result bindResolvedSymbols(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> foundSymbols)
     {
-        SmallVector<T> filteredSymbols;
-        appendNonemptyFunctionDeclarations(foundSymbols, filteredSymbols);
-
         SmallVector<T> runtimeSymbols;
-        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, filteredSymbols.span(), runtimeSymbols));
+        const bool     hasConcreteFunction = foundSymbols.size() > 1 && hasConcreteFunctionCandidate<T>(foundSymbols);
+        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, foundSymbols, runtimeSymbols, [hasConcreteFunction](T symbol) { return isNonemptyFunctionDeclaration(symbol, hasConcreteFunction); }));
 
         if (runtimeSymbols.size() <= 1)
         {
@@ -167,11 +177,9 @@ namespace SemaSymbolLookup
     template<typename T>
     Result bindSymbolList(Sema& sema, AstNodeRef nodeRef, bool allowOverloadSetForCallCallee, std::span<T> symbols)
     {
-        SmallVector<T> filteredSymbols;
-        appendNonemptyFunctionDeclarations(symbols, filteredSymbols);
-
         SmallVector<T> runtimeSymbols;
-        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, filteredSymbols.span(), runtimeSymbols));
+        const bool     hasConcreteFunction = symbols.size() > 1 && hasConcreteFunctionCandidate<T>(symbols);
+        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeRef, symbols, runtimeSymbols, [hasConcreteFunction](T symbol) { return isNonemptyFunctionDeclaration(symbol, hasConcreteFunction); }));
 
         if (runtimeSymbols.size() <= 1 || !allowOverloadSetForCallCallee)
         {

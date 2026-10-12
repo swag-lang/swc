@@ -362,7 +362,6 @@ namespace
     // Captures and a callable's own parameters both hide outer bindings by name.
     void excludeNamedBindings(SmallVector<SemaClone::ParamBinding>& outBindings, std::span<const SemaClone::ParamBinding> bindings, std::span<const IdentifierRef> excludedIdentifiers)
     {
-        outBindings.clear();
         if (excludedIdentifiers.empty())
         {
             for (const SemaClone::ParamBinding& binding : bindings)
@@ -381,10 +380,7 @@ namespace
     void excludeCapturedClosureBindings(Sema& sema, const AstClosureExpr& node, const SemaClone::CloneContext& cloneContext, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         if (cloneContext.bindings.empty())
-        {
-            outBindings.clear();
             return;
-        }
 
         SmallVector<IdentifierRef> captureIdentifiers;
         collectClosureCaptureIdentifiers(sema, cloneSourceAst(sema, cloneContext), node.nodeCaptureArgsRef, captureIdentifiers);

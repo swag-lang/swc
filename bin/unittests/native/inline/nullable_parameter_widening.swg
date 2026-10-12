@@ -54,6 +54,8 @@ func optionalString(value: string?)->u64
     var storage = 37'u64
     let pointer = opaquePointer(&storage)
     Swag.assert(optionalPointer(pointer) == cast(u64, pointer))
+    Swag.assert(optionalPointer(cast([*] void?, pointer)) == cast(u64, pointer))
+    defer Swag.assert(optionalPointer(cast([*] void?, pointer)) == cast(u64, pointer))
     Swag.assert(optionalPointer(null) == 0)
     Swag.assert(optionalScalar(&storage) == 37)
     Swag.assert(optionalScalar(null) == 0)

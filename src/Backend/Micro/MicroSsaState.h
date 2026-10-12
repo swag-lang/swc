@@ -170,6 +170,7 @@ private:
     void            pruneRemovedUses();
     uint32_t        findReachingValue(uint32_t regIndex, uint32_t position) const;
     void            resetForBuild(MicroStorage& storage);
+    uint8_t         nextBlockMarkEpoch();
     void            buildBlocks(const MicroControlFlowGraph& controlFlowGraph);
     bool            computeDominators(bool acyclic); // true when any dominance frontier exists
     bool            finalizeDominators(std::vector<uint32_t>& idomValues);
@@ -213,6 +214,7 @@ private:
     // Block discovery and dominator construction are sequential. Keep their
     // temporary capacities across SSA rebuilds and functions on this worker.
     std::vector<uint8_t>        blockMarks_;
+    uint8_t                     blockMarkEpoch_ = 0;
     std::vector<uint32_t>       domIdomValues_;
     std::vector<uint32_t>       domRpoPosition_;
     std::vector<uint32_t>       domRpoStamp_;

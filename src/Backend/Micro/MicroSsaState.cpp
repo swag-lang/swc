@@ -46,6 +46,17 @@ bool MicroSsaState::isTrackedReg(const MicroReg reg)
     return reg.isVirtual();
 }
 
+uint8_t MicroSsaState::nextBlockMarkEpoch()
+{
+    if (++blockMarkEpoch_ == 0)
+    {
+        std::ranges::fill(blockMarks_, 0);
+        blockMarkEpoch_ = 1;
+    }
+
+    return blockMarkEpoch_;
+}
+
 void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
 {
     const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
@@ -539,7 +550,7 @@ const MicroSsaState::PhiInfo* MicroSsaState::phiInfoForValue(const uint32_t valu
 
 void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
 {
-    // Block discovery overwrites every entry before successor mapping reads it.
+    // Block discovery overwrites every active entry before successor mapping reads it.
     if (instructionToBlock_.size() < instructionRefs_.size())
         instructionToBlock_.resize(instructionRefs_.size());
 
@@ -550,8 +561,10 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
     }
 
     auto& leaders = blockMarks_;
-    leaders.assign(instructionRefs_.size(), 0);
-    leaders[0] = 1;
+    if (leaders.size() < instructionRefs_.size())
+        leaders.resize(instructionRefs_.size(), 0);
+    const uint8_t leaderMark = nextBlockMarkEpoch();
+    leaders[0]               = leaderMark;
 
     for (uint32_t instructionIndex = 0; instructionIndex < instructionRefs_.size(); ++instructionIndex)
     {
@@ -561,15 +574,15 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
             const bool isLinearFallthrough = successors.size() == 1 && successors.front() == instructionIndex + 1;
             if (isLinearFallthrough)
                 continue;
-            leaders[instructionIndex + 1] = 1;
+            leaders[instructionIndex + 1] = leaderMark;
         }
 
         for (const uint32_t successorIndex : successors)
         {
             if (successorIndex == instructionIndex + 1)
                 continue;
-            SWC_ASSERT(successorIndex < leaders.size());
-            leaders[successorIndex] = 1;
+            SWC_ASSERT(successorIndex < instructionRefs_.size());
+            leaders[successorIndex] = leaderMark;
         }
     }
 
@@ -595,7 +608,7 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
         do
         {
             instructionToBlock_[instructionIndex++] = blockIndex;
-        } while (instructionIndex < instructionRefs_.size() && !leaders[instructionIndex]);
+        } while (instructionIndex < instructionRefs_.size() && leaders[instructionIndex] != leaderMark);
         block.instructionEnd = instructionIndex;
     }
     blocks_.resize(blockCount);
@@ -608,7 +621,7 @@ void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
         const auto&    successors      = controlFlowGraph.successors(lastInstruction);
         for (const uint32_t successorIndex : successors)
         {
-            SWC_ASSERT(successorIndex < instructionToBlock_.size());
+            SWC_ASSERT(successorIndex < instructionRefs_.size());
             const uint32_t successorBlock = instructionToBlock_[successorIndex];
             SWC_ASSERT(successorBlock != K_INVALID_BLOCK);
             // CFG targets are unique. With multiple successors, every target
@@ -679,8 +692,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     // sub-graphs). Fall back to scanning unvisited blocks for cycles unreachable
     // from any seed.
     idomValues.assign(blocks_.size(), K_INVALID_BLOCK);
-    auto& visited = blockMarks_;
-    visited.assign(blocks_.size(), 0);
+    auto&                    visited     = blockMarks_;
+    const uint8_t            visitedMark = nextBlockMarkEpoch();
     SmallVector<uint32_t, 8> roots;
     roots.push_back(0);
     for (uint32_t blockIndex = 1; blockIndex < blocks_.size(); ++blockIndex)
@@ -712,7 +725,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         while (rootCursor < roots.size())
         {
             const uint32_t candidate = roots[rootCursor++];
-            if (!visited[candidate])
+            if (visited[candidate] != visitedMark)
             {
                 rootBlock = candidate;
                 break;
@@ -722,7 +735,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         {
             // Visited blocks never become unvisited. Do not rescan the prefix
             // for every disconnected component (including unreachable cycles).
-            while (unvisitedCursor < blocks_.size() && visited[unvisitedCursor])
+            while (unvisitedCursor < blocks_.size() && visited[unvisitedCursor] == visitedMark)
                 ++unvisitedCursor;
             if (unvisitedCursor < blocks_.size())
                 rootBlock = unvisitedCursor;
@@ -733,7 +746,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         dfsStack.clear();
         postOrder.clear();
         dfsStack.push_back({rootBlock, 0});
-        visited[rootBlock] = 1;
+        visited[rootBlock] = visitedMark;
 
         while (!dfsStack.empty())
         {
@@ -743,9 +756,9 @@ bool MicroSsaState::computeDominators(const bool acyclic)
             if (frame.nextSuccessor < successors.size())
             {
                 const uint32_t successorBlock = successors[frame.nextSuccessor++];
-                if (!visited[successorBlock])
+                if (visited[successorBlock] != visitedMark)
                 {
-                    visited[successorBlock] = 1;
+                    visited[successorBlock] = visitedMark;
                     dfsStack.push_back({successorBlock, 0});
                 }
                 continue;

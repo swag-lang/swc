@@ -46,6 +46,8 @@ replace the allocator; a similar architecture alone does not establish comparabl
   but did not improve mixed live-set workloads; do not select that shape from `pair` alone.
   Outlining allocation fallback and moving OS operations outside cache/segment locks likewise
   need evidence beyond an initial favourable window before being reconsidered.
+  Assess any direct small-size page index separately: its standalone mixed-size and application
+  checks did not establish the gain seen when combined with other allocator layout changes.
 - Preserve the release contract before inlining a scalar free. The interface call supplies
   `SanityRelease` for `request.address`; merely calling `freeFast` loses that boundary. A private
   freeing helper inside an inline public wrapper must also retain the caller's diagnostic

@@ -981,3 +981,17 @@ new language syntax.
   short comparisons without growing the other task hot paths; require a concrete Micro gain
   before editing.
 - Done when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.
+
+### compiler.optimization.129 — Folded inline branches still enlarge caller frames
+
+- Area: compiler/codegen, local storage and final frame layout.
+- Evidence: adding alignment arithmetic to the runtime's inline `allocateFast` grows
+  the allocator benchmark's recursive `buildTree` frame from 408 to 440 bytes even
+  with its constant default alignment. Its optimized Micro body keeps 192 instructions
+  and the alignment arithmetic is absent. Moving that arithmetic into a no-inline
+  helper restores the 408-byte frame. The larger-frame variant slows the tree workload.
+- Next: trace the homes created by the expanded alignment and size-class branches,
+  and discard storage proven unused after folding before finalizing the frame.
+  Preserve address-taken locals, required inline parameter homes, and debug locations.
+- Done when: the constant-alignment caller retains its original frame with the helper
+  inlined, while dynamic alignment and the focused native/inline tests remain correct.

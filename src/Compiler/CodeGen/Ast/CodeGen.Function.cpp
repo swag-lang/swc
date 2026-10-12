@@ -301,10 +301,9 @@ namespace
         }
     }
 
-    void collectFunctionParameterInfos(CodeGen& codeGen, SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, const SymbolFunction& symbolFunc, bool hasIndirectReturnArg)
+    void buildFunctionParameterInfos(CodeGen& codeGen, SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, const SymbolFunction& symbolFunc, bool hasIndirectReturnArg)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
-        outParamInfos.clear();
         if (params.empty())
             return;
 
@@ -465,7 +464,7 @@ namespace
         clearFallibleFunctionPayload(codeGen, declRef);
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-        collectFunctionParameterInfos(codeGen, paramInfos, symbolFunc, normalizedRet.isIndirect);
+        buildFunctionParameterInfos(codeGen, paramInfos, symbolFunc, normalizedRet.isIndirect);
         buildLocalStackLayout(codeGen, callConv, normalizedRet.isIndirect, paramInfos);
         {
             MicroBuilder&           builder = codeGen.builder();

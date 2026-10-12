@@ -148,10 +148,9 @@ namespace
         codeGen.setLocalStackFrameSize(static_cast<uint32_t>(frameSize));
     }
 
-    void collectCompilerFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
+    void buildCompilerFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
-        outParamInfos.clear();
         if (params.empty())
             return;
 
@@ -205,7 +204,7 @@ namespace
         const TypeRef      returnTypeRef = codeGen.function().returnTypeRef();
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-        collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
+        buildCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
         buildCompilerFunctionStackLayout(codeGen);
         CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
@@ -284,7 +283,7 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
     SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-    collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
+    buildCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
     buildCompilerFunctionStackLayout(codeGen);
     CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 

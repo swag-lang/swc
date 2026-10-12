@@ -70,9 +70,9 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
 
     if (!hasBestPriority_)
     {
+        // resetCandidates leaves the candidate lists empty with no best priority.
         hasBestPriority_ = true;
         bestPriority_    = priority;
-        symbols_.clear();
         symbols_.push_back(symbol);
         return;
     }

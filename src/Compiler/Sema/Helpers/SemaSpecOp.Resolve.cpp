@@ -591,9 +591,11 @@ namespace
     // it stands for as a synthetic generic argument.
     Result collectAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, bool indexed, SmallVector<Symbol*>& outCandidates)
     {
-        outCandidates.clear();
         if (!Token::isOpAssign(tokId))
+        {
+            outCandidates.clear();
             return Result::Continue;
+        }
 
         using Name                     = IdentifierManager::PredefinedName;
         const bool          isSimple   = tokId == TokenId::SymEqual;
@@ -832,8 +834,6 @@ namespace
 
     Result collectVisitSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
     {
-        outCandidates.clear();
-
         const IdentifierRef opVisitId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpVisit);
         return collectSpecOpCandidates(sema, ownerStruct, opVisitId, genericArgNodes, outCandidates);
     }

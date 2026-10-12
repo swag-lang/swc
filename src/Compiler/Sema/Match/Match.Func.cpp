@@ -2351,19 +2351,13 @@ namespace
 
         outAttempts.reserve(outFunctionSymbols.size());
         outViable.reserve(outFunctionSymbols.size());
-        const auto appendAttempt = [&](Attempt&& attempt) {
-            outAttempts.push_back(std::move(attempt));
-            const Attempt* appended = &outAttempts.back();
-            if (appended->candidate.viable)
-                outViable.push_back(appended);
-        };
 
         size_t genericRootIndex = 0;
         for (SymbolFunction* fn : outFunctionSymbols)
         {
             SWC_ASSERT(fn != nullptr);
 
-            Attempt a;
+            Attempt& a     = outAttempts.emplace_back();
             a.candidate.fn = fn;
 
             if (fn->isGenericRoot())
@@ -2389,7 +2383,8 @@ namespace
                 }
 
                 releaseCallShapeScratch(shapeContext);
-                appendAttempt(std::move(a));
+                if (a.candidate.viable)
+                    outViable.push_back(&a);
                 continue;
             }
 
@@ -2412,7 +2407,8 @@ namespace
             }
 
             releaseCallShapeScratch(shapeContext);
-            appendAttempt(std::move(a));
+            if (a.candidate.viable)
+                outViable.push_back(&a);
         }
 
         return Result::Continue;

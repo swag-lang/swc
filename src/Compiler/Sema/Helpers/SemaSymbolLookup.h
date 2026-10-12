@@ -25,45 +25,6 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
-    void appendNonemptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
-    {
-        if (inSymbols.size() == 1)
-        {
-            // A lone symbol cannot hide an empty declaration behind a concrete function.
-            if (inSymbols.front())
-                outSymbols.push_back(inSymbols.front());
-            return;
-        }
-        outSymbols.reserve(inSymbols.size());
-
-        if (!hasConcreteFunctionCandidate(inSymbols))
-        {
-            for (const T sym : inSymbols)
-            {
-                if (sym)
-                    outSymbols.push_back(sym);
-            }
-
-            return;
-        }
-
-        for (const T sym : inSymbols)
-        {
-            if (!sym)
-                continue;
-
-            if (sym->isFunction())
-            {
-                const auto& fn = sym->template cast<SymbolFunction>();
-                if (!fn.isForeign() && fn.isEmpty())
-                    continue;
-            }
-
-            outSymbols.push_back(sym);
-        }
-    }
-
-    template<typename T>
     bool isNonemptyFunctionDeclaration(T symbol, bool hasConcreteFunction)
     {
         if (!symbol)
@@ -73,13 +34,6 @@ namespace SemaSymbolLookup
 
         const auto& fn = symbol->template cast<SymbolFunction>();
         return fn.isForeign() || !fn.isEmpty();
-    }
-
-    template<typename T>
-    void removeEmptyFunctionDeclarations(std::span<T> inSymbols, SmallVector<T>& outSymbols)
-    {
-        outSymbols.clear();
-        appendNonemptyFunctionDeclarations(inSymbols, outSymbols);
     }
 
     template<typename T>

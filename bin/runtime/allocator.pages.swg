@@ -145,10 +145,8 @@ struct AllocatorArena
     // rather than memory. The base is kept because it is the only record of what was reserved.
     reserveBase: [*] u8?
 
-    // First segment-aligned address, and the bump cursor over the segments already created.
-    base: u64
-    used: u64
-    end:  u64
+    base:     u64     // First segment-aligned address.
+    usedSize: u64     // Byte extent of initialized segments, relative to base.
 }
 
 private var g_AllocatorArenaMutex:  MutexRW
@@ -759,8 +757,7 @@ private func allocatorAddArena()->bool
     let arena = &g_AllocatorArenas[g_AllocatorArenaCount]
     arena.reserveBase = reserved
     arena.base        = (cast(u64, reserved) + AllocatorSegmentSize - 1) & ~(AllocatorSegmentSize - 1)
-    arena.used        = arena.base
-    arena.end         = arena.base + AllocatorArenaSize
+    arena.usedSize    = 0
 
     atomicAddU64(&g_AllocatorOsReserveCount, 1)
 
@@ -777,7 +774,7 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     for i in g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[i]
-        if arena.used + AllocatorSegmentSize <= arena.end
+        if arena.usedSize + AllocatorSegmentSize <= AllocatorArenaSize
         {
             chosen = arena
             break
@@ -792,10 +789,10 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     }
 
     // Commit the page table before publishing the address range that contains it. A lookup only
-    // ever reads below 'used', so no thread can reach a segment whose header is not yet mapped -
+    // ever reads within 'usedSize', so no thread can reach a segment whose header is not yet mapped -
     // not even one asked to free an address that never came from here.
     let arena = chosen
-    let base  = arena.used
+    let base  = arena.base + arena.usedSize
     if not allocatorOsCommit(base, AllocatorSegmentHeaderBytes) do
         return null
 
@@ -806,7 +803,7 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     segment.usableMask = segment.pageCount >= 64 ? ~0'u64 : (1'u64 << segment.pageCount) - 1
     segment.magic      = AllocatorSegmentMagic
 
-    arena.used += AllocatorSegmentSize
+    arena.usedSize += AllocatorSegmentSize
     return segment
 }
 
@@ -865,7 +862,7 @@ func allocatorReleaseSegment(segment: *AllocatorSegment)
 
 // Recovers the page owning an address, or null when the address did not come from a segment.
 //
-// Two range tests and a shift replace every per-block header the old layout needed.
+// An arena range test and shifts replace every per-block header the old layout needed.
 #[Swag.Inline, Swag.Safety(.Overflow, false)]
 func allocatorPageOf(address: u64)->*AllocatorPage?
 {
@@ -875,14 +872,21 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
     // The first arena serves every program that stays under a gibibyte of small blocks, so it is
     // tested first without the loop.
     let first = &g_AllocatorArenas[0]
-    if address - first.base < first.used - first.base do
+    if address - first.base < first.usedSize do
         return allocatorPageInSegment(address)
 
+    return allocatorPageInOtherArenas(address)
+}
+
+// Keep the uncommon reservation scan out of the first arena's allocation and free paths.
+#[Swag.NoInline, Swag.Safety(.Overflow, false)]
+private func allocatorPageInOtherArenas(address: u64)->*AllocatorPage?
+{
     var index = 1'u32
     while index < g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[index]
-        if address - arena.base < arena.used - arena.base do
+        if address - arena.base < arena.usedSize do
             return allocatorPageInSegment(address)
         index += 1
     }
@@ -890,16 +894,23 @@ func allocatorPageOf(address: u64)->*AllocatorPage?
     return null
 }
 
-// Returns the page for an address below an arena's bump cursor. Every segment-aligned address
-// below that cursor starts a segment whose header is committed.
+// Returns the page for an address inside an initialized arena segment.
+//
+// The segment's header remains committed for the arena's lifetime.
 #[Swag.Inline]
 func allocatorPageInSegment(address: u64)->*AllocatorPage?
 {
     let segment = cast(*AllocatorSegment, (address & ~(AllocatorSegmentSize - 1)))
-    if segment.magic != AllocatorSegmentMagic do
-        return null
 
-    let unit = cast(u32, ((address - cast(u64, segment)) >> AllocatorPageShift))
+    // The arena publishes only initialized headers and never unmaps them. A different magic
+    // therefore means corrupted metadata, checked by the guarded configuration.
+    #static if #safety(Swag.SafetyWhat.Memory)
+    {
+        if segment.magic != AllocatorSegmentMagic do
+            return null
+    }
+
+    let unit = cast(u32, ((address >> AllocatorPageShift) & (AllocatorUnitsPerSegment - 1)))
     return &segment.pages[unit >> segment.unitShift]
 }
 

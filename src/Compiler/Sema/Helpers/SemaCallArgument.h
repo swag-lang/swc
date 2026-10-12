@@ -14,10 +14,11 @@ namespace SemaCallArgument
         const AstNodeRef bodyRef = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
         if (bodyRef.isInvalid())
             return false;
-        if (!sema.node(bodyRef).is(AstNodeId::EmbeddedBlock))
+        const AstNode& bodyNode = sema.node(bodyRef);
+        if (!bodyNode.is(AstNodeId::EmbeddedBlock))
             return false;
 
-        return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+        return bodyNode.cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
     }
 
     inline bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)

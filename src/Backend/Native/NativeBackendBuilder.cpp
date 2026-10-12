@@ -879,6 +879,8 @@ namespace
         std::vector<uint32_t> order(functions.size());
         std::vector<uint64_t> estimates(functions.size());
         size_t               orderCount = 0;
+        uint64_t              firstEstimate = 0;
+        bool                  estimatesVary = false;
         for (uint32_t index = 0; index < functions.size(); ++index)
         {
             SymbolFunction* symbol = functions[index];
@@ -888,11 +890,17 @@ namespace
 
             const auto* decl = symbol->decl() ? symbol->decl()->safeCast<AstFunctionDecl>() : nullptr;
             const auto  own  = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
+            const auto  estimate = uint64_t{own} + symbol->inlinedCost();
+            if (!orderCount)
+                firstEstimate = estimate;
+            else
+                estimatesVary |= estimate != firstEstimate;
             order[orderCount++] = index;
-            estimates[index]  = uint64_t{own} + symbol->inlinedCost();
+            estimates[index]  = estimate;
         }
         order.resize(orderCount);
-        std::ranges::stable_sort(order, [&](uint32_t lhs, uint32_t rhs) { return estimates[lhs] > estimates[rhs]; });
+        if (estimatesVary)
+            std::ranges::stable_sort(order, [&](uint32_t lhs, uint32_t rhs) { return estimates[lhs] > estimates[rhs]; });
 
         if (!order.empty())
         {

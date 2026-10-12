@@ -698,7 +698,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     // Retain stamps across functions to avoid clearing both arrays on every rebuild.
     if (rpoPosition.size() < blocks_.size())
         rpoPosition.resize(blocks_.size());
-    rpoStamp.resize(blocks_.size(), 0);
+    if (rpoStamp.size() < blocks_.size())
+        rpoStamp.resize(blocks_.size(), 0);
     dfsStack.reserve(blocks_.size());
     postOrder.reserve(blocks_.size());
 

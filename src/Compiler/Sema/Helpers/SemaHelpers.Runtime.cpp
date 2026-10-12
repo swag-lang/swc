@@ -27,6 +27,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool ownsResolvedExpressionValue(Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
+            if (lowering && lowering->ownsValue)
+                return true;
+            const AstNode& node = sema.node(nodeRef);
+            AstNodeRef     childRef;
+            if (node.is(AstNodeId::CastExpr))
+                childRef = node.cast<AstCastExpr>().nodeExprRef;
+            else if (node.is(AstNodeId::ParenExpr))
+                childRef = node.cast<AstParenExpr>().nodeExprRef;
+            else if (node.is(AstNodeId::InitializerExpr))
+                childRef = node.cast<AstInitializerExpr>().nodeExprRef;
+            else if (node.is(AstNodeId::NamedArgument))
+                childRef = node.cast<AstNamedArgument>().nodeArgRef;
+            else
+                return false;
+            nodeRef = node.is(AstNodeId::CastExpr) ? childRef : sema.resolvedNodeRef(childRef);
+        }
+        return false;
+    }
+
     TypeRef referenceBoundAggregateArgumentRuntimeStorageTypeRef(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
     {
         if (sema.isGlobalScope() || argRef.isInvalid() || !paramTypeRef.isValid())
@@ -338,27 +362,7 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
 
 bool SemaHelpers::ownsExpressionValue(Sema& sema, AstNodeRef nodeRef)
 {
-    nodeRef = sema.resolvedNodeRef(nodeRef);
-    while (nodeRef.isValid())
-    {
-        const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
-        if (lowering && lowering->ownsValue)
-            return true;
-        const AstNode& node = sema.node(nodeRef);
-        AstNodeRef     childRef;
-        if (node.is(AstNodeId::CastExpr))
-            childRef = node.cast<AstCastExpr>().nodeExprRef;
-        else if (node.is(AstNodeId::ParenExpr))
-            childRef = node.cast<AstParenExpr>().nodeExprRef;
-        else if (node.is(AstNodeId::InitializerExpr))
-            childRef = node.cast<AstInitializerExpr>().nodeExprRef;
-        else if (node.is(AstNodeId::NamedArgument))
-            childRef = node.cast<AstNamedArgument>().nodeArgRef;
-        else
-            return false;
-        nodeRef = node.is(AstNodeId::CastExpr) ? childRef : sema.resolvedNodeRef(childRef);
-    }
-    return false;
+    return ownsResolvedExpressionValue(sema, sema.resolvedNodeRef(nodeRef));
 }
 
 bool SemaHelpers::expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef)
@@ -367,7 +371,7 @@ bool SemaHelpers::expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef)
     const auto* inlinePayload = sema.inlinePayload(nodeRef);
     if (inlinePayload && inlinePayload->inlineRootRef == nodeRef && inlinePayload->returnTypeRef.isValid())
         return sema.typeMgr().get(inlinePayload->returnTypeRef).isReference();
-    if (ownsExpressionValue(sema, nodeRef))
+    if (ownsResolvedExpressionValue(sema, nodeRef))
         return false;
     const AstNode& node = sema.node(nodeRef);
     if (node.is(AstNodeId::CallExpr))

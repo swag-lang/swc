@@ -16,6 +16,11 @@ SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
 
 void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
+    // Constant-only consumers, including compile-time calls, must see the same
+    // narrowed value as type checking. A null constant on an impossible edge
+    // must not make a guarded call look executable at compile time.
+    if (mode != SemaNodeViewResolveE::Stored && part.has(SemaNodeViewPartE::Constant) && sema.frame().hasNarrowFacts())
+        part.add(SemaNodeViewPartE::Type);
     computeInner(sema, ref, part, mode);
 
     // Flow-narrowing: when the current frame proves this access path non-null, expose the
@@ -34,10 +39,20 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
             // A propagated null CONSTANT belongs to the un-taken path: inside the guarded
             // region the value is proven non-null, so the constant must not flow further
             // (e.g. an inlined `return null` folded into the guarded variable).
-            if (part.has(SemaNodeViewPartE::Constant) && cstRef_.isValid() && cst_ && cst_->isNull())
+            if (part.has(SemaNodeViewPartE::Constant) && cstRef_.isValid() && cst_ && cst_->isNullValue(sema.ctx()))
             {
                 cstRef_ = ConstantRef::invalid();
                 cst_    = nullptr;
+            }
+            else if (part.has(SemaNodeViewPartE::Constant) && cstRef_.isValid() && cst_ && cst_->typeRef() != narrowedTypeRef)
+            {
+                // An identity cast can commit this constant back to the expression and
+                // replace its symbol payload. Keep the narrowed type on that value too,
+                // so a resumed call does not lose the proof after constant propagation.
+                ConstantValue narrowedConstant = *cst_;
+                narrowedConstant.setTypeRef(narrowedTypeRef);
+                cstRef_ = sema.cstMgr().addConstant(sema.ctx(), narrowedConstant);
+                cst_    = &sema.cstMgr().get(cstRef_);
             }
         }
     }

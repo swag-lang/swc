@@ -262,7 +262,6 @@ namespace
 
     bool collectImplPendingChildren(Sema& sema, const SymbolImpl& symImpl, SmallVector<AstNodeRef>& outChildren, const Ast*& outAst)
     {
-        outChildren.clear();
         outAst = nullptr;
 
         // An impl can be represented in three places while sema is still moving:

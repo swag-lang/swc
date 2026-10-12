@@ -2360,8 +2360,6 @@ namespace
 
                 if (!a.candidate.viable && ufcsArg.isValid())
                 {
-                    candidate                            = {};
-                    fail                                 = {};
                     const MatchFailure* ufcsShapeFailure = shapeCheck && shapeCheck->ufcsChecked ? &shapeCheck->ufcsFailure : nullptr;
                     SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, shapeContext, ufcsShapeFailure));
                     if (candidate.viable)

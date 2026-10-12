@@ -605,7 +605,9 @@ namespace
 
     bool buildCallArgMapping(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CallArgMapping& outMapping, MatchFailure& outFail)
     {
-        outMapping = {};
+        outMapping.paramArgs.clear();
+        outMapping.variadicArgs.clear();
+        outMapping.hasNamed = false;
 
         const auto&    params     = fn.parameters();
         const auto     numParams  = static_cast<uint32_t>(params.size());
@@ -1766,13 +1768,14 @@ namespace
         return true;
     }
 
-    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail);
-
     struct GenericCallShapeContext
     {
-        bool hasNamedArgsChecked = false;
-        bool hasNamedArgs        = false;
+        bool           hasNamedArgsChecked = false;
+        bool           hasNamedArgs        = false;
+        CallArgMapping mapping;
     };
+
+    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail, CallArgMapping& mapping);
 
     Result precheckGenericCallShape(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, GenericCallShapeContext& shapeContext, MatchFailure& outFail)
     {
@@ -1832,8 +1835,7 @@ namespace
             return Result::Continue;
         }
 
-        CallArgMapping mapping;
-        if (!buildCallArgMapping(sema, fn, args, ufcsArg, mapping, outFail))
+        if (!buildCallArgMapping(sema, fn, args, ufcsArg, shapeContext.mapping, outFail))
             return Result::Continue;
 
         const auto&        params    = fn.parameters();
@@ -1841,7 +1843,7 @@ namespace
         const uint32_t     numArgs   = countCallArgs(args, ufcsArg);
         const VariadicInfo vi        = getVariadicInfo(sema, fn);
 
-        if (!vi.any() && !mapping.variadicArgs.empty())
+        if (!vi.any() && !shapeContext.mapping.variadicArgs.empty())
         {
             failTooMany(outFail, numParams, numArgs);
             return Result::Continue;
@@ -1850,7 +1852,7 @@ namespace
         const uint32_t numCommon = (vi.any() && numParams > 0) ? (numParams - 1) : numParams;
         for (uint32_t i = 0; i < numCommon; ++i)
         {
-            if (mapping.paramArgs[i].argRef.isValid())
+            if (shapeContext.mapping.paramArgs[i].argRef.isValid())
                 continue;
             if (params[i]->hasExtraFlag(SymbolVariableFlagsE::Initialized))
                 continue;
@@ -1907,7 +1909,7 @@ namespace
             return Result::Continue;
         }
 
-        return tryBuildCandidate(sema, *concreteFn, args, ufcsArg, mode, outCandidate, outFail);
+        return tryBuildCandidate(sema, *concreteFn, args, ufcsArg, mode, outCandidate, outFail, shapeContext.mapping);
     }
 
     bool canDeferWhereConstraintFailure(const SymbolFunction& fn, const CastFailure& failure)
@@ -1918,7 +1920,7 @@ namespace
     // Probe one concrete function against one call shape. This pass records viability
     // and ranks only; the selected overload will later perform the real casts and
     // substitutions so failed candidates do not mutate the AST.
-    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
+    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail, CallArgMapping& mapping)
     {
         const auto&    params    = fn.parameters();
         const auto     numParams = static_cast<uint32_t>(params.size());
@@ -1931,7 +1933,6 @@ namespace
         TaskContext&       ctx = sema.ctx();
         const VariadicInfo vi  = getVariadicInfo(sema, fn);
 
-        CallArgMapping mapping;
         if (!buildCallArgMapping(sema, fn, args, ufcsArg, mapping, outFail))
             return Result::Continue;
 
@@ -2380,14 +2381,14 @@ namespace
             Candidate    candidate;
 
             // First: non-UFCS call shape.
-            SWC_RESULT(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, candidate, fail));
+            SWC_RESULT(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, candidate, fail, shapeContext.mapping));
             if (candidate.viable)
                 a.candidate = std::move(candidate);
             else if (ufcsArg.isValid())
             {
                 // Second: UFCS call shape (implicit arg0).
                 fail = {};
-                SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail));
+                SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail, shapeContext.mapping));
                 if (candidate.viable)
                     a.candidate = std::move(candidate);
                 else

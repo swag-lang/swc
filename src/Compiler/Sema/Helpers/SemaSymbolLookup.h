@@ -96,9 +96,8 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
-    bool filterCallCalleeCandidates(std::span<T> inSymbols, SmallVector<T>& outSymbols)
+    bool appendCallCalleeCandidates(std::span<T> inSymbols, SmallVector<T>& outSymbols)
     {
-        outSymbols.clear();
         for (const T sym : inSymbols)
         {
             if (isCallCalleeCandidate(sym))
@@ -106,6 +105,13 @@ namespace SemaSymbolLookup
         }
 
         return !outSymbols.empty();
+    }
+
+    template<typename T>
+    bool filterCallCalleeCandidates(std::span<T> inSymbols, SmallVector<T>& outSymbols)
+    {
+        outSymbols.clear();
+        return appendCallCalleeCandidates(inSymbols, outSymbols);
     }
 
     template<typename T>

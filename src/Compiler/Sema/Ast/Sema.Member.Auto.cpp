@@ -765,7 +765,7 @@ namespace
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
 
         SmallVector<const Symbol*> callableSymbols;
-        if (!SemaSymbolLookup::filterCallCalleeCandidates(lookUpCxt.symbols().span(), callableSymbols))
+        if (!SemaSymbolLookup::appendCallCalleeCandidates(lookUpCxt.symbols().span(), callableSymbols))
             return Result::Continue;
 
         AstNodeRef nodeRef = AstNodeRef::invalid();

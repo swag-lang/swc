@@ -3645,7 +3645,6 @@ namespace
 
     void collectBackEdgeLoops(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& mutationRange, const SymbolVariable& viewVar, SmallVector<BackEdgeLoop>& outLoops)
     {
-        outLoops.clear();
         const SourceCodeRange declarationRange = viewVar.codeRange(sema.ctx());
 
         SmallVector<AstNodeRef> worklist;
@@ -4092,7 +4091,6 @@ namespace
                 // Every call must preserve storage or expose its payload. The final
                 // invalidation check also requires a payload accessor somewhere along
                 // this route, once every callee summary has converged.
-                outGuards.clear();
                 for (const SemaEscapeDeferredGuard& guard : check.guards)
                     outGuards.push_back({guard.callee, guard.paramIndex, true, guard.indirect});
                 outGuards.push_back({check.callee, check.paramIndex, true});

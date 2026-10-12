@@ -77,8 +77,8 @@ namespace
         return head;
     }
 
-    template<SymbolKind kind>
-    void appendSymbolsForSort(std::vector<SymbolSortEntry>& out, Symbol* head, bool includeIgnored)
+    template<SymbolKind kind, typename Entries>
+    void appendSymbolsForSort(Entries& out, Symbol* head, bool includeIgnored)
     {
         for (Symbol* cur = head; cur; cur = cur->nextHomonym())
         {
@@ -98,8 +98,8 @@ namespace
         }
     }
 
-    template<typename T>
-    void sortSymbolsByDeclaration(std::vector<T*>& symbols, std::vector<SymbolSortEntry>& entries)
+    template<typename T, typename Entries>
+    void sortSymbolsByDeclaration(std::vector<T*>& symbols, Entries& entries)
     {
         if (entries.size() < 2)
         {
@@ -446,8 +446,10 @@ void SymbolMap::forEachPublishedHead(const F& fn) const
 void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
     out.clear();
-    std::vector<SymbolSortEntry> ordered;
-    ordered.reserve(count());
+    SmallVector<SymbolSortEntry, 4> ordered;
+    const uint32_t                  symbolCount = count();
+    if (symbolCount > ordered.capacity())
+        ordered.reserve(symbolCount);
     forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort<SymbolKind::Invalid>(ordered, head, includeIgnored); });
     sortSymbolsByDeclaration(out, ordered);
 }
@@ -455,8 +457,10 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
 void SymbolMap::getAllFunctions(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
     out.clear();
-    std::vector<SymbolSortEntry> ordered;
-    ordered.reserve(count());
+    SmallVector<SymbolSortEntry, 4> ordered;
+    const uint32_t                  symbolCount = count();
+    if (symbolCount > ordered.capacity())
+        ordered.reserve(symbolCount);
     forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort<SymbolKind::Function>(ordered, head, includeIgnored); });
     sortSymbolsByDeclaration(out, ordered);
 }

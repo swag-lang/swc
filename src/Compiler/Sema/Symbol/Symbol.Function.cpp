@@ -396,7 +396,6 @@ namespace
 
     void collectPublicApiOverloads(const SymbolFunction& symbol, SmallVector<const SymbolFunction*, 4>& outOverloads)
     {
-        outOverloads.clear();
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
         {
             const auto appendOverloads = [&](const SymbolImplList& impls) {

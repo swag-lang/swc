@@ -712,8 +712,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     auto&         postOrder   = domPostOrder_;
     auto&         rpoPosition = domRpoPosition_;
     auto&         rpoStamp    = domRpoStamp_;
-    dfsStack.clear();
-    postOrder.clear();
+    // Each DFS drains its stack, and every component clears postOrder before appending.
     // A position is read only for a block stamped into the current component.
     // Retain stamps across functions to avoid clearing both arrays on every rebuild.
     if (rpoPosition.size() < blocks_.size())
@@ -944,7 +943,7 @@ void MicroSsaState::placePhiNodes()
         }
 
         const uint32_t currentStamp = stamp++;
-        workList.clear();
+        // Every register traversal drains the list before the next one begins.
         workList.reserve(defBlocks.size());
         for (const uint32_t blockIndex : defBlocks)
         {

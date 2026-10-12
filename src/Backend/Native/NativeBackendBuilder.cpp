@@ -894,26 +894,29 @@ namespace
         order.resize(orderCount);
         std::ranges::stable_sort(order, [&](uint32_t lhs, uint32_t rhs) { return estimates[lhs] > estimates[rhs]; });
 
-        Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
-        JobManager& jobMgr = builder.ctx().global().jobMgr();
-        for (const uint32_t index : order)
+        if (!order.empty())
         {
-            SymbolFunction* symbol = functions[index];
-            SWC_ASSERT(symbol != nullptr);
-            if (symbol->isCodeGenCompleted() || !symbol->loweredCode().bytes.empty())
-                continue;
-            if (!symbol->tryMarkCodeGenJobScheduled())
-                continue;
-
-            const AstNodeRef root = symbol->declNodeRef();
-            if (root.isInvalid())
+            Sema        baseSema(builder.ctx(), firstFile->nodePayloadContext(), false);
+            JobManager& jobMgr = builder.ctx().global().jobMgr();
+            for (const uint32_t index : order)
             {
-                const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
-                return builder.reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, info.symbolName);
-            }
+                SymbolFunction* symbol = functions[index];
+                SWC_ASSERT(symbol != nullptr);
+                if (symbol->isCodeGenCompleted() || !symbol->loweredCode().bytes.empty())
+                    continue;
+                if (!symbol->tryMarkCodeGenJobScheduled())
+                    continue;
 
-            auto* job = builder.compiler().makeJob<CodeGenJob>(builder.ctx(), baseSema, *symbol, root);
-            jobMgr.enqueue(*job, JobPriority::Normal, builder.compiler().jobClientId());
+                const AstNodeRef root = symbol->declNodeRef();
+                if (root.isInvalid())
+                {
+                    const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
+                    return builder.reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, info.symbolName);
+                }
+
+                auto* job = builder.compiler().makeJob<CodeGenJob>(builder.ctx(), baseSema, *symbol, root);
+                jobMgr.enqueue(*job, JobPriority::Normal, builder.compiler().jobClientId());
+            }
         }
 
         Sema::waitDone(builder.ctx(), builder.compiler().jobClientId());

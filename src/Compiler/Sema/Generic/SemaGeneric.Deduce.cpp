@@ -1149,7 +1149,6 @@ namespace
             return;
         }
 
-        outParams.clear();
         outParams.reserve(std::max(declaredParamDescs.size(), symbolParamDescs.size()));
 
         size_t              symbolIndex = 0;

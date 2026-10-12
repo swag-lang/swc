@@ -667,6 +667,14 @@ bool MicroSsaState::computeDominators(const bool acyclic)
                 idomValues[blockIndex]     = blockIndex;
                 continue;
             }
+            if (predecessors.size() == 1)
+            {
+                const uint32_t predecessorBlock = predecessors.front();
+                SWC_ASSERT(predecessorBlock < blockIndex);
+                componentRoots[blockIndex] = componentRoots[predecessorBlock];
+                idomValues[blockIndex]     = predecessorBlock;
+                continue;
+            }
 
             uint32_t root    = K_INVALID_BLOCK;
             uint32_t newIdom = K_INVALID_BLOCK;

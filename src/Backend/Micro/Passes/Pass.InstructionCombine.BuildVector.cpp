@@ -188,10 +188,16 @@ namespace InstructionCombine
 
             const auto view  = ctx.storage->view();
             const auto endIt = view.end();
+            // The collectors walk backward from the load, so consume their references from
+            // the end while this scan walks the instruction stream forward.
+            size_t nextStoreIndex = storeRefs.size();
             for (auto it = view.begin(); it != endIt; ++it)
             {
-                const MicroInstrRef ref = it.current;
-                if (ref == loadRef || std::ranges::find(storeRefs, ref) != storeRefs.end())
+                const MicroInstrRef ref     = it.current;
+                const bool          isStore = nextStoreIndex && storeRefs[nextStoreIndex - 1] == ref;
+                if (isStore)
+                    --nextStoreIndex;
+                if (ref == loadRef || isStore)
                     continue;
                 const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(ref);
                 if (!useDef || std::ranges::find(useDef->uses, base) == useDef->uses.end())

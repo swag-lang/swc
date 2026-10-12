@@ -285,8 +285,8 @@ namespace
 
     struct Attempt
     {
-        Candidate       candidate = {};
-        MatchFailure    fail      = {};
+        Candidate    candidate = {};
+        MatchFailure fail      = {};
     };
 
     struct SortedAttempt
@@ -1852,7 +1852,7 @@ namespace
         return Result::Continue;
     }
 
-    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, bool suppressInstantiationErrors, Candidate& outCandidate, MatchFailure& outFail)
+    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, bool suppressInstantiationErrors, Candidate& outCandidate, MatchFailure& outFail, const MatchFailure* precheckedShapeFailure = nullptr)
     {
         outCandidate = {};
         outFail      = {};
@@ -1860,7 +1860,10 @@ namespace
         // Shape precheck is deliberately cheap and runs before generic instantiation:
         // it avoids producing speculative instances for arities that cannot possibly
         // match this call.
-        SWC_RESULT(precheckGenericCallShape(sema, fn, args, ufcsArg, outFail));
+        if (precheckedShapeFailure)
+            outFail = *precheckedShapeFailure;
+        else
+            SWC_RESULT(precheckGenericCallShape(sema, fn, args, ufcsArg, outFail));
         if (outFail.active)
             return Result::Continue;
 
@@ -2282,16 +2285,32 @@ namespace
         // Only overloads that accept the call shape can make instantiation speculative.
         // An unrelated arity must not hide an error inside the only possible generic body.
         // Concrete overload sets never instantiate a root, so they need no shape prepass.
-        uint32_t matchingShapes = 0;
+        struct GenericShapePrecheck
+        {
+            MatchFailure primaryFailure;
+            MatchFailure ufcsFailure;
+            bool         primaryChecked = false;
+            bool         ufcsChecked    = false;
+        };
+
+        SmallVector<GenericShapePrecheck, 4> shapeChecks;
+        uint32_t                             matchingShapes = 0;
         if (hasGenericRoot && outFunctionSymbols.size() > 1)
         {
-            for (const SymbolFunction* fn : outFunctionSymbols)
+            shapeChecks.resize(outFunctionSymbols.size());
+            for (size_t index = 0; index < outFunctionSymbols.size(); ++index)
             {
-                MatchFailure shapeFailure;
-                SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), shapeFailure));
-                if (shapeFailure.active && ufcsArg.isValid())
-                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, shapeFailure));
-                if (!shapeFailure.active && ++matchingShapes > 1)
+                const SymbolFunction* fn    = outFunctionSymbols[index];
+                GenericShapePrecheck& check = shapeChecks[index];
+                check.primaryChecked        = true;
+                SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), check.primaryFailure));
+                if (check.primaryFailure.active && ufcsArg.isValid())
+                {
+                    check.ufcsChecked = true;
+                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, check.ufcsFailure));
+                }
+                const bool shapeFailed = check.ufcsChecked ? check.ufcsFailure.active : check.primaryFailure.active;
+                if (!shapeFailed && ++matchingShapes > 1)
                     break;
             }
         }
@@ -2306,8 +2325,9 @@ namespace
                 outViable.push_back(appended);
         };
 
-        for (SymbolFunction* fn : outFunctionSymbols)
+        for (size_t index = 0; index < outFunctionSymbols.size(); ++index)
         {
+            SymbolFunction* fn = outFunctionSymbols[index];
             SWC_ASSERT(fn != nullptr);
 
             Attempt a;
@@ -2315,17 +2335,20 @@ namespace
 
             if (fn->isGenericRoot())
             {
-                MatchFailure fail;
-                Candidate    candidate;
-                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail));
+                const GenericShapePrecheck* shapeCheck = index < shapeChecks.size() ? &shapeChecks[index] : nullptr;
+                MatchFailure                fail;
+                Candidate                   candidate;
+                const MatchFailure*         primaryShapeFailure = shapeCheck && shapeCheck->primaryChecked ? &shapeCheck->primaryFailure : nullptr;
+                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, primaryShapeFailure));
                 if (candidate.viable)
                     a.candidate = std::move(candidate);
 
                 if (!a.candidate.viable && ufcsArg.isValid())
                 {
-                    candidate = {};
-                    fail      = {};
-                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail));
+                    candidate                            = {};
+                    fail                                 = {};
+                    const MatchFailure* ufcsShapeFailure = shapeCheck && shapeCheck->ufcsChecked ? &shapeCheck->ufcsFailure : nullptr;
+                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, ufcsShapeFailure));
                     if (candidate.viable)
                         a.candidate = std::move(candidate);
                 }

@@ -1151,7 +1151,7 @@ namespace
 
         size_t              symbolIndex = 0;
         const IdentifierRef meId        = declSema->idMgr().predefined(IdentifierManager::PredefinedName::Me);
-        if (root.isMethod() && (declaredParamDescs.empty() || declaredParamDescs.front().idRef != meId))
+        if (root.isMethod() && declaredParamDescs.front().idRef != meId)
         {
             // Function declarations omit the implicit receiver, but UFCS/method call shape
             // consumers still need that leading slot to keep positional and named arguments aligned.

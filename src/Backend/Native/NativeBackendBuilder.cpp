@@ -878,8 +878,8 @@ namespace
         // Start the largest functions first. Jobs leave the queue in the order they enter it, and a
         // large function started late is the tail every other worker waits on at the end of the
         // round. The order changes when each function is generated, never what is generated.
-        std::vector<uint32_t> order(functions.size());
-        std::vector<uint64_t> estimates(functions.size());
+        std::vector<uint32_t> order;
+        std::vector<uint64_t> estimates;
         size_t                orderCount    = 0;
         uint64_t              firstEstimate = 0;
         bool                  estimatesVary = false;
@@ -889,6 +889,12 @@ namespace
             SWC_ASSERT(symbol != nullptr);
             if (symbol->isCodeGenCompleted() || !symbol->loweredCode().bytes.empty())
                 continue;
+
+            if (order.empty())
+            {
+                order.resize(functions.size());
+                estimates.resize(functions.size());
+            }
 
             const auto* decl     = symbol->decl() ? symbol->decl()->safeCast<AstFunctionDecl>() : nullptr;
             const auto  own      = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;

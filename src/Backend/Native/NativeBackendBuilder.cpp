@@ -810,14 +810,13 @@ namespace
         return info;
     }
 
-    Result rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions)
+    Result rebuildFunctionInfos(NativeBackendBuilder& builder, const std::vector<SymbolFunction*>& functions, SymbolSort::LocationKeyCache& sortKeys)
     {
         builder.functionInfos.clear();
         builder.functionBySymbol.clear();
         builder.functionInfos.reserve(functions.size());
         builder.functionBySymbol.reserve(functions.size());
 
-        SymbolSort::LocationKeyCache sortKeys(builder.compiler());
         for (SymbolFunction* symbol : functions)
         {
             SWC_ASSERT(symbol != nullptr);
@@ -1582,13 +1581,14 @@ Result NativeBackendBuilder::prepare()
     else
         functions = compiler_->nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
-    PointerSet<SymbolFunction> seenCodeGenFunctions = memberSetOf(functions);
-    SymbolSort::sortAndUniqueByLocation(testFunctions, *compiler_);
-    SymbolSort::sortAndUniqueByLocation(initFunctions, *compiler_);
-    SymbolSort::sortAndUniqueByLocation(preMainFunctions, *compiler_);
-    SymbolSort::sortAndUniqueByLocation(dropFunctions, *compiler_);
-    SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_);
-    SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_);
+    PointerSet<SymbolFunction>   seenCodeGenFunctions = memberSetOf(functions);
+    SymbolSort::LocationKeyCache sortKeys(*compiler_);
+    SymbolSort::sortAndUniqueByLocation(testFunctions, *compiler_, sortKeys);
+    SymbolSort::sortAndUniqueByLocation(initFunctions, *compiler_, sortKeys);
+    SymbolSort::sortAndUniqueByLocation(preMainFunctions, *compiler_, sortKeys);
+    SymbolSort::sortAndUniqueByLocation(dropFunctions, *compiler_, sortKeys);
+    SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_, sortKeys);
+    SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_, sortKeys);
     appendGlobalFunctionInitDependencies(*this, functions, seenCodeGenFunctions, regularGlobals);
     std::vector<SymbolFunction*> executableRoots;
     if (executable || library)
@@ -1636,7 +1636,7 @@ Result NativeBackendBuilder::prepare()
         functionsNeedSort |= appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, callsWalked);
         if (functionsNeedSort)
         {
-            SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
+            SymbolSort::sortAndUniqueByLocation(functions, *compiler_, sortKeys);
             functionsNeedSort = false;
         }
         if (!functions.empty() && !codeGenSourceChecked)
@@ -1704,14 +1704,14 @@ Result NativeBackendBuilder::prepare()
                     if (!addedCallDeps && !addedConstantDeps)
                         break;
                 }
-                SymbolSort::sortAndUniqueByLocation(executableFunctions, *compiler_);
+                SymbolSort::sortAndUniqueByLocation(executableFunctions, *compiler_, sortKeys);
                 functions = std::move(executableFunctions);
             }
 
             // Code generation only needs symbols. Build artifact names and lookup tables
             // once the dependency set and executable reachability have stopped changing.
             SWC_SCHED_PHASE(ctx_.global().jobMgr(), "function infos");
-            SWC_RESULT(rebuildFunctionInfos(*this, functions));
+            SWC_RESULT(rebuildFunctionInfos(*this, functions, sortKeys));
             if (microStage)
             {
                 std::vector<Utf8> stats;

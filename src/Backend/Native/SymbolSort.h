@@ -35,7 +35,7 @@ namespace SymbolSort
         template<typename T>
         const Utf8& prefix(const T& symbol)
         {
-            const SourceFile* file = compiler_->srcView(symbol.srcViewRef()).file();
+            const SourceFile* file    = compiler_->srcView(symbol.srcViewRef()).file();
             const auto [it, inserted] = filePrefixes_.try_emplace(file);
             if (inserted)
             {
@@ -59,6 +59,7 @@ namespace SymbolSort
         // True when a path holds the separator itself, so a shorter file part can be a prefix of
         // a longer one and only the whole keys order the symbols.
         bool hasInnerSeparator() const { return innerSeparator_; }
+        void clearInnerSeparator() { innerSeparator_ = false; }
 
     private:
         const CompilerInstance*                     compiler_ = nullptr;
@@ -116,7 +117,7 @@ namespace SymbolSort
     }
 
     template<typename T>
-    void sortAndUniqueByLocation(std::vector<T*>& values, const CompilerInstance& compiler)
+    void sortAndUniqueByLocation(std::vector<T*>& values, const CompilerInstance& compiler, LocationKeyCache& keys)
     {
         values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
         if (values.size() < 2)
@@ -145,7 +146,7 @@ namespace SymbolSort
             uint32_t    tokRef = 0;
         };
 
-        LocationKeyCache     keys(compiler);
+        keys.clearInnerSeparator();
         std::vector<Located> located;
         located.reserve(values.size());
         for (T* symbol : values)
@@ -175,6 +176,13 @@ namespace SymbolSort
             values.push_back(entry.symbol);
             previous = entry.symbol;
         }
+    }
+
+    template<typename T>
+    void sortAndUniqueByLocation(std::vector<T*>& values, const CompilerInstance& compiler)
+    {
+        LocationKeyCache keys(compiler);
+        sortAndUniqueByLocation(values, compiler, keys);
     }
 }
 

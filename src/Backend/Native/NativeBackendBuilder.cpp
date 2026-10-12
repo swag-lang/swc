@@ -656,10 +656,9 @@ namespace
         return changed;
     }
 
-    bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
+    bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, const std::span<SymbolVariable* const> globals)
     {
-        bool                       changed       = false;
-        PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
+        bool changed = false;
         for (const SymbolVariable* global : globals)
         {
             if (!global)
@@ -1583,17 +1582,22 @@ Result NativeBackendBuilder::prepare()
     else
         functions = compiler_->nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
+    PointerSet<SymbolFunction> seenCodeGenFunctions = memberSetOf(functions);
     SymbolSort::sortAndUniqueByLocation(testFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(initFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(preMainFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(dropFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_);
-    appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
+    appendGlobalFunctionInitDependencies(*this, functions, seenCodeGenFunctions, regularGlobals);
     if (executable || library)
     {
         auto executableRoots = collectExecutableFunctionRoots(*this);
-        functions.insert(functions.end(), executableRoots.begin(), executableRoots.end());
+        for (SymbolFunction* function : executableRoots)
+        {
+            if (seenCodeGenFunctions.insert(function))
+                functions.push_back(function);
+        }
     }
 
     const auto& importedRuntimeDeps = compiler_->nativeRuntimeImports();
@@ -1622,11 +1626,10 @@ Result NativeBackendBuilder::prepare()
     ConstantDependencyScan constantScan;
     // The functions before this index had their calls walked since the last code generation, and
     // nothing has been lowered since: only the constant dependencies appended after them are new.
-    size_t                     callsWalked          = 0;
-    bool                       functionsNeedSort    = true;
-    SourceFile*                codeGenSource        = nullptr;
-    bool                       codeGenSourceChecked = false;
-    PointerSet<SymbolFunction> seenCodeGenFunctions = memberSetOf(functions);
+    size_t      callsWalked          = 0;
+    bool        functionsNeedSort    = true;
+    SourceFile* codeGenSource        = nullptr;
+    bool        codeGenSourceChecked = false;
     while (true)
     {
         functionsNeedSort |= appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, callsWalked);

@@ -59,9 +59,8 @@ namespace
         return current;
     }
 
-    bool collectFunctionSymbols(std::span<Symbol* const> baseSymbols, SmallVector<Symbol*>& outSymbols)
+    bool appendFunctionSymbols(std::span<Symbol* const> baseSymbols, SmallVector<Symbol*>& outSymbols)
     {
-        outSymbols.clear();
         for (Symbol* baseSym : baseSymbols)
         {
             if (!baseSym)
@@ -536,7 +535,7 @@ namespace
         if (sawFunction)
         {
             SmallVector<Symbol*> functions;
-            if (collectFunctionSymbols(baseSymbols, functions))
+            if (appendFunctionSymbols(baseSymbols, functions))
             {
                 if (functions.size() == 1)
                     sema.setSymbol(sema.curNodeRef(), functions.front());

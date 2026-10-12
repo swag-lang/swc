@@ -592,7 +592,7 @@ namespace
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, ConstantDependencyScan& scan)
     {
         PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
-        bool               changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, &scan.rejected);
+        bool                       changed       = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, &scan.rejected);
         for (auto it = scan.rejected.begin(); it != scan.rejected.end();)
         {
             SymbolFunction* target = *it;
@@ -618,8 +618,10 @@ namespace
             if (!function)
                 continue;
 
-            const MachineCode& code    = function->loweredCode();
-            size_t&            scanned = scan.scannedRelocations.getOrInsert(reinterpret_cast<uint64_t>(function));
+            const MachineCode& code = function->loweredCode();
+            if (code.codeRelocations.empty())
+                continue;
+            size_t& scanned = scan.scannedRelocations.getOrInsert(reinterpret_cast<uint64_t>(function));
             if (scanned == code.codeRelocations.size())
                 continue;
             scanned = code.codeRelocations.size();
@@ -642,7 +644,7 @@ namespace
 
     bool appendGlobalFunctionInitDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, const std::span<SymbolVariable* const> globals)
     {
-        bool               changed = false;
+        bool                       changed       = false;
         PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
         for (const SymbolVariable* global : globals)
         {
@@ -791,7 +793,7 @@ namespace
             info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
         if (builder.compiler().buildCfg().backend.debugInfo)
             info.debugName = symbol.getFullScopedName(builder.ctx());
-        info.exported  = exportPublicSymbol;
+        info.exported = exportPublicSymbol;
         return info;
     }
 
@@ -878,7 +880,7 @@ namespace
         // round. The order changes when each function is generated, never what is generated.
         std::vector<uint32_t> order(functions.size());
         std::vector<uint64_t> estimates(functions.size());
-        size_t               orderCount = 0;
+        size_t                orderCount    = 0;
         uint64_t              firstEstimate = 0;
         bool                  estimatesVary = false;
         for (uint32_t index = 0; index < functions.size(); ++index)
@@ -888,15 +890,15 @@ namespace
             if (symbol->isCodeGenCompleted() || !symbol->loweredCode().bytes.empty())
                 continue;
 
-            const auto* decl = symbol->decl() ? symbol->decl()->safeCast<AstFunctionDecl>() : nullptr;
-            const auto  own  = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
+            const auto* decl     = symbol->decl() ? symbol->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto  own      = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
             const auto  estimate = uint64_t{own} + symbol->inlinedCost();
             if (!orderCount)
                 firstEstimate = estimate;
             else
                 estimatesVary |= estimate != firstEstimate;
             order[orderCount++] = index;
-            estimates[index]  = estimate;
+            estimates[index]    = estimate;
         }
         order.resize(orderCount);
         if (estimatesVary)
@@ -1610,7 +1612,7 @@ Result NativeBackendBuilder::prepare()
     ConstantDependencyScan constantScan;
     // The functions before this index had their calls walked since the last code generation, and
     // nothing has been lowered since: only the constant dependencies appended after them are new.
-    size_t callsWalked = 0;
+    size_t callsWalked       = 0;
     bool   functionsNeedSort = true;
     while (true)
     {
@@ -1643,7 +1645,7 @@ Result NativeBackendBuilder::prepare()
             // once every dependency is known.
             if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
-                auto                                executableFunctions = collectExecutableFunctionRoots(*this);
+                auto                       executableFunctions = collectExecutableFunctionRoots(*this);
                 PointerSet<SymbolFunction> seenFunctions;
                 seenFunctions.reserve(executableFunctions.size());
                 size_t uniqueRootCount = 0;

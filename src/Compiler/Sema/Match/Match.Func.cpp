@@ -2371,6 +2371,7 @@ namespace
                 if (!a.candidate.viable)
                 {
                     a.candidate.perArg.clear();
+                    a.candidate.perArg.shrink_to_fit();
                     a.candidate.usedDefaults = 0;
                     a.fail                   = std::move(fail);
                 }
@@ -2392,6 +2393,7 @@ namespace
             if (!a.candidate.viable)
             {
                 a.candidate.perArg.clear();
+                a.candidate.perArg.shrink_to_fit();
                 a.candidate.usedDefaults = 0;
                 a.fail                   = std::move(fail);
             }

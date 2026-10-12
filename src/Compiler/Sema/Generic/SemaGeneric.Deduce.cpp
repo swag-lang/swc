@@ -1084,11 +1084,6 @@ namespace
 
     void collectFunctionParamDescsImpl(Sema& sema, const SymbolFunction& root, const AstFunctionDecl& decl, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outParams)
     {
-        std::unique_ptr<Sema> declSemaHolder;
-        Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, root, declSemaHolder);
-        if (!declSema)
-            declSema = &sema;
-
         SmallVector<SemaGeneric::GenericFunctionParamDesc> symbolParamDescs;
         const auto&                                        symbolParams = root.parameters();
         if (!symbolParams.empty())
@@ -1106,16 +1101,16 @@ namespace
                     SemaGeneric::GenericFunctionParamDesc desc;
                     desc.idRef           = symParam->idRef();
                     desc.typeRef         = varDecl.typeOrInitRef();
-                    desc.resolvedTypeRef = symParam->typeRef().isValid() ? symParam->typeRef() : SemaHelpers::structuralTypeRefFromTypeNode(*declSema, desc.typeRef);
+                    desc.resolvedTypeRef = symParam->typeRef().isValid() ? symParam->typeRef() : SemaHelpers::structuralTypeRefFromTypeNode(sema, desc.typeRef);
                     desc.defaultRef      = varDecl.nodeInitRef;
-                    desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(*declSema, symParam->typeRef()) || isVariadicTypeNode(*declSema, desc.typeRef);
+                    desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(sema, symParam->typeRef()) || isVariadicTypeNode(sema, desc.typeRef);
                     desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
                     symbolParamDescs.push_back(desc);
                 }
                 else if (paramNode->is(AstNodeId::FunctionParamMe))
                 {
                     SemaGeneric::GenericFunctionParamDesc desc;
-                    desc.idRef      = declSema->idMgr().predefined(IdentifierManager::PredefinedName::Me);
+                    desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
                     desc.isVariadic = false;
                     symbolParamDescs.push_back(desc);
                 }
@@ -1130,11 +1125,11 @@ namespace
 
         SmallVector<AstNodeRef>                            params;
         SmallVector<SemaGeneric::GenericFunctionParamDesc> declaredParamDescs;
-        appendFunctionParamNodes(*declSema, decl.nodeParamsRef, params);
+        appendFunctionParamNodes(sema, decl.nodeParamsRef, params);
         declaredParamDescs.reserve(params.size());
 
         for (const AstNodeRef paramRef : params)
-            appendFunctionParamDesc(*declSema, paramRef, declaredParamDescs);
+            appendFunctionParamDesc(sema, paramRef, declaredParamDescs);
 
         if (declaredParamDescs.empty())
         {
@@ -1145,7 +1140,7 @@ namespace
         outParams.reserve(std::max(declaredParamDescs.size(), symbolParamDescs.size()));
 
         size_t              symbolIndex = 0;
-        const IdentifierRef meId        = declSema->idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const IdentifierRef meId        = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
         if (root.isMethod() && declaredParamDescs.front().idRef != meId)
         {
             // Function declarations omit the implicit receiver, but UFCS/method call shape

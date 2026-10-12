@@ -95,14 +95,14 @@ new language syntax.
 ### compiler.optimization.126 — Preserve nullable value-pointer types in automatic inline bindings
 
 - Area: compiler/sema, automatic inlining and flow narrowing.
-- Evidence: block-pointer inline bindings preserve their declared parameter type, but ordinary
-  value-pointer bindings can adopt the argument's narrower type. Volunteering a nullable value
-  pointer body can therefore invalidate a null test or postfix assertion after cloning.
-  Repeated single-site wrappers with nullable block pointers now qualify; the value-pointer
-  boundary remains deliberate. The inline frame also bounds flow facts so a callee assertion
-  cannot change the caller's subsequent `value!` (`inline_nullable_assert.swg`).
-- Next: preserve the declared nullable value-pointer contract without adding unnecessary homes
-  or widening eligibility for one-time setup. Broad nullable eligibility previously added frame
+- Evidence: nullable inline bindings retain their declared parameter contract, including widened
+  non-null arguments and constants (`nullable_parameter_widening.swg`). Automatic eligibility
+  still excludes nullable value-pointer wrappers with calls or postfix assertions; repeated
+  single-site wrappers with nullable block pointers qualify. The inline frame also bounds flow
+  facts so a callee assertion cannot change the caller's subsequent `value!`
+  (`inline_nullable_assert.swg`).
+- Next: evaluate automatic nullable value-pointer eligibility without adding unnecessary homes
+  or volunteering one-time setup. Broad nullable eligibility previously added frame
   loads/stores to wordfreq's hot scan; keep that sentinel and inspect actual call-site conversions.
 - Done when: repeated wrappers with nullable value-pointer parameters auto-inline with their
   flow contract intact and no static per-iteration loss on reachable benchmark hot paths.

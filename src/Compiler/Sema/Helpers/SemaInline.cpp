@@ -1865,6 +1865,7 @@ namespace
         bool forVariadic      = false;
         bool forAddress       = false;
         bool forNarrowFact    = false;
+        bool forNullableType  = false;
         bool forContextLambda = false;
     };
 
@@ -1931,6 +1932,15 @@ namespace
         const bool narrowedPointer = mat.narrowDependent && paramType.isValuePointer() && !paramType.isNullable() && !bindsPointeeByAddress;
         mat.forNarrowFact          = mat.narrowDependent && (!mat.bindsByAddress || narrowedPointer);
         mat.forContextLambda       = isInlineContextualLambdaArg(sema, binding.exprRef);
+        // A nullable parameter widened from a non-null argument needs its own declared
+        // type. Direct substitution casts every use back to nullable, while its guard
+        // names caller storage whose non-null declaration cannot carry a narrowing fact.
+        // A constant argument likewise has no storage on which to record that fact.
+        if (context.isOrdinaryInline && !isCaptured && paramType.isNullable() && binding.exprRef.isValid())
+        {
+            const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
+            mat.forNullableType         = sourceTypeRef.isValid() && (!sema.typeMgr().get(sourceTypeRef).isNullable() || sema.viewConstant(binding.exprRef).hasConstant());
+        }
 
         // A reference or proven stable plain array can survive indexed/foreach
         // reads directly; other by-value uses retain their snapshot home.
@@ -1949,6 +1959,7 @@ namespace
                             mat.forVariadic ||
                             mat.forAddress ||
                             mat.forNarrowFact ||
+                            mat.forNullableType ||
                             mat.forContextLambda ||
                             (!isCaptured && binding.forceMaterialize && !paramType.isAnyVariadic()) ||
                             (!isCaptured && !canBindReferenceDirectly && !canShareArrayDirectly && use.indexOrFor) ||
@@ -2010,7 +2021,7 @@ namespace
         // must not be inferred as a single-value pointer from `&array[0]`. Pinning to the
         // parameter type preserves the conversion validated at the call site.
         else if (!mat.homesAddress && !paramType.isAnyVariadic() &&
-                 (mat.forRuntimeSafety || mat.forNarrowFact || paramType.isBlockPointer() ||
+                 (mat.forRuntimeSafety || mat.forNarrowFact || mat.forNullableType || paramType.isBlockPointer() ||
                   isInlineCoercibleLiteralArg(sema.node(ioBinding.exprRef)) || contextualLambda || SemaHelpers::canUseContextualBinding(sema, ioBinding.exprRef)))
         {
             AstNodeRef materializedTypeRef = AstNodeRef::invalid();

@@ -65,15 +65,37 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
+    bool isCallCalleeCandidate(T sym)
+    {
+        // Currently, "callable" means "function symbol".
+        // Extend here later for function pointers/delegates/call-operator types if needed.
+        return sym && sym->isFunction();
+    }
+
+    template<typename T>
+    bool filterCallCalleeCandidates(SmallVector<T>& symbols)
+    {
+        size_t callableCount = 0;
+        for (const T sym : symbols)
+        {
+            if (isCallCalleeCandidate(sym))
+                symbols[callableCount++] = sym;
+        }
+
+        if (callableCount == 0)
+            return false;
+
+        symbols.resize(callableCount);
+        return true;
+    }
+
+    template<typename T>
     bool filterCallCalleeCandidates(std::span<T> inSymbols, SmallVector<T>& outSymbols)
     {
         outSymbols.clear();
-
-        // Currently, "callable" means "function symbol".
-        // Extend here later for function pointers/delegates/call-operator types if needed.
         for (const T sym : inSymbols)
         {
-            if (sym && sym->isFunction())
+            if (isCallCalleeCandidate(sym))
                 outSymbols.push_back(sym);
         }
 
@@ -98,10 +120,9 @@ namespace SemaSymbolLookup
         if (!allowOverloadSetForCallCallee)
             return SemaError::raiseAmbiguousSymbol(sema, nodeRef, runtimeSymbols);
 
-        SmallVector<T> callables;
-        if (filterCallCalleeCandidates(runtimeSymbols.span(), callables))
+        if (filterCallCalleeCandidates(runtimeSymbols))
         {
-            sema.setSymbolList(nodeRef, callables.span());
+            sema.setSymbolList(nodeRef, runtimeSymbols.span());
             return Result::Continue;
         }
 
@@ -123,11 +144,8 @@ namespace SemaSymbolLookup
             return Result::Continue;
         }
 
-        SmallVector<T> callables;
-        if (filterCallCalleeCandidates(runtimeSymbols.span(), callables))
-            sema.setSymbolList(nodeRef, callables.span());
-        else
-            sema.setSymbolList(nodeRef, runtimeSymbols.span());
+        filterCallCalleeCandidates(runtimeSymbols);
+        sema.setSymbolList(nodeRef, runtimeSymbols.span());
 
         return Result::Continue;
     }

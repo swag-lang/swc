@@ -2487,8 +2487,10 @@ namespace
         if (!current.viable.empty() && !fallbackHasBetterCandidate(sema, current.viable, fallback.viable, ufcsArg))
             return Result::Continue;
 
-        current = std::move(fallback);
-        gatherViableAttempts(current.attempts, current.viable);
+        const bool attemptsRetainAddress = !fallback.attempts.isInline();
+        current                          = std::move(fallback);
+        if (!attemptsRetainAddress)
+            gatherViableAttempts(current.attempts, current.viable);
         return Result::Continue;
     }
 

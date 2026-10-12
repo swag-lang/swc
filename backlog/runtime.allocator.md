@@ -54,7 +54,9 @@ replace the allocator; a similar architecture alone does not establish comparabl
   mode tests. Related compiler work: compiler.optimization.113 and compiler.optimization.114.
 - Measurement limits: use rotating before/after runs and identical-binary controls, inspect
   within-window variation, and repeat concurrent workloads. Admission alone cannot detect work
-  that starts during a measurement. The short `spread` workloads still include thread lifecycle
+  that starts during a measurement. Also compare independently rebuilt controls when application
+  timings move without changed application micro-instructions: code/data placement needs its own
+  attribution. The short `spread` workloads still include thread lifecycle
   costs (runtime.allocator.001). Large-block peak working set remains substantially below
   mimalloc's; preserve that distinction from the idle-retention question.
 - Done when: generated-code attribution and repeated application/allocator measurements meet
@@ -198,8 +200,11 @@ replace the allocator; a similar architecture alone does not establish comparabl
 - Remaining: every header-path allocation and free takes the header-list mutex and the cache
   mutex. Four threads cycling large buffers still run half as fast as mimalloc, which keeps
   almost twice the memory.
-- Next: measure a small per-thread front for the cache, and a header list that does not need the
-  allocator-wide lock outside the diagnostic modes.
+- Next: resolve application timing sensitivity before selecting a lock-layout change. Moving
+  counters under the existing list lock and separating lock cache lines improved concurrent large
+  blocks, but did not consistently preserve `wordfreq` timing, whose measured body makes few
+  allocations. Then measure a small per-thread front for the cache, and a header list that does
+  not need the allocator-wide lock outside the diagnostic modes.
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006

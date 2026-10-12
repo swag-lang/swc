@@ -332,7 +332,9 @@ void MicroSsaState::clear()
     blocksCfg_          = nullptr;
     blocksCfgBuildId_   = 0;
     blocksHaveFrontier_ = false;
-    trackedRegs_.clear();
+    // resetForBuild clears the register index before its next use. The snapshot
+    // is invalid until then, so walking the previous function's registers here
+    // would invalidate the same index twice.
     // Slot numbers belong to one function. Invalidate cached use/def by epoch
     // rather than walking every retained slot before each small function.
     ++useDefCacheEpoch_;

@@ -505,12 +505,12 @@ namespace
 
     void appendImplFunctions(std::vector<SymbolFunction*>& out, const SymbolImplList& implList)
     {
+        std::vector<const Symbol*> symbols;
         for (const SymbolImpl* symImpl : implList)
         {
             if (!symImpl)
                 continue;
 
-            std::vector<const Symbol*> symbols;
             symImpl->getAllFunctions(symbols);
             for (const Symbol* symbol : symbols)
             {

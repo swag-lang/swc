@@ -439,7 +439,6 @@ void SymbolMap::forEachPublishedHead(const F& fn) const
 
 void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
-    out.clear();
     SmallVector<SymbolSortEntry, 4> ordered;
     const uint32_t                  symbolCount = count();
     if (symbolCount > ordered.capacity())
@@ -450,7 +449,6 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
 
 void SymbolMap::getAllFunctions(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
-    out.clear();
     SmallVector<SymbolSortEntry, 4> ordered;
     const uint32_t                  symbolCount = count();
     if (symbolCount > ordered.capacity())

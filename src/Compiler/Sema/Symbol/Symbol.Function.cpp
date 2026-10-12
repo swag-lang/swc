@@ -396,7 +396,6 @@ namespace
 
     void collectPublicApiOverloads(const SymbolFunction& symbol, SmallVector<const SymbolFunction*, 4>& outOverloads)
     {
-        outOverloads.clear();
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
         {
             const auto appendOverloads = [&](const SymbolImplList& impls) {
@@ -431,6 +430,19 @@ namespace
         else if (const SymbolMap* ownerMap = symbol.ownerSymMap())
         {
             ownerMaps.push_back(ownerMap);
+        }
+
+        if (ownerMaps.size() == 1)
+        {
+            ownerMaps.front()->forEachSymbolById(symbol.idRef(), false, [&](const Symbol* candidateBase) {
+                if (candidateBase->isEditorRetired())
+                    return;
+
+                const auto* candidate = candidateBase->safeCast<SymbolFunction>();
+                if (candidate && isPublicApiExportedOverload(*candidate))
+                    outOverloads.push_back(candidate);
+            });
+            return;
         }
 
         for (const SymbolMap* ownerMap : ownerMaps)

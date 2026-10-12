@@ -36,6 +36,7 @@ public:
     const Symbol* findFirstNamespace(IdentifierRef idRef) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
     void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
+    void          getAllFunctions(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     template<typename F>
     void forEachSymbolById(IdentifierRef idRef, bool includeIgnored, const F& fn) const
     {

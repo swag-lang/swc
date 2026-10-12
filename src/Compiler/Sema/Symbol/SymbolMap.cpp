@@ -77,12 +77,16 @@ namespace
         return head;
     }
 
+    template<SymbolKind kind>
     void appendSymbolsForSort(std::vector<SymbolSortEntry>& out, Symbol* head, bool includeIgnored)
     {
         for (Symbol* cur = head; cur; cur = cur->nextHomonym())
         {
             if (!includeIgnored && cur->isIgnored())
                 continue;
+            if constexpr (kind != SymbolKind::Invalid)
+                if (cur->kind() != kind)
+                    continue;
 
             SymbolSortEntry entry;
             entry.symbol     = cur;
@@ -444,7 +448,16 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
     out.clear();
     std::vector<SymbolSortEntry> ordered;
     ordered.reserve(count());
-    forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort(ordered, head, includeIgnored); });
+    forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort<SymbolKind::Invalid>(ordered, head, includeIgnored); });
+    sortSymbolsByDeclaration(out, ordered);
+}
+
+void SymbolMap::getAllFunctions(std::vector<const Symbol*>& out, bool includeIgnored) const
+{
+    out.clear();
+    std::vector<SymbolSortEntry> ordered;
+    ordered.reserve(count());
+    forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort<SymbolKind::Function>(ordered, head, includeIgnored); });
     sortSymbolsByDeclaration(out, ordered);
 }
 

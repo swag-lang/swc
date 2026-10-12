@@ -6,9 +6,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaCallArgument
 {
-    inline bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
+    inline bool isImplicitTrailingCodeBlockArg(Sema& sema, const AstNode& argNode)
     {
-        const AstNode& argNode = sema.node(argRef);
         if (!argNode.is(AstNodeId::CompilerCodeBlock))
             return false;
 
@@ -19,6 +18,11 @@ namespace SemaCallArgument
             return false;
 
         return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+    }
+
+    inline bool isImplicitTrailingCodeBlockArg(Sema& sema, AstNodeRef argRef)
+    {
+        return isImplicitTrailingCodeBlockArg(sema, sema.node(argRef));
     }
 }
 

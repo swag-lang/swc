@@ -2516,7 +2516,7 @@ namespace
                 continue;
 
             if (numFixed &&
-                SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef) &&
+                SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argNode) &&
                 params[numFixed - 1]->type(sema.ctx()).isCodeBlock() &&
                 !isBindingAssigned(bound[numFixed - 1]))
             {

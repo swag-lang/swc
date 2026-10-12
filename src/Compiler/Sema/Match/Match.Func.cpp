@@ -661,7 +661,7 @@ namespace
                 continue;
             }
 
-            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef) &&
+            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argNode) &&
                 numParams > 0 &&
                 params.back()->type(sema.ctx()).isCodeBlock() &&
                 !outMapping.paramArgs.back().argRef.isValid())
@@ -1752,7 +1752,7 @@ namespace
             }
 
             // The concrete signature validates a trailing implicit code block, including aliases.
-            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argRef))
+            if (SemaCallArgument::isImplicitTrailingCodeBlockArg(sema, argNode))
                 continue;
             if (seenNamed)
             {

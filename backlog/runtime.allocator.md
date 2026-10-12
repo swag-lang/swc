@@ -48,6 +48,10 @@ replace the allocator; a similar architecture alone does not establish comparabl
   need evidence beyond an initial favourable window before being reconsidered.
   Assess any direct small-size page index separately: its standalone mixed-size and application
   checks did not establish the gain seen when combined with other allocator layout changes.
+  Compare the TLS lookup in `freeFast` with the vendored mimalloc's page-local thread token
+  check (`mi_free_ex` and `_mi_prim_thread_id`). A token experiment must store its identity in
+  the page and preserve retirement publication; a remote free must not dereference an owner
+  heap that another thread can destroy.
 - Preserve the release contract before inlining a scalar free. The interface call supplies
   `SanityRelease` for `request.address`; merely calling `freeFast` loses that boundary. A private
   freeing helper inside an inline public wrapper must also retain the caller's diagnostic
@@ -113,7 +117,7 @@ replace the allocator; a similar architecture alone does not establish comparabl
 - Next: preserve the existing end-to-end metric and add separately reported worker timing plus
   a synchronized, repeated allocation phase that amortizes thread startup. Match lifecycle and
   cleanup boundaries in the Swag and C harnesses before using a short workload to select an
-  allocator change. Then add latency percentiles and the missing retention/alignment workloads.
+  allocator change. Then add latency percentiles and the missing retention workloads.
 - Parity gate: geometric-mean throughput within 10% of mimalloc, no representative workload
   more than 25% slower, and no unbounded retained-memory case.
 - Done when: repeated comparable results cover the listed workloads and parity gate, with

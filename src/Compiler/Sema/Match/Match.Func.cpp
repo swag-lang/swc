@@ -2383,8 +2383,7 @@ namespace
             else if (ufcsArg.isValid())
             {
                 // Second: UFCS call shape (implicit arg0).
-                candidate = {};
-                fail      = {};
+                fail = {};
                 SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail));
                 if (candidate.viable)
                     a.candidate = std::move(candidate);

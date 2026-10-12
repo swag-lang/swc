@@ -1228,8 +1228,6 @@ namespace
 
     bool buildGenericCallArgMapping(Sema& sema, std::span<const SemaGeneric::GenericFunctionParamDesc> params, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool prependUfcsArg, GenericCallArgMapping& outMapping)
     {
-        outMapping = {};
-
         const uint32_t numParams  = static_cast<uint32_t>(params.size());
         const uint32_t paramStart = prependUfcsArg && ufcsArg.isValid() ? 1u : 0u;
         outMapping.paramArgs.resize(numParams);

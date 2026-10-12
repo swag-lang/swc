@@ -1590,9 +1590,10 @@ Result NativeBackendBuilder::prepare()
     SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_);
     appendGlobalFunctionInitDependencies(*this, functions, seenCodeGenFunctions, regularGlobals);
+    std::vector<SymbolFunction*> executableRoots;
     if (executable || library)
     {
-        auto executableRoots = collectExecutableFunctionRoots(*this);
+        executableRoots = collectExecutableFunctionRoots(*this);
         for (SymbolFunction* function : executableRoots)
         {
             if (seenCodeGenFunctions.insert(function))
@@ -1659,8 +1660,10 @@ Result NativeBackendBuilder::prepare()
         functionsNeedSort                  = addedCallDeps || addedConstantDeps;
         if (!addedCallDeps && !addedConstantDeps)
         {
+            bool ignoredCallersDiscarded = false;
             if (discardIgnoredCallers(*this, functions))
             {
+                ignoredCallersDiscarded = true;
                 filterPreparedSymbols(functions, *this);
                 filterPreparedSymbols(testFunctions, *this);
                 filterPreparedSymbols(initFunctions, *this);
@@ -1674,7 +1677,9 @@ Result NativeBackendBuilder::prepare()
             // once every dependency is known.
             if (compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
             {
-                auto                       executableFunctions = collectExecutableFunctionRoots(*this);
+                if (ignoredCallersDiscarded)
+                    executableRoots = collectExecutableFunctionRoots(*this);
+                auto                       executableFunctions = std::move(executableRoots);
                 PointerSet<SymbolFunction> seenFunctions;
                 seenFunctions.reserve(executableFunctions.size());
                 size_t uniqueRootCount = 0;

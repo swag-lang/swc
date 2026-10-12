@@ -201,7 +201,6 @@ namespace
 
     bool computeLiteralLayout(CodeGen& codeGen, TypeRef storageTypeRef, std::span<const AstNodeRef> elementRefs, SmallVector<AggregateElementLayout>& outLayout, uint32_t& outTotalSize)
     {
-        outLayout.clear();
         outTotalSize = 0;
         if (storageTypeRef.isInvalid())
             return false;

@@ -489,7 +489,19 @@ namespace
         return appendCodeGenDependencies(builder, functions, seenFunctions, firstUnwalked);
     }
 
-    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, std::unordered_set<SymbolFunction*>* rejected = nullptr)
+    struct RejectedConstantFunctions
+    {
+        std::vector<SymbolFunction*> functions;
+        PointerSet<SymbolFunction>   seen;
+
+        void insert(SymbolFunction* function)
+        {
+            if (seen.insert(function))
+                functions.push_back(function);
+        }
+    };
+
+    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, RejectedConstantFunctions* rejected = nullptr)
     {
         const DataSegment&    segment = builder.compiler().cstMgr().shardDataSegment(shardIndex);
         DataSegmentAllocation allocation;
@@ -533,7 +545,7 @@ namespace
         return changed;
     }
 
-    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, bool& globalInitScanned, std::unordered_set<SymbolFunction*>* rejected = nullptr)
+    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, bool& globalInitScanned, RejectedConstantFunctions* rejected = nullptr)
     {
         if (globalInitScanned)
             return false;
@@ -590,31 +602,29 @@ namespace
         StampedKeySet visitedAllocations;
         bool          globalInitScanned = false;
         // Relocations already walked, by function address; only looked up.
-        FlatKeyMap<size_t, uint64_t>        scannedRelocations;
-        std::unordered_set<SymbolFunction*> rejected;
+        FlatKeyMap<size_t, uint64_t> scannedRelocations;
+        RejectedConstantFunctions    rejected;
     };
 
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, ConstantDependencyScan& scan)
     {
-        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, scan.globalInitScanned, &scan.rejected);
-        for (auto it = scan.rejected.begin(); it != scan.rejected.end();)
+        bool   changed       = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, scan.globalInitScanned, &scan.rejected);
+        size_t rejectedCount = 0;
+        for (SymbolFunction* target : scan.rejected.functions)
         {
-            SymbolFunction* target = *it;
-            if (!seenFunctions.contains(target))
+            if (seenFunctions.contains(target))
+                continue;
+            if (!isIncludableDependency(builder, *target))
             {
-                if (!isIncludableDependency(builder, *target))
-                {
-                    ++it;
-                    continue;
-                }
-
-                seenFunctions.insert(target);
-                functions.push_back(target);
-                changed = true;
+                scan.rejected.functions[rejectedCount++] = target;
+                continue;
             }
 
-            it = scan.rejected.erase(it);
+            seenFunctions.insert(target);
+            functions.push_back(target);
+            changed = true;
         }
+        scan.rejected.functions.resize(rejectedCount);
 
         for (size_t index = 0; index < functions.size(); ++index)
         {

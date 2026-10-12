@@ -61,21 +61,22 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
     }
 
     const int cmp = hasBestPriority_ ? Priority::compare(priority, bestPriority_) : 0;
-    // A current best candidate is already present in the complete candidate list.
-    if (hasBestPriority_ && cmp == 0 && std::ranges::find(symbols_, symbol) != symbols_.end())
-        return;
-
-    if (std::ranges::find(allSymbols_, symbol) == allSymbols_.end())
-        allSymbols_.push_back(symbol);
-
     if (!hasBestPriority_)
     {
         // resetCandidates leaves the candidate lists empty with no best priority.
         hasBestPriority_ = true;
         bestPriority_    = priority;
         symbols_.push_back(symbol);
+        allSymbols_.push_back(symbol);
         return;
     }
+
+    // A current best candidate is already present in the complete candidate list.
+    if (cmp == 0 && std::ranges::find(symbols_, symbol) != symbols_.end())
+        return;
+
+    if (std::ranges::find(allSymbols_, symbol) == allSymbols_.end())
+        allSymbols_.push_back(symbol);
 
     if (cmp > 0)
     {

@@ -176,8 +176,8 @@ bool MicroSsaState::updateUseDef(InstrInfo& info, const MicroInstr& inst, const 
     if (reuseUseDef)
         return true;
 
-    bool unchanged        = false;
-    bool replaceUseDef    = true;
+    bool             unchanged     = false;
+    bool             replaceUseDef = true;
     MicroInstrUseDef useDef;
     if (comparePrevious)
     {
@@ -641,7 +641,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
         // Each idom is written before any later block can read it.
         idomValues.resize(blocks_.size());
         auto& componentRoots = domRpoPosition_;
-        componentRoots.resize(blocks_.size());
+        if (componentRoots.size() < blocks_.size())
+            componentRoots.resize(blocks_.size());
         for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
         {
             const auto& predecessors = blocks_[blockIndex].predecessors;
@@ -695,7 +696,8 @@ bool MicroSsaState::computeDominators(const bool acyclic)
     postOrder.clear();
     // A position is read only for a block stamped into the current component.
     // Retain stamps across functions to avoid clearing both arrays on every rebuild.
-    rpoPosition.resize(blocks_.size());
+    if (rpoPosition.size() < blocks_.size())
+        rpoPosition.resize(blocks_.size());
     rpoStamp.resize(blocks_.size(), 0);
     dfsStack.reserve(blocks_.size());
     postOrder.reserve(blocks_.size());

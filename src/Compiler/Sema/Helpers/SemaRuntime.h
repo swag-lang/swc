@@ -127,10 +127,10 @@ namespace SemaRuntime
         return currentFunction != nullptr && isRuntimeArtifactFunction(sema, *currentFunction);
     }
 
+    // Every call site supplies a newly constructed output vector.
     template<typename T>
     Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<std::remove_const_t<T>>& outSymbols)
     {
-        outSymbols.clear();
         outSymbols.reserve(inSymbols.size());
 
         const bool    runtimeContext     = isRuntimeArtifactContext(sema);

@@ -1123,8 +1123,6 @@ namespace
 
     Result matchScopedMemberSymbols(Sema& sema, SmallVector<const Symbol*>& outSymbols, const AstMemberAccessExpr& node, const SymbolMap& symMap, const IdentifierRef& idRef, TokenRef tokNameRef, bool noWaitOnEmpty)
     {
-        outSymbols.clear();
-
         MatchContext lookUpCxt;
         lookUpCxt.codeRef       = SourceCodeRef{node.srcViewRef(), tokNameRef};
         lookUpCxt.symMapHint    = &symMap;

@@ -394,7 +394,7 @@ namespace
         return candidate.isPublic() && candidate.supportsPublicApiForeignExport();
     }
 
-    void collectPublicApiOverloads(const SymbolFunction& symbol, std::vector<const SymbolFunction*>& outOverloads)
+    void collectPublicApiOverloads(const SymbolFunction& symbol, SmallVector<const SymbolFunction*, 4>& outOverloads)
     {
         outOverloads.clear();
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
@@ -667,11 +667,11 @@ Utf8 SymbolFunction::computePublicApiBaseSymbolName(const TaskContext& ctx) cons
 
 Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
 {
-    Utf8                               apiName = computePublicApiBaseSymbolName(ctx);
-    std::vector<const SymbolFunction*> overloads;
+    Utf8                                  apiName = computePublicApiBaseSymbolName(ctx);
+    SmallVector<const SymbolFunction*, 4> overloads;
     collectPublicApiOverloads(*this, overloads);
     if (overloads.size() > 1)
-        appendPublicApiOverloadSuffix(apiName, ctx, *this, overloads);
+        appendPublicApiOverloadSuffix(apiName, ctx, *this, overloads.span());
     return apiName;
 }
 

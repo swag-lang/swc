@@ -1865,8 +1865,8 @@ namespace
 
     Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, bool suppressInstantiationErrors, Candidate& outCandidate, MatchFailure& outFail, GenericCallShapeContext& shapeContext, const MatchFailure* precheckedShapeFailure = nullptr)
     {
-        outCandidate = {};
-        outFail      = {};
+        outCandidate.viable = false;
+        outFail             = {};
 
         // Shape precheck is deliberately cheap and runs before generic instantiation:
         // it avoids producing speculative instances for arities that cannot possibly

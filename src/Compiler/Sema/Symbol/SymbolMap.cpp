@@ -88,13 +88,7 @@ namespace
                 if (cur->kind() != kind)
                     continue;
 
-            SymbolSortEntry entry;
-            entry.symbol     = cur;
-            entry.srcViewRef = safeSymbolSrcViewRef(*cur);
-            entry.tokRef     = cur->tokRef();
-            entry.kind       = cur->kind();
-            entry.idRef      = cur->idRef();
-            out.push_back(entry);
+            out.push_back({cur, safeSymbolSrcViewRef(*cur), cur->tokRef(), cur->kind(), cur->idRef()});
         }
     }
 

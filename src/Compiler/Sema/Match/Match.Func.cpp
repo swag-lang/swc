@@ -215,7 +215,6 @@ namespace
 
     std::span<Symbol* const> callableSymbolsForMode(std::span<Symbol* const> symbols, Match::ResolveCallMode mode, SmallVector<Symbol*>& storage)
     {
-        storage.clear();
         for (size_t i = 0; i < symbols.size(); ++i)
         {
             if (symbols[i] && isCallableForMode(*symbols[i], mode))

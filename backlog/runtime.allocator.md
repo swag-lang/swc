@@ -52,6 +52,9 @@ replace the allocator; a similar architecture alone does not establish comparabl
   check (`mi_free_ex` and `_mi_prim_thread_id`). A token experiment must store its identity in
   the page and preserve retirement publication; a remote free must not dereference an owner
   heap that another thread can destroy.
+  For 32/64-byte fast allocation, keep class rounding outside inline callers until
+  compiler.optimization.129 is fixed. Finish concurrent and application comparisons on top
+  of the cache baseline before retaining this extension.
 - Preserve the release contract before inlining a scalar free. The interface call supplies
   `SanityRelease` for `request.address`; merely calling `freeFast` loses that boundary. A private
   freeing helper inside an inline public wrapper must also retain the caller's diagnostic

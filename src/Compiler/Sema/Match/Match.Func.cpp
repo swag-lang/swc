@@ -1872,7 +1872,10 @@ namespace
         // it avoids producing speculative instances for arities that cannot possibly
         // match this call.
         if (precheckedShapeFailure)
-            outFail = *precheckedShapeFailure;
+        {
+            if (precheckedShapeFailure->active)
+                outFail = *precheckedShapeFailure;
+        }
         else
             SWC_RESULT(precheckGenericCallShape(sema, fn, args, ufcsArg, shapeContext, outFail));
         if (outFail.active)

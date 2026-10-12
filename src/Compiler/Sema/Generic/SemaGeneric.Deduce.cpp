@@ -1088,7 +1088,6 @@ namespace
 
     void collectFunctionParamDescsImpl(Sema& sema, const SymbolFunction& root, const AstFunctionDecl& decl, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outParams)
     {
-        outParams.clear();
         std::unique_ptr<Sema> declSemaHolder;
         Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, root, declSemaHolder);
         if (!declSema)

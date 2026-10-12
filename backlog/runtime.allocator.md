@@ -67,10 +67,11 @@ replace the allocator; a similar architecture alone does not establish comparabl
 ### runtime.allocator.001 — Complete comparable allocator workload and retention measurements
 
 - `bench/allocator/src/allocbench.swg` and `allocbench.c` provide fourteen single-thread and
-  concurrent workloads, including live-set growth without frees. The harness records medians,
+  concurrent workloads, including live-set growth without frees, plus opt-in `aligned` and
+  `aligned:4` batches with alternating 32/64-byte alignment. The harness records medians,
   peak working set, and peak commit in fresh pinned processes and rotates implementation order.
   The remaining scope is operation-level p50/p99 latency, OS-call counts, retained memory after
-  idle and `trim()`, aligned 32/64-byte requests, and representative application traces.
+  idle and `trim()`, and representative application traces.
 - Timing boundary: both programs start the clock before thread creation. Swag uses suspended
   creation, resume, inherited context setup, and per-thread wait/handle close; C starts threads
   immediately and stops after a combined wait without closing their handles inside the interval.

@@ -511,10 +511,10 @@ namespace
                 continue;
 
             std::vector<const Symbol*> symbols;
-            symImpl->getAllSymbols(symbols);
+            symImpl->getAllFunctions(symbols);
             for (const Symbol* symbol : symbols)
             {
-                if (!symbol || !symbol->isFunction())
+                if (!symbol)
                     continue;
 
                 out.push_back(const_cast<SymbolFunction*>(&symbol->cast<SymbolFunction>()));

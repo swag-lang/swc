@@ -77,25 +77,23 @@ namespace
         return head;
     }
 
-    void appendSymbolsForSort(std::vector<SymbolSortEntry>& out, Symbol* head, bool includeIgnored)
+    template<SymbolKind kind, typename Entries>
+    void appendSymbolsForSort(Entries& out, Symbol* head, bool includeIgnored)
     {
         for (Symbol* cur = head; cur; cur = cur->nextHomonym())
         {
             if (!includeIgnored && cur->isIgnored())
                 continue;
+            if constexpr (kind != SymbolKind::Invalid)
+                if (cur->kind() != kind)
+                    continue;
 
-            SymbolSortEntry entry;
-            entry.symbol     = cur;
-            entry.srcViewRef = safeSymbolSrcViewRef(*cur);
-            entry.tokRef     = cur->tokRef();
-            entry.kind       = cur->kind();
-            entry.idRef      = cur->idRef();
-            out.push_back(entry);
+            out.push_back({cur, safeSymbolSrcViewRef(*cur), cur->tokRef(), cur->kind(), cur->idRef()});
         }
     }
 
-    template<typename T>
-    void sortSymbolsByDeclaration(std::vector<T*>& symbols, std::vector<SymbolSortEntry>& entries)
+    template<typename T, typename Entries>
+    void sortSymbolsByDeclaration(std::vector<T*>& symbols, Entries& entries)
     {
         if (entries.size() < 2)
         {
@@ -442,9 +440,22 @@ void SymbolMap::forEachPublishedHead(const F& fn) const
 void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
     out.clear();
-    std::vector<SymbolSortEntry> ordered;
-    ordered.reserve(count());
-    forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort(ordered, head, includeIgnored); });
+    SmallVector<SymbolSortEntry, 4> ordered;
+    const uint32_t                  symbolCount = count();
+    if (symbolCount > ordered.capacity())
+        ordered.reserve(symbolCount);
+    forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort<SymbolKind::Invalid>(ordered, head, includeIgnored); });
+    sortSymbolsByDeclaration(out, ordered);
+}
+
+void SymbolMap::getAllFunctions(std::vector<const Symbol*>& out, bool includeIgnored) const
+{
+    out.clear();
+    SmallVector<SymbolSortEntry, 4> ordered;
+    const uint32_t                  symbolCount = count();
+    if (symbolCount > ordered.capacity())
+        ordered.reserve(symbolCount);
+    forEachPublishedHead([&](Symbol* head) { appendSymbolsForSort<SymbolKind::Function>(ordered, head, includeIgnored); });
     sortSymbolsByDeclaration(out, ordered);
 }
 

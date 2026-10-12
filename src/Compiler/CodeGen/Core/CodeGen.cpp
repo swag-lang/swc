@@ -654,10 +654,14 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
     while (true)
     {
-        const AstNodeRef    currentNodeRef = visit_.currentNodeRef();
-        const AstNode*      currentNode    = visit_.currentNode();
-        const SourceCodeRef currentCodeRef = currentNode ? currentNode->codeRef() : node(currentNodeRef).codeRef();
-        ctx().state().setCodeGenParsing(&symbolFunc, currentNodeRef, currentCodeRef);
+        const AstNodeRef currentNodeRef = visit_.currentNodeRef();
+        TaskState&       taskState      = ctx().state();
+        if (taskState.kind != TaskStateKind::CodeGenParsing || taskState.codeGenFunction != &symbolFunc || taskState.nodeRef != currentNodeRef)
+        {
+            const AstNode*      currentNode    = visit_.currentNode();
+            const SourceCodeRef currentCodeRef = currentNode ? currentNode->codeRef() : node(currentNodeRef).codeRef();
+            taskState.setCodeGenParsing(&symbolFunc, currentNodeRef, currentCodeRef);
+        }
 
         // The visitor drives all node-specific emission. The outer loop only preserves
         // resumability: a Pause keeps the partially built microcode and visitor cursor.

@@ -71,6 +71,29 @@ namespace SemaSymbolLookup
     }
 
     template<typename T>
+    void filterEmptyFunctionDeclarations(SmallVector<T>& symbols)
+    {
+        const bool hasConcreteFunction = symbols.size() > 1 && hasConcreteFunctionCandidate<T>(symbols.span());
+        size_t     writeIndex          = 0;
+        for (const T sym : symbols)
+        {
+            if (!sym)
+                continue;
+
+            if (hasConcreteFunction && sym->isFunction())
+            {
+                const auto& fn = sym->template cast<SymbolFunction>();
+                if (!fn.isForeign() && fn.isEmpty())
+                    continue;
+            }
+
+            symbols[writeIndex++] = sym;
+        }
+
+        symbols.resize(writeIndex);
+    }
+
+    template<typename T>
     bool isCallCalleeCandidate(T sym)
     {
         // Currently, "callable" means "function symbol".

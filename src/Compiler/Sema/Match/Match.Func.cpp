@@ -2482,12 +2482,11 @@ namespace
             return Result::Continue;
 
         SmallVector<Symbol*> fallbackRuntimeSymbols;
-        SmallVector<Symbol*> fallbackConcreteSymbols;
         SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
-        SemaSymbolLookup::appendNonemptyFunctionDeclarations(fallbackRuntimeSymbols.span(), fallbackConcreteSymbols);
+        SemaSymbolLookup::filterEmptyFunctionDeclarations(fallbackRuntimeSymbols);
 
         CandidateAttempts fallback;
-        SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg, {}, mode));
+        SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackRuntimeSymbols.span(), args, ufcsArg, {}, mode));
         if (fallback.viable.empty())
             return Result::Continue;
 
@@ -3248,10 +3247,9 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     SmallVector<Symbol*> filteredStorage;
     const auto           filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
 
-    SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
     SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols, runtimeSymbols));
-    SemaSymbolLookup::appendNonemptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
+    SemaSymbolLookup::filterEmptyFunctionDeclarations(runtimeSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
@@ -3259,7 +3257,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
     collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
-    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, runtimeSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
     if (candidates.viable.empty())
@@ -3281,10 +3279,9 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     SmallVector<Symbol*> filteredStorage;
     const auto           filteredSymbols = callableSymbolsForMode(symbols, mode, filteredStorage);
 
-    SmallVector<Symbol*> concreteSymbols;
     SmallVector<Symbol*> runtimeSymbols;
     SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols, runtimeSymbols));
-    SemaSymbolLookup::appendNonemptyFunctionDeclarations(runtimeSymbols.span(), concreteSymbols);
+    SemaSymbolLookup::filterEmptyFunctionDeclarations(runtimeSymbols);
 
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
@@ -3293,7 +3290,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
     collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
-    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, runtimeSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
     // From the viable ones, find the single best candidate.

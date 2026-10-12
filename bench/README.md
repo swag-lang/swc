@@ -207,7 +207,9 @@ working set, and the page draws how they move from campaign to campaign. A workl
 implementation failed is left out of the means.
 
 Between campaigns, `allocator/run.py` measures the same thing without recording it, and
-`--against` adds a column for an executable built with an earlier runtime.
+`--against` adds a column for an executable built with an earlier runtime. Its opt-in
+`--only aligned,aligned:4` workloads cover mixed sizes with 32/64-byte alignment without
+changing the default campaign's geometric mean.
 
 ## The rules that keep the numbers honest
 

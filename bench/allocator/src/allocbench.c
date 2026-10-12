@@ -4,15 +4,20 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <malloc.h>
 #include <string.h>
 
 #ifdef USE_MIMALLOC
 #include "mimalloc.h"
 #define ALLOC(n) mi_malloc(n)
+#define ALLOC_ALIGNED(n, a) mi_malloc_aligned(n, a)
+#define FREE_ALIGNED(p) mi_free(p)
 #define FREE(p) mi_free(p)
 #define REALLOC(p, n) mi_realloc(p, n)
 #else
 #define ALLOC(n) malloc(n)
+#define ALLOC_ALIGNED(n, a) _aligned_malloc(n, a)
+#define FREE_ALIGNED(p) _aligned_free(p)
 #define FREE(p) free(p)
 #define REALLOC(p, n) realloc(p, n)
 #endif
@@ -107,6 +112,26 @@ static void churn(uint64_t* state, uint64_t slots, uint64_t operations, uint64_t
 
 static const uint64_t spreadSizes[12] = {16, 48, 100, 200, 500, 1000, 3000, 6000, 12000, 20000, 40000, 60000};
 
+static __declspec(noinline) uint64_t alignedBatches(uint64_t* state)
+{
+    char* blocks[1024];
+    for (int round = 0; round < 10000; round++)
+    {
+        for (int i = 0; i < 1024; i++)
+        {
+            const uint64_t size      = 1 + (next(state) & 4095);
+            const size_t   alignment = (i & 1) == 0 ? 32 : 64;
+            volatile char* block     = (char*)ALLOC_ALIGNED(size, alignment);
+            block[0]                 = 1;
+            block[size - 1]          = 1;
+            blocks[i]                = (char*)block;
+        }
+        for (int i = 0; i < 1024; i++)
+            FREE_ALIGNED(blocks[i]);
+    }
+    return 10000 * 1024;
+}
+
 static uint64_t run(int workload, uint64_t seed)
 {
     uint64_t state = seed;
@@ -124,6 +149,8 @@ static uint64_t run(int workload, uint64_t seed)
         for (int i = 0; i < 40; i++)
             freeTree(buildTree(14));
         return 40 * (1 << 15);
+    case 9:
+        return alignedBatches(&state);
     case 2:
         churn(&state, CHURN_SLOTS, 10000000, smallSize, 0);
         return 10000000;
@@ -239,9 +266,9 @@ static DWORD WINAPI threadEntry(void* param)
 
 int main(int argc, char** argv)
 {
-    static const char* names[] = {"pair", "trees", "churn", "medium", "large", "realloc", "spread", "xfer", "grow"};
+    static const char* names[] = {"pair", "trees", "churn", "medium", "large", "realloc", "spread", "xfer", "grow", "aligned"};
     int                workload = -1;
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 10; i++)
     {
         if (argc > 1 && !strcmp(argv[1], names[i]))
             workload = i;
@@ -250,7 +277,7 @@ int main(int argc, char** argv)
     int threads = argc > 2 ? atoi(argv[2]) : 1;
     if (workload < 0 || threads < 1 || threads > 16)
     {
-        printf("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer> [threads 1-16]\n");
+        printf("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned> [threads 1-16]\n");
         return 0;
     }
 

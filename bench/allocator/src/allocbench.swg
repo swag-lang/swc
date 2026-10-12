@@ -5,7 +5,7 @@ using Core
 // 'Memory.alloc' and 'Memory.free', the path ordinary Swag code takes, and every allocated payload
 // is touched. 'allocbench.c' runs the same workloads against mimalloc and the C runtime heap.
 //
-// Usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer> [threads]
+// Usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned> [threads]
 
 const ChurnSlots  = 50_000'u64
 const LargeSlots  = 32'u64
@@ -24,6 +24,7 @@ enum Workload
     Realloc     // Buffers doubled from 16 bytes to 4 MiB through reallocation
     Spread      // A few live blocks of twelve sizes, as a long-running application holds them
     Grow        // Four million 32-byte blocks allocated before any is freed
+    Aligned     // Batches of 1024 mixed blocks aligned on 32 or 64 bytes
     Xfer        // Producer/consumer pairs: one thread allocates, the other frees
 }
 
@@ -124,6 +125,33 @@ func smallSize(random: *Xorshift)->u64  => random.smallSize()
 func mediumSize(random: *Xorshift)->u64 => 4096 + random.next() % 61440
 func largeSize(random: *Xorshift)->u64  => 65536 + random.next() % (1024 * 1024 - 65536)
 
+// Repeated batches isolate aligned allocation from thread startup and keep its
+// large pointer tables out of the other workloads' stack frames.
+#[Swag.NoInline]
+func alignedBatches(random: *Xorshift)->u64
+{
+    var blocks: [1024] ([*] u8?)
+    var sizes:  [1024] u64
+    for 10_000
+    {
+        for i in blocks.count
+        {
+            let size      = 1 + (random.next() & 4095)
+            let alignment = (i & 1) == 0 ? 32'u32 : 64'u32
+            let block     = cast([*] u8, Memory.alloc(size, alignment: alignment))
+            block[0]        = 1
+            block[size - 1] = 1
+            blocks[i]       = block
+            sizes[i]        = size
+        }
+
+        for block, i in blocks do
+            Memory.free(block, sizes[i])
+    }
+
+    return 10_000 * blocks.count
+}
+
 // Runs one workload on the calling thread and returns the operations it performed.
 func run(workload: Workload, seed: u64)->u64
 {
@@ -144,6 +172,9 @@ func run(workload: Workload, seed: u64)->u64
         for 40 do
             freeTree(buildTree(14))
         return 40 * (1 << 15)
+
+    case .Aligned:
+        return alignedBatches(&random)
 
     case .Churn:
         churn(&random, ChurnSlots, 10_000_000, &smallSize, false)
@@ -254,6 +285,7 @@ func parseWorkload(name: string)->Workload fail
 {
     switch name
     {
+    case "aligned": return .Aligned
     case "pair":    return .Pair
     case "trees":   return .Trees
     case "churn":   return .Churn
@@ -275,7 +307,7 @@ func parseWorkload(name: string)->Workload fail
     let threads  = args.count > 2 ? catch StrConv.toU32(args[2]) : 1
     if badWorkload != null or threads < 1 or threads > 16
     {
-        Console.println("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer> [threads 1-16]")
+        Console.println("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned> [threads 1-16]")
         return
     }
 

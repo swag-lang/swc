@@ -34,8 +34,12 @@ use a quiet machine: the multi-thread workloads move with scheduling.
 | `spread` | ten live blocks of each of twelve sizes, as a long-running application holds them |
 | `grow` | four million 32-byte blocks allocated before any is freed: live-set growth |
 | `xfer` | producer/consumer pairs: one thread allocates, the other frees every block |
+| `aligned` | 10 000 batches of 1 024 mixed blocks from 1 to 4 096 bytes, alternating 32/64-byte alignment |
 
 `name:N` runs a workload on N threads, each with its own live set (N pairs for `xfer`).
+The aligned batches are opt-in: `--only aligned,aligned:4`. The default campaign keeps its
+fourteen workloads so its historical geometric means remain comparable. An aligned operation
+is one allocation/free pair, and every payload is written at its first and last byte.
 
 On 2026-10-03 the session that introduced this benchmark measured its final state against the
 runtime from before it (`fb9a4c063`) as `--against`, seven rotating rounds, median ns per

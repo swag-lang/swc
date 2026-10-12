@@ -39,7 +39,14 @@ namespace SemaSymbolLookup
     template<typename T>
     void filterEmptyFunctionDeclarations(SmallVector<T>& symbols)
     {
-        const bool hasConcreteFunction = symbols.size() > 1 && hasConcreteFunctionCandidate<T>(symbols.span());
+        if (symbols.size() < 2)
+        {
+            if (!symbols.empty() && !symbols[0])
+                symbols.clear();
+            return;
+        }
+
+        const bool hasConcreteFunction = hasConcreteFunctionCandidate<T>(symbols.span());
         size_t     writeIndex          = 0;
         for (const T sym : symbols)
         {

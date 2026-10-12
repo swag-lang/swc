@@ -240,7 +240,6 @@ namespace
 
     void collectConcreteArrayShape(const TypeManager& typeMgr, TypeRef typeRef, SmallVector<uint64_t>& outDims, TypeRef& outFinalElemTypeRef)
     {
-        outDims.clear();
         outFinalElemTypeRef = typeRef;
         while (outFinalElemTypeRef.isValid())
         {
@@ -540,7 +539,6 @@ namespace
 
     void collectStructFieldDescs(Sema& sema, const SymbolStruct& root, const AstNode& declNode, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outFields)
     {
-        outFields.clear();
         const auto& symbolFields = root.fields();
         if (!symbolFields.empty())
         {
@@ -755,8 +753,6 @@ namespace
 
     void collectAnonymousAggregateFieldDescs(Sema& sema, AstNodeRef patternRef, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outFields)
     {
-        outFields.clear();
-
         AstNodeRef     bodyRef     = AstNodeRef::invalid();
         const AstNode& patternNode = sema.node(patternRef);
         if (const auto* structDecl = patternNode.safeCast<AstAnonymousStructDecl>())

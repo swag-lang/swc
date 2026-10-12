@@ -2358,49 +2358,41 @@ namespace
                 const GenericShapePrecheck* shapeCheck = genericRootIndex < shapeChecks.size() ? &shapeChecks[genericRootIndex] : nullptr;
                 ++genericRootIndex;
                 MatchFailure        fail;
-                Candidate           candidate;
                 const MatchFailure* primaryShapeFailure = shapeCheck && shapeCheck->primaryChecked ? &shapeCheck->primaryFailure : nullptr;
-                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, shapeContext, primaryShapeFailure));
-                if (candidate.viable)
-                    a.candidate = std::move(candidate);
+                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, a.candidate, fail, shapeContext, primaryShapeFailure));
 
                 if (!a.candidate.viable && ufcsArg.isValid())
                 {
                     const MatchFailure* ufcsShapeFailure = shapeCheck && shapeCheck->ufcsChecked ? &shapeCheck->ufcsFailure : nullptr;
-                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, shapeContext, ufcsShapeFailure));
-                    if (candidate.viable)
-                        a.candidate = std::move(candidate);
+                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, a.candidate, fail, shapeContext, ufcsShapeFailure));
                 }
 
                 if (!a.candidate.viable)
-                    a.fail = std::move(fail);
+                {
+                    a.candidate.perArg.clear();
+                    a.candidate.usedDefaults = 0;
+                    a.fail                   = std::move(fail);
+                }
 
                 appendAttempt(std::move(a));
                 continue;
             }
 
             MatchFailure fail;
-            Candidate    candidate;
 
             // First: non-UFCS call shape.
-            SWC_RESULT(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, candidate, fail, shapeContext.mapping));
-            if (candidate.viable)
-                a.candidate = std::move(candidate);
-            else if (ufcsArg.isValid())
+            SWC_RESULT(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, a.candidate, fail, shapeContext.mapping));
+            if (!a.candidate.viable && ufcsArg.isValid())
             {
                 // Second: UFCS call shape (implicit arg0).
                 fail = {};
-                SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail, shapeContext.mapping));
-                if (candidate.viable)
-                    a.candidate = std::move(candidate);
-                else
-                {
-                    a.fail = std::move(fail);
-                }
+                SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, mode, a.candidate, fail, shapeContext.mapping));
             }
-            else
+            if (!a.candidate.viable)
             {
-                a.fail = std::move(fail);
+                a.candidate.perArg.clear();
+                a.candidate.usedDefaults = 0;
+                a.fail                   = std::move(fail);
             }
 
             appendAttempt(std::move(a));

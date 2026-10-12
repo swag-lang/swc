@@ -36,68 +36,29 @@ replace the allocator; a similar architecture alone does not establish comparabl
 
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
-- Current evidence: October 5, `ce481db14`, release `bench/allocator`, eleven rotating rounds
-  per workload, pinned to the benchmark's performance cores. The session-start executable is
-  measured twice as an A/A control. CPU was at most 15% at admission and after each accepted
-  window, with the normal memory-headroom checks; these checks do not eliminate scheduling,
-  frequency, or code-placement variation. Values are medians in ns/op:
-
-| Workload | Before | Integrated | A/A control | mimalloc |
-| --- | ---: | ---: | ---: | ---: |
-| pair | 16.7 | 11.4 | 16.0 | 5.8 |
-| trees | 23.6 | 18.4 | 25.4 | 10.0 |
-| churn | 42.4 | 38.4 | 42.7 | 21.1 |
-| medium | 50.2 | 43.9 | 49.2 | 51.4 |
-| large | 2337.8 | 2328.9 | 2319.9 | 1957.3 |
-| realloc | 11288.6 | 11598.4 | 11746.1 | 10745.7 |
-| spread | 2533.3 | 2725.0 | 2950.0 | 2776.7 |
-| grow | 11.3 | 9.8 | 11.4 | 7.0 |
-| spread:8 | 671.9 | 702.1 | 843.8 | 731.5 |
-| churn:4 | 17.8 | 16.3 | 17.8 | 9.0 |
-| medium:4 | 30.5 | 28.2 | 28.3 | 18.5 |
-| large:4 | 1308.5 | 1298.2 | 1284.6 | 812.6 |
-| xfer:2 | 84.0 | 82.2 | 86.3 | 81.2 |
-| xfer:4 | 76.9 | 74.3 | 73.0 | 68.5 |
-
-- The scalar Core allocation path and direct initialized-context TLS read reduce the frequent
-  small-allocation costs, but pair, trees, churn, and concurrent large blocks remain materially
-  slower than mimalloc. The final/mimalloc geometric mean is 1.315 across these fourteen
-  workloads, short of the 1.10 gate. Separate nine-round scalar-path and fifteen-round context-path windows
-  reproduce the small-allocation gains; the final comparison also includes master integration.
-  Large blocks and realloc do not establish a repeatable speedup. `spread` and `spread:8` have
-  substantial A/A variation; do not attribute their final difference to the allocator alone.
-  `large:4` peaks at about 118 MiB working set versus 237 MiB for mimalloc; that tradeoff does
-  not establish idle retention, which remains to be measured.
-- Reinspect the emitted fast path before changing policy. `Memory.free` still initializes an
-  `AllocatorRequest` and dispatches through `IAllocator.free`; the native pair loop contains six
-  16-byte zero stores followed by field/default writes before that call. Both allocation and
-  free read the context, and allocator page lookup uses its own TLS slot. The common allocation
-  path is already inline and reads ordinary Windows TLS slots directly.
-- A direct scalar free must preserve the compiler's lifetime proof. The interface call emits
-  `SanityRelease` for `request.address`; merely calling `freeFast` would lose that release
-  boundary and can suppress use-after-free/double-free diagnostics. Establish the release
-  summary/contract before replacing dispatch, and cover both allocator implementations and
-  cross-module calls. Related compiler work: compiler.optimization.113 and compiler.optimization.114.
-- Rejected leads: releasing the segment mutex around OS commit, releasing the large-block cache
-  mutex around OS free, and outlining Core's allocation fallback did not give a repeatable net
-  benefit. The last candidate reduced `Allocator.run` from 4,881 to 3,896 bytes, but a
-  twenty-one-round repeat with an independently rebuilt baseline removed its apparent benefit.
-- Evidence on the measurement machine: `%TEMP%/swc-runtime-allocator-20261005/`, especially
-  `final-all.json`, `scalar-selected-all.json`, `context-repeat.json`, `outlined-repeat.json`,
-  `final-run-asm.txt`, and `thread-cost/results.json`. `heap-fixed-bench/swag/allocator.exe` is
-  both baseline and control; `final-current/swag/allocator.exe` is the integrated executable;
-  `scalar-alloc-fixed/allocbench_mimalloc.exe` is the unchanged comparator.
-- Application check: two thirty-one-round native `binarytrees` windows with the compiler before
-  and after direct context TLS lowering gave 15.26 -> 14.30 ms (A/A 15.02), then
-  16.03 -> 16.30 ms (A/A 18.78). The second window is too variable to establish an application
-  speedup. Keep that limit separate from the repeated allocator gains; raw results are in
-  `context-application/results.json` and `results-repeat.json` under the same evidence directory.
-- Next: separate thread lifecycle from allocation work in the short spread workload
-  (runtime.allocator.001), then reduce free-request/dispatch cost with preserved lifetime
-  semantics. Retain only improvements that exceed A/A variation on repeated allocator and
-  application measurements; preserve custom allocators, diagnostic modes, and failure behavior.
-- Done when: generated-code attribution and comparable application/allocator measurements
-  establish the remaining policy under runtime.allocator.001's throughput and retention gate.
+- Evidence: repeated release allocator measurements still leave `pair`, `trees`, mixed small
+  allocations, and concurrent large blocks materially slower than mimalloc. The ordinary Core
+  allocation path is scalar and inline, while `Memory.free` constructs an `AllocatorRequest`
+  and dispatches through `IAllocator.free`. Allocation and free each read the context; the page
+  path also reads its own thread-local heap slot.
+- Next: reduce the remaining request, dispatch, and thread-local lookup work, using the emitted
+  common path to attribute the gain. A scalar `Memory.free` kept out of line improved `pair`
+  but did not improve mixed live-set workloads; do not select that shape from `pair` alone.
+  Outlining allocation fallback and moving OS operations outside cache/segment locks likewise
+  need evidence beyond an initial favourable window before being reconsidered.
+- Preserve the release contract before inlining a scalar free. The interface call supplies
+  `SanityRelease` for `request.address`; merely calling `freeFast` loses that boundary. A private
+  freeing helper inside an inline public wrapper must also retain the caller's diagnostic
+  location. Use `inline_allocator_free.swg`, `use_after_free_parameter_location.swg`, and the
+  imported `lifecycle_summary.test.swg` boundary, together with custom allocator and diagnostic
+  mode tests. Related compiler work: compiler.optimization.113 and compiler.optimization.114.
+- Measurement limits: use rotating before/after runs and identical-binary controls, inspect
+  within-window variation, and repeat concurrent workloads. Admission alone cannot detect work
+  that starts during a measurement. The short `spread` workloads still include thread lifecycle
+  costs (runtime.allocator.001). Large-block peak working set remains substantially below
+  mimalloc's; preserve that distinction from the idle-retention question.
+- Done when: generated-code attribution and repeated application/allocator measurements meet
+  runtime.allocator.001's throughput and retention gate without losing allocator contracts.
 
 ### runtime.allocator.001 — Complete comparable allocator workload and retention measurements
 

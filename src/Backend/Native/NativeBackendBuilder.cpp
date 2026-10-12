@@ -533,8 +533,12 @@ namespace
         return changed;
     }
 
-    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, std::unordered_set<SymbolFunction*>* rejected = nullptr)
+    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, bool& globalInitScanned, std::unordered_set<SymbolFunction*>* rejected = nullptr)
     {
+        if (globalInitScanned)
+            return false;
+        globalInitScanned = true;
+
         bool changed = false;
         // Global initializers reach read-only data without a code relocation. Its function
         // pointers, including dynamic type lifecycle hooks, need the same dependency closure.
@@ -548,9 +552,9 @@ namespace
         return changed;
     }
 
-    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, size_t& nextFunctionIndex)
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, bool& globalInitScanned, size_t& nextFunctionIndex)
     {
-        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations);
+        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, visitedAllocations, globalInitScanned);
 
         // Newly discovered constant dependencies are appended to 'functions', so iterate by
         // index to keep traversal stable while still visiting the new entries in the same pass.
@@ -584,6 +588,7 @@ namespace
     struct ConstantDependencyScan
     {
         StampedKeySet visitedAllocations;
+        bool          globalInitScanned = false;
         // Relocations already walked, by function address; only looked up.
         FlatKeyMap<size_t, uint64_t>        scannedRelocations;
         std::unordered_set<SymbolFunction*> rejected;
@@ -591,7 +596,7 @@ namespace
 
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, ConstantDependencyScan& scan)
     {
-        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, &scan.rejected);
+        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, scan.globalInitScanned, &scan.rejected);
         for (auto it = scan.rejected.begin(); it != scan.rejected.end();)
         {
             SymbolFunction* target = *it;
@@ -1663,6 +1668,7 @@ Result NativeBackendBuilder::prepare()
                 }
                 executableFunctions.resize(uniqueRootCount);
                 StampedKeySet visitedAllocations;
+                bool          globalInitScanned         = false;
                 size_t        nextCallFunctionIndex     = 0;
                 size_t        nextConstantFunctionIndex = 0;
 
@@ -1672,7 +1678,7 @@ Result NativeBackendBuilder::prepare()
                 while (true)
                 {
                     const bool addedCallDeps     = appendCodeGenDependencies(*this, executableFunctions, seenFunctions, nextCallFunctionIndex);
-                    const bool addedConstantDeps = appendConstantFunctionDependencies(*this, executableFunctions, seenFunctions, visitedAllocations, nextConstantFunctionIndex);
+                    const bool addedConstantDeps = appendConstantFunctionDependencies(*this, executableFunctions, seenFunctions, visitedAllocations, globalInitScanned, nextConstantFunctionIndex);
                     if (!addedCallDeps && !addedConstantDeps)
                         break;
                 }

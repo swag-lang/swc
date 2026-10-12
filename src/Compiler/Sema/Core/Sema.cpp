@@ -1735,8 +1735,10 @@ Result Sema::runCurrentVisit()
 {
     while (true)
     {
-        const AstNodeRef nodeRef = visit_.currentNodeRef();
-        ctx().state().setSemaParsing(nodeRef, node(nodeRef).codeRef());
+        const AstNodeRef    nodeRef        = visit_.currentNodeRef();
+        const AstNode*      currentNode    = visit_.currentNode();
+        const SourceCodeRef currentCodeRef = currentNode ? currentNode->codeRef() : node(nodeRef).codeRef();
+        ctx().state().setSemaParsing(nodeRef, currentCodeRef);
 
         // AstVisit owns the pre/post traversal cursor. Sema only translates its pause,
         // error and stop states into job-level results, which keeps resumable semantic

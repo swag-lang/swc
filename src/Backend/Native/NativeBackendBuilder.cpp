@@ -1600,15 +1600,21 @@ Result NativeBackendBuilder::prepare()
     // The functions before this index had their calls walked since the last code generation, and
     // nothing has been lowered since: only the constant dependencies appended after them are new.
     size_t callsWalked = 0;
+    bool   functionsNeedSort = true;
     while (true)
     {
-        appendCodeGenDependencies(*this, functions, callsWalked);
-        SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
+        functionsNeedSort |= appendCodeGenDependencies(*this, functions, callsWalked);
+        if (functionsNeedSort)
+        {
+            SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
+            functionsNeedSort = false;
+        }
         SWC_RESULT(scheduleCodeGen(*this, functions));
 
         const bool addedCallDeps     = appendCodeGenDependencies(*this, functions);
         callsWalked                  = functions.size();
         const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions, constantScan);
+        functionsNeedSort            = addedCallDeps || addedConstantDeps;
         if (!addedCallDeps && !addedConstantDeps)
         {
             if (discardIgnoredCallers(*this, functions))

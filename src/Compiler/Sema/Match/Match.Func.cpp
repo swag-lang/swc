@@ -1768,7 +1768,13 @@ namespace
 
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail);
 
-    Result precheckGenericCallShape(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, MatchFailure& outFail)
+    struct GenericCallShapeContext
+    {
+        bool hasNamedArgsChecked = false;
+        bool hasNamedArgs        = false;
+    };
+
+    Result precheckGenericCallShape(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, GenericCallShapeContext& shapeContext, MatchFailure& outFail)
     {
         outFail = {};
 
@@ -1789,10 +1795,15 @@ namespace
             else
                 paramsNode.collectChildrenFromAst(paramNodes, declSema->ast());
 
-            const bool                        hasNamedArgs = std::ranges::any_of(args, [&](AstNodeRef argRef) { return sema.node(argRef).is(AstNodeId::NamedArgument); });
+            if (!shapeContext.hasNamedArgsChecked)
+            {
+                shapeContext.hasNamedArgsChecked = true;
+                shapeContext.hasNamedArgs        = std::ranges::any_of(args, [&](AstNodeRef argRef) { return sema.node(argRef).is(AstNodeId::NamedArgument); });
+            }
+
             SmallVector<GenericRootCallParam> params;
             for (const AstNodeRef paramRef : paramNodes)
-                appendGenericRootCallParams(*declSema, paramRef, params, hasNamedArgs);
+                appendGenericRootCallParams(*declSema, paramRef, params, shapeContext.hasNamedArgs);
 
             const uint32_t numParams      = static_cast<uint32_t>(params.size());
             const bool     prependUfcsArg = ufcsArg.isValid() && (!fn.isMethod() || genericRootParamsExposeReceiver(params.span()));
@@ -1802,7 +1813,7 @@ namespace
             // Parameter names are available before their dependent types. Reject a malformed
             // mapping here so deduction cannot replace it with a missing generic parameter.
             const AstNodeRef mappedUfcsArg = prependUfcsArg ? ufcsArg : AstNodeRef::invalid();
-            if (hasNamedArgs && !checkGenericNamedCallArguments(sema, outFail, fn, params.span(), args, mappedUfcsArg))
+            if (shapeContext.hasNamedArgs && !checkGenericNamedCallArguments(sema, outFail, fn, params.span(), args, mappedUfcsArg))
                 return Result::Continue;
 
             if (!variadic && numArgs > numParams)
@@ -1852,7 +1863,7 @@ namespace
         return Result::Continue;
     }
 
-    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, bool suppressInstantiationErrors, Candidate& outCandidate, MatchFailure& outFail, const MatchFailure* precheckedShapeFailure = nullptr)
+    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, bool suppressInstantiationErrors, Candidate& outCandidate, MatchFailure& outFail, GenericCallShapeContext& shapeContext, const MatchFailure* precheckedShapeFailure = nullptr)
     {
         outCandidate = {};
         outFail      = {};
@@ -1863,7 +1874,7 @@ namespace
         if (precheckedShapeFailure)
             outFail = *precheckedShapeFailure;
         else
-            SWC_RESULT(precheckGenericCallShape(sema, fn, args, ufcsArg, outFail));
+            SWC_RESULT(precheckGenericCallShape(sema, fn, args, ufcsArg, shapeContext, outFail));
         if (outFail.active)
             return Result::Continue;
 
@@ -2287,6 +2298,7 @@ namespace
 
         SmallVector<GenericShapePrecheck, 4> shapeChecks;
         uint32_t                             matchingShapes = 0;
+        GenericCallShapeContext              shapeContext;
         if (hasGenericRoot && outFunctionSymbols.size() > 1)
         {
             for (const SymbolFunction* fn : outFunctionSymbols)
@@ -2297,18 +2309,18 @@ namespace
                 {
                     check                 = &shapeChecks.emplace_back();
                     check->primaryChecked = true;
-                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), check->primaryFailure));
+                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), shapeContext, check->primaryFailure));
                     if (check->primaryFailure.active && ufcsArg.isValid())
                     {
                         check->ufcsChecked = true;
-                        SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, check->ufcsFailure));
+                        SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, shapeContext, check->ufcsFailure));
                     }
                 }
                 else
                 {
-                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), localFailure));
+                    SWC_RESULT(precheckGenericCallShape(sema, *fn, args, AstNodeRef::invalid(), shapeContext, localFailure));
                     if (localFailure.active && ufcsArg.isValid())
-                        SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, localFailure));
+                        SWC_RESULT(precheckGenericCallShape(sema, *fn, args, ufcsArg, shapeContext, localFailure));
                 }
 
                 const bool shapeFailed = check ? (check->ufcsChecked ? check->ufcsFailure.active : check->primaryFailure.active) : localFailure.active;
@@ -2342,7 +2354,7 @@ namespace
                 MatchFailure        fail;
                 Candidate           candidate;
                 const MatchFailure* primaryShapeFailure = shapeCheck && shapeCheck->primaryChecked ? &shapeCheck->primaryFailure : nullptr;
-                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, primaryShapeFailure));
+                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, shapeContext, primaryShapeFailure));
                 if (candidate.viable)
                     a.candidate = std::move(candidate);
 
@@ -2351,7 +2363,7 @@ namespace
                     candidate                            = {};
                     fail                                 = {};
                     const MatchFailure* ufcsShapeFailure = shapeCheck && shapeCheck->ufcsChecked ? &shapeCheck->ufcsFailure : nullptr;
-                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, ufcsShapeFailure));
+                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail, shapeContext, ufcsShapeFailure));
                     if (candidate.viable)
                         a.candidate = std::move(candidate);
                 }

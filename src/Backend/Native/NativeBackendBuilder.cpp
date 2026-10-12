@@ -589,10 +589,9 @@ namespace
         std::unordered_set<SymbolFunction*> rejected;
     };
 
-    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, ConstantDependencyScan& scan)
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, ConstantDependencyScan& scan)
     {
-        PointerSet<SymbolFunction> seenFunctions = memberSetOf(functions);
-        bool                       changed       = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, &scan.rejected);
+        bool changed = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, &scan.rejected);
         for (auto it = scan.rejected.begin(); it != scan.rejected.end();)
         {
             SymbolFunction* target = *it;
@@ -1618,11 +1617,12 @@ Result NativeBackendBuilder::prepare()
     ConstantDependencyScan constantScan;
     // The functions before this index had their calls walked since the last code generation, and
     // nothing has been lowered since: only the constant dependencies appended after them are new.
-    size_t callsWalked       = 0;
-    bool   functionsNeedSort = true;
+    size_t                     callsWalked          = 0;
+    bool                       functionsNeedSort    = true;
+    PointerSet<SymbolFunction> seenCodeGenFunctions = memberSetOf(functions);
     while (true)
     {
-        functionsNeedSort |= appendCodeGenDependencies(*this, functions, callsWalked);
+        functionsNeedSort |= appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, callsWalked);
         if (functionsNeedSort)
         {
             SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
@@ -1630,10 +1630,11 @@ Result NativeBackendBuilder::prepare()
         }
         SWC_RESULT(scheduleCodeGen(*this, functions));
 
-        const bool addedCallDeps     = appendCodeGenDependencies(*this, functions);
-        callsWalked                  = functions.size();
-        const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions, constantScan);
-        functionsNeedSort            = addedCallDeps || addedConstantDeps;
+        size_t     nextCallDependencyIndex = 0;
+        const bool addedCallDeps           = appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, nextCallDependencyIndex);
+        callsWalked                        = functions.size();
+        const bool addedConstantDeps       = appendConstantFunctionDependencies(*this, functions, seenCodeGenFunctions, constantScan);
+        functionsNeedSort                  = addedCallDeps || addedConstantDeps;
         if (!addedCallDeps && !addedConstantDeps)
         {
             if (discardIgnoredCallers(*this, functions))

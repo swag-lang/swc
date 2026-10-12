@@ -1932,14 +1932,16 @@ namespace
         const bool narrowedPointer = mat.narrowDependent && paramType.isValuePointer() && !paramType.isNullable() && !bindsPointeeByAddress;
         mat.forNarrowFact          = mat.narrowDependent && (!mat.bindsByAddress || narrowedPointer);
         mat.forContextLambda       = isInlineContextualLambdaArg(sema, binding.exprRef);
-        // A nullable parameter widened from a non-null argument needs its own declared
-        // type. Direct substitution casts every use back to nullable, while its guard
-        // names caller storage whose non-null declaration cannot carry a narrowing fact.
-        // A constant argument likewise has no storage on which to record that fact.
+        // A nullable parameter needs storage on which its body can record a narrowing
+        // fact. Look through argument casts: a nullable cast of a non-null variable
+        // still names storage whose declaration cannot carry that fact. A constant
+        // has no such storage either, even when its expression retains a symbol.
         if (context.isOrdinaryInline && !isCaptured && paramType.isNullable() && binding.exprRef.isValid())
         {
-            const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
-            mat.forNullableType         = sourceTypeRef.isValid() && (!sema.typeMgr().get(sourceTypeRef).isNullable() || sema.viewConstant(binding.exprRef).hasConstant());
+            SmallVector4<const Symbol*> sourcePath;
+            const bool                  hasNullableStorage = SemaHelpers::extractNarrowPath(sema, binding.exprRef, sourcePath) &&
+                                            sourcePath.back()->typeRef().isValid() && sema.typeMgr().get(sourcePath.back()->typeRef()).isNullable();
+            mat.forNullableType = !hasNullableStorage || sema.viewConstant(binding.exprRef).hasConstant();
         }
 
         // A reference or proven stable plain array can survive indexed/foreach

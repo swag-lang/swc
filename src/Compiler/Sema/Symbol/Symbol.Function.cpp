@@ -432,6 +432,19 @@ namespace
             ownerMaps.push_back(ownerMap);
         }
 
+        if (ownerMaps.size() == 1)
+        {
+            ownerMaps.front()->forEachSymbolById(symbol.idRef(), false, [&](const Symbol* candidateBase) {
+                if (candidateBase->isEditorRetired())
+                    return;
+
+                const auto* candidate = candidateBase->safeCast<SymbolFunction>();
+                if (candidate && isPublicApiExportedOverload(*candidate))
+                    outOverloads.push_back(candidate);
+            });
+            return;
+        }
+
         for (const SymbolMap* ownerMap : ownerMaps)
         {
             // Homonym chains already have declaration order. Query this name under the map's

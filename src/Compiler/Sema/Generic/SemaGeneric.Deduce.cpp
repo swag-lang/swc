@@ -28,8 +28,6 @@ namespace
 
     void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
     {
-        outArgs.clear();
-
         if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
         {
             SemaGeneric::appendQuotedGenericArgs(*quotedExpr, outArgs);
@@ -148,7 +146,6 @@ namespace
 
     void appendFunctionParamNodes(Sema& sema, AstNodeRef nodeParamsRef, SmallVector<AstNodeRef>& outParams)
     {
-        outParams.clear();
         if (nodeParamsRef.isInvalid())
             return;
 
@@ -494,7 +491,6 @@ namespace
         // Named aggregate fields are matched first, then unnamed entries fill the
         // remaining pattern slots in order. This mirrors initializer semantics and lets
         // partially named aggregate literals participate in generic deduction.
-        outOrder.clear();
         outOrder.resize(patternFields.size(), SIZE_MAX);
 
         for (size_t actualIndex = 0; actualIndex < actualAggregate.types.size(); ++actualIndex)

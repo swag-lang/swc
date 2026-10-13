@@ -327,14 +327,15 @@ namespace SemaGeneric
             }
         }
 
-        void appendOwnerStructCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
+        template<auto LoadArgs>
+        void appendInstanceCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
         {
-            SmallVector<GenericParamDesc>   ownerParams;
-            SmallVector<GenericInstanceKey> ownerArgs;
-            if (!loadOwnerStructGenericArgs(sema, function, ownerParams, ownerArgs))
+            SmallVector<GenericParamDesc>   params;
+            SmallVector<GenericInstanceKey> args;
+            if (!LoadArgs(sema, function, params, args))
                 return;
 
-            appendGenericInstanceCloneBindings(sema, ownerParams.span(), ownerArgs.span(), outBindings);
+            appendGenericInstanceCloneBindings(sema, params.span(), args.span(), outBindings);
         }
 
         void prepareGenericDeclSemaContext(Sema& child, Sema& sema, const Symbol& root)
@@ -552,30 +553,10 @@ namespace SemaGeneric
 
     namespace
     {
-        void appendEnclosingFunctionGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
-        {
-            SmallVector<GenericParamDesc>   ownerParams;
-            SmallVector<GenericInstanceKey> ownerArgs;
-            if (!loadOwnerStructGenericArgs(sema, root, ownerParams, ownerArgs))
-                return;
-
-            appendGenericInstanceCloneBindings(sema, ownerParams.span(), ownerArgs.span(), outBindings);
-        }
-
-        void appendFunctionInstanceCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
-        {
-            SmallVector<GenericParamDesc>   params;
-            SmallVector<GenericInstanceKey> args;
-            if (!loadFunctionInstanceGenericArgs(sema, function, params, args))
-                return;
-
-            appendGenericInstanceCloneBindings(sema, params.span(), args.span(), outBindings);
-        }
-
         void appendFunctionContextCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
         {
-            appendFunctionInstanceCloneBindings(sema, function, outBindings);
-            appendEnclosingFunctionGenericCloneBindings(sema, function, outBindings);
+            appendInstanceCloneBindings<loadFunctionInstanceGenericArgs>(sema, function, outBindings);
+            appendInstanceCloneBindings<loadOwnerStructGenericArgs>(sema, function, outBindings);
         }
 
         void appendAmbientGenericCloneBindings(Sema& sema, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -589,7 +570,7 @@ namespace SemaGeneric
         void appendEnclosingGenericCloneBindings(Sema& sema, const Symbol& root, SmallVector<SemaClone::ParamBinding>& outBindings)
         {
             if (const auto* function = root.safeCast<SymbolFunction>())
-                appendOwnerStructCloneBindings(sema, *function, outBindings);
+                appendInstanceCloneBindings<loadOwnerStructGenericArgs>(sema, *function, outBindings);
 
             appendAmbientGenericCloneBindings(sema, outBindings);
         }
@@ -617,7 +598,7 @@ namespace SemaGeneric
         void buildFunctionInstanceContextBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
         {
             outBindings.clear();
-            appendFunctionInstanceCloneBindings(sema, function, outBindings);
+            appendInstanceCloneBindings<loadFunctionInstanceGenericArgs>(sema, function, outBindings);
             appendEnclosingGenericCloneBindings(sema, function, outBindings);
         }
 
@@ -681,22 +662,8 @@ namespace SemaGeneric
             return taskLocalRunCache<std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>>(ctx.genericImplBlockRunCache());
         }
 
-        void appendResolvedBindingText(Sema& sema, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, SmallVector<IdentifierRef>& seenIds, Utf8& out)
-        {
-            if (params.size() != resolvedArgs.size())
-                return;
-
-            for (size_t i = 0; i < params.size(); ++i)
-            {
-                if (!params[i].idRef.isValid() || hasFormattedBinding(seenIds.span(), params[i].idRef))
-                    continue;
-
-                seenIds.push_back(params[i].idRef);
-                appendFormattedBinding(out, sema.idMgr().get(params[i].idRef).name, formatResolvedGenericArg(sema, resolvedArgs[i]));
-            }
-        }
-
-        void appendGenericInstanceBindingText(Sema& sema, std::span<const GenericParamDesc> params, std::span<const GenericInstanceKey> args, SmallVector<IdentifierRef>& seenIds, Utf8& out)
+        template<auto FormatArg, typename Arg>
+        void appendBindingText(Sema& sema, std::span<const GenericParamDesc> params, std::span<const Arg> args, SmallVector<IdentifierRef>& seenIds, Utf8& out)
         {
             if (params.size() != args.size())
                 return;
@@ -707,34 +674,25 @@ namespace SemaGeneric
                     continue;
 
                 seenIds.push_back(params[i].idRef);
-                appendFormattedBinding(out, sema.idMgr().get(params[i].idRef).name, formatGenericInstanceKey(sema, args[i]));
+                appendFormattedBinding(out, sema.idMgr().get(params[i].idRef).name, FormatArg(sema, args[i]));
             }
         }
 
-        void appendFunctionInstanceBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
+        template<auto LoadArgs>
+        void appendInstanceBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
         {
             SmallVector<GenericParamDesc>   params;
             SmallVector<GenericInstanceKey> args;
-            if (!loadFunctionInstanceGenericArgs(sema, function, params, args))
+            if (!LoadArgs(sema, function, params, args))
                 return;
 
-            appendGenericInstanceBindingText(sema, params.span(), args.span(), seenIds, out);
-        }
-
-        void appendOwnerStructBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
-        {
-            SmallVector<GenericParamDesc>   params;
-            SmallVector<GenericInstanceKey> args;
-            if (!loadOwnerStructGenericArgs(sema, function, params, args))
-                return;
-
-            appendGenericInstanceBindingText(sema, params.span(), args.span(), seenIds, out);
+            appendBindingText<formatGenericInstanceKey>(sema, params.span(), std::span<const GenericInstanceKey>(args.span()), seenIds, out);
         }
 
         void appendFunctionContextBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
         {
-            appendFunctionInstanceBindingText(sema, function, seenIds, out);
-            appendOwnerStructBindingText(sema, function, seenIds, out);
+            appendInstanceBindingText<loadFunctionInstanceGenericArgs>(sema, function, seenIds, out);
+            appendInstanceBindingText<loadOwnerStructGenericArgs>(sema, function, seenIds, out);
         }
 
         Utf8 formatFunctionWhereBindings(Sema& sema, const SymbolFunction& function, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, std::span<const SymbolFunction* const> ambientFunctions)
@@ -743,9 +701,9 @@ namespace SemaGeneric
             SmallVector<IdentifierRef> seenIds;
 
             if (!params.empty())
-                appendResolvedBindingText(sema, params, resolvedArgs, seenIds, out);
+                appendBindingText<formatResolvedGenericArg>(sema, params, resolvedArgs, seenIds, out);
             else
-                appendFunctionInstanceBindingText(sema, function, seenIds, out);
+                appendInstanceBindingText<loadFunctionInstanceGenericArgs>(sema, function, seenIds, out);
 
             for (const SymbolFunction* ambientFunction : ambientFunctions)
                 appendFunctionContextBindingText(sema, *ambientFunction, seenIds, out);

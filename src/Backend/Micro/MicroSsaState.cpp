@@ -503,7 +503,7 @@ bool MicroSsaState::definitionDominates(const uint32_t valueId, const MicroInstr
 
 bool MicroSsaState::copyInstructionDominators(MicroPassHelpers::MicroDomTree& out, const MicroControlFlowGraph& cfg) const
 {
-    if (!valid_ || !trackedDefCount_ || blocksCfg_ != &cfg || blocksCfgBuildId_ != cfg.buildId())
+    if (!trackedDefCount_ || blocksCfg_ != &cfg || blocksCfgBuildId_ != cfg.buildId())
         return false;
 
     const size_t count = instructionRefs_.size();

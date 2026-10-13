@@ -33,6 +33,29 @@ uint32_t MicroControlFlowGraph::indexOfLabel(const uint64_t labelRef) const
     return labelToInstructionIndex_[labelRef];
 }
 
+uint32_t MicroControlFlowGraph::singleEntry() const
+{
+    if (singleEntryReady_)
+        return singleEntry_;
+
+    singleEntryReady_ = true;
+    singleEntry_      = K_NO_INDEX;
+    const uint32_t n  = instructionCount();
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        if (!predecessors_[i].empty())
+            continue;
+        if (singleEntry_ != K_NO_INDEX)
+        {
+            singleEntry_ = K_NO_INDEX;
+            break;
+        }
+        singleEntry_ = i;
+    }
+
+    return singleEntry_;
+}
+
 std::vector<uint8_t> MicroControlFlowGraph::reachableFrom(const std::span<const MicroInstrRef> roots) const
 {
     std::vector<uint8_t> reachable(instructionCount(), 0);
@@ -93,7 +116,8 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
     predecessors_.resize(instructionCount);
     instructionRefs_.clear();
     indexBySlot_.clear();
-    maxSlot_ = 0;
+    singleEntryReady_ = false;
+    maxSlot_          = 0;
     labelToInstructionIndex_.clear();
     addressTakenLabelIndices_.clear();
     hasUnsupportedControlFlowForCfgLiveness_ = false;

@@ -90,8 +90,9 @@ public:
     // Uses this SSA snapshot even if a later pass has erased an instruction.
     bool definitionDominates(uint32_t valueId, MicroInstrRef instRef) const;
     // Copy the rename walk's dominance intervals only when they describe this
-    // exact graph. Operand-only rewrites retain the graph; another function,
-    // changed control flow or an invalid SSA snapshot must use the CFG analysis.
+    // exact graph. They are a function of the graph alone, so an operand-only
+    // rewrite that invalidated the values leaves them exact; another function
+    // or changed control flow must use the CFG analysis.
     bool copyInstructionDominators(MicroPassHelpers::MicroDomTree& out, const MicroControlFlowGraph& cfg) const;
     // The natural loops of this exact graph, on the same contract as the block graph: found once
     // per graph identity, and read by every pass of the sweep that asks while the graph holds.

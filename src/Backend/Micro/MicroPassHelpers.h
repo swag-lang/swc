@@ -151,9 +151,10 @@ namespace MicroPassHelpers
         }
     };
 
-    // A current SSA snapshot already has the entry-rooted dominance intervals.
-    // Use it when available; standalone, stale and nonzero-entry callers keep
-    // the same graph analysis without constructing SSA for this query.
+    // An SSA snapshot of the same graph already has the entry-rooted dominance
+    // intervals, whether or not its values are current. Use it when available;
+    // standalone and nonzero-entry callers keep the same graph analysis without
+    // constructing SSA for this query.
     MicroDomTree computeInstructionDominators(const MicroControlFlowGraph& cfg, uint32_t entry, const MicroSsaState* ssa = nullptr);
 
     // Exact flag-level complement. Sign has no complement in MicroCond.

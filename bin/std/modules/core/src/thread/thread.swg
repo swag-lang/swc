@@ -24,13 +24,13 @@ struct Thread
 {
     public
     {
-        userLambda: (func||(Thread))?     // Body the thread runs; it receives this value.
+        userLambda: (func||(const *Thread))?     // Body the thread runs; it receives a pointer to this value.
 
         context:   Swag.Context     // Inherited settings with thread-owned temporary and error storage.
         userParam: *void?           // Caller data the body can read back.
 
-        priority   = ThreadPriority.Normal     // Current scheduling priority.
-        requestEnd = false     // Cooperative stop flag the thread body polls.
+        priority = ThreadPriority.Normal     // Current scheduling priority.
+        requestEnd: Swag.AtomicFlag          // Cooperative stop flag; the body polls it with [[Swag.AtomicFlag.isRaised]].
 
         // Identity of the running thread, established when it starts.
         readonly id: u64
@@ -51,10 +51,10 @@ impl Thread
     // Returns whether this value owns a thread, from [[Core.Threading.Thread.init]] until it is waited for.
     mtd const isValid()->bool => .handle != null
 
-    // Asks the thread to stop by setting `requestEnd`, which its body must poll.
+    // Asks the thread to stop by raising `requestEnd`, which its body must poll.
     mtd safeForceEnd()
     {
-        .requestEnd = true
+        .requestEnd.raise()
     }
 
     // Suspends the current thread for at least `duration`.
@@ -80,8 +80,10 @@ impl Thread
     //
     // `tempAllocSize` sets the capacity of the thread's temporary allocator in bytes; zero
     // leaves it without capacity. Error storage and propagation state are never shared with the
-    // creating thread. Call [[Core.Threading.Thread.start]] to run the thread.
-    mtd init(lambda: func||(Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
+    // creating thread. The body receives a pointer to this value: it reads `userParam` through
+    // it and polls `requestEnd` to stop when [[Core.Threading.Thread.safeForceEnd]] asks. Call
+    // [[Core.Threading.Thread.start]] to run the thread.
+    mtd init(lambda: func||(const *Thread), userParam: *void? = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
         Swag.assert(not .isValid(), "thread already created")
 
@@ -105,7 +107,7 @@ impl Thread
         .handle     = try createSuspendedNative(&threadEntry, me, &.id)
         .userLambda = lambda
         .userParam  = userParam
-        .requestEnd = false
+        .requestEnd.reset()
         try .setPriority(priority)
     }
 
@@ -150,7 +152,7 @@ private func threadEntry(param: *void?)->u32
     Swag.setContext(thread.context)
     let lambda = thread.userLambda
     if lambda do
-        lambda(thread[])
+        lambda(thread)
 
     thread.context.tempAllocator.release()
     thread.context.releaseErrorStorage()

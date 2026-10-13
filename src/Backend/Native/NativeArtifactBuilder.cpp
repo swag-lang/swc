@@ -869,12 +869,18 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
         builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
 
-    uint32_t objIndex = static_cast<uint32_t>(functionCount + 1);
+    // Every relocation into an allocation names the allocation's symbol in this layout, and
+    // several objects name the same one: the name is formatted here, once per allocation.
+    const uint32_t scopeHash = builder_->scopedSymbolNames().scopeHash;
+    uint32_t       objIndex  = static_cast<uint32_t>(functionCount + 1);
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
     {
-        const auto& mappings = builder_->rdataAllocationMap[shardIndex];
+        auto& mappings = builder_->rdataAllocationMap[shardIndex];
         for (uint32_t allocationIndex = 0; allocationIndex < mappings.size(); ++allocationIndex)
         {
+            NativeRDataAllocationMapEntry& allocation = mappings[allocationIndex];
+            allocation.symbolName                     = nativeScopedRDataAllocationSymbol(scopeHash, allocation.shardIndex, allocation.sourceOffset);
+
             NativeObjDescription& description = builder_->objectDescriptions[objIndex++];
             description.rdataShardIndex       = shardIndex;
             description.rdataAllocationIndex  = allocationIndex;

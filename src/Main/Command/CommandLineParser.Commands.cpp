@@ -276,6 +276,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--dev-sched-stats", nullptr,
         &cmdLine_->devSchedStats,
         "Report barrier rounds, wakes, and worker occupancy of the job scheduler when the command ends");
+    add(HelpOptionGroup::Development, "all", "--dev-stress-lazy-body", nullptr,
+        &cmdLine_->devStressLazyBody,
+        "Delay the declaration walk at the end of every lazily analyzed function body, so a competing lazy run starts inside the window the walk has to respect");
 #endif
 
 #if SWC_HAS_UNITTEST

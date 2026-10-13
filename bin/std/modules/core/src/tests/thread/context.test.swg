@@ -7,7 +7,7 @@ struct ContextProbe
     isolated:    bool
 }
 
-func probeContext(thread: Threading.Thread)
+func probeContext(thread: const *Threading.Thread)
 {
     let probe   = cast(*ContextProbe, thread.userParam!)
     let context = Swag.getContext()

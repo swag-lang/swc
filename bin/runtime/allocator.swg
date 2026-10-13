@@ -12,6 +12,32 @@
 //   - The header path serves larger blocks, over-aligned blocks, and every allocation made while a
 //     diagnostic mode is on. It keeps a header, a footer, and optional tracking, which is what
 //     leak reports, electric mode, and the double-free diagnostic need.
+//
+// What the allocator guarantees about a misuse depends on the configuration:
+//
+//   - In every configuration, a free block's links are keyed, so a stray write into a freed block
+//     cannot aim a free list at chosen memory, and a corrupted link is rejected when it is followed.
+//     This is mitigation, not detection: the write itself is not reported.
+//   - Under memory safety ('Swag.SafetyWhat.Memory', on in devmode and off in release unless the
+//     build adds it), a free of an address that starts no block, of a block already on a free list,
+//     and of a header-path block already freed is reported, as is a write into the first sixteen
+//     bytes of a freed page block of sixteen bytes or more, when that block is handed out again. A
+//     write further into a freed page block or into a freed 8-byte block, a write past the requested
+//     size of a live page block inside its class, a block freed by its owner and freed again by
+//     another thread while it sits on the owner's list, and a free of a block on an abandoned page
+//     are not seen.
+//   - With memory filling, freed header-path payloads are filled and, while the diagnostic quarantine
+//     holds them, checked when they leave it and when 'checkAllMemory' runs: a write after free
+//     anywhere in such a payload is reported then, not at the write.
+//   - In electric mode, every block has its own region ending at a guard page, so an access past the
+//     end of its alignment slack faults at the access, and a write into that slack, which is less
+//     than one alignment unit, is reported when the block is freed. Once freed, the payload is made
+//     inaccessible and its address is never reused, so a read or write through a stale pointer faults
+//     at the access, whatever the offset. Freed regions keep their reservation and their header page
+//     for the life of the allocator: electric mode trades address space for detection.
+//
+// The diagnostic modes keep their checks in every configuration; the ordinary path only checks
+// under memory safety.
 
 const AllocatorClassCount   = 45'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
@@ -30,10 +56,25 @@ const AllocatorPageAlignmentMax  = 64'u32
 
 // Bounds of the committed cache of freed header-path blocks.
 //
-// The budget between the two byte bounds follows the bytes held live through the header path.
+// The budget between the two byte bounds follows the bytes held live through the header path; the
+// entry count only has to exceed the live sets that fit the budget, since a program whose live
+// blocks outnumber the entries would send its misses to the system and fault their pages again. A freed
+// block that committed more than the budget goes back to the system at once, unless the cache is empty:
+// one such block may wait there alone, until the next cached block replaces it or the purge delay
+// expires. That is the whole of the huge-block policy; reservation rounding and in-place growth are
+// the same for every header-path block, and nothing above the upper bound is ever kept.
 const AllocatorBlockCacheMinBytes = 16'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxBytes = 256'u64 * 1024 * 1024
-const AllocatorBlockCacheMaxCount = 64'u64
+const AllocatorBlockCacheMaxCount = 256'u64
+
+// The front of the block cache every thread keeps for itself: the last header-path blocks it freed,
+// under this size, which its own next requests take without the cache lock.
+const AllocatorBlockFrontCount    = 16'u32
+const AllocatorBlockFrontMaxBytes = 2'u64 * 1024 * 1024
+
+// The list of ordinary live headers is sharded by address, so threads cycling large blocks rarely
+// take the same lock to link and unlink them.
+const AllocatorHeaderShardCount = 8'u64
 
 // Header-path blocks above this size are rounded to eight sizes per power of two.
 const AllocatorLargeRoundMin = 64'u64 * 1024
@@ -42,7 +83,9 @@ const AllocatorLargeRoundMin = 64'u64 * 1024
 //
 // Idle pages and cached large blocks that stay unused this long go back to the system at a periodic purge
 // check reached by an allocator slow path. Nothing runs in the background: a program that stops allocating
-// keeps them until it allocates again, trims, or exits.
+// keeps them until it allocates again, trims, or exits, and the delay does not follow the memory pressure the
+// host reports, which only a thread of its own could watch; a program that wants memory back on a schedule
+// calls 'trim'.
 const AllocatorPurgeDelayMs = 500'u64
 private var g_AllocatorPurgeDelayTicks: u64
 
@@ -66,9 +109,13 @@ struct AllocatorHeader
     allocAddr: [*] void?
 
     // Bytes reserved at 'allocAddr', and the leading part of them that is committed. Only a
-    // block of the cached path commits less than it reserves.
+    // block of the cached path, and a freed electric block, commit less than they reserve.
     allocSize:  u64
     commitSize: u64
+
+    // Where the payload starts. An ordinary header sits right before it; an electric header sits
+    // in the first page of its region, which stays readable after the payload pages are gone.
+    userAddr:   u64
     userSize:   u64
     blockSize:  u64
     prev:       *AllocatorHeader?
@@ -78,7 +125,8 @@ struct AllocatorHeader
     isTracked:  bool
 
     // An electric block ends near a reserved guard page, with less than one alignment unit of
-    // trailing slack. It carries no footer; an access reaching the guard faults immediately.
+    // trailing slack that holds a pattern checked on free. It carries no footer: an access reaching
+    // the guard faults immediately, and so does any access to the payload once the block is freed.
     isElectric: bool
     magic:      u32
 }
@@ -100,6 +148,9 @@ struct AllocatorFooter
 {
     magic: u32
 }
+
+// An electric header and its tracking record share the first page of their region.
+#assert(#sizeof(AllocatorTracking) + #sizeof(AllocatorHeader) <= AllocatorCommitGranularity)
 
 // An exact snapshot of what the allocator holds.
 //
@@ -138,6 +189,11 @@ struct AllocatorThreadClass
     // Pages found exhausted, which the slow path no longer scans. A local free moves its page
     // back; a remote free queues it on the allocator's revisit stack.
     full: *AllocatorPage?
+
+    // One emptied page kept on the heap, linked like the others, instead of given back: a live set
+    // that spans two pages of a class would otherwise release its second page and claim it again
+    // under the segment mutex every time it empties.
+    spare: *AllocatorPage?
 }
 
 struct AllocatorThreadHeap
@@ -151,6 +207,20 @@ struct AllocatorThreadHeap
     // Counts slow-path page refills, to read the clock for the idle purge only now and then.
     purgeCountdown: u32
     classes:        [AllocatorClassCount] AllocatorThreadClass
+
+    // The thread's front of the block cache, in the order the blocks were freed. Only the owning
+    // thread touches it: freed into by its frees, taken from by its requests, purged by its own
+    // purge checks, and emptied when it trims or retires.
+    frontCount: u32
+    front:      [AllocatorBlockFrontCount] AllocatorCachedBlock
+}
+
+// One shard of the list of ordinary live headers, on a cache line of its own.
+#[Swag.Align(64)]
+struct AllocatorHeaderShard
+{
+    mutex: MutexRW
+    first: *AllocatorHeader?
 }
 
 // Fiber-local storage gives both real per-thread isolation and a destructor that runs on a thread
@@ -173,7 +243,7 @@ struct Allocator
     // Guards the diagnostic quarantine and the tracked-allocation list.
     mutex: MutexRW
 
-    // Guards both live header lists, including ordinary allocations outside diagnostic mode.
+    // Guards the list of tracked live headers.
     headerMutex: MutexRW
 
     // Guards the segment list, the thread-heap list, and the abandoned pages.
@@ -184,12 +254,15 @@ struct Allocator
     firstAbandoned: *AllocatorPage?
 
     // Every live header belongs to one list so bulk release can discover it. Only tracked blocks
-    // enter firstAlloc and supply detailed leak reports; ordinary headers enter firstUntracked.
+    // enter firstAlloc and supply detailed leak reports; ordinary headers enter the shard their
+    // address selects.
     firstAlloc:      *AllocatorHeader?
-    firstUntracked:  *AllocatorHeader?
+    shards:          [AllocatorHeaderShardCount] AllocatorHeaderShard
     firstQuarantine: *AllocatorHeader?
     lastQuarantine:  *AllocatorHeader?
-    headerCount:     u64
+
+    // Bytes live through the header path, which the block cache budget follows; the live headers
+    // themselves are counted by walking their lists, so an operation moves one counter only.
     headerBytes:     u64
     quarantineBytes: u64
     quarantineCount: u64
@@ -217,8 +290,9 @@ struct Allocator
     nextId:       u32
     installMagic: u32 = 0
 
-    // Bounds the diagnostic quarantine. It retains headers and footers for corruption and
-    // double-free diagnostics. Freed payload fill bytes are not checked for later writes.
+    // Bounds the diagnostic quarantine, which retains freed header-path blocks for the double-free
+    // and corruption diagnostics and, with memory filling on, for the write-after-free check that
+    // runs when a block leaves it. Electric mode never evicts, so the bound does not apply to it.
     maxQuarantineBytes: u64
     showMaxLeaks:       u32
     breakOnAllocId:     u32
@@ -228,6 +302,10 @@ struct Allocator
     fillAlloc:          bool
     fillFree:           bool
     electricMode:       bool
+
+    // Set once an electric block exists and cleared by bulk release. While it is set, a header
+    // lookup first asks the host for the region, because the block's payload may be inaccessible.
+    hasElectricBlocks: bool
 
     // Set when any diagnostic mode or fill pattern is on, which sends every operation through
     // the general path. Kept in step with the flags above by 'configure'.
@@ -360,6 +438,7 @@ impl Allocator
     const MagicFree      = 0xFEE1DEAD
     const AllocByte      = 0xAB
     const FreeByte       = 0xFB
+    const SlackByte      = 0x5C
     const InstalledMagic = 0xA110CA7E
 
     // Class 0 is 8 bytes, classes 1 to 8 step by 16 up to 128, and every class above that splits a power of two into four.
@@ -479,19 +558,19 @@ impl Allocator
     // ###################################################################################
 
     // Reserves 'reserveSize' bytes and commits the first 'commitSize' of them.
+    //
+    // A reservation whose commit is refused is released again, so a failure leaves nothing behind.
     mtd osAllocPartial(reserveSize: u64, commitSize: u64)->[*] u8?
     {
-        let address = __hostPageReserve(reserveSize)
+        let address = allocatorOsReserve(reserveSize)
         if not address do
             return null
-        if not __hostPageCommit(address, commitSize)
+        if not allocatorOsCommit(cast(u64, address), commitSize)
         {
             __hostPageRelease(address, reserveSize)
             return null
         }
 
-        atomicAddU64(&g_AllocatorCommittedBytes, commitSize)
-        atomicAddU64(&g_AllocatorOsCommitCount, 1)
         return address
     }
 
@@ -500,18 +579,7 @@ impl Allocator
         let rounded = memAlign(size, cast(u32, AllocatorCommitGranularity))
         if rounded == 0 do
             return null
-        let address = __hostPageReserve(rounded)
-        if not address do
-            return null
-        if not __hostPageCommit(address, rounded)
-        {
-            __hostPageRelease(address, rounded)
-            return null
-        }
-
-        atomicAddU64(&g_AllocatorCommittedBytes, rounded)
-        atomicAddU64(&g_AllocatorOsCommitCount, 1)
-        return address
+        return .osAllocPartial(rounded, rounded)
     }
 
     // Reserves one extra page past the block and leaves it uncommitted.
@@ -522,19 +590,7 @@ impl Allocator
     {
         if commitBytes == 0 or commitBytes > Swag.U64.Max - AllocatorCommitGranularity do
             return null
-        let reservedBytes = commitBytes + AllocatorCommitGranularity
-        let address       = __hostPageReserve(reservedBytes)
-        if not address do
-            return null
-        if not __hostPageCommit(address, commitBytes)
-        {
-            __hostPageRelease(address, reservedBytes)
-            return null
-        }
-
-        atomicAddU64(&g_AllocatorCommittedBytes, commitBytes)
-        atomicAddU64(&g_AllocatorOsCommitCount, 1)
-        return address
+        return .osAllocPartial(commitBytes + AllocatorCommitGranularity, commitBytes)
     }
 
     mtd osFree(address: *void?, size: u64)
@@ -614,6 +670,7 @@ impl Allocator
         if Swag.atomxchg(&heap.retired, 1) != 0 do
             return
 
+        .purgeFront(heap, Swag.U64.Max)
         .segmentMutex.lock()
 
         for i in AllocatorClassCount
@@ -648,6 +705,7 @@ impl Allocator
             cls.first = null
             cls.last  = null
             cls.full  = null
+            cls.spare = null
         }
 
         .unlinkHeap(heap)
@@ -789,14 +847,19 @@ impl Allocator
         if not fresh do
             return null
 
+        // Every page of a fresh segment is free, so only a refused commit leaves it without one;
+        // it then goes back to the pool instead of staying linked here empty.
+        let page = fresh.acquirePage(classIndex, blockSize)
+        if not page
+        {
+            allocatorReleaseSegment(fresh)
+            return null
+        }
+
         fresh.nextSegment = .firstSegment
         if .firstSegment do
             .firstSegment.prevSegment = fresh
         .firstSegment = fresh
-
-        let page = fresh.acquirePage(classIndex, blockSize)
-        if not page do
-            return null
 
         page.ownerHeap = heap
         .linkPage(heap, page)
@@ -879,10 +942,12 @@ impl Allocator
 
         // An armed deadline is the common case while idle memory exists; only arming it reads the
         // counters other threads keep writing.
+        let heap     = currentAllocatorThreadHeap()
+        let own      = heap and heap.allocator == me and heap.retired == 0 ? heap : null
         let deadline = atomicGet(&.purgeDeadline)
         if deadline == 0
         {
-            if allocatorIdleBytes() != 0 or atomicGet(&.cachedBlockCount) != 0 do
+            if allocatorIdleBytes() != 0 or atomicGet(&.cachedBlockCount) != 0 or (own and own.frontCount != 0) do
                 discard Swag.atomcmpxchg(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
             return
         }
@@ -890,6 +955,10 @@ impl Allocator
         let now = __hostMonotonicTicks()
         if now < deadline or Swag.atomcmpxchg(&.purgeDeadline, deadline, 0) != deadline do
             return
+
+        // The front belongs to this thread alone, so only its own purge check can empty it.
+        if own and now >= delay do
+            .purgeFront(own, now - delay)
 
         .segmentMutex.lock()
         var segment: *AllocatorSegment? = .firstSegment
@@ -945,6 +1014,8 @@ impl Allocator
             let next = scan.nextPage
             scan.collectRemote()
             var block = scan.acquireBlock()
+            if block == 0 and scan.extendCommit() do
+                block = scan.acquireBlock()
             if block == 0 and not .parkFullPage(heap, scan)
             {
                 scan.collectRemote()
@@ -970,7 +1041,9 @@ impl Allocator
                 return 0
 
             cls.page = page
-            let block = page.acquireBlock()
+            var block = page.acquireBlock()
+            if block == 0 and page.extendCommit() do
+                block = page.acquireBlock()
             if block != 0 do
                 return block
         }
@@ -997,8 +1070,16 @@ impl Allocator
     mtd retirePage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
     {
         let cls = &heap.classes[page.classIndex]
-        if cls.page == page do
+        if cls.page == page or cls.spare == page do
             return
+
+        // An emptied page replaces a spare that has been used since; while the spare is still
+        // empty, the page goes back.
+        if cls.spare == null or cls.spare.used != 0
+        {
+            cls.spare = page
+            return
+        }
 
         .unlinkPage(heap, page)
         allocatorSegmentOf(page).releasePage(page)
@@ -1008,9 +1089,39 @@ impl Allocator
     // Header path
     // ###################################################################################
 
-    mtd headerOf(address: u64)->*AllocatorHeader => cast(*AllocatorHeader, (address - #sizeof(AllocatorHeader)))
+    // Recovers the header of a header-path block from its payload address.
+    //
+    // An ordinary header sits right before the payload. An electric header sits in the first page of the
+    // block's region, which the host names from any address of the reservation; the payload may be
+    // inaccessible, so nothing next to it is read before such a region has been ruled out.
+    mtd headerOf(address: u64)->*AllocatorHeader
+    {
+        if .hasElectricBlocks
+        {
+            let header = .electricHeaderOf(address)
+            if header do
+                return header
+        }
 
-    mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8, header) + #sizeof(AllocatorHeader)
+        return adjacentHeaderOf(address)
+    }
+
+    func adjacentHeaderOf(address: u64)->*AllocatorHeader => cast(*AllocatorHeader, (address - #sizeof(AllocatorHeader)))
+
+    // The electric header of the region holding 'address', or null when no such region holds it.
+    mtd electricHeaderOf(address: u64)->*AllocatorHeader?
+    {
+        let base = __hostPageAllocationBase(address)
+        if base == 0 do
+            return null
+
+        let header = cast(*AllocatorHeader, (base + #sizeof(AllocatorTracking)))
+        if (header.magic != MagicAlloc and header.magic != MagicFree) or not header.isElectric or header.userAddr != address do
+            return null
+        return header
+    }
+
+    mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8, header.userAddr)
 
     mtd footer(header: *AllocatorHeader)->*AllocatorFooter => cast(*AllocatorFooter, (.userAddress(header) + header.userSize))
 
@@ -1023,10 +1134,31 @@ impl Allocator
             .footer(header).magic = value
     }
 
-    mtd checkFree(header: *AllocatorHeader)
+    // The location a diagnostic reports for a freed block: where it was freed, when that is known.
+    mtd reportLocation(header: *AllocatorHeader, callerLoc: SourceCodeLocation)->SourceCodeLocation
+    {
+        let tracking = header.tracking
+        if tracking and tracking.loc.fileName do
+            return tracking.loc
+        return callerLoc
+    }
+
+    // Checks a quarantined block: its header and footer and, with memory filling on, its payload,
+    // which must still hold the pattern the free wrote. A freed electric payload is inaccessible,
+    // so a write into it has already faulted.
+    mtd checkFree(header: *AllocatorHeader, callerLoc = #callerlocation)
     {
         if header.magic != MagicFree or .footerMagic(header) != MagicFree do
-            Swag.panic("memory block corruption", #curlocation)
+            Swag.panic("memory block corruption", callerLoc)
+        if not .fillFree or header.isElectric do
+            return
+
+        let payload = .userAddress(header)
+        for i in header.userSize
+        {
+            if payload[i] != FreeByte do
+                Swag.panic("memory block was written after being freed", .reportLocation(header, callerLoc))
+        }
     }
 
     mtd checkAllocated(header: *AllocatorHeader, callerLoc = #callerlocation)
@@ -1036,45 +1168,60 @@ impl Allocator
            (footMagic != MagicAlloc and footMagic != MagicFree) do
             Swag.panic("memory block corruption", callerLoc)
 
-        if header.magic == MagicFree
+        if header.magic == MagicFree do
+            Swag.panic("memory block is freed twice", .reportLocation(header, callerLoc))
+    }
+
+    // Reports a write into the slack between an electric payload and its guard page.
+    mtd checkSlack(header: *AllocatorHeader, callerLoc: SourceCodeLocation)
+    {
+        let slack = cast([*] u8, (header.userAddr + header.userSize))
+        let count = cast(u64, header.allocAddr) + header.allocSize - header.userAddr - header.userSize
+        for i in count
         {
-            var loc      = callerLoc
-            let tracking = header.tracking
-            if tracking and tracking.loc.fileName do
-                loc = tracking.loc
-            Swag.panic("memory block is freed twice", loc)
+            if slack[i] != SlackByte do
+                Swag.panic("memory block was written past its end", callerLoc)
         }
     }
 
+    // Makes a freed electric payload inaccessible and gives its memory back: every page after the
+    // header page is decommitted and stays reserved, so the address is never reused and any later
+    // access faults.
+    mtd retireElectricPayload(header: *AllocatorHeader)
+    {
+        let base  = cast(u64, header.allocAddr)
+        let start = base + AllocatorCommitGranularity
+        allocatorOsDecommit(start, base + header.commitSize - start)
+        header.commitSize = AllocatorCommitGranularity
+    }
+
+    // Header regions are page-aligned, so the page number spreads them over the shards.
+    mtd shardOf(header: *AllocatorHeader)->*AllocatorHeaderShard
+        => &.shards[(cast(u64, header) >> 12) % AllocatorHeaderShardCount]
+
     mtd linkAllocated(header: *AllocatorHeader)
     {
-        .headerMutex.lock()
-        defer .headerMutex.unlock()
+        let mutex = header.isTracked ? &.headerMutex : &.shardOf(header).mutex
+        let first = header.isTracked ? &.firstAlloc : &.shardOf(header).first
+        mutex.lock()
+        defer mutex.unlock()
         header.prev = null
-        header.next = header.isTracked ? .firstAlloc : .firstUntracked
+        header.next = first[]
         if header.next do
             header.next.prev = header
-        if header.isTracked do
-            .firstAlloc = header
-        else do
-            .firstUntracked = header
+        first[] = header
     }
 
     mtd unlinkAllocated(header: *AllocatorHeader)
     {
-        .headerMutex.lock()
-        defer .headerMutex.unlock()
-        if not header.prev
-        {
-            if header.isTracked do
-                .firstAlloc = header.next
-            else do
-                .firstUntracked = header.next
-        }
-        else
-        {
+        let mutex = header.isTracked ? &.headerMutex : &.shardOf(header).mutex
+        let first = header.isTracked ? &.firstAlloc : &.shardOf(header).first
+        mutex.lock()
+        defer mutex.unlock()
+        if not header.prev do
+            first[] = header.next
+        else do
             header.prev.next = header.next
-        }
 
         if header.next do
             header.next.prev = header.prev
@@ -1085,8 +1232,8 @@ impl Allocator
 
     // Holds a freed block instead of unmapping it.
     //
-    // A second free is diagnosed through its header; consistency checks cover the header and footer, not
-    // accesses confined to the freed payload.
+    // A second free is diagnosed through its header. A block leaving the quarantine is checked: header and
+    // footer always, the payload pattern too when memory filling is on.
     mtd quarantine(header: *AllocatorHeader)
     {
         header.prev = .lastQuarantine
@@ -1198,8 +1345,11 @@ impl Allocator
         if not address do
             return
 
+        // A program cycling one buffer bigger than everything else it holds, a decoder with its
+        // frame for instance, would otherwise reserve, fault in and release that buffer on every
+        // cycle: one block above the budget may wait in the cache alone.
         let budget = .blockCacheBudget()
-        if committed > budget
+        if committed > budget and (committed > AllocatorBlockCacheMaxBytes or atomicGet(&.cachedBlockCount) != 0)
         {
             .osFree(cast(*void, address), committed)
             return
@@ -1207,6 +1357,20 @@ impl Allocator
 
         // Read before taking the lock, which every thread cycling large blocks contends for.
         let now = __hostMonotonicTicks()
+
+        // A block under the front's size waits in the freeing thread's own front while it has room.
+        let heap = currentAllocatorThreadHeap()
+        if committed <= AllocatorBlockFrontMaxBytes and heap and heap.allocator == me and heap.retired == 0 and heap.frontCount < AllocatorBlockFrontCount
+        {
+            let entry = &heap.front[heap.frontCount]
+            entry.address   = cast(u64, address)
+            entry.reserved  = size
+            entry.committed = committed
+            entry.stamp     = 0
+            entry.freedAt   = now
+            heap.frontCount += 1
+            return
+        }
 
         .mutex.lock()
         while .cachedBlockCount != 0 and
@@ -1236,6 +1400,54 @@ impl Allocator
         .mutex.unlock()
     }
 
+    // Serves the block of the thread's front that fits 'size' best, by the cache's fit rule, or null.
+    #[Swag.Safety(.Overflow, false)]
+    mtd popFrontBlock(heap: *AllocatorThreadHeap, size: u64, blockSize: *u64, commitSize: *u64)->[*] u8?
+    {
+        let limit     = size > Swag.U64.Max / 2 ? Swag.U64.Max : size * 2
+        var best      = heap.frontCount
+        var bestSlack = limit - size + 1
+        for i in heap.frontCount
+        {
+            let slack = heap.front[i].reserved - size
+            if slack < bestSlack
+            {
+                best      = i
+                bestSlack = slack
+            }
+        }
+
+        if best == heap.frontCount do
+            return null
+
+        let entry = heap.front[best]
+        heap.frontCount  -= 1
+        heap.front[best] = heap.front[heap.frontCount]
+        blockSize[]  = entry.reserved
+        commitSize[] = entry.committed
+        return cast([*] u8, entry.address)
+    }
+
+    // Gives the front's blocks freed before 'before' back to the operating system; every block when
+    // 'before' is the largest tick.
+    mtd purgeFront(heap: *AllocatorThreadHeap, before: u64)
+    {
+        var i = 0'u32
+        while i < heap.frontCount
+        {
+            let entry = heap.front[i]
+            if entry.freedAt >= before
+            {
+                i += 1
+                continue
+            }
+
+            heap.frontCount  -= 1
+            heap.front[i]    = heap.front[heap.frontCount]
+            .osFree(cast(*void, entry.address), entry.committed)
+        }
+    }
+
     // Gives every cached block back to the operating system. The caller holds the mutex.
     mtd drainBlockCache()
     {
@@ -1249,8 +1461,12 @@ impl Allocator
     {
         let alignment    = Swag.max(request.alignment, AllocatorPagePathAlignment)
         let trackingSize = .diagnosticMode() ? cast(u64, #sizeof(AllocatorTracking)) : 0'u64
-        let prefix       = memAlign(trackingSize + #sizeof(AllocatorHeader), alignment)
-        let blockSize    = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
+
+        // An electric header takes a page of its own in front of the payload pages, so that it stays
+        // readable once they are gone.
+        let prefixAlign = .electricMode ? Swag.max(alignment, cast(u32, AllocatorCommitGranularity)) : alignment
+        let prefix      = memAlign(trackingSize + #sizeof(AllocatorHeader), prefixAlign)
+        let blockSize   = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
         let payloadSize  = .electricMode ? request.size : blockSize
         let overhead     = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
         if payloadSize > Swag.U64.Max - overhead
@@ -1286,7 +1502,11 @@ impl Allocator
             {
                 let needed = allocSize
                 allocSize = largeBlockSize(needed)
-                base      = .popCachedBlock(allocSize, &allocSize, &commitSize)
+                let heap  = currentAllocatorThreadHeap()
+                if heap and heap.allocator == me and heap.retired == 0 do
+                    base = .popFrontBlock(heap, allocSize, &allocSize, &commitSize)
+                if not base do
+                    base = .popCachedBlock(allocSize, &allocSize, &commitSize)
                 if base and commitSize < needed
                 {
                     if allocatorOsCommit(cast(u64, base) + commitSize, needed - commitSize)
@@ -1322,10 +1542,11 @@ impl Allocator
             return
         }
 
-        let header = .headerOf(userAddr)
+        let header = .electricMode ? cast(*AllocatorHeader, (cast(u64, base) + trackingSize)) : adjacentHeaderOf(userAddr)
         header.allocAddr  = cast([*] void, base)
         header.allocSize  = allocSize
         header.commitSize = commitSize
+        header.userAddr   = userAddr
         header.userSize   = request.size
         header.blockSize  = blockSize
         header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking, base) : null
@@ -1337,6 +1558,14 @@ impl Allocator
         header.next       = null
 
         .setFooterMagic(header, MagicAlloc)
+
+        // The slack between an electric payload and its guard page holds a pattern the free checks.
+        if .electricMode
+        {
+            let slackStart = userAddr + request.size
+            Swag.memset(cast(*void, slackStart), SlackByte, cast(u64, base) + allocSize - slackStart)
+            .hasElectricBlocks = true
+        }
 
         if .fillAlloc do
             Swag.memset(cast(*void, userAddr), AllocByte, request.size)
@@ -1357,7 +1586,6 @@ impl Allocator
         if not .diagnosticMode() and not .electricMode do
             header.blockSize = cast(u64, base) + commitSize - #sizeof(AllocatorFooter) - userAddr
 
-        atomicAddU64(&.headerCount, 1)
         atomicAddU64(&.headerBytes, header.blockSize)
         .linkAllocated(header)
 
@@ -1390,14 +1618,15 @@ impl Allocator
     mtd freeHeaderBlock(address: u64, callerLoc: SourceCodeLocation)
     {
         let header = .headerOf(address)
-        #static if #safety(Swag.SafetyWhat.Memory)
-        {
+
+        // The diagnostic modes always diagnose a misuse; the ordinary path only under memory safety.
+        if .diagnosticMode() or #safety(Swag.SafetyWhat.Memory) do
             .checkAllocated(header, callerLoc)
-        }
+        if header.isElectric do
+            .checkSlack(header, callerLoc)
 
         .unlinkAllocated(header)
 
-        atomicSubU64(&.headerCount, 1)
         atomicSubU64(&.headerBytes, header.blockSize)
 
         if .fillFree do
@@ -1408,7 +1637,13 @@ impl Allocator
         if header.tracking do
             header.tracking.loc = callerLoc
 
-        if .diagnosticMode()
+        // An electric block is never reused, whatever the mode at the time of its free.
+        if header.isElectric
+        {
+            .retireElectricPayload(header)
+            .quarantine(header)
+        }
+        elif .diagnosticMode()
         {
             .quarantine(header)
         }
@@ -1768,6 +2003,35 @@ impl Allocator
     // Statistics and teardown
     // ###################################################################################
 
+    // Counts the live header-path blocks, tracked and ordinary, under their list locks.
+    mtd liveHeaderCount()->u64
+    {
+        var count = 0'u64
+        .headerMutex.lock()
+        var tracked = .firstAlloc
+        while tracked
+        {
+            count   += 1
+            tracked = tracked.next
+        }
+
+        .headerMutex.unlock()
+        for &shard in .shards
+        {
+            shard.mutex.lock()
+            var scan = shard.first
+            while scan
+            {
+                count += 1
+                scan  = scan.next
+            }
+
+            shard.mutex.unlock()
+        }
+
+        return count
+    }
+
     // Returns the allocator's current memory usage.
     //
     // Counts are exact when no other thread modifies the allocator. Concurrent activity can make
@@ -1803,7 +2067,7 @@ impl Allocator
             segment = segment.nextSegment
         }
 
-        result.countAlloc += atomicGet(&.headerCount)
+        result.countAlloc += .liveHeaderCount()
         result.sizeAlloc  += atomicGet(&.headerBytes)
         result.countFree  += .quarantineCount
         result.sizeCached += .quarantineBytes
@@ -1837,6 +2101,8 @@ impl Allocator
                         scan.collectRemote()
                         if scan.used == 0 and scan != cls.page
                         {
+                            if cls.spare == scan do
+                                cls.spare = null
                             .unlinkPage(heap, scan)
                             discard Swag.atomxchg(&scan.inFull, 0)
                             allocatorSegmentOf(scan).releasePage(scan)
@@ -1886,6 +2152,8 @@ impl Allocator
 
         if not .diagnosticMode()
         {
+            if heap and heap.allocator == me do
+                .purgeFront(heap, Swag.U64.Max)
             .mutex.lock()
             .drainBlockCache()
             .mutex.unlock()
@@ -1925,11 +2193,13 @@ impl Allocator
 
         .segmentMutex.lock()
 
-        // Any heap still registered belongs to a thread that never came back. Its pages go with it.
+        // Any heap still registered belongs to a thread that never came back. Its pages and the
+        // blocks of its front go with it.
         while .firstHeap
         {
             let other = .firstHeap
             .unlinkHeap(other)
+            .purgeFront(other, Swag.U64.Max)
             .osFree(other, #sizeof(AllocatorThreadHeap))
         }
 
@@ -1981,17 +2251,21 @@ impl Allocator
             .osFree(header.allocAddr, header.commitSize)
         }
 
-        while .firstUntracked
+        for &shard in .shards
         {
-            let header = .firstUntracked
-            .unlinkAllocated(header)
-            .osFree(header.allocAddr, header.commitSize)
+            while shard.first
+            {
+                let header = shard.first
+                .unlinkAllocated(header)
+                .osFree(header.allocAddr, header.commitSize)
+            }
         }
+
+        .hasElectricBlocks = false
 
         // The callers hold the mutex.
         .drainBlockCache()
 
-        atomicSubU64(&.headerCount, atomicGet(&.headerCount))
         atomicSubU64(&.headerBytes, atomicGet(&.headerBytes))
     }
 
@@ -2194,6 +2468,18 @@ func releaseAllocatorThreadCache()
     alloc?.retireThreadHeap(heap)
 }
 
+// Configures the runtime allocator and, by default, installs it in the current context.
+//
+// 'electricMode' gives every block its own region ending at a guard page and makes a freed payload
+// inaccessible, so an access past the alignment slack and any access to a freed block fault at the
+// access; a write into the slack is reported at the free, and freed addresses are never reused.
+// 'detectLeaks' reports the blocks still live at release; 'captureStack' records where each was
+// allocated for that report, and 'trackAllocations' its source location and hint. 'fillMemory'
+// fills new blocks with one pattern and freed ones with another, and reports a write into a freed
+// header-path payload when the block leaves the diagnostic quarantine. Every mode but 'detectLeaks'
+// and 'fillMemory' sends all allocations through the header path and its quarantine. An electric
+// allocation and free pair costs a reservation, a commit, a decommit and two host queries, about
+// eight microseconds against four before freed payloads were made inaccessible.
 func installAllocator(electricMode: bool = false,
                       detectLeaks: bool = true,
                       captureStack: bool = false,

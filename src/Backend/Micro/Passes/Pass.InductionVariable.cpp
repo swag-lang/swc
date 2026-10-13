@@ -229,8 +229,8 @@ namespace
         if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
 
-        const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry, context.ssaState);
-        std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
+        const MicroPassHelpers::MicroDomTree    dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry, context.ssaState);
+        const MicroPassHelpers::NaturalLoopMap& loopsByHeader = MicroPassHelpers::naturalLoopsFor(context.ssaState, cfg, dom);
         if (loopsByHeader.empty())
             return false;
 
@@ -240,9 +240,10 @@ namespace
         // ends the round. Physical neighbors therefore keep their CFG indices.
 
         // Only loops with a clean preheader and dead incoming flags can use
-        // the whole-function register effects collected below.
-        std::erase_if(loopsByHeader, [&](const auto& item) {
-            const NaturalLoop&  loop      = item.second;
+        // the whole-function register effects collected below. The loops are
+        // shared with the other passes of the sweep, so a rejected one is
+        // skipped rather than erased.
+        auto isRejected = [&](const NaturalLoop& loop) {
             const uint32_t      header    = loop.header;
             const MicroInstrRef headerRef = instrRefs[header];
             if (std::ranges::find(processedHeaders, headerRef) != processedHeaders.end())
@@ -266,8 +267,15 @@ namespace
                 !prevFlags.has(MicroInstrFlagsE::ConditionalJump))
                 return true;
             return !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef, context.builder);
-        });
-        if (loopsByHeader.empty())
+        };
+        thread_local std::vector<const NaturalLoop*> loops;
+        loops.clear();
+        for (const NaturalLoop& loop : loopsByHeader | std::views::values)
+        {
+            if (!isRejected(loop))
+                loops.push_back(&loop);
+        }
+        if (loops.empty())
             return false;
 
         // Every loop reads the same unmodified instruction stream. Collect its
@@ -297,8 +305,9 @@ namespace
         uint32_t nextVirtualIntRegIndex = 0;
         bool     changed                = false;
 
-        for (auto& loop : loopsByHeader | std::views::values)
+        for (const NaturalLoop* loopPtr : loops)
         {
+            const NaturalLoop&  loop      = *loopPtr;
             const uint32_t      header    = loop.header;
             const auto&         inBody    = loop.inBody;
             const MicroInstrRef headerRef = instrRefs[header];

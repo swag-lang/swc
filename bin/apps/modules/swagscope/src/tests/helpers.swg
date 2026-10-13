@@ -115,7 +115,7 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
             if instance.view and window.choices[index].key == PlainText.ViewerKey
             {
                 let view = assume cast(*PlainText.Panel, instance.view)
-                if view.statisticsThread.isValid() and view.statisticsThread.requestEnd do
+                if view.statisticsThread.isValid() and view.statisticsThread.requestEnd.isRaised() do
                     view.statisticsThread.wait()
             }
         }

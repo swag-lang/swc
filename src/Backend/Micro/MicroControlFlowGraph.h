@@ -36,6 +36,11 @@ public:
     uint32_t                  indexOf(MicroInstrRef ref) const;
     uint32_t                  indexOfLabel(uint64_t labelRef) const;
 
+    // The one instruction no edge leads to, or K_NO_INDEX when there is none or more than one.
+    // Every analysis rooted at the entry asks for it, several times per sweep; the predecessor
+    // lists are scanned for it once per build of the graph.
+    uint32_t singleEntry() const;
+
     // Instructions reachable from any root, including the roots and cycles.
     // An incomplete graph or a missing root conservatively marks every instruction.
     std::vector<uint8_t> reachableFrom(std::span<const MicroInstrRef> roots) const;
@@ -50,8 +55,10 @@ private:
 
     std::vector<MicroInstrRef>    instructionRefs_;
     mutable std::vector<uint32_t> indexBySlot_;
-    uint32_t                      maxSlot_ = 0;
-    uint64_t                      buildId_ = 0;
+    mutable uint32_t              singleEntry_      = K_NO_INDEX;
+    mutable bool                  singleEntryReady_ = false;
+    uint32_t                      maxSlot_          = 0;
+    uint64_t                      buildId_          = 0;
     std::vector<uint32_t>         labelToInstructionIndex_;
     SmallVector<uint32_t, 2>      addressTakenLabelIndices_;
     std::vector<EdgeList>         successors_;

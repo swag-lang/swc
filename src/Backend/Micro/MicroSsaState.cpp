@@ -332,6 +332,8 @@ void MicroSsaState::clear()
     blocksCfg_          = nullptr;
     blocksCfgBuildId_   = 0;
     blocksHaveFrontier_ = false;
+    loopsCfg_           = nullptr;
+    loopsCfgBuildId_    = 0;
     trackedRegs_.clear();
     // Slot numbers belong to one function. Invalidate cached use/def by epoch
     // rather than walking every retained slot before each small function.
@@ -501,7 +503,7 @@ bool MicroSsaState::definitionDominates(const uint32_t valueId, const MicroInstr
 
 bool MicroSsaState::copyInstructionDominators(MicroPassHelpers::MicroDomTree& out, const MicroControlFlowGraph& cfg) const
 {
-    if (!valid_ || !trackedDefCount_ || blocksCfg_ != &cfg || blocksCfgBuildId_ != cfg.buildId())
+    if (!trackedDefCount_ || blocksCfg_ != &cfg || blocksCfgBuildId_ != cfg.buildId())
         return false;
 
     const size_t count = instructionRefs_.size();
@@ -522,6 +524,18 @@ bool MicroSsaState::copyInstructionDominators(MicroPassHelpers::MicroDomTree& ou
         out.subtreeEnd[index]   = blocks_[instructionToBlock_[index]].renameEnd;
     }
     return true;
+}
+
+const MicroPassHelpers::NaturalLoopMap& MicroSsaState::naturalLoops(const MicroControlFlowGraph& cfg, const MicroPassHelpers::MicroDomTree& dom)
+{
+    if (loopsCfg_ != &cfg || loopsCfgBuildId_ != cfg.buildId())
+    {
+        loops_           = MicroPassHelpers::findNaturalLoops(cfg, dom);
+        loopsCfg_        = &cfg;
+        loopsCfgBuildId_ = cfg.buildId();
+    }
+
+    return loops_;
 }
 
 const MicroSsaState::ValueInfo* MicroSsaState::valueInfo(const uint32_t valueId) const

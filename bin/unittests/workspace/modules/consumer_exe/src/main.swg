@@ -159,6 +159,10 @@ func verifyExportAndStaticModules()
     Swag.assert(depGeneratedExport() == 42)
     Swag.assert(depPlaceholderExport(35) == 42)
     Swag.assert(depGenericIdentity(42) == 42)
+    Swag.assert(depSupportCompute(20) == 123)
+    var supportReader: DepSupportReader
+    supportReader.value = 41
+    Swag.assert(supportReader.read's32() == 42)
     Swag.assert(DepOverloadWnd.create'DepOverloadWnd() == null)
     Swag.assert(DepTools.DEP_NAMESPACE_A == 31)
     Swag.assert(DepTools.DEP_NAMESPACE_B == 37)

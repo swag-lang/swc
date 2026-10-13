@@ -501,6 +501,147 @@ impl Value
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_GenericBodyPublishesSupportingDeclarations)
+{
+    ApiPublicationTestDirectory directory("SupportingDecls");
+    struct Case
+    {
+        std::string_view name;
+        std::string_view source;
+        std::string_view use;
+        // Fragments the generated interface must carry, or the export error when it cannot.
+        std::vector<std::string_view> published;
+        std::string_view              because;
+        std::string_view              helperFile;
+    };
+    const Case cases[] = {
+        {"PrivateHelper", R"(#global public
+private func helper(value: s32)->s32 => value + 1
+func(T) exposed(value: T)->s32 => helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {"private func helper(value: s32)->s32 => value + 1"}},
+        {"TransitiveHelpers", R"(#global public
+private func inner(value: s32)->s32 => value * 2
+private func outer(value: s32)->s32 => inner(value) + 1
+func(T) exposed(value: T)->s32 => outer(cast(s32, value))
+)",
+         "discard exposed(20)",
+         {"private func inner(value: s32)->s32 => value * 2", "private func outer(value: s32)->s32 => inner(value) + 1"}},
+        {"QualifiedHelper", R"(#global public
+namespace Inner { private func helper(value: s32)->s32 => value + 1 }
+func(T) exposed(value: T)->s32 => Inner.helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {"private func helper(value: s32)->s32 => value + 1"}},
+        {"InternalMethod", R"(#global public
+struct Reader { public value: s32 }
+impl Reader
+{
+    internal mtd bump() { .value += 1 }
+    mtd(T) read()->T
+    {
+        .bump()
+        return cast(T, .value)
+    }
+}
+)",
+         "var reader: Reader\n    discard reader.read's32()",
+         {"internal mtd bump() { .value += 1 }"}},
+        {"PrivateTypeAndConstant", R"(#global public
+private const Scale = 3
+private struct Pair { a: s32, b: s32 }
+func(T) exposed(value: T)->s32
+{
+    var pair: Pair
+    pair.a = cast(s32, value) * Scale
+    return pair.a + pair.b
+}
+)",
+         "discard exposed(2)",
+         {"private const Scale = 3", "private struct Pair { a: s32, b: s32 }"}},
+        {"OtherFileHelper", R"(#global public
+func(T) exposed(value: T)->s32 => helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {"internal func helper(value: s32)->s32 => value + 1"},
+         {},
+         "internal func helper(value: s32)->s32 => value + 1\n"},
+        {"HelperReadsGlobal", R"(#global public
+private var counter: s32 = 0
+private func helper(value: s32)->s32 => value + counter
+func(T) exposed(value: T)->s32 => helper(cast(s32, value))
+)",
+         "discard exposed(41)",
+         {},
+         "symbol 'counter' is not exposed by the module API"},
+    };
+
+    for (const Case& test : cases)
+    {
+        const fs::path module = directory.path() / test.name;
+        const fs::path api    = module / "api";
+        SWC_RESULT(CompilerTestFile::writeText(module / "module.swg", "#run {}\n"));
+        SWC_RESULT(CompilerTestFile::writeText(module / "src" / "provider.swg", test.source));
+        if (!test.helperFile.empty())
+            SWC_RESULT(CompilerTestFile::writeText(module / "src" / "helper.swg", test.helperFile));
+
+        const std::vector<Utf8> args = {"sema", "--module", Utf8(module.string()), "--module-namespace", "GenericApi", "--artifact-kind", "static-library", "--export-api-dir", Utf8(api.string()), "--num-cores", "6"};
+        ImportResult            result;
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &result.output;
+        options.forwardOutput  = false;
+        options.timeoutMs      = 15000;
+        result.process         = Os::runProcess(result.exitCode, Os::getExeFullName(), args, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || (result.exitCode == 0) != test.because.empty())
+        {
+            std::println(stderr, "[supporting API {}] {}", test.name, result.output);
+            return Result::Error;
+        }
+
+        if (!test.because.empty())
+        {
+            if (result.output.find("cannot export non-public function 'helper', which a published generic body needs") == std::string::npos ||
+                result.output.find(test.because) == std::string::npos ||
+                result.output.find("export the referenced implementation too") == std::string::npos)
+            {
+                std::println(stderr, "[supporting API {}] {}", test.name, result.output);
+                return Result::Error;
+            }
+            continue;
+        }
+
+        std::string             generated;
+        FileSystem::IoErrorInfo ioError;
+        const fs::path          apiFile = api / (std::string(test.name) + ".swg");
+        if (FileSystem::readTextFile(apiFile, generated, ioError) != Result::Continue)
+        {
+            std::println(stderr, "[supporting API {}] cannot read '{}'", test.name, apiFile.string());
+            return Result::Error;
+        }
+        for (const std::string_view fragment : test.published)
+        {
+            if (generated.find(fragment) == std::string::npos)
+            {
+                std::println(stderr, "[supporting API {}] missing '{}' in:\n{}", test.name, fragment, generated);
+                return Result::Error;
+            }
+        }
+
+        const fs::path consumer = module / "consumer.swg";
+        SWC_RESULT(CompilerTestFile::writeText(consumer, std::format("using GenericApi\n#main\n{{\n    {}\n}}\n", test.use)));
+        const std::vector<Utf8> importArgs = {"sema", "--num-cores", "6", "-f", Utf8(consumer.string()), "--import-api-file", Utf8(apiFile.string())};
+        result.output.clear();
+        result.process = Os::runProcess(result.exitCode, Os::getExeFullName(), importArgs, module, &options);
+        if (result.process != Os::ProcessRunResult::Ok || result.exitCode != 0)
+        {
+            std::println(stderr, "[supporting API consumer {}] {}", test.name, result.output);
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_WholeFileBodyExportContract)
 {
     ApiPublicationTestDirectory directory("WholeFileBodies");

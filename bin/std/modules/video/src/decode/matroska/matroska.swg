@@ -2121,13 +2121,13 @@ private impl Decoder
 // two seconds on a large film read across a network share. Done on the thread that decodes, that
 // is the run-ahead queue emptied and a picture skipped; the player already knows how to show a
 // picture whose sound has not arrived yet, so the walk waits here instead.
-private func runMatroskaSoundWindow(thread: Threading.Thread)
+private func runMatroskaSoundWindow(thread: const *Threading.Thread)
 {
     let index = cast(*FileIndex, thread.userParam!)
-    while not thread.requestEnd
+    while not thread.requestEnd.isRaised()
     {
         index.windowWake.wait()
-        if thread.requestEnd do
+        if thread.requestEnd.isRaised() do
             break
 
         discard catch buildSoundWindow(index, Atomic.get(&index.windowTarget))
@@ -2135,7 +2135,7 @@ private func runMatroskaSoundWindow(thread: Threading.Thread)
     }
 }
 
-private func runMatroskaSoundIndex(thread: Threading.Thread)
+private func runMatroskaSoundIndex(thread: const *Threading.Thread)
 {
     let index = cast(*FileIndex, thread.userParam!)
     catch buildSoundIndex(index) as indexError

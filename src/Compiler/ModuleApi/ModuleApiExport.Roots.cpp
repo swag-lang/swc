@@ -11,27 +11,32 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using ModuleApiExport::collectModuleApiSymbolDependencies;
     using ModuleApiExport::isCurrentModuleSymbol;
     using ModuleApiExport::isModuleApiOpaqueType;
     using ModuleApiExport::isWholeFileExportedSymbol;
+    using ModuleApiExport::ModuleApiDependencyCollector;
+    using ModuleApiExport::ModuleApiDependencyScope;
     using ModuleApiExport::ModuleApiGeneratedRoot;
-
-    struct ModuleApiDependencyCollector
-    {
-        TaskContext*                      ctx;
-        std::vector<const Symbol*>        symbols;
-        // Membership only: one collector per root, so the sets stay small and flat.
-        PointerSet<const Symbol> symbolSet;
-        PointerSet<const Symbol> visitedSymbols;
-        RefSet<TypeRef>          visitedTypeRefs;
-    };
 
     bool isGeneratedModuleApiTypeSymbol(const Symbol& symbol)
     {
         return symbol.isAlias() || symbol.isStruct() || symbol.isEnum() || symbol.isInterface();
     }
 
-    void collectModuleApiSymbolDependencies(ModuleApiDependencyCollector& collector, const Symbol& symbol);
+    bool matchesDependencyScope(const ModuleApiDependencyScope scope, const Symbol& symbol)
+    {
+        switch (scope)
+        {
+            case ModuleApiDependencyScope::Public:
+                return symbol.isPublic();
+            case ModuleApiDependencyScope::NonPublic:
+                return !symbol.isPublic();
+            default:
+                return true;
+        }
+    }
+
     void collectModuleApiTypeRefDependencies(ModuleApiDependencyCollector& collector, TypeRef typeRef);
 
     void collectModuleApiTypeSymbolDependency(ModuleApiDependencyCollector& collector, const Symbol& symbol)
@@ -40,7 +45,7 @@ namespace
             return;
         if (isWholeFileExportedSymbol(collector.ctx->compiler(), symbol))
             return;
-        if (!symbol.isPublic() || !isGeneratedModuleApiTypeSymbol(symbol))
+        if (!matchesDependencyScope(collector.scope, symbol) || !isGeneratedModuleApiTypeSymbol(symbol))
             return;
 
         if (collector.symbolSet.insert(&symbol))
@@ -159,6 +164,10 @@ namespace
         }
     }
 
+}
+
+namespace ModuleApiExport
+{
     void collectModuleApiSymbolDependencies(ModuleApiDependencyCollector& collector, const Symbol& symbol)
     {
         if (!collector.visitedSymbols.insert(&symbol))
@@ -213,6 +222,10 @@ namespace
         if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
             collectModuleApiFunctionDependencies(collector, *symbolFunction);
     }
+}
+
+namespace
+{
 
     std::unordered_map<const Symbol*, size_t> buildGeneratedRootTypeIndexMap(std::span<const ModuleApiGeneratedRoot> roots)
     {
@@ -245,7 +258,7 @@ namespace ModuleApiExport
             if (!symbol)
                 continue;
 
-            ModuleApiDependencyCollector collector{.ctx = &ctx};
+            ModuleApiDependencyCollector collector{.ctx = &ctx, .scope = ModuleApiDependencyScope::Any};
             collectModuleApiSymbolDependencies(collector, *symbol);
             for (const Symbol* dependencySymbol : collector.symbols)
             {

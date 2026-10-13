@@ -46,17 +46,47 @@ public:
     TypeRef              makeTypeValue(Sema& sema, ConstantRef cstRef) const;
     DataSegment&         shardDataSegment(uint32_t index);
     const DataSegment&   shardDataSegment(uint32_t index) const;
-    bool                 resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
-    bool                 hasUnpublishedFunctionRelocations(std::span<const DataSegmentRef> roots) const;
-    bool                 resolveConstantDataSegmentRef(DataSegmentRef& outRef, ConstantRef cstRef, const void* ptr) const noexcept;
-    DataSegmentRef       findConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef) const;
-    DataSegmentRef       publishConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef, DataSegmentRef dataRef);
-    static uint32_t      runtimeBufferConstantCacheShard(TypeRef typeRef, const void* targetPtr, uint64_t count);
-    ConstantRef          findRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count) const;
-    ConstantRef          publishRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count, ConstantRef cstRef);
-    static uint32_t      runtimeStringConstantCacheShard(TypeRef typeRef, std::string_view value);
-    ConstantRef          findRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value) const;
-    ConstantRef          publishRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value, ConstantRef cstRef);
+    // The sum of every shard's relocation version: each only grows, so the sum moves whenever
+    // any shard gains a relocation. Reading it costs no shared write, unlike one process-wide
+    // counter bumped by every relocation added.
+    uint64_t        relocationVersionSum() const noexcept;
+    bool            resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
+    bool            hasUnpublishedFunctionRelocations(std::span<const DataSegmentRef> roots) const;
+    bool            resolveConstantDataSegmentRef(DataSegmentRef& outRef, ConstantRef cstRef, const void* ptr) const noexcept;
+    DataSegmentRef  findConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef) const;
+    DataSegmentRef  publishConstantStorage(ConstantRef cstRef, TypeRef storageTypeRef, DataSegmentRef dataRef);
+    static uint32_t runtimeBufferConstantCacheShard(TypeRef typeRef, const void* targetPtr, uint64_t count);
+    ConstantRef     findRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count) const;
+    ConstantRef     publishRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count, ConstantRef cstRef);
+    static uint32_t runtimeStringConstantCacheShard(TypeRef typeRef, std::string_view value);
+    ConstantRef     findRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value) const;
+    ConstantRef     publishRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value, ConstantRef cstRef);
+
+    // What the constant graph looks like at one offset: which allocation holds it, and which
+    // relocations that allocation carries. Every compile-time call in a module walks this graph
+    // over the same few thousand allocations, from sema, from the publication check and from
+    // the JIT patch of each emitted function, and asking the segment again costs a lock, a
+    // binary search and a copy for an answer that has not changed. An entry is used only while
+    // the segment's relocation version is the one it was recorded at, so a patched allocation is
+    // never served stale.
+    struct WalkedAllocation
+    {
+        uint64_t                              segmentId         = 0;
+        uint32_t                              queryOffset       = 0;
+        uint64_t                              relocationVersion = 0;
+        DataSegmentAllocation                 allocation;
+        SmallVector<DataSegmentRelocation, 4> relocations;
+        // The relocation version sum at which the allocation's whole constant graph was last
+        // seen to hold no function pointer; zero until then. Function patching walks the graph
+        // of every constant a function names, and most of them only hold data.
+        mutable uint64_t dataOnlyRelocationVersions = 0;
+    };
+
+    // The entry for 'offset' of 'segment', refreshed when the segment's relocations moved since
+    // it was recorded, or null when no allocation holds that offset. The table belongs to the
+    // worker, and an entry stays put while later lookups record other offsets; it is reassigned
+    // only by a later lookup of the same offset.
+    static const WalkedAllocation* walkedAllocation(const DataSegment& segment, uint32_t offset);
 
     struct RuntimeBufferConstantCacheKey
     {

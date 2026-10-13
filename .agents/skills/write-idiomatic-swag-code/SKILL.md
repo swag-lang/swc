@@ -393,8 +393,10 @@ through it directly, and only a whole-value read or write opens the place with t
   a copy — and `for &v in items` binds `*T`. Access members and call methods through the binding
   directly; write a scalar element with `v[] = value`.
 - Pass structs by value. The ABI hands the callee a const address, so a by-value struct
-  parameter costs no copy. Take `*T` only when the callee mutates the caller's value, and write
-  the whole pointee with `[]`.
+  parameter costs no copy, and the compiler treats the value as fixed for the whole call: it may
+  read a field once and keep it across stores and calls. Take `*T` when the callee mutates the
+  caller's value, and `const *T` when it must see changes made to that value while it runs, such
+  as a thread body polling its stop flag. Write the whole pointee with `[]`.
 - `me` is a non-null pointer to the receiver. Pass `me` itself where a `*T` is expected; `&me`
   is the address of the receiver slot, never the object.
 - Index places directly: `items[i].field = x` and `&items[i]` route through the container's

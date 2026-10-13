@@ -30,12 +30,17 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         std::string          output;
     };
 
-    Result runPrintMicro(PrintMicroRun& run, const fs::path& directory, std::span<const std::string_view> requests)
+    Result runPrintMicro(PrintMicroRun& run, const fs::path& directory, std::string_view source, std::string_view buildCfg, std::span<const std::string_view> requests)
     {
-        const fs::path source = directory / "print_micro.swg";
-        SWC_RESULT(CompilerTestFile::writeText(source, PRINT_MICRO_SOURCE));
+        const fs::path sourcePath = directory / "print_micro.swg";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-        std::vector<Utf8> args = {"sema", "--num-cores", "6", "--no-log-color", "-f", Utf8(source.string())};
+        std::vector<Utf8> args = {"sema", "--num-cores", "6", "--no-log-color", "-f", Utf8(sourcePath.string())};
+        if (!buildCfg.empty())
+        {
+            args.emplace_back("-bc");
+            args.emplace_back(buildCfg);
+        }
         for (const std::string_view request : requests)
         {
             args.emplace_back("--print-micro");
@@ -64,6 +69,85 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         }
 
         return count;
+    }
+
+    // One parsed line of a listing: "NNN LLL <mnemonic and operands> | <comment>". A label line
+    // has an id and no mnemonic.
+    struct ListingLine
+    {
+        std::string_view id;
+        std::string_view body;
+    };
+
+    bool isListingNumber(std::string_view text)
+    {
+        return text.size() == 3 && std::ranges::all_of(text, [](const char c) { return c >= '0' && c <= '9'; });
+    }
+
+    std::vector<ListingLine> parseListing(std::string_view listing)
+    {
+        std::vector<ListingLine> lines;
+        for (size_t pos = 0; pos < listing.size();)
+        {
+            const size_t           end  = listing.find('\n', pos);
+            const std::string_view line = listing.substr(pos, end == std::string_view::npos ? std::string_view::npos : end - pos);
+            pos                         = end == std::string_view::npos ? listing.size() : end + 1;
+            if (line.size() < 7 || line[3] != ' ' || !isListingNumber(line.substr(0, 3)) || !isListingNumber(line.substr(4, 3)))
+                continue;
+
+            std::string_view body = line.substr(7);
+            if (const size_t comment = body.find('|'); comment != std::string_view::npos)
+                body = body.substr(0, comment);
+            while (!body.empty() && body.front() == ' ')
+                body.remove_prefix(1);
+            while (!body.empty() && (body.back() == ' ' || body.back() == '\r'))
+                body.remove_suffix(1);
+            lines.push_back({line.substr(4, 3), body});
+        }
+
+        return lines;
+    }
+
+    // The first loop of one function's listing: the lines between a label and the conditional
+    // jump back to it. Counts the reads through a plain base-plus-offset memory operand in that
+    // body; an element access uses the indexed addressing form and is not counted.
+    struct ListingLoop
+    {
+        bool   found       = false;
+        size_t memoryReads = 0;
+    };
+
+    ListingLoop loopOfListing(std::string_view output, std::string_view scopedName)
+    {
+        ListingLoop  loop;
+        const size_t header = output.find(std::format("function : {}", scopedName));
+        if (header == std::string_view::npos)
+            return loop;
+        const size_t                   next  = output.find("[micro]", header);
+        const std::vector<ListingLine> lines = parseListing(output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header));
+
+        for (size_t backEdge = 0; backEdge < lines.size(); backEdge++)
+        {
+            const std::string_view body = lines[backEdge].body;
+            if (!body.starts_with("jump_cond"))
+                continue;
+            const std::string_view target = body.substr(body.rfind(' ') + 1);
+            size_t                 head   = 0;
+            while (head < backEdge && !(lines[head].body.empty() && lines[head].id == target))
+                head++;
+            if (head == backEdge)
+                continue;
+
+            loop.found = true;
+            for (size_t i = head + 1; i < backEdge; i++)
+            {
+                if (lines[i].body.starts_with("load_reg_mem") || lines[i].body.starts_with("op_binary_reg_mem"))
+                    loop.memoryReads++;
+            }
+            return loop;
+        }
+
+        return loop;
     }
 }
 
@@ -98,7 +182,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroSelectsFunctionsFromTheCommandLine)
     for (const Case& test : cases)
     {
         PrintMicroRun run;
-        SWC_RESULT(runPrintMicro(run, directory, test.requests));
+        SWC_RESULT(runPrintMicro(run, directory, PRINT_MICRO_SOURCE, {}, test.requests));
         if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 ||
             countListings(run.output, "addOne") != test.addOneListings ||
             countListings(run.output, "subOne") != test.subOneListings ||
@@ -118,7 +202,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroSelectsFunctionsFromTheCommandLine)
 
         PrintMicroRun          run;
         const std::string_view request[] = {invalid};
-        SWC_RESULT(runPrintMicro(run, directory, request));
+        SWC_RESULT(runPrintMicro(run, directory, PRINT_MICRO_SOURCE, {}, request));
         if (run.process != Os::ProcessRunResult::Ok || run.exitCode == 0 ||
             run.output.find("argument '--print-micro' does not accept value") == std::string::npos)
         {
@@ -191,6 +275,75 @@ public func exported()->u32 => 23
     fs::remove_all(directory, ec);
     if (result != Result::Continue)
         return result;
+}
+SWC_TEST_END()
+
+// A struct parameter is a value: nothing changes the caller's storage while the call runs, so
+// the pointer a field holds is read once, before the loop, although the body stores through
+// another pointer that could alias anything. The same loop over a pointer parameter reads the
+// field on every trip, because the store may well be writing it.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroShowsValueParameterReadsLeavingTheLoop)
+{
+    constexpr std::string_view SOURCE = R"(#global private
+struct View
+{
+    data:  const [*] s64
+    count: u64
+}
+
+#[Swag.NoInline]
+func sumValue(dst: [*] s64, view: View)->s64
+{
+    var total = 0's64
+    for i in view.count
+    {
+        dst[i] = view.data[i]
+        total += dst[i]
+    }
+
+    return total
+}
+
+#[Swag.NoInline]
+func sumPointer(dst: [*] s64, view: const *View)->s64
+{
+    var total = 0's64
+    for i in view.count
+    {
+        dst[i] = view.data[i]
+        total += dst[i]
+    }
+
+    return total
+}
+
+#run
+{
+    let src: [4] s64 = [1, -2, 3, 40]
+    var dst: [4] s64
+    let view = View{&src[0], 4}
+    Swag.assert(sumValue(&dst[0], view) == 42)
+    Swag.assert(sumPointer(&dst[0], &view) == 42)
+    Swag.assert(dst[3] == 40)
+}
+)";
+
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_value_parameter" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    std::error_code ec;
+    fs::remove_all(directory, ec);
+
+    PrintMicroRun          run;
+    const std::string_view requests[] = {"sumValue:pre-emit", "sumPointer:pre-emit"};
+    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "release", requests));
+    fs::remove_all(directory, ec);
+
+    const ListingLoop value   = loopOfListing(run.output, "sumValue");
+    const ListingLoop pointer = loopOfListing(run.output, "sumPointer");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || !value.found || !pointer.found || value.memoryReads != 0 || pointer.memoryReads == 0)
+    {
+        std::println(stderr, "[print micro value parameter] value loop reads {} ({}), pointer loop reads {} ({})\n{}", value.memoryReads, value.found, pointer.memoryReads, pointer.found, run.output);
+        return Result::Error;
+    }
 }
 SWC_TEST_END()
 

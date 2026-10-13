@@ -732,13 +732,13 @@ impl HevcStream
     }
 }
 
-private func runHevcFrameThread(thread: Threading.Thread)
+private func runHevcFrameThread(thread: const *Threading.Thread)
 {
     let frameThread = cast(*HevcFrameThread, thread.userParam!)
-    while not thread.requestEnd
+    while not thread.requestEnd.isRaised()
     {
         frameThread.wake.wait()
-        if thread.requestEnd do
+        if thread.requestEnd.isRaised() do
             break
 
         var frame: *Frame?

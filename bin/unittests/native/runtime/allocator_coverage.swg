@@ -143,10 +143,13 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(page.isBlockAddress(cast(u64, address)))
         Swag.assert(page.state == AllocatorPageState.Owned)
 
-        // Medium classes take a page eight units wide so that they still hold several blocks.
+        // Medium classes take a page eight units wide so that they still hold several blocks,
+        // committed one unit at a time: the first block of a class commits no more than a unit.
         let expectedShift = i >= AllocatorMediumFirstClass ? AllocatorMediumUnitShift : AllocatorSmallUnitShift
-        Swag.assert(allocatorSegmentOf(page).unitShift == expectedShift)
-        Swag.assert(page.capacityBytes() / page.blockSize >= 4)
+        let segment       = allocatorSegmentOf(page)
+        Swag.assert(segment.unitShift == expectedShift)
+        Swag.assert((AllocatorPageSize << segment.unitShift) / page.blockSize >= 4)
+        Swag.assert(page.committed <= 2 * AllocatorPageSize)
 
         freeOne(itf, address)
     }
@@ -930,17 +933,22 @@ func freeAddress(itf: IAllocator, address: u64)
 
 // ----------------------------------------------------------------------------
 // The cache of freed large blocks keeps at most its entry count, evicting the
-// oldest first, and trim() gives every cached block back.
+// oldest first, and trim() gives every cached block back. A live block raises
+// the byte budget above what the entries hold, and the thread's front takes the
+// first blocks freed.
 // ----------------------------------------------------------------------------
 #test
 {
     var alloc: Allocator
     let itf = makeAllocator(&alloc, fillMemory: false)
 
-    const Count = AllocatorBlockCacheMaxCount + 6
+    let anchor = allocOne(itf, 48 * 1024 * 1024)
+    Swag.assert(anchor != null)
+
+    const Count = AllocatorBlockCacheMaxCount + AllocatorBlockFrontCount + 6
     var addresses: [Count] u64
     for i in Count do
-        addresses[i] = cast(u64, allocOne(itf, 100_000))
+        addresses[i] = cast(u64, allocOne(itf, 66_000))
     for i in Count do
         freeOne(itf, cast(*void, addresses[i]))
 
@@ -951,6 +959,7 @@ func freeAddress(itf: IAllocator, address: u64)
     alloc.trim()
     Swag.assert(alloc.cachedBlockCount == 0)
     Swag.assert(alloc.cachedBlockBytes == 0)
+    freeOne(itf, anchor)
     alloc.releaseAll()
 }
 

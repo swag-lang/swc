@@ -435,6 +435,7 @@
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Content.cpp"/>
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Generate.cpp"/>
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Roots.cpp"/>
+        <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Supporting.cpp"/>
         <ClCompile Include="src\Compiler\ModuleApi\ModuleApiExport.Validate.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Main\StructConfig.cpp"/>

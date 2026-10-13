@@ -44,8 +44,22 @@ namespace __Win32RT
     const MEM_RESERVE             = 0x0000_2000'u32
     const MEM_DECOMMIT            = 0x0000_4000'u32
     const MEM_RELEASE             = 0x0000_8000'u32
+    const MEM_FREE                = 0x0001_0000'u32
     const PAGE_READWRITE          = 0x0000_0004'u32
     const PAGE_NOACCESS           = 0x0000_0001'u32
+    const PAGE_GUARD              = 0x0000_0100'u32
+
+    struct MEMORY_BASIC_INFORMATION
+    {
+        BaseAddress:       *void?
+        AllocationBase:    *void?
+        AllocationProtect: DWORD
+        PartitionId:       USHORT
+        RegionSize:        ULONG64
+        State:             DWORD
+        Protect:           DWORD
+        Type:              DWORD
+    }
 
     const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
     const CP_UTF8 = 65001'u32
@@ -85,6 +99,7 @@ namespace __Win32RT
         func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK)
         func VirtualAlloc(lpAddress: *void?, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->*void?
         func VirtualFree(lpAddress: *void?, dwSize: ULONG64, dwFreeType: DWORD)->BOOL
+        func VirtualQuery(lpAddress: const *void?, lpBuffer: *MEMORY_BASIC_INFORMATION, dwLength: ULONG64)->ULONG64
         func IsProcessorFeaturePresent(processorFeature: DWORD)->BOOL
         func CreateThread(lpThreadAttributes: *void?, dwStackSize: ULONG64, lpStartAddress: THREAD_START_ROUTINE, lpParameter: *void?, dwCreationFlags: DWORD, lpThreadId: *DWORD?)->HANDLE?
         func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
@@ -293,6 +308,24 @@ func __hostPageDecommit(address: *void?, size: u64)
 func __hostPageRelease(address: *void?, _size: u64)
 {
     discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
+}
+
+// Returns the base of the reservation holding 'address', committed there or not, when that base is
+// itself a committed, readable page; zero otherwise, so that the caller never touches a page that
+// would fault.
+func __hostPageAllocationBase(address: u64)->u64
+{
+    using __Win32RT
+    var info: MEMORY_BASIC_INFORMATION
+    if VirtualQuery(cast(const *void, address), &info, #sizeof(info)) == 0 or info.State == MEM_FREE do
+        return 0
+
+    let base = info.AllocationBase
+    if VirtualQuery(base, &info, #sizeof(info)) == 0 or info.State != MEM_COMMIT do
+        return 0
+    if info.Protect & (PAGE_NOACCESS | PAGE_GUARD) do
+        return 0
+    return cast(u64, base)
 }
 
 // MUTEX

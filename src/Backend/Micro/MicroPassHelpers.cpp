@@ -1040,18 +1040,8 @@ bool MicroPassHelpers::tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t f
 
 uint32_t MicroPassHelpers::findSingleCfgEntry(const MicroControlFlowGraph& cfg)
 {
-    const uint32_t n     = cfg.instructionCount();
-    uint32_t       entry = MicroDomTree::K_INVALID_NODE;
-    for (uint32_t i = 0; i < n; ++i)
-    {
-        if (cfg.predecessors(i).empty())
-        {
-            if (entry != MicroDomTree::K_INVALID_NODE)
-                return MicroDomTree::K_INVALID_NODE;
-            entry = i;
-        }
-    }
-    return entry;
+    static_assert(MicroControlFlowGraph::K_NO_INDEX == MicroDomTree::K_INVALID_NODE);
+    return cfg.singleEntry();
 }
 
 namespace
@@ -1317,10 +1307,10 @@ void MicroPassHelpers::NaturalLoop::collectBody(const MicroControlFlowGraph& cfg
     }
 }
 
-std::unordered_map<uint32_t, MicroPassHelpers::NaturalLoop> MicroPassHelpers::findNaturalLoops(const MicroControlFlowGraph& cfg, const MicroDomTree& dom)
+MicroPassHelpers::NaturalLoopMap MicroPassHelpers::findNaturalLoops(const MicroControlFlowGraph& cfg, const MicroDomTree& dom)
 {
-    const uint32_t                            n = cfg.instructionCount();
-    std::unordered_map<uint32_t, NaturalLoop> loopsByHeader;
+    const uint32_t n = cfg.instructionCount();
+    NaturalLoopMap loopsByHeader;
 
     for (uint32_t u = 0; u < n; ++u)
     {
@@ -1343,6 +1333,16 @@ std::unordered_map<uint32_t, MicroPassHelpers::NaturalLoop> MicroPassHelpers::fi
         loop.collectBody(cfg);
 
     return loopsByHeader;
+}
+
+const MicroPassHelpers::NaturalLoopMap& MicroPassHelpers::naturalLoopsFor(MicroSsaState* sharedSsa, const MicroControlFlowGraph& cfg, const MicroDomTree& dom)
+{
+    if (sharedSsa)
+        return sharedSsa->naturalLoops(cfg, dom);
+
+    thread_local NaturalLoopMap loops;
+    loops = findNaturalLoops(cfg, dom);
+    return loops;
 }
 
 MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(const MicroControlFlowGraph& cfg, const uint32_t entry, const MicroSsaState* ssa)

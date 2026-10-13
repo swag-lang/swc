@@ -85,6 +85,24 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
+### compiler.optimization.130 — A loop-invariant read of immutable storage folded into an operand stays in the loop
+
+- Area: compiler/backend, instruction combine and loop-invariant code motion
+- Evidence: a string, slice or struct parameter is immutable storage for the call, and LICM hoists
+  a `load_reg_mem` through it out of a loop that stores through another pointer (the `data` pointer
+  of a struct `{ data: const [*] s64, count: u64 }` read on every trip leaves the loop). A field
+  with one use in the body is folded by the instruction combine into a memory operand first,
+  `op_binary_reg_mem add, rax, [rdx + 0x8]`, and LICM hoists loads only, so `total += text.count`
+  and `total += scale.limit` re-read memory on every trip at `-bc release`, although the value
+  cannot change. The combine runs before LICM in every pre-RA sweep, so the fold always wins.
+- Next: in the combine, keep a load from an immutable base that sits in a loop as a `load_reg_mem`
+  when its one user is in the same loop, or let LICM unfold such an operand into a hoisted load and
+  a register operand; measure with the raytrace and n-body tasks, whose struct and slice fields are
+  read in loops that store.
+- Done when: a single-use field of a value parameter read inside a loop that stores through a
+  pointer is loaded once before the loop at `-bc release`, with a C++ micro test and no loss on
+  the benchmark tasks.
+
 ### compiler.optimization.024 — Make implicit register claims operand-precise
 
 - Evidence: the split allocator assigns full-instruction fixed intervals to remaining implicit operands such as variable shifts and compare-exchange. Those intervals can trigger avoidable register borrows; definition-only multiply outputs already use position-specific claims.
@@ -131,7 +149,7 @@ new language syntax.
   roots-only or late whole-block packing trial.
 - Done when: the step retains or packs body state without redundant pair work and matches the
   winner's packed roots/divisions without generated-code loss in other tasks.
-- Related: compiler.optimization.016, language.design.037.
+- Related: compiler.optimization.016.
 
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 

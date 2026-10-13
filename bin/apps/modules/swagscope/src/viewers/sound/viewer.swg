@@ -631,7 +631,7 @@ impl Panel
     //
     // Successive PCM16 chunks are reduced as they arrive; the callback never retains the decoder's
     // borrowed storage.
-    mtd buildWaveformInBackground(thread: Thread)
+    mtd buildWaveformInBackground(thread: const *Thread)
     {
         let frameCount = .sound.sampleFrameCount()
         let pointCount = .waveform.samples.count
@@ -640,12 +640,12 @@ impl Panel
             return
 
         var reducer = WaveformReducer{&.waveform.samples, frameCount, pointCount, channels}
-        catch .sound.decodePcm16(func|reducer = &reducer, view = me, worker = &thread|(samples: const [..] s16)->bool
+        catch .sound.decodePcm16(func|reducer = &reducer, view = me, worker = thread|(samples: const [..] s16)->bool
         {
             reducer.consume(samples)
             if reducer.readyCount do
                 view.publishWaveform(reducer.readyCount)
-            return not worker[].requestEnd
+            return not worker.requestEnd.isRaised()
         })
         reducer.finish()
         .publishWaveform(reducer.readyCount)
@@ -658,7 +658,7 @@ impl Panel
         if not pointCount do
             return
         .waveform.samples.resize(pointCount)
-        catch .waveformThread.init(func|view = me|(thread: Thread) { view.buildWaveformInBackground(thread) },
+        catch .waveformThread.init(func|view = me|(thread: const *Thread) { view.buildWaveformInBackground(thread) },
                                    priority: .BelowNormal) as initError
         if initError != null do
             return
@@ -975,7 +975,7 @@ impl Panel
 //
 // The default allocator makes the owned packet table safe to publish to the GUI thread once
 // loading completes.
-private func runViewerOpen(thread: Thread)
+private func runViewerOpen(thread: const *Thread)
 {
     let view    = cast(*Panel, thread.userParam!)
     let context = Swag.getContext()
@@ -988,7 +988,7 @@ private func runViewerOpen(thread: Thread)
         return
     }
 
-    if thread.requestEnd do
+    if thread.requestEnd.isRaised() do
         return
     view.pendingSound = #move sound
     Atomic.exchange(&view.openState, OpenSucceeded)

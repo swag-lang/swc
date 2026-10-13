@@ -16,7 +16,9 @@ const AllocatorUnitsPerSegment = cast(u32, (AllocatorSegmentSize >> AllocatorPag
 
 // Small classes get one 64 KiB unit per page, medium classes get eight.
 //
-// Both hold at least eight blocks, which is what keeps the page table's cost per block negligible.
+// Both hold at least eight blocks, which is what keeps the page table's cost per block negligible. A
+// medium page commits its units one at a time, as its blocks need them, so a class whose blocks are
+// large does not commit half a mebibyte for its first block.
 const AllocatorSmallUnitShift  = 0'u32
 const AllocatorMediumUnitShift = 3'u32
 
@@ -61,6 +63,9 @@ struct AllocatorPage
     freeList: u64
     key:      u64
 
+    // The block area: 'areaEnd' is the end of the last whole block the committed part of the page
+    // holds, which the slow path moves as it commits more units, so the inlined fast path only ever
+    // compares against it.
     areaStart: u64
     areaEnd:   u64
     carved:    u64
@@ -76,6 +81,10 @@ struct AllocatorPage
     classIndex: u8
     unitIndex:  u8
     state:      AllocatorPageState
+
+    // Bytes committed from the page's commit start. Kept while the page is idle, so that reusing it
+    // commits nothing; zero once its units are decommitted.
+    committed: u32
 
     ownerHeap: *AllocatorThreadHeap?
     nextPage:  *AllocatorPage?
@@ -149,11 +158,13 @@ struct AllocatorArena
     usedSize: u64     // Byte extent of initialized segments, relative to base.
 }
 
-private var g_AllocatorArenaMutex:  MutexRW
-private var g_AllocatorArenas:      [AllocatorMaxArenas] AllocatorArena
-private var g_AllocatorArenaCount:  u32
-private var g_AllocatorFreeSegment: *AllocatorSegment?
-private var g_AllocatorKeySeed:     u64
+private var g_AllocatorArenas:     [AllocatorMaxArenas] AllocatorArena
+private var g_AllocatorArenaCount: u32
+private var g_AllocatorKeySeed:    u64
+
+// The emptied segments waiting for reuse, under the arena mutex.
+var g_AllocatorArenaMutex:  MutexRW
+var g_AllocatorFreeSegment: *AllocatorSegment?
 
 // Bytes of free pages left committed for reuse.
 //
@@ -190,14 +201,32 @@ func atomicAddU64(addr: *u64, delta: u64) { discard Swag.atomadd(addr, delta) }
     }
 }
 
-// Reserves address space without committing it. The reservation is over-sized so a
-// segment-aligned window always fits inside it, because a reservation cannot be released in parts.
-private func osReserve(size: u64)->[*] u8? => __hostPageReserve(size)
+// Reserves address space without committing it, or returns null when the host refuses.
+//
+// Every reservation the allocator makes passes through here, which is where a test makes the host
+// refuse one.
+func allocatorOsReserve(size: u64)->[*] u8?
+{
+    #static if #command == Swag.CompilerCommand.Test
+    {
+        if allocatorInjectOsFailure(&g_AllocatorOsFailures.reserve) do
+            return null
+    }
 
+    return __hostPageReserve(size)
+}
+
+// Commits 'size' bytes of a reservation, or returns false and changes nothing when the host refuses.
 func allocatorOsCommit(address: u64, size: u64)->bool
 {
     if size == 0 do
         return true
+
+    #static if #command == Swag.CompilerCommand.Test
+    {
+        if allocatorInjectOsFailure(&g_AllocatorOsFailures.commit) do
+            return false
+    }
 
     if not __hostPageCommit(cast(*void, address), size) do
         return false
@@ -254,15 +283,9 @@ impl AllocatorPage
     // The block area of page 'index', which starts after the segment header for the first page.
     mtd setup(segment: *AllocatorSegment, index: u32, classIndex: u32, blockSize: u32)
     {
-        let segmentBase = cast(u64, segment)
-        let unitIndex   = index << segment.unitShift
-        var start       = segmentBase + cast(u64, unitIndex) * AllocatorPageSize
-        let limit       = start + (cast(u64, 1) << segment.unitShift) * AllocatorPageSize
-
-        if start < segmentBase + AllocatorSegmentHeaderBytes do
-            start = segmentBase + AllocatorSegmentHeaderBytes
-
-        let blocks = (limit - start) / cast(u64, blockSize)
+        let unitIndex = index << segment.unitShift
+        let start     = segment.pageCommitStart(index)
+        let blocks    = cast(u64, .committed) / cast(u64, blockSize)
 
         .freeList   = 0
         .remoteFree = 0
@@ -352,6 +375,31 @@ impl AllocatorPage
 
     mtd capacityBytes()->u64 => .areaEnd - .areaStart
 
+    // Commits the next units of the page so that one more block fits, and reports whether it did.
+    //
+    // Only the owner calls this, from its slow path, once the fast path found no block to carve. Other
+    // threads read 'areaEnd' to validate the addresses they free, which only ever name blocks carved
+    // after the store they see.
+    mtd extendCommit()->bool
+    {
+        let segment = allocatorSegmentOf(me)
+        let index   = cast(u32, .unitIndex) >> segment.unitShift
+        let start   = segment.pageCommitStart(index)
+        let pageEnd = segment.pageCommitEnd(index)
+        let current = start + cast(u64, .committed)
+        if current >= pageEnd do
+            return false
+
+        let needed = .carved + cast(u64, .blockSize)
+        let target = Swag.min(pageEnd, (needed + AllocatorPageSize - 1) & ~(AllocatorPageSize - 1))
+        if not allocatorOsCommit(current, target - current) do
+            return false
+
+        .committed = cast(u32, target - start)
+        .areaEnd   = start + ((target - start) / cast(u64, .blockSize)) * cast(u64, .blockSize)
+        return true
+    }
+
     mtd lockRemote()
     {
         while Swag.atomcmpxchg(&.remoteLock, 0, 1) != 0 {}
@@ -366,7 +414,9 @@ impl AllocatorPage
     //
     // Producers only ever push, and this takes the whole list in one exchange, so a block can never be popped
     // from under a producer that is linking in front of it and no ABA case exists. The lock only orders this
-    // detach against 'holdsFreeBlock', which walks the list without taking it.
+    // detach against 'holdsFreeBlock', which walks the list without taking it. Only the owner collects: a
+    // block freed into the page of an idle thread waits here, counted free by the statistics but holding
+    // its page, until that thread allocates, trims, or retires.
     mtd collectRemote()
     {
         if atomicGet(&.remoteFree) == 0 do
@@ -394,7 +444,9 @@ impl AllocatorPage
     //
     // The page metadata outlives every block it carries, so this never dereferences storage that could already
     // be gone. The block belongs to the pusher until the exchange publishes it, so writing its link needs no
-    // lock.
+    // lock. One compare-exchange per block is the chosen policy, as in mimalloc's thread-free list: a
+    // per-thread batch published once would hold blocks hostage in an idle thread and make the
+    // statistics inexact, for a cost that is already within the parity gate. With two producer/consumer pairs the consumer's remote frees run at 110 ns per block end to end against mimalloc's 110, the 99th percentile of a batch of sixty-four at 13 us against 15; four pairs run at 200 ns against 303.
     mtd pushRemote(address: u64)
     {
         .markFree(address)
@@ -604,19 +656,26 @@ impl AllocatorSegment
                 continue
             }
 
+            // An idle page is still committed as far as it was; a fresh one commits its first unit
+            // only, and a medium page commits the rest as its blocks need them.
+            let page  = &.pages[index]
             let start = .pageCommitStart(index)
-            let end   = .pageCommitEnd(index)
             if .takeIdleBit(bit)
             {
-                atomicSubU64(&g_AllocatorIdleBytes, end - start)
+                atomicSubU64(&g_AllocatorIdleBytes, cast(u64, page.committed))
             }
-            elif not allocatorOsCommit(start, end - start)
+            else
             {
-                .clearPageBit(bit)
-                return null
+                let first = Swag.min(.pageCommitEnd(index), (start & ~(AllocatorPageSize - 1)) + AllocatorPageSize)
+                if not allocatorOsCommit(start, first - start)
+                {
+                    .clearPageBit(bit)
+                    return null
+                }
+
+                page.committed = cast(u32, first - start)
             }
 
-            let page = &.pages[index]
             page.setup(me, index, classIndex, blockSize)
             return page
         }
@@ -632,18 +691,22 @@ impl AllocatorSegment
         Swag.assert(page.used == 0)
         let index = page.unitIndex >> .unitShift
         let bit   = 1'u64 << index
-        let start = .pageCommitStart(index)
-        let size  = .pageCommitEnd(index) - start
+        let size  = cast(u64, page.committed)
 
         page.state     = .Free
         page.ownerHeap = null
         page.freeList  = 0
         page.carved    = page.areaStart
 
-        if allocatorReserveIdle(size) do
+        if allocatorReserveIdle(size)
+        {
             .setIdleBit(bit)
-        else do
-            allocatorOsDecommit(start, size)
+        }
+        else
+        {
+            allocatorOsDecommit(.pageCommitStart(index), size)
+            page.committed = 0
+        }
 
         .clearPageBit(bit)
     }
@@ -672,10 +735,11 @@ impl AllocatorSegment
 
             if .takeIdleBit(bit)
             {
-                let start = .pageCommitStart(index)
-                let size  = .pageCommitEnd(index) - start
+                let page = &.pages[index]
+                let size = cast(u64, page.committed)
                 atomicSubU64(&g_AllocatorIdleBytes, size)
-                allocatorOsDecommit(start, size)
+                allocatorOsDecommit(.pageCommitStart(index), size)
+                page.committed = 0
             }
 
             .clearPageBit(bit)
@@ -750,7 +814,7 @@ private func allocatorAddArena()->bool
 
     // Reserving one extra segment guarantees an aligned window inside the reservation, because a
     // reservation is released as a whole and cannot be trimmed to alignment.
-    let reserved = osReserve(AllocatorArenaSize + AllocatorSegmentSize)
+    let reserved = allocatorOsReserve(AllocatorArenaSize + AllocatorSegmentSize)
     if not reserved do
         return false
 
@@ -767,6 +831,19 @@ private func allocatorAddArena()->bool
     return true
 }
 
+// Reports whether one more segment fits in the arena. A test can make every arena report no room,
+// which is the only way to reach the path that reserves another one.
+private func allocatorArenaHasRoom(arena: *AllocatorArena)->bool
+{
+    #static if #command == Swag.CompilerCommand.Test
+    {
+        if g_AllocatorOsFailures.arenasFull do
+            return false
+    }
+
+    return arena.usedSize + AllocatorSegmentSize <= AllocatorArenaSize
+}
+
 // Carves a fresh segment out of the reservations and commits its header.
 private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
 {
@@ -774,7 +851,7 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     for i in g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[i]
-        if arena.usedSize + AllocatorSegmentSize <= AllocatorArenaSize
+        if allocatorArenaHasRoom(arena)
         {
             chosen = arena
             break

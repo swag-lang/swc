@@ -12,7 +12,7 @@ struct PageCommitShared
     errors:    u32
 }
 
-func pageCommitWorker(thread: Threading.Thread)
+func pageCommitWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*PageCommitShared, thread.userParam!)
     discard Swag.atomadd(&shared.ready, 1)

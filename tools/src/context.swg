@@ -62,6 +62,15 @@ public impl Context
         return try .runProgram(.compiler.toString(), withCoreBound(arguments))
     }
 
+    // Starts the compiler under test with `arguments` and returns the running process, for a
+    // check that has to overlap it: the caller waits for the process it was given.
+    mtd startCompiler(arguments: Arguments)->Env.Process fail
+    {
+        let commandLine = joinArguments(withCoreBound(arguments).toSlice())
+        var info        = Env.StartInfo{fileName: .compiler.toString(), arguments: commandLine.toString(), environment: &.childEnv}
+        return try Env.startProcess(info)
+    }
+
     // Runs the compiler under test with `arguments` and returns what it wrote to standard output.
     //
     // The core bound of [[Tool.Context.runCompiler]] applies here too, so a captured compiler

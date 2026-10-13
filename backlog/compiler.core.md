@@ -387,7 +387,9 @@ cache is part of the normal DevMode and Release paths.
 - Evidence artifact: [generated-code session](../bench/results/generated-code/20260916/README.md).
 - Next: repeat the unchanged standalone source with controlled work directories and
   six workers, preserve the failing pre-sanity capture lowering, and distinguish
-  cache reuse from shared code-generation state when cloning the macro's closure.
+  cache reuse from shared code-generation state when cloning the macro's closure. Twenty
+  consecutive Release-compiler runs of the native suite filtered to that source, release
+  configuration, six workers, the suite's own output and work roots, passed on 2026-10-13.
 - Done when: a stable reproducer identifies the cause, the correction passes
   that reproducer repeatedly, and the full native suite remains green.
 

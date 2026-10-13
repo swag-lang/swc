@@ -218,6 +218,7 @@ public:
     void replaceText(uint32_t pieceIndex, Utf8 text);
     void removePiece(uint32_t pieceIndex);
 
+    bool     rangeEditable(uint32_t first, uint32_t last) const;
     bool     gapHasNewline(uint32_t pieceIndex) const;
     uint32_t gapNewlineCount(uint32_t pieceIndex) const;
     // Visual width of the gap when it stays on a single line.

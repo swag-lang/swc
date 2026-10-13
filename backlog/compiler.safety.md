@@ -237,7 +237,7 @@ is the current scorecard.
 - Done when: the compiler either diagnoses a documented set of proven leak shapes with sound
   counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
   the corpus reflects that decision.
-- Related: runtime.allocator.010, compiler.safety.018.
+- Related: compiler.safety.018.
 
 ### compiler.safety.018 — A release proven on one path only is never reported
 

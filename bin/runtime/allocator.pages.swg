@@ -149,11 +149,13 @@ struct AllocatorArena
     usedSize: u64     // Byte extent of initialized segments, relative to base.
 }
 
-private var g_AllocatorArenaMutex:  MutexRW
-private var g_AllocatorArenas:      [AllocatorMaxArenas] AllocatorArena
-private var g_AllocatorArenaCount:  u32
-private var g_AllocatorFreeSegment: *AllocatorSegment?
-private var g_AllocatorKeySeed:     u64
+private var g_AllocatorArenas:     [AllocatorMaxArenas] AllocatorArena
+private var g_AllocatorArenaCount: u32
+private var g_AllocatorKeySeed:    u64
+
+// The emptied segments waiting for reuse, under the arena mutex.
+var g_AllocatorArenaMutex:  MutexRW
+var g_AllocatorFreeSegment: *AllocatorSegment?
 
 // Bytes of free pages left committed for reuse.
 //
@@ -190,14 +192,32 @@ func atomicAddU64(addr: *u64, delta: u64) { discard Swag.atomadd(addr, delta) }
     }
 }
 
-// Reserves address space without committing it. The reservation is over-sized so a
-// segment-aligned window always fits inside it, because a reservation cannot be released in parts.
-private func osReserve(size: u64)->[*] u8? => __hostPageReserve(size)
+// Reserves address space without committing it, or returns null when the host refuses.
+//
+// Every reservation the allocator makes passes through here, which is where a test makes the host
+// refuse one.
+func allocatorOsReserve(size: u64)->[*] u8?
+{
+    #static if #command == Swag.CompilerCommand.Test
+    {
+        if allocatorInjectOsFailure(&g_AllocatorOsFailures.reserve) do
+            return null
+    }
 
+    return __hostPageReserve(size)
+}
+
+// Commits 'size' bytes of a reservation, or returns false and changes nothing when the host refuses.
 func allocatorOsCommit(address: u64, size: u64)->bool
 {
     if size == 0 do
         return true
+
+    #static if #command == Swag.CompilerCommand.Test
+    {
+        if allocatorInjectOsFailure(&g_AllocatorOsFailures.commit) do
+            return false
+    }
 
     if not __hostPageCommit(cast(*void, address), size) do
         return false
@@ -750,7 +770,7 @@ private func allocatorAddArena()->bool
 
     // Reserving one extra segment guarantees an aligned window inside the reservation, because a
     // reservation is released as a whole and cannot be trimmed to alignment.
-    let reserved = osReserve(AllocatorArenaSize + AllocatorSegmentSize)
+    let reserved = allocatorOsReserve(AllocatorArenaSize + AllocatorSegmentSize)
     if not reserved do
         return false
 
@@ -767,6 +787,19 @@ private func allocatorAddArena()->bool
     return true
 }
 
+// Reports whether one more segment fits in the arena. A test can make every arena report no room,
+// which is the only way to reach the path that reserves another one.
+private func allocatorArenaHasRoom(arena: *AllocatorArena)->bool
+{
+    #static if #command == Swag.CompilerCommand.Test
+    {
+        if g_AllocatorOsFailures.arenasFull do
+            return false
+    }
+
+    return arena.usedSize + AllocatorSegmentSize <= AllocatorArenaSize
+}
+
 // Carves a fresh segment out of the reservations and commits its header.
 private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
 {
@@ -774,7 +807,7 @@ private func allocatorCreateSegment(unitShift: u32)->*AllocatorSegment?
     for i in g_AllocatorArenaCount
     {
         let arena = &g_AllocatorArenas[i]
-        if arena.usedSize + AllocatorSegmentSize <= AllocatorArenaSize
+        if allocatorArenaHasRoom(arena)
         {
             chosen = arena
             break

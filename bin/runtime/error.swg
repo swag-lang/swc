@@ -186,7 +186,8 @@ namespace Swag
     // A panic abandons every frame between it and this call: their 'defer' statements and
     // destructors do not run, and whatever they held stays as it was. Catch a panic to check
     // that a test raised it, never to recover from one. Only a panic raised on the current
-    // context is caught.
+    // context is caught. In a test, a hardware fault inside the call, such as a read of a freed
+    // electric block, is caught the same way and reported as "memory access violation".
     //
     // ```swag
     // let caught = Swag.catchPanic(func() { Swag.panic("stop", #curlocation) })

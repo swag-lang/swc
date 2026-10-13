@@ -48,8 +48,19 @@ func __testPanicHandler(message: string?, loc: Swag.SourceCodeLocation)
 }
 
 // Records a hardware exception delivered by the host for the active test thread.
+//
+// A test that expects the fault runs the faulting call under 'catchPanic': the fault then reaches
+// that catch as a panic and the test goes on.
 func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64, accessAddress: u64)
 {
+    let cxt  = Swag.getContext()
+    let hook = cxt.panic
+    if cxt.panicCatch and hook
+    {
+        var loc: SourceCodeLocation
+        hook(code == 0xC0000005 ? "memory access violation" : "hardware exception", loc)
+    }
+
     Swag.print("\n#test stops on hardware exception ", cast(s64, code), "\n")
     Swag.print("#test faulting instruction address ", instructionAddress, "\n")
     let symbol = __symbolize(cast(*void, instructionAddress))

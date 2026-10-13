@@ -1058,10 +1058,11 @@ namespace
 
     Result patchConstantFunctionRelocationsRec(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const uint32_t shardIndex, const uint32_t sourceOffset)
     {
-        DataSegment&          segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
-        DataSegmentAllocation allocation;
-        if (!segment.findAllocation(allocation, sourceOffset))
+        DataSegment&                             segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
+        const ConstantManager::WalkedAllocation* walked  = ConstantManager::walkedAllocation(segment, sourceOffset);
+        if (!walked)
             return Result::Continue;
+        const DataSegmentAllocation allocation = walked->allocation;
 
         // Constants can point to other constants that eventually contain function
         // pointers. Walk that graph once per allocation to avoid cycles while still
@@ -1072,10 +1073,10 @@ namespace
             return Result::Continue;
 
         // Most allocations carry a few relocations; the walk recurses while it reads them, so
-        // each level keeps its own list, inline.
-        SmallVector<ConstantFunctionPatch>    patches;
-        SmallVector<DataSegmentRelocation, 4> relocations;
-        segment.copyRelocations(relocations, allocation.offset, allocation.size);
+        // each level keeps its own list, inline. The copy also keeps the list in hand while a
+        // nested level records other offsets in the worker's table.
+        SmallVector<ConstantFunctionPatch>          patches;
+        const SmallVector<DataSegmentRelocation, 4> relocations = walked->relocations;
         for (const DataSegmentRelocation& relocation : relocations)
         {
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)

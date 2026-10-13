@@ -3,6 +3,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"

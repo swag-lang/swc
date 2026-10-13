@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"

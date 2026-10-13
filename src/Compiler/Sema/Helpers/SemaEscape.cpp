@@ -76,9 +76,7 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        return isDirectBorrowCarrier(unwrappedType ? *unwrappedType : declaredType);
+        return isDirectBorrowCarrier(unwrapAliasEnumType(sema, typeRef));
     }
 
     bool localProjectionRootCanReceiveLocalStore(Sema& sema, const SymbolVariable& root)
@@ -900,9 +898,7 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        return typeHasBorrowableStorage(unwrappedType ? *unwrappedType : declaredType);
+        return typeHasBorrowableStorage(unwrapAliasEnumType(sema, typeRef));
     }
 
     bool expressionMayExposeStorageBorrow(Sema& sema, AstNodeRef exprRef)

@@ -444,6 +444,7 @@ namespace ModuleApi
 
         std::vector<ModuleApiGeneratedRoot> generatedRoots;
         ModuleApiExport::mergeGeneratedRootsUnique(generatedRoots, perFileRoots);
+        SWC_RESULT(ModuleApiExport::appendSupportingDeclarationRoots(ctx, generatedRoots));
 
         // Sequential pass: resolve destination paths and detect duplicate names (needs the
         // shared name map). The expensive content build + disk write is dispatched afterwards.

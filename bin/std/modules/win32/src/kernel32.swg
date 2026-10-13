@@ -262,6 +262,23 @@ struct CONSOLE_SCREEN_BUFFER_INFO
     }
 }
 
+struct PROCESS_MEMORY_COUNTERS
+{
+    public
+    {
+        cb:                         DWORD
+        PageFaultCount:             DWORD
+        PeakWorkingSetSize:         SIZE_T
+        WorkingSetSize:             SIZE_T
+        QuotaPeakPagedPoolUsage:    SIZE_T
+        QuotaPagedPoolUsage:        SIZE_T
+        QuotaPeakNonPagedPoolUsage: SIZE_T
+        QuotaNonPagedPoolUsage:     SIZE_T
+        PagefileUsage:              SIZE_T
+        PeakPagefileUsage:          SIZE_T
+    }
+}
+
 struct SYSTEM_INFO
 {
     public
@@ -615,6 +632,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetLogicalDriveStringsW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD
 
     func GetSystemInfo(lpSystemInfo: *SYSTEM_INFO)
+    func K32GetProcessMemoryInfo(hProcess: HANDLE, ppsmemCounters: *PROCESS_MEMORY_COUNTERS, cb: DWORD)->BOOL
     func GlobalAlloc(uFlags: UINT, dwBytes: SIZE_T)->HGLOBAL
     func GlobalFree(hMem: HGLOBAL)->HGLOBAL
     func LocalFree(hLocal: HLOCAL)->HLOCAL

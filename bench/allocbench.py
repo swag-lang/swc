@@ -28,6 +28,8 @@ WORKLOADS = ["pair", "trees", "churn", "medium", "large", "realloc", "spread", "
 REPS = 5
 
 PAT = re.compile(r"ns/op=([\d.]+)")
+FIELDS = ("worker_ns/op", "phase_ns/op", "p50_ns", "p99_ns", "per_ops",
+          "retained_idle", "retained_purged", "retained_trimmed")
 
 
 def build(swc, env, out, cores=0):
@@ -63,23 +65,32 @@ def build(swc, env, out, cores=0):
     return exes, errors
 
 
-def run_once(exe, workload):
-    """One sample: (ns per operation, winproc result), or (None, error text)."""
+def run_once(exe, workload, latency=False):
+    """One sample: (ns per operation, winproc result), or (None, error text). The program's other
+    figures, the slowest worker, the gated phase, the latency percentiles and the retained
+    working sets, land in the result under "fields" when it printed them."""
     name, _, threads = workload.partition(":")
-    r = winproc.run([exe, name, threads or "1"], cwd=tc.BENCH, pin=True)
+    cmd = [exe, name, threads or "1"] + (["latency"] if latency else [])
+    r = winproc.run(cmd, cwd=tc.BENCH, pin=True)
     m = PAT.search(r["stdout"])
     if r["exit"] != 0 or not m:
         return None, (r["stdout"] + r["stderr"]).strip()[-300:] or "exit code %d" % r["exit"]
+    r["fields"] = {}
+    for field in FIELDS:
+        got = re.search(re.escape(field) + r"=([\d.]+)", r["stdout"])
+        if got:
+            r["fields"][field] = float(got.group(1))
     return (float(m.group(1)), r), None
 
 
-def measure(exes, reps, workloads=None, report=print):
+def measure(exes, reps, workloads=None, report=print, latency=False):
     """Every workload on every executable, `reps` rounds with rotating order.
 
     Returns {workload: {implementation: {"ns", "samples", "peak_bytes",
-    "peak_working_set_bytes"} or {"error"}}}. The median is kept, not the minimum: the
-    multi-thread workloads swing with scheduling, and a median of rounds that interleave the
-    three allocators is the comparison they share."""
+    "peak_working_set_bytes"} or {"error"}}}, plus the median of every other figure the program
+    printed, under its own name. The median is kept, not the minimum: the multi-thread workloads
+    swing with scheduling, and a median of rounds that interleave the three allocators is the
+    comparison they share."""
     names = [n for n in IMPLEMENTATIONS if n in exes]
     section = {}
     for workload in workloads or WORKLOADS:
@@ -90,7 +101,7 @@ def measure(exes, reps, workloads=None, report=print):
                 acc = accs[name]
                 if acc.get("error"):
                     continue
-                got, err = run_once(exes[name], workload)
+                got, err = run_once(exes[name], workload, latency)
                 if err:
                     acc["error"] = err
                     continue
@@ -99,9 +110,13 @@ def measure(exes, reps, workloads=None, report=print):
                 acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
                 acc["peak_working_set_bytes"] = max(acc.get("peak_working_set_bytes", 0),
                                                     r["peak_working_set_bytes"])
+                for field, value in r["fields"].items():
+                    acc.setdefault("field_samples", {}).setdefault(field, []).append(value)
         for acc in accs.values():
             if acc.get("samples") and not acc.get("error"):
                 acc["ns"] = statistics.median(acc["samples"])
+                for field, values in acc.get("field_samples", {}).items():
+                    acc[field] = statistics.median(values)
         section[workload] = accs
         if report:
             report("  %-10s %s" % (workload, "  ".join(

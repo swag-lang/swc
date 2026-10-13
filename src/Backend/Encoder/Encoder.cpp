@@ -114,6 +114,12 @@ void Encoder::resetCode()
     debugSourceRanges_.clear();
 }
 
+void Encoder::reset(TaskContext& ctx)
+{
+    ctx_ = &ctx;
+    resetCode();
+}
+
 void Encoder::addSymbolRelocation(uint32_t, uint32_t, uint16_t)
 {
 }

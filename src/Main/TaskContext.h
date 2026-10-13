@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/TaskState.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -30,8 +31,20 @@ public:
     CompilerInstance&       compiler() { return *(compilerInstance_); }
     const CompilerInstance& compiler() const { return *(compilerInstance_); }
 
-    TaskState&               state() { return state_; }
-    const TaskState&         state() const { return state_; }
+    TaskState&       state() { return state_; }
+    const TaskState& state() const { return state_; }
+
+    // Compile-time executions this job has submitted and not consumed back. The JIT execution
+    // manager keeps the count: a job with nothing in flight, which is what nearly every call
+    // expression it analyzes finds, learns so without the manager's lock. Only the owning job
+    // submits and consumes, so the count needs no synchronization of its own.
+    uint32_t pendingJitItems() const noexcept { return pendingJitItems_; }
+    void     noteJitItemAdded() noexcept { ++pendingJitItems_; }
+    void     noteJitItemConsumed() noexcept
+    {
+        SWC_ASSERT(pendingJitItems_ != 0);
+        --pendingJitItems_;
+    }
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;
     TypeManager&             typeMgr();
@@ -81,6 +94,7 @@ private:
     bool                                          hasError_         = false;
     bool                                          hasWarning_       = false;
     bool                                          editorService_    = false;
+    uint32_t                                      pendingJitItems_  = 0;
     TaskState                                     state_;
     std::shared_ptr<void>                         genericNodeRunCache_;
     std::shared_ptr<void>                         genericInstanceNodeRunCache_;

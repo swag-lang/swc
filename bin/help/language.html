@@ -2274,7 +2274,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> button: <span class="SCst">CastButton</span>
     <span class="SKwd">let</span> node:   *<span class="SCst">CastNode</span> = &amp;button
-    <span class="SKwd">let</span> found = (<span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node))
+    <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node)
     <span class="SLgc">if</span> found != <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.label == <span class="SStr">"Apply"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found != <span class="SKwd">null</span>)
@@ -3326,8 +3326,27 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Write <span class="code-inline">!</span> where an invariant makes the value always present and a null would be a bug worth stopping on; write <span class="code-inline">?.</span> where absence is an ordinary outcome the code handles.</p>
 <p>A <span class="code-inline">!</span> is an assertion, so the code after it is reachable only when the value was there: it proves its own path for the remainder of the enclosing block, exactly like the <span class="code-inline">Swag.assert(p != null)</span> it stands for. A second <span class="code-inline">!</span> on that path therefore asserts what the first already established, and is rejected rather than charged for a guard that cannot fire. Written twice, <span class="code-inline">!</span> is saying the path has an invariant — and an invariant is stated once: give the value a non-null type, declare the field <span class="code-inline">late</span>, bind it to a local, or open the block with <span class="code-inline">Swag.assert</span>. Every proof dies where the path is reassigned, and the assertion is needed again.</p>
 <p>A <span class="code-inline">!</span> the flow reaches only after a decision taken to its left — the right operand of <span class="code-inline">and</span>/<span class="code-inline">or</span>, a branch of <span class="code-inline">?:</span>, the fallback of <span class="code-inline">orelse</span>, the tail of a <span class="code-inline">?.</span> chain — may not have run at all, so it proves nothing past its own region. A generic body is analyzed once per instantiation and an inlined body is judged at a call site it did not choose, so neither is reported: this is the same line <span class="code-inline">orelse</span> draws, on what the type can be rather than on what the flow proves at one site.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+<p><span class="code-inline">Swag.assert</span> states a precondition, and a <span class="code-inline">!</span> written inside its argument is part of it: <span class="code-inline">Swag.assert(p!.count == 2)</span> proves <span class="code-inline">p</span> for the rest of the block exactly as <span class="code-inline">Swag.assert(p != null)</span> does. <span class="code-inline">#[Swag.Safety(.Assert, false)]</span> and the <span class="code-inline">release</span> configuration drop the whole assertion, the embedded <span class="code-inline">!</span> included, while the proof it recorded survives: the code after it runs unguarded on that path, which is what switching assertions off declares. Write a <span class="code-inline">!</span> whose guard has to fire outside of an assertion argument, or keep <span class="code-inline">.Assert</span> on where the precondition is not an invariant.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AssertProofDoc</span>
 {
+    count: <span class="STpe">s64</span>
+}
+
+<span class="SCmt">// The proof a '!' records inside an assertion argument does not depend on the assertion</span>
+<span class="SCmt">// running: with '.Assert' off the guard is gone, the proof is not, and 'p.count' still compiles.</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Assert, false)]</span>
+<span class="SKwd">func</span> <span class="SFct">readProvenCount</span>(p: *<span class="SCst">AssertProofDoc</span>?)-&gt;<span class="STpe">s64</span>
+{
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p!.count &gt;= <span class="SNum">0</span>)
+    <span class="SLgc">return</span> p.count
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> proven: <span class="SCst">AssertProofDoc</span>
+    proven.count = <span class="SNum">2</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">readProvenCount</span>(&amp;proven) == <span class="SNum">2</span>)
+
     <span class="SKwd">struct</span> <span class="SCst">OptChainRefDoc</span>
     {
         count: <span class="STpe">s64</span>
@@ -3648,7 +3667,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
-    <span class="SKwd">let</span> ptr    = (<span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a))
+    <span class="SKwd">let</span> ptr    = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == <span class="SNum">6</span>)
 }</span></div>
@@ -8123,6 +8142,24 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">G</span> == <span class="SNum">3</span>)
+}</span></div>
+<p>The deferred code runs while its scope is already being left, so it cannot decide where control goes next: <span class="code-inline">return</span>, and a <span class="code-inline">break</span> or <span class="code-inline">continue</span> that would leave the deferred body, are errors inside a <span class="code-inline">defer</span>. A loop written entirely inside the deferred body may still use them. Raising an error is not control flow: a deferred <span class="code-inline">fail</span> makes the scope fail, or replaces its error.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> drained = <span class="SNum">0</span>
+    {
+        <span class="SLgc">defer</span>
+        {
+            <span class="SLgc">for</span> <span class="SNum">10</span>
+            {
+                <span class="SLgc">if</span> drained == <span class="SNum">4</span> <span class="SLgc">do</span>
+                    <span class="SLgc">break</span>     <span class="SCmt">// Leaves the loop inside the defer, not the defer.</span>
+                drained += <span class="SNum">1</span>
+            }
+        }
+    }
+
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(drained == <span class="SNum">4</span>)
 }</span></div>
 <h3 id="_011_002_defer_swg_Deferred_Execution_Order">Deferred Execution Order</h3>
 <p>When multiple <span class="code-inline">defer</span> statements exist, they execute in reverse declaration order. The most recent defer runs first when the scope ends.</p>

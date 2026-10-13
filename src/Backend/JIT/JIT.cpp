@@ -784,6 +784,15 @@ namespace
         if (tryResolveDirectRelocationTargetAddress(outTargetAddress, reloc, basePtr))
             return Result::Continue;
 
+        // The owner's own address is the code being patched. The relocation names it like any
+        // other local target; answering here spares the owner a copy of its relocation list,
+        // marked with the self address, before every patch.
+        if (ownerFunction && reloc.targetSymbol == ownerFunction)
+        {
+            outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
+            return Result::Continue;
+        }
+
         SymbolFunction* targetFunction = nullptr;
         if (!tryResolveRelocationTargetFunction(targetFunction, reloc, outFailure))
             return Result::Error;

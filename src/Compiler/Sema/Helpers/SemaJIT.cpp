@@ -714,25 +714,31 @@ namespace
         // A codegen job emits its function before reporting completion. Publish the
         // release summaries before scheduling that job, while its sanity pass can
         // still reject a stale read. Waiting only on sema permits recursive calls.
+        //
+        // The order the semantic wait completed, with the versions it was read at. The first
+        // code-generation round below asks for the same order when nothing it is built from has
+        // moved since, and then reads this one instead of walking the closure again.
+        SmallVector<SymbolFunction*> semaOrder;
+        uint64_t                     semaOrderCallGraphVersion = 0;
+        uint64_t                     semaOrderTargetsVersion   = 0;
         while (true)
         {
-            const uint64_t orderCallGraphVersion = SymbolFunction::callGraphVersion();
-            const uint64_t orderTargetsVersion   = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
-            SmallVector<SymbolFunction*> semaOrder;
+            semaOrderCallGraphVersion = SymbolFunction::callGraphVersion();
+            semaOrderTargetsVersion   = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
+            semaOrder.clear();
             buildJitOrderWithNativeRoots(sema, symFn, semaOrder);
             for (const SymbolFunction* function : semaOrder)
                 SWC_RESULT(sema.waitSemaCompleted(function, function->codeRef()));
 
             // Sema can add dependencies or native roots. Reuse this order only when neither
             // version moved while its functions were being completed.
-            if (SymbolFunction::callGraphVersion() == orderCallGraphVersion &&
-                sema.compiler().nativeGlobalFunctionInitTargetsVersion() == orderTargetsVersion)
+            if (SymbolFunction::callGraphVersion() == semaOrderCallGraphVersion &&
+                sema.compiler().nativeGlobalFunctionInitTargetsVersion() == semaOrderTargetsVersion)
             {
-                const uint64_t orderFingerprint = jitOrderFingerprint(sema, symFn, {}, orderCallGraphVersion, orderTargetsVersion);
+                const uint64_t orderFingerprint = jitOrderFingerprint(sema, symFn, {}, semaOrderCallGraphVersion, semaOrderTargetsVersion);
                 SemaEscape::propagateCompletedFreesSummaries(ctx, semaOrder.span(), orderFingerprint);
                 break;
             }
-
         }
 
         sema.compiler().tryEnqueueCodeGenJob(sema, symFn, symFn.declNodeRef());
@@ -757,7 +763,12 @@ namespace
                 const uint64_t orderTargetsVersion   = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
 
                 SmallVector<SymbolFunction*> jitOrder;
-                buildJitOrderWithNativeRoots(sema, symFn, jitOrder, constantRoots.span());
+                if (constantRoots.empty() && !semaOrder.empty() && orderCallGraphVersion == semaOrderCallGraphVersion && orderTargetsVersion == semaOrderTargetsVersion)
+                    jitOrder = std::move(semaOrder);
+                else
+                    buildJitOrderWithNativeRoots(sema, symFn, jitOrder, constantRoots.span());
+                // Read once at most: a later round rebuilds from the roots it has by then.
+                semaOrder.clear();
 
                 for (SymbolFunction* function : jitOrder)
                     sema.compiler().tryEnqueueCodeGenJob(sema, *function, function->declNodeRef());

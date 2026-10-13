@@ -24,6 +24,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -2042,6 +2043,13 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 
     if (sym.isSemaCompleted())
         return Result::Continue;
+
+#if SWC_DEV_MODE
+    // Widens the window between skipping the body and claiming it, so a lazy run started by
+    // another task lands inside it: the ownership check below has to yield to that run.
+    if (sema.ctx().cmdLine().devStressLazyBody && sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBody))
+        std::this_thread::sleep_for(std::chrono::milliseconds(3));
+#endif
 
     // A body handed to the lazy runner is completed by that runner and by nothing else. This walk
     // skipped the body, so completing the function here would publish it (and schedule its code

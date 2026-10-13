@@ -116,7 +116,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 - Done when: those four foundational entries are closed and the language reference states one contract for
   ownership, suspension, cancellation, failure and memory access that the compiler enforces.
 - Related: std.core.025, language.parallelism.011, std.core.028, compiler.safety.005, compiler.safety.006,
-  compiler.safety.007, compiler.safety.014, runtime.allocator.004, platform.portability.035.
+  compiler.safety.007, compiler.safety.014, platform.portability.035.
 
 #### Progress and memory-model boundaries that already apply
 

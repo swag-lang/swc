@@ -1078,6 +1078,19 @@ namespace
             return pointee.isConst() ? appendModifierType(forward->second, K_CV_TYPE_MOD_CONST) : forward->second;
         }
 
+        // The index a field or an array element names for its type. A structure is named by its
+        // forward declaration here too, after its definition was emitted: the enclosing record
+        // then reads the same in every object, whether that object defines the member's type or
+        // only declares it, and the linker keeps one copy of it.
+        uint32_t memberTypeIndexFor(const TypeRef memberTypeRef, const bool isConst = false)
+        {
+            const uint32_t memberType = typeIndexFor(memberTypeRef, isConst);
+            const auto     forward    = forwardStructTypes.find(memberTypeRef.get());
+            if (forward == forwardStructTypes.end())
+                return memberType;
+            return isConst ? appendModifierType(forward->second, K_CV_TYPE_MOD_CONST) : forward->second;
+        }
+
         uint32_t typeIndexFor(TypeRef typeRef, bool isConst = false)
         {
             if (typeRef.isInvalid())
@@ -1157,7 +1170,7 @@ namespace
 
             if (originalType.isArray())
             {
-                uint32_t    currentType = typeIndexFor(originalType.payloadArrayElemTypeRef());
+                uint32_t    currentType = memberTypeIndexFor(originalType.payloadArrayElemTypeRef());
                 uint64_t    currentSize = ctx->typeMgr().get(originalType.payloadArrayElemTypeRef()).sizeOf(*ctx);
                 const auto& dims        = originalType.payloadArrayDims();
                 for (size_t i = dims.size(); i-- > 0;)
@@ -1193,7 +1206,7 @@ namespace
 
                     FieldDesc field;
                     field.name      = std::move(fieldName);
-                    field.typeIndex = typeIndexFor(fieldTypeRef);
+                    field.typeIndex = memberTypeIndexFor(fieldTypeRef);
                     field.offset    = offset;
                     fields.push_back(std::move(field));
                     offset += fieldType.sizeOf(*ctx);
@@ -1225,7 +1238,7 @@ namespace
 
                     FieldDesc desc;
                     desc.name      = Utf8(field->name(*ctx));
-                    desc.typeIndex = typeIndexFor(field->typeRef(), field->hasExtraFlag(SymbolVariableFlagsE::Let));
+                    desc.typeIndex = memberTypeIndexFor(field->typeRef(), field->hasExtraFlag(SymbolVariableFlagsE::Let));
                     desc.offset    = field->offset();
                     fields.push_back(std::move(desc));
                 }

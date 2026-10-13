@@ -433,26 +433,6 @@ cache is part of the normal DevMode and Release paths.
 - Done when: a stable reproducer identifies the cause, the correction passes
   that reproducer repeatedly, and the full native suite remains green.
 
-### compiler.core.051 — Isolate a silent CodeGen failure observed in a discarded JIT prototype
-
-- Found while: comparing Release compilation of `bin/std` with six pinned performance workers.
-- Evidence: an unmerged build-710 prototype based on `277804c1c` returned exit 5 on the third
-  candidate rebuild of `swc.exe build -w bin/std -m gui -bc release --num-cores 6 --rebuild`.
-  Seven dependency modules completed; gui stopped with
-  `internal compiler error: job 'CodeGen' returned an error without a diagnostic`.
-- Scope: the prototype transferred the existing shared JIT-order lock to its reader and reused
-  local dependency/completion vectors. It was discarded. The same gui command passed once in
-  DevMode; three further runs with unchanged Release build 702 passed. Neither a production
-  regression nor a causal connection to either prototype change has been established.
-- Evidence location: `bench/results/compilation/20260916-bin-release/README.md` and its sample
-  CSV retain the command context, compiler hashes and failed run. The session's external
-  `jit-order-lock-buffers-710.patch` and `jit-order-control` compilers retain the exact prototype.
-- Next: capture the function, waited symbol and failing return path at `abortCodeGen`, replay
-  candidate and baseline, and isolate lock transfer from vector reuse before reviving either
-  optimization. Do not classify this as compiler.core.047 without a matching generic-local witness.
-- Done when: a bounded reproducer identifies the responsible path, or evidence confines the
-  failure to an invalid discarded prototype; remove this entry once that question is settled.
-
 ### compiler.core.038 — Measure the remaining semantic frame construction cost
 
 - Historical evidence: Release 0.1.425 pushed 41,573 frames for a 22,800-line file and

@@ -20,23 +20,20 @@ namespace
 
     struct StringBlob
     {
-        uint32_t insert(const Utf8& value)
+        uint32_t insert(const std::string_view value)
         {
             if (value.empty())
                 return 0;
-            const auto it = offsets.find(value);
-            if (it != offsets.end())
-                return it->second;
-
-            const uint32_t offset = base + static_cast<uint32_t>(bytes.size());
-            offsets.emplace(value, offset);
-            bytes.appendCString(value.view());
-            return offset;
+            const auto [it, inserted] = offsets.try_emplace(value, base + static_cast<uint32_t>(bytes.size()));
+            if (inserted)
+                bytes.appendCString(value);
+            return it->second;
         }
 
-        uint32_t                           base = 0;
-        ByteArray                          bytes;
-        std::unordered_map<Utf8, uint32_t> offsets;
+        uint32_t  base = 0;
+        ByteArray bytes;
+        // build keeps the source entries alive and unchanged until this map is destroyed.
+        std::unordered_map<std::string_view, uint32_t> offsets;
     };
 
     Utf8 readString(const std::span<const std::byte> bytes, const uint32_t offset)
@@ -93,8 +90,8 @@ void SymbolTable::build(ByteArray& outBytes, std::vector<Relocation>& outRelocat
     outRelocations.reserve(entries.size());
     for (const Entry& entry : entries)
     {
-        const uint32_t nameOffset = strings.insert(entry.name);
-        const uint32_t fileOffset = strings.insert(entry.file);
+        const uint32_t nameOffset = strings.insert(entry.name.view());
+        const uint32_t fileOffset = strings.insert(entry.file.view());
 
         outRelocations.push_back({.offset = static_cast<uint32_t>(outBytes.size()) + ENTRY_START_RVA, .symbolName = entry.symbolName});
         outBytes.appendLe32(0);

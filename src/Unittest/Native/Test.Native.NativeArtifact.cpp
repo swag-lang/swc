@@ -2282,6 +2282,43 @@ SWC_TEST_BEGIN(NativeArtifact_ConcurrentCompilerInputsKeepEveryDependency)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SymbolTable_DeduplicatesNamesAndOwnsSerializedStrings)
+{
+    constexpr std::string_view        name    = "Module.FunctionLongerThanSmallStringStorage";
+    constexpr std::string_view        file    = "C:/symbol/table/test_source.swg";
+    std::array<SymbolTable::Entry, 3> entries = {
+        SymbolTable::Entry{.symbolName = "first", .name = name, .file = file, .line = 7, .size = 11},
+        SymbolTable::Entry{.symbolName = "second", .file = file, .line = 9, .size = 22},
+        SymbolTable::Entry{.symbolName = "third", .name = name, .line = 13, .size = 33},
+    };
+    ByteArray                            bytes;
+    std::vector<SymbolTable::Relocation> relocations;
+    SymbolTable::build(bytes, relocations, entries);
+
+    constexpr uint32_t stringsBase = SymbolTable::HEADER_SIZE + 3 * SymbolTable::ENTRY_SIZE;
+    const uint32_t     fileOffset  = stringsBase + static_cast<uint32_t>(name.size()) + 1;
+    if (bytes.size() != fileOffset + file.size() + 1 || relocations.size() != entries.size() ||
+        bytes.readLe32(0) != SymbolTable::MAGIC || bytes.readLe32(4) != SymbolTable::VERSION_PLAIN ||
+        bytes.readLe32(8) != 3 || bytes.readLe32(12) != stringsBase)
+        return Result::Error;
+    if (bytes.readLe32(24) != stringsBase || bytes.readLe32(28) != fileOffset ||
+        bytes.readLe32(44) != 0 || bytes.readLe32(48) != fileOffset ||
+        bytes.readLe32(64) != stringsBase || bytes.readLe32(68) != 0)
+        return Result::Error;
+
+    // The finished table and relocations own all data needed to read it back.
+    for (auto& entry : entries)
+        entry = {};
+    std::vector<SymbolTable::Entry> restored;
+    if (!SymbolTable::read(restored, bytes.span(), relocations) || restored.size() != 3)
+        return Result::Error;
+    if (restored[0].symbolName != "first" || restored[0].name != name || restored[0].file != file || restored[0].line != 7 || restored[0].size != 11 ||
+        restored[1].symbolName != "second" || !restored[1].name.empty() || restored[1].file != file || restored[1].line != 9 || restored[1].size != 22 ||
+        restored[2].symbolName != "third" || restored[2].name != name || !restored[2].file.empty() || restored[2].line != 13 || restored[2].size != 33)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

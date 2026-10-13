@@ -1679,6 +1679,14 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     if dynamicConsumerCode != 0 do
         return dynamicConsumerCode
 
+    // The scheduler state must also be shared across a directly imported DLL.
+    var schedulerConsumer = workspaceModuleCommand("test", workspace.toString(), "runtime_scheduler_consumer", buildCfg)
+    schedulerConsumer.add(["--no-test-jit"])
+    options.appendExtra(&schedulerConsumer)
+    let schedulerConsumerCode = try context.runCompiler(schedulerConsumer)
+    if schedulerConsumerCode != 0 do
+        return schedulerConsumerCode
+
     var tested = workspaceModuleCommand("test", workspace.toString(), "consumer_exe", buildCfg)
     tested.add(["--no-test-jit"])
     options.appendExtra(&tested)

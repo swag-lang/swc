@@ -36,9 +36,17 @@ use a quiet machine: the multi-thread workloads move with scheduling.
 | `xfer` | producer/consumer pairs: one thread allocates, the other frees every block |
 | `aligned` | 10 000 batches of 1 024 mixed blocks from 1 to 4 096 bytes, alternating 32/64-byte alignment |
 | `huge` | 200 blocks of 32 MiB, one after the other, every page touched: reservation, commit, faults and release above the block cache |
+| `spreadrep` | the `spread` body repeated 10 000 times behind a start gate every worker reaches first, so thread creation does not count |
+| `retain` | the churn, medium and large live sets allocated then freed; the process working set while idle, after the purge delay, after `trim()` |
 
 `name:N` runs a workload on N threads, each with its own live set (N pairs for `xfer`).
-The aligned batches and the huge blocks are opt-in: `--only aligned,aligned:4,huge`. The default campaign keeps its
+The aligned batches, the huge blocks, the gated repetition and the retention run are opt-in:
+`--only aligned,aligned:4,huge,spreadrep:8,retain`. Every run also reports the slowest worker's
+time per operation, measured by the worker around its own body: the end-to-end figure of a short
+workload such as `spread` is mostly thread creation, which both programs do inside the clock, the
+Swag one with a suspended start and a context to inherit. `--latency` makes one worker time each
+of its operations, or each batch of 64 for the workloads whose operations are shorter than the
+clock resolves, and reports the 50th and 99th percentiles. The default campaign keeps its
 fourteen workloads so its historical geometric means remain comparable. An aligned operation
 is one allocation/free pair, and every payload is written at its first and last byte.
 

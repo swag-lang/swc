@@ -39,7 +39,7 @@ private:
     void              collectLoopHeaders(const MicroPassContext& context);
     bool              pinLoopBranchGroups();
     void encodeInstruction(const MicroPassContext& context, MicroInstrRef instructionRef, const MicroInstr& inst);
-    void bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
+    void bindAbs64RelocationOffset(const MicroPassContext& context, uint32_t relocationIndex, uint32_t codeStartOffset, uint32_t codeEndOffset) const;
     void bindRel32RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset, uint32_t trailingBytes = 0) const;
 
     // Labels, instruction slots and relocations are small dense indices, so what the pass knows

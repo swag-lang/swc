@@ -135,15 +135,10 @@ void MicroEmitPass::nextLayoutStamp()
     layoutStamp_ = 1;
 }
 
-void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, MicroInstrRef instructionRef, uint32_t codeStartOffset, uint32_t codeEndOffset) const
+void MicroEmitPass::bindAbs64RelocationOffset(const MicroPassContext& context, uint32_t relocationIndex, uint32_t codeStartOffset, uint32_t codeEndOffset) const
 {
     // Relocation-backed absolute pointer loads embed a trailing 64-bit immediate.
-    uint32_t   relocationIndex = 0;
-    const bool found           = findRelocationIndex(relocationIndex, instructionRef);
-    SWC_ASSERT(found);
-    if (!found)
-        return;
-
+    // The caller already resolved the relocation to select this encoding.
     SWC_ASSERT(codeEndOffset >= codeStartOffset + sizeof(uint64_t));
     MicroRelocation& reloc                  = context.builder->codeRelocations()[relocationIndex];
     reloc.codeOffset                        = codeEndOffset - sizeof(uint64_t);
@@ -272,7 +267,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             }
 
             encoder.encodeLoadRegImm(ops[0].reg, ops[2].immediateValue(64), ops[1].opBits);
-            bindAbs64RelocationOffset(context, instructionRef, loadStart, encoder.size());
+            bindAbs64RelocationOffset(context, relocationIndex, loadStart, encoder.size());
             break;
         }
 
@@ -330,7 +325,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             const CallConv& conv      = CallConv::get(ops[0].callConv);
             const uint32_t  loadStart = encoder.size();
             encoder.encodeLoadRegImm(conv.intReturn, ApInt(relocation.targetAddress, 64), MicroOpBits::B64);
-            bindAbs64RelocationOffset(context, instructionRef, loadStart, encoder.size());
+            bindAbs64RelocationOffset(context, relocationIndex, loadStart, encoder.size());
             encoder.encodeCallReg(conv.intReturn, ops[0].callConv);
             break;
         }

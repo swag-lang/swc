@@ -1546,6 +1546,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     SmallVector<GlobalCandidate> candidates;
     bool                         hasIntCandidate   = false;
     bool                         hasFloatCandidate = false;
+    uint64_t                     maxDensity        = 0;
 
     const uint32_t lastIndex = instructionCount_ ? instructionCount_ - 1 : 0;
     const auto&    vregs     = denseVirtualRegs_.regs();
@@ -1566,6 +1567,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         if (!density)
             continue;
 
+        maxDensity = std::max(maxDensity, density);
         candidates.push_back({
             .denseIndex    = denseIndex,
             .lo            = virtualSpanLo_[denseIndex],
@@ -1593,8 +1595,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // is worth it for the values that dominate a hot loop; handing one to every candidate that
     // merely earns something starves the local allocator instead, because a hull holds its
     // register across its holes as well.
-    const auto     maxDensityIt         = std::ranges::max_element(candidates, {}, &GlobalCandidate::density);
-    const uint64_t spanScopedMinDensity = maxDensityIt->density / K_SPAN_SCOPED_DENSITY_DIVISOR;
+    const uint64_t spanScopedMinDensity = maxDensity / K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     // Grant the scarce carriers to values accessed most often in the hottest
     // loops. Density breaks ties without pushing long-lived cursors behind

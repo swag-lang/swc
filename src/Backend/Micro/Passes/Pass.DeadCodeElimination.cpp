@@ -172,19 +172,18 @@ namespace
     void collectUsedValues(std::vector<uint8_t>& usedValues, std::vector<uint32_t>& worklist, const MicroStorage& storage, const MicroSsaState& ssaState)
     {
         const auto values = ssaState.values();
-        usedValues.assign(values.size(), 0);
+        usedValues.resize(values.size());
         worklist.clear();
         for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
         {
-            for (const auto& use : values[valueId].uses)
-            {
-                if (use.kind != MicroSsaState::UseSite::Kind::Instruction || !storage.ptr(use.instRef))
-                    continue;
-                usedValues[valueId] = 1;
-                if (values[valueId].isPhi())
-                    worklist.push_back(valueId);
-                break;
-            }
+            // Every seed is overwritten before the phi walk reads any of them.
+            // Avoid clearing the retained array and then marking live entries.
+            const bool used = std::ranges::any_of(values[valueId].uses, [&](const auto& use) {
+                return use.kind == MicroSsaState::UseSite::Kind::Instruction && storage.ptr(use.instRef);
+            });
+            usedValues[valueId] = used;
+            if (used && values[valueId].isPhi())
+                worklist.push_back(valueId);
         }
 
         // Only instruction consumers make a phi live. Walking backwards from them

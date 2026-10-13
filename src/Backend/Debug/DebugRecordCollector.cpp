@@ -41,19 +41,6 @@ namespace
         return !symbol.name(ctx).empty();
     }
 
-    Utf8 dataSectionName(const SymbolVariable& symbol)
-    {
-        switch (symbol.globalStorageKind())
-        {
-            case DataSegmentKind::GlobalInit:
-                return ".data";
-            case DataSegmentKind::GlobalZero:
-                return ".bss";
-            default:
-                return {};
-        }
-    }
-
     void appendDebugConstantRecord(std::vector<DebugInfoConstantRecord>& out, const TaskContext& ctx, const SymbolConstant& symbol)
     {
         if (!shouldEmitDebugConstant(ctx, symbol))
@@ -194,6 +181,19 @@ namespace
     }
 }
 
+Utf8 debugDataSectionName(const SymbolVariable& symbol)
+{
+    switch (symbol.globalStorageKind())
+    {
+        case DataSegmentKind::GlobalInit:
+            return ".data";
+        case DataSegmentKind::GlobalZero:
+            return ".bss";
+        default:
+            return {};
+    }
+}
+
 void collectDebugRecords(NativeBackendBuilder&                      builder,
                          std::span<const NativeFunctionInfo* const> functions,
                          const NativeStartupInfo*                   startup,
@@ -239,7 +239,7 @@ void collectDebugRecords(NativeBackendBuilder&                      builder,
             if (!shouldEmitDebugVariable(builder.ctx(), *symbol))
                 continue;
 
-            const Utf8 sectionName = dataSectionName(*symbol);
+            const Utf8 sectionName = debugDataSectionName(*symbol);
             if (sectionName.empty())
                 continue;
 

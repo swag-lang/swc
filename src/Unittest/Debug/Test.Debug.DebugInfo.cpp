@@ -532,18 +532,6 @@ namespace
         return record;
     }
 
-    Utf8 debugDataSectionName(const SymbolVariable& symbol)
-    {
-        switch (symbol.globalStorageKind())
-        {
-            case DataSegmentKind::GlobalInit:
-                return ".data";
-            case DataSegmentKind::GlobalZero:
-                return ".bss";
-            default:
-                return {};
-        }
-    }
 }
 
 SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)

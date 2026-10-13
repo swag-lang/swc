@@ -4,6 +4,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class NativeBackendBuilder;
+class SymbolVariable;
 struct NativeFunctionInfo;
 struct NativeStartupInfo;
 
@@ -27,6 +28,8 @@ struct CollectedDebugRecords
     std::vector<DebugInfoDataRecord>     globals;
     std::vector<DebugInfoConstantRecord> constants;
 };
+
+Utf8 debugDataSectionName(const SymbolVariable& symbol);
 
 // Gathers the debug records for the given functions (optionally a startup stub and module data/constants).
 // Shared by the COFF object writer (per-object) and the integrated linker (whole module, for the PDB), so

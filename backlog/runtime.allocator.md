@@ -45,11 +45,7 @@ replace the allocator; a similar architecture alone does not establish comparabl
   location. Use `inline_allocator_free.swg`, `use_after_free_parameter_location.swg`, and the
   imported `lifecycle_summary.test.swg` boundary, together with custom allocator and diagnostic
   mode tests. Related compiler work: compiler.optimization.113 and compiler.optimization.114.
-- The gated `spreadrep:8` workload runs at about three times mimalloc's per-worker time while
-  `spreadrep` alone runs faster than mimalloc: a class whose ten blocks need a second page
-  retires that page when it empties and claims it again under the segment mutex on every
-  round, which eight threads contend for. Measure keeping one emptied page per class on the
-  heap before retiring further ones.
+- Keeping one emptied page per class on its heap brought the gated `spreadrep:8` from 27.7 to 15.7 ns per operation against mimalloc's 11.7, and the slowest worker from 176 to 44 ns; the single-thread `spreadrep` stays faster than mimalloc (21 against 36 ns). What eight threads still contend for is the segment mutex of the pages a class acquires beyond its spare.
 - Measurement limits: use rotating before/after runs and identical-binary controls, inspect
   within-window variation, and repeat concurrent workloads. Admission alone cannot detect work
   that starts during a measurement. Also compare independently rebuilt controls when application
@@ -86,12 +82,15 @@ replace the allocator; a similar architecture alone does not establish comparabl
   allocator, behind a per-thread front of the last sixteen blocks a thread freed under 2 MiB,
   which its own requests take without a lock. The list of ordinary live headers is sharded eight
   ways by address, and only the live byte count moves on every operation.
-- Remaining: `large:4` (four threads cycling 64 KiB-1 MiB buffers) runs at about 1.26 times
-  mimalloc's time, against the 1.25 gate of runtime.allocator.001, at about half its peak working
-  set. What is left per operation is the live-byte atomic, the shard lock when the front misses,
-  the clock read on free, and the global cache lock on a front miss.
-- Next: measure a front keyed by size class rather than best-fit, and the cache lock held only
-  when the front has no candidate, on `large:4` with rotating runs and the application check.
+- Remaining: `large:4` (four threads cycling 64 KiB-1 MiB buffers) ran between 0.9 and 1.9
+  times mimalloc's time across three nine-round windows on a shared machine, against the 1.25
+  gate of runtime.allocator.001, and 20% faster than the same runtime without the front in a
+  direct comparison, at about half mimalloc's peak working set; single-thread `large` is faster
+  than mimalloc in every window. What is left per operation is the live-byte atomic, the shard
+  lock, the clock read on free, and the global cache lock on a front miss.
+- Next: repeat `large:4` on a quiet machine to place it against the gate; then measure a front
+  keyed by size class rather than best-fit, and the cache lock held only when the front has no
+  candidate, with rotating runs and the application check.
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001

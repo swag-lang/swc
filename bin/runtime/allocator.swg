@@ -187,6 +187,11 @@ struct AllocatorThreadClass
     // Pages found exhausted, which the slow path no longer scans. A local free moves its page
     // back; a remote free queues it on the allocator's revisit stack.
     full: *AllocatorPage?
+
+    // One emptied page kept on the heap, linked like the others, instead of given back: a live set
+    // that spans two pages of a class would otherwise release its second page and claim it again
+    // under the segment mutex every time it empties.
+    spare: *AllocatorPage?
 }
 
 struct AllocatorThreadHeap
@@ -698,6 +703,7 @@ impl Allocator
             cls.first = null
             cls.last  = null
             cls.full  = null
+            cls.spare = null
         }
 
         .unlinkHeap(heap)
@@ -1062,8 +1068,16 @@ impl Allocator
     mtd retirePage(heap: *AllocatorThreadHeap, page: *AllocatorPage)
     {
         let cls = &heap.classes[page.classIndex]
-        if cls.page == page do
+        if cls.page == page or cls.spare == page do
             return
+
+        // An emptied page replaces a spare that has been used since; while the spare is still
+        // empty, the page goes back.
+        if cls.spare == null or cls.spare.used != 0
+        {
+            cls.spare = page
+            return
+        }
 
         .unlinkPage(heap, page)
         allocatorSegmentOf(page).releasePage(page)
@@ -2085,6 +2099,8 @@ impl Allocator
                         scan.collectRemote()
                         if scan.used == 0 and scan != cls.page
                         {
+                            if cls.spare == scan do
+                                cls.spare = null
                             .unlinkPage(heap, scan)
                             discard Swag.atomxchg(&scan.inFull, 0)
                             allocatorSegmentOf(scan).releasePage(scan)

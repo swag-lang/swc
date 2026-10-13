@@ -229,7 +229,7 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
                 return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
             }
 
-            relocation.symbolName = nativeScopedRDataAllocationSymbol(names->scopeHash, targetAllocation->shardIndex, targetAllocation->sourceOffset);
+            relocation.symbolName = builder_->rdataAllocationSymbol(*targetAllocation);
             relocation.addend -= targetAllocation->emittedOffset;
         }
 
@@ -373,7 +373,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                 continue;
 
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = nativeScopedRDataAllocationSymbol(builder_->scopedSymbolNames().scopeHash, allocation.shardIndex, allocation.sourceOffset),
+                                                        .name          = builder_->rdataAllocationSymbol(allocation),
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,

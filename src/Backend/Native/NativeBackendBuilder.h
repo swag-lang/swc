@@ -69,6 +69,10 @@ struct NativeRDataAllocationMapEntry
     uint32_t align         = 1;
     uint32_t emittedOffset = 0;
     bool     zeroFilled    = false;
+    // The allocation's own symbol in an archive, where every reference to it names that symbol.
+    // Formatted once when the archive is partitioned; empty in the other artifact layouts, which
+    // never ask for it.
+    Utf8 symbolName;
 };
 
 struct NativeObjDescription
@@ -111,6 +115,9 @@ public:
     const NativeFunctionInfo*            tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
     Result                               resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
     const NativeRDataAllocationMapEntry* tryFindRDataSourceAllocation(uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
+    // The symbol an archive gives this allocation: the one formatted at partition time, or the
+    // same name formatted now for a layout that did not record it.
+    Utf8                                 rdataAllocationSymbol(const NativeRDataAllocationMapEntry& allocation) const;
     const NativeRDataAllocationMapEntry* tryFindRDataEmittedAllocation(uint32_t emittedOffset) const noexcept;
     bool                                 tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
     Result                               appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);

@@ -1286,7 +1286,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
 
             if (target.splitRDataReferences)
             {
-                record.symbolName = nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation->shardIndex, allocation->sourceOffset);
+                record.symbolName = rdataAllocationSymbol(*allocation);
                 record.addend     = sourceRef.offset - allocation->sourceOffset;
             }
             else
@@ -1377,6 +1377,13 @@ const NativeRDataAllocationMapEntry* NativeBackendBuilder::tryFindRDataEmittedAl
         return nullptr;
 
     return &entry;
+}
+
+Utf8 NativeBackendBuilder::rdataAllocationSymbol(const NativeRDataAllocationMapEntry& allocation) const
+{
+    if (!allocation.symbolName.empty())
+        return allocation.symbolName;
+    return nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation.shardIndex, allocation.sourceOffset);
 }
 
 bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept

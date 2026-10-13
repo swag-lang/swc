@@ -229,6 +229,59 @@ SWC_TEST_BEGIN(CopyElim_PropagatesInDominatorOrderWithoutPhis)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(CopyElim_PropagatesNamedPhiInDominatorOrder)
+{
+    constexpr MicroReg source = MicroReg::virtualIntReg(1);
+    constexpr MicroReg copy1  = MicroReg::virtualIntReg(2);
+    constexpr MicroReg copy2  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg narrow = MicroReg::virtualIntReg(4);
+    constexpr MicroReg orphan = MicroReg::virtualIntReg(5);
+    MicroBuilder       builder(ctx);
+    const auto         setup = builder.createLabel();
+    const auto         right = builder.createLabel();
+    const auto         join  = builder.createLabel();
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, setup);
+
+    // Physical order puts the join before its definitions. Its disagreeing
+    // inputs require a phi name before either full-width copy can resolve.
+    builder.placeLabel(join);
+    builder.emitLoadRegReg(copy1, source, MicroOpBits::B64);
+    const auto firstCopy = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegReg(copy2, copy1, MicroOpBits::B64);
+    const auto secondCopy = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, copy2, MicroOpBits::B64);
+    const auto store = builder.instructions().lastInstructionRef();
+    builder.emitLoadRegReg(narrow, source, MicroOpBits::B32);
+    const auto narrowCopy = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(MicroReg::intReg(2), 8, narrow, MicroOpBits::B64);
+    builder.emitRet();
+
+    builder.placeLabel(setup);
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, right);
+    builder.emitLoadRegImm(source, ApInt(17, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+    builder.placeLabel(right);
+    builder.emitLoadRegImm(source, ApInt(42, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, join);
+
+    // Neither this undefined source nor the narrowing phi copy can gain a
+    // canonical value from another instruction sweep.
+    builder.emitLoadRegReg(orphan, source, MicroOpBits::B64);
+    const auto orphanCopy = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(MicroReg::intReg(2), 16, orphan, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runCopyEliminationPass(builder));
+    if (builder.instructions().ptr(firstCopy) || builder.instructions().ptr(secondCopy))
+        return Result::Error;
+    if (builder.instructions().ptr(store)->ops(builder.operands())[1].reg != source)
+        return Result::Error;
+    if (!builder.instructions().ptr(narrowCopy) || !builder.instructions().ptr(orphanCopy))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

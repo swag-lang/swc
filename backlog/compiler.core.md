@@ -44,10 +44,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   reads are captured under the publication lock, and the editor extension only runs `sema`, so
   a torn file from a concurrent writer is unlikely: the race looks internal to sema of a
   generic method instantiated from an imported API while several modules share it.
-- Next: when it reappears, keep the failing process's full log and rerun that exact command
-  under `--randomize --seed` sweeps; instrument parameter registration versus body lookup
-  for generic instance methods with a `where` clause (DevMode assertion that a body lookup
-  never runs before the instance's parameter scope is populated).
+- Next: the DevMode compiler now stops at the wait itself when a body waits on the name of a
+  parameter of the function it belongs to (`Sema::waitIdentifier`), naming the function. When
+  it reappears, keep the failing process's full log and rerun that exact command under
+  `--randomize --seed` sweeps with that report.
 - Done when: the ordering is proved safe by construction or the race is reproduced and
   fixed with a regression case in the `workspace` suite.
 

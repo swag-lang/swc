@@ -1205,6 +1205,24 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     if (waitHasErrorOnLine(*this, waitCodeRef))
         return Result::Error;
 
+#if SWC_DEV_MODE
+    // A function's own parameter is in scope for its whole body, so a wait on its name means the
+    // body is analyzed before its parameter scope was populated: the ordering suspected behind
+    // an imported generic instance method once losing its parameter (compiler.core.081). Stop
+    // here, with the function named, rather than let the drain report an unknown symbol later.
+    if (const SymbolFunction* function = frame().currentFunction())
+    {
+        for (const SymbolVariable* param : function->parameters())
+        {
+            if (param && param->idRef() == idRef)
+            {
+                const Utf8 because = std::format("parameter '{}' of '{}' is not in scope while its body is analyzed", idMgr().get(idRef).name, function->getFullScopedName(ctx()));
+                swcInternalError(__FILE__, __LINE__, because.c_str());
+            }
+        }
+    }
+#endif
+
     TaskState& wait   = ctx().state();
     wait.kind         = TaskStateKind::SemaWaitIdentifier;
     wait.nodeRef      = waitNodeRef;

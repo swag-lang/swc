@@ -43,16 +43,12 @@ namespace
             return false;
 
         std::vector<std::byte> workspace(workspaceSize);
-        std::vector<std::byte> compressed(source.size() + 4096);
-        ULONG                  compressedSize = 0;
-        const LONG             status         = compressBuffer(format,
-                                                               reinterpret_cast<PUCHAR>(const_cast<std::byte*>(source.data())),
-                                                               static_cast<ULONG>(source.size()),
-                                                               reinterpret_cast<PUCHAR>(compressed.data()),
-                                                               static_cast<ULONG>(compressed.size()),
-                                                               4096,
-                                                               &compressedSize,
-                                                               workspace.data());
+        // RtlCompressBuffer writes the output prefix reported by compressedSize.
+        // The destination does not need to be initialized before compression.
+        const size_t compressedCapacity = source.size() + 4096;
+        const auto   compressed         = std::make_unique_for_overwrite<std::byte[]>(compressedCapacity);
+        ULONG        compressedSize     = 0;
+        const LONG   status             = compressBuffer(format, reinterpret_cast<PUCHAR>(const_cast<std::byte*>(source.data())), static_cast<ULONG>(source.size()), reinterpret_cast<PUCHAR>(compressed.get()), static_cast<ULONG>(compressedCapacity), 4096, &compressedSize, workspace.data());
         if (status < 0 || compressedSize >= source.size())
             return false;
 
@@ -62,7 +58,7 @@ namespace
         outBytes.appendLe32(SymbolTable::VERSION_PACKED);
         outBytes.appendLe32(static_cast<uint32_t>(source.size()));
         outBytes.appendLe32(compressedSize);
-        outBytes.append(std::span{compressed.data(), compressedSize});
+        outBytes.append(std::span{compressed.get(), compressedSize});
         return true;
     }
 
@@ -315,20 +311,15 @@ void PEWriter::buildExports()
     for (uint32_t i = 0; i < count; ++i)
         edata.appendLe16(static_cast<uint16_t>(i));
 
-    // Name strings, then the module name.
-    std::vector<uint32_t> nameOffsets(count);
+    // Fill the name-pointer table while emitting its strings, then the module name.
     for (uint32_t i = 0; i < count; ++i)
     {
-        nameOffsets[i] = static_cast<uint32_t>(edata.size());
+        writeRvaFixup(edata, edataRvaFixups_, nptOffset + i * sizeof(uint32_t), static_cast<uint32_t>(edata.size()));
         edata.appendCString(sorted[i]->name.view());
     }
     const uint32_t         dllNameOffset = static_cast<uint32_t>(edata.size());
     const std::string_view exportModule  = image_->moduleName.empty() ? std::string_view{"module.dll"} : image_->moduleName.view();
     edata.appendCString(exportModule);
-
-    // Fill the name-pointer table with RVAs of the name strings (relocated after layout).
-    for (uint32_t i = 0; i < count; ++i)
-        writeRvaFixup(edata, edataRvaFixups_, nptOffset + i * sizeof(uint32_t), nameOffsets[i]);
 
     // Fill IMAGE_EXPORT_DIRECTORY.
     writeRvaFixup(edata, edataRvaFixups_, 12, dllNameOffset);
@@ -439,18 +430,11 @@ void PEWriter::foldIdenticalUnwindInfo()
     remappedOffsets.reserve(records.size());
     for (const UnwindRecord& record : records)
     {
-        const auto recordBytes = std::string_view{reinterpret_cast<const char*>(sourceXdata.bytes.data() + record.offset), record.size};
-        const auto canonicalIt = canonicalOffsets.find(recordBytes);
-        if (canonicalIt != canonicalOffsets.end())
-        {
-            remappedOffsets.emplace(record.offset, canonicalIt->second);
-            continue;
-        }
-
-        const uint32_t newOffset = static_cast<uint32_t>(folded.size());
-        folded.append(std::span{sourceXdata.bytes.data() + record.offset, record.size});
-        canonicalOffsets.emplace(recordBytes, newOffset);
-        remappedOffsets.emplace(record.offset, newOffset);
+        const auto recordBytes             = std::string_view{reinterpret_cast<const char*>(sourceXdata.bytes.data() + record.offset), record.size};
+        const auto [canonicalIt, inserted] = canonicalOffsets.try_emplace(recordBytes, static_cast<uint32_t>(folded.size()));
+        if (inserted)
+            folded.append(std::span{sourceXdata.bytes.data() + record.offset, record.size});
+        remappedOffsets.emplace(record.offset, canonicalIt->second);
     }
 
     if (folded.size() == sourceXdata.bytes.size())

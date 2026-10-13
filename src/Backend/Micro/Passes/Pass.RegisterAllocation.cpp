@@ -1045,19 +1045,22 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
 
     auto& isLabelAt           = loopRegionIsLabelAt_;
     auto& jumpsToOwnNextLabel = loopRegionJumpsToOwnNextLabel_;
-    isLabelAt.assign(instructionCount_, 0);
-    jumpsToOwnNextLabel.assign(instructionCount_, 0);
+    // The instruction walk assigns both flags before any region reads them.
+    isLabelAt.resize(instructionCount_);
+    jumpsToOwnNextLabel.resize(instructionCount_);
     {
         uint32_t idx = 0;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
-            if (it->op == MicroInstrOpcode::Label)
-                isLabelAt[idx] = 1;
+            isLabelAt[idx] = it->op == MicroInstrOpcode::Label;
 
             // A jump to the next label lands after anything inserted before
             // that label, so it cannot enter through the reservation fill.
             if (!MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::JumpInstruction))
+            {
+                jumpsToOwnNextLabel[idx] = 0;
                 continue;
+            }
             if (it->op != MicroInstrOpcode::JumpCond && it->op != MicroInstrOpcode::JumpCondImm)
             {
                 jumpsToOwnNextLabel[idx] = 1;
@@ -1071,9 +1074,9 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
                 continue;
             }
             const uint32_t targetIdx = controlFlowGraph_->indexOfLabel(ops[2].valueU64);
-            if (targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx == idx + 1)
-                jumpsToOwnNextLabel[idx] = 1;
+            jumpsToOwnNextLabel[idx] = targetIdx == MicroControlFlowGraph::K_NO_INDEX || targetIdx == idx + 1;
         }
+        SWC_ASSERT(idx == instructionCount_);
     }
 
     for (uint32_t header = 0; header < instructionCount_; ++header)
@@ -4505,7 +4508,8 @@ void MicroRegisterAllocationPass::clearState()
     defConcreteIndices_.clear();
     nextUsePositionCursor_.clear();
     nextConcreteTouchCursor_.clear();
-    // analyzeLiveness initializes retained rows before any allocation query.
+    // analyzeLiveness sizes the retained live-in and temporary live-out rows;
+    // their producers overwrite them before any allocation query reads them.
     predecessors_ = {};
     virtualSpanLo_.clear();
     // computeVirtualLiveSpans overwrites retained upper bounds before allocation reads them.
@@ -4519,8 +4523,6 @@ void MicroRegisterAllocationPass::clearState()
     reachableInstructions_.clear();
     worklist_.clear();
     inWorklist_.clear();
-    tempOutVirtual_.clear();
-    tempOutConcrete_.clear();
     definitionCounts_.clear();
     liveStampByDenseIndex_.clear();
     callSpillFlags_.clear();

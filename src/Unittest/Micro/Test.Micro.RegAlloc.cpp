@@ -1287,7 +1287,10 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
     const CallConv&    conv    = CallConv::get(CallConvKind::WindowsX64);
     constexpr MicroReg value   = MicroReg::virtualIntReg(1);
     constexpr MicroReg counter = MicroReg::virtualIntReg(2);
-    for (const bool allowInterval : {false, true})
+    using OptimLevel           = Runtime::BuildCfgBackendOptimLevel;
+    // O0 keeps the first-sweep loop-region path in the fallback allocator.
+    const std::array modes = {std::pair{false, OptimLevel::O2}, std::pair{true, OptimLevel::O2}, std::pair{true, OptimLevel::O0}};
+    for (const auto [firstSweep, optimLevel] : modes)
     {
         MicroRegisterAllocationPass reusedPass;
         // Every run destroys its builder afterwards. Reuse must replace the
@@ -1301,7 +1304,7 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
             for (uint32_t run = 0; run < listings.size(); ++run)
             {
                 MicroBuilder builder(ctx);
-                builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+                builder.setBackendBuildCfg({.optimLevel = optimLevel});
                 const auto header    = builder.createLabel();
                 const auto alternate = builder.createLabel();
                 const auto join      = builder.createLabel();
@@ -1342,7 +1345,7 @@ SWC_TEST_BEGIN(RegAlloc_ReusedPassBorrowsCurrentCfgAcrossDifferentControlFlow)
                 passContext.instructions           = &builder.instructions();
                 passContext.operands               = &builder.operands();
                 passContext.callConvKind           = CallConvKind::WindowsX64;
-                passContext.isFirstAllocationSweep = allowInterval;
+                passContext.isFirstAllocationSweep = firstSweep;
                 SWC_RESULT((run ? freshPass : reusedPass).run(passContext));
                 SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
                 listings[run]          = MicroPrinter::format(ctx, builder.instructions(), builder.operands());

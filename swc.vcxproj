@@ -172,6 +172,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.LoopLoadForward.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.LoopUnroll.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.FrameCompact.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.MemToReg.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PassManager.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.PostRADeadCodeElim.cpp"/>
@@ -288,6 +289,7 @@
         <ClCompile Include="src\Backend\Micro\Passes\Pass.PrologEpilogSanitize.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.RegisterAllocation.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.RegisterAllocation.Interval.cpp"/>
+        <ClCompile Include="src\Backend\Micro\Passes\Pass.FrameCompact.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.MemToReg.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.LoopUnroll.cpp"/>
@@ -633,6 +635,7 @@
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRALoopHoist.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRALoopRotate.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PrologEpilog.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.FrameCompact.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.MemToReg.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.LoopInvariantCodeMotion.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.LoopUnroll.h"/>

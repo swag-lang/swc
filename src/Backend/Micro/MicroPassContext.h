@@ -15,6 +15,15 @@ class TaskContext;
 class Encoder;
 class SymbolFunction;
 
+// A frame object as the code generator laid it out: a stack local or an addressable
+// parameter home, at an offset from the local-stack base register.
+struct MicroFrameObject
+{
+    uint64_t offset    = 0;
+    uint64_t size      = 0;
+    uint32_t alignment = 1;
+};
+
 struct MicroPassContext
 {
     MicroPassContext() = default;
@@ -69,6 +78,12 @@ struct MicroPassContext
     // function whose other frame objects escape. Empty (lo >= hi) when nothing spilled.
     uint64_t spillAreaLo = std::numeric_limits<uint64_t>::max();
     uint64_t spillAreaHi = 0;
+
+    // The frame objects, in offset order (see MicroPassHelpers::frameObjects). Built from the
+    // lowered function's symbols on first use; the frame compaction pass publishes the layout it
+    // leaves behind here, so later passes never read the stale lowering offsets.
+    mutable SmallVector<MicroFrameObject> frameObjects;
+    mutable bool                          frameObjectsReady = false;
 
     // Persistent SIMD registers whose full incoming value the emitted prologue
     // already saves and every epilogue restores. Post-RA caches may borrow one

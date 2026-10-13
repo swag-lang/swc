@@ -54,8 +54,9 @@ replace the allocator; a similar architecture alone does not establish comparabl
   heap that another thread can destroy.
   Outlined 32/64-byte fast allocation improved aligned batches but regressed the ordinary
   allocation/free pair by about 11%. Before retrying it, inspect the default-alignment caller's
-  generated code and layout, and require repeated ordinary-workload controls. Keep class
-  rounding outside inline callers until compiler.optimization.129 is fixed.
+  generated code and layout, and require repeated ordinary-workload controls. The frame
+  compaction pass now drops the storage of inline branches a caller folds away, so class
+  rounding may be retried inside the inline fast path.
 - Preserve the release contract before inlining a scalar free. The interface call supplies
   `SanityRelease` for `request.address`; merely calling `freeFast` loses that boundary. A private
   freeing helper inside an inline public wrapper must also retain the caller's diagnostic

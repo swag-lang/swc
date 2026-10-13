@@ -9,6 +9,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct MicroPassContext;
+struct MicroFrameObject;
 class MicroControlFlowGraph;
 class MicroBuilder;
 class MicroSsaState;
@@ -318,6 +319,16 @@ namespace MicroPassHelpers
     // what bounds an escaped frame address. Empty when the lowered function is unknown, or its
     // locals hang from another register.
     void collectFrameVariableExtents(std::vector<std::pair<uint64_t, uint64_t>>& out, const MicroPassContext& context, MicroReg frameBase);
+
+    // The function's frame objects in offset order: every stack local and addressable parameter
+    // home with its size and alignment, as offsets from the frame base the code generator names.
+    // Kept on the context so a pass that lays the frame out again can publish the new layout.
+    std::span<const MicroFrameObject> frameObjects(const MicroPassContext& context);
+
+    // The register the code generator names for its locals: a stable `mov reg, sp` or
+    // `lea reg, [sp + D]` definition, 'preferred' when it qualifies, else the sp-derived
+    // register most used as a memory base. 'outSpOffset' is that D.
+    MicroReg detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred, MicroInstrRef& outDefRef, uint64_t& outSpOffset);
 
     // First virtual register index not used by any operand, starting above the
     // builder's hint. Passes that synthesize registers allocate upward from here.

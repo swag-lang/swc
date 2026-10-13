@@ -9,6 +9,8 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/TaskContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/ApsInt.h"
@@ -509,16 +511,143 @@ void MicroPassHelpers::collectFrameDerivedRegs(FlatKeySet& out, const MicroStora
 void MicroPassHelpers::collectFrameVariableExtents(std::vector<std::pair<uint64_t, uint64_t>>& out, const MicroPassContext& context, const MicroReg frameBase)
 {
     out.clear();
-    if (!context.sanitizerFunction || (context.debugStackBaseVirtualReg.isValid() && context.debugStackBaseVirtualReg != frameBase))
+    if (context.debugStackBaseVirtualReg.isValid() && context.debugStackBaseVirtualReg != frameBase)
         return;
-    for (const SymbolVariable* localVar : context.sanitizerFunction->localVariables())
+    for (const MicroFrameObject& object : frameObjects(context))
+        out.emplace_back(object.offset, object.offset + object.size);
+}
+
+std::span<const MicroFrameObject> MicroPassHelpers::frameObjects(const MicroPassContext& context)
+{
+    if (context.frameObjectsReady)
+        return context.frameObjects.span();
+    context.frameObjectsReady = true;
+    context.frameObjects.clear();
+    if (!context.sanitizerFunction)
+        return {};
+
+    const auto append = [&](const SymbolVariable* symVar) {
+        if (!symVar || !symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || !symVar->codeGenLocalSize())
+            return;
+        uint32_t alignment = 0;
+        if (context.taskContext && symVar->typeRef().isValid())
+            alignment = context.taskContext->typeMgr().get(symVar->typeRef()).alignOf(*context.taskContext);
+        // Without a type, the offset itself proves an alignment the layout can keep.
+        if (!alignment)
+            alignment = symVar->offset() ? static_cast<uint32_t>(std::min<uint64_t>(16, symVar->offset() & (0 - static_cast<uint64_t>(symVar->offset())))) : 16;
+        context.frameObjects.push_back({.offset = symVar->offset(), .size = symVar->codeGenLocalSize(), .alignment = alignment});
+    };
+    for (const SymbolVariable* symVar : context.sanitizerFunction->localVariables())
+        append(symVar);
+    for (const SymbolVariable* symVar : context.sanitizerFunction->parameters())
+        append(symVar);
+    std::ranges::sort(context.frameObjects, {}, &MicroFrameObject::offset);
+    return context.frameObjects.span();
+}
+
+MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred, MicroInstrRef& outDefRef, uint64_t& outSpOffset)
+{
+    struct Cand
     {
-        if (!localVar || !localVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+        MicroInstrRef defRef   = MicroInstrRef::invalid();
+        uint64_t      spOffset = 0;
+        uint32_t      baseUses = 0;
+        bool          stable   = true;
+    };
+    std::unordered_map<MicroReg, Cand> cands;
+
+    // Pass A: collect sp-derived definitions.
+    for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+    {
+        const MicroInstr&        inst = *it;
+        const MicroInstrOperand* ops  = inst.ops(operands);
+        if (!ops)
             continue;
-        const uint64_t size = localVar->codeGenLocalSize();
-        if (size)
-            out.emplace_back(localVar->offset(), localVar->offset() + size);
+        const bool isMov = inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == stackPointer;
+        const bool isLea = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == stackPointer;
+        if ((isMov || isLea) && ops[0].reg.isVirtualInt())
+        {
+            Cand& c = cands[ops[0].reg];
+            if (c.defRef.isValid())
+                c.stable = false; // defined more than once: not a stable base.
+            else
+            {
+                c.defRef   = it.current;
+                c.spOffset = isLea ? ops[3].valueU64 : 0;
+            }
+        }
     }
+    if (cands.empty())
+        return MicroReg::invalid();
+
+    // Pass B: invalidate candidates redefined/modified elsewhere, and count
+    // their uses as a constant-offset memory base.
+    for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+    {
+        const MicroInstr&        inst = *it;
+        const MicroInstrOperand* ops  = inst.ops(operands);
+        if (!ops)
+            continue;
+
+        const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+        for (size_t i = 0; i < modes.size(); ++i)
+        {
+            if (modes[i] != MicroInstrRegMode::Def && modes[i] != MicroInstrRegMode::UseDef)
+                continue;
+            const auto found = cands.find(ops[i].reg);
+            if (found != cands.end() && it.current != found->second.defRef)
+                found->second.stable = false;
+        }
+
+        // Count uses where the candidate is the addressing base: a direct
+        // scalar load/store base, or the base of a `lea` that derives a
+        // sub-address (`lea ar, [base + off]`). The latter matters because
+        // the front-end frequently materializes each local's address with a
+        // lea first, so the frame base may never appear as a direct base.
+        MicroReg baseReg = MicroReg::invalid();
+        if (inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadAddrRegMem)
+            baseReg = ops[1].reg;
+        else if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm)
+            baseReg = ops[0].reg;
+        if (baseReg.isValid())
+        {
+            const auto found = cands.find(baseReg);
+            if (found != cands.end())
+                ++found->second.baseUses;
+        }
+    }
+
+    // The code generator names the register its locals hang from; when it
+    // is a stable candidate it is the base, however many other addresses
+    // the function derives from the stack pointer. The local extents the
+    // escapes are measured against are offsets from that register, and a
+    // detection that settled on another sp-derived register - an indirect
+    // return slot's, a parameter home's - left every extent unusable and
+    // every escape a whole-function bail.
+    if (preferred.isValid())
+    {
+        const auto found = cands.find(preferred);
+        if (found != cands.end() && found->second.stable && found->second.defRef.isValid())
+        {
+            outDefRef   = found->second.defRef;
+            outSpOffset = found->second.spOffset;
+            return preferred;
+        }
+    }
+
+    MicroReg best;
+    uint32_t bestUses = 0;
+    for (const auto& [reg, c] : cands)
+    {
+        if (c.stable && c.defRef.isValid() && c.baseUses > bestUses)
+        {
+            best        = reg;
+            bestUses    = c.baseUses;
+            outDefRef   = c.defRef;
+            outSpOffset = c.spOffset;
+        }
+    }
+    return best;
 }
 
 void MicroPassHelpers::computeNextVirtualRegIndices(const MicroPassContext& context, uint32_t& outIntIndex, uint32_t& outFloatIndex)

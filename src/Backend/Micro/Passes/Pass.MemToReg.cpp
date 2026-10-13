@@ -171,111 +171,6 @@ namespace
     // stable base — and (b) actually used as the base of constant-offset scalar
     // loads/stores, preferring the most-used one. The escape analysis then
     // validates the choice and bails the whole function if it is wrong.
-    MicroReg detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred, MicroInstrRef& outDefRef, uint64_t& outSpOffset)
-    {
-        struct Cand
-        {
-            MicroInstrRef defRef   = MicroInstrRef::invalid();
-            uint64_t      spOffset = 0;
-            uint32_t      baseUses = 0;
-            bool          stable   = true;
-        };
-        std::unordered_map<MicroReg, Cand> cands;
-
-        // Pass A: collect sp-derived definitions.
-        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
-        {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(operands);
-            if (!ops)
-                continue;
-            const bool isMov = inst.op == MicroInstrOpcode::LoadRegReg && ops[1].reg == stackPointer;
-            const bool isLea = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == stackPointer;
-            if ((isMov || isLea) && ops[0].reg.isVirtualInt())
-            {
-                Cand& c = cands[ops[0].reg];
-                if (c.defRef.isValid())
-                    c.stable = false; // defined more than once: not a stable base.
-                else
-                {
-                    c.defRef   = it.current;
-                    c.spOffset = isLea ? ops[3].valueU64 : 0;
-                }
-            }
-        }
-        if (cands.empty())
-            return MicroReg::invalid();
-
-        // Pass B: invalidate candidates redefined/modified elsewhere, and count
-        // their uses as a constant-offset memory base.
-        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
-        {
-            const MicroInstr&        inst = *it;
-            const MicroInstrOperand* ops  = inst.ops(operands);
-            if (!ops)
-                continue;
-
-            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
-            {
-                if (modes[i] != MicroInstrRegMode::Def && modes[i] != MicroInstrRegMode::UseDef)
-                    continue;
-                const auto found = cands.find(ops[i].reg);
-                if (found != cands.end() && it.current != found->second.defRef)
-                    found->second.stable = false;
-            }
-
-            // Count uses where the candidate is the addressing base: a direct
-            // scalar load/store base, or the base of a `lea` that derives a
-            // sub-address (`lea ar, [base + off]`). The latter matters because
-            // the front-end frequently materializes each local's address with a
-            // lea first, so the frame base may never appear as a direct base.
-            MicroReg baseReg = MicroReg::invalid();
-            if (inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadAddrRegMem)
-                baseReg = ops[1].reg;
-            else if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm)
-                baseReg = ops[0].reg;
-            if (baseReg.isValid())
-            {
-                const auto found = cands.find(baseReg);
-                if (found != cands.end())
-                    ++found->second.baseUses;
-            }
-        }
-
-        // The code generator names the register its locals hang from; when it
-        // is a stable candidate it is the base, however many other addresses
-        // the function derives from the stack pointer. The local extents the
-        // escapes are measured against are offsets from that register, and a
-        // detection that settled on another sp-derived register - an indirect
-        // return slot's, a parameter home's - left every extent unusable and
-        // every escape a whole-function bail.
-        if (preferred.isValid())
-        {
-            const auto found = cands.find(preferred);
-            if (found != cands.end() && found->second.stable && found->second.defRef.isValid())
-            {
-                outDefRef   = found->second.defRef;
-                outSpOffset = found->second.spOffset;
-                return preferred;
-            }
-        }
-
-        MicroReg best;
-        uint32_t bestUses = 0;
-        for (const auto& [reg, c] : cands)
-        {
-            if (c.stable && c.defRef.isValid() && c.baseUses > bestUses)
-            {
-                best        = reg;
-                bestUses    = c.baseUses;
-                outDefRef   = c.defRef;
-                outSpOffset = c.spOffset;
-            }
-        }
-        return best;
-    }
-
     struct Promotion
     {
         uint64_t    offset;
@@ -415,7 +310,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
     MicroInstrRef  frameBaseDefRef   = MicroInstrRef::invalid();
     uint64_t       frameBaseSpOffset = 0;
-    const MicroReg frameBase         = detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameBaseDefRef, frameBaseSpOffset);
+    const MicroReg frameBase         = MicroPassHelpers::detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameBaseDefRef, frameBaseSpOffset);
     if (!frameBase.isValid() || !frameBaseDefRef.isValid())
         return Result::Continue;
 

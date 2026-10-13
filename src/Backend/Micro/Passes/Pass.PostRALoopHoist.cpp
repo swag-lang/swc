@@ -214,11 +214,8 @@ namespace
         if (context.sanitizerFunction)
         {
             out.extentsKnown = true;
-            for (const SymbolVariable* symVar : context.sanitizerFunction->localVariables())
-            {
-                if (symVar && symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && symVar->codeGenLocalSize())
-                    out.objects.push_back({.start = static_cast<int64_t>(symVar->offset()), .size = symVar->codeGenLocalSize()});
-            }
+            for (const MicroFrameObject& object : MicroPassHelpers::frameObjects(context))
+                out.objects.push_back({.start = static_cast<int64_t>(object.offset), .size = object.size});
             for (const SymbolVariable* symVar : context.sanitizerFunction->parameters())
             {
                 if (symVar && symVar->debugStackSlotSize())

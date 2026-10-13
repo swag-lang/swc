@@ -16,6 +16,7 @@
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
 #include "Backend/Micro/Passes/Pass.LoopLoadForward.h"
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
+#include "Backend/Micro/Passes/Pass.FrameCompact.h"
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopHoist.h"
@@ -495,6 +496,7 @@ MicroPassManager::MicroPassManager()
     sanityPass_               = std::make_unique<MicroSanityPass>();
     stackAdjustNormalizePass_ = std::make_unique<MicroStackAdjustNormalizePass>();
     memToRegPass_             = std::make_unique<MicroMemToRegPass>();
+    frameCompactPass_         = std::make_unique<MicroFrameCompactPass>();
     legalizePass_             = std::make_unique<MicroLegalizePass>();
     regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
     prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();
@@ -539,6 +541,7 @@ void MicroPassManager::clear()
     startPasses_.clear();
     preRaLoopPasses_.clear();
     vectorizePasses_.clear();
+    preRaFinalPasses_.clear();
     raLoopPasses_.clear();
     preRaAnalysisPasses_.clear();
     postRaSetupPasses_.clear();
@@ -633,6 +636,11 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         // hoists its parts.
         if (costly)
             addVectorizePass(*lateStrengthReductionPass_);
+
+        // Once, on the converged IR: the frame keeps only the objects the body still
+        // reaches. Nothing after this point creates a frame access the layout would
+        // have to grow for; the allocator adds its spill area beside the frame.
+        addPreRaFinalPass(*frameCompactPass_);
     }
 
     // Static sanity analysis, followed by removal of proof-only markers. Runs once, before the
@@ -730,6 +738,8 @@ Result MicroPassManager::run(MicroPassContext& context) const
             SWC_RESULT(runLoopPasses(context, preRaLoopPasses_, cleanupSettings, verifyCache));
         }
     }
+
+    SWC_RESULT(runLinearPasses(context, preRaFinalPasses_, verifyCache));
 
     // Register allocation loop - legalize + regalloc iterate until stable.
     const uint32_t         raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);

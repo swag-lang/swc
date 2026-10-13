@@ -86,13 +86,9 @@ namespace PostRaPeephole
             if (!ctx.passContext->sanitizerFunction || source[1].reg != ctx.localStackBase)
                 return false;
             const uint64_t offset = source[3].valueU64;
-            for (const SymbolVariable* variable : ctx.passContext->sanitizerFunction->localVariables())
+            for (const MicroFrameObject& object : MicroPassHelpers::frameObjects(*ctx.passContext))
             {
-                if (!variable || !variable->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
-                    variable->codeGenLocalSize() < 8)
-                    continue;
-                const uint64_t start = static_cast<uint64_t>(variable->offset());
-                if (offset >= start && offset - start <= variable->codeGenLocalSize() - 8)
+                if (object.size >= 8 && offset >= object.offset && offset - object.offset <= object.size - 8)
                     return true;
             }
             return false;

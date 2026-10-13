@@ -74,7 +74,6 @@ private:
 
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
     Result        buildRDataAllocationSection(CoffSectionBuild& section, const NativeObjDescription& description) const;
-    static void   appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const ByteArray& bytes, uint32_t alignment);
     Result        appendCodeRelocations(const NativeStartupInfo& startup, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
     Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
     Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;

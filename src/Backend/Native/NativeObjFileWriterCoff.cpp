@@ -157,21 +157,12 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     return builder_->reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
 }
 
-void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const ByteArray& bytes, const uint32_t alignment)
-{
-    const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(textSection.data.bytes.size()), alignment);
-    if (textSection.data.bytes.size() < alignedOffset)
-        textSection.data.bytes.resize(alignedOffset, std::byte{0});
-    outOffset = alignedOffset;
-    textSection.data.bytes.append(bytes);
-}
-
 Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     if (description.startup)
-        appendAlignedCodeBytes(textSection, description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
+        textSection.data.bytes.appendAligned(description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
     for (NativeFunctionInfo* info : description.functions)
-        appendAlignedCodeBytes(textSection, info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
+        textSection.data.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
 
     if (description.startup)
         SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols, description.splitRDataReferences));

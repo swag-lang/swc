@@ -78,15 +78,6 @@ namespace
         return isDebugSectionName(name) || name.view() == SymbolTable::OBJECT_SECTION;
     }
 
-    void appendAlignedBytes(ByteArray& outBytes, uint32_t& outOffset, const ByteArray& bytes, const uint32_t alignment)
-    {
-        const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(outBytes.size()), alignment);
-        if (outBytes.size() < alignedOffset)
-            outBytes.resize(alignedOffset, std::byte{0});
-        outOffset = alignedOffset;
-        outBytes.append(bytes);
-    }
-
     // Every name the link defines. A module defines thousands of symbols and every relocation is
     // checked against them, so the names are borrowed from their owners into one flat table
     // instead of being copied into a node each. An owner must outlive the table.
@@ -597,9 +588,9 @@ namespace
             textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_32BYTES;
 
             if (description.startup)
-                appendAlignedBytes(textSection.bytes, description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
+                textSection.bytes.appendAligned(description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
             for (NativeFunctionInfo* info : description.functions)
-                appendAlignedBytes(textSection.bytes, info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
+                textSection.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
 
             if (description.startup)
                 SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));

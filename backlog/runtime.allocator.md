@@ -62,14 +62,15 @@ replace the allocator; a similar architecture alone does not establish comparabl
   concurrent workloads, including live-set growth without frees, plus opt-in `aligned` batches,
   `huge` blocks, the gated repetition `spreadrep` and the retention run `retain`. Every run also
   reports the slowest worker's time per operation beside the end-to-end figure, and `--latency`
-  reports per-operation 50th and 99th percentiles. The harness records medians, peak working
-  set, and peak commit in fresh pinned processes and rotates implementation order. The remaining
-  scope is OS-call counts and representative application traces.
+  reports per-operation 50th and 99th percentiles; the Swag program also reports its system
+  calls. The harness records medians, peak working set, and peak commit in fresh pinned
+  processes and rotates implementation order. The remaining scope is representative
+  application traces.
 - Timing boundary: both programs start the clock before thread creation and close the worker
   handles inside it; the Swag program also creates its threads suspended and resumes them with a
   context to inherit, which the worker timing excludes.
-- Next: run the campaign with the gated and latency figures on a quiet machine and record
-  them, then add OS-call counts to the Swag program's statistics output.
+- Next: run the campaign with the gated, latency and system-call figures on a quiet machine
+  and record them.
 - Parity gate: geometric-mean throughput within 10% of mimalloc, no representative workload
   more than 25% slower, and no unbounded retained-memory case.
 - Done when: repeated comparable results cover the listed workloads and parity gate, with
@@ -88,7 +89,8 @@ replace the allocator; a similar architecture alone does not establish comparabl
   direct comparison, at about half mimalloc's peak working set; single-thread `large` is faster
   than mimalloc in every window. The cache now holds up to 256 blocks inside the same byte
   budget, which the `large:4` live set of 128 blocks no longer overflows: 1392 to 1236 ns in
-  seven rotating rounds, at the same peak working set. What is left per operation is the
+  seven rotating rounds, at the same peak working set, and 1032 against mimalloc's 1042 in the
+  quietest window of the day. What is left per operation is the
   live-byte atomic, the shard lock, the clock read on free, the global cache lock and its
   linear best-fit scan on a front miss, and the page faults of a block that came from the
   system, which mimalloc's page cache avoids more often.

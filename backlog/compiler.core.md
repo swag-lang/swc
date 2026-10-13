@@ -403,7 +403,11 @@ cache is part of the normal DevMode and Release paths.
   fixture. Keeping that reduction as a regression would not distinguish the defect.
 - Next: find a bounded source-level ordering or a workspace-test scheduling hook that exposes
   missing or corrupted dependency registration without depending on a large GUI module build.
-  Keep the existing C++ concurrency test as the precise internal guard.
+  Keep the existing C++ concurrency test as the precise internal guard. A DevMode option that
+  slept one millisecond before each registration, over a twelve-file module whose files each
+  include sixteen fixtures of their own, did not expose the unsynchronized insertion in three
+  six-worker rebuilds: the sleep aligns the arrivals, not the insertions, so the hook has to
+  hold the registration open inside the mutation itself.
 - Done when: a `bin/unittests/workspace` case fails with unsynchronized registration, passes
   with synchronized registration under both compiler executables with six workers, and verifies
   dependency retention and subsequent invalidation without an intermittent timeout as its oracle.

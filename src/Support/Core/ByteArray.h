@@ -1,5 +1,4 @@
 #pragma once
-#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -83,15 +82,7 @@ struct ByteArray
     void append(std::span<const std::byte> bytes);
     void append(const ByteArray& bytes);
     void append(std::string_view text);
-    void appendAligned(uint32_t& outOffset, const ByteArray& bytes, uint32_t alignment)
-    {
-        const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(size()), alignment);
-        if (size() < alignedOffset)
-            resize(alignedOffset, std::byte{0});
-        outOffset = alignedOffset;
-        append(bytes);
-    }
-
+    void appendAligned(uint32_t& outOffset, const ByteArray& bytes, uint32_t alignment);
     void appendCString(std::string_view text);
     void appendLe16(uint16_t value);
     void appendLe32(uint32_t value);

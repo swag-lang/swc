@@ -279,18 +279,10 @@ namespace
             if (!rangesDisjoint(stride, consumer.width, 0, consumer.width))
                 continue;
 
-            bool indexAfterAll = true;
-            for (const Access& access : accesses)
-            {
-                if (access.index == consumer.index && access.pos > stepPos)
-                    indexAfterAll = false;
-            }
-            for (const uint32_t pos : addrDefPositions)
-            {
-                if (loop.ops[pos][2].reg == consumer.index && pos > stepPos)
-                    indexAfterAll = false;
-            }
-            if (!indexAfterAll)
+            // One access after the step rejects the candidate; later accesses
+            // cannot restore the required ordering.
+            if (std::ranges::any_of(accesses, [&](const Access& access) { return access.index == consumer.index && access.pos > stepPos; }) ||
+                std::ranges::any_of(addrDefPositions, [&](const uint32_t pos) { return loop.ops[pos][2].reg == consumer.index && pos > stepPos; }))
                 continue;
 
             // The producer: a later access of the previous trip to the same
@@ -312,10 +304,9 @@ namespace
             // Every other store of the body runs between the producer of the
             // previous trip and the consumer of this one, at one of the two
             // index values. Each must miss the carried element on both.
-            MicroReg   consumerRoot;
-            uint64_t   consumerOffset = 0;
-            const bool consumerRooted = resolveRoot(fn, consumerRoot, consumerOffset, consumer.base);
-            bool       disjoint       = true;
+            MicroReg consumerRoot;
+            uint64_t consumerOffset = 0;
+            bool     disjoint       = true;
             for (const Access& store : accesses)
             {
                 if (!store.isStore || &store == producer)
@@ -328,9 +319,12 @@ namespace
                 uint64_t baseDelta = 0;
                 if (store.base != consumer.base)
                 {
+                    // Equal bases need only displacement checks. Resolve the
+                    // consumer's definition chain once, only for another base.
                     MicroReg storeRoot;
                     uint64_t storeOffset = 0;
-                    if (!consumerRooted || !resolveRoot(fn, storeRoot, storeOffset, store.base) || storeRoot != consumerRoot)
+                    if ((!consumerRoot.isValid() && !resolveRoot(fn, consumerRoot, consumerOffset, consumer.base)) ||
+                        !resolveRoot(fn, storeRoot, storeOffset, store.base) || storeRoot != consumerRoot)
                     {
                         disjoint = false;
                         break;

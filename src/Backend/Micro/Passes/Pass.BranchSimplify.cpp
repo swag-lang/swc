@@ -373,9 +373,9 @@ namespace
     };
 
     template<typename Table>
-    uint32_t jumpLabelReferenceCount(const Table& counts, const uint32_t labelId)
+    uint32_t lookupCount(const Table& counts, const uint32_t key)
     {
-        const uint32_t* count = counts.find(labelId);
+        const uint32_t* count = counts.find(key);
         return count ? *count : 0;
     }
 
@@ -1853,7 +1853,7 @@ namespace
             if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional || !tryGetJumpTargetLabelId(labelId, *jumpInst, jumpOps))
                 continue;
             const auto* labelIt = layout.labelOrdinalById.find(labelId);
-            if (!labelIt || *labelIt <= p || jumpLabelReferenceCount(labelReferences, labelId) != 1 ||
+            if (!labelIt || *labelIt <= p || lookupCount(labelReferences, labelId) != 1 ||
                 relocationCache.get(context).contains(layout.order[*labelIt].get()))
                 continue;
             const uint32_t j = *labelIt;
@@ -2239,7 +2239,7 @@ namespace
             uint32_t markLabel = 0;
             if (!tryGetJumpTargetLabelId(joinLabel, *storage.ptr(layout.order[ordinal + 4]), exit) ||
                 !tryGetLabelId(markLabel, *storage.ptr(layout.order[ordinal + 9]), joinMark) || joinLabel != markLabel ||
-                labelReferences.getOrInsert(joinLabel) != 1)
+                lookupCount(labelReferences, joinLabel) != 1)
                 continue;
 
             if (!nextFloat)
@@ -2356,7 +2356,7 @@ namespace
             uint32_t                 markId    = 0;
             if (skip->op != MicroInstrOpcode::JumpCond || !skipOps || skipOps[0].cpuCond != MicroCond::Unconditional ||
                 !tryGetJumpTargetLabelId(joinLabel, *skip, skipOps) || elseMark->op != MicroInstrOpcode::Label ||
-                !tryGetLabelId(markId, *elseMark, elseMark->ops(operands)) || markId != elseLabel || labelReferences.getOrInsert(elseLabel) != 1 ||
+                !tryGetLabelId(markId, *elseMark, elseMark->ops(operands)) || markId != elseLabel || lookupCount(labelReferences, elseLabel) != 1 ||
                 joinMark->op != MicroInstrOpcode::Label || !tryGetLabelId(markId, *joinMark, joinMark->ops(operands)) ||
                 markId != joinLabel)
                 continue;
@@ -2648,7 +2648,7 @@ namespace
                 {
                     const MicroInstrOperand* aliasOps = first->ops(operands);
                     if (links.empty() || aliasOps[1].reg != value || !aliasOps[0].reg.isVirtualInt() ||
-                        getNumBits(aliasOps[2].opBits) < getNumBits(bits) || mentions.getOrInsert(aliasOps[0].reg.index()) != 2)
+                        getNumBits(aliasOps[2].opBits) < getNumBits(bits) || lookupCount(mentions, aliasOps[0].reg.index()) != 2)
                         break;
                     alias = aliasOps[0].reg;
                     ++at;
@@ -2670,7 +2670,7 @@ namespace
                 if (!cmpOps[0].reg.isVirtualInt() || cmpOps[2].hasWideImmediateValue() ||
                     (setOps[1].cpuCond != MicroCond::Equal && setOps[1].cpuCond != MicroCond::NotEqual) ||
                     !setOps[0].reg.isVirtualInt() || copyOps[1].reg != setOps[0].reg || copyOps[2].opBits != MicroOpBits::B8 ||
-                    !copyOps[0].reg.isVirtualInt() || copyOps[0].reg == tested || mentions.getOrInsert(setOps[0].reg.index()) != 2)
+                    !copyOps[0].reg.isVirtualInt() || copyOps[0].reg == tested || lookupCount(mentions, setOps[0].reg.index()) != 2)
                     break;
                 if (links.empty())
                 {
@@ -2706,7 +2706,7 @@ namespace
                     closed = true;
                 break;
             }
-            if (!closed || links.size() < K_MIN_CHAIN || labelReferences.getOrInsert(endId) != links.size() - 1)
+            if (!closed || links.size() < K_MIN_CHAIN || lookupCount(labelReferences, endId) != links.size() - 1)
                 continue;
 
             if (relocationCache.get(context).contains(layout.order[bodyEnd + 1].get()))
@@ -2960,14 +2960,14 @@ namespace
                         }
                     }
 
-                    bool local = inside.getOrInsert(result.index()) == 1;
+                    bool local = lookupCount(inside, result.index()) == 1;
                     for (const auto& [index, defined] : insideDefs)
                     {
                         if (!local)
                             break;
                         if (defined == result && index == link.merge)
                             continue;
-                        if (!defined.isVirtualInt() || defined == result || inside.getOrInsert(defined.index()) != mentions.getOrInsert(defined.index()))
+                        if (!defined.isVirtualInt() || defined == result || lookupCount(inside, defined.index()) != lookupCount(mentions, defined.index()))
                             local = false;
                     }
                     if (!local)
@@ -2998,13 +2998,13 @@ namespace
                 break;
             }
 
-            if (!closed || links.size() < 2 || labelReferences.getOrInsert(endId) != links.size() - 1)
+            if (!closed || links.size() < 2 || lookupCount(labelReferences, endId) != links.size() - 1)
                 continue;
 
             // D leaves the chain as a byte, read once right after the join.
             const size_t      endAt  = links.back().merge + 1;
             const MicroInstr* reader = instAt(endAt + 1);
-            if (!reader || mentions.getOrInsert(result.index()) != links.size() + 1)
+            if (!reader || lookupCount(mentions, result.index()) != links.size() + 1)
                 continue;
             const MicroInstrOperand* readerOps = reader->ops(operands);
             const bool               byteRead  = (reader->op == MicroInstrOpcode::LoadZeroExtRegReg && readerOps[3].opBits == MicroOpBits::B8) ||
@@ -3169,7 +3169,7 @@ namespace
                 continue;
             if (!tryGetLabelId(label, *endLbl, endLbl->ops(operands)) || label != endId)
                 continue;
-            if (labelReferences.getOrInsert(elseId) != 1 || labelReferences.getOrInsert(endId) != 1)
+            if (lookupCount(labelReferences, elseId) != 1 || lookupCount(labelReferences, endId) != 1)
                 continue;
 
             // D = 1 on one side and D = -zext(x < y) on the other, or D = -1 and
@@ -3200,7 +3200,7 @@ namespace
             const uint32_t valueUses   = negated ? 3 : 2;
             const uint32_t flagInside  = flag == value ? valueUses + 2 : 2;
             const uint32_t valueInside = flag == value ? valueUses + 2 : valueUses;
-            if (mentions.getOrInsert(flag.index()) != flagInside || mentions.getOrInsert(value.index()) != valueInside)
+            if (lookupCount(mentions, flag.index()) != flagInside || lookupCount(mentions, value.index()) != valueInside)
                 continue;
 
             const auto& relocated     = relocationCache.get(context);
@@ -3380,7 +3380,7 @@ namespace
                     if (!highCmp || !highJump || !skip || highCmp->op != MicroInstrOpcode::CmpRegImm || highJump->op != MicroInstrOpcode::JumpCond ||
                         !tryGetJumpTargetLabelId(skipId, *jump, jumpOps) || skip->op != MicroInstrOpcode::Label ||
                         !tryGetLabelId(placedId, *skip, skip->ops(operands)) || placedId != skipId ||
-                        labelReferences.getOrInsert(skipId) != 1)
+                        lookupCount(labelReferences, skipId) != 1)
                         break;
                     const MicroInstrOperand* highOps     = highCmp->ops(operands);
                     const MicroInstrOperand* highJumpOps = highJump->ops(operands);
@@ -3493,7 +3493,7 @@ namespace
                 if (arms.contains(labelId))
                     continue;
                 Arm arm;
-                if (!matchArm(labelId, arm) || labelReferences.getOrInsert(labelId) != chainJumps.getOrInsert(labelId))
+                if (!matchArm(labelId, arm) || lookupCount(labelReferences, labelId) != lookupCount(chainJumps, labelId))
                 {
                     valid = false;
                     break;
@@ -3554,7 +3554,7 @@ namespace
             }
             else
             {
-                if (!matchArm(defaultId, defaultArm) || labelReferences.getOrInsert(defaultId) != 1)
+                if (!matchArm(defaultId, defaultArm) || lookupCount(labelReferences, defaultId) != 1)
                     continue;
                 defaultValue = defaultArm.value;
                 defaultIsArm = true;
@@ -4740,10 +4740,10 @@ namespace
             if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
             const auto& labelReferences = labelCache.get(storage, operands);
-            if (jumpLabelReferenceCount(labelReferences, armLabelId) != 1)
+            if (lookupCount(labelReferences, armLabelId) != 1)
                 continue;
             uint32_t joinLabelId = 0;
-            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || jumpLabelReferenceCount(labelReferences, joinLabelId) != 1)
+            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || lookupCount(labelReferences, joinLabelId) != 1)
                 continue;
 
             ++fallCopyIt;
@@ -4884,7 +4884,7 @@ namespace
                 !MicroPassHelpers::invertCondition(candidate.secondTrue, secondJumpOps[0].cpuCond))
                 continue;
             const auto& labelReferences = labelCache.get(storage, operands);
-            if (jumpLabelReferenceCount(labelReferences, falseLabelId) != 2)
+            if (lookupCount(labelReferences, falseLabelId) != 2)
                 continue;
 
             ++patternIt;
@@ -4910,7 +4910,7 @@ namespace
             if (!joinJumpOps || joinJumpOps[0].cpuCond != MicroCond::Unconditional)
                 continue;
             uint32_t joinLabelId = 0;
-            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || jumpLabelReferenceCount(labelReferences, joinLabelId) != 1)
+            if (!tryGetJumpTargetLabelId(joinLabelId, *joinJump, joinJumpOps) || lookupCount(labelReferences, joinLabelId) != 1)
                 continue;
 
             ++patternIt;
@@ -5298,7 +5298,7 @@ namespace
                 armLabelId != elseLabelId || !floatCopy(storage.ptr(layout.order[ordinal + 4]), bits, jumpDst, jumpSrc) ||
                 !labelIdAt(ordinal + 5, endLabelId) || endLabelId != joinLabelId)
                 continue;
-            if (fallDst != jumpDst || labelReferences.getOrInsert(elseLabelId) != 1 || labelReferences.getOrInsert(joinLabelId) != 1)
+            if (fallDst != jumpDst || lookupCount(labelReferences, elseLabelId) != 1 || lookupCount(labelReferences, joinLabelId) != 1)
                 continue;
             if (!((fallSrc == left && jumpSrc == right) || (fallSrc == right && jumpSrc == left)))
                 continue;

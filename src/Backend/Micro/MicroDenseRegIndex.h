@@ -45,14 +45,10 @@ public:
 
         if (!regToIndex_)
             regToIndex_.emplace();
-        const auto it = regToIndex_->find(reg);
-        if (it != regToIndex_->end())
-            return it->second;
-
-        const uint32_t newIndex = static_cast<uint32_t>(regs_.size());
-        regToIndex_->emplace(reg, newIndex);
-        regs_.push_back(reg);
-        return newIndex;
+        const auto [it, inserted] = regToIndex_->try_emplace(reg, static_cast<uint32_t>(regs_.size()));
+        if (inserted)
+            regs_.push_back(reg);
+        return it->second;
     }
 
     uint32_t find(const MicroReg reg) const

@@ -11,6 +11,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/DenseBits.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Math/ApInt.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

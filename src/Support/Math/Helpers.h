@@ -1,8 +1,9 @@
 #pragma once
-#include "Support/Math/ApFloat.h"
-#include "Support/Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class ApFloat;
+class ApsInt;
 
 namespace Math
 {

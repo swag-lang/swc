@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/TaskContext.h"
+#include "Support/Math/ApInt.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

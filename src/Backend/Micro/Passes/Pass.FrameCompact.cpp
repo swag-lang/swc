@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Math/ApInt.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

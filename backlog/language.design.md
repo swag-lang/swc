@@ -191,6 +191,13 @@ in its module backlog; a general request for better names is not a missing langu
   side of that line; what stays undetected is a same-thread write of a global the parameter is bound
   to, or a write through a stored pointer, which Swift catches at run time and which a "writes
   global" fact in the borrow summaries could cover later.
+- Decisions: whether the devmode side of the check is added under a safety guard, the way Swift
+  enforces exclusivity at run time where the compiler cannot see both accesses. In that build the
+  callee copies an indirect struct parameter into a local slot at entry and reads the copy; each
+  field read also loads the caller's storage and traps when the two differ, naming the parameter
+  and the field. It fires exactly on a read whose value the release rule would have changed, covers
+  the same-call alias, the global written by name and the write from another thread, and costs
+  release nothing. Measure the devmode cost on the std tests before adopting it.
 - Next: in this order, each step validated before the next. (1) `std/core`: `Thread.userLambda` and
   `init` take `func||(const *Thread)`, `threadEntry` passes the pointer, `isEndRequested()` reads the
   flag through `Swag.atomget` (integers only, so through a `u8` view); migrate the 24 bodies and the

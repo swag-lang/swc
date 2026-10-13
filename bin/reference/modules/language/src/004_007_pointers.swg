@@ -131,9 +131,35 @@ run at all, so it proves nothing past its own region. A generic body is analyzed
 instantiation and an inlined body is judged at a call site it did not choose, so neither is
 reported: this is the same line `orelse` draws, on what the type can be rather than on what the
 flow proves at one site.
+
+`Swag.assert` states a precondition, and a `!` written inside its argument is part of it:
+`Swag.assert(p!.count == 2)` proves `p` for the rest of the block exactly as
+`Swag.assert(p != null)` does. `#[Swag.Safety(.Assert, false)]` and the `release` configuration
+drop the whole assertion, the embedded `!` included, while the proof it recorded survives: the
+code after it runs unguarded on that path, which is what switching assertions off declares.
+Write a `!` whose guard has to fire outside of an assertion argument, or keep `.Assert` on where
+the precondition is not an invariant.
 */
+struct AssertProofDoc
+{
+    count: s64
+}
+
+// The proof a '!' records inside an assertion argument does not depend on the assertion
+// running: with '.Assert' off the guard is gone, the proof is not, and 'p.count' still compiles.
+#[Swag.Safety(.Assert, false)]
+func readProvenCount(p: *AssertProofDoc?)->s64
+{
+    Swag.assert(p!.count >= 0)
+    return p.count
+}
+
 #test
 {
+    var proven: AssertProofDoc
+    proven.count = 2
+    Swag.assert(readProvenCount(&proven) == 2)
+
     struct OptChainRefDoc
     {
         count: s64

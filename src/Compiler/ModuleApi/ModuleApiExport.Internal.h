@@ -3,6 +3,7 @@
 #include "Compiler/ModuleApi/ModuleApi.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -33,6 +34,10 @@ namespace ModuleApiExport
         AstNodeRef                 nodeRef = AstNodeRef::invalid();
         const Symbol*              symbol  = nullptr;
         std::vector<IdentifierRef> namespacePath;
+        // A non-public declaration published because a source body in the interface names it.
+        // It keeps its own access and its body: the module does not export it, so a foreign
+        // binding could not reach it.
+        bool supporting = false;
     };
 
     struct ModuleApiValidationStack
@@ -40,6 +45,14 @@ namespace ModuleApiExport
         SmallVector<const Symbol*>        values;
         std::unordered_set<const Symbol*> set;
         std::unordered_set<const Symbol*> validated;
+        // The supporting symbols of the interface being built; a non-public type among them
+        // is as reachable as a public one.
+        const PointerSet<const Symbol>* supportingSymbols = nullptr;
+
+        bool isSupporting(const Symbol& symbol) const
+        {
+            return supportingSymbols && supportingSymbols->contains(&symbol);
+        }
 
         bool contains(const Symbol& symbol) const
         {
@@ -83,7 +96,31 @@ namespace ModuleApiExport
     Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, ModuleApiValidationStack& stack);
 
     // ModuleApiExport.Roots.cpp
+    enum class ModuleApiDependencyScope : uint8_t
+    {
+        Public,
+        NonPublic,
+        Any,
+    };
+
+    // The type symbols of the current module that a symbol's declaration names: the owner of a
+    // method, the generic arguments of an instance, a signature, a field, an alias target.
+    struct ModuleApiDependencyCollector
+    {
+        TaskContext*               ctx;
+        ModuleApiDependencyScope   scope = ModuleApiDependencyScope::Public;
+        std::vector<const Symbol*> symbols;
+        // Membership only: one collector per root, so the sets stay small and flat.
+        PointerSet<const Symbol> symbolSet;
+        PointerSet<const Symbol> visitedSymbols;
+        RefSet<TypeRef>          visitedTypeRefs;
+    };
+
+    void collectModuleApiSymbolDependencies(ModuleApiDependencyCollector& collector, const Symbol& symbol);
     void sortGeneratedModuleApiRoots(TaskContext& ctx, std::vector<ModuleApiGeneratedRoot>& roots);
+
+    // ModuleApiExport.Supporting.cpp
+    Result appendSupportingDeclarationRoots(TaskContext& ctx, std::vector<ModuleApiGeneratedRoot>& ioRoots);
 
     // ModuleApiExport.Generate.cpp
     Result validateWholeFileFunctionBodies(TaskContext& ctx, const SourceFile& file);

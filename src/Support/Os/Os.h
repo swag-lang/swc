@@ -126,6 +126,9 @@ namespace Os
     uint64_t tlsAlloc();
     void     tlsSetValue(uint64_t id, void* value);
     void*    tlsGetValue(uint64_t id);
+    // The thread-local slots the process holds, for a development measurement: the count is
+    // taken by borrowing every free slot, so a thread allocating meanwhile reads one too low.
+    uint32_t tlsSlotsInUse();
 
     const char* hostOsName();
     const char* hostCpuName();

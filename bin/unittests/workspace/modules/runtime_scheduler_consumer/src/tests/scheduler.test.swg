@@ -15,12 +15,12 @@ private func sleep(milliseconds: u32)
     var started: Swag.AtomicFlag
     var parked = false
     var task:    Swag.Task
-    for round in 16
+    for 16
     {
         started.reset()
         parked = false
         SchedulerDll.submitObserved(&task, &started, &parked)
-        for attempt in 1000
+        for 1000
         {
             if started.isRaised() do
                 break

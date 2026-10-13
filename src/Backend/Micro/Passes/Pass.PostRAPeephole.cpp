@@ -578,16 +578,21 @@ namespace
                 if (reachesRead.empty())
                 {
                     reachesRead.assign(refs.size(), 0);
+                    reachesRead[reloadIndex] = 1;
                     pending.assign(1, reloadIndex);
                     while (!pending.empty())
                     {
                         const uint32_t index = pending.back();
                         pending.pop_back();
-                        if (reachesRead[index])
-                            continue;
-                        reachesRead[index] = 1;
                         for (const uint32_t predecessor : cfg.predecessors(index))
+                        {
+                            // This full traversal only computes membership. Mark on
+                            // insertion so joins and cycles never enqueue a node twice.
+                            if (reachesRead[predecessor])
+                                continue;
+                            reachesRead[predecessor] = 1;
                             pending.push_back(predecessor);
+                        }
                     }
                 }
                 pending.assign(1, labelIndex);

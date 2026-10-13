@@ -193,6 +193,70 @@ SWC_TEST_BEGIN(PeWriter_ImportTablesPreserveGroupedSlots)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PeWriter_ExportTablesPreserveSortedNamesAndAliases)
+{
+    LinkSection textSection;
+    textSection.name = ".text";
+    textSection.bytes.resize(3, std::byte{0xC3});
+    textSection.align = 16;
+    textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
+
+    LinkImage image;
+    image.kind       = LinkImageKind::SharedLibrary;
+    image.moduleName = "exports.dll";
+    image.sections.push_back(std::move(textSection));
+    image.symbols = {
+        {.name = "first", .sectionIndex = 0, .value = 0},
+        {.name = "second", .sectionIndex = 0, .value = 1},
+        {.name = "third", .sectionIndex = 0, .value = 2},
+    };
+    image.exports = {
+        {.name = "Z", .symbolName = "third"},
+        {.name = "Beta", .symbolName = "first"},
+        {.name = "Omega", .symbolName = "third"},
+        {.name = "Alpha", .symbolName = "second"},
+    };
+
+    ByteArray           peBytes;
+    ByteArray           pdbBytes;
+    Diagnostic          diag;
+    PEWriter            writer;
+    const LinkDebugInfo noDebugInfo;
+    if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, {}))
+        return Result::Error;
+    PeSectionView edata;
+    PeSectionView text;
+    if (!findPeSection(edata, peBytes, ".edata") || !findPeSection(text, peBytes, ".text"))
+        return Result::Error;
+
+    // Directory, address table, name table and ordinals, followed by the sorted strings.
+    ByteArray expected(80);
+    expected.writeLe32(12, edata.rva + 99);
+    expected.writeLe32(16, 1);
+    expected.writeLe32(20, 4);
+    expected.writeLe32(24, 4);
+    expected.writeLe32(28, edata.rva + 40);
+    expected.writeLe32(32, edata.rva + 56);
+    expected.writeLe32(36, edata.rva + 72);
+    expected.writeLe32(40, text.rva + 1);
+    expected.writeLe32(44, text.rva);
+    expected.writeLe32(48, text.rva + 2);
+    expected.writeLe32(52, text.rva + 2);
+    expected.writeLe32(56, edata.rva + 80);
+    expected.writeLe32(60, edata.rva + 86);
+    expected.writeLe32(64, edata.rva + 91);
+    expected.writeLe32(68, edata.rva + 97);
+    expected.writeLe16(74, 1);
+    expected.writeLe16(76, 2);
+    expected.writeLe16(78, 3);
+    for (const std::string_view name : {"Alpha", "Beta", "Omega", "Z", "exports.dll"})
+        expected.appendCString(name);
+    if (edata.virtualSize != expected.size() || !peBytes.containsRange(edata.rawOffset, expected.size()) ||
+        std::memcmp(peBytes.data() + edata.rawOffset, expected.data(), expected.size()) != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PeWriter_CompressesEmbeddedDebugTable)
 {
     ByteArray text;

@@ -16,6 +16,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Version.h"
+#include "Support/Math/ApFloat.h"
+#include "Support/Math/ApsInt.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -227,26 +229,6 @@ namespace
         return nullptr;
     }
 
-    void writeU16(ByteArray& bytes, uint16_t value)
-    {
-        bytes.appendLe16(value);
-    }
-
-    void writeU32(ByteArray& bytes, uint32_t value)
-    {
-        bytes.appendLe32(value);
-    }
-
-    void writeU64(ByteArray& bytes, uint64_t value)
-    {
-        bytes.appendLe64(value);
-    }
-
-    void writeBytes(ByteArray& outBytes, const std::span<const std::byte> bytes)
-    {
-        outBytes.append(bytes);
-    }
-
     void addSecrelAndSectionRelocations(NativeSectionData& section, const Utf8& symbolName, uint32_t offRelocOffset, uint32_t segRelocOffset, uint64_t addend = 0)
     {
         NativeSectionRelocation offReloc;
@@ -273,71 +255,66 @@ namespace
     {
         if (value < K_CV_NUMERIC_LEAF)
         {
-            writeU16(bytes, static_cast<uint16_t>(value));
+            bytes.appendLe16(static_cast<uint16_t>(value));
             return;
         }
 
         if (value <= std::numeric_limits<uint16_t>::max())
         {
-            writeU16(bytes, K_LF_USHORT_NUMERIC);
-            writeU16(bytes, static_cast<uint16_t>(value));
+            bytes.appendLe16(K_LF_USHORT_NUMERIC);
+            bytes.appendLe16(static_cast<uint16_t>(value));
             return;
         }
 
         if (value <= std::numeric_limits<uint32_t>::max())
         {
-            writeU16(bytes, K_LF_ULONG_NUMERIC);
-            writeU32(bytes, static_cast<uint32_t>(value));
+            bytes.appendLe16(K_LF_ULONG_NUMERIC);
+            bytes.appendLe32(static_cast<uint32_t>(value));
             return;
         }
 
-        writeU16(bytes, K_LF_UQUADWORD_NUMERIC);
-        writeU64(bytes, value);
+        bytes.appendLe16(K_LF_UQUADWORD_NUMERIC);
+        bytes.appendLe64(value);
     }
 
     void writeEncodedSigned(ByteArray& bytes, const int64_t value)
     {
         if (value >= 0 && std::cmp_less(value, K_CV_NUMERIC_LEAF))
         {
-            writeU16(bytes, static_cast<uint16_t>(value));
+            bytes.appendLe16(static_cast<uint16_t>(value));
             return;
         }
 
         if (value >= std::numeric_limits<int8_t>::min() && value <= std::numeric_limits<int8_t>::max())
         {
-            writeU16(bytes, K_LF_CHAR_NUMERIC);
+            bytes.appendLe16(K_LF_CHAR_NUMERIC);
             bytes.pushBack(static_cast<std::byte>(static_cast<uint8_t>(value)));
             return;
         }
 
         if (value >= std::numeric_limits<int16_t>::min() && value <= std::numeric_limits<int16_t>::max())
         {
-            writeU16(bytes, K_LF_SHORT_NUMERIC);
-            writeU16(bytes, static_cast<uint16_t>(static_cast<int16_t>(value)));
+            bytes.appendLe16(K_LF_SHORT_NUMERIC);
+            bytes.appendLe16(static_cast<uint16_t>(static_cast<int16_t>(value)));
             return;
         }
 
         if (value >= std::numeric_limits<int32_t>::min() && value <= std::numeric_limits<int32_t>::max())
         {
-            writeU16(bytes, K_LF_LONG_NUMERIC);
-            writeU32(bytes, static_cast<uint32_t>(static_cast<int32_t>(value)));
+            bytes.appendLe16(K_LF_LONG_NUMERIC);
+            bytes.appendLe32(static_cast<uint32_t>(static_cast<int32_t>(value)));
             return;
         }
 
-        writeU16(bytes, K_LF_QUADWORD_NUMERIC);
-        writeU64(bytes, static_cast<uint64_t>(value));
-    }
-
-    void alignBytes(ByteArray& bytes, const uint32_t alignment)
-    {
-        bytes.align(alignment);
+        bytes.appendLe16(K_LF_QUADWORD_NUMERIC);
+        bytes.appendLe64(static_cast<uint64_t>(value));
     }
 
     uint32_t beginRecord(ByteArray& bytes, const uint16_t type)
     {
         const uint32_t offset = static_cast<uint32_t>(bytes.size());
-        writeU16(bytes, 0);
-        writeU16(bytes, type);
+        bytes.appendLe16(0);
+        bytes.appendLe16(type);
         return offset;
     }
 
@@ -347,14 +324,6 @@ namespace
         BinaryPatch::write<uint16_t>(bytes, recordOffset, recordLength);
     }
 
-    uint32_t beginTypeRecord(ByteArray& bytes, const uint16_t kind)
-    {
-        const uint32_t offset = static_cast<uint32_t>(bytes.size());
-        writeU16(bytes, 0);
-        writeU16(bytes, kind);
-        return offset;
-    }
-
     void endTypeRecord(ByteArray& bytes, const uint32_t recordOffset)
     {
         const uint32_t rawRecordSize = static_cast<uint32_t>(bytes.size()) - recordOffset;
@@ -362,15 +331,14 @@ namespace
         for (uint32_t i = padBytes; i > 0; --i)
             bytes.pushBack(static_cast<std::byte>(0xF0u + i));
 
-        const uint16_t recordLength = static_cast<uint16_t>(bytes.size() - recordOffset - sizeof(uint16_t));
-        BinaryPatch::write<uint16_t>(bytes, recordOffset, recordLength);
+        endRecord(bytes, recordOffset);
     }
 
     uint32_t beginSubsection(ByteArray& bytes, const uint32_t type)
     {
-        writeU32(bytes, type);
+        bytes.appendLe32(type);
         const uint32_t lenOffset = static_cast<uint32_t>(bytes.size());
-        writeU32(bytes, 0);
+        bytes.appendLe32(0);
         return lenOffset;
     }
 
@@ -379,7 +347,7 @@ namespace
         const uint32_t payloadOffset = lenOffset + sizeof(uint32_t);
         const uint32_t payloadSize   = static_cast<uint32_t>(bytes.size()) - payloadOffset;
         BinaryPatch::write<uint32_t>(bytes, lenOffset, payloadSize);
-        alignBytes(bytes, 4);
+        bytes.align(4);
     }
 
     uint16_t codeViewRegister(const MicroReg reg)
@@ -577,16 +545,16 @@ namespace
         constexpr uint16_t minorVersion = SWC_REVISION;
         constexpr uint16_t buildVersion = SWC_BUILD_NUM;
         const uint32_t     recordOffset = beginRecord(bytes, K_S_COMPILE3);
-        writeU32(bytes, compileFlags(backend));
-        writeU16(bytes, K_CV_CFL_AMD64);
-        writeU16(bytes, majorVersion);
-        writeU16(bytes, minorVersion);
-        writeU16(bytes, buildVersion);
-        writeU16(bytes, 0);
-        writeU16(bytes, majorVersion);
-        writeU16(bytes, minorVersion);
-        writeU16(bytes, buildVersion);
-        writeU16(bytes, 0);
+        bytes.appendLe32(compileFlags(backend));
+        bytes.appendLe16(K_CV_CFL_AMD64);
+        bytes.appendLe16(majorVersion);
+        bytes.appendLe16(minorVersion);
+        bytes.appendLe16(buildVersion);
+        bytes.appendLe16(0);
+        bytes.appendLe16(majorVersion);
+        bytes.appendLe16(minorVersion);
+        bytes.appendLe16(buildVersion);
+        bytes.appendLe16(0);
         writeCString(bytes, version);
         endRecord(bytes, recordOffset);
     }
@@ -595,7 +563,7 @@ namespace
     {
         const auto     objectName   = DebugPath::normalizedString(objectPath);
         const uint32_t recordOffset = beginRecord(bytes, K_S_OBJNAME);
-        writeU32(bytes, 0);
+        bytes.appendLe32(0);
         writeCString(bytes, objectName);
         endRecord(bytes, recordOffset);
     }
@@ -603,7 +571,7 @@ namespace
     void appendBuildInfoRecord(ByteArray& bytes, const uint32_t buildInfoTypeIndex)
     {
         const uint32_t recordOffset = beginRecord(bytes, K_S_BUILDINFO);
-        writeU32(bytes, buildInfoTypeIndex);
+        bytes.appendLe32(buildInfoTypeIndex);
         endRecord(bytes, recordOffset);
     }
 
@@ -680,9 +648,9 @@ namespace
 
         SWC_ASSERT(local.offset <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
         const uint32_t recordOffset = beginRecord(bytes, K_S_REGREL32);
-        writeU32(bytes, static_cast<uint32_t>(static_cast<int32_t>(local.offset)));
-        writeU32(bytes, typeIndex);
-        writeU16(bytes, cvReg);
+        bytes.appendLe32(static_cast<uint32_t>(static_cast<int32_t>(local.offset)));
+        bytes.appendLe32(typeIndex);
+        bytes.appendLe16(cvReg);
         writeCString(bytes, local.name);
         endRecord(bytes, recordOffset);
     }
@@ -690,15 +658,15 @@ namespace
     void appendDataSymbol(ByteArray& bytes, NativeSectionData& debugSection, const CompilerInstance& compiler, const DebugInfoDataRecord& data, const uint32_t typeIndex)
     {
         const uint32_t recordOffset = beginRecord(bytes, data.isGlobal ? K_S_GDATA32 : K_S_LDATA32);
-        writeU32(bytes, typeIndex);
+        bytes.appendLe32(typeIndex);
 
         const char*    relocBaseSymbol = sectionBaseSymbolName(data.sectionName);
         const Utf8     relocSymbolName = relocBaseSymbol ? nativeScopedSectionBaseSymbol(compiler, relocBaseSymbol) : data.symbolName;
         const uint32_t relocAddend     = relocBaseSymbol ? data.symbolOffset : 0;
         const uint32_t offRelocOffset  = static_cast<uint32_t>(bytes.size());
-        writeU32(bytes, 0);
+        bytes.appendLe32(0);
         const uint32_t segRelocOffset = static_cast<uint32_t>(bytes.size());
-        writeU16(bytes, 0);
+        bytes.appendLe16(0);
         writeCString(bytes, data.name.empty() ? data.symbolName : data.name);
 
         addSecrelAndSectionRelocations(debugSection, relocSymbolName, offRelocOffset, segRelocOffset, relocAddend);
@@ -713,7 +681,7 @@ namespace
         const size_t         savedSize    = bytes.size();
         const uint32_t       recordOffset = beginRecord(bytes, K_S_CONSTANT);
         const ConstantValue& value        = ctx.cstMgr().get(constant.valueRef);
-        writeU32(bytes, typeIndex);
+        bytes.appendLe32(typeIndex);
         if (!appendConstantValueBytes(bytes, ctx, value))
         {
             bytes.resize(savedSize);
@@ -731,7 +699,7 @@ namespace
             return;
 
         const uint32_t recordOffset = beginRecord(bytes, K_S_UDT);
-        writeU32(bytes, typeIndex);
+        bytes.appendLe32(typeIndex);
         writeCString(bytes, typeName);
         endRecord(bytes, recordOffset);
     }
@@ -746,18 +714,18 @@ namespace
         const uint32_t codeSize = static_cast<uint32_t>(function.machineCode->bytes.size());
 
         const uint32_t procOffset = beginRecord(bytes, K_S_GPROC32_ID);
-        writeU32(bytes, 0);
-        writeU32(bytes, 0);
-        writeU32(bytes, 0);
-        writeU32(bytes, codeSize);
-        writeU32(bytes, 0);
-        writeU32(bytes, codeSize ? codeSize - 1 : 0);
-        writeU32(bytes, typeIndex);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.appendLe32(codeSize);
+        bytes.appendLe32(0);
+        bytes.appendLe32(codeSize ? codeSize - 1 : 0);
+        bytes.appendLe32(typeIndex);
 
         const uint32_t offRelocOffset = static_cast<uint32_t>(bytes.size());
-        writeU32(bytes, 0);
+        bytes.appendLe32(0);
         const uint32_t segRelocOffset = static_cast<uint32_t>(bytes.size());
-        writeU16(bytes, 0);
+        bytes.appendLe16(0);
         bytes.pushBack(std::byte{0});
         writeCString(bytes, function.debugName.empty() ? function.symbolName : function.debugName);
 
@@ -765,13 +733,13 @@ namespace
         endRecord(bytes, procOffset);
 
         const uint32_t frameOffset = beginRecord(bytes, K_S_FRAMEPROC);
-        writeU32(bytes, function.frameSize);
-        writeU32(bytes, 0);
-        writeU32(bytes, 0);
-        writeU32(bytes, 0);
-        writeU32(bytes, 0);
-        writeU16(bytes, frameProcBaseRegEncoding(function.frameBaseReg));
-        writeU32(bytes, K_CV_FRAMEPROC_FLAGS);
+        bytes.appendLe32(function.frameSize);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.appendLe32(0);
+        bytes.appendLe16(frameProcBaseRegEncoding(function.frameBaseReg));
+        bytes.appendLe32(K_CV_FRAMEPROC_FLAGS);
         endRecord(bytes, frameOffset);
 
         for (size_t i = 0; i < function.parameters.size(); ++i)
@@ -813,7 +781,7 @@ namespace
 
         void begin()
         {
-            writeU32(bytes, K_CV_TYPE_SIGNATURE);
+            bytes.appendLe32(K_CV_TYPE_SIGNATURE);
         }
 
         // Closes the record started at 'recordOffset'. A record identical to one already emitted
@@ -837,38 +805,38 @@ namespace
 
         uint32_t appendArgList(const std::span<const uint32_t> arguments)
         {
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_ARGLIST);
-            writeU32(bytes, static_cast<uint32_t>(arguments.size()));
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_ARGLIST);
+            bytes.appendLe32(static_cast<uint32_t>(arguments.size()));
             for (const uint32_t argType : arguments)
-                writeU32(bytes, argType);
+                bytes.appendLe32(argType);
             return finishRecord(recordOffset);
         }
 
         uint32_t appendProcedureType(const uint32_t returnType, const std::span<const uint32_t> arguments)
         {
             const uint32_t argListType  = appendArgList(arguments);
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_PROCEDURE);
-            writeU32(bytes, returnType);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_PROCEDURE);
+            bytes.appendLe32(returnType);
             bytes.pushBack(static_cast<std::byte>(K_CV_CALL_NEAR_C));
             bytes.pushBack(std::byte{0});
-            writeU16(bytes, static_cast<uint16_t>(arguments.size()));
-            writeU32(bytes, argListType);
+            bytes.appendLe16(static_cast<uint16_t>(arguments.size()));
+            bytes.appendLe32(argListType);
             return finishRecord(recordOffset);
         }
 
         uint32_t appendFunctionId(const Utf8& functionName, const uint32_t procedureType)
         {
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_FUNC_ID);
-            writeU32(bytes, 0);
-            writeU32(bytes, procedureType);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_FUNC_ID);
+            bytes.appendLe32(0);
+            bytes.appendLe32(procedureType);
             writeCString(bytes, functionName);
             return finishRecord(recordOffset);
         }
 
         uint32_t appendStringId(const Utf8& value)
         {
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_STRING_ID);
-            writeU32(bytes, 0);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_STRING_ID);
+            bytes.appendLe32(0);
             writeCString(bytes, value);
             return finishRecord(recordOffset);
         }
@@ -880,9 +848,9 @@ namespace
             if (cacheIt != modifierTypes.end())
                 return cacheIt->second;
 
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_MODIFIER);
-            writeU32(bytes, baseTypeIndex);
-            writeU16(bytes, modifiers);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_MODIFIER);
+            bytes.appendLe32(baseTypeIndex);
+            bytes.appendLe16(modifiers);
             const uint32_t typeIndex = finishRecord(recordOffset);
             modifierTypes.emplace(cacheKey, typeIndex);
             return typeIndex;
@@ -894,9 +862,9 @@ namespace
             if (cacheIt != pointerTypes.end())
                 return cacheIt->second;
 
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_POINTER);
-            writeU32(bytes, pointeeTypeIndex);
-            writeU32(bytes, K_CV_PTR_ATTR_NEAR64);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_POINTER);
+            bytes.appendLe32(pointeeTypeIndex);
+            bytes.appendLe32(K_CV_PTR_ATTR_NEAR64);
             const uint32_t typeIndex = finishRecord(recordOffset);
             pointerTypes.emplace(pointeeTypeIndex, typeIndex);
             return typeIndex;
@@ -909,9 +877,9 @@ namespace
             if (cacheIt != arrayTypes.end())
                 return cacheIt->second;
 
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_ARRAY);
-            writeU32(bytes, elementTypeIndex);
-            writeU32(bytes, K_T_UINT8);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_ARRAY);
+            bytes.appendLe32(elementTypeIndex);
+            bytes.appendLe32(K_T_UINT8);
             writeEncodedUnsigned(bytes, sizeOf);
             writeCString(bytes, {});
             const uint32_t typeIndex = finishRecord(recordOffset);
@@ -941,9 +909,9 @@ namespace
         {
             for (const FieldDesc& field : fields)
             {
-                writeU16(bytes, K_LF_MEMBER);
-                writeU16(bytes, K_CV_MEMBER_ACCESS_PUBLIC);
-                writeU32(bytes, field.typeIndex);
+                bytes.appendLe16(K_LF_MEMBER);
+                bytes.appendLe16(K_CV_MEMBER_ACCESS_PUBLIC);
+                bytes.appendLe32(field.typeIndex);
                 writeEncodedUnsigned(bytes, field.offset);
                 writeCString(bytes, field.name);
             }
@@ -953,13 +921,13 @@ namespace
         // record via a trailing LF_INDEX leaf (0 means no continuation). Returns its type index.
         uint32_t appendFieldListChunk(const std::span<const FieldDesc> fields, const uint32_t continuationTypeIndex)
         {
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_FIELDLIST);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_FIELDLIST);
             appendFieldListMembers(fields);
             if (continuationTypeIndex != 0)
             {
-                writeU16(bytes, K_LF_INDEX);
-                writeU16(bytes, 0); // padding, must be zero
-                writeU32(bytes, continuationTypeIndex);
+                bytes.appendLe16(K_LF_INDEX);
+                bytes.appendLe16(0); // padding, must be zero
+                bytes.appendLe32(continuationTypeIndex);
             }
 
             return finishRecord(recordOffset);
@@ -1000,12 +968,12 @@ namespace
 
         uint32_t appendStructRecord(const Utf8& typeName, const uint32_t fieldListType, const uint16_t memberCount, const uint64_t sizeOf, const uint16_t properties)
         {
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_STRUCTURE);
-            writeU16(bytes, memberCount);
-            writeU16(bytes, properties);
-            writeU32(bytes, fieldListType);
-            writeU32(bytes, 0);
-            writeU32(bytes, 0);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_STRUCTURE);
+            bytes.appendLe16(memberCount);
+            bytes.appendLe16(properties);
+            bytes.appendLe32(fieldListType);
+            bytes.appendLe32(0);
+            bytes.appendLe32(0);
             writeEncodedUnsigned(bytes, sizeOf);
             writeCString(bytes, typeName);
             return finishRecord(recordOffset);
@@ -1013,12 +981,12 @@ namespace
 
         uint32_t appendForwardStructRecord(const Utf8& typeName)
         {
-            const uint32_t recordOffset = beginTypeRecord(bytes, K_LF_STRUCTURE);
-            writeU16(bytes, 0);
-            writeU16(bytes, 0x0080);
-            writeU32(bytes, 0);
-            writeU32(bytes, 0);
-            writeU32(bytes, 0);
+            const uint32_t recordOffset = beginRecord(bytes, K_LF_STRUCTURE);
+            bytes.appendLe16(0);
+            bytes.appendLe16(0x0080);
+            bytes.appendLe32(0);
+            bytes.appendLe32(0);
+            bytes.appendLe32(0);
             writeEncodedUnsigned(bytes, 0);
             writeCString(bytes, typeName);
             return finishRecord(recordOffset);
@@ -1259,11 +1227,11 @@ namespace
 
         uint32_t appendBuildInfo(const std::array<uint32_t, 5>& items)
         {
-            const uint32_t     recordOffset = beginTypeRecord(bytes, K_LF_BUILDINFO);
+            const uint32_t     recordOffset = beginRecord(bytes, K_LF_BUILDINFO);
             constexpr uint16_t size         = std::tuple_size_v<std::array<uint32_t, 5>>;
-            writeU16(bytes, size);
+            bytes.appendLe16(size);
             for (const uint32_t item : items)
-                writeU32(bytes, item);
+                bytes.appendLe32(item);
             return finishRecord(recordOffset);
         }
 
@@ -1287,11 +1255,11 @@ namespace
 
         const uint32_t subsectionLenOffset = beginSubsection(bytes, K_DEBUG_S_LINES);
         const uint32_t offRelocOffset      = static_cast<uint32_t>(bytes.size());
-        writeU32(bytes, 0);
+        bytes.appendLe32(0);
         const uint32_t segRelocOffset = static_cast<uint32_t>(bytes.size());
-        writeU16(bytes, 0);
-        writeU16(bytes, 0);
-        writeU32(bytes, static_cast<uint32_t>(function.machineCode->bytes.size()));
+        bytes.appendLe16(0);
+        bytes.appendLe16(0);
+        bytes.appendLe32(static_cast<uint32_t>(function.machineCode->bytes.size()));
 
         addSecrelAndSectionRelocations(debugSection, function.symbolName, offRelocOffset, segRelocOffset);
 
@@ -1301,14 +1269,14 @@ namespace
             if (checksumIt == checksums.offsets.end())
                 continue;
 
-            writeU32(bytes, checksumIt->second);
-            writeU32(bytes, static_cast<uint32_t>(block.entries.size()));
-            writeU32(bytes, static_cast<uint32_t>(12 + block.entries.size() * 8));
+            bytes.appendLe32(checksumIt->second);
+            bytes.appendLe32(static_cast<uint32_t>(block.entries.size()));
+            bytes.appendLe32(static_cast<uint32_t>(12 + block.entries.size() * 8));
 
             for (const LineEntry& entry : block.entries)
             {
-                writeU32(bytes, entry.codeOffset);
-                writeU32(bytes, K_CV_LINE_STATEMENT_BIT | entry.line);
+                bytes.appendLe32(entry.codeOffset);
+                bytes.appendLe32(K_CV_LINE_STATEMENT_BIT | entry.line);
             }
         }
 
@@ -1328,7 +1296,7 @@ namespace
         debugSection.name            = ".debug$S";
         debugSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_DISCARDABLE | IMAGE_SCN_ALIGN_1BYTES | IMAGE_SCN_MEM_READ;
 
-        writeU32(debugSection.bytes, K_CV_SIGNATURE_C13);
+        debugSection.bytes.appendLe32(K_CV_SIGNATURE_C13);
 
         struct FunctionSymbolTypes
         {
@@ -1488,9 +1456,9 @@ namespace
             if (!function.machineCode || function.machineCode->unwindInfo.empty())
                 continue;
 
-            alignBytes(xdataSection.bytes, 4);
+            xdataSection.bytes.align(4);
             const uint32_t unwindOffset = static_cast<uint32_t>(xdataSection.bytes.size());
-            writeBytes(xdataSection.bytes, std::span{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
+            xdataSection.bytes.append(std::span{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
 
             const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:06}_{:04}", objectHash, request.objectIndex, unwindIndex++);
             DebugInfoDefinedSymbol unwindSym;
@@ -1499,7 +1467,7 @@ namespace
             unwindSym.value       = unwindOffset;
             outResult.symbols.push_back(unwindSym);
 
-            alignBytes(pdataSection.bytes, 4);
+            pdataSection.bytes.align(4);
             const uint32_t pdataOffset = static_cast<uint32_t>(pdataSection.bytes.size());
             pdataSection.bytes.resize(pdataOffset + 12, std::byte{0});
 

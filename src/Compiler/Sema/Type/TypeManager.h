@@ -103,8 +103,12 @@ public:
     // TypeInfo::make*. A type that already exists is found without building its payload.
     TypeRef addArrayType(std::span<const uint64_t> dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero, std::span<const TypeRef> indexTypeRefs = {});
     TypeRef addArrayTypeAfterFirstDimension(const TypeInfo& arrayType);
-    TypeRef addAggregateStructType(std::span<const IdentifierRef> names, std::span<const TypeRef> types);
-    TypeRef addAggregateArrayType(std::span<const TypeRef> types);
+
+    // The type reached by one array index, retaining the remaining dimensions.
+    TypeRef arrayElementTypeRef(const TypeInfo& arrayType);
+
+    TypeRef         addAggregateStructType(std::span<const IdentifierRef> names, std::span<const TypeRef> types);
+    TypeRef         addAggregateArrayType(std::span<const TypeRef> types);
     const TypeInfo& get(TypeRef typeRef) const;
     TypeRef         unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const;
     TypeRef         unwrapNonStrictAlias(TypeRef typeRef) const;

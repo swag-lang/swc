@@ -27,6 +27,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Math/ApInt.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

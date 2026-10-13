@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Support/Math/ApInt.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

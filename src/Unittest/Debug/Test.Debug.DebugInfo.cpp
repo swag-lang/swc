@@ -3,6 +3,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/BinaryPatch.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Micro/MachineCode.h"
@@ -61,18 +62,12 @@ namespace
 
     uint16_t readU16(const std::span<const std::byte> bytes, const uint32_t offset)
     {
-        SWC_ASSERT(offset + sizeof(uint16_t) <= bytes.size());
-        uint16_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
+        return BinaryPatch::readU16(bytes, offset);
     }
 
     uint32_t readU32(const std::span<const std::byte> bytes, const uint32_t offset)
     {
-        SWC_ASSERT(offset + sizeof(uint32_t) <= bytes.size());
-        uint32_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
+        return BinaryPatch::readU32(bytes, offset);
     }
 
     void appendU32(ByteArray& bytes, const uint32_t value)

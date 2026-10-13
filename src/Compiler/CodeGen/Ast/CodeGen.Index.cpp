@@ -288,15 +288,7 @@ namespace
     {
         TypeManager& typeMgr = codeGen.sema().typeMgr();
         if (indexedType.isArray())
-        {
-            const auto& dims       = indexedType.payloadArrayDims();
-            const auto  elementRef = indexedType.payloadArrayElemTypeRef();
-            if (dims.size() <= 1)
-                return typeMgr.get(elementRef).sizeOf(codeGen.ctx());
-
-            const TypeRef strideTypeRef = typeMgr.addArrayTypeAfterFirstDimension(indexedType);
-            return typeMgr.get(strideTypeRef).sizeOf(codeGen.ctx());
-        }
+            return typeMgr.get(typeMgr.arrayElementTypeRef(indexedType)).sizeOf(codeGen.ctx());
 
         if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
             return typeMgr.get(indexedType.payloadTypeRef()).sizeOf(codeGen.ctx());
@@ -314,13 +306,7 @@ namespace
     {
         TypeManager& typeMgr = codeGen.sema().typeMgr();
         if (indexedType.isArray())
-        {
-            const auto& dims = indexedType.payloadArrayDims();
-            if (dims.size() <= 1)
-                return indexedType.payloadArrayElemTypeRef();
-
-            return typeMgr.addArrayTypeAfterFirstDimension(indexedType);
-        }
+            return typeMgr.arrayElementTypeRef(indexedType);
 
         if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
             return indexedType.payloadTypeRef();

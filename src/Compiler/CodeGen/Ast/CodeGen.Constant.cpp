@@ -36,18 +36,6 @@ namespace
         return ((value + align - 1) / align) * align;
     }
 
-    TypeRef topLevelArrayElementTypeRef(CodeGen& codeGen, const TypeInfo& arrayType)
-    {
-        SWC_ASSERT(arrayType.isArray());
-        const auto& dims = arrayType.payloadArrayDims();
-        SWC_ASSERT(!dims.empty());
-
-        if (dims.size() == 1)
-            return arrayType.payloadArrayElemTypeRef();
-
-        return codeGen.typeMgr().addArrayTypeAfterFirstDimension(arrayType);
-    }
-
     AstNodeRef codeGenErrorNodeRef(CodeGen& codeGen)
     {
         const AstNodeRef currentNodeRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
@@ -252,7 +240,8 @@ namespace
             if (elementRefs.size() > dims[0])
                 return false;
 
-            const TypeRef   elementTypeRef = topLevelArrayElementTypeRef(codeGen, storageType);
+            SWC_ASSERT(!dims.empty());
+            const TypeRef   elementTypeRef = codeGen.typeMgr().arrayElementTypeRef(storageType);
             const TypeInfo& elementType    = codeGen.typeMgr().get(elementTypeRef);
             const uint64_t  elementSize    = elementType.sizeOf(codeGen.ctx());
             SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());

@@ -6,6 +6,8 @@
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Support/Math/ApFloat.h"
+#include "Support/Math/ApsInt.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

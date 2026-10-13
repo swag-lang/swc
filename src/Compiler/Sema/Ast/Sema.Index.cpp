@@ -521,18 +521,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
 
     if (indexedType.isArray())
-    {
-        const auto&    arrayDims   = indexedType.payloadArrayDims();
-        const uint64_t numExpected = arrayDims.size();
-        if (numExpected > 1)
-        {
-            sema.setType(sema.curNodeRef(), sema.typeMgr().addArrayTypeAfterFirstDimension(indexedType));
-        }
-        else
-        {
-            sema.setType(sema.curNodeRef(), indexedType.payloadArrayElemTypeRef());
-        }
-    }
+        sema.setType(sema.curNodeRef(), sema.typeMgr().arrayElementTypeRef(indexedType));
     else if (indexedType.isBlockPointer())
     {
         SWC_RESULT(checkVoidPointerIndex(sema, sema.curNodeRef(), nodeExprRef, nodeExprView, indexedType));

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -255,6 +256,15 @@ void ByteArray::append(const ByteArray& bytes)
 void ByteArray::append(const std::string_view text)
 {
     append(std::span{reinterpret_cast<const std::byte*>(text.data()), text.size()});
+}
+
+void ByteArray::appendAligned(uint32_t& outOffset, const ByteArray& bytes, const uint32_t alignment)
+{
+    const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(size()), alignment);
+    if (size() < alignedOffset)
+        resize(alignedOffset, std::byte{0});
+    outOffset = alignedOffset;
+    append(bytes);
 }
 
 void ByteArray::appendCString(const std::string_view text)

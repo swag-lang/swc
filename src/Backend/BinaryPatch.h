@@ -8,6 +8,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace BinaryPatch
 {
+    uint16_t readU16(std::span<const std::byte> bytes, size_t offset);
+    uint32_t readU32(std::span<const std::byte> bytes, size_t offset);
+
     template<typename T>
     inline void write(ByteArray& bytes, uint32_t offset, T value)
     {

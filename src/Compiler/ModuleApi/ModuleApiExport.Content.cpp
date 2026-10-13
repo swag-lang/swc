@@ -961,6 +961,13 @@ namespace ModuleApiExport
             rootIndex = nextIndex;
         }
 
+        PointerSet<const Symbol> supportingSymbols;
+        for (const ModuleApiGeneratedRoot& root : roots)
+        {
+            if (root.supporting && root.symbol)
+                supportingSymbols.insert(root.symbol);
+        }
+
         // Build every sanitized snippet once; regenerating them for the per-file merge dominates
         // large generated modules such as ogl.
         std::vector<Utf8> rootSnippets(roots.size());
@@ -968,7 +975,8 @@ namespace ModuleApiExport
         JobManager&       jobMgr = ctx.global().jobMgr();
         jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t g) {
             ModuleApiValidationStack groupValidationStack;
-            const size_t             groupEnd = groups[g].start + groups[g].count;
+            groupValidationStack.supportingSymbols = &supportingSymbols;
+            const size_t groupEnd                  = groups[g].start + groups[g].count;
             for (size_t rootIndex = groups[g].start; rootIndex < groupEnd; ++rootIndex)
             {
                 groupResults[g] = buildGeneratedRootSnippet(workerCtx, roots[rootIndex], eol, rootSnippets[rootIndex], groupValidationStack);

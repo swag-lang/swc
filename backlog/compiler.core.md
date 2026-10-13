@@ -49,53 +49,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: the ordering is proved safe by construction or the race is reproduced and
   fixed with a regression case in the `workspace` suite.
 
-### compiler.core.080 — Published generic bodies call omitted helper declarations
-
-- Evidence: a forced DevMode import at `94dcc8f39`, with six workers, successfully rebuilt
-  Core and then rejected `Hash.hash32` for a `#[Swag.DynCast]` struct with an `s32` field:
-  `unknown symbol 'hashDynamicStorage'`. The span points to that call in generated `core.swg`.
-  Both published `hash32` and `hash64` bodies contain the call, but the generated API has no
-  declaration of the private helper from `crypto/hash64.swg`. The failure is at the import
-  boundary: the eight `tests/collections/dynamicstorage.test.swg` tests pass inside Core.
-- Reproduction: put the following script outside the checkout and run it with the checkout-local
-  `bin/swc.dm.exe --num-cores 6 --rebuild <absolute-script-path>`:
-
-  ```swag
-  #import("core", location: "swag@std")
-  using Core
-  #[Swag.DynCast]
-  struct DynamicKey { value: s32 = 17 }
-  #main
-  {
-      var left: DynamicKey
-      var right: DynamicKey
-      Swag.assert(Hash.hash32(left) == Hash.hash32(right))
-      Swag.assert(Hash.hash64(left) == Hash.hash64(right))
-  }
-  ```
-
-- Additional evidence: an external script importing Core and calling
-  `Serialization.Read.Xml.readNative'f32()` fails with `struct 'Xml' has no field 'zapBlanks'`
-  in generated `core.swg`. The same forced rebuild with the XML source from before `6ba358e2c`
-  fails at the same call; this is not introduced by its numeric-dispatch refactoring. Nine XML
-  and resource tests, including every numeric width, pass inside Core. The missing helper is
-  `internal` here, so checking only private free functions does not cover the boundary. The
-  import diagnostic also describes the missing method as a field and lists only data members.
-- XML reproduction: import Core in an external script, create a `Serialization.Read.Xml`,
-  call `expect reader.startRead("1.5")`, then `discard expect reader.readNative'f32()`.
-- Scope: this is an absent declaration, not the intermittent missing or duplicated local bindings
-  in compiler.core.047. The nongeneric implicit-body export check from `d34b178c2` does not cover
-  unresolved dependencies in an unmaterialized generic body.
-- Next: reduce the published generic/private-helper dependency to an isolated provider and
-  importer, then define how its reachable implementation is published or diagnosed at export.
-  Preserve Core's dynamic-identity-independent hash contract; do not make a raw implementation
-  helper public merely to silence the importer. Verify each hash width and the XML reader
-  separately; include internal receiver methods in the dependency inventory.
-- Done when: a consumer importing the generated Core API hashes equal standalone and base-view
-  dynamic values consistently with both hash widths, and a publication regression protects the
-  dependency boundary without relying only on tests compiled inside the provider. Imported
-  generic XML numeric and textual reads must also resolve their implementation dependencies.
-
 ### compiler.core.047 — Imported generic bodies intermittently lose or duplicate bindings
 
 - Found while: validating the dynamic type-pattern migration with DevMode 0.1.675 and six workers.
@@ -123,22 +76,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   compiler before attributing the failure to parsing, publication, or scheduling.
 - Done when: a bounded reproducer identifies the duplicate visitation or publication,
   the root cause is fixed, and the script passes repeated parallel imports with six workers.
-
-### compiler.core.078 — Reduce a suspected nested-owner release false positive
-
-- Evidence: an experimental Windows OpenGL/DirectComposition context stored a separately
-  allocated composition object in `OglContext.composition`. `NativeRenderOgl.dropContext(rc:
-  OglContext)` deleted that field; its caller then deleted the separately allocated `OglContext`
-  carrier. The compiler reported that the carrier had already been freed. Embedding the
-  composition state removed the report, but changed the ownership shape and did not explain it.
-- Boundary: this was observed in the discarded composition prototype, not in the retained
-  layered presenter. It is a suspected false positive, not an established alias-analysis defect;
-  no standalone suite reproducer has yet been obtained.
-- Next: reduce a heap-allocated carrier with a separately allocated field, a by-value cleanup
-  callee, and the subsequent carrier delete to the safety suite. Check whether the inferred
-  release summary confuses a field's pointee with its enclosing allocation before changing it.
-- Done when: a standalone regression explains the diagnostic as valid or protects the
-  corrected ownership summary without GUI or graphics dependencies.
 
 ### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
 
@@ -194,22 +131,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a recurrence is attributed and fixed with a regression, or the specified stress run
   stays clean and the lead is retired.
 
-### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
-
-- Area: compiler, JIT runtime hosting
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
-  --rebuild`: imported native modules kept `Swag.processInfos().args` slices into the storage of a
-  destroyed dependency-build instance. That storage is interned for the process since.
-- What remains: JIT code also takes plain thread-local indexes through `TlsAlloc` (the allocator's
-  fast heap slot, for example). They have no callback, so nothing reads them after the instance
-  dies, but each instance that ran its allocator keeps one index allocated for the rest of the
-  process, and Windows has 1,088 of them.
-- Next: count the indexes a long workspace run (`tools/std.swgs dm test`) leaves allocated, and if
-  the count grows with the number of instances, record the `TlsAlloc` indexes per instance the
-  same way and free them at destruction.
-- Done when: a process that creates and destroys many compiler instances keeps a bounded
-  number of thread-local indexes, with the workspace suite green under the poisoning.
-
 ### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
 
 - Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
@@ -224,32 +145,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   the TPI record count and the number of `LF_STRUCTURE` records per name.
 - Done when: every structure has one definition per distinct layout in a linked PDB, the
   `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
-
-### compiler.core.046 — A `!` buried in a `Swag.assert` argument proves a path the guard may not check
-
-- Found while: the same change, on `bin/unittests/sanity/self_borrow_move.swg`.
-- Evidence: `Swag.assert(target.cursor![] == 13)` records the non-null proof for the rest of the
-  block, but `Swag.Safety(.Assert, false)` and the `release` preset drop the whole assertion,
-  including the `!` inside its argument. The proof survives compilation; the runtime guard does
-  not. `Swag.assert(p != null)` has the same property and the reference documents it as the
-  precondition form, which is why it reads as deliberate there; a `!` inside an argument does not
-  read as a precondition at all.
-- Cost: no unsoundness in `release`, where every guard is already off. In `devmode` with an
-  explicit safety override, a path can be used unguarded because of an assertion that was
-  compiled out.
-- Blast radius (2026-10-06): recording nothing from inside a `Swag.assert` argument is a
-  one-line change to `notNullRunsUnconditionally` (an `AstIntrinsicCallExpr` parent with
-  `IntrinsicAssert` returns false). `bin/` holds 89 assertions with a postfix `!` in an
-  argument, most of them in application and module tests, so any code after them that relies on
-  the proof would stop compiling; that needs every `bin/` test source compiled before it lands.
-  Recording the proof only where `Assert` safety is on would make the same source compile in one
-  configuration and not in another, which is worse.
-- Next: decide whether a proof recorded inside an argument of a removable intrinsic should be
-  kept. Either record nothing from inside a `Swag.assert` argument and compile every `bin/` test
-  source, or state the rule in `bin/reference/modules/language/src/004_007_pointers.swg` next to
-  the existing `Swag.assert` paragraph.
-- Done when: the chosen rule is implemented or documented, with a case showing what
-  `Swag.Safety(.Assert, false)` does to the proof.
 
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
@@ -467,30 +362,7 @@ the shared memory budget.
 - Evidence: parallel compiler jobs retain high-water allocations across semantic analysis, code generation, and the Micro pipeline. The current peak and largest retained owners need a fresh measurement.
 - Next: measure peak memory for a six-worker `core` DevMode rebuild and a representative hello build, then attribute the largest retained allocations before selecting one reduction.
 - Done when: the campaign publishes host-normalized memory limits, every selected workload stays within them, and a regression report names the responsible subsystem.
-- Related: compiler.core.004, compiler.core.007, runtime.allocator.017.
-### compiler.core.057 — The lazy-body completion race has no deterministic regression
-
-- Area: compiler/semantic analysis, lazy bodies of generic-instance, imported and runtime functions.
-- Evidence: `Core.HashTable.find` (`hashtable.swg:594`, `.tryFind(key)`) intermittently reached
-  `resolveSelectedCallFunction` with no bound function symbol, once in a six-worker
-  `std/core --rebuild` comparison on 2026-09-24 and once in
-  `tools/std.swgs dm test core -bc release` on 2026-09-29. The declaration walk that hands a
-  body to the lazy runner could still complete the function in `AstFunctionDecl::semaPostNode`:
-  it read `LazyBodyRunning` twice, and a runner starting between the two reads made the walk
-  publish the function and schedule its code generation while the runner was still resolving
-  the body. `semaPostNode` now leaves a delegated body to its runner. A temporary 3 ms delay
-  between the two reads made one core release test report six premature completions
-  (`Core.Array.grow`, `Swag.panic`, `Core.HashTable.tablePtr`, `__ftoa`) and stop on a missing
-  identifier symbol in code generation; with the fix, three delayed runs and ten undelayed runs
-  passed with none.
-- Why no suite test: the failure needs another task to start the lazy run inside a window of a
-  few instructions in the declaration walk. No suite source or C++ test can place a thread there.
-- Next: add a DevMode scheduling-stress option that delays the declaration walk's post-node
-  when its function has a lazy body, and run `tools/std.swgs dm test core -bc release` with it
-  from the `cpp` or `workspace` campaign. Check whether `compiler.core.047` (a generic local
-  defined twice in `HashTable`) reproduces under the same stress before attributing it here.
-- Done when: a repeatable test fails without the post-node ownership check and passes with it.
-
+- Related: compiler.core.004, compiler.core.007.
 ### compiler.core.003 — Code-generation invalidation is module-wide
 
 

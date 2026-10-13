@@ -27,6 +27,8 @@
 #define MEDIUM_SLOTS 256
 #define XFER_COUNT 2000000
 #define XFER_RING 4096
+#define HUGE_BYTES (32ull * 1024 * 1024)
+#define HUGE_ROUNDS 200
 
 static uint64_t next(uint64_t* state)
 {
@@ -151,6 +153,15 @@ static uint64_t run(int workload, uint64_t seed)
         return 40 * (1 << 15);
     case 9:
         return alignedBatches(&state);
+    case 10:
+        for (int i = 0; i < HUGE_ROUNDS; i++)
+        {
+            char* block = (char*)ALLOC(HUGE_BYTES);
+            for (uint64_t page = 0; page < HUGE_BYTES / 4096; page++)
+                block[page * 4096] = 1;
+            FREE(block);
+        }
+        return HUGE_ROUNDS;
     case 2:
         churn(&state, CHURN_SLOTS, 10000000, smallSize, 0);
         return 10000000;
@@ -266,9 +277,9 @@ static DWORD WINAPI threadEntry(void* param)
 
 int main(int argc, char** argv)
 {
-    static const char* names[] = {"pair", "trees", "churn", "medium", "large", "realloc", "spread", "xfer", "grow", "aligned"};
+    static const char* names[] = {"pair", "trees", "churn", "medium", "large", "realloc", "spread", "xfer", "grow", "aligned", "huge"};
     int                workload = -1;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 11; i++)
     {
         if (argc > 1 && !strcmp(argv[1], names[i]))
             workload = i;
@@ -277,7 +288,7 @@ int main(int argc, char** argv)
     int threads = argc > 2 ? atoi(argv[2]) : 1;
     if (workload < 0 || threads < 1 || threads > 16)
     {
-        printf("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned> [threads 1-16]\n");
+        printf("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned|huge> [threads 1-16]\n");
         return 0;
     }
 

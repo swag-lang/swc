@@ -1752,5 +1752,20 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         return 1
     }
 
+    // A lazy body is completed by the run that resolves it, never by the declaration walk that
+    // skipped it. The race needs that run to start inside a few instructions of the walk, which
+    // no source can arrange: the DevMode stress option widens the window on every lazy body, and
+    // the core release tests, where lazy runs are most frequent, then expose a premature completion.
+    if options.devMode
+    {
+        var stressed: Arguments
+        stressed.add(["test", "--workspace", context.workspacePath("std").toString(), "--artifact-kind", "executable"])
+        stressed.add(["--workspace-module", "core", "--build-cfg", "release", "--dev-stress-lazy-body"])
+        options.appendExtra(&stressed)
+        let stressedCode = try context.runCompiler(stressed)
+        if stressedCode != 0 do
+            return stressedCode
+    }
+
     return 0
 }

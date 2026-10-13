@@ -1707,6 +1707,18 @@ namespace Os
         return TlsGetValue(static_cast<DWORD>(id));
     }
 
+    uint32_t tlsSlotsInUse()
+    {
+        // A process has the 64 minimum slots and 1024 expansion slots; what cannot be taken is in use.
+        constexpr uint32_t K_TLS_SLOTS = TLS_MINIMUM_AVAILABLE + 1024;
+        std::vector<DWORD> borrowed;
+        for (DWORD id = TlsAlloc(); id != TLS_OUT_OF_INDEXES; id = TlsAlloc())
+            borrowed.push_back(id);
+        for (const DWORD id : borrowed)
+            TlsFree(id);
+        return K_TLS_SLOTS - static_cast<uint32_t>(borrowed.size());
+    }
+
     void appendHostExceptionSummary(const TaskContext* ctx, Utf8& outMsg, const void* platformExceptionPointers)
     {
         const auto* args   = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);

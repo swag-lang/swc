@@ -35,9 +35,10 @@ use a quiet machine: the multi-thread workloads move with scheduling.
 | `grow` | four million 32-byte blocks allocated before any is freed: live-set growth |
 | `xfer` | producer/consumer pairs: one thread allocates, the other frees every block |
 | `aligned` | 10 000 batches of 1 024 mixed blocks from 1 to 4 096 bytes, alternating 32/64-byte alignment |
+| `huge` | 200 blocks of 32 MiB, one after the other, every page touched: reservation, commit, faults and release above the block cache |
 
 `name:N` runs a workload on N threads, each with its own live set (N pairs for `xfer`).
-The aligned batches are opt-in: `--only aligned,aligned:4`. The default campaign keeps its
+The aligned batches and the huge blocks are opt-in: `--only aligned,aligned:4,huge`. The default campaign keeps its
 fourteen workloads so its historical geometric means remain comparable. An aligned operation
 is one allocation/free pair, and every payload is written at its first and last byte.
 

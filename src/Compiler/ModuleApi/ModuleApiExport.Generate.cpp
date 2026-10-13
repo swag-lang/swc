@@ -1201,6 +1201,18 @@ namespace ModuleApiExport
             return Result::Continue;
         }
 
+        // A supporting declaration keeps its own access and travels as source: the module does
+        // not export it, so a foreign binding could not reach it. What its body names was
+        // already published or reported when it was collected.
+        if (root.supporting && root.symbol)
+        {
+            if (const auto* symbolFunction = root.symbol->safeCast<SymbolFunction>())
+                SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
+            else if (root.symbol->isAlias() || root.symbol->isStruct() || root.symbol->isEnum() || root.symbol->isInterface())
+                SWC_RESULT(validatePublicTypeSymbol(ctx, *root.symbol, validationStack));
+            return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
+        }
+
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
         {
             SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));

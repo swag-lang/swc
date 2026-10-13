@@ -83,7 +83,7 @@ namespace
         if (isWholeFileExportedSymbol(ctx.compiler(), referencedSymbol))
             return Result::Continue;
 
-        if (!referencedSymbol.isPublic())
+        if (!referencedSymbol.isPublic() && !stack.isSupporting(referencedSymbol))
         {
             if (isAnonymousModuleApiTypeSymbol(referencedSymbol))
                 return validatePublicTypeSymbol(ctx, referencedSymbol, stack);

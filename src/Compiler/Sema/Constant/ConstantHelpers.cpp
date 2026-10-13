@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantEnumType.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"

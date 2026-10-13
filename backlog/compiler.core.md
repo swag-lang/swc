@@ -90,7 +90,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Evidence: comparison lowering and payload metadata merging already reuse resolved values. Other high-frequency `SemaNodeView` callers may still resolve the same substitute chain repeatedly.
 - Next: profile a current module analysis that imports `core`, attribute repeated resolutions to callers, then choose call-site reuse or memoization only where the profile shows meaningful duplicate work.
 - Done when: a measured duplicate-resolution cost is removed without changing narrowing or constant semantics, or current profiling shows no worthwhile target and the entry is deleted.
-- Related: compiler.core.001, compiler.core.038.
+- Related: compiler.core.001.
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
 - Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
@@ -393,31 +393,6 @@ cache is part of the normal DevMode and Release paths.
   cache reuse from shared code-generation state when cloning the macro's closure.
 - Done when: a stable reproducer identifies the cause, the correction passes
   that reproducer repeatedly, and the full native suite remains green.
-
-### compiler.core.038 — Measure the remaining semantic frame construction cost
-
-- Historical evidence: Release 0.1.425 pushed 41,573 frames for a 22,800-line file and
-  259,030 for a snippet importing `core`; `SemaFrame` then occupied 1,376 bytes. Removing
-  one copy at 42 push sites was tried and reverted after three paired runs measured
-  100.0%, 102.6%, and 103.8% of baseline processor time. The earlier attribute-list shrink
-  had removed non-trivial string-vector construction and destruction, not just copy bytes.
-  Those counts and sizes describe that build, not the current implementation.
-- Current evidence: `Sema::preNode` now copies a frame only when a node introduces syntax,
-  compiler-evaluation, or generated-top-level context, directly into the scoped destination.
-  `AttributeList` now summarizes sanity and runtime-safety overrides with masks instead of
-  copying override histories (`ab595100b`, `55a30fbbf`). `SemaFrame` still owns non-trivial
-  collections for namespaces, bindings, iteration borrows, hidden symbols, and narrowing
-  facts, and `AttributeList::attributes` still stores attribute instances. The
-  [September 13 report](../bench/results/compilation/20260913-sema-codegen/README.md)
-  records the implemented reductions and their validation; it does not establish how much
-  these remaining members cost or attribute a timing gain to this entry alone.
-- Next: remeasure frame-push counts, populated-member frequency, and constructor/destructor
-  samples on the current compiler for both original workload shapes. Only select a member
-  for deferred storage or a call site for reuse if that measurement shows a material cost;
-  the reverted copy-only experiment is not evidence that the current cost is zero.
-- Done when: current measurements either identify a bounded, worthwhile change with a
-  reproducible A/B comparison, or show that the residual cost does not justify further work.
-- Related: compiler.core.001, compiler.core.005, compiler.core.006.
 
 ### compiler.core.041 — Reduce parallel dependency registration to a workspace-suite witness
 

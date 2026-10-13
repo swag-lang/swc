@@ -2,6 +2,7 @@
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -59,9 +60,16 @@ bool SymbolTable::makeEntry(Entry& outEntry, const TaskContext& ctx, const Nativ
     if (!info.machineCode)
         return false;
 
+    // The runtime names its stack frames from this table in every configuration, so the scoped
+    // name is computed here when debug information did not already record it.
     outEntry.symbolName = info.symbolName;
-    outEntry.name       = info.debugName.empty() ? info.symbolName : info.debugName;
-    outEntry.size       = static_cast<uint32_t>(info.machineCode->bytes.size());
+    if (!info.debugName.empty())
+        outEntry.name = info.debugName;
+    else if (info.symbol)
+        outEntry.name = info.symbol->getFullScopedName(ctx);
+    else
+        outEntry.name = info.symbolName;
+    outEntry.size = static_cast<uint32_t>(info.machineCode->bytes.size());
 
     MachineCode::ResolvedDebugSourceRange resolved;
     if (info.machineCode->tryResolveDebugSourceRangeAtOffset(ctx, resolved, 0) && resolved.source.sourceFile)

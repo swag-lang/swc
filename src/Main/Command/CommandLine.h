@@ -227,9 +227,12 @@ struct CommandLine
 #endif
 
 #if SWC_DEV_MODE
-    bool     devSchedStats = false;
-    bool     randomize     = false;
-    uint32_t randSeed      = 0;
+    bool devSchedStats = false;
+    // Delays the declaration walk at the end of every lazily analyzed body, so a lazy run started
+    // by another task lands inside the window that walk has to respect.
+    bool     devStressLazyBody = false;
+    bool     randomize         = false;
+    uint32_t randSeed          = 0;
 #endif
 
     // Days a dependency copy may go unused before 'clean --cache' takes it; zero removes them all.

@@ -17,11 +17,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
-- Evidence: repeated builds with the same compiler produce stable `.text`/unwind sections in some
-  cases but still vary in `.rdata` and relocations; global offsets in `.data` and `.bss` vary by
-  48?5,800 bytes because semantic jobs assign them concurrently. Type-info string deduplication can
-  also shift `.rdata` by one empty-string allocation. These section changes account for the varying
-  addresses seen in unwind records; the current cause is not code generation.
+- Evidence: two consecutive six-worker DevMode rebuilds of `core` on 2026-10-13 differ in every
+  section but `.idata` and `.rsrc`: `.text` by 64 bytes, `.rdata` by 160, `.data` by 3,056,
+  `.bss` by 8, and the unwind, export, and relocation sections follow. Global offsets in `.data`
+  and `.bss` vary because semantic jobs assign them concurrently, and type-info string
+  deduplication can shift `.rdata` by one empty-string allocation; the `.text` difference shows
+  that function or constant placement varies as well, so the comparison has to start from the
+  normalized sections rather than from unwind records.
 - Next: assign globals at emission using a stable key such as module, file, and declaration order,
   while keeping JIT addresses valid. Then repeat the normalized section and unwind comparison.
 - Done when: output differences are explained and corrected at their owning boundary, normalized

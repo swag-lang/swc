@@ -934,6 +934,14 @@ const DataSegment& ConstantManager::shardDataSegment(const uint32_t index) const
     return shards_[index].dataSegment;
 }
 
+uint64_t ConstantManager::relocationVersionSum() const noexcept
+{
+    uint64_t sum = 0;
+    for (const Shard& shard : shards_)
+        sum += shard.dataSegment.relocationVersion();
+    return sum;
+}
+
 bool ConstantManager::resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept
 {
     outRef = {};

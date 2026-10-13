@@ -1065,13 +1065,28 @@ namespace
         return !isOptionalFunctionRelocationReady(targetFunction);
     }
 
-    Result patchConstantFunctionRelocationsRec(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const uint32_t shardIndex, const uint32_t sourceOffset)
+    // 'outDataOnly' reports whether the allocation's whole constant graph holds no function
+    // pointer, which is what lets the next function naming it skip the walk.
+    Result patchConstantFunctionRelocationsRec(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const uint32_t shardIndex, const uint32_t sourceOffset, bool* outDataOnly = nullptr)
     {
+        if (outDataOnly)
+            *outDataOnly = false;
         DataSegment&                             segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
         const ConstantManager::WalkedAllocation* walked  = ConstantManager::walkedAllocation(segment, sourceOffset);
         if (!walked)
             return Result::Continue;
         const DataSegmentAllocation allocation = walked->allocation;
+
+        // A graph seen to hold only data has nothing to patch, for as long as no relocation was
+        // added anywhere since: the versions are read before the relocations, so one added in
+        // between invalidates what this walk establishes.
+        const uint64_t relocationVersions = ctx.compiler().cstMgr().relocationVersionSum();
+        if (walked->dataOnlyRelocationVersions == relocationVersions)
+        {
+            if (outDataOnly)
+                *outDataOnly = true;
+            return Result::Continue;
+        }
 
         // Constants can point to other constants that eventually contain function
         // pointers. Walk that graph once per allocation to avoid cycles while still
@@ -1086,16 +1101,20 @@ namespace
         // nested level records other offsets in the worker's table.
         SmallVector<ConstantFunctionPatch>          patches;
         const SmallVector<DataSegmentRelocation, 4> relocations = walked->relocations;
+        bool                                        dataOnly    = true;
         for (const DataSegmentRelocation& relocation : relocations)
         {
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
                 const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
-                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, targetShardIndex, relocation.targetOffset));
+                bool           childDataOnly    = false;
+                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, targetShardIndex, relocation.targetOffset, &childDataOnly));
+                dataOnly = dataOnly && childDataOnly;
                 continue;
             }
 
             SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
+            dataOnly = false;
             SWC_ASSERT(relocation.targetSymbol != nullptr);
             if (!relocation.targetSymbol)
                 return Result::Error;
@@ -1135,6 +1154,12 @@ namespace
             }
         }
 
+        // The slot is this worker's and is reassigned only by a lookup of the same offset, which
+        // the nested walks above never make for an allocation already visited.
+        if (dataOnly)
+            walked->dataOnlyRelocationVersions = relocationVersions;
+        if (outDataOnly)
+            *outDataOnly = dataOnly;
         return Result::Continue;
     }
 

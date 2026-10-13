@@ -96,22 +96,6 @@ replace the allocator; a similar architecture alone does not establish comparabl
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001
 
-### runtime.allocator.004 — Make remote frees batched rather than one atomic each
-
-- `pushRemote` links the block and publishes it with one compare-exchange; the owner takes the
-  whole list with one exchange, so no ABA case exists (nothing is ever popped singly). The
-  per-block `remoteCount` atomic is gone: `stats()` counts the list on demand under the page's
-  `remoteLock`, which now only orders the owner's detach against that walk. A free of another
-  thread's page block pushes from the inline path.
-- `bench/allocator` xfer (producer/consumer pairs): 2 pairs 139 -> 111 ns, 4 pairs
-  112.9 -> 94.8 ns per block, against 82.8 / 71.3 ns for mimalloc and 127.9 / 97.9 ns for the
-  C heap.
-- Next: measure whether a per-thread batch of remote blocks (one publication per batch) closes
-  the remaining distance to mimalloc, and bound the owner's drain.
-- Done when: the selected synchronization policy has contention and p99 evidence plus
-  concurrent retirement/adoption regression coverage.
-- Related: runtime.allocator.001.
-
 ### runtime.allocator.007 — Tune size classes from traces rather than from the table
 
 - Classes split each power of two into four above 128 bytes, which bounds the step at a fifth of

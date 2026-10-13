@@ -29,19 +29,35 @@ func freeOne(itf: IAllocator, address: *void?)
     itf.free(&request)
 }
 
-const HeldCount = 1025
+const HeldCount = 2100
 
-// Fills the first page of the 64-byte class and one block past it, so that the second page is
-// the current one and freeing everything retires the first. Returns the first page.
-func fillFirstPage(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPage
+// Fills the first two pages of the 64-byte class and one block past them, so that the third page
+// is the current one and freeing everything keeps the first as the class's spare and retires the
+// second. Returns the second page.
+func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPage
 {
+    // The first page of a segment holds fewer blocks than the next, so each page is filled by
+    // its own capacity; the block past a full page opens the next one.
     held[][0] = allocOne(itf, 64)
-    let page = allocatorPageOf(cast(u64, held[][0]))!
-    let fill = cast(u64, page.capacityBytes() / page.blockSize)
-    Swag.assert(fill < HeldCount)
-    for i in fill do
-        held[][i + 1] = allocOne(itf, 64)
-    return page
+    var count = 1'u64
+    let first = allocatorPageOf(cast(u64, held[][0]))!
+    for first.capacityBytes() / first.blockSize
+    {
+        held[][count] = allocOne(itf, 64)
+        count         += 1
+    }
+
+    let second = allocatorPageOf(cast(u64, held[][count - 1]))!
+    Swag.assert(second != first)
+    for second.capacityBytes() / second.blockSize
+    {
+        Swag.assert(count < HeldCount)
+        held[][count] = allocOne(itf, 64)
+        count         += 1
+    }
+
+    Swag.assert(allocatorPageOf(cast(u64, held[][count - 1])) != second)
+    return second
 }
 
 // An emptied page stays committed and idle, and the next page any class needs takes it back
@@ -53,17 +69,18 @@ func fillFirstPage(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPage
     defer allocator.releaseAll()
 
     var held: [HeldCount] (*void?)
-    let page    = fillFirstPage(itf, &held)
+    let page    = fillFirstPages(itf, &held)
     let segment = allocatorSegmentOf(page)
     let bit     = 1'u64 << (page.unitIndex >> segment.unitShift)
     let filled  = allocator.stats()
-    Swag.assert(filled.countPage == 2)
+    Swag.assert(filled.countPage == 3)
 
     for block in held where block do
         freeOne(itf, block)
 
+    // The current page and the class's spare stay; the other emptied page is idle.
     let emptied = allocator.stats()
-    Swag.assert(emptied.countPage == 1)
+    Swag.assert(emptied.countPage == 2)
     Swag.assert(emptied.countOsDecommit == filled.countOsDecommit)
     Swag.assert(atomicGet(&segment.idleMask) & bit)
     Swag.assert(allocatorIdleBytes() >= page.capacityBytes())
@@ -84,7 +101,7 @@ func fillFirstPage(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPage
     defer allocator.releaseAll()
 
     var held: [HeldCount] (*void?)
-    let page    = fillFirstPage(itf, &held)
+    let page    = fillFirstPages(itf, &held)
     let segment = allocatorSegmentOf(page)
     let bit     = 1'u64 << (page.unitIndex >> segment.unitShift)
     for block in held where block do

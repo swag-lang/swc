@@ -168,9 +168,7 @@ namespace
             if (!elementSize)
                 return Result::Error;
 
-            uint64_t totalCount = 1;
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                totalCount *= dim;
+            uint64_t totalCount = typeInfo.arrayTotalElementCount();
 
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
@@ -853,9 +851,7 @@ namespace
         const TypeRef   elemTypeRef = arrayType.payloadArrayElemTypeRef();
         const TypeInfo& elemType    = codeGen.typeMgr().get(elemTypeRef);
         const uint32_t  elemSize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, elemType);
-        uint64_t        elemCount   = 1;
-        for (const uint64_t dim : arrayType.payloadArrayDims())
-            elemCount *= dim;
+        const uint64_t  elemCount   = arrayType.arrayTotalElementCount();
         if (!elemCount)
             return Result::Continue;
 

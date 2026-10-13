@@ -306,9 +306,7 @@ namespace
             return Result::Continue;
         }
 
-        uint64_t totalCount = 1;
-        for (const auto dim : dstDims)
-            totalCount *= dim;
+        uint64_t totalCount = args.dstType->arrayTotalElementCount();
 
         if (srcTypes.size() > totalCount)
             return failArrayTooManyValues(args, srcTypes.size(), totalCount);
@@ -373,15 +371,12 @@ namespace
             return Result::Continue;
         }
 
-        uint64_t totalCount = 1;
-        for (const auto dim : args.dstType->payloadArrayDims())
-            totalCount *= dim;
+        uint64_t totalCount = args.dstType->arrayTotalElementCount();
         {
             const TypeInfo* cur = &args.sema->typeMgr().get(args.dstType->payloadArrayElemTypeRef());
             while (cur->isArray())
             {
-                for (const auto dim : cur->payloadArrayDims())
-                    totalCount *= dim;
+                totalCount = cur->arrayTotalElementCount(totalCount);
                 cur = &args.sema->typeMgr().get(cur->payloadArrayElemTypeRef());
             }
         }

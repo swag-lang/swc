@@ -617,9 +617,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
         if (!elementSize)
             return payload.empty();
 
-        uint64_t totalCount = 1;
-        for (const uint64_t dim : typeInfo.payloadArrayDims())
-            totalCount *= dim;
+        uint64_t totalCount = typeInfo.arrayTotalElementCount();
 
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {

@@ -441,9 +441,7 @@ namespace
         }
 
         rtType.count      = dims[0];
-        rtType.totalCount = dims[0];
-        for (size_t i = 1; i < dims.size(); ++i)
-            rtType.totalCount *= dims[i];
+        rtType.totalCount = type.arrayTotalElementCount();
     }
 
     std::vector<const SymbolEnumValue*> collectEnumValues(const SymbolEnum& symEnum)

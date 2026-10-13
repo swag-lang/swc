@@ -1142,6 +1142,21 @@ TypeInfo TypeInfo::makeSimd(TypeRef laneTypeRef, uint32_t laneCount, TypeInfoFla
     return ti;
 }
 
+uint64_t TypeInfo::arrayTotalElementCount(uint64_t count) const
+{
+    for (const uint64_t dim : payloadArrayDims())
+        count *= dim;
+    return count;
+}
+
+uint64_t TypeInfo::sliceCountFromArrayCast(TaskContext& ctx, const TypeInfo& dstElementType) const
+{
+    const uint64_t dstElementSize = dstElementType.sizeOf(ctx);
+    if (dstElementSize)
+        return sizeOf(ctx) / dstElementSize;
+    return arrayTotalElementCount();
+}
+
 uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
 {
     switch (kind_)

@@ -505,9 +505,7 @@ bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, 
 
         if (typeInfo.isArray())
         {
-            uint64_t elementCount = 1;
-            for (const uint64_t dim : typeInfo.payloadArrayDims())
-                elementCount *= dim;
+            uint64_t elementCount = typeInfo.arrayTotalElementCount();
             if (!elementCount)
                 return false;
 

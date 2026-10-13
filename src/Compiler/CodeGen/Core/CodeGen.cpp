@@ -319,14 +319,6 @@ namespace
         return nullptr;
     }
 
-    uint64_t arrayTotalElementCount(const TypeInfo& typeInfo)
-    {
-        uint64_t total = 1;
-        for (const uint64_t dim : typeInfo.payloadArrayDims())
-            total *= dim;
-        return total;
-    }
-
     bool tryBuildLifecycleActionRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGen::LifecycleKind lifecycleKind, const SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount)
     {
         outFunction = nullptr;
@@ -340,7 +332,7 @@ namespace
         const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : originalType;
         if (typeInfo.isArray())
         {
-            const uint64_t multiplier = arrayTotalElementCount(typeInfo);
+            const uint64_t multiplier = typeInfo.arrayTotalElementCount();
             if (!multiplier)
                 return false;
 
@@ -387,7 +379,7 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (typeInfo.isArray())
         {
-            const uint64_t totalCount = arrayTotalElementCount(typeInfo);
+            const uint64_t totalCount = typeInfo.arrayTotalElementCount();
             if (!totalCount)
                 return Result::Continue;
 

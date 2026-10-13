@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFloatConstant.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
@@ -664,7 +663,7 @@ namespace
                         if (safeArrayCstRef.isInvalid())
                             return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), CodeGenArraySlice::sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
+                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sourceArrayType.sliceCountFromArrayCast(codeGen.ctx(), elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);

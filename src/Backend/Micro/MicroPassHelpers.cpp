@@ -44,8 +44,10 @@ MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const Micro
             if (!inst || !propagatesAddress(*inst, ops) || useDefs[i].defs.size() != 1)
                 continue;
             const MicroReg dst = useDefs[i].defs[0];
+            if (!dst.isVirtualInt())
+                continue;
             const RegDefinitionSummary* def = definitions.find(dst.packed);
-            if (!dst.isVirtualInt() || !def || def->count != 1 || result.frameDerived.contains(dst.packed))
+            if (!def || def->count != 1 || result.frameDerived.contains(dst.packed))
                 continue;
             if (result.isFrame(ops[1].reg, stackPointer))
             {

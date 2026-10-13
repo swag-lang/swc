@@ -79,8 +79,10 @@ namespace
                 return true;
             }
 
+            if (!reg.isVirtual())
+                return false;
             const RegDefs* it = fn.defs.find(reg.packed);
-            if (!reg.isVirtual() || !it || it->count != 1)
+            if (!it || it->count != 1)
                 return false;
             const MicroInstr*        inst = fn.storage->ptr(it->ref);
             const MicroInstrOperand* ops  = inst ? inst->ops(*fn.operands) : nullptr;
@@ -205,8 +207,12 @@ namespace
 
         // Registers the body defines, and where; the index candidates are
         // those defined once, by an immediate step.
-        FlatKeyMap<uint32_t> defCount;
-        FlatKeyMap<uint32_t> lastDef;
+        struct BodyRegDefs
+        {
+            uint32_t count = 0;
+            uint32_t pos   = 0;
+        };
+        FlatKeyMap<BodyRegDefs> definitions;
         // Body position of each single address definition, by packed register; the
         // positions are also listed, for the checks that read every one of them.
         FlatKeyMap<uint32_t>  addrDefs;
@@ -215,13 +221,14 @@ namespace
         {
             for (const MicroReg def : loop.useDefs[i].defs)
             {
-                defCount.getOrInsert(def.packed)++;
-                lastDef.getOrInsert(def.packed) = i;
+                BodyRegDefs& info = definitions.getOrInsert(def.packed);
+                ++info.count;
+                info.pos = i;
             }
         }
         const auto definitionCount = [&](const MicroReg reg) {
-            const uint32_t* count = defCount.find(reg.packed);
-            return count ? *count : 0;
+            const BodyRegDefs* info = definitions.find(reg.packed);
+            return info ? info->count : 0;
         };
         for (uint32_t i = 0; i < n; ++i)
         {
@@ -257,9 +264,12 @@ namespace
 
             // The index: one definition in the body, `index += step`, after
             // every access through it; the base: no definition in the body.
-            if (definitionCount(consumer.base) != 0 || definitionCount(consumer.index) != 1)
+            if (definitionCount(consumer.base) != 0)
                 continue;
-            const uint32_t           stepPos  = *lastDef.find(consumer.index.packed);
+            const BodyRegDefs* indexDefinition = definitions.find(consumer.index.packed);
+            if (!indexDefinition || indexDefinition->count != 1)
+                continue;
+            const uint32_t           stepPos  = indexDefinition->pos;
             const MicroInstr&        stepInst = *loop.insts[stepPos];
             const MicroInstrOperand* stepOps  = loop.ops[stepPos];
             if (stepInst.op != MicroInstrOpcode::OpBinaryRegImm || stepOps[1].opBits != MicroOpBits::B64 ||
@@ -271,18 +281,10 @@ namespace
             if (!rangesDisjoint(stride, consumer.width, 0, consumer.width))
                 continue;
 
-            bool indexAfterAll = true;
-            for (const Access& access : accesses)
-            {
-                if (access.index == consumer.index && access.pos > stepPos)
-                    indexAfterAll = false;
-            }
-            for (const uint32_t pos : addrDefPositions)
-            {
-                if (loop.ops[pos][2].reg == consumer.index && pos > stepPos)
-                    indexAfterAll = false;
-            }
-            if (!indexAfterAll)
+            // One access after the step rejects the candidate; later accesses
+            // cannot restore the required ordering.
+            if (std::ranges::any_of(accesses, [&](const Access& access) { return access.index == consumer.index && access.pos > stepPos; }) ||
+                std::ranges::any_of(addrDefPositions, [&](const uint32_t pos) { return loop.ops[pos][2].reg == consumer.index && pos > stepPos; }))
                 continue;
 
             // The producer: a later access of the previous trip to the same
@@ -304,10 +306,9 @@ namespace
             // Every other store of the body runs between the producer of the
             // previous trip and the consumer of this one, at one of the two
             // index values. Each must miss the carried element on both.
-            MicroReg   consumerRoot;
-            uint64_t   consumerOffset = 0;
-            const bool consumerRooted = resolveRoot(fn, consumerRoot, consumerOffset, consumer.base);
-            bool       disjoint       = true;
+            MicroReg consumerRoot;
+            uint64_t consumerOffset = 0;
+            bool     disjoint       = true;
             for (const Access& store : accesses)
             {
                 if (!store.isStore || &store == producer)
@@ -320,9 +321,12 @@ namespace
                 uint64_t baseDelta = 0;
                 if (store.base != consumer.base)
                 {
+                    // Equal bases need only displacement checks. Resolve the
+                    // consumer's definition chain once, only for another base.
                     MicroReg storeRoot;
                     uint64_t storeOffset = 0;
-                    if (!consumerRooted || !resolveRoot(fn, storeRoot, storeOffset, store.base) || storeRoot != consumerRoot)
+                    if ((!consumerRoot.isValid() && !resolveRoot(fn, consumerRoot, consumerOffset, consumer.base)) ||
+                        !resolveRoot(fn, storeRoot, storeOffset, store.base) || storeRoot != consumerRoot)
                     {
                         disjoint = false;
                         break;

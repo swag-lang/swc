@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Support/Core/DenseBits.h"
 
@@ -1458,7 +1459,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
                     if (!toReg.isValid())
                         continue;
                     // One range query covers the adjacent branch and fall-through positions.
-                    if (containsKey(instructionUseDefs_[p].uses, toReg) || concreteClaimsOverlap(toReg, p, claimEnd))
+                    if (microRegSpanContains(instructionUseDefs_[p].uses, toReg) || concreteClaimsOverlap(toReg, p, claimEnd))
                     {
                         plainOk = false;
                         break;

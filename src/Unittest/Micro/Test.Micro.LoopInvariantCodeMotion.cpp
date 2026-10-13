@@ -53,20 +53,6 @@ namespace
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
-    // Position of the first instruction with this opcode, or UINT32_MAX.
-    uint32_t firstPositionOf(const MicroBuilder& builder, MicroInstrOpcode op)
-    {
-        uint32_t position = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == op)
-                return position;
-            ++position;
-        }
-
-        return std::numeric_limits<uint32_t>::max();
-    }
-
     // A counted loop reading one word through a pointer parameter. The load
     // is emitted with `emitLoad`, so the same shape can carry a plain or a
     // volatile load.
@@ -133,8 +119,8 @@ SWC_TEST_BEGIN(LICM_HoistsGlobalLoadAcrossReadOnlyCall)
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
 
-        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
-        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
         if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 1))
             return Result::Error;
     }
@@ -181,8 +167,8 @@ SWC_TEST_BEGIN(LICM_HoistsVectorConstantAcrossCallAndPointerStore)
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
 
-        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
-        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
         if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 0))
             return Result::Error;
     }
@@ -220,8 +206,8 @@ SWC_TEST_BEGIN(LICM_HoistsImmutableParameterReadAcrossStoreAndCall)
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
 
-        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
-        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
         if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 0))
             return Result::Error;
     }
@@ -258,8 +244,8 @@ SWC_TEST_BEGIN(LICM_KeepsZeroingClearInLoopThatCalls)
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
 
-        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
-        const uint32_t clear     = firstPositionOf(builder, MicroInstrOpcode::ClearReg);
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t clear     = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::ClearReg);
         if (clear == std::numeric_limits<uint32_t>::max() || (clear < loopStart) == calls)
             return Result::Error;
     }
@@ -307,8 +293,8 @@ SWC_TEST_BEGIN(LICM_HoistsVectorConstantOutOfConditionalArm)
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
 
-        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
-        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
         if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 0))
             return Result::Error;
     }
@@ -352,8 +338,8 @@ SWC_TEST_BEGIN(LICM_HoistsIndexedLoadOnlyAcrossReadOnlyCallWithoutAlias)
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
 
-        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
-        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadAmcRegMem);
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadAmcRegMem);
         if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 1))
             return Result::Error;
     }
@@ -397,8 +383,8 @@ SWC_TEST_BEGIN(LICM_HoistsInvariantStructureFieldAcrossReadOnlyCall)
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
 
-        const uint32_t loopStart = firstPositionOf(builder, MicroInstrOpcode::Label);
-        const uint32_t load      = firstPositionOf(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
         if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 1))
             return Result::Error;
     }
@@ -613,7 +599,7 @@ SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)
 
     SWC_RESULT(runLicmPass(builder));
 
-    if (firstPositionOf(builder, MicroInstrOpcode::LoadRegMem) > firstPositionOf(builder, MicroInstrOpcode::Label))
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem) > Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
         return Result::Error;
     return Result::Continue;
 }
@@ -653,12 +639,12 @@ SWC_TEST_BEGIN(LICM_HoistsSingleUseLaneBroadcast)
 
     SWC_RESULT(runLicmPass(builder));
 
-    const uint32_t labelPosition = firstPositionOf(builder, MicroInstrOpcode::Label);
-    if (firstPositionOf(builder, MicroInstrOpcode::VecShuffleRegRegImm) > labelPosition)
+    const uint32_t labelPosition = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::VecShuffleRegRegImm) > labelPosition)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::VecShuffleRegRegImm) != 1)
         return Result::Error;
-    if (firstPositionOf(builder, MicroInstrOpcode::LoadVecRegMem) < labelPosition)
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadVecRegMem) < labelPosition)
         return Result::Error;
     return Result::Continue;
 }
@@ -676,7 +662,7 @@ SWC_TEST_BEGIN(LICM_KeepsVolatileLoadInLoop)
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVolatileRegMem) != 1)
         return Result::Error;
-    if (firstPositionOf(builder, MicroInstrOpcode::LoadVolatileRegMem) < firstPositionOf(builder, MicroInstrOpcode::Label))
+    if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadVolatileRegMem) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
         return Result::Error;
     return Result::Continue;
 }
@@ -710,10 +696,10 @@ SWC_TEST_BEGIN(LICM_HoistsFloatConversionAcrossCallWithLiveIntegerFlags)
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
-        const uint32_t label = firstPositionOf(builder, MicroInstrOpcode::Label);
-        if (firstPositionOf(builder, MicroInstrOpcode::ClearReg) >= label ||
-            firstPositionOf(builder, MicroInstrOpcode::OpBinaryRegReg) >= label ||
-            firstPositionOf(builder, MicroInstrOpcode::SetCondReg) <= label)
+        const uint32_t label = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::ClearReg) >= label ||
+            Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::OpBinaryRegReg) >= label ||
+            Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::SetCondReg) <= label)
             return Result::Error;
     }
     return Result::Continue;
@@ -747,7 +733,7 @@ SWC_TEST_BEGIN(LICM_KeepsIntegerClearWhenFlagsAreLiveAtEitherSite)
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
         SWC_RESULT(runLicmPass(builder));
-        if (firstPositionOf(builder, MicroInstrOpcode::ClearReg) <= firstPositionOf(builder, MicroInstrOpcode::Label))
+        if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::ClearReg) <= Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
             return Result::Error;
     }
     return Result::Continue;
@@ -797,7 +783,7 @@ SWC_TEST_BEGIN(LICM_HoistsScalarFloatLiteralsWithFoldableAndNonfoldableReaders)
             builder.emitRet();
             SWC_RESULT(runLicmPass(builder));
 
-            const uint32_t header   = firstPositionOf(builder, MicroInstrOpcode::Label);
+            const uint32_t header   = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
             uint32_t       position = 0;
             bool           found    = false;
             for (const MicroInstr& inst : builder.instructions().view())
@@ -896,7 +882,7 @@ SWC_TEST_BEGIN(LICM_ReassociatesThreeRegisterAddressInCurrentLoopPreheader)
 
     SWC_RESULT(runLicmPass(builder));
 
-    const uint32_t labelPosition = firstPositionOf(builder, MicroInstrOpcode::Label);
+    const uint32_t labelPosition = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     uint32_t       position      = 0;
     MicroReg       rooted        = MicroReg::invalid();
     bool           rewroteLoad   = false;
@@ -939,7 +925,7 @@ SWC_TEST_BEGIN(LICM_ReassociatesCopyAddAddressInCurrentLoopPreheader)
 
     SWC_RESULT(runLicmPass(builder));
 
-    const uint32_t labelPosition = firstPositionOf(builder, MicroInstrOpcode::Label);
+    const uint32_t labelPosition = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     uint32_t       position      = 0;
     MicroReg       rooted        = MicroReg::invalid();
     bool           rewroteLoad   = false;
@@ -1033,7 +1019,7 @@ SWC_TEST_BEGIN(LICM_HoistsMultiplyUsedAddressOnlyWhenEveryIterationComputesIt)
 
         SWC_RESULT(runLicmPass(builder));
 
-        const bool hoisted = firstPositionOf(builder, MicroInstrOpcode::LoadAddrRegMem) < firstPositionOf(builder, MicroInstrOpcode::Label);
+        const bool hoisted = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadAddrRegMem) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         if (hoisted == conditional)
             return Result::Error;
     }
@@ -1090,7 +1076,7 @@ SWC_TEST_BEGIN(LICM_HoistsAddressWithOneReaderInNestedLoop)
 
             SWC_RESULT(runLicmPass(builder));
             const auto opcode  = indexed ? MicroInstrOpcode::LoadAddrAmcRegMem : MicroInstrOpcode::LoadAddrRegMem;
-            const bool hoisted = firstPositionOf(builder, opcode) < firstPositionOf(builder, MicroInstrOpcode::Label);
+            const bool hoisted = Backend::Unittest::firstOpcodePosition(builder, opcode) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
             if (hoisted != (variant == 0))
                 return Result::Error;
         }

@@ -1032,14 +1032,14 @@ CodeGenNodePayload& CodeGen::setPayloadAddressReg(AstNodeRef nodeRef, const Micr
     return nodePayload;
 }
 
-MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset)
+MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset, const bool forbidBaseReg)
 {
     SWC_ASSERT(baseReg.isValid());
     if (!offset)
         return baseReg;
 
     const MicroReg addressReg = nextVirtualIntRegister();
-    if (baseReg.isInt())
+    if (forbidBaseReg && baseReg.isInt())
         builder().addVirtualRegForbiddenPhysReg(addressReg, baseReg);
     builder().emitLoadRegReg(addressReg, baseReg, MicroOpBits::B64);
     builder().emitOpBinaryRegImm(addressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);

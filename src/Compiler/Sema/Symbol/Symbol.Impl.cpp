@@ -132,6 +132,17 @@ void SymbolImpl::setSymEnum(SymbolEnum* sym)
     ownerEnum_ = sym;
 }
 
+const SymbolMap* SymbolImpl::targetSymbolMap() const
+{
+    if (isForStruct())
+        return symStruct();
+    if (isForEnum())
+        return symEnum();
+    if (isForInterface())
+        return symInterface();
+    return nullptr;
+}
+
 TypeRef SymbolImpl::ownerTypeRef() const
 {
     if (isForStruct())

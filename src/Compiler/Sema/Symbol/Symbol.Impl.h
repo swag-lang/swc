@@ -50,6 +50,7 @@ public:
     SymbolEnum*      symEnum() const;
     void             setSymEnum(SymbolEnum* sym);
     TypeRef          ownerTypeRef() const;
+    const SymbolMap* targetSymbolMap() const;
     SymbolInterface* symInterface() const noexcept { return interfaceSym_; }
     void             setSymInterface(SymbolInterface* sym) noexcept { interfaceSym_ = sym; }
 

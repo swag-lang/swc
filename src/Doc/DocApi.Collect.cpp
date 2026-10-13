@@ -771,17 +771,6 @@ void DocApi::collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unor
 
 namespace
 {
-    const Symbol* documentationImplOwner(const SymbolImpl& impl)
-    {
-        if (impl.isForStruct())
-            return impl.symStruct();
-        if (impl.isForEnum())
-            return impl.symEnum();
-        if (impl.isForInterface())
-            return impl.symInterface();
-        return nullptr;
-    }
-
     const Symbol* documentationOwner(const Symbol& symbol)
     {
         if (const auto* function = symbol.safeCast<SymbolFunction>())
@@ -797,7 +786,7 @@ namespace
                 return owner;
             if (owner->isImpl())
             {
-                if (const Symbol* result = documentationImplOwner(owner->cast<SymbolImpl>()))
+                if (const Symbol* result = owner->cast<SymbolImpl>().targetSymbolMap())
                     return result;
             }
             owner = owner->ownerSymMap();

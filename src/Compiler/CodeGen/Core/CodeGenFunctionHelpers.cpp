@@ -694,17 +694,6 @@ bool CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(CodeGen& codeGe
 
 namespace
 {
-    MicroReg addressWithOffset(CodeGen& codeGen, MicroReg baseReg, uint32_t offset)
-    {
-        if (!offset)
-            return baseReg;
-
-        const MicroReg resultReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegReg(resultReg, baseReg, MicroOpBits::B64);
-        codeGen.builder().emitOpBinaryRegImm(resultReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
-        return resultReg;
-    }
-
     bool canEmitDefaultPayloadBytesInline(CodeGen& codeGen, const TypeInfo& declaredType)
     {
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
@@ -875,7 +864,7 @@ namespace
         {
             const uint64_t offset = i * elemSize;
             SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
-            const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
+            const MicroReg elemAddressReg = codeGen.offsetAddressReg(dstAddressReg, static_cast<uint32_t>(offset), false);
             SWC_RESULT(emitArrayDefaultValue(codeGen, storageElemType, elemAddressReg));
         }
 
@@ -887,7 +876,7 @@ namespace
         if (!fieldSize)
             return Result::Continue;
 
-        const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field.offset());
+        const MicroReg fieldAddressReg = codeGen.offsetAddressReg(dstAddressReg, field.offset(), false);
 
         // A 'late' field is typed non-null, so the generic implicit-default
         // path would skip it ("needs explicit initialization"). Its storage
@@ -967,7 +956,7 @@ namespace
             SWC_ASSERT(fieldOffset >= initializedEnd);
             if (fieldOffset > initializedEnd)
             {
-                const MicroReg paddingAddressReg = addressWithOffset(codeGen, dstAddressReg, initializedEnd);
+                const MicroReg paddingAddressReg = codeGen.offsetAddressReg(dstAddressReg, initializedEnd, false);
                 CodeGenMemoryHelpers::emitMemZero(codeGen, paddingAddressReg, fieldOffset - initializedEnd);
             }
 
@@ -979,7 +968,7 @@ namespace
         SWC_ASSERT(initializedEnd <= structSize);
         if (initializedEnd < structSize)
         {
-            const MicroReg paddingAddressReg = addressWithOffset(codeGen, dstAddressReg, initializedEnd);
+            const MicroReg paddingAddressReg = codeGen.offsetAddressReg(dstAddressReg, initializedEnd, false);
             CodeGenMemoryHelpers::emitMemZero(codeGen, paddingAddressReg, structSize - initializedEnd);
         }
 
@@ -1131,7 +1120,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
         {
             const uint64_t offset = static_cast<uint64_t>(sizeOf) * i;
             SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
-            const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
+            const MicroReg elemAddressReg = codeGen.offsetAddressReg(dstAddressReg, static_cast<uint32_t>(offset), false);
             SWC_RESULT(emitStructDefaultValue(codeGen, typeInfo, elemAddressReg));
         }
 
@@ -1210,7 +1199,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
     {
         const uint64_t offset = static_cast<uint64_t>(sizeOf) * i;
         SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
-        const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
+        const MicroReg elemAddressReg = codeGen.offsetAddressReg(dstAddressReg, static_cast<uint32_t>(offset), false);
         SWC_RESULT(emitImplicitDefaultValue(codeGen, typeInfo, elemAddressReg));
     }
 

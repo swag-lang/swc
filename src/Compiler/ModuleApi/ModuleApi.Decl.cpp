@@ -102,17 +102,6 @@ namespace
         return nullptr;
     }
 
-    const SymbolMap* implTargetSymMap(const SymbolImpl& symImpl)
-    {
-        if (symImpl.isForStruct())
-            return symImpl.symStruct();
-        if (symImpl.isForEnum())
-            return symImpl.symEnum();
-        if (symImpl.isForInterface())
-            return symImpl.symInterface();
-        return nullptr;
-    }
-
     const SymbolMap* namespaceOwnerSymMapForPublicSymbol(TaskContext& ctx, const Symbol& symbol)
     {
         const SymbolMap*  symMap  = symbol.ownerSymMap();
@@ -120,7 +109,7 @@ namespace
 
         if (symImpl)
         {
-            const SymbolMap* targetSymMap = implTargetSymMap(*symImpl);
+            const SymbolMap* targetSymMap = symImpl->targetSymbolMap();
             if (targetSymMap && isCurrentModuleSymbol(ctx, *targetSymMap))
                 symMap = targetSymMap;
         }
@@ -200,7 +189,7 @@ namespace
         if (!symImpl)
             return false;
 
-        const SymbolMap* targetSymMap = implTargetSymMap(*symImpl);
+        const SymbolMap* targetSymMap = symImpl->targetSymbolMap();
         return targetSymMap && !isCurrentModuleSymbol(ctx, *targetSymMap);
     }
 

@@ -300,9 +300,9 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
                 (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
             {
                 scanIt->collectUseDef(useDef, *operands_, context_->encoder);
-                if (containsKey(useDef.defs, srcReg) || containsKey(useDef.defs, dstReg))
+                if (microRegSpanContains(useDef.defs, srcReg) || microRegSpanContains(useDef.defs, dstReg))
                     break;
-                usesDestination = containsKey(useDef.uses, dstReg);
+                usesDestination = microRegSpanContains(useDef.uses, dstReg);
             }
             else if (scanOps)
             {
@@ -392,37 +392,26 @@ bool MicroRegisterAllocationPass::requiresCallSpill(uint32_t denseIndex) const
     return callSpillFlags_[denseIndex] != 0;
 }
 
-bool MicroRegisterAllocationPass::containsKey(const MicroRegSpan keys, MicroReg key)
-{
-    for (const auto value : keys)
-    {
-        if (value == key)
-            return true;
-    }
-
-    return false;
-}
-
 void MicroRegisterAllocationPass::appendUniqueReg(SmallVector<MicroReg>& regs, MicroReg reg)
 {
-    if (!containsKey(regs, reg))
+    if (!microRegSpanContains(regs, reg))
         regs.push_back(reg);
 }
 
 bool MicroRegisterAllocationPass::isPoolRegister(const MicroReg reg) const
 {
     if (reg.isFloat())
-        return containsKey(freeFloatPersistent_, reg) || containsKey(freeFloatTransient_, reg);
-    return containsKey(freeIntPersistent_, reg) || containsKey(freeIntTransient_, reg);
+        return microRegSpanContains(freeFloatPersistent_, reg) || microRegSpanContains(freeFloatTransient_, reg);
+    return microRegSpanContains(freeIntPersistent_, reg) || microRegSpanContains(freeIntTransient_, reg);
 }
 
 bool MicroRegisterAllocationPass::isPersistentPhysReg(MicroReg reg) const
 {
     if (reg.isInt())
-        return containsKey(intPersistentRegs_, reg);
+        return microRegSpanContains(intPersistentRegs_, reg);
 
     if (reg.isFloat())
-        return containsKey(floatPersistentRegs_, reg);
+        return microRegSpanContains(floatPersistentRegs_, reg);
 
     SWC_UNREACHABLE();
 }
@@ -434,7 +423,7 @@ bool MicroRegisterAllocationPass::isPhysRegForbiddenForVirtual(MicroReg virtKey,
     return context_->builder->isVirtualRegPhysRegForbidden(virtKey, physReg);
 }
 
-bool MicroRegisterAllocationPass::isLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const
+bool MicroRegisterAllocationPass::isLiveInAt(const MicroDenseRegIndex& regs, const std::vector<uint64_t>& liveInBits, uint32_t denseIndex, uint32_t instructionIndex) const
 {
     if (instructionIndex >= instructionCount_)
         return false;
@@ -442,28 +431,22 @@ bool MicroRegisterAllocationPass::isLiveInAt(uint32_t denseIndex, uint32_t instr
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
         return false;
 
-    const uint32_t wordCount = denseVirtualRegs_.wordCount();
+    const uint32_t wordCount = regs.wordCount();
     if (!wordCount)
         return false;
 
-    const std::span<const uint64_t> liveInRow = DenseBits::row(liveInVirtualBits_, instructionIndex, wordCount);
+    const std::span<const uint64_t> liveInRow = DenseBits::row(liveInBits, instructionIndex, wordCount);
     return DenseBits::contains(liveInRow, denseIndex);
+}
+
+bool MicroRegisterAllocationPass::isLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const
+{
+    return isLiveInAt(denseVirtualRegs_, liveInVirtualBits_, denseIndex, instructionIndex);
 }
 
 bool MicroRegisterAllocationPass::isConcreteLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const
 {
-    if (instructionIndex >= instructionCount_)
-        return false;
-
-    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
-        return false;
-
-    const uint32_t wordCount = denseConcreteRegs_.wordCount();
-    if (!wordCount)
-        return false;
-
-    const std::span<const uint64_t> liveInRow = DenseBits::row(liveInConcreteBits_, instructionIndex, wordCount);
-    return DenseBits::contains(liveInRow, denseIndex);
+    return isLiveInAt(denseConcreteRegs_, liveInConcreteBits_, denseIndex, instructionIndex);
 }
 
 bool MicroRegisterAllocationPass::hasFutureConcreteTouchConflict(MicroReg virtKey, uint32_t denseIndex, uint32_t instructionIndex) const
@@ -484,7 +467,7 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
 {
     if (!physReg.isInt() && !physReg.isFloat())
         return false;
-    if (containsKey(forbiddenPhysRegs, physReg))
+    if (microRegSpanContains(forbiddenPhysRegs, physReg))
         return false;
     if (isPhysRegForbiddenForVirtual(virtKey, physReg))
         return false;
@@ -511,7 +494,7 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
     // Interval-allocated output has no such hidden values: everything it
     // holds is a concrete touch the guards above already see, and the list
     // only names what a borrow may take.
-    if (!context_->isFirstAllocationSweep && !context_->intervalAllocated && containsKey(context_->globalReservedRegs, physReg))
+    if (!context_->isFirstAllocationSweep && !context_->intervalAllocated && microRegSpanContains(context_->globalReservedRegs, physReg))
         return false;
 
     // Unconditional, unlike the concrete-touch test above: a globally reserved
@@ -565,7 +548,7 @@ void MicroRegisterAllocationPass::returnToFreePool(MicroReg reg)
 {
     if (reg.isInt())
     {
-        if (containsKey(intPersistentRegs_, reg))
+        if (microRegSpanContains(intPersistentRegs_, reg))
             freeIntPersistent_.push_back(reg);
         else
             freeIntTransient_.push_back(reg);
@@ -574,7 +557,7 @@ void MicroRegisterAllocationPass::returnToFreePool(MicroReg reg)
 
     if (reg.isFloat())
     {
-        if (containsKey(floatPersistentRegs_, reg))
+        if (microRegSpanContains(floatPersistentRegs_, reg))
             freeFloatPersistent_.push_back(reg);
         else
             freeFloatTransient_.push_back(reg);
@@ -924,15 +907,20 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
     }
 }
 
-bool MicroRegisterAllocationPass::concreteClaimsOverlap(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
+bool MicroRegisterAllocationPass::hasConcretePositionInRange(const std::vector<std::vector<uint32_t>>& positionsByDenseIndex, const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
 {
     const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
-    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= concreteClaimPositionsByDenseIndex_.size())
+    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= positionsByDenseIndex.size())
         return false;
 
-    const auto& positions = concreteClaimPositionsByDenseIndex_[denseIndex];
+    const auto& positions = positionsByDenseIndex[denseIndex];
     const auto  it        = std::ranges::lower_bound(positions, lo);
     return it != positions.end() && *it <= hi;
+}
+
+bool MicroRegisterAllocationPass::concreteClaimsOverlap(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
+{
+    return hasConcretePositionInRange(concreteClaimPositionsByDenseIndex_, physReg, lo, hi);
 }
 
 bool MicroRegisterAllocationPass::isProvenFreeRegister(const MicroReg physReg) const
@@ -974,7 +962,7 @@ bool MicroRegisterAllocationPass::hullConcreteClaimsBlock(const MicroReg physReg
         const MicroInstrUseDef& useDef = instructionUseDefs_[position];
         if (!useDef.isCall)
             return true;
-        if (containsKey(useDef.uses, physReg))
+        if (microRegSpanContains(useDef.uses, physReg))
             return true;
     }
 
@@ -2071,9 +2059,9 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
             (context_->encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
         {
             const MicroInstrUseDef useDef = inst.collectUseDef(*operands_, context_->encoder);
-            if (containsKey(useDef.uses, dstReg))
+            if (microRegSpanContains(useDef.uses, dstReg))
                 return false;
-            defined = containsKey(useDef.defs, dstReg);
+            defined = microRegSpanContains(useDef.defs, dstReg);
         }
         else if (hasExplicitRegisterOperands(info))
         {
@@ -2682,7 +2670,7 @@ void MicroRegisterAllocationPass::setupPools()
         if (context_->debugStackBaseVirtualReg.isValid() && reg == conv_->preferredLocalStackBaseReg())
             continue;
 
-        if (containsKey(intPersistentRegs_, reg))
+        if (microRegSpanContains(intPersistentRegs_, reg))
             freeIntPersistent_.push_back(reg);
         else
             freeIntTransient_.push_back(reg);
@@ -2690,7 +2678,7 @@ void MicroRegisterAllocationPass::setupPools()
 
     for (const auto reg : conv_->floatRegs)
     {
-        if (containsKey(floatPersistentRegs_, reg))
+        if (microRegSpanContains(floatPersistentRegs_, reg))
             freeFloatPersistent_.push_back(reg);
         else
             freeFloatTransient_.push_back(reg);
@@ -3040,9 +3028,9 @@ bool MicroRegisterAllocationPass::selectEvictionCandidate(MicroReg requestVirtKe
         SWC_ASSERT(regState.mapped);
         const MicroReg physReg = regState.phys;
 
-        if (containsKey(protectedKeys, virtKey))
+        if (microRegSpanContains(protectedKeys, virtKey))
             continue;
-        if (containsKey(forbiddenPhysRegs, physReg))
+        if (microRegSpanContains(forbiddenPhysRegs, physReg))
             continue;
         if (isFloatReg)
         {
@@ -3221,13 +3209,7 @@ bool MicroRegisterAllocationPass::selectEvictionCandidateWithFallback(MicroReg r
 
 bool MicroRegisterAllocationPass::hasConcreteTouchInRange(const MicroReg physReg, const uint32_t lo, const uint32_t hi) const
 {
-    const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
-    if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX || denseIndex >= concreteTouchPositionsByDenseIndex_.size())
-        return false;
-
-    const auto& positions = concreteTouchPositionsByDenseIndex_[denseIndex];
-    const auto  it        = std::ranges::lower_bound(positions, lo);
-    return it != positions.end() && *it <= hi;
+    return hasConcretePositionInRange(concreteTouchPositionsByDenseIndex_, physReg, lo, hi);
 }
 
 bool MicroRegisterAllocationPass::isStraightLineRange(const uint32_t lo, const uint32_t hi) const
@@ -3291,7 +3273,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
     {
         if (reg.isFloat() != isFloat)
             continue;
-        if (containsKey(forbiddenPhysRegs, reg) || containsKey(protectedKeys, reg))
+        if (microRegSpanContains(forbiddenPhysRegs, reg) || microRegSpanContains(protectedKeys, reg))
             continue;
         if (isPhysRegForbiddenForVirtual(request.virtKey, reg))
             continue;
@@ -3321,7 +3303,7 @@ bool MicroRegisterAllocationPass::tryBorrowReservedRegister(const AllocRequest& 
         }
         if (mappedOwner != MicroDenseRegIndex::K_INVALID_INDEX)
         {
-            if (isLiveInAt(mappedOwner, lo) || containsKey(protectedKeys, denseVirtualRegs_.regs()[mappedOwner]))
+            if (isLiveInAt(mappedOwner, lo) || microRegSpanContains(protectedKeys, denseVirtualRegs_.regs()[mappedOwner]))
                 continue;
             unmapVirtReg(states_[mappedOwner]);
         }
@@ -3485,8 +3467,8 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
         return regState.phys;
 
     if (regState.mapped &&
-        ((request.isDef && containsKey(forbiddenPhysRegs, regState.phys)) ||
-         containsKey(remapForbiddenPhysRegs, regState.phys)))
+        ((request.isDef && microRegSpanContains(forbiddenPhysRegs, regState.phys)) ||
+         microRegSpanContains(remapForbiddenPhysRegs, regState.phys)))
     {
         const MicroReg conflictedPhys = regState.phys;
         if (request.isUse)
@@ -3541,7 +3523,7 @@ void MicroRegisterAllocationPass::spillMappedVirtualsForConcreteTouches(MicroReg
         auto&          regState = states_[denseIndex];
         SWC_ASSERT(regState.mapped);
         const MicroReg physReg = regState.phys;
-        if (containsKey(protectedKeys, virtKey) || !containsKey(touchedRegs, physReg))
+        if (microRegSpanContains(protectedKeys, virtKey) || !microRegSpanContains(touchedRegs, physReg))
         {
             ++mappedIndex;
             continue;
@@ -4261,7 +4243,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                         continue;
                     if (!isConcreteLiveInAt(denseConcreteRegs_.find(key), idx))
                         continue;
-                    if (containsKey(mentionedConcreteRegs, key))
+                    if (microRegSpanContains(mentionedConcreteRegs, key))
                         continue;
                     forbiddenPhysRegs.push_back(key);
                 }
@@ -4287,7 +4269,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
             for (const auto& alias : destructiveConcreteAliases)
             {
-                if (alias.virtKey != request.virtKey || containsKey(forbiddenPhysRegs, alias.physReg))
+                if (alias.virtKey != request.virtKey || microRegSpanContains(forbiddenPhysRegs, alias.physReg))
                     continue;
 
                 forbiddenPhysRegs.push_back(alias.physReg);

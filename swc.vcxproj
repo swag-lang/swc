@@ -565,6 +565,7 @@
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Variable.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\SymbolMap.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Type\IntrinsicInitType.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Type\TypeGen.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Layout.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Payload.cpp"/>

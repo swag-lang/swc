@@ -405,7 +405,7 @@ public:
     CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
     CodeGenNodePayload&       setPayloadAddressReg(AstNodeRef nodeRef, MicroReg reg, TypeRef typeRef = TypeRef::invalid());
-    MicroReg                  offsetAddressReg(MicroReg baseReg, uint32_t offset);
+    MicroReg                  offsetAddressReg(MicroReg baseReg, uint32_t offset, bool forbidBaseReg = true);
     CodeGenNodePayload        resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
     MicroReg                  runtimeStorageAddressReg(AstNodeRef nodeRef);
     bool                      hasLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind) const;

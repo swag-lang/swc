@@ -956,13 +956,103 @@ bool ConstantManager::resolveDataSegmentRef(DataSegmentRef& outRef, const void* 
     return false;
 }
 
+namespace
+{
+    // One entry per offset a walk has resolved, per worker. The table is open-addressed over a
+    // separate key array: the walks ask this question millions of times per module, and following
+    // a node per lookup costs more than the answer it returns.
+    struct WalkedAllocations
+    {
+        std::vector<uint64_t> keys;
+        std::vector<uint32_t> entryIndices;
+        // A deque, so an entry handed out stays put when the next one is recorded.
+        std::deque<ConstantManager::WalkedAllocation> entries;
+        size_t                                        used = 0;
+
+        WalkedAllocations()
+        {
+            keys.resize(1024);
+            entryIndices.resize(1024);
+        }
+
+        ConstantManager::WalkedAllocation& slotFor(const uint64_t key)
+        {
+            const size_t mask  = keys.size() - 1;
+            size_t       index = (key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+            while (keys[index] != 0)
+            {
+                if (keys[index] == key)
+                    return entries[entryIndices[index]];
+                index = (index + 1) & mask;
+            }
+
+            keys[index]         = key;
+            entryIndices[index] = static_cast<uint32_t>(entries.size());
+            entries.emplace_back();
+            ++used;
+
+            ConstantManager::WalkedAllocation& slot = entries.back();
+            if (used * 4 > keys.size() * 3)
+                grow();
+            return slot;
+        }
+
+        void grow()
+        {
+            std::vector<uint64_t> oldKeys         = std::move(keys);
+            std::vector<uint32_t> oldEntryIndices = std::move(entryIndices);
+            keys.assign(oldKeys.size() * 2, 0);
+            entryIndices.assign(oldKeys.size() * 2, 0);
+
+            const size_t mask = keys.size() - 1;
+            for (size_t i = 0; i < oldKeys.size(); ++i)
+            {
+                if (oldKeys[i] == 0)
+                    continue;
+                size_t index = (oldKeys[i] * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+                while (keys[index] != 0)
+                    index = (index + 1) & mask;
+                keys[index]         = oldKeys[i];
+                entryIndices[index] = oldEntryIndices[i];
+            }
+        }
+    };
+
+    ConstantManager::WalkedAllocation& walkedAllocationSlot(const uint64_t segmentId, const uint32_t offset)
+    {
+        static thread_local WalkedAllocations walked;
+        // Zero marks a free slot, so the key never is.
+        return walked.slotFor((segmentId * 1099511628211ULL + offset) | 1ULL);
+    }
+}
+
+const ConstantManager::WalkedAllocation* ConstantManager::walkedAllocation(const DataSegment& segment, const uint32_t offset)
+{
+    // The version is read before the relocations: one added in between is served again by the
+    // next lookup, never missed.
+    const uint64_t    version = segment.relocationVersion();
+    WalkedAllocation& walked  = walkedAllocationSlot(segment.id(), offset);
+    if (walked.segmentId == segment.id() && walked.queryOffset == offset && walked.relocationVersion == version)
+        return &walked;
+
+    DataSegmentAllocation allocation;
+    if (!segment.findAllocation(allocation, offset))
+        return nullptr;
+
+    segment.copyRelocations(walked.relocations, allocation.offset, allocation.size);
+    walked.segmentId         = segment.id();
+    walked.queryOffset       = offset;
+    walked.relocationVersion = version;
+    walked.allocation        = allocation;
+    return &walked;
+}
+
 bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const DataSegmentRef> roots) const
 {
     if (roots.empty())
         return false;
 
-    SmallVector<DataSegmentRef>        pending;
-    std::vector<DataSegmentRelocation> relocations;
+    SmallVector<DataSegmentRef> pending;
 
     // Roots commonly share runtime type graphs. Scan their union once. The visited set holds
     // nothing between queries - a later one must observe newly published metadata - but its table
@@ -977,17 +1067,15 @@ bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const Da
         {
             const DataSegmentRef current = pending.back();
             pending.pop_back();
-            const DataSegment&    segment = shardDataSegment(current.shardIndex);
-            DataSegmentAllocation allocation;
-            if (!segment.findAllocation(allocation, current.offset))
+            const WalkedAllocation* walked = walkedAllocation(shardDataSegment(current.shardIndex), current.offset);
+            if (!walked)
                 continue;
             // The high bit keeps the first allocation of the first shard from packing to zero,
             // which the table reads as a free slot.
-            const uint64_t key = 1ULL << 63 | static_cast<uint64_t>(current.shardIndex) << 32 | allocation.offset;
+            const uint64_t key = 1ULL << 63 | static_cast<uint64_t>(current.shardIndex) << 32 | walked->allocation.offset;
             if (!visited.insert(key))
                 continue;
-            segment.copyRelocations(relocations, allocation.offset, allocation.size);
-            for (const DataSegmentRelocation& relocation : relocations)
+            for (const DataSegmentRelocation& relocation : walked->relocations)
             {
                 if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
                 {

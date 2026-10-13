@@ -90,34 +90,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a bounded reproducer identifies the duplicate visitation or publication,
   the root cause is fixed, and the script passes repeated parallel imports with six workers.
 
-### compiler.core.064 — A compiler-held dependency DLL blocks child rebuilds
-
-- Evidence: a serial native Swag Prism test with the DevMode compiler and program configuration
-  `release` loads `bin/std/.output/core/shared-library/release/x86_64/core.dll` in its parent
-  compiler. The test's child compiler requests `build --build-cfg release --optim-level 0` for a
-  temporary Core importer and tries to republish that DLL. The write fails with access denied;
-  the diagnostic identifies the parent `swc.dm.exe` as its owner. Six workers and serial execution
-  reproduce it. Running a script concurrently can hold the same source artifact and expose the
-  same failure, but concurrency between campaigns is not required.
-- Further evidence: after the non-null success-contract migration, both
-  `swc.dm.exe --num-cores 6 tools/help.swgs dm --num-cores 6` and a standalone
-  `swc.dm.exe doc --workspace bin/std --doc-output-dir bin/help --rebuild --num-cores 6`
-  fail after publishing Core: a second write to the devmode `core.dll` reports that
-  a compiler process still owns it. The direct command reproduces this without the
-  tool-script wrapper or another main-checkout compilation. Include this same-command
-  documentation path in the dependency-lifetime investigation.
-- Boundary: scripts use immutable dependency-cache copies, and external workspace dependencies
-  are mirrored into `.dep`; workspace-local dependencies can still be loaded from their mutable
-  `.output` directories. `ExternalModuleManager` retains loaded libraries for the process.
-  Prism's retired probe helper exposed this by forwarding snippet optimization levels to all
-  dependencies; its current `BuildArtifact` path sets the level on the snippet's module instead.
-- Next: reduce the parent compile-time DLL call followed by a child's forced dependency rebuild
-  to a workspace-suite fixture. Audit shared-library resolution during dependency builds and
-  separate compiler-loaded library lifetime from the mutable publication path, while preserving
-  native linking, publication, cache invalidation, and runtime-instance ownership.
-- Done when: the fixture rebuilds the dependency while its parent compiler remains alive,
-  with both compiler executables, and workspace reuse and publication checks still pass.
-
 ### compiler.core.030 — Reuse lowered runtime code across executables
 
 - Evidence: executable lowering starts from reachable roots, but runtime functions reached through relocations are lowered for every executable. The existing function cache skips functions with code relocations.

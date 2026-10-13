@@ -760,6 +760,47 @@ private func verifyWorkspaceDebugVariant(context: *Context, options: *Options, w
     return 0
 }
 
+// A library a compiler mapped for a compile-time call is republished by a sibling rebuild while
+// that compiler still runs: the mapped bytes move aside and the fresh ones take their path.
+private func verifyWorkspaceMappedDependencyRepublish(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+{
+    let marker = Path.combine(workspace, ".output", "mapped_holder.marker")
+    discard catch File.delete(marker.toString())
+
+    var holder = workspaceModuleCommand("build", workspace, "mapped_holder", buildCfg)
+    holder.add(["--rebuild"])
+    options.appendExtra(&holder)
+    var holderProcess = try context.startCompiler(holder)
+
+    var waited = 0
+    while not File.exists(marker.toString()) and waited < 600
+    {
+        Threading.Thread.sleep(100'ms)
+        waited += 1
+    }
+
+    if not File.exists(marker.toString())
+    {
+        discard catch holderProcess.waitForExit()
+        Console.println("The holder compiler did not map its sibling library in time.")
+        return 1
+    }
+
+    var republish = workspaceModuleCommand("build", workspace, "mapped_dll", buildCfg)
+    republish.add(["--rebuild"])
+    options.appendExtra(&republish)
+    let republishCode = try context.runCompiler(republish)
+    discard catch File.delete(marker.toString())
+    let holderCode = try holderProcess.waitForExit()
+    if republishCode != 0
+    {
+        Console.println("Republishing a library a running compiler maps did not succeed.")
+        return republishCode
+    }
+
+    return holderCode
+}
+
 // An executable takes its dependencies' code in, and its stack traces name their frames as they name
 // its own: a panic raised inside a dependency reports the dependency's function.
 private func verifyWorkspaceDependencyStackTrace(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
@@ -1751,6 +1792,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
         Console.println("Script importing 'core' without a 'using' did not reach its entry point.")
         return 1
     }
+
+    let mappedCode = try verifyWorkspaceMappedDependencyRepublish(context, options, workspace.toString(), buildCfg)
+    if mappedCode != 0 do
+        return mappedCode
 
     // A lazy body is completed by the run that resolves it, never by the declaration walk that
     // skipped it. The race needs that run to start inside a few instructions of the walk, which

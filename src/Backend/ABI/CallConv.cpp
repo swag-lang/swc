@@ -171,35 +171,17 @@ StructArgPassingKind CallConv::classifyStructReturnPassing(uint32_t sizeInBytes)
 
 bool CallConv::isIntArgReg(MicroReg reg) const
 {
-    for (const auto value : intArgRegs)
-    {
-        if (value == reg)
-            return true;
-    }
-
-    return false;
+    return microRegSpanContains(intArgRegs, reg);
 }
 
 bool CallConv::isIntPersistentReg(MicroReg reg) const
 {
-    for (const auto value : intPersistentRegs)
-    {
-        if (value == reg)
-            return true;
-    }
-
-    return false;
+    return microRegSpanContains(intPersistentRegs, reg);
 }
 
 bool CallConv::isFloatPersistentReg(MicroReg reg) const
 {
-    for (const auto value : floatPersistentRegs)
-    {
-        if (value == reg)
-            return true;
-    }
-
-    return false;
+    return microRegSpanContains(floatPersistentRegs, reg);
 }
 
 MicroReg CallConv::preferredLocalStackBaseReg() const

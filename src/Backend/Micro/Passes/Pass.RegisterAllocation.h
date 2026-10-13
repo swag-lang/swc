@@ -245,11 +245,11 @@ private:
     bool              requiresCallSpill(uint32_t denseIndex) const;
     static uint32_t   allocRequestPriority(const AllocRequest& request);
     static bool       compareAllocRequests(const AllocRequest& lhs, const AllocRequest& rhs);
-    static bool       containsKey(MicroRegSpan keys, MicroReg key);
     static void       appendUniqueReg(SmallVector<MicroReg>& regs, MicroReg reg);
     bool              isPersistentPhysReg(MicroReg reg) const;
     bool              isPoolRegister(MicroReg reg) const;
     bool              isPhysRegForbiddenForVirtual(MicroReg virtKey, MicroReg physReg) const;
+    bool              isLiveInAt(const MicroDenseRegIndex& regs, const std::vector<uint64_t>& liveInBits, uint32_t denseIndex, uint32_t instructionIndex) const;
     bool              isLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const;
     bool              isConcreteLiveInAt(uint32_t denseIndex, uint32_t instructionIndex) const;
     bool              hasFutureConcreteTouchConflict(MicroReg virtKey, uint32_t denseIndex, uint32_t instructionIndex) const;
@@ -268,6 +268,7 @@ private:
     void              computeGlobalBenefits(std::vector<uint64_t>& outBenefit) const;
     void              computeGlobalAccessBenefits(std::vector<uint64_t>& outBenefit) const;
     bool              intervalHasCall(uint32_t lo, uint32_t hi) const;
+    bool              hasConcretePositionInRange(const std::vector<std::vector<uint32_t>>& positionsByDenseIndex, MicroReg physReg, uint32_t lo, uint32_t hi) const;
     bool              concreteClaimsOverlap(MicroReg physReg, uint32_t lo, uint32_t hi) const;
     bool              isProvenFreeRegister(MicroReg physReg) const;
     bool              hullConcreteClaimsBlock(MicroReg physReg, uint32_t lo, uint32_t hi) const;

@@ -312,6 +312,8 @@ private:
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     void        reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded);
+    void        enhanceReportError(Diagnostic& diag, DiagnosticId id, TokenRef tknRef) const;
+    void        finishReportError(Diagnostic& diag, TokenRef tknRef);
     Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
     Diagnostic  reportError(DiagnosticId id, AstNodeRef nodeRef);
     void        reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed);

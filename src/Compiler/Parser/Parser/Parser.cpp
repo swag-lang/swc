@@ -696,11 +696,8 @@ void Parser::tryEnhanceUnexpectedToken(Diagnostic& diag, TokenRef tknRef) const
         diag.last().span(0).messageId = DiagnosticId::parser_note_no_matching_opening;
 }
 
-Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
+void Parser::enhanceReportError(Diagnostic& diag, DiagnosticId id, TokenRef tknRef) const
 {
-    Diagnostic diag = Diagnostic::get(id, ast_->srcView().fileRef());
-    setReportArguments(diag, tknRef);
-    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
     if (id == DiagnosticId::parser_err_unexpected_token)
         tryEnhanceUnexpectedToken(diag, tknRef);
     else if (id == DiagnosticId::parser_err_cstyle_logical_op)
@@ -712,10 +709,22 @@ Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
         else if (ast_->srcView().token(tknRef).id == TokenId::SymBang)
             diag.addArgument(Diagnostic::ARG_VALUE, "not");
     }
+}
 
+void Parser::finishReportError(Diagnostic& diag, TokenRef tknRef)
+{
     if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)
         diag.setSilent(true);
     lastErrorToken_ = tknRef;
+}
+
+Diagnostic Parser::reportError(DiagnosticId id, TokenRef tknRef)
+{
+    Diagnostic diag = Diagnostic::get(id, ast_->srcView().fileRef());
+    setReportArguments(diag, tknRef);
+    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
+    enhanceReportError(diag, id, tknRef);
+    finishReportError(diag, tknRef);
 
     return diag;
 }
@@ -729,9 +738,7 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
         setReportArguments(diag, tknRef);
         diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tknRef), "");
 
-        if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)
-            diag.setSilent(true);
-        lastErrorToken_ = tknRef;
+        finishReportError(diag, tknRef);
         return diag;
     }
 
@@ -740,21 +747,8 @@ Diagnostic Parser::reportError(DiagnosticId id, AstNodeRef nodeRef)
     setReportArguments(diag, tknRef);
     const SourceCodeRange codeRange = node.codeRangeWithChildren(*ctx_, *ast_);
     diag.last().addSpan(codeRange, "");
-    if (id == DiagnosticId::parser_err_unexpected_token)
-        tryEnhanceUnexpectedToken(diag, tknRef);
-    else if (id == DiagnosticId::parser_err_cstyle_logical_op)
-    {
-        if (ast_->srcView().token(tknRef).id == TokenId::SymAmpersandAmpersand)
-            diag.addArgument(Diagnostic::ARG_VALUE, "and");
-        else if (ast_->srcView().token(tknRef).id == TokenId::SymPipePipe)
-            diag.addArgument(Diagnostic::ARG_VALUE, "or");
-        else if (ast_->srcView().token(tknRef).id == TokenId::SymBang)
-            diag.addArgument(Diagnostic::ARG_VALUE, "not");
-    }
-
-    if (tknRef == lastErrorToken_ || fwdReparseDepth_ > 0)
-        diag.setSilent(true);
-    lastErrorToken_ = tknRef;
+    enhanceReportError(diag, id, tknRef);
+    finishReportError(diag, tknRef);
 
     return diag;
 }

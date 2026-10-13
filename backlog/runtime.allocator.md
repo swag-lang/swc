@@ -17,23 +17,6 @@ touch payloads and distinguish working set, committed bytes, and reserved addres
 runtime.allocator.001's comparable workloads and parity gate before deciding whether to retain or
 replace the allocator; a similar architecture alone does not establish comparable behavior.
 
-### runtime.allocator.018 — Diagnostic allocation does not intercept a stale heap read
-
-- Area: runtime/allocator, `bin/runtime`
-- Evidence: lifecycle guards poison moved or dropped storage. The runtime allocator also supports
-  allocation tracking, freed-byte fill, a bounded diagnostic quarantine, double-free diagnostics
-  and electric allocations next to a guard page, with alignment slack for non-multiple sizes.
-  Electric mode retains freed addresses, but `freeHeaderBlock` leaves their payload readable
-  and writable. `checkFree` checks only header/footer magic; it does not verify the freed payload
-  pattern. `allocator_debug_modes.swg` explicitly reads the freed pattern.
-  Ordinary page allocations reuse storage and provide no stale-read instrumentation.
-- Next: evaluate a diagnostic mode that makes a freed payload inaccessible while retaining enough
-  metadata to diagnose release errors, or instrument reads. Measure its cost on an application
-  workload and specify how it composes with the existing electric/quarantine modes.
-- Done when: a stale read through an alias is detected at the read in the selected diagnostic
-  mode, with its limits and measured cost documented; Release defaults remain unchanged.
-- Related: runtime.allocator.010.
-
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
 - Evidence: repeated release allocator measurements still leave `pair`, `trees`, mixed small
@@ -126,50 +109,6 @@ replace the allocator; a similar architecture alone does not establish comparabl
   more than 25% slower, and no unbounded retained-memory case.
 - Done when: repeated comparable results cover the listed workloads and parity gate, with
   application time, latency tails, retention, build settings, and measurement limits recorded.
-
-### runtime.allocator.010 — Decide what the security properties are, and write them down
-
-- Free-list heads are plain addresses in the page metadata and every stored link is keyed, the
-  end of a list included, and a block handed out has its first word cleared. A free block
-  therefore reads as one from its first word: `looksFree` tests it on every free, and only a
-  match (a live block matches by coincidence about once in 2^40 frees) walks the lists. The
-  owner checks its own and the remote list, another thread the remote list. The A, B, A
-  sequence that used to create a cycle now panics with "memory block is freed twice"
-  (`allocator_coverage.swg`); a panic hook that resumes leaves the lists intact. Corrupted
-  links are still rejected at pop and collect time.
-- Since October 3 every check above, the canary, the corrupted-link and block-address tests, the
-  double-free walk and the header and footer checks of large blocks, runs only when
-  `Swag.SafetyWhat.Memory` is in `safetyGuards` (`#static if #safety(...)` in the allocator
-  sources): devmode has it, release does not, and a release build that wants them adds the bit
-  to its build configuration. Free-list links stay keyed in both. `assertIsAllocated`, which a
-  caller asks for explicitly, and the diagnostic modes keep their checks.
-- A free block of sixteen bytes or more carries a canary derived from the page key in its second
-  word, checked when the block is handed out again: a write through a stale pointer into the
-  first sixteen bytes panics with "memory block was written after being freed" (2-3% on the
-  micro-benchmarks). Writes further into the payload, and into 8-byte blocks, are not seen.
-- Not covered: a block freed by its owner and freed again by another thread while it sits on the
-  owner's list (only the remote list is safe to walk from another thread); a free of a block on an
-  abandoned page.
-- Electric placement rounds the starting address down for alignment. With alignment 16 and
-  size 129, the payload ends 15 bytes before the guard; a one-byte overflow remains accessible.
-  Electric blocks have no footer. Decide how alignment, exact-bound checking and guard placement
-  compose, and test non-multiple sizes explicitly.
-- `quarantine` never evicts in electric mode, so freed addresses are not reused before teardown,
-  but their payload stays committed/readable/writable. Retention can grow without a byte limit.
-  Stale-read interception is already owned by runtime.allocator.018; retaining an address is not
-  interception. Ordinary page allocations also reuse memory without stale-access instrumentation.
-- `fillFree` writes a pattern, but `checkFree` checks only header/footer magic. It does not scan
-  the freed payload for later writes. `fillMemory` alone does not enable diagnostic mode or
-  quarantine.
-- Elsewhere: mimalloc secure mode adds protections such as randomized allocation and encoded
-  lists; Scudo checks allocation state/header integrity; hardened_malloc offers isolated metadata,
-  canaries, randomization and quarantine according to configuration.
-- Next: aligned guard slack and write-after-free inside the payload; choose the supported
-  guarantees, then make comments and public documentation distinguish detection, mitigation,
-  optional diagnostics and unsupported cases.
-- Done when: every claimed guarantee has a focused regression and accurate documentation,
-  with explicit limits for reuse, alignment slack, quarantine lifetime and payload checking.
-- Related: runtime.allocator.018, runtime.allocator.001.
 
 ### runtime.allocator.003 — Return idle memory without being asked
 

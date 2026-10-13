@@ -12,6 +12,32 @@
 //   - The header path serves larger blocks, over-aligned blocks, and every allocation made while a
 //     diagnostic mode is on. It keeps a header, a footer, and optional tracking, which is what
 //     leak reports, electric mode, and the double-free diagnostic need.
+//
+// What the allocator guarantees about a misuse depends on the configuration:
+//
+//   - In every configuration, a free block's links are keyed, so a stray write into a freed block
+//     cannot aim a free list at chosen memory, and a corrupted link is rejected when it is followed.
+//     This is mitigation, not detection: the write itself is not reported.
+//   - Under memory safety ('Swag.SafetyWhat.Memory', on in devmode and off in release unless the
+//     build adds it), a free of an address that starts no block, of a block already on a free list,
+//     and of a header-path block already freed is reported, as is a write into the first sixteen
+//     bytes of a freed page block of sixteen bytes or more, when that block is handed out again. A
+//     write further into a freed page block or into a freed 8-byte block, a write past the requested
+//     size of a live page block inside its class, a block freed by its owner and freed again by
+//     another thread while it sits on the owner's list, and a free of a block on an abandoned page
+//     are not seen.
+//   - With memory filling, freed header-path payloads are filled and, while the diagnostic quarantine
+//     holds them, checked when they leave it and when 'checkAllMemory' runs: a write after free
+//     anywhere in such a payload is reported then, not at the write.
+//   - In electric mode, every block has its own region ending at a guard page, so an access past the
+//     end of its alignment slack faults at the access, and a write into that slack, which is less
+//     than one alignment unit, is reported when the block is freed. Once freed, the payload is made
+//     inaccessible and its address is never reused, so a read or write through a stale pointer faults
+//     at the access, whatever the offset. Freed regions keep their reservation and their header page
+//     for the life of the allocator: electric mode trades address space for detection.
+//
+// The diagnostic modes keep their checks in every configuration; the ordinary path only checks
+// under memory safety.
 
 const AllocatorClassCount   = 45'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
@@ -66,9 +92,13 @@ struct AllocatorHeader
     allocAddr: [*] void?
 
     // Bytes reserved at 'allocAddr', and the leading part of them that is committed. Only a
-    // block of the cached path commits less than it reserves.
+    // block of the cached path, and a freed electric block, commit less than they reserve.
     allocSize:  u64
     commitSize: u64
+
+    // Where the payload starts. An ordinary header sits right before it; an electric header sits
+    // in the first page of its region, which stays readable after the payload pages are gone.
+    userAddr:   u64
     userSize:   u64
     blockSize:  u64
     prev:       *AllocatorHeader?
@@ -78,7 +108,8 @@ struct AllocatorHeader
     isTracked:  bool
 
     // An electric block ends near a reserved guard page, with less than one alignment unit of
-    // trailing slack. It carries no footer; an access reaching the guard faults immediately.
+    // trailing slack that holds a pattern checked on free. It carries no footer: an access reaching
+    // the guard faults immediately, and so does any access to the payload once the block is freed.
     isElectric: bool
     magic:      u32
 }
@@ -100,6 +131,9 @@ struct AllocatorFooter
 {
     magic: u32
 }
+
+// An electric header and its tracking record share the first page of their region.
+#assert(#sizeof(AllocatorTracking) + #sizeof(AllocatorHeader) <= AllocatorCommitGranularity)
 
 // An exact snapshot of what the allocator holds.
 //
@@ -217,8 +251,9 @@ struct Allocator
     nextId:       u32
     installMagic: u32 = 0
 
-    // Bounds the diagnostic quarantine. It retains headers and footers for corruption and
-    // double-free diagnostics. Freed payload fill bytes are not checked for later writes.
+    // Bounds the diagnostic quarantine, which retains freed header-path blocks for the double-free
+    // and corruption diagnostics and, with memory filling on, for the write-after-free check that
+    // runs when a block leaves it. Electric mode never evicts, so the bound does not apply to it.
     maxQuarantineBytes: u64
     showMaxLeaks:       u32
     breakOnAllocId:     u32
@@ -228,6 +263,10 @@ struct Allocator
     fillAlloc:          bool
     fillFree:           bool
     electricMode:       bool
+
+    // Set once an electric block exists and cleared by bulk release. While it is set, a header
+    // lookup first asks the host for the region, because the block's payload may be inaccessible.
+    hasElectricBlocks: bool
 
     // Set when any diagnostic mode or fill pattern is on, which sends every operation through
     // the general path. Kept in step with the flags above by 'configure'.
@@ -360,6 +399,7 @@ impl Allocator
     const MagicFree      = 0xFEE1DEAD
     const AllocByte      = 0xAB
     const FreeByte       = 0xFB
+    const SlackByte      = 0x5C
     const InstalledMagic = 0xA110CA7E
 
     // Class 0 is 8 bytes, classes 1 to 8 step by 16 up to 128, and every class above that splits a power of two into four.
@@ -990,9 +1030,39 @@ impl Allocator
     // Header path
     // ###################################################################################
 
-    mtd headerOf(address: u64)->*AllocatorHeader => cast(*AllocatorHeader, (address - #sizeof(AllocatorHeader)))
+    // Recovers the header of a header-path block from its payload address.
+    //
+    // An ordinary header sits right before the payload. An electric header sits in the first page of the
+    // block's region, which the host names from any address of the reservation; the payload may be
+    // inaccessible, so nothing next to it is read before such a region has been ruled out.
+    mtd headerOf(address: u64)->*AllocatorHeader
+    {
+        if .hasElectricBlocks
+        {
+            let header = .electricHeaderOf(address)
+            if header do
+                return header
+        }
 
-    mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8, header) + #sizeof(AllocatorHeader)
+        return adjacentHeaderOf(address)
+    }
+
+    func adjacentHeaderOf(address: u64)->*AllocatorHeader => cast(*AllocatorHeader, (address - #sizeof(AllocatorHeader)))
+
+    // The electric header of the region holding 'address', or null when no such region holds it.
+    mtd electricHeaderOf(address: u64)->*AllocatorHeader?
+    {
+        let base = __hostPageAllocationBase(address)
+        if base == 0 do
+            return null
+
+        let header = cast(*AllocatorHeader, (base + #sizeof(AllocatorTracking)))
+        if (header.magic != MagicAlloc and header.magic != MagicFree) or not header.isElectric or header.userAddr != address do
+            return null
+        return header
+    }
+
+    mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8, header.userAddr)
 
     mtd footer(header: *AllocatorHeader)->*AllocatorFooter => cast(*AllocatorFooter, (.userAddress(header) + header.userSize))
 
@@ -1005,10 +1075,31 @@ impl Allocator
             .footer(header).magic = value
     }
 
-    mtd checkFree(header: *AllocatorHeader)
+    // The location a diagnostic reports for a freed block: where it was freed, when that is known.
+    mtd reportLocation(header: *AllocatorHeader, callerLoc: SourceCodeLocation)->SourceCodeLocation
+    {
+        let tracking = header.tracking
+        if tracking and tracking.loc.fileName do
+            return tracking.loc
+        return callerLoc
+    }
+
+    // Checks a quarantined block: its header and footer and, with memory filling on, its payload,
+    // which must still hold the pattern the free wrote. A freed electric payload is inaccessible,
+    // so a write into it has already faulted.
+    mtd checkFree(header: *AllocatorHeader, callerLoc = #callerlocation)
     {
         if header.magic != MagicFree or .footerMagic(header) != MagicFree do
-            Swag.panic("memory block corruption", #curlocation)
+            Swag.panic("memory block corruption", callerLoc)
+        if not .fillFree or header.isElectric do
+            return
+
+        let payload = .userAddress(header)
+        for i in header.userSize
+        {
+            if payload[i] != FreeByte do
+                Swag.panic("memory block was written after being freed", .reportLocation(header, callerLoc))
+        }
     }
 
     mtd checkAllocated(header: *AllocatorHeader, callerLoc = #callerlocation)
@@ -1018,14 +1109,31 @@ impl Allocator
            (footMagic != MagicAlloc and footMagic != MagicFree) do
             Swag.panic("memory block corruption", callerLoc)
 
-        if header.magic == MagicFree
+        if header.magic == MagicFree do
+            Swag.panic("memory block is freed twice", .reportLocation(header, callerLoc))
+    }
+
+    // Reports a write into the slack between an electric payload and its guard page.
+    mtd checkSlack(header: *AllocatorHeader, callerLoc: SourceCodeLocation)
+    {
+        let slack = cast([*] u8, (header.userAddr + header.userSize))
+        let count = cast(u64, header.allocAddr) + header.allocSize - header.userAddr - header.userSize
+        for i in count
         {
-            var loc      = callerLoc
-            let tracking = header.tracking
-            if tracking and tracking.loc.fileName do
-                loc = tracking.loc
-            Swag.panic("memory block is freed twice", loc)
+            if slack[i] != SlackByte do
+                Swag.panic("memory block was written past its end", callerLoc)
         }
+    }
+
+    // Makes a freed electric payload inaccessible and gives its memory back: every page after the
+    // header page is decommitted and stays reserved, so the address is never reused and any later
+    // access faults.
+    mtd retireElectricPayload(header: *AllocatorHeader)
+    {
+        let base  = cast(u64, header.allocAddr)
+        let start = base + AllocatorCommitGranularity
+        allocatorOsDecommit(start, base + header.commitSize - start)
+        header.commitSize = AllocatorCommitGranularity
     }
 
     mtd linkAllocated(header: *AllocatorHeader)
@@ -1067,8 +1175,8 @@ impl Allocator
 
     // Holds a freed block instead of unmapping it.
     //
-    // A second free is diagnosed through its header; consistency checks cover the header and footer, not
-    // accesses confined to the freed payload.
+    // A second free is diagnosed through its header. A block leaving the quarantine is checked: header and
+    // footer always, the payload pattern too when memory filling is on.
     mtd quarantine(header: *AllocatorHeader)
     {
         header.prev = .lastQuarantine
@@ -1231,8 +1339,12 @@ impl Allocator
     {
         let alignment    = Swag.max(request.alignment, AllocatorPagePathAlignment)
         let trackingSize = .diagnosticMode() ? cast(u64, #sizeof(AllocatorTracking)) : 0'u64
-        let prefix       = memAlign(trackingSize + #sizeof(AllocatorHeader), alignment)
-        let blockSize    = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
+
+        // An electric header takes a page of its own in front of the payload pages, so that it stays
+        // readable once they are gone.
+        let prefixAlign = .electricMode ? Swag.max(alignment, cast(u32, AllocatorCommitGranularity)) : alignment
+        let prefix      = memAlign(trackingSize + #sizeof(AllocatorHeader), prefixAlign)
+        let blockSize   = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
         let payloadSize  = .electricMode ? request.size : blockSize
         let overhead     = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
         if payloadSize > Swag.U64.Max - overhead
@@ -1304,10 +1416,11 @@ impl Allocator
             return
         }
 
-        let header = .headerOf(userAddr)
+        let header = .electricMode ? cast(*AllocatorHeader, (cast(u64, base) + trackingSize)) : adjacentHeaderOf(userAddr)
         header.allocAddr  = cast([*] void, base)
         header.allocSize  = allocSize
         header.commitSize = commitSize
+        header.userAddr   = userAddr
         header.userSize   = request.size
         header.blockSize  = blockSize
         header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking, base) : null
@@ -1319,6 +1432,14 @@ impl Allocator
         header.next       = null
 
         .setFooterMagic(header, MagicAlloc)
+
+        // The slack between an electric payload and its guard page holds a pattern the free checks.
+        if .electricMode
+        {
+            let slackStart = userAddr + request.size
+            Swag.memset(cast(*void, slackStart), SlackByte, cast(u64, base) + allocSize - slackStart)
+            .hasElectricBlocks = true
+        }
 
         if .fillAlloc do
             Swag.memset(cast(*void, userAddr), AllocByte, request.size)
@@ -1372,10 +1493,12 @@ impl Allocator
     mtd freeHeaderBlock(address: u64, callerLoc: SourceCodeLocation)
     {
         let header = .headerOf(address)
-        #static if #safety(Swag.SafetyWhat.Memory)
-        {
+
+        // The diagnostic modes always diagnose a misuse; the ordinary path only under memory safety.
+        if .diagnosticMode() or #safety(Swag.SafetyWhat.Memory) do
             .checkAllocated(header, callerLoc)
-        }
+        if header.isElectric do
+            .checkSlack(header, callerLoc)
 
         .unlinkAllocated(header)
 
@@ -1390,7 +1513,13 @@ impl Allocator
         if header.tracking do
             header.tracking.loc = callerLoc
 
-        if .diagnosticMode()
+        // An electric block is never reused, whatever the mode at the time of its free.
+        if header.isElectric
+        {
+            .retireElectricPayload(header)
+            .quarantine(header)
+        }
+        elif .diagnosticMode()
         {
             .quarantine(header)
         }
@@ -1970,6 +2099,8 @@ impl Allocator
             .osFree(header.allocAddr, header.commitSize)
         }
 
+        .hasElectricBlocks = false
+
         // The callers hold the mutex.
         .drainBlockCache()
 
@@ -2176,6 +2307,16 @@ func releaseAllocatorThreadCache()
     alloc?.retireThreadHeap(heap)
 }
 
+// Configures the runtime allocator and, by default, installs it in the current context.
+//
+// 'electricMode' gives every block its own region ending at a guard page and makes a freed payload
+// inaccessible, so an access past the alignment slack and any access to a freed block fault at the
+// access; a write into the slack is reported at the free, and freed addresses are never reused.
+// 'detectLeaks' reports the blocks still live at release; 'captureStack' records where each was
+// allocated for that report, and 'trackAllocations' its source location and hint. 'fillMemory'
+// fills new blocks with one pattern and freed ones with another, and reports a write into a freed
+// header-path payload when the block leaves the diagnostic quarantine. Every mode but 'detectLeaks'
+// and 'fillMemory' sends all allocations through the header path and its quarantine.
 func installAllocator(electricMode: bool = false,
                       detectLeaks: bool = true,
                       captureStack: bool = false,

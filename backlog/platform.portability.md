@@ -39,10 +39,12 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.004 — Linux page-allocation primitives do not exist
 
 
-The allocator now calls `__hostPageReserve`, `__hostPageCommit`, `__hostPageDecommit`, and
-`__hostPageRelease`; the old `Swag.alloc` reserve/commit fallback is gone, and
-`allocatorOsCommit`/`allocatorOsDecommit` in `bin/runtime/allocator.pages.swg` are portable
-counter-keeping wrappers over those hooks. Only the Windows leaf supplies the current hooks.
+The allocator now calls `__hostPageReserve`, `__hostPageCommit`, `__hostPageDecommit`,
+`__hostPageRelease`, and `__hostPageAllocationBase`, which names the reservation holding an
+address, committed or not, for the electric-mode header lookup; the old `Swag.alloc`
+reserve/commit fallback is gone, and `allocatorOsReserve`/`allocatorOsCommit`/`allocatorOsDecommit`
+in `bin/runtime/allocator.pages.swg` are portable counter-keeping wrappers over those hooks. Only
+the Windows leaf supplies the current hooks.
 
 - Next: implement Linux reserve, commit/protection, decommit, release, and thread-exit cleanup
   with the same lifetime and failure contracts before enabling the allocator on Linux.

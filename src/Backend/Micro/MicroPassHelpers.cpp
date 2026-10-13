@@ -911,18 +911,8 @@ bool MicroPassHelpers::tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t f
 
 uint32_t MicroPassHelpers::findSingleCfgEntry(const MicroControlFlowGraph& cfg)
 {
-    const uint32_t n     = cfg.instructionCount();
-    uint32_t       entry = MicroDomTree::K_INVALID_NODE;
-    for (uint32_t i = 0; i < n; ++i)
-    {
-        if (cfg.predecessors(i).empty())
-        {
-            if (entry != MicroDomTree::K_INVALID_NODE)
-                return MicroDomTree::K_INVALID_NODE;
-            entry = i;
-        }
-    }
-    return entry;
+    static_assert(MicroControlFlowGraph::K_NO_INDEX == MicroDomTree::K_INVALID_NODE);
+    return cfg.singleEntry();
 }
 
 namespace

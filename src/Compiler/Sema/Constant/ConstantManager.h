@@ -58,6 +58,28 @@ public:
     ConstantRef          findRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value) const;
     ConstantRef          publishRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value, ConstantRef cstRef);
 
+    // What the constant graph looks like at one offset: which allocation holds it, and which
+    // relocations that allocation carries. Every compile-time call in a module walks this graph
+    // over the same few thousand allocations, from sema, from the publication check and from
+    // the JIT patch of each emitted function, and asking the segment again costs a lock, a
+    // binary search and a copy for an answer that has not changed. An entry is used only while
+    // the segment's relocation version is the one it was recorded at, so a patched allocation is
+    // never served stale.
+    struct WalkedAllocation
+    {
+        uint64_t                              segmentId         = 0;
+        uint32_t                              queryOffset       = 0;
+        uint64_t                              relocationVersion = 0;
+        DataSegmentAllocation                 allocation;
+        SmallVector<DataSegmentRelocation, 4> relocations;
+    };
+
+    // The entry for 'offset' of 'segment', refreshed when the segment's relocations moved since
+    // it was recorded, or null when no allocation holds that offset. The table belongs to the
+    // worker, and an entry stays put while later lookups record other offsets; it is reassigned
+    // only by a later lookup of the same offset.
+    static const WalkedAllocation* walkedAllocation(const DataSegment& segment, uint32_t offset);
+
     struct RuntimeBufferConstantCacheKey
     {
         TypeRef   typeRef;

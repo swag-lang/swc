@@ -396,87 +396,6 @@ namespace
         });
     }
 
-    // What the constant graph looks like at one offset: which allocation holds it, and which
-    // relocations that allocation carries. Every compile-time call in a module walks this graph over
-    // the same few thousand allocations, and asking the segment again costs a lock, a binary search
-    // and a copy for an answer that has not changed. An entry is used only while the segment's
-    // relocation count is the one it was recorded at, so a patched allocation is never served stale.
-    struct WalkedAllocation
-    {
-        uint64_t                              segmentId         = 0;
-        uint32_t                              queryOffset       = 0;
-        uint64_t                              relocationVersion = 0;
-        DataSegmentAllocation                 allocation;
-        SmallVector<DataSegmentRelocation, 4> relocations;
-    };
-
-    // One entry per offset the walk has resolved, per worker. The table is open-addressed over a
-    // separate key array: the walk asks this question millions of times per module, and following a
-    // node per lookup costs more than the answer it returns.
-    struct WalkedAllocations
-    {
-        std::vector<uint64_t> keys;
-        std::vector<uint32_t> entryIndices;
-        // A deque, so an entry handed out stays put when the next one is recorded.
-        std::deque<WalkedAllocation> entries;
-        size_t                       used = 0;
-
-        WalkedAllocations()
-        {
-            keys.resize(1024);
-            entryIndices.resize(1024);
-        }
-
-        WalkedAllocation& slotFor(const uint64_t key)
-        {
-            const size_t mask  = keys.size() - 1;
-            size_t       index = (key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
-            while (keys[index] != 0)
-            {
-                if (keys[index] == key)
-                    return entries[entryIndices[index]];
-                index = (index + 1) & mask;
-            }
-
-            keys[index]         = key;
-            entryIndices[index] = static_cast<uint32_t>(entries.size());
-            entries.emplace_back();
-            ++used;
-
-            WalkedAllocation& slot = entries.back();
-            if (used * 4 > keys.size() * 3)
-                grow();
-            return slot;
-        }
-
-        void grow()
-        {
-            std::vector<uint64_t> oldKeys         = std::move(keys);
-            std::vector<uint32_t> oldEntryIndices = std::move(entryIndices);
-            keys.assign(oldKeys.size() * 2, 0);
-            entryIndices.assign(oldKeys.size() * 2, 0);
-
-            const size_t mask = keys.size() - 1;
-            for (size_t i = 0; i < oldKeys.size(); ++i)
-            {
-                if (oldKeys[i] == 0)
-                    continue;
-                size_t index = (oldKeys[i] * 0x9E3779B97F4A7C15ULL >> 32) & mask;
-                while (keys[index] != 0)
-                    index = (index + 1) & mask;
-                keys[index]         = oldKeys[i];
-                entryIndices[index] = oldEntryIndices[i];
-            }
-        }
-    };
-
-    WalkedAllocation& walkedAllocationSlot(const uint64_t segmentId, const uint32_t offset)
-    {
-        static thread_local WalkedAllocations walked;
-        // Zero marks a free slot, so the key never is.
-        return walked.slotFor((segmentId * 1099511628211ULL + offset) | 1ULL);
-    }
-
     // One walk of the constant graph: what it has found, which shards it read, and what it has
     // already been through. Kept together so the walk carries one parameter instead of five, and
     // reused by the worker that runs it: the tables a walk needs are the same ones the next walk
@@ -512,45 +431,32 @@ namespace
         {
             const DataSegmentRef current = pending.back();
             pending.pop_back();
-            const DataSegment& segment         = sema.cstMgr().shardDataSegment(current.shardIndex);
-            const uint64_t     version         = segment.relocationVersion();
-            WalkedAllocation&  walked          = walkedAllocationSlot(segment.id(), current.offset);
-            const bool         walkedIsCurrent = walked.segmentId == segment.id() && walked.queryOffset == current.offset && walked.relocationVersion == version;
+            const DataSegment& segment = sema.cstMgr().shardDataSegment(current.shardIndex);
 
             // The answer is reusable only while every shard it read is still at the version it
-            // was read at, so each one is recorded as the walk reaches it.
+            // was read at, so each one is recorded as the walk reaches it, before its
+            // allocations are read.
             SWC_ASSERT(current.shardIndex < ConstantManager::SHARD_COUNT);
             const uint32_t shardBit = 1u << current.shardIndex;
             if (!(walk.seenShardMask & shardBit))
             {
                 walk.seenShardMask |= shardBit;
-                walk.shardVersions.push_back({current.shardIndex, version});
+                walk.shardVersions.push_back({current.shardIndex, segment.relocationVersion()});
             }
 
-            DataSegmentAllocation allocation;
-            if (walkedIsCurrent)
-                allocation = walked.allocation;
-            else if (!segment.findAllocation(allocation, current.offset))
+            const ConstantManager::WalkedAllocation* walked = ConstantManager::walkedAllocation(segment, current.offset);
+            if (!walked)
                 continue;
 
             // Nested reflection and interface tables can reach functions through any
             // data relocation. Match the graph used to detect unpublished metadata.
             // The high bit keeps the first allocation of the first shard from packing to zero,
             // which the table reads as a free slot.
-            const uint64_t allocationKey = 1ULL << 63 | static_cast<uint64_t>(current.shardIndex) << 32 | allocation.offset;
+            const uint64_t allocationKey = 1ULL << 63 | static_cast<uint64_t>(current.shardIndex) << 32 | walked->allocation.offset;
             if (!walk.visitedAllocations.insert(allocationKey))
                 continue;
 
-            if (!walkedIsCurrent)
-            {
-                segment.copyRelocations(walked.relocations, allocation.offset, allocation.size);
-                walked.segmentId         = segment.id();
-                walked.queryOffset       = current.offset;
-                walked.relocationVersion = version;
-                walked.allocation        = allocation;
-            }
-
-            for (const DataSegmentRelocation& relocation : walked.relocations)
+            for (const DataSegmentRelocation& relocation : walked->relocations)
             {
                 if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
                 {

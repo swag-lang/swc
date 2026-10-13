@@ -1146,8 +1146,11 @@ SWC_TEST_BEGIN(MicroSsa_DominatorReuseRejectsMissingOrStaleRename)
     MicroBuilder other(ctx);
     other.emitRet();
     SWC_ASSERT(!ssa.copyInstructionDominators(copied, other.controlFlowGraph()));
+
+    // An operand-only invalidation keeps the graph, and the intervals describe the graph.
     ssa.invalidate();
-    SWC_ASSERT(!ssa.copyInstructionDominators(copied, builder.controlFlowGraph()));
+    SWC_ASSERT(ssa.copyInstructionDominators(copied, builder.controlFlowGraph()));
+    SWC_ASSERT(copied.reachable(0) && copied.dominates(0, 1));
     ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
     builder.emitRet();
     builder.invalidateControlFlowGraph();

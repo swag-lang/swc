@@ -138,26 +138,72 @@ in its module backlog; a general request for better names is not a missing langu
   result never requires a fabricated failure value, and side effects/lifetimes are tested.
 
 ### language.design.037 — A struct parameter is documented as a private value and used as a live reference
-
 - Area: language semantics, parameter passing
-- Evidence: the reference page `006_001_declaration.swg` states that a function takes a struct
-  argument as an immutable value and that "the code behaves as if a private copy had been
-  made". The implementation passes the caller's address, and `std/audio` depends on that:
-  `updateThreadProc(th: Threading.Thread)` polls `th.requestEnd`, which another thread sets on
-  the very object the caller passed. A backend change that treated the parameter's storage as
-  fixed for the call moved that read out of the loop, and the release build of the audio tests
-  waited forever; the change was cut back to string, slice, interface and any parameters, and
-  `native/optimizer/immutable_parameter_reads.swg` now pins that a struct parameter sees a
-  change made to the caller's object during the call.
-- The two statements cannot both hold. Either a struct parameter is a value, and a callee that
-  must observe the caller's object takes `*T` - then `Threading.Thread` bodies and every similar
-  signature change, and the optimizer may read each field once; or it is a constant reference,
-  and the reference page and the borrow rules say so.
-- Next: decide which one the language means. List the `bin/` signatures that read a by-value
-  struct parameter across a call or a wait while something else writes the object, starting
-  with thread and task bodies.
-- Done when: the reference, the standard library and the backend agree, and the test above
-  either states the chosen rule or is replaced by its opposite.
+- Evidence: [006_001_declaration.swg](../bin/reference/modules/language/src/006_001_declaration.swg)
+  says a function takes a struct argument as an immutable value and that "the code behaves as if
+  a private copy had been made". The backend passes the caller's address, and
+  `isImmutableIndirectParameter` in
+  [CodeGenFunctionHelpers.cpp](../src/Compiler/CodeGen/Core/CodeGenFunctionHelpers.cpp) keeps
+  structs out of the storage the passes may treat as fixed, because `std/audio`
+  `updateThreadProc(th: Threading.Thread)` polls `th.requestEnd`, which another thread writes into
+  the caller's object; `pollUntilEnd` in
+  [immutable_parameter_reads.swg](../bin/unittests/native/optimizer/immutable_parameter_reads.swg)
+  pins that reading. String, slice, interface and any parameters are already fixed for the call,
+  and the Swag calling convention copies a struct of 1, 2, 4 or 8 bytes into a register, so a
+  one-field `struct { requestEnd: bool }` parameter never sees the caller's write today: the
+  live-reference reading only holds above eight bytes.
+- Survey: 24 functions in `bin/` take a [Thread](../bin/std/modules/core/src/thread/thread.swg) by
+  value (std: audio driver, pixel render thread, video h264, hevc and matroska; apps: Swag Capture
+  library view, Swag Scope binary, sound, text and video viewers; the rest are tests). Through the
+  parameter they read two fields only: `requestEnd`, the stop flag `safeForceEnd` sets from another
+  thread, and `userParam`, which never changes. No other by-value struct parameter in `bin/` is read
+  across a wait while something else writes the object. The benchmark tasks hand scalars and slices
+  to their hot functions, so the gain of fixing struct parameters is in library code that reads a
+  configuration-like struct inside a loop that stores through a pointer or calls out, not in
+  `bench/`.
+- Proposed contract: a parameter without a sigil is a value. The callee sees the value the argument
+  had when the call began, for the whole call, and cannot write it; how the compiler carries it
+  (register, copy, caller's address) is not observable by a correct program, so the backend may read
+  each field once and keep it across stores and calls, as it does for strings and slices. A pointer
+  parameter (`*T`, `const *T`) and `me` are views of live storage and read memory unless alias
+  analysis proves otherwise; `Swag.atomget` is live whatever the address. Writing the argument's
+  storage during the call, through another pointer on the same thread or from another thread, is a
+  program error and never a memory-safety hole: the borrow rule keeps the storage alive, so the only
+  possible effect is a stale field. The compiler rejects the shape it can see: the same object passed
+  by value and by address in one call (`pollUntilEnd(worker, &worker)`). A function that must watch
+  an object another thread changes takes a pointer: `Thread.userLambda` becomes
+  `func||(const *Thread)` and the stop flag is read through `Swag.atomget` (`isEndRequested`), so a
+  spin without a call cannot be hoisted either. Pointer auto-dereference keeps `th.requestEnd` and
+  `th.userParam` unchanged in the bodies; only the 24 signatures change.
+- Elsewhere: Zig states the same rule, parameters are immutable so a struct may travel by value or by
+  reference, without a check at the call site, and its users report the parameter reference
+  optimization was removed in 0.16 after the aliasing footgun of issue #5973
+  ([ziggit](https://ziggit.dev/t/pass-by-value-semantics/15710)). D's `-preview=in` lets the
+  compiler pass an `in` parameter by reference, and the spec's wording on what the callee may then
+  observe was reported unclear ([Bug 21362](https://issues.dlang.org/bugs/21362/)). Swift's law of
+  exclusivity forbids modifying storage while another access to it is in progress, checked at
+  compile time for locals and at run time for globals and class properties
+  ([Memory Safety](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/memorysafety/)).
+  Rust's `&T` is immutable by type and the optimizer assumes it; a flag another thread sets is an
+  `AtomicBool`, whose interior mutability
+  ([UnsafeCell](https://doc.rust-lang.org/std/cell/struct.UnsafeCell.html)) is what tells the
+  optimizer to reload. The call-site check and the pointer-typed thread body are the Swift and Rust
+  side of that line; what stays undetected is a same-thread write of a global the parameter is bound
+  to, or a write through a stored pointer, which Swift catches at run time and which a "writes
+  global" fact in the borrow summaries could cover later.
+- Next: in this order, each step validated before the next. (1) `std/core`: `Thread.userLambda` and
+  `init` take `func||(const *Thread)`, `threadEntry` passes the pointer, `isEndRequested()` reads the
+  flag through `Swag.atomget` (integers only, so through a `u8` view); migrate the 24 bodies and the
+  polls, regenerate `bin/help`. (2) Sema: error when an argument bound to a by-value struct parameter
+  is the object, or a field of the object, whose address another argument of the same call takes;
+  error test by diagnostic id. (3) Backend: `isImmutableIndirectParameter` admits structs (arrays stay
+  views); `pollUntilEnd` becomes its pointer form; C++ micro test for a struct parameter read kept
+  across a store and a call. (4) Reference: 006_001 states the call-entry value, the pointer rule and
+  `Swag.atomget`. Validate with every std module in release: audio and video are the tests that
+  caught the first attempt.
+- Done when: the reference, the standard library and the backend state the same rule, `Thread`
+  bodies take a pointer, the by-value and by-address alias is a compile error with a test, and the
+  optimizer test asserts that a struct parameter read is fixed for the call.
 - Related: compiler.optimization.104
 
 ### language.design.036 — Struct equality compares float members by their bytes

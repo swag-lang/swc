@@ -95,23 +95,25 @@ namespace
     // admissible, but a write to the cell or either address register is not.
     bool threadRepeatedIndexedZeroTest(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
     {
-        MicroStorage&        storage  = *context.instructions;
-        MicroOperandStorage& operands = *context.operands;
-        bool                 hasShape = false;
+        MicroStorage&        storage    = *context.instructions;
+        MicroOperandStorage& operands   = *context.operands;
+        uint32_t             firstShape = 0;
         for (uint32_t at = 2; at + 3 < order.size(); ++at)
         {
-            const MicroInstr* first  = storage.ptr(order[at - 2]);
+            const MicroInstr* first = storage.ptr(order[at - 2]);
+            if (!first || first->op != MicroInstrOpcode::Label)
+                continue;
             const MicroInstr* second = storage.ptr(order[at - 1]);
             const MicroInstr* cmp    = storage.ptr(order[at]);
             const MicroInstr* jump   = storage.ptr(order[at + 1]);
-            if (first && first->op == MicroInstrOpcode::Label && second && second->op == MicroInstrOpcode::Label &&
+            if (second && second->op == MicroInstrOpcode::Label &&
                 cmp && cmp->op == MicroInstrOpcode::CmpAmcImm && jump && jump->op == MicroInstrOpcode::JumpCond)
             {
-                hasShape = true;
+                firstShape = at;
                 break;
             }
         }
-        if (!hasShape)
+        if (!firstShape)
             return false;
         const auto& cfg = context.builder->controlFlowGraph();
         if (cfg.hasUnsupportedControlFlowForCfgLiveness() || cfg.instructionCount() != order.size())
@@ -139,15 +141,18 @@ namespace
             return (inst.op == MicroInstrOpcode::CallLocal || inst.op == MicroInstrOpcode::CallExtern) && readOnlyCallRefs.contains(ref.get());
         };
 
-        for (uint32_t at = 2; at + 3 < order.size(); ++at)
+        // The prefix before the first shape cannot match the detailed checks.
+        for (uint32_t at = firstShape; at + 3 < order.size(); ++at)
         {
             const MicroInstr* emptyLabel = storage.ptr(order[at - 2]);
+            if (!emptyLabel || emptyLabel->op != MicroInstrOpcode::Label)
+                continue;
             const MicroInstr* matchLabel = storage.ptr(order[at - 1]);
             const MicroInstr* compare    = storage.ptr(order[at]);
             const MicroInstr* branch     = storage.ptr(order[at + 1]);
             uint32_t          emptyId    = 0;
             uint32_t          matchId    = 0;
-            if (!emptyLabel || emptyLabel->op != MicroInstrOpcode::Label || !matchLabel || matchLabel->op != MicroInstrOpcode::Label ||
+            if (!matchLabel || matchLabel->op != MicroInstrOpcode::Label ||
                 !tryGetLabelId(emptyId, *emptyLabel, emptyLabel->ops(operands)) ||
                 !tryGetLabelId(matchId, *matchLabel, matchLabel->ops(operands)) ||
                 !isZeroCellCompare(compare) || !branch || branch->op != MicroInstrOpcode::JumpCond)
@@ -324,8 +329,10 @@ namespace
         for (uint32_t i = 0; i + 3 < order.size(); ++i)
         {
             const MicroInstr* cmp = storage.ptr(order[i]);
+            if (!cmp || cmp->op != MicroInstrOpcode::CmpRegImm)
+                continue;
             const MicroInstr* jcc = storage.ptr(order[i + 1]);
-            if (!cmp || !jcc || cmp->op != MicroInstrOpcode::CmpRegImm || jcc->op != MicroInstrOpcode::JumpCond)
+            if (!jcc || jcc->op != MicroInstrOpcode::JumpCond)
                 continue;
             const auto* jccOps = jcc->ops(operands);
             if (!jccOps || jcc->numOperands < 3 || jccOps[0].cpuCond == MicroCond::Unconditional)
@@ -463,13 +470,15 @@ namespace
             const MicroInstrRef skipRef   = order[ordinal + 2];
             const MicroInstrRef tieRef    = order[ordinal + 3];
             const MicroInstr*   first     = storage.ptr(firstRef);
-            const MicroInstr*   second    = storage.ptr(secondRef);
-            const MicroInstr*   skip      = storage.ptr(skipRef);
-            const MicroInstr*   tie       = storage.ptr(tieRef);
-            if (!first || !second || !skip || !tie ||
-                first->op != MicroInstrOpcode::JumpCond || second->op != MicroInstrOpcode::JumpCond ||
+            if (!first || first->op != MicroInstrOpcode::JumpCond || first->numOperands < 3)
+                continue;
+            const MicroInstr* second = storage.ptr(secondRef);
+            const MicroInstr* skip   = storage.ptr(skipRef);
+            const MicroInstr* tie    = storage.ptr(tieRef);
+            if (!second || !skip || !tie ||
+                second->op != MicroInstrOpcode::JumpCond ||
                 skip->op != MicroInstrOpcode::JumpCond || tie->op != MicroInstrOpcode::Label ||
-                first->numOperands < 3 || second->numOperands < 3 || skip->numOperands < 3)
+                second->numOperands < 3 || skip->numOperands < 3)
                 continue;
             const auto* firstOps  = first->ops(operands);
             const auto* secondOps = second->ops(operands);
@@ -566,21 +575,21 @@ namespace
                 const uint32_t compare = header + 1 + loads;
                 if (compare + 6 >= order.size())
                     break;
-                bool indexedLoads = true;
-                for (uint32_t i = header + 1; i < compare; ++i)
-                    indexedLoads &= storage.ptr(order[i])->op == MicroInstrOpcode::LoadAmcRegMem;
-                if (!indexedLoads)
-                    continue;
+                // Earlier iterations proved the prefix. A failed next load
+                // also rules out every longer prefix at this header.
+                if (storage.ptr(order[compare - 1])->op != MicroInstrOpcode::LoadAmcRegMem)
+                    break;
 
-                const MicroInstr* cmp         = storage.ptr(order[compare]);
+                const MicroInstr* cmp = storage.ptr(order[compare]);
+                if (!cmp || (cmp->op != MicroInstrOpcode::CmpAmcReg && cmp->op != MicroInstrOpcode::CmpRegReg))
+                    continue;
                 const MicroInstr* equal       = storage.ptr(order[compare + 1]);
                 const MicroInstr* lessOrEqual = storage.ptr(order[compare + 2]);
                 const MicroInstr* stepLabel   = storage.ptr(order[compare + 3]);
                 const MicroInstr* update      = storage.ptr(order[compare + 4]);
                 const MicroInstr* back        = storage.ptr(order[compare + 5]);
                 const MicroInstr* tieLabel    = storage.ptr(order[compare + 6]);
-                if (!cmp || !equal || !lessOrEqual || !stepLabel || !update || !back || !tieLabel ||
-                    (cmp->op != MicroInstrOpcode::CmpAmcReg && cmp->op != MicroInstrOpcode::CmpRegReg) ||
+                if (!equal || !lessOrEqual || !stepLabel || !update || !back || !tieLabel ||
                     equal->op != MicroInstrOpcode::JumpCond || lessOrEqual->op != MicroInstrOpcode::JumpCond ||
                     stepLabel->op != MicroInstrOpcode::Label || update->op != MicroInstrOpcode::OpBinaryRegImm ||
                     back->op != MicroInstrOpcode::JumpCond || tieLabel->op != MicroInstrOpcode::Label ||

@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Fold.h"
@@ -111,8 +112,22 @@ namespace
 {
     Result raiseSymbolConflict(Sema& sema, DiagnosticId diagId, const Symbol* symbol, const Symbol* otherSymbol)
     {
-        TaskContext& ctx  = sema.ctx();
-        auto         diag = SemaError::report(sema, diagId, symbol->codeRef());
+        TaskContext& ctx = sema.ctx();
+
+#if SWC_DEV_MODE
+        // Two symbols from one declaration node are one declaration registered twice: the
+        // duplicate visitation an imported generic body once showed as a local defined twice
+        // (compiler.core.047). Stop on it with the owner named, rather than report a conflict
+        // the source does not contain.
+        if (symbol && otherSymbol && symbol->decl() && symbol->decl() == otherSymbol->decl())
+        {
+            const SymbolFunction* function = sema.frame().currentFunction();
+            const Utf8            because  = std::format("declaration '{}' of '{}' is registered twice", symbol->name(ctx), function ? function->getFullScopedName(ctx) : Utf8("<no function>"));
+            swcInternalError(__FILE__, __LINE__, because.c_str());
+        }
+#endif
+
+        auto diag = SemaError::report(sema, diagId, symbol->codeRef());
         diag.addNote(DiagnosticId::sema_note_other_definition);
         diag.last().addSpan(otherSymbol->codeRange(ctx));
         diag.report(ctx);

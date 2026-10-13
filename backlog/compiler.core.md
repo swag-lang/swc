@@ -72,10 +72,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   with baseline `ca107d2a9` and its compiler also passed. No other command in this checkout
   was compiling when the first failure occurred. These observations do not establish a cause
   or a relationship to the cast syntax change or the earlier duplicate-local report.
-- Next: replay the cached script import alongside module builds, capture generic-instance
-  ownership, parameter-scope restoration, and semantic restarts around the affected bindings,
-  and compare with the parent
-  compiler before attributing the failure to parsing, publication, or scheduling.
+- Next: the DevMode compiler now stops when a conflict names two symbols of one declaration
+  node (`SemaError::raiseSymbolConflict`), and when a body waits on a parameter of its own
+  function, each with the function named. When either reappears, replay the cached script
+  import alongside module builds from that report, capture generic-instance ownership,
+  parameter-scope restoration, and semantic restarts around the affected bindings, and
+  compare with the parent compiler before attributing the failure to parsing, publication,
+  or scheduling.
 - Done when: a bounded reproducer identifies the duplicate visitation or publication,
   the root cause is fixed, and the script passes repeated parallel imports with six workers.
 

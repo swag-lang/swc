@@ -2302,11 +2302,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     mappedVirtualIndices_.reserve(virtualRegs.size());
     currentConcreteLiveOut_.clear();
 
-    // Only indices returned by the matching dense register table are ever set. Starting from
-    // zero and combining rows by copy, union and clearing keeps every padding bit zero too.
-    liveInVirtualBits_.assign(static_cast<size_t>(instructionCount_) * virtualWordCount, 0);
-    liveInConcreteBits_.assign(static_cast<size_t>(instructionCount_) * concreteWordCount, 0);
-
     // The CFG already inverted every edge in source-instruction order. Keep
     // the same snapshot used by successors throughout allocation and rewriting;
     // storage mutations do not rebuild the CFG during this pass.
@@ -2316,6 +2311,23 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     if (hasControlFlow_)
         computeReachability();
     computeLoopDepth();
+
+    const size_t virtualBitCount  = static_cast<size_t>(instructionCount_) * virtualWordCount;
+    const size_t concreteBitCount = static_cast<size_t>(instructionCount_) * concreteWordCount;
+    if (functionHasLoop_)
+    {
+        // The fixed point starts empty. Only dense register indices are set,
+        // so union and clearing also preserve zero padding bits.
+        liveInVirtualBits_.assign(virtualBitCount, 0);
+        liveInConcreteBits_.assign(concreteBitCount, 0);
+    }
+    else
+    {
+        // The reverse sweep overwrites every row before a predecessor reads it.
+        // Preserve existing storage without zeroing it a second time.
+        liveInVirtualBits_.resize(virtualBitCount);
+        liveInConcreteBits_.resize(concreteBitCount);
+    }
 
     // computeCurrentLiveOutBits overwrites both rows before their first read.
     tempOutVirtual_.resize(virtualWordCount);
@@ -4492,8 +4504,7 @@ void MicroRegisterAllocationPass::clearState()
     defConcreteIndices_.clear();
     nextUsePositionCursor_.clear();
     nextConcreteTouchCursor_.clear();
-    liveInVirtualBits_.clear();
-    liveInConcreteBits_.clear();
+    // analyzeLiveness initializes retained rows before any allocation query.
     predecessors_ = {};
     virtualSpanLo_.clear();
     // computeVirtualLiveSpans overwrites retained upper bounds before allocation reads them.

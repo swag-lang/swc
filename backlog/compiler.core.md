@@ -14,7 +14,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   flat representation; leave the kept-table reset tradeoff for measurement.
 - Done when: each remaining map has an equivalent replacement, or code evidence shows that no
   lower-work representation preserves its traversal contract.
-- Related: compiler.core.060.
 
 ### compiler.core.074 — Repeated native rebuilds choose different prologues
 
@@ -27,18 +26,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   while keeping JIT addresses valid. Then repeat the normalized section and unwind comparison.
 - Done when: output differences are explained and corrected at their owning boundary, normalized
   sections are stable across repeated builds, and affected native tests pass.
-
-### compiler.core.060 — A compile-time call still pays per-call plumbing its call graph does not need
-
-- Area: compiler/JIT, compile-time execution, compilation time
-- Evidence: `patchConstantFunctionRelocationsRec` walks and snapshots the constant-relocation
-  closure for each patched function. Reusing that work must still account for relocation changes,
-  deferred-function registration, `Pause`, and targets that move from work address to patch address.
-- Next: assess whether versioned relocation snapshots can avoid repeated allocation lookups and
-  copies while target resolution and deferred registration still run for every function.
-- Done when: an equivalent implementation removes a proven repeated walk with focused JIT checks,
-  or no statically provable saving remains without changing those behaviors.
-- Related: compiler.core.030.
 
 ### compiler.core.081 — An imported generic method once lost its own parameter
 

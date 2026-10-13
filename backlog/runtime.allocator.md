@@ -247,19 +247,6 @@ replace the allocator; a similar architecture alone does not establish comparabl
 
 **Related:** compiler.core.005.
 
-### runtime.allocator.008 — Add allocator OS-failure injection
-
-- `bin/unittests/native/runtime/` covers size classes, page recovery from an address, free-list
-  obfuscation, interior-pointer rejection, abandoned-page adoption, foreign-thread retirement
-  through the FLS destructor, and a 32-thread abandon/remote-free/trim stress. What it does not
-  cover is failure injection.
-- Inject reserve and commit failures at every transition and verify that page masks, segment lists,
-  and the abandoned list stay consistent and that the allocation returns null rather than a
-  half-built page.
-- Related: platform.portability.089, platform.portability.004
-
-- Done when: Focused native tests force each reserve and commit failure path, verify page masks, segment and abandoned lists stay valid, and confirm allocation returns null without leaked or partially published pages.
-
 ### runtime.allocator.006 — Huge allocations have no separately measured policy
 
 

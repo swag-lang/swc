@@ -49,7 +49,7 @@ counter-keeping wrappers over those hooks. Only the Windows leaf supplies the cu
 - Done when: Linux tests cover reserved-but-inaccessible memory, committed pages,
   decommit/recommit, guard-page protection, release, and thread-storage cleanup without
   reporting counters for work the host did not perform.
-- Related: runtime.allocator.008, platform.portability.003
+- Related: platform.portability.003
 
 ### platform.portability.041 — Hardware discovery has no second-platform backend
 
@@ -580,9 +580,9 @@ not depend on an installed driver.
 Run the allocator stress suite under Windows Application Verifier and page heap, and make the
 invocation reproducible without folding it into failure injection.
 
-- Related: runtime.allocator.001, runtime.allocator.008
+- Related: runtime.allocator.001
 
-- Done when: A documented repeatable command runs the allocator stress suite under Windows Application Verifier and page heap, checks the tool's reported failures and test exit status, and leaves allocator failure-injection coverage with runtime.allocator.008.
+- Done when: A documented repeatable command runs the allocator stress suite under Windows Application Verifier and page heap, checks the tool's reported failures and test exit status, and leaves operating-system failure injection to the native allocator tests.
 
 ### platform.portability.021 — Application-message payloads have no ownership contract
 

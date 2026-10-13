@@ -479,19 +479,19 @@ impl Allocator
     // ###################################################################################
 
     // Reserves 'reserveSize' bytes and commits the first 'commitSize' of them.
+    //
+    // A reservation whose commit is refused is released again, so a failure leaves nothing behind.
     mtd osAllocPartial(reserveSize: u64, commitSize: u64)->[*] u8?
     {
-        let address = __hostPageReserve(reserveSize)
+        let address = allocatorOsReserve(reserveSize)
         if not address do
             return null
-        if not __hostPageCommit(address, commitSize)
+        if not allocatorOsCommit(cast(u64, address), commitSize)
         {
             __hostPageRelease(address, reserveSize)
             return null
         }
 
-        atomicAddU64(&g_AllocatorCommittedBytes, commitSize)
-        atomicAddU64(&g_AllocatorOsCommitCount, 1)
         return address
     }
 
@@ -500,18 +500,7 @@ impl Allocator
         let rounded = memAlign(size, cast(u32, AllocatorCommitGranularity))
         if rounded == 0 do
             return null
-        let address = __hostPageReserve(rounded)
-        if not address do
-            return null
-        if not __hostPageCommit(address, rounded)
-        {
-            __hostPageRelease(address, rounded)
-            return null
-        }
-
-        atomicAddU64(&g_AllocatorCommittedBytes, rounded)
-        atomicAddU64(&g_AllocatorOsCommitCount, 1)
-        return address
+        return .osAllocPartial(rounded, rounded)
     }
 
     // Reserves one extra page past the block and leaves it uncommitted.
@@ -522,19 +511,7 @@ impl Allocator
     {
         if commitBytes == 0 or commitBytes > Swag.U64.Max - AllocatorCommitGranularity do
             return null
-        let reservedBytes = commitBytes + AllocatorCommitGranularity
-        let address       = __hostPageReserve(reservedBytes)
-        if not address do
-            return null
-        if not __hostPageCommit(address, commitBytes)
-        {
-            __hostPageRelease(address, reservedBytes)
-            return null
-        }
-
-        atomicAddU64(&g_AllocatorCommittedBytes, commitBytes)
-        atomicAddU64(&g_AllocatorOsCommitCount, 1)
-        return address
+        return .osAllocPartial(commitBytes + AllocatorCommitGranularity, commitBytes)
     }
 
     mtd osFree(address: *void?, size: u64)
@@ -789,14 +766,19 @@ impl Allocator
         if not fresh do
             return null
 
+        // Every page of a fresh segment is free, so only a refused commit leaves it without one;
+        // it then goes back to the pool instead of staying linked here empty.
+        let page = fresh.acquirePage(classIndex, blockSize)
+        if not page
+        {
+            allocatorReleaseSegment(fresh)
+            return null
+        }
+
         fresh.nextSegment = .firstSegment
         if .firstSegment do
             .firstSegment.prevSegment = fresh
         .firstSegment = fresh
-
-        let page = fresh.acquirePage(classIndex, blockSize)
-        if not page do
-            return null
 
         page.ownerHeap = heap
         .linkPage(heap, page)

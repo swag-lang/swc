@@ -135,7 +135,7 @@ private func isWrapKey(evt: const *KeyEvent)->bool => evt.kind == .Pressed and e
 
 // Counts the text statistics on a worker thread, from `statisticsStart` to the end of the file, and
 // publishes the outcome through `statisticsState`. A cancelled run publishes nothing.
-private func runStatistics(thread: Threading.Thread)
+private func runStatistics(thread: const *Threading.Thread)
 {
     let view    = cast(*Panel, thread.userParam!)
     let context = Swag.getContext()
@@ -152,7 +152,7 @@ private func runStatistics(thread: Threading.Thread)
     discard catch stream.seek(.Begin, view.statisticsStart)
 
     var counter: TextStatisticsCounter
-    while not thread.requestEnd
+    while not thread.requestEnd.isRaised()
     {
         let chunk = catch stream.readTextChunk(StreamChunkSize, view.statisticsEncoding) as readError
         if readError != null
@@ -167,7 +167,7 @@ private func runStatistics(thread: Threading.Thread)
         counter.append(chunk)
     }
 
-    if thread.requestEnd do
+    if thread.requestEnd.isRaised() do
         return
     view.statistics = counter.finish()
     Atomic.exchange(&view.statisticsState, StatisticsCounted)

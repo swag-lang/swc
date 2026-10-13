@@ -158,7 +158,7 @@ func failCopiedMessage(text: string) fail
 
 var copiedThreadMessagesValid: Swag.AtomicFlag
 
-func consumeThreadMessages(_: Threading.Thread)
+func consumeThreadMessages(_: const *Threading.Thread)
 {
     let pending = Errors.mkString("an unraised thread message is reclaimed on exit")
     var valid   = true
@@ -211,7 +211,7 @@ struct OwnedThreadError
     error: Swag.Error
 }
 
-func publishOwnedThreadError(thread: Threading.Thread)
+func publishOwnedThreadError(thread: const *Threading.Thread)
 {
     let state = cast(*OwnedThreadError, thread.userParam!)
 

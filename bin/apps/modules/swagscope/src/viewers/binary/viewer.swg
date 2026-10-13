@@ -1112,7 +1112,7 @@ impl Panel
 }
 
 // Reads and analyzes the bounded binary image without occupying the GUI event loop.
-private func runViewerLoad(thread: Threading.Thread)
+private func runViewerLoad(thread: const *Threading.Thread)
 {
     let view    = cast(*Panel, thread.userParam!)
     let context = Swag.getContext()

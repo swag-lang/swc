@@ -662,13 +662,13 @@ impl AvcStream
 }
 
 // Decodes complete pictures in one persistent per-frame context.
-private func runAvcFrameThread(thread: Threading.Thread)
+private func runAvcFrameThread(thread: const *Threading.Thread)
 {
     let frameThread = cast(*AvcFrameThread, thread.userParam!)
-    while not thread.requestEnd
+    while not thread.requestEnd.isRaised()
     {
         frameThread.wake.wait()
-        if thread.requestEnd do
+        if thread.requestEnd.isRaised() do
             break
 
         var frame: *H264.Frame?

@@ -512,13 +512,15 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     if (!typeRef.isValid())
         return false;
 
-    // Only the value handles qualify. A struct parameter is read through the caller's storage,
-    // and code relies on seeing what happens to that storage during the call: a thread body
-    // takes its 'Thread' by value and polls the stop flag another thread sets. An array
-    // parameter is a view the callee itself writes through.
+    // A value handle or a struct is a value: nothing may change the caller's storage while the
+    // call runs, so every read through the parameter is fixed for the call and may leave a loop
+    // or be reused across stores and calls. A function that must watch an object another thread
+    // changes takes a pointer. An array parameter is a view the callee itself writes through.
     const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
     const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
     const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
+    if (storageType.isStruct() || storageType.isAggregateStruct())
+        return true;
     return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny();
 }
 

@@ -43,6 +43,42 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.030 — Prove that nothing changes a struct argument while the call runs
+
+- Area: compiler/sema, call-site argument analysis; `SemaEscape` borrow summaries; `Sanitizer`
+- Evidence: a struct parameter is a value
+  ([006_001_declaration.swg](../bin/reference/modules/language/src/006_001_declaration.swg)): the
+  callee cannot write it, and the backend reads each field once and keeps it across stores and
+  calls (`isImmutableIndirectParameter` in
+  [CodeGenFunctionHelpers.cpp](../src/Compiler/CodeGen/Core/CodeGenFunctionHelpers.cpp)). A
+  program that changes the caller's object during the call, through another pointer on the same
+  thread or from another thread, reads a stale field, and only in an optimized build: devmode runs
+  neither loop-invariant code motion nor value numbering, the callee must not be inlined, and a
+  struct of eight bytes or less is copied into a register whatever the build. Nothing diagnoses it
+  today. The audio update thread polled its stop flag through a by-value `Thread` until the body
+  took a pointer; `pollUntilEnd(worker, &worker)` in
+  [immutable_parameter_reads.swg](../bin/unittests/native/optimizer/immutable_parameter_reads.swg)
+  was the single-thread shape, now written with two pointers.
+- Static, in order of reach: (1) one call passes an object by value and its address, or the
+  address of one of its fields, as another argument, `f(x, &x)`, judged at the call site from the
+  argument expressions alone, the shape Swift rejects at compile time for locals; (2) the callee,
+  or a function it calls, writes a global by name, recorded as a "writes global" fact in the borrow
+  summaries that already chain through wrappers and cross modules in `Swag.BorrowSummary`, so that
+  `f(g)` is rejected when `f` can write `g`; (3) the callee stores through a pointer parameter of
+  the by-value parameter's type and reads the by-value parameter afterwards, a sanity warning when
+  the call site cannot prove the pointer points elsewhere. A write from another thread is not a
+  static property: it is why a thread body takes `const *Thread` and reads a `Swag.AtomicFlag`.
+- Dynamic, rejected: copying the parameter into a local slot at entry and comparing each field
+  read with the caller's storage would catch every shape on the real execution, but it costs a copy
+  per call and a load and compare per field read, in devmode too, for a defect confined to
+  optimized builds. No runtime guard is planned here.
+- Next: implement (1): when a resolved parameter is a by-value struct and its argument is an
+  lvalue, reject an `&` argument of the same call whose operand is that lvalue or a member path
+  under it; error test by diagnostic id in `bin/unittests/errors/sema`; `pollUntilEnd(&worker, &worker)`
+  stays legal.
+- Done when: (1) is a compile error with a test, and (2) and (3) each have an implementation or a
+  recorded reason to stop.
+
 ### compiler.safety.025 — The box-content release summary stops at the module boundary
 
 - Area: compiler/sema, `SemaEscape`; `Swag.BorrowSummary`; `Sanitizer`

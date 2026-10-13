@@ -312,7 +312,7 @@ internal impl RenderThread
     }
 }
 
-func runWaitFailure(thread: Threading.Thread)
+func runWaitFailure(thread: const *Threading.Thread)
 {
     let probe = cast(*WaitFailureProbe, thread.userParam!)
     probe.worker.checkWaitFailure(probe)

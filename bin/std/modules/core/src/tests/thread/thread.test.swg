@@ -14,9 +14,9 @@ struct WaitManyPayload
     sleepMs:        u32
 }
 
-func idleThread(_: Threading.Thread) {}
+func idleThread(_: const *Threading.Thread) {}
 
-func waitManyThread(th: Threading.Thread)
+func waitManyThread(th: const *Threading.Thread)
 {
     let payload = cast(*WaitManyPayload, th.userParam!)
     if payload.sleepMs != 0 do

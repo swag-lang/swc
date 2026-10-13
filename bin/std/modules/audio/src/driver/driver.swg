@@ -30,14 +30,14 @@ struct Driver
     driverIsClosing: bool
 }
 
-internal func updateThreadProc(th: Threading.Thread)
+internal func updateThreadProc(th: const *Threading.Thread)
 {
     let driver = &g_Driver
-    while not th.requestEnd
+    while not th.requestEnd.isRaised()
     {
         // Wait for an update to be requested
         driver.wakeupUpdate.wait()
-        if th.requestEnd do
+        if th.requestEnd.isRaised() do
             break
 
         // All pending recycles to actual recycle list
@@ -62,7 +62,7 @@ internal func updateThreadProc(th: Threading.Thread)
         for cmd in copyVoices
         {
             let voice = cmd.voice
-            if th.requestEnd do
+            if th.requestEnd.isRaised() do
                 break
 
             switch cmd.command

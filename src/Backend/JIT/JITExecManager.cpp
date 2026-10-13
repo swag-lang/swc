@@ -118,6 +118,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
             slot = std::make_unique<Item>(ctx, request);
             slot->waitState.setNone();
             pendingItems_.push_back(slot.get());
+            ctx.noteJitItemAdded();
         }
 
         Item& item = *slot;
@@ -236,8 +237,13 @@ JITExecManager::OwnerWait JITExecManager::acquireOwnerWait(const TaskContext& ct
     return wait;
 }
 
-JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+JITExecManager::Completion JITExecManager::consumeCompletion(TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
 {
+    // Every call expression asks on its way in. A job with no submission in flight is told so
+    // by its own count, without the lock every worker shares.
+    if (!ctx.pendingJitItems())
+        return {};
+
     const ItemKey key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
     Completion    completion;
     bool          enqueueWorker = false;
@@ -268,6 +274,7 @@ JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& 
                 .completionPayload = item.request.completionPayload,
             };
             items_.erase(it);
+            ctx.noteJitItemConsumed();
         }
     }
 
@@ -278,6 +285,9 @@ JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& 
 
 bool JITExecManager::hasItem(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef) const
 {
+    if (!ctx.pendingJitItems())
+        return false;
+
     const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
     const std::scoped_lock lock(mutex_);
     const auto             it = items_.find(key);

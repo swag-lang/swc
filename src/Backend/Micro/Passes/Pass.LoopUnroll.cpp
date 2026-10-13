@@ -1313,10 +1313,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             else
                 firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-            std::unordered_map<MicroReg, MicroReg> currentName;
-            uint32_t                               nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
-            std::unordered_map<uint64_t, uint64_t> labelMap;
-            labelMap.reserve(internalLabels.size());
+            std::unordered_map<MicroReg, MicroReg>                currentName;
+            uint32_t                                              nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
+            std::optional<std::unordered_map<uint64_t, uint64_t>> labelMap;
+            if (!internalLabels.empty())
+                labelMap.emplace().reserve(internalLabels.size());
             SmallVector<MicroInstrOperand, 8> newOps;
 
             for (uint64_t k = 1; k < copies; ++k)
@@ -1338,9 +1339,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegImm, counterOps);
                 }
 
-                labelMap.clear();
+                // The keys are the same for every copy. Replace their labels
+                // without destroying and allocating the map's nodes again.
                 for (const uint64_t id : internalLabels)
-                    labelMap.emplace(id, builder.createLabel().get());
+                    labelMap->insert_or_assign(id, builder.createLabel().get());
 
                 for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
                 {
@@ -1353,12 +1355,12 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                     if (src->op == MicroInstrOpcode::Label)
                     {
-                        newOps[0].valueU64 = labelMap[newOps[0].valueU64];
+                        newOps[0].valueU64 = (*labelMap)[newOps[0].valueU64];
                     }
-                    else if (src->op == MicroInstrOpcode::JumpCond)
+                    else if (src->op == MicroInstrOpcode::JumpCond && labelMap)
                     {
-                        const auto remapIt = labelMap.find(newOps[2].valueU64);
-                        if (remapIt != labelMap.end())
+                        const auto remapIt = labelMap->find(newOps[2].valueU64);
+                        if (remapIt != labelMap->end())
                             newOps[2].valueU64 = remapIt->second;
                     }
 

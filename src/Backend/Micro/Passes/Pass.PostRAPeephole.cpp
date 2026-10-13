@@ -525,17 +525,22 @@ namespace
                 slotOpaque = true;
                 break;
             }
-            if (slotOpaque || reloadIndex == MicroControlFlowGraph::K_NO_INDEX || reloadIndex <= storeIndex)
+            if (slotOpaque || reloadIndex == MicroControlFlowGraph::K_NO_INDEX || reloadIndex <= storeIndex ||
+                frameDepth[reloadIndex] != frameDepth[storeIndex])
                 continue;
 
+            // Every candidate targets the same reload in the unchanged CFG.
+            // Collect its reverse reachability only when the first one needs it.
+            std::vector<uint8_t> reachesRead;
             for (uint32_t labelIndex = storeIndex + 1; labelIndex < reloadIndex; ++labelIndex)
             {
-                const MicroInstr* label       = storage.ptr(refs[labelIndex]);
-                const MicroInstr* targetFirst = labelIndex + 1 < refs.size() ? storage.ptr(refs[labelIndex + 1]) : nullptr;
+                const MicroInstr* label = storage.ptr(refs[labelIndex]);
                 if (!label || label->op != MicroInstrOpcode::Label || cfg.predecessors(labelIndex).size() != 1 ||
                     frameDepth[labelIndex] != frameDepth[storeIndex] ||
-                    std::ranges::find(cfg.addressTakenLabelIndices(), labelIndex) != cfg.addressTakenLabelIndices().end() ||
-                    !targetFirst || targetFirst->op == MicroInstrOpcode::Label)
+                    std::ranges::find(cfg.addressTakenLabelIndices(), labelIndex) != cfg.addressTakenLabelIndices().end())
+                    continue;
+                const MicroInstr* targetFirst = storage.ptr(refs[labelIndex + 1]);
+                if (!targetFirst || targetFirst->op == MicroInstrOpcode::Label)
                     continue;
                 const uint32_t    branchIndex = cfg.predecessors(labelIndex)[0];
                 const MicroInstr* branch      = storage.ptr(refs[branchIndex]);
@@ -570,21 +575,24 @@ namespace
                 // A matching offset names the same slot only when the stack
                 // pointer has the same value at the moved store and the read.
                 // Track balanced outgoing-call adjustments on every route.
-                std::vector<uint8_t> reachesRead(refs.size(), 0);
-                pending.assign(1, reloadIndex);
-                while (!pending.empty())
+                if (reachesRead.empty())
                 {
-                    const uint32_t index = pending.back();
-                    pending.pop_back();
-                    if (reachesRead[index])
-                        continue;
-                    reachesRead[index] = 1;
-                    for (const uint32_t predecessor : cfg.predecessors(index))
-                        pending.push_back(predecessor);
+                    reachesRead.assign(refs.size(), 0);
+                    pending.assign(1, reloadIndex);
+                    while (!pending.empty())
+                    {
+                        const uint32_t index = pending.back();
+                        pending.pop_back();
+                        if (reachesRead[index])
+                            continue;
+                        reachesRead[index] = 1;
+                        for (const uint32_t predecessor : cfg.predecessors(index))
+                            pending.push_back(predecessor);
+                    }
                 }
                 pending.assign(1, labelIndex);
                 std::fill(seen.begin(), seen.end(), 0);
-                bool stableStack = frameDepth[reloadIndex] == frameDepth[labelIndex];
+                bool stableStack = true;
                 while (!pending.empty() && stableStack)
                 {
                     const uint32_t index = pending.back();

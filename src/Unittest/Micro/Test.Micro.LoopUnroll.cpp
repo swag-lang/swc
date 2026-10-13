@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/PointerSet.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -263,6 +264,23 @@ SWC_TEST_BEGIN(LoopUnroll_LargeBranchedConstantTable_Flattens)
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (constantTable ? 4u : 1u) ||
             builder.codeRelocations().size() != (constantTable ? 4u : 0u))
             return Result::Error;
+        if (constantTable)
+        {
+            // Each copy must branch to its own following label, even when
+            // the remapping table keeps its nodes between copies.
+            FlatKey64Set targets;
+            uint32_t     matchedTargets = 0;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                const auto* ops = inst.ops(builder.operands());
+                if (inst.op == MicroInstrOpcode::JumpCond && !targets.insert(ops[2].valueU64))
+                    return Result::Error;
+                if (inst.op == MicroInstrOpcode::Label && targets.contains(ops[0].valueU64))
+                    ++matchedTargets;
+            }
+            if (matchedTargets != expectedJumps)
+                return Result::Error;
+        }
     }
     return Result::Continue;
 }

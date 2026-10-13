@@ -363,6 +363,51 @@ SWC_TEST_BEGIN(PostRAPeephole_SpillStoreSinkingTracksStackDepth)
 }
 SWC_TEST_END()
 
+// The first dominating target crosses a frame release and cannot own the
+// store. A later target still uses the same reload's reverse reachability.
+SWC_TEST_BEGIN(PostRAPeephole_SinksSpillStoreAfterRejectedEarlierTarget)
+{
+    const CallConv& conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg  value = MicroReg::intReg(12);
+    const MicroReg  flag  = MicroReg::intReg(10);
+    MicroBuilder    builder(ctx);
+    const auto      early = builder.createLabel();
+    const auto      late  = builder.createLabel();
+    builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+    builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, early);
+    builder.emitRet();
+    builder.placeLabel(early);
+    builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(conv.stackPointer, 64, value, MicroOpBits::B64);
+    builder.emitCmpRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, late);
+    builder.emitRet();
+    builder.placeLabel(late);
+    builder.emitLoadRegMem(conv.intReturn, conv.stackPointer, 64, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 64, 72));
+    bool     seenLate = false;
+    uint32_t stores   = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        const auto* ops = inst.ops(builder.operands());
+        if (inst.op == MicroInstrOpcode::Label && ops[0].valueU64 == late.get())
+            seenLate = true;
+        if (inst.op == MicroInstrOpcode::LoadMemReg)
+        {
+            if (!seenLate || ops[0].reg != conv.stackPointer || ops[1].reg != value || ops[3].valueU64 != 64)
+                return Result::Error;
+            ++stores;
+        }
+    }
+    return stores == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_SinksLoopBoundReloadPastIncrement)
 {
     const CallConv& conv  = CallConv::get(CallConvKind::Swag);

@@ -75,6 +75,21 @@ namespace
         }
     }
 
+    template<auto OperandRef>
+    AstNodeRef resolveTransparentSourceRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        AstNodeRef sourceRef = nodeRef;
+        while (sourceRef.isValid())
+        {
+            const AstNodeRef nextRef = OperandRef(sema.node(sourceRef));
+            if (nextRef.isInvalid())
+                return sourceRef;
+
+            sourceRef = nextRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
 }
 
 TypeRef SemaHelpers::unwrapBindingType(TaskContext& ctx, TypeRef typeRef)
@@ -312,32 +327,12 @@ bool SemaHelpers::isTransparentExprNode(const AstNode& node)
 
 AstNodeRef SemaHelpers::resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef)
 {
-    AstNodeRef sourceRef = nodeRef;
-    while (sourceRef.isValid())
-    {
-        const AstNodeRef nextRef = transparentCastExprOperandRef(sema.node(sourceRef));
-        if (nextRef.isInvalid())
-            return sourceRef;
-
-        sourceRef = nextRef;
-    }
-
-    return AstNodeRef::invalid();
+    return resolveTransparentSourceRef<transparentCastExprOperandRef>(sema, nodeRef);
 }
 
 AstNodeRef SemaHelpers::resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef)
 {
-    AstNodeRef sourceRef = nodeRef;
-    while (sourceRef.isValid())
-    {
-        const AstNodeRef nextRef = transparentConditionExprOperandRef(sema.node(sourceRef));
-        if (nextRef.isInvalid())
-            return sourceRef;
-
-        sourceRef = nextRef;
-    }
-
-    return AstNodeRef::invalid();
+    return resolveTransparentSourceRef<transparentConditionExprOperandRef>(sema, nodeRef);
 }
 
 namespace

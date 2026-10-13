@@ -450,11 +450,9 @@ namespace
             fs::last_write_time(tempPath, srcTime, ec);
         }
 
-        if (!ec)
-        {
-            ec.clear();
-            fs::rename(tempPath, dstPath, ec);
-        }
+        FileSystem::IoErrorInfo renameError;
+        if (!ec && FileSystem::renameOverFile(tempPath, dstPath, renameError) != Result::Continue)
+            ec = std::make_error_code(std::errc::permission_denied);
 
         if (ec)
         {
@@ -512,6 +510,8 @@ namespace
                 continue;
             if (apiSnapshot && (ModuleApi::isPublishedFile(relativePath) || relativePath == ".swc-api-incomplete"))
                 continue;
+            if (isWorkspaceDependencyTempPath(it->path()) || FileSystem::isMovedAsidePath(it->path()))
+                continue;
 
             fs::path dstPath = (normalizedDstDir / relativePath).lexically_normal();
             ec.clear();
@@ -554,6 +554,13 @@ namespace
                 continue;
             if (isWorkspaceDependencyTempPath(it->path()))
                 continue;
+            if (FileSystem::isMovedAsidePath(it->path()))
+            {
+                // Removable once the compiler that mapped it has ended; left alone otherwise.
+                std::error_code removeEc;
+                fs::remove(it->path(), removeEc);
+                continue;
+            }
             // The API publisher owns this marker until every copy and stale-file removal
             // succeeds. Removing it here would make an interrupted mirror look complete.
             if (relativePath == ".swc-api-incomplete")
@@ -1086,7 +1093,7 @@ namespace
             const bool regular = it->is_regular_file(ec);
             if (ec)
                 return false;
-            if (!regular || isWorkspaceDependencyTempPath(it->path()) || it->path().filename() == ".swc-api-incomplete")
+            if (!regular || isWorkspaceDependencyTempPath(it->path()) || FileSystem::isMovedAsidePath(it->path()) || it->path().filename() == ".swc-api-incomplete")
                 continue;
             fs::file_time_type writeTime;
             if (!tryGetWorkspacePathWriteTime(writeTime, it->path()))

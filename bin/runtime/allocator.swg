@@ -56,14 +56,16 @@ const AllocatorPageAlignmentMax  = 64'u32
 
 // Bounds of the committed cache of freed header-path blocks.
 //
-// The budget between the two byte bounds follows the bytes held live through the header path. A freed
+// The budget between the two byte bounds follows the bytes held live through the header path; the
+// entry count only has to exceed the live sets that fit the budget, since a program whose live
+// blocks outnumber the entries would send its misses to the system and fault their pages again. A freed
 // block that committed more than the budget goes back to the system at once, unless the cache is empty:
 // one such block may wait there alone, until the next cached block replaces it or the purge delay
 // expires. That is the whole of the huge-block policy; reservation rounding and in-place growth are
 // the same for every header-path block, and nothing above the upper bound is ever kept.
 const AllocatorBlockCacheMinBytes = 16'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxBytes = 256'u64 * 1024 * 1024
-const AllocatorBlockCacheMaxCount = 64'u64
+const AllocatorBlockCacheMaxCount = 256'u64
 
 // The front of the block cache every thread keeps for itself: the last header-path blocks it freed,
 // under this size, which its own next requests take without the cache lock.

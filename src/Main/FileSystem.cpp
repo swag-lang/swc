@@ -128,7 +128,7 @@ namespace
     // (the working directory and on-disk symlink topology do not change during a build). Memoize it.
     struct NormalizePathCache
     {
-        std::shared_mutex                        mutex;
+        std::shared_mutex                         mutex;
         std::unordered_map<std::string, fs::path> entries;
     };
 
@@ -414,6 +414,81 @@ Result FileSystem::writeBinaryFile(const fs::path& path, const void* data, const
     return Result::Continue;
 }
 
+namespace
+{
+    constexpr std::string_view K_MOVED_ASIDE_EXTENSION = ".swcstale";
+}
+
+bool FileSystem::isMovedAsidePath(const fs::path& path)
+{
+    return path.extension() == K_MOVED_ASIDE_EXTENSION;
+}
+
+bool FileSystem::moveFileAside(const fs::path& path)
+{
+    static std::atomic_uint64_t sequence  = 0;
+    fs::path                    asidePath = path;
+    asidePath += std::format(".{}.{}{}", Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed), K_MOVED_ASIDE_EXTENSION);
+
+    std::error_code ec;
+    fs::rename(path, asidePath, ec);
+    return !ec;
+}
+
+void FileSystem::removeMovedAsideFiles(const fs::path& directory)
+{
+    std::error_code ec;
+    for (fs::directory_iterator it(directory, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
+    {
+        if (!isMovedAsidePath(it->path()))
+            continue;
+
+        // Still mapped by another process: it stays until a later publication finds it free.
+        std::error_code removeEc;
+        fs::remove(it->path(), removeEc);
+    }
+}
+
+// Readers and competing writers must only see complete artifacts. A rename on the same volume
+// replaces the directory entry without overwriting the previous bytes.
+Result FileSystem::renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error)
+{
+    const auto deadline   = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    bool       movedAside = false;
+    while (true)
+    {
+        std::error_code ec;
+        fs::rename(from, to, ec);
+        if (!ec)
+        {
+            // Whatever an earlier publication had to move aside goes as soon as nothing maps
+            // it: the directory holds a handful of artifacts, so the sweep is cheap.
+            removeMovedAsideFiles(to.parent_path());
+            return Result::Continue;
+        }
+
+        // Windows also reports access denied when a reader did not share deletion.
+        const bool sharingError = ec == std::errc::permission_denied || Os::isFileSharingError();
+        error.problem           = IoProblem::Write;
+        error.because           = normalizeSystemMessage(ec);
+        if (!sharingError)
+            return Result::Error;
+
+        if (std::chrono::steady_clock::now() < deadline)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+            continue;
+        }
+
+        // A reader that outlives the wait is a compiler that loaded the library for its
+        // compile-time calls: it keeps the file mapped for as long as it runs. The previous
+        // bytes move aside, which the mapping allows, so the publication still completes.
+        if (movedAside || !moveFileAside(to))
+            return Result::Error;
+        movedAside = true;
+    }
+}
+
 Result FileSystem::writeBinaryFileAtomic(const fs::path& path, const void* data, const size_t size, IoErrorInfo& error)
 {
     static std::atomic_uint64_t sequence      = 0;
@@ -423,25 +498,9 @@ Result FileSystem::writeBinaryFileAtomic(const fs::path& path, const void* data,
     Result result = writeBinaryFile(temporaryPath, data, size, error);
     if (result == Result::Continue)
     {
-        // Readers and competing writers must only see complete artifacts. A rename on the
-        // same volume replaces the directory entry without overwriting the previous bytes.
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-        while (true)
-        {
-            std::error_code ec;
-            fs::rename(temporaryPath, path, ec);
-            if (!ec)
-                return Result::Continue;
-
-            // Windows also reports access denied when a reader did not share deletion.
-            const bool sharingError = ec == std::errc::permission_denied || Os::isFileSharingError();
-            error.problem           = IoProblem::Write;
-            error.because           = normalizeSystemMessage(ec);
-            result                  = Result::Error;
-            if (!sharingError || std::chrono::steady_clock::now() >= deadline)
-                break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        }
+        result = renameOverFile(temporaryPath, path, error);
+        if (result == Result::Continue)
+            return result;
     }
 
     std::error_code ec;

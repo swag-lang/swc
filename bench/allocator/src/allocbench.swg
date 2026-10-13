@@ -15,7 +15,8 @@ using Core
 // set is freed, after the purge delay has passed, and after trim(). With 'latency', one worker
 // records the duration of each of its operations, or of each batch of sixty-four for the
 // workloads whose operations are shorter than the clock resolves, and the 50th and 99th
-// percentiles are reported.
+// percentiles are reported. Every run ends with the reservations, commits and decommits the
+// runtime allocator asked the system for.
 
 const ChurnSlots        = 50_000'u64
 const LargeSlots        = 32'u64
@@ -550,7 +551,9 @@ func parseWorkload(name: string)->Workload fail
     {
         var random = Xorshift{1000}
         let kept   = retain(&random)
-        Console.println("allocbench workload=retain threads=1 operations=1 ns/op=0 retained_idle=", kept.idle, " retained_purged=", kept.purged, " retained_trimmed=", kept.trimmed)
+        Console.print("allocbench workload=retain threads=1 operations=1 ns/op=0 retained_idle=", kept.idle, " retained_purged=", kept.purged, " retained_trimmed=", kept.trimmed)
+        printOsCalls()
+        Console.println()
         return
     }
 
@@ -610,5 +613,14 @@ func parseWorkload(name: string)->Workload fail
         Console.print(" phase_ns/op=", cast(f64, phaseTicks) * 1.0e9 / cast(f64, Time.monotonicFrequency()) / cast(f64, operations))
     if latency do
         Console.print(" p50_ns=", recorder.percentile(500), " p99_ns=", recorder.percentile(990), " per_ops=", recorder.unit)
+    printOsCalls()
     Console.println()
+}
+
+// The system calls the runtime allocator made for the whole process, which the other programs
+// cannot report the same way.
+func printOsCalls()
+{
+    let stats = Swag.defaultAllocator().stats()
+    Console.print(" os_reserves=", stats.countOsReserve, " os_commits=", stats.countOsCommit, " os_decommits=", stats.countOsDecommit)
 }

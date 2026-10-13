@@ -285,6 +285,58 @@ SWC_FILESYSTEM_TEST_BEGIN(Os_RunProcessChildTreeDoesNotSurviveTheCall)
 }
 SWC_TEST_END()
 
+// A dependency a compiler loaded for its compile-time calls stays mapped while that compiler
+// runs; a publication of the same file still succeeds, with the mapped bytes moved aside.
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicWriteReplacesLoadedLibrary)
+{
+    const fs::path  testDir = Os::getTemporaryPath() / std::format("swc_mapped_publish_p{}", Os::currentProcessId());
+    std::error_code ec;
+    fs::remove_all(testDir, ec);
+    fs::create_directories(testDir, ec);
+    if (ec)
+        return Result::Error;
+
+    // Any genuine library serves as the mapped file; the loader maps it the way it maps a dependency.
+    wchar_t systemDir[MAX_PATH] = {};
+    if (!GetSystemDirectoryW(systemDir, MAX_PATH))
+        return Result::Error;
+    const fs::path library = testDir / "mapped.dll";
+    fs::copy_file(fs::path(systemDir) / "version.dll", library, ec);
+    if (ec)
+        return Result::Error;
+
+    const HMODULE module = LoadLibraryW(library.c_str());
+    if (!module)
+        return Result::Error;
+
+    Result                  result = Result::Continue;
+    FileSystem::IoErrorInfo error;
+    if (FileSystem::writeBinaryFileAtomic(library, "new", 3, error) != Result::Continue)
+        result = Result::Error;
+
+    std::string published;
+    if (result == Result::Continue && (FileSystem::readTextFile(library, published, error) != Result::Continue || published != "new"))
+        result = Result::Error;
+
+    size_t asideCount = 0;
+    for (fs::directory_iterator it(testDir, ec), end; !ec && it != end; it.increment(ec))
+        asideCount += FileSystem::isMovedAsidePath(it->path()) ? 1 : 0;
+    if (asideCount != 1)
+        result = Result::Error;
+
+    FreeLibrary(module);
+    FileSystem::removeMovedAsideFiles(testDir);
+    for (fs::directory_iterator it(testDir, ec), end; !ec && it != end; it.increment(ec))
+    {
+        if (FileSystem::isMovedAsidePath(it->path()))
+            result = Result::Error;
+    }
+
+    fs::remove_all(testDir, ec);
+    return result;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

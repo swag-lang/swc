@@ -1742,23 +1742,29 @@ namespace
             return false;
         const size_t count = layout.order.size();
 
-        std::optional<RetainedCountTable> localLabelReferences;
-        if (!branchScan)
-        {
-            localLabelReferences.emplace();
-            for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
+        // Backward or missing targets never query these counts. A local table
+        // is filled once and destroyed here, so it needs no cleared-slot list.
+        std::optional<CountTable> localLabelReferences;
+        const auto                labelReferenceCount = [&](const uint32_t labelId) -> std::optional<uint32_t> {
+            if (branchScan)
+                return lookupCount(branchScan->labelReferences, labelId);
+            if (!localLabelReferences)
             {
-                const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
-                if (!inst)
-                    continue;
-                if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
-                    return false;
-                uint32_t labelId = 0;
-                if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(labelId, *inst, inst->ops(operands)))
-                    ++localLabelReferences->getOrInsert(labelId);
+                localLabelReferences.emplace();
+                for (uint32_t ordinal = 0; ordinal < count; ++ordinal)
+                {
+                    const MicroInstr* inst = storage.ptr(layout.order[ordinal]);
+                    if (!inst)
+                        continue;
+                    if (inst->op == MicroInstrOpcode::JumpReg || inst->op == MicroInstrOpcode::LoadLabelAddress)
+                        return std::nullopt;
+                    uint32_t targetId = 0;
+                    if (inst->op == MicroInstrOpcode::JumpCond && tryGetJumpTargetLabelId(targetId, *inst, inst->ops(operands)))
+                        ++localLabelReferences->getOrInsert(targetId);
+                }
             }
-        }
-        const auto& labelReferences = branchScan ? branchScan->labelReferences : *localLabelReferences;
+            return lookupCount(*localLabelReferences, labelId);
+        };
 
         // Where every virtual integer register is read and written, and which instructions a
         // relocation pins. Both are only consulted once a jump, its single-reference forward
@@ -1853,8 +1859,12 @@ namespace
             if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional || !tryGetJumpTargetLabelId(labelId, *jumpInst, jumpOps))
                 continue;
             const auto* labelIt = layout.labelOrdinalById.find(labelId);
-            if (!labelIt || *labelIt <= p || lookupCount(labelReferences, labelId) != 1 ||
-                relocationCache.get(context).contains(layout.order[*labelIt].get()))
+            if (!labelIt || *labelIt <= p)
+                continue;
+            const auto references = labelReferenceCount(labelId);
+            if (!references)
+                return false;
+            if (*references != 1 || relocationCache.get(context).contains(layout.order[*labelIt].get()))
                 continue;
             const uint32_t j = *labelIt;
 

@@ -236,7 +236,9 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
         Swag.assert(after.countAlloc == 0)
         Swag.assert(after.sizeCommitted == before.sizeCommitted)
         Swag.assert(after.countOsCommit == before.countOsCommit)
-        Swag.assert(allocator.firstUntracked == null and allocator.firstAlloc == null)
+        Swag.assert(allocator.firstAlloc == null)
+        for i in AllocatorHeaderShardCount do
+            Swag.assert(allocator.shards[i].first == null)
         Swag.assert(allocator.cachedBlockCount == 0)
 
         let block = allocOne(itf, 200_000)

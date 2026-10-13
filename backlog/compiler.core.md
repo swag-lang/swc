@@ -117,35 +117,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Next: profile a current module analysis that imports `core`, attribute repeated resolutions to callers, then choose call-site reuse or memoization only where the profile shows meaningful duplicate work.
 - Done when: a measured duplicate-resolution cost is removed without changing narrowing or constant semantics, or current profiling shows no worthwhile target and the entry is deleted.
 - Related: compiler.core.001, compiler.core.038.
-### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
-
-- Evidence: one multi-configuration test campaign reported mimalloc free-list corruption with a
-  stack through `appendImplFunctions`, `SymbolStruct::declaredMethods`, and generated type
-  processing. Snapshotting impl/interface lists and symbol maps under their locks, plus fixes to
-  attribute snapshots and lifecycle-pointer publication, stopped the observed corruption in 100
-  Release `core` rebuilds and 20 each of Release and DevMode `ogl` rebuilds. These runs do not
-  identify the original writer. The allocator now captures the reporting thread's stack.
-- Next: investigate the next recurrence from its captured stack; otherwise retire this lead only
-  after a parallel type-generation stress run over the standard library stays clean under both
-  compiler executables.
-- Done when: a recurrence is attributed and fixed with a regression, or the specified stress run
-  stays clean and the lead is retired.
-
-### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
-
-- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
-- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) wrote a 12.2 MB PDB
-  whose TPI stream held 38,154 records, 5,178 of them `LF_STRUCTURE`, with `Surface` defined 28
-  times, `interface` 26, `Wnd` 24 and `Application` 22.
-- What remains: `LinkDebugMerger` already keeps one copy of each record once remapped, so the
-  copies archive members brought came from records that differed only by which index a pointer
-  named. With pointers now naming forward declarations those records should coincide, but no
-  linked `--debug` program with debug archives has been measured yet.
-- Next: build swagscope with `--debug` before and after this change and compare the PDB size,
-  the TPI record count and the number of `LF_STRUCTURE` records per name.
-- Done when: every structure has one definition per distinct layout in a linked PDB, the
-  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
-
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
 - Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
@@ -325,7 +296,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: independent components can progress on different workers, mutually recursive
   graphs publish no partial data, and identity, interface, and reflection tests pass under
   repeated parallel cold compilation.
-- Related: compiler.core.020, compiler.core.007.
+- Related: compiler.core.007.
 
 ### compiler.core.007 — Workspace front ends and code generation run serially
 
@@ -448,26 +419,6 @@ cache is part of the normal DevMode and Release paths.
   cache reuse from shared code-generation state when cloning the macro's closure.
 - Done when: a stable reproducer identifies the cause, the correction passes
   that reproducer repeatedly, and the full native suite remains green.
-
-### compiler.core.051 — Isolate a silent CodeGen failure observed in a discarded JIT prototype
-
-- Found while: comparing Release compilation of `bin/std` with six pinned performance workers.
-- Evidence: an unmerged build-710 prototype based on `277804c1c` returned exit 5 on the third
-  candidate rebuild of `swc.exe build -w bin/std -m gui -bc release --num-cores 6 --rebuild`.
-  Seven dependency modules completed; gui stopped with
-  `internal compiler error: job 'CodeGen' returned an error without a diagnostic`.
-- Scope: the prototype transferred the existing shared JIT-order lock to its reader and reused
-  local dependency/completion vectors. It was discarded. The same gui command passed once in
-  DevMode; three further runs with unchanged Release build 702 passed. Neither a production
-  regression nor a causal connection to either prototype change has been established.
-- Evidence location: `bench/results/compilation/20260916-bin-release/README.md` and its sample
-  CSV retain the command context, compiler hashes and failed run. The session's external
-  `jit-order-lock-buffers-710.patch` and `jit-order-control` compilers retain the exact prototype.
-- Next: capture the function, waited symbol and failing return path at `abortCodeGen`, replay
-  candidate and baseline, and isolate lock transfer from vector reuse before reviving either
-  optimization. Do not classify this as compiler.core.047 without a matching generic-local witness.
-- Done when: a bounded reproducer identifies the responsible path, or evidence confines the
-  failure to an invalid discarded prototype; remove this entry once that question is settled.
 
 ### compiler.core.038 — Measure the remaining semantic frame construction cost
 

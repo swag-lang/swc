@@ -114,22 +114,15 @@ replace the allocator; a similar architecture alone does not establish comparabl
 
 - Header-path blocks are reserved at one of eight sizes per power of two and commit only what the
   request reaches; freed ones go to a best-fit cache (up to twice the request) indexed in the
-  allocator, a cached block that committed less gets the missing pages, and a reallocation inside
-  the reservation commits in place. `bench/allocator` large (32 live 64 KiB-1 MiB blocks):
-  137 µs -> 2.0 µs per operation (mimalloc 1.5 µs) at 44 MB peak working set against 71 MB;
-  four threads 73.5 µs -> 1.1-1.4 µs (mimalloc 0.67 µs at 250 MB); realloc growth to 4 MiB
-  17.1 -> 11.9 µs per step (mimalloc 10.4 µs).
-- A request aligned on 32 or 64 bytes now moves to the smallest class whose size is a multiple of
-  the alignment and comes from pages (200 000 pairs of 256 bytes aligned on 64: 0.77 s -> 0.06 s).
-  Only alignments beyond 64 take the header path.
-- Remaining: every header-path allocation and free takes the header-list mutex and the cache
-  mutex. Four threads cycling large buffers still run half as fast as mimalloc, which keeps
-  almost twice the memory.
-- Next: resolve application timing sensitivity before selecting a lock-layout change. Moving
-  counters under the existing list lock and separating lock cache lines improved concurrent large
-  blocks, but did not consistently preserve `wordfreq` timing, whose measured body makes few
-  allocations. Then measure a small per-thread front for the cache, and a header list that does
-  not need the allocator-wide lock outside the diagnostic modes.
+  allocator, behind a per-thread front of the last sixteen blocks a thread freed under 2 MiB,
+  which its own requests take without a lock. The list of ordinary live headers is sharded eight
+  ways by address, and only the live byte count moves on every operation.
+- Remaining: `large:4` (four threads cycling 64 KiB-1 MiB buffers) runs at about 1.26 times
+  mimalloc's time, against the 1.25 gate of runtime.allocator.001, at about half its peak working
+  set. What is left per operation is the live-byte atomic, the shard lock when the front misses,
+  the clock read on free, and the global cache lock on a front miss.
+- Next: measure a front keyed by size class rather than best-fit, and the cache lock held only
+  when the front has no candidate, on `large:4` with rotating runs and the application check.
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001

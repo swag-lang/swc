@@ -65,6 +65,15 @@ const AllocatorBlockCacheMinBytes = 16'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxBytes = 256'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxCount = 64'u64
 
+// The front of the block cache every thread keeps for itself: the last header-path blocks it freed,
+// under this size, which its own next requests take without the cache lock.
+const AllocatorBlockFrontCount    = 16'u32
+const AllocatorBlockFrontMaxBytes = 2'u64 * 1024 * 1024
+
+// The list of ordinary live headers is sharded by address, so threads cycling large blocks rarely
+// take the same lock to link and unlink them.
+const AllocatorHeaderShardCount = 8'u64
+
 // Header-path blocks above this size are rounded to eight sizes per power of two.
 const AllocatorLargeRoundMin = 64'u64 * 1024
 
@@ -191,6 +200,20 @@ struct AllocatorThreadHeap
     // Counts slow-path page refills, to read the clock for the idle purge only now and then.
     purgeCountdown: u32
     classes:        [AllocatorClassCount] AllocatorThreadClass
+
+    // The thread's front of the block cache, in the order the blocks were freed. Only the owning
+    // thread touches it: freed into by its frees, taken from by its requests, purged by its own
+    // purge checks, and emptied when it trims or retires.
+    frontCount: u32
+    front:      [AllocatorBlockFrontCount] AllocatorCachedBlock
+}
+
+// One shard of the list of ordinary live headers, on a cache line of its own.
+#[Swag.Align(64)]
+struct AllocatorHeaderShard
+{
+    mutex: MutexRW
+    first: *AllocatorHeader?
 }
 
 // Fiber-local storage gives both real per-thread isolation and a destructor that runs on a thread
@@ -213,7 +236,7 @@ struct Allocator
     // Guards the diagnostic quarantine and the tracked-allocation list.
     mutex: MutexRW
 
-    // Guards both live header lists, including ordinary allocations outside diagnostic mode.
+    // Guards the list of tracked live headers.
     headerMutex: MutexRW
 
     // Guards the segment list, the thread-heap list, and the abandoned pages.
@@ -224,12 +247,15 @@ struct Allocator
     firstAbandoned: *AllocatorPage?
 
     // Every live header belongs to one list so bulk release can discover it. Only tracked blocks
-    // enter firstAlloc and supply detailed leak reports; ordinary headers enter firstUntracked.
+    // enter firstAlloc and supply detailed leak reports; ordinary headers enter the shard their
+    // address selects.
     firstAlloc:      *AllocatorHeader?
-    firstUntracked:  *AllocatorHeader?
+    shards:          [AllocatorHeaderShardCount] AllocatorHeaderShard
     firstQuarantine: *AllocatorHeader?
     lastQuarantine:  *AllocatorHeader?
-    headerCount:     u64
+
+    // Bytes live through the header path, which the block cache budget follows; the live headers
+    // themselves are counted by walking their lists, so an operation moves one counter only.
     headerBytes:     u64
     quarantineBytes: u64
     quarantineCount: u64
@@ -637,6 +663,7 @@ impl Allocator
         if Swag.atomxchg(&heap.retired, 1) != 0 do
             return
 
+        .purgeFront(heap, Swag.U64.Max)
         .segmentMutex.lock()
 
         for i in AllocatorClassCount
@@ -907,10 +934,12 @@ impl Allocator
 
         // An armed deadline is the common case while idle memory exists; only arming it reads the
         // counters other threads keep writing.
+        let heap     = currentAllocatorThreadHeap()
+        let own      = heap and heap.allocator == me and heap.retired == 0 ? heap : null
         let deadline = atomicGet(&.purgeDeadline)
         if deadline == 0
         {
-            if allocatorIdleBytes() != 0 or atomicGet(&.cachedBlockCount) != 0 do
+            if allocatorIdleBytes() != 0 or atomicGet(&.cachedBlockCount) != 0 or (own and own.frontCount != 0) do
                 discard Swag.atomcmpxchg(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
             return
         }
@@ -918,6 +947,10 @@ impl Allocator
         let now = __hostMonotonicTicks()
         if now < deadline or Swag.atomcmpxchg(&.purgeDeadline, deadline, 0) != deadline do
             return
+
+        // The front belongs to this thread alone, so only its own purge check can empty it.
+        if own and now >= delay do
+            .purgeFront(own, now - delay)
 
         .segmentMutex.lock()
         var segment: *AllocatorSegment? = .firstSegment
@@ -1146,35 +1179,33 @@ impl Allocator
         header.commitSize = AllocatorCommitGranularity
     }
 
+    // Header regions are page-aligned, so the page number spreads them over the shards.
+    mtd shardOf(header: *AllocatorHeader)->*AllocatorHeaderShard
+        => &.shards[(cast(u64, header) >> 12) % AllocatorHeaderShardCount]
+
     mtd linkAllocated(header: *AllocatorHeader)
     {
-        .headerMutex.lock()
-        defer .headerMutex.unlock()
+        let mutex = header.isTracked ? &.headerMutex : &.shardOf(header).mutex
+        let first = header.isTracked ? &.firstAlloc : &.shardOf(header).first
+        mutex.lock()
+        defer mutex.unlock()
         header.prev = null
-        header.next = header.isTracked ? .firstAlloc : .firstUntracked
+        header.next = first[]
         if header.next do
             header.next.prev = header
-        if header.isTracked do
-            .firstAlloc = header
-        else do
-            .firstUntracked = header
+        first[] = header
     }
 
     mtd unlinkAllocated(header: *AllocatorHeader)
     {
-        .headerMutex.lock()
-        defer .headerMutex.unlock()
-        if not header.prev
-        {
-            if header.isTracked do
-                .firstAlloc = header.next
-            else do
-                .firstUntracked = header.next
-        }
-        else
-        {
+        let mutex = header.isTracked ? &.headerMutex : &.shardOf(header).mutex
+        let first = header.isTracked ? &.firstAlloc : &.shardOf(header).first
+        mutex.lock()
+        defer mutex.unlock()
+        if not header.prev do
+            first[] = header.next
+        else do
             header.prev.next = header.next
-        }
 
         if header.next do
             header.next.prev = header.prev
@@ -1311,6 +1342,20 @@ impl Allocator
         // Read before taking the lock, which every thread cycling large blocks contends for.
         let now = __hostMonotonicTicks()
 
+        // A block under the front's size waits in the freeing thread's own front while it has room.
+        let heap = currentAllocatorThreadHeap()
+        if committed <= AllocatorBlockFrontMaxBytes and heap and heap.allocator == me and heap.retired == 0 and heap.frontCount < AllocatorBlockFrontCount
+        {
+            let entry = &heap.front[heap.frontCount]
+            entry.address   = cast(u64, address)
+            entry.reserved  = size
+            entry.committed = committed
+            entry.stamp     = 0
+            entry.freedAt   = now
+            heap.frontCount += 1
+            return
+        }
+
         .mutex.lock()
         while .cachedBlockCount != 0 and
               (.cachedBlockCount >= AllocatorBlockCacheMaxCount or .cachedBlockBytes + committed > budget)
@@ -1337,6 +1382,54 @@ impl Allocator
         .cachedBlockBytes += committed
         .cachedBlockCount += 1
         .mutex.unlock()
+    }
+
+    // Serves the block of the thread's front that fits 'size' best, by the cache's fit rule, or null.
+    #[Swag.Safety(.Overflow, false)]
+    mtd popFrontBlock(heap: *AllocatorThreadHeap, size: u64, blockSize: *u64, commitSize: *u64)->[*] u8?
+    {
+        let limit     = size > Swag.U64.Max / 2 ? Swag.U64.Max : size * 2
+        var best      = heap.frontCount
+        var bestSlack = limit - size + 1
+        for i in heap.frontCount
+        {
+            let slack = heap.front[i].reserved - size
+            if slack < bestSlack
+            {
+                best      = i
+                bestSlack = slack
+            }
+        }
+
+        if best == heap.frontCount do
+            return null
+
+        let entry = heap.front[best]
+        heap.frontCount  -= 1
+        heap.front[best] = heap.front[heap.frontCount]
+        blockSize[]  = entry.reserved
+        commitSize[] = entry.committed
+        return cast([*] u8, entry.address)
+    }
+
+    // Gives the front's blocks freed before 'before' back to the operating system; every block when
+    // 'before' is the largest tick.
+    mtd purgeFront(heap: *AllocatorThreadHeap, before: u64)
+    {
+        var i = 0'u32
+        while i < heap.frontCount
+        {
+            let entry = heap.front[i]
+            if entry.freedAt >= before
+            {
+                i += 1
+                continue
+            }
+
+            heap.frontCount  -= 1
+            heap.front[i]    = heap.front[heap.frontCount]
+            .osFree(cast(*void, entry.address), entry.committed)
+        }
     }
 
     // Gives every cached block back to the operating system. The caller holds the mutex.
@@ -1393,7 +1486,11 @@ impl Allocator
             {
                 let needed = allocSize
                 allocSize = largeBlockSize(needed)
-                base      = .popCachedBlock(allocSize, &allocSize, &commitSize)
+                let heap  = currentAllocatorThreadHeap()
+                if heap and heap.allocator == me and heap.retired == 0 do
+                    base = .popFrontBlock(heap, allocSize, &allocSize, &commitSize)
+                if not base do
+                    base = .popCachedBlock(allocSize, &allocSize, &commitSize)
                 if base and commitSize < needed
                 {
                     if allocatorOsCommit(cast(u64, base) + commitSize, needed - commitSize)
@@ -1473,7 +1570,6 @@ impl Allocator
         if not .diagnosticMode() and not .electricMode do
             header.blockSize = cast(u64, base) + commitSize - #sizeof(AllocatorFooter) - userAddr
 
-        atomicAddU64(&.headerCount, 1)
         atomicAddU64(&.headerBytes, header.blockSize)
         .linkAllocated(header)
 
@@ -1515,7 +1611,6 @@ impl Allocator
 
         .unlinkAllocated(header)
 
-        atomicSubU64(&.headerCount, 1)
         atomicSubU64(&.headerBytes, header.blockSize)
 
         if .fillFree do
@@ -1892,6 +1987,35 @@ impl Allocator
     // Statistics and teardown
     // ###################################################################################
 
+    // Counts the live header-path blocks, tracked and ordinary, under their list locks.
+    mtd liveHeaderCount()->u64
+    {
+        var count = 0'u64
+        .headerMutex.lock()
+        var tracked = .firstAlloc
+        while tracked
+        {
+            count   += 1
+            tracked = tracked.next
+        }
+
+        .headerMutex.unlock()
+        for &shard in .shards
+        {
+            shard.mutex.lock()
+            var scan = shard.first
+            while scan
+            {
+                count += 1
+                scan  = scan.next
+            }
+
+            shard.mutex.unlock()
+        }
+
+        return count
+    }
+
     // Returns the allocator's current memory usage.
     //
     // Counts are exact when no other thread modifies the allocator. Concurrent activity can make
@@ -1927,7 +2051,7 @@ impl Allocator
             segment = segment.nextSegment
         }
 
-        result.countAlloc += atomicGet(&.headerCount)
+        result.countAlloc += .liveHeaderCount()
         result.sizeAlloc  += atomicGet(&.headerBytes)
         result.countFree  += .quarantineCount
         result.sizeCached += .quarantineBytes
@@ -2010,6 +2134,8 @@ impl Allocator
 
         if not .diagnosticMode()
         {
+            if heap and heap.allocator == me do
+                .purgeFront(heap, Swag.U64.Max)
             .mutex.lock()
             .drainBlockCache()
             .mutex.unlock()
@@ -2049,11 +2175,13 @@ impl Allocator
 
         .segmentMutex.lock()
 
-        // Any heap still registered belongs to a thread that never came back. Its pages go with it.
+        // Any heap still registered belongs to a thread that never came back. Its pages and the
+        // blocks of its front go with it.
         while .firstHeap
         {
             let other = .firstHeap
             .unlinkHeap(other)
+            .purgeFront(other, Swag.U64.Max)
             .osFree(other, #sizeof(AllocatorThreadHeap))
         }
 
@@ -2105,11 +2233,14 @@ impl Allocator
             .osFree(header.allocAddr, header.commitSize)
         }
 
-        while .firstUntracked
+        for &shard in .shards
         {
-            let header = .firstUntracked
-            .unlinkAllocated(header)
-            .osFree(header.allocAddr, header.commitSize)
+            while shard.first
+            {
+                let header = shard.first
+                .unlinkAllocated(header)
+                .osFree(header.allocAddr, header.commitSize)
+            }
         }
 
         .hasElectricBlocks = false
@@ -2117,7 +2248,6 @@ impl Allocator
         // The callers hold the mutex.
         .drainBlockCache()
 
-        atomicSubU64(&.headerCount, atomicGet(&.headerCount))
         atomicSubU64(&.headerBytes, atomicGet(&.headerBytes))
     }
 

@@ -85,12 +85,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Next: profile a current `hello_build`, identify the runtime functions repeatedly lowered, and determine whether their relocations can be represented in a reusable artifact keyed by compiler build, runtime sources, configuration, and target.
 - Done when: a fresh and reused runtime artifact produce identical executables and the cache invalidates on every relevant input change; delete the entry if no safe reusable subset remains.
 - Related: compiler.core.003, compiler.core.004, compiler.core.006.
-### compiler.core.039 — Avoid repeated substitute-chain resolution during semantic analysis
-
-- Evidence: comparison lowering and payload metadata merging already reuse resolved values. Other high-frequency `SemaNodeView` callers may still resolve the same substitute chain repeatedly.
-- Next: profile a current module analysis that imports `core`, attribute repeated resolutions to callers, then choose call-site reuse or memoization only where the profile shows meaningful duplicate work.
-- Done when: a measured duplicate-resolution cost is removed without changing narrowing or constant semantics, or current profiling shows no worthwhile target and the entry is deleted.
-- Related: compiler.core.001.
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
 - Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as

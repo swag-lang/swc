@@ -922,6 +922,20 @@ namespace
         return Result::Continue;
     }
 
+    template<auto FoldConstant>
+    Result castExplicitBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        if (castRequest.kind != CastKind::Explicit)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+        if (castRequest.isConstantFolding())
+        {
+            if (!FoldConstant(sema, castRequest, dstTypeRef))
+                return Result::Error;
+        }
+
+        return Result::Continue;
+    }
 }
 
 bool Cast::isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType)
@@ -1012,30 +1026,12 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
 
 Result Cast::castBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castRequest.kind != CastKind::Explicit)
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-
-    if (castRequest.isConstantFolding())
-    {
-        if (!foldConstantBoolToIntLike(sema, castRequest, dstTypeRef))
-            return Result::Error;
-    }
-
-    return Result::Continue;
+    return castExplicitBool<foldConstantBoolToIntLike>(sema, castRequest, srcTypeRef, dstTypeRef);
 }
 
 Result Cast::castBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castRequest.kind != CastKind::Explicit)
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-
-    if (castRequest.isConstantFolding())
-    {
-        if (!foldConstantBoolToFloat(sema, castRequest, dstTypeRef))
-            return Result::Error;
-    }
-
-    return Result::Continue;
+    return castExplicitBool<foldConstantBoolToFloat>(sema, castRequest, srcTypeRef, dstTypeRef);
 }
 
 Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)

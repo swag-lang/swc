@@ -4,6 +4,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"

@@ -304,6 +304,7 @@ private:
     void        setReportArguments(Diagnostic& diag, TokenRef tokRef) const;
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     void        setReportSymbol(Diagnostic& diag, TokenRef tokRef) const;
+    void        setReportArgumentCount(Diagnostic& diag, TokenRef calleeRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast) const;
     Diagnostic  reportExpectedDoBlock(TokenRef tknRefAfterHeader);
     Diagnostic  reportUnexpectedDoBlock(TokenRef doTokRef);
     Diagnostic  reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId);

@@ -153,19 +153,16 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
-        // Fast path: when no large blocks have ever been allocated, the data lives entirely in
-        // the underlying PagedStore, whose reads are lock-free (atomically-published page snapshot,
-        // append-only storage). This avoids touching the per-segment shared_mutex on the hot read
-        // path, which otherwise serializes against every interning add()/addSpan() on the segment.
-        if (!hasLargeBlocks_.load(std::memory_order_acquire))
-            return reinterpret_cast<T*>(store_.ptr<std::byte>(ref));
-        const std::shared_lock lock(mutex_);
-        return reinterpret_cast<T*>(findPtrLocked(ref, static_cast<uint32_t>(sizeof(T))));
+        return const_cast<T*>(std::as_const(*this).ptr<T>(ref));
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
+        // Fast path: when no large blocks have ever been allocated, the data lives entirely in
+        // the underlying PagedStore, whose reads are lock-free (atomically-published page snapshot,
+        // append-only storage). This avoids touching the per-segment shared_mutex on the hot read
+        // path, which otherwise serializes against every interning add()/addSpan() on the segment.
         if (!hasLargeBlocks_.load(std::memory_order_acquire))
             return reinterpret_cast<const T*>(store_.ptr<std::byte>(ref));
         const std::shared_lock lock(mutex_);
@@ -181,7 +178,6 @@ private:
 
     uint32_t                        currentExtentLocked() const noexcept;
     std::pair<uint32_t, std::byte*> allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
-    std::byte*                      findPtrLocked(Ref ref, uint32_t size) noexcept;
     const std::byte*                findPtrLocked(Ref ref, uint32_t size) const noexcept;
     Ref                             findLargeBlockRefLocked(const void* ptr) const noexcept;
     bool                            findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;

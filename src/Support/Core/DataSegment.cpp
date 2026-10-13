@@ -13,19 +13,9 @@ namespace
         return ref >= block.offset && ref + size <= block.offset + block.size;
     }
 
-    std::byte* findLargeBlockPtr(std::vector<DataSegment::LargeBlock>& blocks, const Ref ref, const uint32_t size) noexcept
-    {
-        // Page-backed addresses precede these append-only, offset-ordered blocks.
-        if (ref < blocks.front().offset)
-            return nullptr;
-
-        const auto it    = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
-        auto&      block = *std::prev(it);
-        return containsLargeBlockRange(block, ref, size) ? block.storage.get() + (ref - block.offset) : nullptr;
-    }
-
     const std::byte* findLargeBlockPtr(const std::vector<DataSegment::LargeBlock>& blocks, const Ref ref, const uint32_t size) noexcept
     {
+        // Page-backed addresses precede these append-only, offset-ordered blocks.
         if (ref < blocks.front().offset)
             return nullptr;
 
@@ -406,20 +396,6 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
     if (zeroInit)
         std::memset(span.data(), 0, size);
     return {ref, span.data()};
-}
-
-std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) noexcept
-{
-    SWC_ASSERT(ref != INVALID_REF);
-
-    if (!largeBlocks_.empty())
-    {
-        if (std::byte* ptr = findLargeBlockPtr(largeBlocks_, ref, size))
-            return ptr;
-    }
-
-    SWC_ASSERT(ref + size <= store_.extentSize());
-    return store_.ptr<std::byte>(ref);
 }
 
 const std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) const noexcept

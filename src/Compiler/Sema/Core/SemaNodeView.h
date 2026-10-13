@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/Parser/Ast/AstNode.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
@@ -9,6 +8,7 @@ class Symbol;
 class Sema;
 class ConstantValue;
 class TypeInfo;
+struct AstNode;
 
 enum class SemaNodeViewPartE
 {

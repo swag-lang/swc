@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/JIT/JITExecManager.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaJob.h"

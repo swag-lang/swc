@@ -635,9 +635,8 @@ Diagnostic Parser::reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef)
     return diag;
 }
 
-Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast)
+void Parser::setReportArgumentCount(Diagnostic& diag, TokenRef calleeRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast) const
 {
-    Diagnostic diag = reportError(id, errorRef);
     setReportSymbol(diag, calleeRef);
     diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
     diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
@@ -645,19 +644,19 @@ Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef,
     expectedWhat += std::to_string(expectedCount);
     expectedWhat += expectedCount == 1 ? " argument" : " arguments";
     diag.addArgument(Diagnostic::ARG_WHAT, expectedWhat);
+}
+
+Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast)
+{
+    Diagnostic diag = reportError(id, errorRef);
+    setReportArgumentCount(diag, calleeRef, expectedCount, actualCount, atLeast);
     return diag;
 }
 
 Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast)
 {
     Diagnostic diag = reportError(id, errorRef);
-    setReportSymbol(diag, calleeRef);
-    diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
-    diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
-    Utf8 expectedWhat = atLeast ? Utf8("at least ") : Utf8{};
-    expectedWhat += std::to_string(expectedCount);
-    expectedWhat += expectedCount == 1 ? " argument" : " arguments";
-    diag.addArgument(Diagnostic::ARG_WHAT, expectedWhat);
+    setReportArgumentCount(diag, calleeRef, expectedCount, actualCount, atLeast);
     return diag;
 }
 

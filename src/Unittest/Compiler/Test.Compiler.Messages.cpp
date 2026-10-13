@@ -8,6 +8,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticBuilder.h"
@@ -23,22 +24,14 @@ namespace
         return 1ull << static_cast<uint32_t>(kind);
     }
 
-    bool isMessageWordCharacter(const char c)
-    {
-        return (c >= 'a' && c <= 'z') ||
-               (c >= 'A' && c <= 'Z') ||
-               (c >= '0' && c <= '9') ||
-               c == '_';
-    }
-
     bool containsMessageWord(const std::string_view message, const std::string_view word)
     {
         size_t pos = message.find(word);
         while (pos != std::string_view::npos)
         {
             const size_t end = pos + word.size();
-            if ((pos == 0 || !isMessageWordCharacter(message[pos - 1])) &&
-                (end == message.size() || !isMessageWordCharacter(message[end])))
+            if ((pos == 0 || !Utf8Helper::isAsciiWordCharacter(message[pos - 1])) &&
+                (end == message.size() || !Utf8Helper::isAsciiWordCharacter(message[end])))
                 return true;
             pos = message.find(word, pos + 1);
         }

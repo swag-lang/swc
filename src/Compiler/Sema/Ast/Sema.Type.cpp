@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Support/Report/Assert.h"
 
 #include "Compiler/Sema/Cast/Cast.h"

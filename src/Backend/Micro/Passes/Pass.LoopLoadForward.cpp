@@ -79,8 +79,10 @@ namespace
                 return true;
             }
 
+            if (!reg.isVirtual())
+                return false;
             const RegDefs* it = fn.defs.find(reg.packed);
-            if (!reg.isVirtual() || !it || it->count != 1)
+            if (!it || it->count != 1)
                 return false;
             const MicroInstr*        inst = fn.storage->ptr(it->ref);
             const MicroInstrOperand* ops  = inst ? inst->ops(*fn.operands) : nullptr;

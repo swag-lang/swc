@@ -166,9 +166,12 @@ namespace
 
         // A call directly inside a recursive component is repeated like a loop
         // body. Keep this name-based fact as a cost heuristic, never a type proof.
-        void markRecursiveCallees(AutoInlineNameMap<AutoInlineCallInfo>& callInfo) const
+        void markRecursiveCallees(AutoInlineNameMap<AutoInlineCallInfo>& callInfo)
         {
-            std::vector<bool> repeated(edges_.size(), false);
+            // Tarjan removed every node from its stack. Its membership bits are
+            // all clear and no longer queried, so reuse them for the callees.
+            SWC_ASSERT(stack_.empty());
+            auto& repeated = onStack_;
             for (uint32_t source = 0; source < edges_.size(); ++source)
                 if (cyclic_[source])
                     for (const uint32_t target : edges_[source])

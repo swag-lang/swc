@@ -167,21 +167,22 @@ namespace
             changed                    = true;
         }
 
-        while (changed && unresolvedInstructions)
+        if (!changed || !unresolvedInstructions)
+            return;
+
+        // Every phi is now named. Instruction values follow dominator order,
+        // so each remaining copy reads an earlier value or one of those phis.
+        // One sweep propagates every possible name; failed copies cannot become
+        // resolvable in a later sweep.
+        for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
         {
-            changed = false;
-            for (uint32_t valueId = 0; valueId < values.size(); ++valueId)
-            {
-                if (outFlags[valueId])
-                    continue;
-                CanonicalValue inferred;
-                if (!tryInferInstructionCanonical(inferred, context, valueId, values[valueId], outValues, outFlags))
-                    continue;
-                outValues[valueId] = inferred;
-                outFlags[valueId]  = 1;
-                --unresolvedInstructions;
-                changed = true;
-            }
+            if (outFlags[valueId])
+                continue;
+            CanonicalValue inferred;
+            if (!tryInferInstructionCanonical(inferred, context, valueId, values[valueId], outValues, outFlags))
+                continue;
+            outValues[valueId] = inferred;
+            outFlags[valueId]  = 1;
         }
     }
 

@@ -495,11 +495,11 @@ void Sanitizer::computeChainLiveness()
         return;
 
     const size_t          words = static_cast<size_t>(numStates) * liveWords_;
-    std::vector<uint64_t> useBits(words, 0);
     std::vector<uint64_t> defBits(words, 0);
+    chainLiveIn_.assign(words, 0);
     for (size_t s = 0; s < numStates; s++)
     {
-        uint64_t* use = useBits.data() + s * liveWords_;
+        uint64_t* use = chainLiveIn_.data() + s * liveWords_;
         uint64_t* def = defBits.data() + s * liveWords_;
         for (const uint32_t dense : chains[s].uses)
             use[dense / 64] |= 1ull << (dense % 64);
@@ -509,7 +509,8 @@ void Sanitizer::computeChainLiveness()
 
     // Backward fixpoint over the chains. State indices were handed out in instruction
     // order, so walking them in reverse visits most successors first.
-    chainLiveIn_.assign(words, 0);
+    // Live sets only grow. Seed the inputs with local uses and retain those bits
+    // during propagation instead of keeping a second, immutable use matrix.
     chainLiveOut_.assign(words, 0);
     bool changed = true;
     while (changed)
@@ -519,7 +520,6 @@ void Sanitizer::computeChainLiveness()
         {
             uint64_t*       in  = chainLiveIn_.data() + s * liveWords_;
             uint64_t*       out = chainLiveOut_.data() + s * liveWords_;
-            const uint64_t* use = useBits.data() + s * liveWords_;
             const uint64_t* def = defBits.data() + s * liveWords_;
             for (const uint32_t succ : chains[s].succStates)
             {
@@ -530,7 +530,7 @@ void Sanitizer::computeChainLiveness()
 
             for (uint32_t w = 0; w < liveWords_; w++)
             {
-                const uint64_t newIn = use[w] | (out[w] & ~def[w]);
+                const uint64_t newIn = in[w] | (out[w] & ~def[w]);
                 if (newIn != in[w])
                 {
                     in[w]   = newIn;
@@ -980,10 +980,11 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
     // The one MAY fact of the state: an address that escaped on either incoming path has
     // escaped here, so this set grows where every other one shrinks.
     from.escapedFrameObjects.forEach([&](const int64_t object, uint8_t) {
-        if (into.escapedFrameObjects.find(object))
+        uint8_t& escaped = into.escapedFrameObjects.getOrInsert(object);
+        if (escaped)
             return;
-        into.escapedFrameObjects.getOrInsert(object) = 1;
-        changed                                      = true;
+        escaped = 1;
+        changed = true;
     });
 
     if (!clearOnEmptyIntersection(into.aliasPtrSlots, from.aliasPtrSlots, changed))

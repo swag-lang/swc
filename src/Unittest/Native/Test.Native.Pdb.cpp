@@ -27,8 +27,11 @@ namespace
     constexpr uint32_t K_NODE_FORWARD     = 0x1000;
     constexpr uint32_t K_NODE_POINTER     = 0x1001;
     constexpr uint32_t K_NODE_FIELDS      = 0x1002;
-    constexpr uint32_t K_TYPE_INDEX_END   = 0x1004;
+    constexpr uint32_t K_HOLDER_FIELDS    = 0x1004;
+    constexpr uint32_t K_HOLDER           = 0x1005;
+    constexpr uint32_t K_TYPE_INDEX_END   = 0x1006;
     constexpr uint16_t K_NODE_SIZE        = 16;
+    constexpr uint16_t K_HOLDER_SIZE      = 24;
 
     bool writeFile(const fs::path& path, const ByteArray& bytes)
     {
@@ -96,6 +99,14 @@ namespace
         appendTypeRecord(records, K_LF_FIELDLIST, fields);
 
         appendTypeRecord(records, K_LF_STRUCTURE, structurePayload(2, 0, K_NODE_FIELDS, K_NODE_SIZE, "Node"));
+
+        // A member held by value names the forward declaration as well, which is what lets the
+        // linker keep one copy of a record whatever object defined the member's type.
+        ByteArray holderFields;
+        appendMember(holderFields, K_NODE_FORWARD, 0, "head");
+        appendMember(holderFields, K_T_INT4, K_NODE_SIZE, "count");
+        appendTypeRecord(records, K_LF_FIELDLIST, holderFields);
+        appendTypeRecord(records, K_LF_STRUCTURE, structurePayload(2, 0, K_HOLDER_FIELDS, K_HOLDER_SIZE, "Holder"));
         return records;
     }
 
@@ -206,6 +217,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     fn.lineBlocks.push_back(std::move(tailBlock));
     fn.locals.push_back({.name = "myLocal", .typeIndex = K_T_INT4, .frameOffset = 0x20, .cvRegister = cvRegRsp, .isParam = false});
     fn.locals.push_back({.name = "myNode", .typeIndex = K_NODE_POINTER, .frameOffset = 0x18, .cvRegister = cvRegRsp, .isParam = false});
+    fn.locals.push_back({.name = "myHolder", .typeIndex = K_HOLDER, .frameOffset = 0x30, .cvRegister = cvRegRsp, .isParam = false});
     dbg.functions.push_back(std::move(fn));
 
     LinkDebugGlobal global;
@@ -347,9 +359,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
             struct ScopeLocals
             {
-                bool  foundLocal = false;
-                ULONG nodeTypeId = 0;
-                bool  foundNode  = false;
+                bool  foundLocal   = false;
+                ULONG nodeTypeId   = 0;
+                bool  foundNode    = false;
+                ULONG holderTypeId = 0;
+                bool  foundHolder  = false;
             };
 
             ScopeLocals scope;
@@ -362,6 +376,11 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
                 {
                     found.foundNode  = true;
                     found.nodeTypeId = sym->TypeIndex;
+                }
+                if (name == "myHolder")
+                {
+                    found.foundHolder  = true;
+                    found.holderTypeId = sym->TypeIndex;
                 }
                 return TRUE;
             };
@@ -381,6 +400,29 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
                 fail("the forward declaration of Node did not resolve to its definition's size");
             else if (result == Result::Continue && (!SymGetTypeInfo(symHandle, modBase, pointee, TI_GET_CHILDRENCOUNT, &children) || children != 2))
                 fail("the forward declaration of Node did not resolve to its definition's fields");
+
+            // The by-value member names the forward declaration too, and reaches the definition.
+            if (result == Result::Continue && !scope.foundHolder)
+                fail("local variable myHolder was not enumerated in scope");
+            if (result == Result::Continue)
+            {
+                struct HolderChildren : TI_FINDCHILDREN_PARAMS
+                {
+                    ULONG extra[1] = {};
+                };
+                HolderChildren holderChildren{};
+                holderChildren.Count = 2;
+                ULONG   headType     = 0;
+                ULONG64 headLength   = 0;
+                if (!SymGetTypeInfo(symHandle, modBase, scope.holderTypeId, TI_GET_CHILDRENCOUNT, &children) || children != 2)
+                    fail("Holder did not expose its two members");
+                else if (!SymGetTypeInfo(symHandle, modBase, scope.holderTypeId, TI_FINDCHILDREN, &holderChildren))
+                    fail("Holder's members could not be enumerated");
+                else if (!SymGetTypeInfo(symHandle, modBase, holderChildren.ChildId[0], TI_GET_TYPEID, &headType))
+                    fail("Holder.head has no type");
+                else if (!SymGetTypeInfo(symHandle, modBase, headType, TI_GET_LENGTH, &headLength) || headLength != K_NODE_SIZE)
+                    fail("the forward declaration named by the by-value member Holder.head did not resolve to Node's size");
+            }
         }
     }
 

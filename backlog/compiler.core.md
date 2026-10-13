@@ -130,35 +130,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Next: profile a current module analysis that imports `core`, attribute repeated resolutions to callers, then choose call-site reuse or memoization only where the profile shows meaningful duplicate work.
 - Done when: a measured duplicate-resolution cost is removed without changing narrowing or constant semantics, or current profiling shows no worthwhile target and the entry is deleted.
 - Related: compiler.core.001, compiler.core.038.
-### compiler.core.020 — Concurrent type generation can corrupt declared-method traversal
-
-- Evidence: one multi-configuration test campaign reported mimalloc free-list corruption with a
-  stack through `appendImplFunctions`, `SymbolStruct::declaredMethods`, and generated type
-  processing. Snapshotting impl/interface lists and symbol maps under their locks, plus fixes to
-  attribute snapshots and lifecycle-pointer publication, stopped the observed corruption in 100
-  Release `core` rebuilds and 20 each of Release and DevMode `ogl` rebuilds. These runs do not
-  identify the original writer. The allocator now captures the reporting thread's stack.
-- Next: investigate the next recurrence from its captured stack; otherwise retire this lead only
-  after a parallel type-generation stress run over the standard library stays clean under both
-  compiler executables.
-- Done when: a recurrence is attributed and fixed with a regression, or the specified stress run
-  stays clean and the lead is retired.
-
-### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
-
-- Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer
-- Evidence: `swc tools/apps.swgs dm build swagscope --debug` (build 847) wrote a 12.2 MB PDB
-  whose TPI stream held 38,154 records, 5,178 of them `LF_STRUCTURE`, with `Surface` defined 28
-  times, `interface` 26, `Wnd` 24 and `Application` 22.
-- What remains: `LinkDebugMerger` already keeps one copy of each record once remapped, so the
-  copies archive members brought came from records that differed only by which index a pointer
-  named. With pointers now naming forward declarations those records should coincide, but no
-  linked `--debug` program with debug archives has been measured yet.
-- Next: build swagscope with `--debug` before and after this change and compare the PDB size,
-  the TPI record count and the number of `LF_STRUCTURE` records per name.
-- Done when: every structure has one definition per distinct layout in a linked PDB, the
-  `DebugInfo_*` and `Pdb_*` tests pass, and the swagscope `--debug` PDB shrinks accordingly.
-
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
 - Evidence: `PELinker::prepareImageLinkParallel` loads archives and builds the symbol table as
@@ -338,7 +309,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: independent components can progress on different workers, mutually recursive
   graphs publish no partial data, and identity, interface, and reflection tests pass under
   repeated parallel cold compilation.
-- Related: compiler.core.020, compiler.core.007.
+- Related: compiler.core.007.
 
 ### compiler.core.007 — Workspace front ends and code generation run serially
 

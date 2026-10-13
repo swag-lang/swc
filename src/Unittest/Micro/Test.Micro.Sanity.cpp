@@ -8,6 +8,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Unittest/Unittest.h"
@@ -17,14 +18,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runReleaseGuardSanity(TaskContext& ctx, MicroOpBits compareBits, bool copiedBoolean, bool narrowLoad)
+    Result runReleaseGuardSanity(TaskContext& ctx, MicroOpBits compareBits, bool copiedBoolean, bool narrowLoad, TypeRef storageTypeRef = TypeRef::invalid())
     {
         SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         function.setReturnTypeRef(ctx.typeMgr().typeVoid());
         SymbolVariable local(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-        local.setTypeRef(ctx.typeMgr().typeValuePtrVoid());
+        local.setTypeRef(storageTypeRef.isValid() ? storageTypeRef : ctx.typeMgr().typeValuePtrVoid());
         local.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
-        local.setCodeGenLocalSize(8);
+        local.setCodeGenLocalSize(static_cast<uint32_t>(local.type(ctx).sizeOf(ctx)));
         local.setOffset(0);
         function.addLocalVariable(ctx, &local);
 
@@ -299,6 +300,59 @@ SWC_TEST_BEGIN(MicroSanity_DoesNotAssumePointerBytesAreNonZero)
     SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, true, false));
     SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, false, true));
     SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, true, true));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_PreservesNestedFieldContractsAcrossReleaseGuards)
+{
+    auto* field = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    field->setTypeRef(ctx.typeMgr().typeValuePtrVoid());
+    auto* structure = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    structure->addField(field);
+    SWC_RESULT(structure->computeLayout(ctx));
+    const TypeRef structureType = ctx.typeMgr().addType(TypeInfo::makeStruct(structure));
+    structure->setTypeRef(structureType);
+    const std::array<uint64_t, 1> dimensions = {2};
+    const TypeRef                 arrayType  = ctx.typeMgr().addType(TypeInfo::makeArray(dimensions, structureType));
+    if (runReleaseGuardSanity(ctx, MicroOpBits::B64, false, false, arrayType) != Result::Error)
+        return Result::Error;
+    SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B8, false, false, arrayType));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_DoesNotInferNonNullFromUncertainFieldStorage)
+{
+    enum class Storage
+    {
+        Nullable,
+        Late,
+        Union,
+        Overlap,
+        PartialOverlap,
+    };
+    for (const Storage storage : {Storage::Nullable, Storage::Late, Storage::Union, Storage::Overlap, Storage::PartialOverlap})
+    {
+        auto* field = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        field->setTypeRef(storage == Storage::Nullable ? ctx.typeMgr().addType(TypeInfo::makeValuePointer(ctx.typeMgr().typeVoid(), TypeInfoFlagsE::Nullable)) : ctx.typeMgr().typeValuePtrVoid());
+        if (storage == Storage::Late)
+            field->addExtraFlag(SymbolVariableFlagsE::LateInit);
+        auto* structure = Symbol::make<SymbolStruct>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        structure->addField(field);
+        if (storage == Storage::Union)
+            structure->addExtraFlag(SymbolStructFlagsE::Union);
+        if (storage == Storage::Overlap || storage == Storage::PartialOverlap)
+        {
+            auto* other = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            other->setTypeRef(ctx.typeMgr().typeU64());
+            structure->addField(other);
+        }
+        SWC_RESULT(structure->computeLayout(ctx));
+        if (storage == Storage::Overlap || storage == Storage::PartialOverlap)
+            structure->fields().back()->setOffset(storage == Storage::PartialOverlap ? 4 : 0);
+        const TypeRef storageType = ctx.typeMgr().addType(TypeInfo::makeStruct(structure));
+        structure->setTypeRef(storageType);
+        SWC_RESULT(runReleaseGuardSanity(ctx, MicroOpBits::B64, false, false, storageType));
+    }
 }
 SWC_TEST_END()
 

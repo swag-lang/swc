@@ -11,6 +11,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Sanitizer/SanitizerCheck.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -115,6 +116,67 @@ bool Sanitizer::findLocalSlotExtents(int64_t offset, int64_t& outStart, uint64_t
     outStart = slot->start;
     outSize  = slot->size;
     return true;
+}
+
+const TypeInfo* Sanitizer::declaredPointerType(TypeRef typeRef, uint64_t offset) const
+{
+    while (typeRef.isValid())
+    {
+        const TypeInfo& declared  = ctx().typeMgr().get(typeRef);
+        const TypeInfo* unwrapped = declared.unwrapAliasEnumType(ctx());
+        const TypeInfo& type      = unwrapped ? *unwrapped : declared;
+        if (type.isStruct())
+        {
+            const SymbolStruct& structure = type.payloadSymStruct();
+            if (structure.isUnion())
+                return nullptr;
+
+            const SymbolVariable* selected = nullptr;
+            for (const SymbolVariable* field : structure.fields())
+            {
+                const uint64_t fieldSize = field->type(ctx()).sizeOf(ctx());
+                if (!fieldSize)
+                    continue;
+                if (offset < field->offset())
+                {
+                    if (field->offset() - offset < sizeof(uint64_t))
+                        return nullptr;
+                    continue;
+                }
+                if (offset - field->offset() >= fieldSize)
+                    continue;
+                // Overlapping fields cannot identify the active storage type.
+                if (selected || fieldSize - (offset - field->offset()) < sizeof(uint64_t) || field->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                    return nullptr;
+                selected = field;
+            }
+            if (!selected)
+                return nullptr;
+            offset -= selected->offset();
+            typeRef = selected->typeRef();
+            continue;
+        }
+        if (type.isArray())
+        {
+            const TypeInfo& element     = ctx().typeMgr().get(type.payloadArrayElemTypeRef());
+            const uint64_t  elementSize = element.sizeOf(ctx());
+            if (!elementSize || offset >= type.sizeOf(ctx()))
+                return nullptr;
+            offset %= elementSize;
+            typeRef = element.typeRef();
+            continue;
+        }
+        return offset == 0 && type.isPointerOrReference() ? &type : nullptr;
+    }
+    return nullptr;
+}
+
+const TypeInfo* Sanitizer::stackSlotPointerType(const int64_t slot) const
+{
+    const LocalSlotExtent* extent = findLocalSlot(slot);
+    if (!extent || !extent->sym || extent->sym->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+        return nullptr;
+    return declaredPointerType(extent->sym->typeRef(), static_cast<uint64_t>(slot - extent->start));
 }
 
 void Sanitizer::computeFunctionProperties()
@@ -1514,19 +1576,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 // values (including an unsafe zero) ahead of that type information.
                 if (needsReleaseProvenance_ && loadBits == 64 && info.value.kind == SanitizerValueKind::Unknown)
                 {
-                    const LocalSlotExtent* extent = findLocalSlot(slot);
-                    if (extent && extent->start == slot && extent->sym)
-                    {
-                        const TypeRef typeRef = extent->sym->typeRef();
-                        if (typeRef.isValid())
-                        {
-                            const TypeInfo& declaredType  = ctx().typeMgr().get(typeRef);
-                            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx());
-                            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-                            if (type.isAnyPointer() && !type.isNullable())
-                                info.value = SanitizerValue::makeNonZero();
-                        }
-                    }
+                    const TypeInfo* type = stackSlotPointerType(slot);
+                    if (type && type->isAnyPointer() && !type->isNullable())
+                        info.value = SanitizerValue::makeNonZero();
                 }
 
                 if (info.value.isConstant() && extension)
@@ -1564,6 +1616,19 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             {
                 locationInfo.hasOriginLocation = true;
                 locationInfo.originLocation    = location;
+                // A field loaded through a named pointer has the same declared
+                // contract as a field in the frame, even after inline widening.
+                const MicroOpBits loadBits = ops[extension ? 3 : 2].opBits;
+                if (needsReleaseProvenance_ && loadBits == MicroOpBits::B64 && location.fromSlot && location.offset >= 0)
+                {
+                    const TypeInfo* ownerType = stackSlotPointerType(location.slot);
+                    if (ownerType && ownerType->isPointerOrReference())
+                    {
+                        const TypeInfo* type = declaredPointerType(ownerType->payloadTypeRef(), static_cast<uint64_t>(location.offset));
+                        if (type && type->isAnyPointer() && !type->isNullable())
+                            locationInfo.value = SanitizerValue::makeNonZero();
+                    }
+                }
                 if (const auto* released = state.findFreedPtrLocation(location))
                 {
                     locationInfo.releasedPointer = true;

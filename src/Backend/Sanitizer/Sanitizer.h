@@ -19,6 +19,7 @@ class Symbol;
 class SymbolFunction;
 class SymbolVariable;
 class TaskContext;
+class TypeInfo;
 
 // The sanitizer engine: a path-sensitive "must-be-zero" abstract-interpretation
 // data-flow over the Micro control-flow graph, shared by all checks.
@@ -111,8 +112,10 @@ private:
 
     // Compute properties that require a full instruction scan: registers defined exactly
     // once, and whether the stack-base register is mutated in place.
-    void computeFunctionProperties();
-    bool hasSingleDefinition(MicroReg reg) const;
+    void            computeFunctionProperties();
+    bool            hasSingleDefinition(MicroReg reg) const;
+    const TypeInfo* declaredPointerType(TypeRef typeRef, uint64_t offset) const;
+    const TypeInfo* stackSlotPointerType(int64_t slot) const;
 
     // A stack address consumed by anything other than an access it is the base of: the
     // object it names becomes reachable through a pointer for the rest of the path.

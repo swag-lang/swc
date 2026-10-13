@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Debug/SymbolTable.h"
+#include "Backend/BinaryPatch.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -37,13 +38,6 @@ namespace
         ByteArray                          bytes;
         std::unordered_map<Utf8, uint32_t> offsets;
     };
-
-    uint32_t readU32(const std::span<const std::byte> bytes, const size_t offset)
-    {
-        uint32_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
-    }
 
     Utf8 readString(const std::span<const std::byte> bytes, const uint32_t offset)
     {
@@ -115,11 +109,11 @@ void SymbolTable::build(ByteArray& outBytes, std::vector<Relocation>& outRelocat
 
 bool SymbolTable::read(std::vector<Entry>& outEntries, const std::span<const std::byte> bytes, const std::span<const Relocation> relocations)
 {
-    if (bytes.size() < HEADER_SIZE || readU32(bytes, 0) != MAGIC || readU32(bytes, K_HEADER_VERSION) != VERSION_PLAIN)
+    if (bytes.size() < HEADER_SIZE || BinaryPatch::readU32(bytes, 0) != MAGIC || BinaryPatch::readU32(bytes, K_HEADER_VERSION) != VERSION_PLAIN)
         return false;
 
-    const uint32_t count    = readU32(bytes, K_HEADER_COUNT);
-    const uint32_t blobBase = readU32(bytes, K_HEADER_STRINGS);
+    const uint32_t count    = BinaryPatch::readU32(bytes, K_HEADER_COUNT);
+    const uint32_t blobBase = BinaryPatch::readU32(bytes, K_HEADER_STRINGS);
     if (HEADER_SIZE + static_cast<uint64_t>(count) * ENTRY_SIZE > blobBase || blobBase > bytes.size())
         return false;
 
@@ -139,10 +133,10 @@ bool SymbolTable::read(std::vector<Entry>& outEntries, const std::span<const std
 
         Entry entry;
         entry.symbolName = *target->second;
-        entry.size       = readU32(bytes, entryOffset + K_ENTRY_SIZE);
-        entry.name       = readString(bytes, readU32(bytes, entryOffset + K_ENTRY_NAME));
-        entry.file       = readString(bytes, readU32(bytes, entryOffset + K_ENTRY_FILE));
-        entry.line       = readU32(bytes, entryOffset + K_ENTRY_LINE);
+        entry.size       = BinaryPatch::readU32(bytes, entryOffset + K_ENTRY_SIZE);
+        entry.name       = readString(bytes, BinaryPatch::readU32(bytes, entryOffset + K_ENTRY_NAME));
+        entry.file       = readString(bytes, BinaryPatch::readU32(bytes, entryOffset + K_ENTRY_FILE));
+        entry.line       = BinaryPatch::readU32(bytes, entryOffset + K_ENTRY_LINE);
         entries.push_back(std::move(entry));
     }
 

@@ -56,11 +56,6 @@ namespace
         std::u16string value;
     };
 
-    bool hasRange(const ByteArray& bytes, const size_t offset, const size_t size)
-    {
-        return bytes.containsRange(offset, size);
-    }
-
     bool resourceTreeNodeLess(const ResourceTreeNode& lhs, const ResourceTreeNode& rhs)
     {
         return lhs.id < rhs.id;
@@ -68,7 +63,7 @@ namespace
 
     bool tryReadU16(uint16_t& outValue, const ByteArray& bytes, const size_t offset)
     {
-        if (!hasRange(bytes, offset, sizeof(uint16_t)))
+        if (!bytes.containsRange(offset, sizeof(uint16_t)))
             return false;
         outValue = bytes.readLe16(offset);
         return true;
@@ -76,15 +71,10 @@ namespace
 
     bool tryReadU32(uint32_t& outValue, const ByteArray& bytes, const size_t offset)
     {
-        if (!hasRange(bytes, offset, sizeof(uint32_t)))
+        if (!bytes.containsRange(offset, sizeof(uint32_t)))
             return false;
         outValue = bytes.readLe32(offset);
         return true;
-    }
-
-    void writeU16(ByteArray& bytes, const size_t offset, const uint16_t value)
-    {
-        bytes.writeLe16(offset, value);
     }
 
     void appendUtf16CodePoint(std::u16string& out, uint32_t cp)
@@ -197,7 +187,7 @@ namespace
     {
         const uint32_t length = static_cast<uint32_t>(bytes.size()) - offset;
         SWC_ASSERT(length <= 0xFFFF);
-        writeU16(bytes, offset, static_cast<uint16_t>(length));
+        bytes.writeLe16(offset, static_cast<uint16_t>(length));
     }
 
     void appendVersionStringBlock(ByteArray& bytes, const VersionString& value)
@@ -332,7 +322,7 @@ namespace
             return failInvalidIcon(outDiag, config, "file is not a Windows icon");
         if (count == 0)
             return failInvalidIcon(outDiag, config, "icon contains no images");
-        if (!hasRange(bytes, 6, static_cast<size_t>(count) * 16))
+        if (!bytes.containsRange(6, static_cast<size_t>(count) * 16))
             return failInvalidIcon(outDiag, config, "ICO directory is truncated");
 
         outEntries.reserve(count);
@@ -348,7 +338,7 @@ namespace
                 return failInvalidIcon(outDiag, config, "ICO directory entry is truncated");
             if (entry.reserved != 0)
                 return failInvalidIcon(outDiag, config, "ICO directory entry has a nonzero reserved byte");
-            if (!hasRange(bytes, entry.imageOffset, entry.bytesInRes))
+            if (!bytes.containsRange(entry.imageOffset, entry.bytesInRes))
                 return failInvalidIcon(outDiag, config, "ICO image data is out of bounds");
 
             entry.resourceId = static_cast<uint16_t>(index + 1);

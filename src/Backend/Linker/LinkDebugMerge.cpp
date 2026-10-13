@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/LinkDebugMerge.h"
+#include "Backend/BinaryPatch.h"
 #include "Backend/Debug/CodeViewLeaf.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
@@ -79,22 +80,6 @@ namespace
         return {reinterpret_cast<const std::byte*>(record.data()), record.size()};
     }
 
-    uint16_t readU16(const std::span<const std::byte> bytes, const size_t offset)
-    {
-        SWC_ASSERT(offset + sizeof(uint16_t) <= bytes.size());
-        uint16_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
-    }
-
-    uint32_t readU32(const std::span<const std::byte> bytes, const size_t offset)
-    {
-        SWC_ASSERT(offset + sizeof(uint32_t) <= bytes.size());
-        uint32_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
-    }
-
     // Reads a NUL-terminated name; a name the span cuts short ends with the span.
     std::string_view readName(const std::span<const std::byte> bytes, const size_t offset)
     {
@@ -117,7 +102,7 @@ namespace
         if (offset + sizeof(uint32_t) > ioRecord.size())
             return false;
 
-        uint32_t index = readU32(asBytes(ioRecord), offset);
+        uint32_t index = BinaryPatch::readU32(asBytes(ioRecord), offset);
         if (index < K_FIRST_TYPE_INDEX)
             return true;
 
@@ -155,7 +140,7 @@ namespace
             if (pos + K_FIELD_INDEX_SIZE > bytes.size())
                 return false;
 
-            const uint16_t leaf = readU16(bytes, pos);
+            const uint16_t leaf = BinaryPatch::readU16(bytes, pos);
             if (!remapTypeField(ioRecord, pos + 4, imageIndices))
                 return false;
 
@@ -204,7 +189,7 @@ namespace
             {
                 if (ioRecord.size() < K_TYPE_ARGLIST_ARGS)
                     return false;
-                const uint32_t count = readU32(asBytes(ioRecord), K_RECORD_HEADER);
+                const uint32_t count = BinaryPatch::readU32(asBytes(ioRecord), K_RECORD_HEADER);
                 for (uint32_t i = 0; i < count; ++i)
                 {
                     if (!remapTypeField(ioRecord, K_TYPE_ARGLIST_ARGS + i * sizeof(uint32_t), imageIndices))
@@ -232,14 +217,14 @@ namespace
     std::vector<Subsection> readSubsections(const std::span<const std::byte> section)
     {
         std::vector<Subsection> result;
-        if (section.size() < sizeof(uint32_t) || readU32(section, 0) != K_CV_SIGNATURE_C13)
+        if (section.size() < sizeof(uint32_t) || BinaryPatch::readU32(section, 0) != K_CV_SIGNATURE_C13)
             return result;
 
         size_t pos = sizeof(uint32_t);
         while (pos + K_SUBSECTION_HEADER <= section.size())
         {
-            const uint32_t kind    = readU32(section, pos);
-            const size_t   length  = readU32(section, pos + 4);
+            const uint32_t kind    = BinaryPatch::readU32(section, pos);
+            const size_t   length  = BinaryPatch::readU32(section, pos + 4);
             const size_t   payload = pos + K_SUBSECTION_HEADER;
             if (payload + length > section.size())
                 break;
@@ -289,7 +274,7 @@ LinkDebugMerger::LinkDebugMerger(LinkDebugInfo& debugInfo) :
     uint32_t                         nextIndex = K_FIRST_TYPE_INDEX;
     for (size_t pos = 0; pos + sizeof(uint16_t) <= records.size();)
     {
-        const size_t size = sizeof(uint16_t) + readU16(records, pos);
+        const size_t size = sizeof(uint16_t) + BinaryPatch::readU16(records, pos);
         typeIndices_.try_emplace(std::string(reinterpret_cast<const char*>(records.data() + pos), size), nextIndex++);
         pos += size;
     }
@@ -328,7 +313,7 @@ bool LinkDebugMerger::appendObject(const CoffObject& object, const Utf8& compila
 
 bool LinkDebugMerger::mergeTypes(ObjectTypes& outTypes, const std::span<const std::byte> section)
 {
-    if (section.size() < sizeof(uint32_t) || readU32(section, 0) != K_CV_TYPE_SIGNATURE)
+    if (section.size() < sizeof(uint32_t) || BinaryPatch::readU32(section, 0) != K_CV_TYPE_SIGNATURE)
         return false;
 
     uint32_t nextIndex = debugInfo_->tpiIndexEnd;
@@ -338,8 +323,8 @@ bool LinkDebugMerger::mergeTypes(ObjectTypes& outTypes, const std::span<const st
         if (pos + K_RECORD_HEADER > section.size())
             return false;
 
-        const size_t   size = sizeof(uint16_t) + readU16(section, pos);
-        const uint16_t kind = readU16(section, pos + sizeof(uint16_t));
+        const size_t   size = sizeof(uint16_t) + BinaryPatch::readU16(section, pos);
+        const uint16_t kind = BinaryPatch::readU16(section, pos + sizeof(uint16_t));
         if (pos + size > section.size())
             return false;
 
@@ -353,7 +338,7 @@ bool LinkDebugMerger::mergeTypes(ObjectTypes& outTypes, const std::span<const st
             {
                 if (!remapTypeField(record, K_TYPE_FUNC_ID_TYPE, outTypes.imageIndices))
                     return false;
-                outTypes.procedureTypes.emplace(memberIndex, readU32(asBytes(record), K_TYPE_FUNC_ID_TYPE));
+                outTypes.procedureTypes.emplace(memberIndex, BinaryPatch::readU32(asBytes(record), K_TYPE_FUNC_ID_TYPE));
             }
 
             outTypes.imageIndices.push_back(0);
@@ -417,11 +402,11 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
     std::string_view                 functionSymbol;
     for (size_t pos = 0; pos + K_RECORD_HEADER <= records.size();)
     {
-        const size_t size = sizeof(uint16_t) + readU16(records, pos);
+        const size_t size = sizeof(uint16_t) + BinaryPatch::readU16(records, pos);
         if (pos + size > records.size())
             return;
 
-        const uint16_t                   kind   = readU16(records, pos + sizeof(uint16_t));
+        const uint16_t                   kind   = BinaryPatch::readU16(records, pos + sizeof(uint16_t));
         const std::span<const std::byte> record = records.subspan(pos, size);
         const uint32_t                   offset = sectionOffset + static_cast<uint32_t>(pos);
         pos += size;
@@ -435,12 +420,12 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
                 if (record.size() < K_PROC_NAME || target == symbols.targets.end())
                     return;
 
-                const auto procedure = types.procedureTypes.find(readU32(record, K_PROC_TYPE));
+                const auto procedure = types.procedureTypes.find(BinaryPatch::readU32(record, K_PROC_TYPE));
                 function.emplace();
                 function->symbolName    = *target->second;
                 function->displayName   = Utf8(readName(record, K_PROC_NAME));
                 function->objIndex      = symbols.compiland;
-                function->codeSize      = readU32(record, K_PROC_CODE_SIZE);
+                function->codeSize      = BinaryPatch::readU32(record, K_PROC_CODE_SIZE);
                 function->procTypeIndex = procedure == types.procedureTypes.end() ? 0 : procedure->second;
                 functionSymbol          = target->second->view();
                 break;
@@ -449,18 +434,18 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
             case K_S_FRAMEPROC:
                 if (!function || record.size() < K_FRAMEPROC_SIZE)
                     break;
-                function->frameSize      = readU32(record, K_RECORD_HEADER);
-                function->frameToCodeReg = readU16(record, K_FRAMEPROC_BASE_REG);
-                function->frameProcFlags = readU32(record, K_FRAMEPROC_FLAGS);
+                function->frameSize      = BinaryPatch::readU32(record, K_RECORD_HEADER);
+                function->frameToCodeReg = BinaryPatch::readU16(record, K_FRAMEPROC_BASE_REG);
+                function->frameProcFlags = BinaryPatch::readU32(record, K_FRAMEPROC_FLAGS);
                 break;
 
             case K_S_REGREL32:
                 if (!function || record.size() < K_REGREL_NAME)
                     break;
                 function->locals.push_back({.name        = Utf8(readName(record, K_REGREL_NAME)),
-                                            .typeIndex   = imageTypeIndex(types.imageIndices, readU32(record, K_REGREL_TYPE)),
-                                            .frameOffset = static_cast<int32_t>(readU32(record, K_RECORD_HEADER)),
-                                            .cvRegister  = readU16(record, K_REGREL_REGISTER)});
+                                            .typeIndex   = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_REGREL_TYPE)),
+                                            .frameOffset = static_cast<int32_t>(BinaryPatch::readU32(record, K_RECORD_HEADER)),
+                                            .cvRegister  = BinaryPatch::readU16(record, K_REGREL_REGISTER)});
                 break;
 
             case K_S_PROC_ID_END:
@@ -481,9 +466,9 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
 
                 LinkDebugGlobal global;
                 global.symbolName    = *target->second;
-                global.sectionOffset = readU32(record, K_DATA_OFFSET);
+                global.sectionOffset = BinaryPatch::readU32(record, K_DATA_OFFSET);
                 global.displayName   = Utf8(readName(record, K_DATA_NAME));
-                global.typeIndex     = imageTypeIndex(types.imageIndices, readU32(record, K_RECORD_HEADER));
+                global.typeIndex     = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_RECORD_HEADER));
                 global.isPublic      = kind == K_S_GDATA32;
                 debugInfo_->globals.push_back(std::move(global));
                 break;
@@ -494,7 +479,7 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
                 if (record.size() < K_UDT_NAME)
                     break;
                 Utf8           name      = Utf8(readName(record, K_UDT_NAME));
-                const uint32_t typeIndex = imageTypeIndex(types.imageIndices, readU32(record, K_RECORD_HEADER));
+                const uint32_t typeIndex = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_RECORD_HEADER));
                 if (typeIndex && udts_.emplace(name, typeIndex).second)
                     debugInfo_->udts.push_back({.name = std::move(name), .typeIndex = typeIndex});
                 break;
@@ -518,9 +503,9 @@ void LinkDebugMerger::mergeLines(ObjectSymbols& symbols, const std::span<const s
 
     for (size_t pos = K_LINES_HEADER_SIZE; pos + K_LINES_BLOCK_SIZE <= lines.size();)
     {
-        const uint32_t checksumOffset = readU32(lines, pos);
-        const size_t   count          = readU32(lines, pos + 4);
-        const size_t   blockSize      = readU32(lines, pos + 8);
+        const uint32_t checksumOffset = BinaryPatch::readU32(lines, pos);
+        const size_t   count          = BinaryPatch::readU32(lines, pos + 4);
+        const size_t   blockSize      = BinaryPatch::readU32(lines, pos + 8);
         if (blockSize < K_LINES_BLOCK_SIZE + count * K_LINE_ENTRY_SIZE || pos + blockSize > lines.size())
             return;
 
@@ -531,8 +516,8 @@ void LinkDebugMerger::mergeLines(ObjectSymbols& symbols, const std::span<const s
         for (size_t i = 0; i < count; ++i)
         {
             const size_t entry = pos + K_LINES_BLOCK_SIZE + i * K_LINE_ENTRY_SIZE;
-            block.codeOffsets.push_back(readU32(lines, entry));
-            block.lines.push_back(readU32(lines, entry + 4) & K_CV_LINE_MASK);
+            block.codeOffsets.push_back(BinaryPatch::readU32(lines, entry));
+            block.lines.push_back(BinaryPatch::readU32(lines, entry + 4) & K_CV_LINE_MASK);
         }
 
         LinkDebugFunction& function = debugInfo_->functions[owner->second];
@@ -553,7 +538,7 @@ uint32_t LinkDebugMerger::imageFileIndex(ObjectSymbols& symbols, const uint32_t 
     if (checksumOffset + K_CHECKSUM_HEADER_SIZE <= symbols.checksums.size())
     {
         const size_t checksumSize = static_cast<uint8_t>(symbols.checksums[checksumOffset + 4]);
-        file.path                 = Utf8(readName(symbols.strings, readU32(symbols.checksums, checksumOffset)));
+        file.path                 = Utf8(readName(symbols.strings, BinaryPatch::readU32(symbols.checksums, checksumOffset)));
         if (checksumOffset + K_CHECKSUM_HEADER_SIZE + checksumSize <= symbols.checksums.size())
         {
             const auto checksum = symbols.checksums.subspan(checksumOffset + K_CHECKSUM_HEADER_SIZE, checksumSize);

@@ -16,7 +16,9 @@ const AllocatorUnitsPerSegment = cast(u32, (AllocatorSegmentSize >> AllocatorPag
 
 // Small classes get one 64 KiB unit per page, medium classes get eight.
 //
-// Both hold at least eight blocks, which is what keeps the page table's cost per block negligible.
+// Both hold at least eight blocks, which is what keeps the page table's cost per block negligible. A
+// medium page commits its units one at a time, as its blocks need them, so a class whose blocks are
+// large does not commit half a mebibyte for its first block.
 const AllocatorSmallUnitShift  = 0'u32
 const AllocatorMediumUnitShift = 3'u32
 
@@ -61,6 +63,9 @@ struct AllocatorPage
     freeList: u64
     key:      u64
 
+    // The block area: 'areaEnd' is the end of the last whole block the committed part of the page
+    // holds, which the slow path moves as it commits more units, so the inlined fast path only ever
+    // compares against it.
     areaStart: u64
     areaEnd:   u64
     carved:    u64
@@ -76,6 +81,10 @@ struct AllocatorPage
     classIndex: u8
     unitIndex:  u8
     state:      AllocatorPageState
+
+    // Bytes committed from the page's commit start. Kept while the page is idle, so that reusing it
+    // commits nothing; zero once its units are decommitted.
+    committed: u32
 
     ownerHeap: *AllocatorThreadHeap?
     nextPage:  *AllocatorPage?
@@ -274,15 +283,9 @@ impl AllocatorPage
     // The block area of page 'index', which starts after the segment header for the first page.
     mtd setup(segment: *AllocatorSegment, index: u32, classIndex: u32, blockSize: u32)
     {
-        let segmentBase = cast(u64, segment)
-        let unitIndex   = index << segment.unitShift
-        var start       = segmentBase + cast(u64, unitIndex) * AllocatorPageSize
-        let limit       = start + (cast(u64, 1) << segment.unitShift) * AllocatorPageSize
-
-        if start < segmentBase + AllocatorSegmentHeaderBytes do
-            start = segmentBase + AllocatorSegmentHeaderBytes
-
-        let blocks = (limit - start) / cast(u64, blockSize)
+        let unitIndex = index << segment.unitShift
+        let start     = segment.pageCommitStart(index)
+        let blocks    = cast(u64, .committed) / cast(u64, blockSize)
 
         .freeList   = 0
         .remoteFree = 0
@@ -371,6 +374,31 @@ impl AllocatorPage
     }
 
     mtd capacityBytes()->u64 => .areaEnd - .areaStart
+
+    // Commits the next units of the page so that one more block fits, and reports whether it did.
+    //
+    // Only the owner calls this, from its slow path, once the fast path found no block to carve. Other
+    // threads read 'areaEnd' to validate the addresses they free, which only ever name blocks carved
+    // after the store they see.
+    mtd extendCommit()->bool
+    {
+        let segment = allocatorSegmentOf(me)
+        let index   = cast(u32, .unitIndex) >> segment.unitShift
+        let start   = segment.pageCommitStart(index)
+        let pageEnd = segment.pageCommitEnd(index)
+        let current = start + cast(u64, .committed)
+        if current >= pageEnd do
+            return false
+
+        let needed = .carved + cast(u64, .blockSize)
+        let target = Swag.min(pageEnd, (needed + AllocatorPageSize - 1) & ~(AllocatorPageSize - 1))
+        if not allocatorOsCommit(current, target - current) do
+            return false
+
+        .committed = cast(u32, target - start)
+        .areaEnd   = start + ((target - start) / cast(u64, .blockSize)) * cast(u64, .blockSize)
+        return true
+    }
 
     mtd lockRemote()
     {
@@ -626,19 +654,26 @@ impl AllocatorSegment
                 continue
             }
 
+            // An idle page is still committed as far as it was; a fresh one commits its first unit
+            // only, and a medium page commits the rest as its blocks need them.
+            let page  = &.pages[index]
             let start = .pageCommitStart(index)
-            let end   = .pageCommitEnd(index)
             if .takeIdleBit(bit)
             {
-                atomicSubU64(&g_AllocatorIdleBytes, end - start)
+                atomicSubU64(&g_AllocatorIdleBytes, cast(u64, page.committed))
             }
-            elif not allocatorOsCommit(start, end - start)
+            else
             {
-                .clearPageBit(bit)
-                return null
+                let first = Swag.min(.pageCommitEnd(index), (start & ~(AllocatorPageSize - 1)) + AllocatorPageSize)
+                if not allocatorOsCommit(start, first - start)
+                {
+                    .clearPageBit(bit)
+                    return null
+                }
+
+                page.committed = cast(u32, first - start)
             }
 
-            let page = &.pages[index]
             page.setup(me, index, classIndex, blockSize)
             return page
         }
@@ -654,18 +689,22 @@ impl AllocatorSegment
         Swag.assert(page.used == 0)
         let index = page.unitIndex >> .unitShift
         let bit   = 1'u64 << index
-        let start = .pageCommitStart(index)
-        let size  = .pageCommitEnd(index) - start
+        let size  = cast(u64, page.committed)
 
         page.state     = .Free
         page.ownerHeap = null
         page.freeList  = 0
         page.carved    = page.areaStart
 
-        if allocatorReserveIdle(size) do
+        if allocatorReserveIdle(size)
+        {
             .setIdleBit(bit)
-        else do
-            allocatorOsDecommit(start, size)
+        }
+        else
+        {
+            allocatorOsDecommit(.pageCommitStart(index), size)
+            page.committed = 0
+        }
 
         .clearPageBit(bit)
     }
@@ -694,10 +733,11 @@ impl AllocatorSegment
 
             if .takeIdleBit(bit)
             {
-                let start = .pageCommitStart(index)
-                let size  = .pageCommitEnd(index) - start
+                let page = &.pages[index]
+                let size = cast(u64, page.committed)
                 atomicSubU64(&g_AllocatorIdleBytes, size)
-                allocatorOsDecommit(start, size)
+                allocatorOsDecommit(.pageCommitStart(index), size)
+                page.committed = 0
             }
 
             .clearPageBit(bit)

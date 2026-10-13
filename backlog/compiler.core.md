@@ -480,7 +480,7 @@ the shared memory budget.
 - Evidence: parallel compiler jobs retain high-water allocations across semantic analysis, code generation, and the Micro pipeline. The current peak and largest retained owners need a fresh measurement.
 - Next: measure peak memory for a six-worker `core` DevMode rebuild and a representative hello build, then attribute the largest retained allocations before selecting one reduction.
 - Done when: the campaign publishes host-normalized memory limits, every selected workload stays within them, and a regression report names the responsible subsystem.
-- Related: compiler.core.004, compiler.core.007, runtime.allocator.017.
+- Related: compiler.core.004, compiler.core.007.
 ### compiler.core.057 — The lazy-body completion race has no deterministic regression
 
 - Area: compiler/semantic analysis, lazy bodies of generic-instance, imported and runtime functions.

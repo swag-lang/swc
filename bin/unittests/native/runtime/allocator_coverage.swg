@@ -143,10 +143,13 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(page.isBlockAddress(cast(u64, address)))
         Swag.assert(page.state == AllocatorPageState.Owned)
 
-        // Medium classes take a page eight units wide so that they still hold several blocks.
+        // Medium classes take a page eight units wide so that they still hold several blocks,
+        // committed one unit at a time: the first block of a class commits no more than a unit.
         let expectedShift = i >= AllocatorMediumFirstClass ? AllocatorMediumUnitShift : AllocatorSmallUnitShift
-        Swag.assert(allocatorSegmentOf(page).unitShift == expectedShift)
-        Swag.assert(page.capacityBytes() / page.blockSize >= 4)
+        let segment       = allocatorSegmentOf(page)
+        Swag.assert(segment.unitShift == expectedShift)
+        Swag.assert((AllocatorPageSize << segment.unitShift) / page.blockSize >= 4)
+        Swag.assert(page.committed <= 2 * AllocatorPageSize)
 
         freeOne(itf, address)
     }

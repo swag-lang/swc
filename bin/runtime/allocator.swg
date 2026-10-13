@@ -973,6 +973,8 @@ impl Allocator
             let next = scan.nextPage
             scan.collectRemote()
             var block = scan.acquireBlock()
+            if block == 0 and scan.extendCommit() do
+                block = scan.acquireBlock()
             if block == 0 and not .parkFullPage(heap, scan)
             {
                 scan.collectRemote()
@@ -998,7 +1000,9 @@ impl Allocator
                 return 0
 
             cls.page = page
-            let block = page.acquireBlock()
+            var block = page.acquireBlock()
+            if block == 0 and page.extendCommit() do
+                block = page.acquireBlock()
             if block != 0 do
                 return block
         }

@@ -5,7 +5,7 @@ using Core
 // 'Memory.alloc' and 'Memory.free', the path ordinary Swag code takes, and every allocated payload
 // is touched. 'allocbench.c' runs the same workloads against mimalloc and the C runtime heap.
 //
-// Usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned> [threads]
+// Usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned|huge> [threads]
 
 const ChurnSlots  = 50_000'u64
 const LargeSlots  = 32'u64
@@ -13,6 +13,8 @@ const MediumSlots = 256'u64
 const XferCount   = 2_000_000'u64
 const XferRing    = 4096'u64
 const SpreadSizes = [16'u64, 48, 100, 200, 500, 1000, 3000, 6000, 12000, 20000, 40000, 60000]
+const HugeBytes   = 32'u64 * 1024 * 1024
+const HugeRounds  = 200'u64
 
 enum Workload
 {
@@ -25,6 +27,7 @@ enum Workload
     Spread      // A few live blocks of twelve sizes, as a long-running application holds them
     Grow        // Four million 32-byte blocks allocated before any is freed
     Aligned     // Batches of 1024 mixed blocks aligned on 32 or 64 bytes
+    Huge        // 32 MiB blocks, one at a time, every page touched: above the block cache
     Xfer        // Producer/consumer pairs: one thread allocates, the other frees
 }
 
@@ -176,6 +179,17 @@ func run(workload: Workload, seed: u64)->u64
     case .Aligned:
         return alignedBatches(&random)
 
+    case .Huge:
+        for HugeRounds
+        {
+            let block = cast([*] u8, Memory.alloc(HugeBytes))
+            for page in HugeBytes / 4096 do
+                block[page * 4096] = 1
+            Memory.free(block, HugeBytes)
+        }
+
+        return HugeRounds
+
     case .Churn:
         churn(&random, ChurnSlots, 10_000_000, &smallSize, false)
         return 10_000_000
@@ -295,6 +309,7 @@ func parseWorkload(name: string)->Workload fail
     case "spread":  return .Spread
     case "grow":    return .Grow
     case "xfer":    return .Xfer
+    case "huge":    return .Huge
     }
 
     fail Errors.BadParameterError{}
@@ -307,7 +322,7 @@ func parseWorkload(name: string)->Workload fail
     let threads  = args.count > 2 ? catch StrConv.toU32(args[2]) : 1
     if badWorkload != null or threads < 1 or threads > 16
     {
-        Console.println("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned> [threads 1-16]")
+        Console.println("usage: allocbench <pair|trees|churn|medium|large|realloc|spread|grow|xfer|aligned|huge> [threads 1-16]")
         return
     }
 

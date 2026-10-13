@@ -56,7 +56,11 @@ const AllocatorPageAlignmentMax  = 64'u32
 
 // Bounds of the committed cache of freed header-path blocks.
 //
-// The budget between the two byte bounds follows the bytes held live through the header path.
+// The budget between the two byte bounds follows the bytes held live through the header path. A freed
+// block that committed more than the budget goes back to the system at once, unless the cache is empty:
+// one such block may wait there alone, until the next cached block replaces it or the purge delay
+// expires. That is the whole of the huge-block policy; reservation rounding and in-place growth are
+// the same for every header-path block, and nothing above the upper bound is ever kept.
 const AllocatorBlockCacheMinBytes = 16'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxBytes = 256'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxCount = 64'u64
@@ -68,7 +72,9 @@ const AllocatorLargeRoundMin = 64'u64 * 1024
 //
 // Idle pages and cached large blocks that stay unused this long go back to the system at a periodic purge
 // check reached by an allocator slow path. Nothing runs in the background: a program that stops allocating
-// keeps them until it allocates again, trims, or exits.
+// keeps them until it allocates again, trims, or exits, and the delay does not follow the memory pressure the
+// host reports, which only a thread of its own could watch; a program that wants memory back on a schedule
+// calls 'trim'.
 const AllocatorPurgeDelayMs = 500'u64
 private var g_AllocatorPurgeDelayTicks: u64
 
@@ -1288,8 +1294,11 @@ impl Allocator
         if not address do
             return
 
+        // A program cycling one buffer bigger than everything else it holds, a decoder with its
+        // frame for instance, would otherwise reserve, fault in and release that buffer on every
+        // cycle: one block above the budget may wait in the cache alone.
         let budget = .blockCacheBudget()
-        if committed > budget
+        if committed > budget and (committed > AllocatorBlockCacheMaxBytes or atomicGet(&.cachedBlockCount) != 0)
         {
             .osFree(cast(*void, address), committed)
             return
@@ -2316,7 +2325,9 @@ func releaseAllocatorThreadCache()
 // allocated for that report, and 'trackAllocations' its source location and hint. 'fillMemory'
 // fills new blocks with one pattern and freed ones with another, and reports a write into a freed
 // header-path payload when the block leaves the diagnostic quarantine. Every mode but 'detectLeaks'
-// and 'fillMemory' sends all allocations through the header path and its quarantine.
+// and 'fillMemory' sends all allocations through the header path and its quarantine. An electric
+// allocation and free pair costs a reservation, a commit, a decommit and two host queries, about
+// eight microseconds against four before freed payloads were made inaccessible.
 func installAllocator(electricMode: bool = false,
                       detectLeaks: bool = true,
                       captureStack: bool = false,

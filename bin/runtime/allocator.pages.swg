@@ -386,7 +386,9 @@ impl AllocatorPage
     //
     // Producers only ever push, and this takes the whole list in one exchange, so a block can never be popped
     // from under a producer that is linking in front of it and no ABA case exists. The lock only orders this
-    // detach against 'holdsFreeBlock', which walks the list without taking it.
+    // detach against 'holdsFreeBlock', which walks the list without taking it. Only the owner collects: a
+    // block freed into the page of an idle thread waits here, counted free by the statistics but holding
+    // its page, until that thread allocates, trims, or retires.
     mtd collectRemote()
     {
         if atomicGet(&.remoteFree) == 0 do

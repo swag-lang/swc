@@ -45,6 +45,11 @@ replace the allocator; a similar architecture alone does not establish comparabl
   location. Use `inline_allocator_free.swg`, `use_after_free_parameter_location.swg`, and the
   imported `lifecycle_summary.test.swg` boundary, together with custom allocator and diagnostic
   mode tests. Related compiler work: compiler.optimization.113 and compiler.optimization.114.
+- The gated `spreadrep:8` workload runs at about three times mimalloc's per-worker time while
+  `spreadrep` alone runs faster than mimalloc: a class whose ten blocks need a second page
+  retires that page when it empties and claims it again under the segment mutex on every
+  round, which eight threads contend for. Measure keeping one emptied page per class on the
+  heap before retiring further ones.
 - Measurement limits: use rotating before/after runs and identical-binary controls, inspect
   within-window variation, and repeat concurrent workloads. Admission alone cannot detect work
   that starts during a measurement. Also compare independently rebuilt controls when application
@@ -58,53 +63,17 @@ replace the allocator; a similar architecture alone does not establish comparabl
 ### runtime.allocator.001 — Complete comparable allocator workload and retention measurements
 
 - `bench/allocator/src/allocbench.swg` and `allocbench.c` provide fourteen single-thread and
-  concurrent workloads, including live-set growth without frees, plus opt-in `aligned` and
-  `aligned:4` batches with alternating 32/64-byte alignment. The harness records medians,
-  peak working set, and peak commit in fresh pinned processes and rotates implementation order.
-  The remaining scope is operation-level p50/p99 latency, OS-call counts, retained memory after
-  idle and `trim()`, and representative application traces.
-- Timing boundary: both programs start the clock before thread creation. Swag uses suspended
-  creation, resume, inherited context setup, and per-thread wait/handle close; C starts threads
-  immediately and stops after a combined wait without closing their handles inside the interval.
-  `spread` performs only 120 allocations per worker. Its end-to-end result is therefore a cold
-  allocator plus thread-lifecycle measurement, not steady-state allocation throughput.
-- October 5 probe: thirty-one rotating rounds at one/eight threads, including the same Swag
-  executable twice. Each worker also times its workload body; the empty variant immediately
-  returns the same nominal operation count. Medians in microseconds:
-
-| Threads | Probe | Wall time | Maximum worker body |
-| ---: | --- | ---: | ---: |
-| 1 | swag_full | 260.0 | 80.0 |
-| 1 | swag_control | 281.0 | 85.0 |
-| 1 | swag_empty | 182.0 | 0.0 |
-| 1 | mimalloc_full | 278.5 | 156.0 |
-| 1 | mimalloc_empty | 135.3 | 0.3 |
-| 8 | swag_full | 946.0 | 271.0 |
-| 8 | swag_control | 834.0 | 260.0 |
-| 8 | swag_empty | 649.0 | 4.0 |
-| 8 | mimalloc_full | 907.3 | 481.7 |
-| 8 | mimalloc_empty | 463.2 | 0.4 |
-
-- A second scratch probe repeats the same spread body 10,000 times per worker, amortizing
-  startup over 1.2 million allocation/free pairs. Fifteen rotating rounds, medians in ns/pair:
-
-| Repeated workload | Swag | A/A control | mimalloc |
-| --- | ---: | ---: | ---: |
-| spread | 19.3 | 19.1 | 25.4 |
-| spread:8 | 26.0 | 21.1 | 9.1 |
-
-- This repeated variant changes page/cache reuse and has no synchronized worker start, so it
-  complements the original cold workload rather than replacing its result. Raw accepted samples
-  and matching C/Swag sources are in `warm-spread/` under the evidence directory.
-- The empty variant changes the executed allocator work and generated layout; its result is a
-  lifecycle control, not an exact subtractable allocator cost. Worker intervals overlap, and
-  timing their maximum does not measure a synchronized steady-state phase. Sources, build logs,
-  samples, and the probe script live under `%TEMP%/swc-runtime-allocator-20261005/thread-cost/`
-  and `probe_thread_cost.py` in the parent directory.
-- Next: preserve the existing end-to-end metric and add separately reported worker timing plus
-  a synchronized, repeated allocation phase that amortizes thread startup. Match lifecycle and
-  cleanup boundaries in the Swag and C harnesses before using a short workload to select an
-  allocator change. Then add latency percentiles and the missing retention workloads.
+  concurrent workloads, including live-set growth without frees, plus opt-in `aligned` batches,
+  `huge` blocks, the gated repetition `spreadrep` and the retention run `retain`. Every run also
+  reports the slowest worker's time per operation beside the end-to-end figure, and `--latency`
+  reports per-operation 50th and 99th percentiles. The harness records medians, peak working
+  set, and peak commit in fresh pinned processes and rotates implementation order. The remaining
+  scope is OS-call counts and representative application traces.
+- Timing boundary: both programs start the clock before thread creation and close the worker
+  handles inside it; the Swag program also creates its threads suspended and resumes them with a
+  context to inherit, which the worker timing excludes.
+- Next: run the campaign with the gated and latency figures on a quiet machine and record
+  them, then add OS-call counts to the Swag program's statistics output.
 - Parity gate: geometric-mean throughput within 10% of mimalloc, no representative workload
   more than 25% slower, and no unbounded retained-memory case.
 - Done when: repeated comparable results cover the listed workloads and parity gate, with
@@ -126,22 +95,6 @@ replace the allocator; a similar architecture alone does not establish comparabl
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001
-
-### runtime.allocator.004 — Make remote frees batched rather than one atomic each
-
-- `pushRemote` links the block and publishes it with one compare-exchange; the owner takes the
-  whole list with one exchange, so no ABA case exists (nothing is ever popped singly). The
-  per-block `remoteCount` atomic is gone: `stats()` counts the list on demand under the page's
-  `remoteLock`, which now only orders the owner's detach against that walk. A free of another
-  thread's page block pushes from the inline path.
-- `bench/allocator` xfer (producer/consumer pairs): 2 pairs 139 -> 111 ns, 4 pairs
-  112.9 -> 94.8 ns per block, against 82.8 / 71.3 ns for mimalloc and 127.9 / 97.9 ns for the
-  C heap.
-- Next: measure whether a per-thread batch of remote blocks (one publication per batch) closes
-  the remaining distance to mimalloc, and bound the owner's drain.
-- Done when: the selected synchronization policy has contention and p99 evidence plus
-  concurrent retirement/adoption regression coverage.
-- Related: runtime.allocator.001.
 
 ### runtime.allocator.007 — Tune size classes from traces rather than from the table
 

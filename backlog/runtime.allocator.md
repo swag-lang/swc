@@ -110,31 +110,6 @@ replace the allocator; a similar architecture alone does not establish comparabl
 - Done when: repeated comparable results cover the listed workloads and parity gate, with
   application time, latency tails, retention, build settings, and measurement limits recorded.
 
-### runtime.allocator.003 — Return idle memory without being asked
-
-- An emptied page now returns to its segment still committed while the process-wide idle budget
-  allows (a quarter of the committed bytes, at least 8 MiB), and any class reuses it without a
-  system call; past the budget it is decommitted. `trim()` decommits the idle pages of every
-  segment, teardown those of the segments it releases, and `trim()` also gives the large-block
-  cache back. The cache's budget follows the bytes held
-  live through the header path (at least 16 MiB, at most 256 MiB, 64 entries).
-- Measured on `bench/allocator` medium (256 live 4-64 KiB blocks): 213 -> 51 ns per operation,
-  peak working set 11.8 -> 19.8 MB (mimalloc 36.5 ns, 19.2 MB). A 2 MiB / one-eighth budget
-  brings the working set back to 13.4 MB and the time back to 242 ns: the budget is the trade.
-- Purge: the first slow path that sees idle memory arms a 500 ms deadline; the first one past
-  it decommits every idle page of the allocator and the cached blocks freed longer ago than the
-  delay. Page refills read the clock one time in 64, large frees every time; the micro-benchmarks
-  do not move. After a 24 MB burst followed by light activity, committed memory falls to under
-  1 MB within the second instead of staying at 24 MB.
-- Still open: nothing runs in the background, so a program that stops allocating altogether keeps
-  its idle memory until it allocates again, trims, or exits (as mimalloc without its purge
-  thread); an inactive live owner keeps its remotely returned blocks uncollected.
-- Next: measure burst/idle with an owner kept alive, and decide whether the delay should follow
-  the memory pressure the host reports.
-- Done when: the current pages, remote returns, abandoned pages and header cache have tested
-  idle/trim behavior and documented bounds.
-- Related: runtime.allocator.001, runtime.allocator.004, runtime.allocator.005.
-
 ### runtime.allocator.005 — Scale the large-block cache with threads
 
 - Header-path blocks are reserved at one of eight sizes per power of two and commit only what the
@@ -157,7 +132,7 @@ replace the allocator; a similar architecture alone does not establish comparabl
   not need the allocator-wide lock outside the diagnostic modes.
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
-- Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.006
+- Related: runtime.allocator.001
 
 ### runtime.allocator.004 — Make remote frees batched rather than one atomic each
 
@@ -173,28 +148,7 @@ replace the allocator; a similar architecture alone does not establish comparabl
   the remaining distance to mimalloc, and bound the owner's drain.
 - Done when: the selected synchronization policy has contention and p99 evidence plus
   concurrent retirement/adoption regression coverage.
-- Related: runtime.allocator.001, runtime.allocator.003.
-
-### runtime.allocator.017 — Medium pages commit all eight units for their first block
-
-
-**Evidence.** `acquirePage` commits a whole page before carving it: 64 KiB for a small class, 512 KiB for a medium one. A program holding two 48 KB blocks therefore pays for 512 KiB. On the bench, Swag leven commits 2.5 MB against 2.1 MB for C++ and wordfreq 26.2 MB against 25.7 MB. A candidate that commits a medium page one 64 KiB unit at a time — a carving limit set to the committed part, raised by the allocation slow path when the page looks exhausted, so the inlined fast path stays unchanged — brought leven to 2.1 MB and wordfreq to 25.5 MB. It was not landed: pinned, order-alternated runs showed csvagg 12-28% slower, although csvagg's timed section only makes eight small allocations. A control that only added dead code to `acquireBlockSlow` slowed csvagg by 12% too, and an A/A run gives 1.000, so csvagg's hot loop is sensitive to where the runtime code places it rather than to the allocator.
-
-**Next.** The optimizing backend now starts every loop header on a 16-byte boundary, as LLVM does, so csvagg's scan loops no longer straddle a cache line when the code before them grows: its time is the same for every function order the compiler produces. Re-measure the medium-page design described above against that compiler.
-
-**Done when.** Every bench task commits no more than its C++ port, with pinned execution-time ratios within noise.
-
-**Related:** compiler.core.005.
-
-### runtime.allocator.006 — Huge allocations have no separately measured policy
-
-
-Define the threshold and reserve/commit/release behavior for genuinely huge allocations after the
-medium tier is separated. Benchmark large growth and release independently of size-class caching.
-
-- Related: runtime.allocator.001, runtime.allocator.005
-
-- Done when: The huge-allocation threshold and reserve/commit/release policy are documented and tested, and isolated large-growth and release benchmarks report latency and memory retention separately from size-class caching.
+- Related: runtime.allocator.001.
 
 ### runtime.allocator.007 — Tune size classes from traces rather than from the table
 
@@ -211,4 +165,4 @@ medium tier is separated. Benchmark large growth and release independently of si
   identical traces before changing the class table.
 - Done when: a trace-backed decision covers both internal fragmentation and per-thread
   page retention, including very small and aligned allocations.
-- Related: runtime.allocator.001, runtime.allocator.003, runtime.allocator.005.
+- Related: runtime.allocator.001, runtime.allocator.005.

@@ -199,7 +199,15 @@ namespace MicroPassHelpers
 
     // Every natural loop of the CFG, keyed by header and with its body already collected. Empty
     // when no back edge closes a loop.
-    std::unordered_map<uint32_t, NaturalLoop> findNaturalLoops(const MicroControlFlowGraph& cfg, const MicroDomTree& dom);
+    using NaturalLoopMap = std::unordered_map<uint32_t, NaturalLoop>;
+    NaturalLoopMap findNaturalLoops(const MicroControlFlowGraph& cfg, const MicroDomTree& dom);
+
+    // The same loops for the passes of one sweep. They are a function of the graph alone, so the
+    // shared SSA state keeps them under the graph identity it found them for, and a later pass
+    // asking about an unchanged graph reads them instead of finding them again. 'dom' must be
+    // the dominator tree of that graph. Without a shared state the loops are found afresh and
+    // live until the next call on this worker.
+    const NaturalLoopMap& naturalLoopsFor(MicroSsaState* sharedSsa, const MicroControlFlowGraph& cfg, const MicroDomTree& dom);
 
     // The unique entry instruction of the per-instruction CFG, or
     // K_INVALID_NODE when there is no entry or more than one.

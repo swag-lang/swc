@@ -964,7 +964,7 @@ private impl Panel
 // Opens the container and keeps its run-ahead queue full on the same persistent thread.
 //
 // Keeping both phases on one runtime context avoids moving codec allocations between thread caches.
-private func runViewerDecode(thread: Threading.Thread)
+private func runViewerDecode(thread: const *Threading.Thread)
 {
     let view  = cast(*Panel, thread.userParam!)
     var video = catch Reader.open(view.openFileName) as openError
@@ -975,7 +975,7 @@ private func runViewerDecode(thread: Threading.Thread)
         return
     }
 
-    if thread.requestEnd
+    if thread.requestEnd.isRaised()
     {
         video.close()
         return
@@ -983,10 +983,10 @@ private func runViewerDecode(thread: Threading.Thread)
 
     view.pendingVideo = #move video
     Atomic.exchange(&view.openState, OpenSucceeded)
-    while not thread.requestEnd
+    while not thread.requestEnd.isRaised()
     {
         view.decodeWake.wait()
-        while not thread.requestEnd and view.produceOne() {}
+        while not thread.requestEnd.isRaised() and view.produceOne() {}
     }
 
     // `Reader.close` joins codec-owned frame and indexing threads. It can take as long as a key

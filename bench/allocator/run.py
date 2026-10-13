@@ -74,6 +74,8 @@ def main():
                 extra.append("phase %.1f ns" % acc["phase_ns/op"])
             if "p99_ns" in acc:
                 extra.append("p50 %.0f / p99 %.0f ns per %d ops" % (acc["p50_ns"], acc["p99_ns"], acc["per_ops"]))
+            if "os_commits" in acc:
+                extra.append("os %d/%d/%d reserve/commit/decommit" % (acc["os_reserves"], acc["os_commits"], acc["os_decommits"]))
             if "retained_idle" in acc:
                 extra.append("retained %.1f / %.1f / %.1f MB idle/purged/trimmed" % (
                     acc["retained_idle"] / 1048576.0, acc["retained_purged"] / 1048576.0,

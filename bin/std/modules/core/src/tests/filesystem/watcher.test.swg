@@ -7,7 +7,7 @@ struct CancelWatcherPayload
     watcher: *Directory.Watcher
 }
 
-func cancelWatcherThread(thread: Threading.Thread)
+func cancelWatcherThread(thread: const *Threading.Thread)
 {
     let payload = cast(*CancelWatcherPayload, thread.userParam!)
     Threading.Thread.sleep(Time.Duration.fromMilliseconds(50))

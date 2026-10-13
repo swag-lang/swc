@@ -519,7 +519,7 @@ impl LibraryView
             .imgSpin.hide()
         }
 
-        try .thread.init(func|view = me|(th: Thread) { view.loadFiles(th) })
+        try .thread.init(func|view = me|(th: const *Thread) { view.loadFiles(th) })
         try .thread.start()
     }
 
@@ -797,7 +797,7 @@ impl LibraryView
 
     // The loading thread: loads every visible item not loaded yet, until all are or `th` is asked
     // to end.
-    mtd loadFiles(th: Thread)
+    mtd loadFiles(th: const *Thread)
     {
         // Work on a copy, as `items` can be changed by sorting during loading
         var copy: Array'*LibraryItem
@@ -806,7 +806,7 @@ impl LibraryView
 
         for it in copy
         {
-            if th.requestEnd do
+            if th.requestEnd.isRaised() do
                 break
             if it.loaded or not it.visible do
                 continue
@@ -817,7 +817,7 @@ impl LibraryView
 
         for it, index in copy
         {
-            if th.requestEnd do
+            if th.requestEnd.isRaised() do
                 break
             if it.loaded do
                 continue

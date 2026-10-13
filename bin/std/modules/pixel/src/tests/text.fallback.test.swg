@@ -164,8 +164,8 @@ private func fallbackTestFace(symbols: bool)->*TypeFace fail
         {
             Swag.assert(glyph.glyphIndex == run.glyphs[index].glyphIndex)
             Swag.assert(glyph.cluster == run.glyphs[index].cluster)
-            Swag.assert(glyph.font!.forceBold and glyph.font!.forceItalic)
-            Swag.assert(glyph.font!.mode == mode)
+            Swag.assert(glyph.font!.forceBold and glyph.font.forceItalic)
+            Swag.assert(glyph.font.mode == mode)
         }
     }
 

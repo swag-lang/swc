@@ -5404,7 +5404,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmp">#assert</span>(<span class="SCst">X</span>.y == <span class="SStr">"value"</span>)
 }</span></div>
 <h3 id="_006_001_declaration_swg_Structs_as_Function_Arguments">Structs as Function Arguments</h3>
-<p>Functions take a struct argument as an immutable <b>value</b>. Under the hood the compiler passes the struct's address rather than copying it, but the callee cannot write through the parameter, so the code behaves as if a private copy had been made — at zero copy cost. To let a function modify the caller's struct, pass its address explicitly through a pointer parameter (<span class="code-inline">*Struct3</span>).</p>
+<p>Functions take a struct argument as an immutable <b>value</b>: the callee cannot write through the parameter, and nothing else may change the caller's struct while the call runs. The compiler relies on that. It passes the struct's address rather than copying it, at zero copy cost, and it may read each field once and keep the value across stores and calls. The code behaves as if a private copy had been made, and a program that changes the caller's struct during the call, through another pointer or from another thread, has no reliable image of it.</p>
+<p>To let a function modify the caller's struct, pass its address explicitly through a pointer parameter (<span class="code-inline">*Struct3</span>). A pointer is also what a function takes when it must watch an object that changes while it runs, such as a thread body polling its stop flag: a read through a pointer sees the live storage, and a value another thread publishes is read with <span class="code-inline">Swag.atomget</span> or an atomic type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Struct3</span>
 {
     x, y, z: <span class="STpe">s32</span> = <span class="SNum">666</span>

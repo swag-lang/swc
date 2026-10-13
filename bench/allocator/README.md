@@ -46,7 +46,8 @@ time per operation, measured by the worker around its own body: the end-to-end f
 workload such as `spread` is mostly thread creation, which both programs do inside the clock, the
 Swag one with a suspended start and a context to inherit. `--latency` makes one worker time each
 of its operations, or each batch of 64 for the workloads whose operations are shorter than the
-clock resolves, and reports the 50th and 99th percentiles. The default campaign keeps its
+clock resolves, and reports the 50th and 99th percentiles. The Swag program also reports the
+reservations, commits and decommits the runtime allocator asked the system for. The default campaign keeps its
 fourteen workloads so its historical geometric means remain comparable. An aligned operation
 is one allocation/free pair, and every payload is written at its first and last byte.
 

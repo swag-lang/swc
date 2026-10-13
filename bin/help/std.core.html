@@ -6006,7 +6006,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Threading_Thread_opDrop">Thread.opDrop</a></td><td><p>Asserts that the thread was waited for before its owner goes away.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Threading_Thread_safeForceEnd">Thread.safeForceEnd</a></td><td><p>Asks the thread to stop by setting <span class="code-inline">requestEnd</span>, which its body must poll.</p>
+<tr><td class="code-type"><a href="#Core_Threading_Thread_safeForceEnd">Thread.safeForceEnd</a></td><td><p>Asks the thread to stop by raising <span class="code-inline">requestEnd</span>, which its body must poll.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Threading_Thread_setPriority">Thread.setPriority</a></td><td><p>Changes this thread's scheduling priority.</p>
 </td></tr>
@@ -14607,9 +14607,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </td></tr>
 <tr><td id="Core_Threading_Thread_priority" class="code-type">priority</td><td class="code-type"><a href="#Core_Threading_ThreadPriority">Core.Threading.ThreadPriority</a></td><td><p>Current scheduling priority.</p>
 </td></tr>
-<tr><td id="Core_Threading_Thread_requestEnd" class="code-type">requestEnd</td><td class="code-type">bool</td><td><p>Cooperative stop flag the thread body polls.</p>
+<tr><td id="Core_Threading_Thread_requestEnd" class="code-type">requestEnd</td><td class="code-type"><a href="swag.runtime.html#Swag_AtomicFlag">Swag.AtomicFlag</a></td><td><p>Cooperative stop flag; the body polls it with <a href="swag.runtime.html#Swag_AtomicFlag_isRaised">Swag.AtomicFlag.isRaised</a>.</p>
 </td></tr>
-<tr><td id="Core_Threading_Thread_userLambda" class="code-type">userLambda</td><td class="code-type">(func||(<a href="#Core_Threading_Thread">Core.Threading.Thread</a>))?</td><td><p>Body the thread runs; it receives this value.</p>
+<tr><td id="Core_Threading_Thread_userLambda" class="code-type">userLambda</td><td class="code-type">(func||(const *<a href="#Core_Threading_Thread">Core.Threading.Thread</a>))?</td><td><p>Body the thread runs; it receives a pointer to this value.</p>
 </td></tr>
 <tr><td id="Core_Threading_Thread_userParam" class="code-type">userParam</td><td class="code-type">*void?</td><td><p>Caller data the body can read back.</p>
 </td></tr>
@@ -14627,7 +14627,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Threading_Thread_opDrop">opDrop</a></td><td><p>Asserts that the thread was waited for before its owner goes away.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Threading_Thread_safeForceEnd">safeForceEnd</a></td><td><p>Asks the thread to stop by setting <span class="code-inline">requestEnd</span>, which its body must poll.</p>
+<tr><td class="code-type"><a href="#Core_Threading_Thread_safeForceEnd">safeForceEnd</a></td><td><p>Asks the thread to stop by raising <span class="code-inline">requestEnd</span>, which its body must poll.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Threading_Thread_setPriority">setPriority</a></td><td><p>Changes this thread's scheduling priority.</p>
 </td></tr>
@@ -25850,13 +25850,13 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readToEnd</span>()-&gt;<span class="SCst"><a href="#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.init</span> <a class="api-item-permalink" href="#Core_Threading_Thread_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L84">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_init" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.init</span> <a class="api-item-permalink" href="#Core_Threading_Thread_init" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L86">src</a></div>
 <p>Creates a suspended thread that runs <span class="code-inline">lambda</span> with the calling thread's context settings.</p>
-<p><span class="code-inline">tempAllocSize</span> sets the capacity of the thread's temporary allocator in bytes; zero leaves it without capacity. Error storage and propagation state are never shared with the creating thread. Call <a href="#Core_Threading_Thread_start">Core.Threading.Thread.start</a> to run the thread.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">init</span>(lambda: <span class="SKwd">func</span>||(<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>), userParam: *<span class="STpe">void</span>? = <span class="SKwd">null</span>, priority = <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span>.<span class="SCst">Normal</span>, tempAllocSize: <span class="STpe">s32</span> = -<span class="SNum">1</span>) <span class="SKwd">fail</span></span></div>
+<p><span class="code-inline">tempAllocSize</span> sets the capacity of the thread's temporary allocator in bytes; zero leaves it without capacity. Error storage and propagation state are never shared with the creating thread. The body receives a pointer to this value: it reads <span class="code-inline">userParam</span> through it and polls <span class="code-inline">requestEnd</span> to stop when <a href="#Core_Threading_Thread_safeForceEnd">Core.Threading.Thread.safeForceEnd</a> asks. Call <a href="#Core_Threading_Thread_start">Core.Threading.Thread.start</a> to run the thread.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">init</span>(lambda: <span class="SKwd">func</span>||(<span class="SKwd">const</span> *<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>), userParam: *<span class="STpe">void</span>? = <span class="SKwd">null</span>, priority = <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span>.<span class="SCst">Normal</span>, tempAllocSize: <span class="STpe">s32</span> = -<span class="SNum">1</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isDone</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.isDone</span> <a class="api-item-permalink" href="#Core_Threading_Thread_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L141">src</a></div>
 <p>Returns whether this thread has finished without blocking.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isDone</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -25872,11 +25872,11 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Threading_Thread_safeForceEnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.safeForceEnd</span> <a class="api-item-permalink" href="#Core_Threading_Thread_safeForceEnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L55">src</a></div>
-<p>Asks the thread to stop by setting <span class="code-inline">requestEnd</span>, which its body must poll.</p>
+<p>Asks the thread to stop by raising <span class="code-inline">requestEnd</span>, which its body must poll.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">safeForceEnd</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_setPriority" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.setPriority</span> <a class="api-item-permalink" href="#Core_Threading_Thread_setPriority" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L120">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_setPriority" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.setPriority</span> <a class="api-item-permalink" href="#Core_Threading_Thread_setPriority" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L122">src</a></div>
 <p>Changes this thread's scheduling priority.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPriority</span>(priority: <span class="SCst"><a href="#Core_Threading_ThreadPriority">ThreadPriority</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -25886,12 +25886,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sleep</span>(duration: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_Duration">Duration</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.start</span> <a class="api-item-permalink" href="#Core_Threading_Thread_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L113">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.start</span> <a class="api-item-permalink" href="#Core_Threading_Thread_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L115">src</a></div>
 <p>Starts this suspended thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_Thread_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.wait</span> <a class="api-item-permalink" href="#Core_Threading_Thread_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L130">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_Thread_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Thread.wait</span> <a class="api-item-permalink" href="#Core_Threading_Thread_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L132">src</a></div>
 <p>Waits for this thread to finish and releases its handle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>()</span></div>
 </section>
@@ -25901,7 +25901,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">yield</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L162">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Threading_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Threading.wait</span> <a class="api-item-permalink" href="#Core_Threading_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/thread/thread.swg#L164">src</a></div>
 <p>Waits for every thread and releases all their native handles.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">wait</span>(threads: *<span class="SCst"><a href="#Core_Threading_Thread">Thread</a></span>...)</span></div>
 </section>
@@ -28447,8 +28447,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "v|Core.Threading.Thread.context|Core_Threading_Thread_context|Inherited settings with thread-owned temporary and error storage.",
 "v|Core.Threading.Thread.id|Core_Threading_Thread_id|Identity of the running thread, established when it starts.",
 "v|Core.Threading.Thread.priority|Core_Threading_Thread_priority|Current scheduling priority.",
-"v|Core.Threading.Thread.requestEnd|Core_Threading_Thread_requestEnd|Cooperative stop flag the thread body polls.",
-"v|Core.Threading.Thread.userLambda|Core_Threading_Thread_userLambda|Body the thread runs; it receives this value.",
+"v|Core.Threading.Thread.requestEnd|Core_Threading_Thread_requestEnd|Cooperative stop flag; the body polls it with Swag.AtomicFlag.isRaised.",
+"v|Core.Threading.Thread.userLambda|Core_Threading_Thread_userLambda|Body the thread runs; it receives a pointer to this value.",
 "v|Core.Threading.Thread.userParam|Core_Threading_Thread_userParam|Caller data the body can read back.",
 "s|Core.Time.DateTime|Core_Time_DateTime|Stores a calendar date and a time of day, without a time zone.",
 "v|Core.Time.DateTime.day|Core_Time_DateTime_day|Day component (1 to 31 depending on the month)",
@@ -30761,7 +30761,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Threading.Thread.isDone|Core_Threading_Thread_isDone|Returns whether this thread has finished without blocking.",
 "f|Core.Threading.Thread.isValid|Core_Threading_Thread_isValid|Returns whether this value owns a thread, from Core.Threading.Thread.init until it is waited for.",
 "f|Core.Threading.Thread.opDrop|Core_Threading_Thread_opDrop|Asserts that the thread was waited for before its owner goes away.",
-"f|Core.Threading.Thread.safeForceEnd|Core_Threading_Thread_safeForceEnd|Asks the thread to stop by setting requestEnd, which its body must poll.",
+"f|Core.Threading.Thread.safeForceEnd|Core_Threading_Thread_safeForceEnd|Asks the thread to stop by raising requestEnd, which its body must poll.",
 "f|Core.Threading.Thread.setPriority|Core_Threading_Thread_setPriority|Changes this thread's scheduling priority.",
 "f|Core.Threading.Thread.sleep|Core_Threading_Thread_sleep|Suspends the current thread for at least duration.",
 "f|Core.Threading.Thread.start|Core_Threading_Thread_start|Starts this suspended thread.",

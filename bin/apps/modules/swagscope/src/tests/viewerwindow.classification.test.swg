@@ -53,7 +53,7 @@ struct ClassificationRetirementGate
     finished: u32
 }
 
-func holdClassificationStatistics(thread: Threading.Thread)
+func holdClassificationStatistics(thread: const *Threading.Thread)
 {
     with let gate = cast(*ClassificationRetirementGate, thread.userParam!)
     {
@@ -118,7 +118,7 @@ func holdClassificationStatistics(thread: Threading.Thread)
     // This callback must return while the statistics worker remains behind the gate. It is
     // the production retirement path, not the test helper, that requests the worker to stop.
     host.fireTimer(window.startupTimer)
-    Swag.assert(previous.statisticsThread.requestEnd)
+    Swag.assert(previous.statisticsThread.requestEnd.isRaised())
     Swag.assert(not previous.statisticsThread.isDone())
     Swag.assert(window.currentView == previousView and window.currentFile == first)
     Swag.assert(window.pendingFile == next and window.choiceLoad.isDone())

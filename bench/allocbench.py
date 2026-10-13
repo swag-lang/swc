@@ -29,7 +29,8 @@ REPS = 5
 
 PAT = re.compile(r"ns/op=([\d.]+)")
 FIELDS = ("worker_ns/op", "phase_ns/op", "p50_ns", "p99_ns", "per_ops",
-          "retained_idle", "retained_purged", "retained_trimmed")
+          "retained_idle", "retained_purged", "retained_trimmed",
+          "os_reserves", "os_commits", "os_decommits")
 
 
 def build(swc, env, out, cores=0):

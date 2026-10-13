@@ -144,22 +144,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a recurrence is attributed and fixed with a regression, or the specified stress run
   stays clean and the lead is retired.
 
-### compiler.core.021 — JIT code leaks one thread-local index per compiler instance
-
-- Area: compiler, JIT runtime hosting
-- Found while: tracking an intermittent JIT '#test' failure in `swc test -w bin/apps -m swagcapture
-  --rebuild`: imported native modules kept `Swag.processInfos().args` slices into the storage of a
-  destroyed dependency-build instance. That storage is interned for the process since.
-- What remains: JIT code also takes plain thread-local indexes through `TlsAlloc` (the allocator's
-  fast heap slot, for example). They have no callback, so nothing reads them after the instance
-  dies, but each instance that ran its allocator keeps one index allocated for the rest of the
-  process, and Windows has 1,088 of them.
-- Next: count the indexes a long workspace run (`tools/std.swgs dm test`) leaves allocated, and if
-  the count grows with the number of instances, record the `TlsAlloc` indexes per instance the
-  same way and free them at destruction.
-- Done when: a process that creates and destroys many compiler instances keeps a bounded
-  number of thread-local indexes, with the workspace suite green under the poisoning.
-
 ### compiler.core.053 — Confirm that a linked PDB keeps one definition per structure
 
 - Area: compiler/backend, `DebugInfoCodeView` type table, integrated PDB writer

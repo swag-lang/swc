@@ -107,11 +107,16 @@ namespace Unittest
             return result;
         }
 
-        void logUnittestSummary(const TaskContext& ctx, const std::vector<TimedTestResult>& timedTests, uint64_t setupDurationNs, size_t skippedFilesystemTests)
+        void logUnittestSummary(const TaskContext& ctx, const std::vector<TimedTestResult>& timedTests, uint64_t setupDurationNs, size_t skippedFilesystemTests, uint32_t tlsSlotsBefore, uint32_t tlsSlotsAfter)
         {
             const uint64_t totalTestDurationNs = totalTestDuration(timedTests);
             const Utf8     testsSummary        = std::format("{} tests ({})", Utf8Helper::toNiceBigNumber(timedTests.size()), formatDuration(totalTestDurationNs));
             Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Tests", LogColor::White, testsSummary);
+
+            // Every test that ran compiled code through a fresh compiler instance; a count that
+            // grows with them is a thread-local slot an instance did not give back.
+            const Utf8 tlsSummary = std::format("{} thread-local slots in use before the tests, {} after", tlsSlotsBefore, tlsSlotsAfter);
+            Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Tls", LogColor::White, tlsSummary);
 
             if (setupDurationNs)
                 Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Setup", LogColor::White, formatDuration(setupDurationNs));
@@ -165,6 +170,7 @@ namespace Unittest
         size_t                       failedTestCount        = 0;
         std::vector<TimedTestResult> timedTests;
         const bool                   verboseUnittest = ctx.cmdLine().verboseUnittest;
+        const uint32_t               tlsSlotsBefore  = Os::tlsSlotsInUse();
         timedTests.reserve(testRegistry().size());
 
         for (const TestCase& test : testRegistry())
@@ -219,7 +225,7 @@ namespace Unittest
         }
 
         if (verboseUnittest)
-            logUnittestSummary(testCtx, timedTests, setupDurationNs, skippedFilesystemTests);
+            logUnittestSummary(testCtx, timedTests, setupDurationNs, skippedFilesystemTests, tlsSlotsBefore, Os::tlsSlotsInUse());
 
         std::vector<Utf8> statParts;
         ScopedTimedLog::appendTestStats(testCtx, statParts, executedTestCount, failedTestCount);

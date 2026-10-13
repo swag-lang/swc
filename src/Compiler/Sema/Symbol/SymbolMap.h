@@ -55,6 +55,8 @@ public:
     uint32_t count() const noexcept { return count_.load(std::memory_order_relaxed); }
 
 protected:
+    static SymbolImplList snapshotImpls(std::shared_mutex& mutex, const std::vector<SymbolImpl*>& impls);
+
     // A small entry is written once, before 'smallSize_' publishes it, so readers scan the
     // published prefix without a lock. Only its head moves, to another symbol of the same name.
     struct Entry

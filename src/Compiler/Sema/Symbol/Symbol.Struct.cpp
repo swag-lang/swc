@@ -676,10 +676,7 @@ void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 
 SymbolImplList SymbolStruct::impls() const
 {
-    const std::shared_lock lk(mutexImpls_);
-    SymbolImplList         result;
-    result.assign(impls_.begin(), impls_.end());
-    return result;
+    return snapshotImpls(mutexImpls_, impls_);
 }
 
 std::vector<SymbolFunction*> SymbolStruct::declaredMethods() const
@@ -795,10 +792,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
 SymbolImplList SymbolStruct::interfaces() const
 {
-    const std::shared_lock lk(mutexInterfaces_);
-    SymbolImplList         result;
-    result.assign(interfaces_.begin(), interfaces_.end());
-    return result;
+    return snapshotImpls(mutexInterfaces_, interfaces_);
 }
 
 void SymbolStruct::removeIgnoredFields()

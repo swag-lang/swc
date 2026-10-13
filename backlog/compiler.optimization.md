@@ -103,13 +103,6 @@ new language syntax.
   pointer is loaded once before the loop at `-bc release`, with a C++ micro test and no loss on
   the benchmark tasks.
 
-### compiler.optimization.024 — Make implicit register claims operand-precise
-
-- Evidence: the split allocator assigns full-instruction fixed intervals to remaining implicit operands such as variable shifts and compare-exchange. Those intervals can trigger avoidable register borrows; definition-only multiply outputs already use position-specific claims.
-- Attempt: a whole-library Release comparison showed no repeatable runtime gain for the retained multiply-output rule, so keep it only for its proved register-pressure benefit.
-- Next: audit shift and compare-exchange claims, then trace any remaining borrow from a representative `bin/std` build to the exact interval that requires it.
-- Done when: implicit operands use the narrowest sound interval, unnecessary borrows disappear, and focused allocator tests preserve all input/output constraints.
-- Related: compiler.optimization.016.
 ### compiler.optimization.126 — Preserve nullable value-pointer types in automatic inline bindings
 
 - Area: compiler/sema, automatic inlining and flow narrowing.
@@ -175,7 +168,6 @@ new language syntax.
 - Evidence: `Video.H264.mcChroma`, `Hevc.Decoder.filterLumaEdge`, and `Hevc.Decoder.interpolateLuma` have had frame traffic in their hot loops. Previous measurements predate the split allocator and are no longer a current baseline.
 - Next: dump the current Release functions and measure per-segment time. Attribute each remaining spill to register pressure or a missed allocation/hoist opportunity before changing the backend.
 - Done when: current evidence identifies a profitable change with byte-exact decoder output, or shows the remaining frame traffic is necessary and the entry is removed.
-- Related: compiler.optimization.024.
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Area: compiler/backend

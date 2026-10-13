@@ -231,14 +231,6 @@ namespace
         return escaped;
     }
 
-    bool isPlaceholderCharacter(const char c)
-    {
-        return (c >= 'a' && c <= 'z') ||
-               (c >= 'A' && c <= 'Z') ||
-               (c >= '0' && c <= '9') ||
-               c == '_';
-    }
-
     void removeUnexpandedPlaceholders(Utf8& text)
     {
         Utf8 cleaned;
@@ -250,7 +242,7 @@ namespace
             if (text[index] == '{')
             {
                 size_t end = index + 1;
-                while (end < text.size() && isPlaceholderCharacter(text[end]))
+                while (end < text.size() && Utf8Helper::isAsciiWordCharacter(text[end]))
                     ++end;
 
                 if (end > index + 1 && end < text.size() && text[end] == '}')

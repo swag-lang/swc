@@ -6,6 +6,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool Utf8Helper::isAsciiWordCharacter(const char c)
+{
+    return (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c >= '0' && c <= '9') ||
+           c == '_';
+}
+
 Runtime::String Utf8Helper::runtimeStringFromUtf8(const Utf8& value)
 {
     if (value.empty())

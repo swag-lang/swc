@@ -37,18 +37,6 @@ namespace
         return dstElemType.isNullable();
     }
 
-    uint64_t sliceCountFromArrayCast(TaskContext& ctx, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
-    {
-        const uint64_t dstElementSize = dstElementType.sizeOf(ctx);
-        if (dstElementSize)
-            return srcArrayType.sizeOf(ctx) / dstElementSize;
-
-        uint64_t totalCount = 1;
-        for (const uint64_t dim : srcArrayType.payloadArrayDims())
-            totalCount *= dim;
-        return totalCount;
-    }
-
     uint64_t pointerValueFromPointerLikeConstant(const ConstantValue& cst)
     {
         if (cst.isBlockPointer())
@@ -692,7 +680,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
-                const uint64_t      sliceCount = sliceCountFromArrayCast(ctx, srcType, dstElemType);
+                const uint64_t      sliceCount = srcType.sliceCountFromArrayCast(ctx, dstElemType);
                 const ConstantValue sliceCst   = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, srcCst.getArray(), sliceCount, dstType.flags());
                 castRequest.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
             }

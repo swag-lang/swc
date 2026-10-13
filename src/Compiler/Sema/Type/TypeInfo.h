@@ -364,6 +364,11 @@ public:
 
     uint32_t hash() const;
     uint32_t runtimeHash(const TaskContext& ctx) const;
+
+    // A seed lets nested arrays continue the same sequence of dimension multiplications.
+    uint64_t arrayTotalElementCount(uint64_t count = 1) const;
+    uint64_t sliceCountFromArrayCast(TaskContext& ctx, const TypeInfo& dstElementType) const;
+
     uint64_t sizeOf(TaskContext& ctx) const;
     uint32_t alignOf(TaskContext& ctx) const;
     bool     isCompleted(TaskContext& ctx) const;

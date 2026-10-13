@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
 #include "Compiler/CodeGen/Core/CodeGenCString.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
@@ -728,7 +727,7 @@ namespace
         SWC_ASSERT(dstType.isSlice());
 
         const TypeInfo& dstElementType = codeGen.typeMgr().get(dstType.payloadTypeRef());
-        const uint64_t  elementCount   = CodeGenArraySlice::sliceCountFromArrayCast(codeGen, srcType, dstElementType);
+        const uint64_t  elementCount   = srcType.sliceCountFromArrayCast(codeGen.ctx(), dstElementType);
 
         MicroBuilder&            builder    = codeGen.builder();
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);

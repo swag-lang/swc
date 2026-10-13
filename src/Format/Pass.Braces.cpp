@@ -10,16 +10,6 @@ namespace
 {
     using FormatPassUtil::INVALID_PIECE;
 
-    bool rangeEditable(const FormatModel& model, const uint32_t first, const uint32_t last)
-    {
-        for (uint32_t i = first; i <= last && i < model.numPieces(); ++i)
-        {
-            if (model.piece(i).frozen || model.gapBefore(i).frozen)
-                return false;
-        }
-        return true;
-    }
-
     bool blockIsSingleLine(const FormatModel& model, const FormatBlock& block)
     {
         for (uint32_t i = block.openPiece + 1; i <= block.closePiece; ++i)
@@ -176,7 +166,7 @@ namespace
             const std::unordered_map<uint32_t, SiblingLayout> siblings = siblingLayouts();
             for (const FormatBlock& block : model_->blocks())
             {
-                if (!rangeEditable(*model_, block.openPiece, block.closePiece))
+                if (!model_->rangeEditable(block.openPiece, block.closePiece))
                     continue;
 
                 if (const auto it = siblings.find(block.openPiece); it != siblings.end())
@@ -239,7 +229,7 @@ namespace
         {
             for (const FormatBlock& block : model_->blocks())
             {
-                if (!rangeEditable(*model_, block.openPiece, block.closePiece))
+                if (!model_->rangeEditable(block.openPiece, block.closePiece))
                     continue;
 
                 const bool empty = blockIsEmpty(*model_, block);
@@ -670,7 +660,7 @@ namespace
             {
                 if (block.kind != FormatBlockKind::Switch)
                     continue;
-                if (!rangeEditable(*model_, block.openPiece, block.closePiece))
+                if (!model_->rangeEditable(block.openPiece, block.closePiece))
                     continue;
 
                 std::vector<CaseArm> arms;
@@ -789,7 +779,7 @@ namespace
             // separator commas rewrites a type as if it were a definition.
             const bool isEnum   = block.kind == FormatBlockKind::Enum && model.options().oneEnumValuePerLine.value_or(false);
             const bool isStruct = block.kind == FormatBlockKind::Struct && model.options().oneStructFieldPerLine.value_or(false);
-            if ((!isEnum && !isStruct) || block.exprLevel || !rangeEditable(model, block.openPiece, block.closePiece) || blockKeepsMembersSingleLine(model, block))
+            if ((!isEnum && !isStruct) || block.exprLevel || !model.rangeEditable(block.openPiece, block.closePiece) || blockKeepsMembersSingleLine(model, block))
                 continue;
 
             const uint32_t        innerDepth = model.piece(block.openPiece).depth + 1;
@@ -1005,7 +995,7 @@ namespace
             if (open == INVALID_PIECE || model.piece(open).isNot(TokenId::SymLeftParen))
                 continue;
             const uint32_t close = model.piece(open).match;
-            if (close == INVALID_PIECE || !rangeEditable(model, open, close))
+            if (close == INVALID_PIECE || !model.rangeEditable(open, close))
                 continue;
 
             // The parentheses must cover the whole condition: the body (`{`

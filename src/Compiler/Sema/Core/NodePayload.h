@@ -234,8 +234,7 @@ private:
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
     void                           recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& node);
     void                           recordImplicitPropagation(AstNodeRef nodeRef);
-    void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
-    void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
+    void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol* const> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
     static void                    storePayload(AstNode& node, uint16_t bits, uint32_t ref);
     static uint16_t                applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol* const> symbols);

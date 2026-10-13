@@ -22,6 +22,16 @@ namespace
         MicroLabelRef doneLabel     = MicroLabelRef::invalid();
     };
 
+    Result finishLoopStatement(CodeGen& codeGen)
+    {
+        LoopStmtCodeGenPayload* loopState = codeGen.safeNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(loopState != nullptr);
+
+        MicroBuilder& builder = codeGen.builder();
+        builder.placeLabel(loopState->doneLabel);
+        *loopState = {};
+        return Result::Continue;
+    }
 }
 
 Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
@@ -147,13 +157,7 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
 Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    LoopStmtCodeGenPayload* loopState = codeGen.safeNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
-    SWC_ASSERT(loopState != nullptr);
-
-    MicroBuilder& builder = codeGen.builder();
-    builder.placeLabel(loopState->doneLabel);
-    *loopState = {};
-    return Result::Continue;
+    return finishLoopStatement(codeGen);
 }
 
 Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
@@ -201,13 +205,7 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
 
 Result AstInfiniteLoopStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    LoopStmtCodeGenPayload* loopState = codeGen.safeNodePayload<LoopStmtCodeGenPayload>(codeGen.curNodeRef());
-    SWC_ASSERT(loopState != nullptr);
-
-    MicroBuilder& builder = codeGen.builder();
-    builder.placeLabel(loopState->doneLabel);
-    *loopState = {};
-    return Result::Continue;
+    return finishLoopStatement(codeGen);
 }
 
 SWC_END_NAMESPACE();

@@ -354,9 +354,7 @@ namespace
 
         if (type.isArray() && cst.isAggregateArray())
         {
-            uint64_t totalCount = 1;
-            for (const uint64_t dim : type.payloadArrayDims())
-                totalCount *= dim;
+            uint64_t totalCount = type.arrayTotalElementCount();
             if (cst.getAggregateArray().size() != totalCount)
                 return ImplicitDefaultKind::Mixed;
             return classifyRepeatedConstantImplicitDefault(sema, cst.getAggregateArray(), type.payloadArrayElemTypeRef());
@@ -475,9 +473,7 @@ namespace
             if (!elemSize)
                 return Result::Continue;
 
-            uint64_t totalCount = 1;
-            for (const uint64_t dim : type.payloadArrayDims())
-                totalCount *= dim;
+            uint64_t totalCount = type.arrayTotalElementCount();
 
             for (uint64_t idx = 0; idx < totalCount; ++idx)
                 SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes.subspan(idx * elemSize, elemSize), elemType));
@@ -680,10 +676,7 @@ void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 
 SymbolImplList SymbolStruct::impls() const
 {
-    const std::shared_lock lk(mutexImpls_);
-    SymbolImplList         result;
-    result.assign(impls_.begin(), impls_.end());
-    return result;
+    return snapshotImpls(mutexImpls_, impls_);
 }
 
 std::vector<SymbolFunction*> SymbolStruct::declaredMethods() const
@@ -799,10 +792,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
 SymbolImplList SymbolStruct::interfaces() const
 {
-    const std::shared_lock lk(mutexInterfaces_);
-    SymbolImplList         result;
-    result.assign(interfaces_.begin(), interfaces_.end());
-    return result;
+    return snapshotImpls(mutexInterfaces_, interfaces_);
 }
 
 void SymbolStruct::removeIgnoredFields()

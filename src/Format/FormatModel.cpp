@@ -364,6 +364,16 @@ void FormatModel::removePiece(const uint32_t pieceIndex)
     piece.removed = true;
 }
 
+bool FormatModel::rangeEditable(const uint32_t first, const uint32_t last) const
+{
+    for (uint32_t i = first; i <= last && i < numPieces(); ++i)
+    {
+        if (piece(i).frozen || gapBefore(i).frozen)
+            return false;
+    }
+    return true;
+}
+
 bool FormatModel::gapHasNewline(const uint32_t pieceIndex) const
 {
     return gapNewlineCount(pieceIndex) > 0;

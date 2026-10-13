@@ -358,9 +358,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const uint64_t  elementSize    = elementType.sizeOf(builder_->ctx());
         SWC_ASSERT(elementSize != 0);
 
-        uint64_t totalCount = 1;
-        for (const uint64_t dim : typeInfo.payloadArrayDims())
-            totalCount *= dim;
+        uint64_t totalCount = typeInfo.arrayTotalElementCount();
 
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {

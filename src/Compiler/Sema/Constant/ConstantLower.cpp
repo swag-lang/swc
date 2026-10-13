@@ -356,9 +356,7 @@ namespace
         if (!elementSize)
             return Result::Continue;
 
-        uint64_t totalCount = 1;
-        for (const uint64_t dim : typeInfo.payloadArrayDims())
-            totalCount *= dim;
+        uint64_t totalCount = typeInfo.arrayTotalElementCount();
 
         for (uint64_t idx = 0; idx < totalCount; ++idx)
         {
@@ -654,11 +652,7 @@ namespace
         const auto      elemTypeRef = dstType.payloadArrayElemTypeRef();
         const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
         const uint64_t  elemSize    = elemType.sizeOf(ctx);
-        uint64_t        totalCount  = 1;
-        const auto&     dims        = dstType.payloadArrayDims();
-
-        for (const auto dim : dims)
-            totalCount *= dim;
+        const uint64_t  totalCount  = dstType.arrayTotalElementCount();
 
         SWC_ASSERT(!elemSize || totalCount <= dstBytes.size() / elemSize);
 

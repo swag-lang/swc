@@ -563,23 +563,7 @@ std::span<Symbol*> NodePayload::getSymbolList(AstNodeRef nodeRef)
     return {const_cast<Symbol**>(res.data()), res.size()};
 }
 
-void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols)
-{
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    Shard*                 shard    = ensureShard(shardIdx);
-    const std::scoped_lock lock(shard->storeMutex);
-
-    AstNode&       node        = ast().node(nodeRef);
-    const Ref      value       = shard->store.pushSpanContiguous(symbols).get();
-    const uint16_t symbolFlags = applySymbolPayloadFlags(0, symbols);
-    const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK |
-                               static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
-    const uint16_t setBits = static_cast<uint16_t>(NodePayloadKind::SymbolList) |
-                             static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT) | symbolFlags;
-    node.updatePayloadState(clearMask, setBits, value);
-}
-
-void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols)
+void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol* const> symbols)
 {
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);

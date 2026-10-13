@@ -148,6 +148,15 @@ namespace
 
 }
 
+SymbolImplList SymbolMap::snapshotImpls(std::shared_mutex& mutex, const std::vector<SymbolImpl*>& impls)
+{
+    // A vector reference lets us acquire the lock before reading even its size.
+    const std::shared_lock lock(mutex);
+    SymbolImplList         result;
+    result.assign(impls.begin(), impls.end());
+    return result;
+}
+
 SymbolMap::SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
     Symbol(decl, tokRef, kind, idRef, flags)
 {

@@ -41,6 +41,29 @@ namespace
         CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, state->falseLabel);
     }
 
+    Result codeGenIfPreChild(CodeGen& codeGen, AstNodeRef childRef, AstNodeRef nodeIfBlockRef, AstNodeRef nodeElseBlockRef)
+    {
+        const AstNodeRef resolvedChildRef   = codeGen.resolvedNodeRef(childRef);
+        const AstNodeRef resolvedIfBlockRef = codeGen.resolvedNodeRef(nodeIfBlockRef);
+        if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == codeGen.resolvedNodeRef(nodeElseBlockRef))
+            codeGen.pushDeferScope();
+        return Result::Continue;
+    }
+
+    Result codeGenWithPreChild(CodeGen& codeGen, AstNodeRef childRef, AstNodeRef nodeBodyRef)
+    {
+        if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
+            codeGen.pushDeferScope();
+        return Result::Continue;
+    }
+
+    Result codeGenWithPostChild(CodeGen& codeGen, AstNodeRef childRef, AstNodeRef nodeBodyRef)
+    {
+        if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
+            return codeGen.popDeferScope();
+        return Result::Continue;
+    }
+
     Result codeGenIfStmtPostBlockChild(CodeGen& codeGen, AstNodeRef ifRef, AstNodeRef ifBlockRef, AstNodeRef elseBlockRef, AstNodeRef childRef)
     {
         const bool isIfBlockChild   = ifBlockRef.isValid() && childRef == ifBlockRef;
@@ -74,11 +97,7 @@ namespace
 
 Result AstIfStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const AstNodeRef resolvedChildRef   = codeGen.resolvedNodeRef(childRef);
-    const AstNodeRef resolvedIfBlockRef = codeGen.resolvedNodeRef(nodeIfBlockRef);
-    if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == codeGen.resolvedNodeRef(nodeElseBlockRef))
-        codeGen.pushDeferScope();
-    return Result::Continue;
+    return codeGenIfPreChild(codeGen, childRef, nodeIfBlockRef, nodeElseBlockRef);
 }
 
 Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -106,11 +125,7 @@ Result AstIfStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& child
 
 Result AstIfVarDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    const AstNodeRef resolvedChildRef   = codeGen.resolvedNodeRef(childRef);
-    const AstNodeRef resolvedIfBlockRef = codeGen.resolvedNodeRef(nodeIfBlockRef);
-    if (resolvedChildRef == resolvedIfBlockRef || resolvedChildRef == codeGen.resolvedNodeRef(nodeElseBlockRef))
-        codeGen.pushDeferScope();
-    return Result::Continue;
+    return codeGenIfPreChild(codeGen, childRef, nodeIfBlockRef, nodeElseBlockRef);
 }
 
 Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -150,30 +165,22 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
 
 Result AstWithStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
-        codeGen.pushDeferScope();
-    return Result::Continue;
+    return codeGenWithPreChild(codeGen, childRef, nodeBodyRef);
 }
 
 Result AstWithStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
-        return codeGen.popDeferScope();
-    return Result::Continue;
+    return codeGenWithPostChild(codeGen, childRef, nodeBodyRef);
 }
 
 Result AstWithVarDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
-        codeGen.pushDeferScope();
-    return Result::Continue;
+    return codeGenWithPreChild(codeGen, childRef, nodeBodyRef);
 }
 
 Result AstWithVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
-        return codeGen.popDeferScope();
-    return Result::Continue;
+    return codeGenWithPostChild(codeGen, childRef, nodeBodyRef);
 }
 
 SWC_END_NAMESPACE();

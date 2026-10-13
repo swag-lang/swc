@@ -8,16 +8,6 @@ namespace
 {
     using FormatPassUtil::INVALID_PIECE;
 
-    bool rangeEditable(const FormatModel& model, const uint32_t first, const uint32_t last)
-    {
-        for (uint32_t i = first; i <= last && i < model.numPieces(); ++i)
-        {
-            if (model.piece(i).frozen || model.gapBefore(i).frozen)
-                return false;
-        }
-        return true;
-    }
-
     uint32_t nextCode(const FormatModel& model, const uint32_t pieceIndex)
     {
         uint32_t i = model.nextPiece(pieceIndex);
@@ -311,7 +301,7 @@ namespace FormatSiblings
             shape.last  = branch.lastPiece;
         }
 
-        shape.valid   = rangeEditable(model, branch.keyword, branch.lastPiece);
+        shape.valid   = model.rangeEditable(branch.keyword, branch.lastPiece);
         shape.oneLine = noBreakBetween(model, intro, branch.lastPiece);
         if (shape.first == INVALID_PIECE || shape.last == INVALID_PIECE || shape.first > shape.last || model.piece(shape.first).is(TokenId::SymRightCurly))
             return shape; // an empty body has nothing to put after `do`
@@ -342,7 +332,7 @@ namespace FormatSiblings
             shape.last  = body.lastPiece;
         }
 
-        shape.valid   = rangeEditable(model, body.headPiece, body.lastPiece);
+        shape.valid   = model.rangeEditable(body.headPiece, body.lastPiece);
         shape.oneLine = noBreakBetween(model, intro, body.lastPiece);
         if (shape.first == INVALID_PIECE || shape.last == INVALID_PIECE || shape.first > shape.last || model.piece(shape.first).is(TokenId::SymRightCurly))
             return shape;

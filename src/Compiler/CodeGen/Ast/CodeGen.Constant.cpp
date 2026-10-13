@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Compiler/CodeGen/Core/CodeGenArraySlice.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFloatConstant.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
@@ -664,7 +663,7 @@ namespace
                         if (safeArrayCstRef.isInvalid())
                             return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), CodeGenArraySlice::sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
+                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sourceArrayType.sliceCountFromArrayCast(codeGen.ctx(), elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
@@ -915,6 +914,15 @@ namespace
         outHandled = true;
         return Result::Continue;
     }
+
+    Result emitCompoundLiteral(CodeGen& codeGen, SpanRef childrenRef)
+    {
+        SmallVector<AstNodeRef> elementRefs;
+        AstNode::collectChildren(elementRefs, codeGen.ast(), childrenRef);
+
+        const TypeRef aggregateTypeRef = resolvedLiteralStorageTypeRef(codeGen, codeGen.curNodeRef());
+        return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
+    }
 }
 
 Result CodeGen::emitConstant(AstNodeRef nodeRef)
@@ -986,20 +994,12 @@ Result AstInitializerExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstArrayLiteral::codeGenPostNode(CodeGen& codeGen) const
 {
-    SmallVector<AstNodeRef> elementRefs;
-    collectChildren(elementRefs, codeGen.ast());
-
-    const TypeRef aggregateTypeRef = resolvedLiteralStorageTypeRef(codeGen, codeGen.curNodeRef());
-    return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
+    return emitCompoundLiteral(codeGen, spanChildrenRef);
 }
 
 Result AstStructLiteral::codeGenPostNode(CodeGen& codeGen) const
 {
-    SmallVector<AstNodeRef> elementRefs;
-    collectChildren(elementRefs, codeGen.ast());
-
-    const TypeRef aggregateTypeRef = resolvedLiteralStorageTypeRef(codeGen, codeGen.curNodeRef());
-    return emitAggregateLiteralPayload(codeGen, codeGen.curNodeRef(), elementRefs.span(), aggregateTypeRef);
+    return emitCompoundLiteral(codeGen, spanChildrenRef);
 }
 
 Result AstStructInitializerList::codeGenPostNode(CodeGen& codeGen) const

@@ -87,9 +87,7 @@ namespace
 
         if (type.isArray())
         {
-            uint64_t totalCount = 1;
-            for (const uint64_t dim : type.payloadArrayDims())
-                totalCount *= dim;
+            uint64_t totalCount = type.arrayTotalElementCount();
             const bool result = totalCount && typeHasLifecycleRec(ctx, type.payloadArrayElemTypeRef(), kind, visiting);
             visiting.erase(typeRef);
             return result;

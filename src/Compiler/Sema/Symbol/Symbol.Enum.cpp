@@ -23,10 +23,7 @@ void SymbolEnum::addImpl(Sema& sema, SymbolImpl& symImpl)
 
 SymbolImplList SymbolEnum::impls() const
 {
-    const std::shared_lock lk(mutexImpls_);
-    SymbolImplList         result;
-    result.assign(impls_.begin(), impls_.end());
-    return result;
+    return snapshotImpls(mutexImpls_, impls_);
 }
 
 bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)

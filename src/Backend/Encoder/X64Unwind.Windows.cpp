@@ -85,57 +85,21 @@ void X64UnwindWindows::buildInfo(ByteArray& outUnwindInfo, const uint32_t codeSi
     if (unwindOps_.empty())
         return;
 
-    std::vector<uint16_t> unwindSlots;
-    unwindSlots.reserve(unwindOps_.size() * 3 + 4);
-    // Encoding records one operation per instruction in increasing address order.
-    for (auto it = unwindOps_.rbegin(); it != unwindOps_.rend(); ++it)
+    // Count the final slots before allocating the output. This replaces the
+    // temporary slot vector and its subsequent copy with one output buffer.
+    uint32_t unwindSlotCount = static_cast<uint32_t>(unwindOps_.size());
+    for (const UnwindOp& op : unwindOps_)
     {
-        const UnwindOp& op = *it;
-        switch (op.kind)
+        if (op.kind == UnwindOpKind::SaveXmm128)
+            ++unwindSlotCount;
+        else if (op.kind == UnwindOpKind::AllocateStack)
         {
-            case UnwindOpKind::PushNonVol:
-                unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_PUSH_NONVOL, op.reg));
-                break;
-
-            case UnwindOpKind::AllocateStack:
-            {
-                if (op.stackSize >= 8 && op.stackSize <= 128 && (op.stackSize % 8) == 0)
-                {
-                    const uint8_t opInfo = static_cast<uint8_t>(op.stackSize / 8 - 1);
-                    unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_SMALL, opInfo));
-                    break;
-                }
-
-                if ((op.stackSize % 8) == 0 && op.stackSize / 8 <= std::numeric_limits<uint16_t>::max())
-                {
-                    unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_LARGE, 0));
-                    unwindSlots.push_back(static_cast<uint16_t>(op.stackSize / 8));
-                    break;
-                }
-
-                unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_LARGE, 1));
-                unwindSlots.push_back(static_cast<uint16_t>(op.stackSize & 0xFFFF));
-                unwindSlots.push_back(static_cast<uint16_t>((op.stackSize >> 16) & 0xFFFF));
-                break;
-            }
-
-            case UnwindOpKind::SetFramePointer:
-                unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_SET_FPREG, 0));
-                break;
-
-            case UnwindOpKind::SaveXmm128:
-                unwindSlots.push_back(packUnwindCodeSlot(op.codeOffset, K_UWOP_SAVE_XMM128, op.reg));
-                unwindSlots.push_back(static_cast<uint16_t>(op.stackSize / 16));
-                break;
-
-            default:
-                SWC_UNREACHABLE();
+            if (op.stackSize >= 8 && op.stackSize <= 128 && (op.stackSize % 8) == 0)
+                continue;
+            unwindSlotCount += (op.stackSize % 8) == 0 && op.stackSize / 8 <= std::numeric_limits<uint16_t>::max() ? 1 : 2;
         }
     }
-
-    const uint32_t unwindSlotCount        = static_cast<uint32_t>(unwindSlots.size());
     const uint32_t unwindSlotCountAligned = (unwindSlotCount + 1u) & ~1u;
-
     outUnwindInfo.resize(4 + unwindSlotCountAligned * sizeof(uint16_t));
     auto* outBytes = reinterpret_cast<uint8_t*>(outUnwindInfo.data());
     outBytes[0]    = 1;
@@ -143,12 +107,59 @@ void X64UnwindWindows::buildInfo(ByteArray& outUnwindInfo, const uint32_t codeSi
     outBytes[2]    = static_cast<uint8_t>(unwindSlotCount);
     outBytes[3]    = unwindHasFrameRegister_ ? static_cast<uint8_t>(((unwindFrameOffsetInSlots_ & 0x0F) << 4) | (unwindFrameRegister_ & 0x0F)) : 0;
 
-    for (uint32_t i = 0; i < unwindSlotCountAligned; ++i)
+    uint8_t*   cursor   = outBytes + 4;
+    const auto emitSlot = [&](const uint16_t value) {
+        *cursor++ = static_cast<uint8_t>(value & 0xFF);
+        *cursor++ = static_cast<uint8_t>((value >> 8) & 0xFF);
+    };
+    // Encoding records one operation per instruction in increasing address order.
+    for (auto it = unwindOps_.rbegin(); it != unwindOps_.rend(); ++it)
     {
-        const uint16_t value    = i < unwindSlotCount ? unwindSlots[i] : 0;
-        outBytes[4 + i * 2 + 0] = static_cast<uint8_t>(value & 0xFF);
-        outBytes[4 + i * 2 + 1] = static_cast<uint8_t>((value >> 8) & 0xFF);
+        const UnwindOp& op = *it;
+        switch (op.kind)
+        {
+            case UnwindOpKind::PushNonVol:
+                emitSlot(packUnwindCodeSlot(op.codeOffset, K_UWOP_PUSH_NONVOL, op.reg));
+                break;
+
+            case UnwindOpKind::AllocateStack:
+            {
+                if (op.stackSize >= 8 && op.stackSize <= 128 && (op.stackSize % 8) == 0)
+                {
+                    const uint8_t opInfo = static_cast<uint8_t>(op.stackSize / 8 - 1);
+                    emitSlot(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_SMALL, opInfo));
+                    break;
+                }
+
+                if ((op.stackSize % 8) == 0 && op.stackSize / 8 <= std::numeric_limits<uint16_t>::max())
+                {
+                    emitSlot(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_LARGE, 0));
+                    emitSlot(static_cast<uint16_t>(op.stackSize / 8));
+                    break;
+                }
+
+                emitSlot(packUnwindCodeSlot(op.codeOffset, K_UWOP_ALLOC_LARGE, 1));
+                emitSlot(static_cast<uint16_t>(op.stackSize & 0xFFFF));
+                emitSlot(static_cast<uint16_t>((op.stackSize >> 16) & 0xFFFF));
+                break;
+            }
+
+            case UnwindOpKind::SetFramePointer:
+                emitSlot(packUnwindCodeSlot(op.codeOffset, K_UWOP_SET_FPREG, 0));
+                break;
+
+            case UnwindOpKind::SaveXmm128:
+                emitSlot(packUnwindCodeSlot(op.codeOffset, K_UWOP_SAVE_XMM128, op.reg));
+                emitSlot(static_cast<uint16_t>(op.stackSize / 16));
+                break;
+
+            default:
+                SWC_UNREACHABLE();
+        }
     }
+
+    // resize value-initialized the optional alignment slot to zero.
+    SWC_ASSERT(cursor == outBytes + 4 + unwindSlotCount * sizeof(uint16_t));
 }
 
 void X64UnwindWindows::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOperand* ops, const uint32_t codeStartOffset, const uint32_t codeEndOffset)

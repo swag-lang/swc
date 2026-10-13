@@ -4,6 +4,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Encoder/X64Encoder.h"
+#include "Backend/Encoder/X64Unwind.Windows.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
@@ -1029,6 +1030,71 @@ SWC_TEST_BEGIN(EncodeX64_UnwindStopsAfterBodyStart)
         b.emitNop();
         b.emitPush(R12);
         b.emitRet(); }, expected));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_UnwindSlotWidthsAndPadding)
+{
+    struct TestCase
+    {
+        uint32_t                stackSize;
+        std::array<uint8_t, 12> expected;
+        uint32_t                byteCount;
+    };
+    const TestCase cases[] = {
+        {8, {1, 7, 1, 0, 7, 0x02, 0, 0}, 8},
+        {128, {1, 7, 1, 0, 7, 0xF2, 0, 0}, 8},
+        {136, {1, 7, 2, 0, 7, 0x01, 17, 0}, 8},
+        {524280, {1, 7, 2, 0, 7, 0x01, 0xFF, 0xFF}, 8},
+        {524288, {1, 7, 3, 0, 7, 0x11, 0, 0, 8, 0, 0, 0}, 12},
+        {17, {1, 7, 3, 0, 7, 0x11, 17, 0, 0, 0, 0, 0}, 12},
+    };
+
+    X64UnwindWindows unwind;
+    ByteArray        bytes;
+    const auto       matches = [&](std::span<const uint8_t> expected) {
+        if (bytes.size() != expected.size())
+            return false;
+        for (size_t i = 0; i < expected.size(); ++i)
+            if (static_cast<uint8_t>(bytes[i]) != expected[i])
+                return false;
+        return true;
+    };
+
+    // The tracker receives explicit encoded offsets here, isolating the
+    // unwind record's one-, two- and three-slot forms from instruction layout.
+    for (const TestCase& testCase : cases)
+    {
+        unwind.reset();
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(RSP, ApInt(testCase.stackSize, 64), MicroOp::Subtract, MicroOpBits::B64);
+        const MicroInstr& inst = *builder.instructions().ptr(builder.instructions().lastInstructionRef());
+        unwind.onInstructionEncoded(inst, inst.ops(builder.operands()), 0, 7);
+        bytes.assign(40, std::byte{0xCC});
+        unwind.buildInfo(bytes, 8);
+        if (!matches(std::span(testCase.expected).first(testCase.byteCount)))
+            return Result::Error;
+    }
+
+    unwind.reset();
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryRegImm(RSP, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+    const MicroInstr& allocation = *builder.instructions().ptr(builder.instructions().lastInstructionRef());
+    unwind.onInstructionEncoded(allocation, allocation.ops(builder.operands()), 0, 7);
+    builder.emitLoadMemReg(RSP, 16, MicroReg::floatReg(6), MicroOpBits::B128);
+    const MicroInstr& save = *builder.instructions().ptr(builder.instructions().lastInstructionRef());
+    unwind.onInstructionEncoded(save, save.ops(builder.operands()), 7, 12);
+    bytes.assign(40, std::byte{0xCC});
+    unwind.buildInfo(bytes, 13);
+    constexpr std::array<uint8_t, 12> expectedSave = {1, 12, 3, 0, 12, 0x68, 1, 0, 7, 0x32, 0, 0};
+    if (!matches(expectedSave))
+        return Result::Error;
+
+    // A reused output must also lose the previous record for a leaf function.
+    unwind.reset();
+    unwind.buildInfo(bytes, 1);
+    if (!bytes.empty())
+        return Result::Error;
 }
 SWC_TEST_END()
 

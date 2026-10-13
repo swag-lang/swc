@@ -86,8 +86,12 @@ replace the allocator; a similar architecture alone does not establish comparabl
   times mimalloc's time across three nine-round windows on a shared machine, against the 1.25
   gate of runtime.allocator.001, and 20% faster than the same runtime without the front in a
   direct comparison, at about half mimalloc's peak working set; single-thread `large` is faster
-  than mimalloc in every window. What is left per operation is the live-byte atomic, the shard
-  lock, the clock read on free, and the global cache lock on a front miss.
+  than mimalloc in every window. The cache now holds up to 256 blocks inside the same byte
+  budget, which the `large:4` live set of 128 blocks no longer overflows: 1392 to 1236 ns in
+  seven rotating rounds, at the same peak working set. What is left per operation is the
+  live-byte atomic, the shard lock, the clock read on free, the global cache lock and its
+  linear best-fit scan on a front miss, and the page faults of a block that came from the
+  system, which mimalloc's page cache avoids more often.
 - Next: repeat `large:4` on a quiet machine to place it against the gate; then measure a front
   keyed by size class rather than best-fit, and the cache lock held only when the front has no
   candidate, with rotating runs and the application check.

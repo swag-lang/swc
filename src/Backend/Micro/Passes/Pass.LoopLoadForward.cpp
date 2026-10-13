@@ -205,8 +205,12 @@ namespace
 
         // Registers the body defines, and where; the index candidates are
         // those defined once, by an immediate step.
-        FlatKeyMap<uint32_t> defCount;
-        FlatKeyMap<uint32_t> lastDef;
+        struct BodyRegDefs
+        {
+            uint32_t count = 0;
+            uint32_t pos   = 0;
+        };
+        FlatKeyMap<BodyRegDefs> definitions;
         // Body position of each single address definition, by packed register; the
         // positions are also listed, for the checks that read every one of them.
         FlatKeyMap<uint32_t>  addrDefs;
@@ -215,13 +219,14 @@ namespace
         {
             for (const MicroReg def : loop.useDefs[i].defs)
             {
-                defCount.getOrInsert(def.packed)++;
-                lastDef.getOrInsert(def.packed) = i;
+                BodyRegDefs& info = definitions.getOrInsert(def.packed);
+                ++info.count;
+                info.pos = i;
             }
         }
         const auto definitionCount = [&](const MicroReg reg) {
-            const uint32_t* count = defCount.find(reg.packed);
-            return count ? *count : 0;
+            const BodyRegDefs* info = definitions.find(reg.packed);
+            return info ? info->count : 0;
         };
         for (uint32_t i = 0; i < n; ++i)
         {
@@ -257,9 +262,12 @@ namespace
 
             // The index: one definition in the body, `index += step`, after
             // every access through it; the base: no definition in the body.
-            if (definitionCount(consumer.base) != 0 || definitionCount(consumer.index) != 1)
+            if (definitionCount(consumer.base) != 0)
                 continue;
-            const uint32_t           stepPos  = *lastDef.find(consumer.index.packed);
+            const BodyRegDefs* indexDefinition = definitions.find(consumer.index.packed);
+            if (!indexDefinition || indexDefinition->count != 1)
+                continue;
+            const uint32_t           stepPos  = indexDefinition->pos;
             const MicroInstr&        stepInst = *loop.insts[stepPos];
             const MicroInstrOperand* stepOps  = loop.ops[stepPos];
             if (stepInst.op != MicroInstrOpcode::OpBinaryRegImm || stepOps[1].opBits != MicroOpBits::B64 ||

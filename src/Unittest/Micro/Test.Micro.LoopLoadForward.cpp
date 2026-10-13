@@ -22,7 +22,9 @@ SWC_TEST_BEGIN(LoopLoadForward_CarriesTheStoredElementIntoTheNextTrip)
     //   3 - a store to the loaded element itself: kept.
     //   4 - the loop is also entered by a jump: no preheader, kept.
     //   5 - the store runs before the load: not the previous trip's value, kept.
-    for (uint32_t variant = 0; variant < 6; ++variant)
+    //   6 - two index definitions: no single step, kept.
+    //   7 - the only step precedes the accesses: kept.
+    for (uint32_t variant = 0; variant < 8; ++variant)
     {
         MicroBuilder   builder(ctx);
         X64Encoder     encoder(ctx);
@@ -40,6 +42,8 @@ SWC_TEST_BEGIN(LoopLoadForward_CarriesTheStoredElementIntoTheNextTrip)
         if (variant == 4)
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, header);
         builder.placeLabel(header);
+        if (variant == 6 || variant == 7)
+            builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         if (variant == 5)
             builder.emitLoadAmcMemReg(frame, index, 8, 8, MicroOpBits::B64, value, MicroOpBits::B64);
         builder.emitLoadAmcRegMem(value, MicroOpBits::B64, frame, index, 8, 0, MicroOpBits::B64);
@@ -52,7 +56,8 @@ SWC_TEST_BEGIN(LoopLoadForward_CarriesTheStoredElementIntoTheNextTrip)
             builder.emitLoadAmcMemReg(other, index, 8, 0, MicroOpBits::B64, value, MicroOpBits::B64);
         if (variant == 3)
             builder.emitLoadAmcMemReg(frame, index, 8, 0, MicroOpBits::B64, value, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        if (variant != 7)
+            builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitCmpRegImm(index, ApInt(10, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, header);
         builder.emitRet();

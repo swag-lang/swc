@@ -137,12 +137,18 @@ new language syntax.
 
 - Area: compiler/backend, loop-invariant code motion and call effects
 - Evidence: `wordfreq`'s `qsort` compares through file-level `late` globals `g_Idx` and `g_Cnt`.
-  Existing LICM and private-global value-numbering changes postdate the last dump, so the current
-  reload and spill behavior is unknown. An earlier value-numbering trial reduced total instructions
-  but added a hot-path spill reload and branch; do not repeat that unchanged variant.
-- Next: inspect the current Release `qsort`. Retire this entry if both pointers stay resident through
-  comparator calls without hot-path spill traffic; otherwise compare the remaining tie and post-call
-  paths with LDC and measure a focused allocator change.
+  In the native Release `qsort` (34aaf7520), private-global hoisting keeps `g_Idx` in `r15` but
+  parks `g_Cnt`, `g_Off` and `g_Text` in the transient `rsi`, `rax` and `r9`, spilled before the
+  first inner loop and reloaded from `[rsp+0xA8..0xB8]` at that loop's shared latch: three frame
+  reloads run on every iteration, including the common count-mismatch path that never calls
+  `memcmp`. The compile-time (JIT) lowering of the same loop keeps both pointers in saved
+  registers and has no latch reloads. The allocator parks values around a call only when the
+  straight-line path jumps over the call block; here the call block is a jump target behind two
+  other branches. An earlier value-numbering trial also added a hot-path spill reload and
+  branch; do not repeat that unchanged variant.
+- Next: place the post-call restores of hoisted globals on the call path only, or give hoisted
+  globals that cross a call a saved register, so the latch carries no reload. Compare the tie and
+  post-call paths with LDC after the change.
 - Done when: both pointers remain resident through comparator calls without extra spill traffic and
   checksums remain correct, or a current dump shows the gap has closed.
 
@@ -875,18 +881,6 @@ new language syntax.
   Zig's executed path; focus on register and frame traffic rather than its absent collisions.
 - Done when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
 
-### compiler.optimization.095 — Keep loop values off the stack on the common branch
-
-- Area: compiler/backend, path-sensitive spill placement
-- Evidence: the wordfreq alphabetic path now places a proven reload and private spill store on cold
-  edges, avoiding common-path frame operations without adding an instruction to that path. A wider
-  store motion regressed Leven's code shape and was narrowed. No timing sample establishes a runtime
-  gain.
-- Next: obtain a clean paired measurement. Preserve the path proof across all incoming edges,
-  intervening writes/calls, and stack-pointer adjustments.
-- Done when: the common path avoids index/bound spill traffic without cost to token processing or
-  changed JIT/native behavior; otherwise retain only the proven reload placement.
-
 ### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
 
 - Area: compiler/backend, constant-address relocation and indexed loads
@@ -906,18 +900,6 @@ new language syntax.
 - The emitted csvagg `main` grew from 993 to 1,022 Micro instructions. Its XMM saves fell from five to three and the saved area from `0x50` to `0x30`, but the timed row loop still had 13 frame operands and gained eight static jumps (34 to 42). Each common conversion still executed five instructions, now including a conditional and an unconditional jump. The two saves are paid once; the extra branches run for every row. This is a concrete hot-loop code-quality loss, so the trial and its JIT-only test were reverted without timing.
 - Next: find a range proof that a conversion input stays below `2^63`, or a branchless lowering that uses fewer operations and less XMM pressure than the current packed conversion. Compare both sides of the range and an unrelated cast before revisiting the lowering.
 - Done when: a general rule improves the complete hot conversion path without extra branches or spills, and preserves full-range nearest-even results in native and JIT output; otherwise retain the current branchless algorithm.
-
-### compiler.optimization.074 — Eliminate the caller's redundant used-slot test after an inlined probe
-
-- Area: compiler/backend, post-allocation branch threading and private-frame load elimination
-- Evidence: after an inlined wordfreq probe, the caller's repeated `used[idx]` test is now removed
-  only when backward path analysis proves the indexed byte's state at every incoming edge. The
-  proof stops at writes, changed address registers, unannotated calls, indirect edges, and cycles.
-  Wordfreq and csvagg checksums remain unchanged; no elapsed-time result is available.
-- Next: confirm the generated-code change in a clean full campaign. Retire this entry if the campaign
-  shows no regression and no further path gap remains.
-- Done when: broad validation and a clean full campaign confirm the gain without a runtime
-  regression, or show that no further gap remains.
 
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 

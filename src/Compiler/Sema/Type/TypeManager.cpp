@@ -376,6 +376,15 @@ TypeRef TypeManager::addArrayTypeAfterFirstDimension(const TypeInfo& arrayType)
     return addArrayType(dims.subspan(1), arrayType.payloadArray_.typeRef, arrayType.flags_, indexTypeRefs.empty() ? indexTypeRefs : indexTypeRefs.subspan(1));
 }
 
+TypeRef TypeManager::arrayElementTypeRef(const TypeInfo& arrayType)
+{
+    SWC_ASSERT(arrayType.isArray());
+    const auto& dims = arrayType.payloadArrayDims();
+    if (dims.size() <= 1)
+        return arrayType.payloadArrayElemTypeRef();
+    return addArrayTypeAfterFirstDimension(arrayType);
+}
+
 TypeRef TypeManager::addAggregateStructType(const std::span<const IdentifierRef> names, const std::span<const TypeRef> types)
 {
     SWC_ASSERT(types.size() == names.size());

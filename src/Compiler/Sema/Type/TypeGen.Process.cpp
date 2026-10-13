@@ -172,7 +172,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
 
         case LayoutKind::Array:
         {
-            const TypeRef pointedTypeRef = resolveArrayPointedTypeRef(tm, type);
+            const TypeRef pointedTypeRef = tm.arrayElementTypeRef(type);
             deps.push_back(pointedTypeRef);
 
             const TypeRef finalTypeRef = resolveArrayFinalTypeRef(tm, ctx, type);

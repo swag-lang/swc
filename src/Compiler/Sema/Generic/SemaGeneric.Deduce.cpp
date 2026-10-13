@@ -253,16 +253,6 @@ namespace
         }
     }
 
-    TypeRef resolveArrayPointedTypeRef(TypeManager& typeMgr, const TypeInfo& arrayType)
-    {
-        SWC_ASSERT(arrayType.isArray());
-        const auto& dims = arrayType.payloadArrayDims();
-        if (dims.size() <= 1)
-            return arrayType.payloadArrayElemTypeRef();
-
-        return typeMgr.addArrayTypeAfterFirstDimension(arrayType);
-    }
-
     bool patternCanDeduceMissingGenericParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef)
     {
         if (patternRef.isInvalid())
@@ -1037,7 +1027,7 @@ namespace
                 return deduceFromAggregateArrayElementsPattern(sema, params, resolvedArgs, {}, sliceType->nodePointeeTypeRef, argType, argExprRef, callArgIndex, outFailure, mode);
 
             if (argType.isArray())
-                return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, resolveArrayPointedTypeRef(sema.typeMgr(), argType), argExprRef, callArgIndex, outFailure, mode);
+                return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, sema.typeMgr().arrayElementTypeRef(argType), argExprRef, callArgIndex, outFailure, mode);
 
             if (argType.isString())
                 return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, sema.typeMgr().typeU8(), argExprRef, callArgIndex, outFailure, mode);

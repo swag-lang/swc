@@ -1273,7 +1273,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Array:
         {
-            const TypeRef pointedTypeRef = resolveArrayPointedTypeRef(typeMgr, keyType);
+            const TypeRef pointedTypeRef = typeMgr.arrayElementTypeRef(keyType);
             const auto&   dep            = requireCacheEntry(cache, pointedTypeRef);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 

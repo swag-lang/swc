@@ -91,19 +91,6 @@ namespace
     }
 }
 
-TypeRef TypeGen::resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
-{
-    SWC_ASSERT(arrayType.isArray());
-    const auto& dims = arrayType.payloadArrayDims();
-    if (dims.empty())
-        return arrayType.payloadArrayElemTypeRef();
-
-    if (dims.size() == 1)
-        return arrayType.payloadArrayElemTypeRef();
-
-    return tm.addArrayTypeAfterFirstDimension(arrayType);
-}
-
 TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)
 {
     SWC_ASSERT(arrayType.isArray());

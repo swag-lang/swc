@@ -618,20 +618,9 @@ Result SymbolFunction::jitPatch(TaskContext& ctx)
     if (hasJitPatchedAddress())
         return Result::Continue;
 
-    auto relocations = loweredMicroCode_.codeRelocations;
-    for (MicroRelocation& relocation : relocations)
-    {
-        if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress)
-            continue;
-        if (relocation.targetSymbol != this)
-            continue;
-        if (relocation.targetAddress != 0)
-            continue;
-
-        relocation.targetAddress = MicroRelocation::K_SELF_ADDRESS;
-    }
-
-    const Result patchResult = JIT::patch(ctx, jitExecMemory_, relocations, this);
+    // A relocation naming this function resolves to the code being patched; the patcher
+    // recognizes the owner, so the list is handed over as lowered.
+    const Result patchResult = JIT::patch(ctx, jitExecMemory_, loweredMicroCode_.codeRelocations, this);
     if (patchResult == Result::Continue)
     {
         jitPatchedAddress_.exchange(jitExecMemory_.entryPoint(), std::memory_order_acq_rel);

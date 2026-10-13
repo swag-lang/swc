@@ -933,17 +933,22 @@ func freeAddress(itf: IAllocator, address: u64)
 
 // ----------------------------------------------------------------------------
 // The cache of freed large blocks keeps at most its entry count, evicting the
-// oldest first, and trim() gives every cached block back.
+// oldest first, and trim() gives every cached block back. A live block raises
+// the byte budget above what the entries hold, and the thread's front takes the
+// first blocks freed.
 // ----------------------------------------------------------------------------
 #test
 {
     var alloc: Allocator
     let itf = makeAllocator(&alloc, fillMemory: false)
 
-    const Count = AllocatorBlockCacheMaxCount + 6
+    let anchor = allocOne(itf, 48 * 1024 * 1024)
+    Swag.assert(anchor != null)
+
+    const Count = AllocatorBlockCacheMaxCount + AllocatorBlockFrontCount + 6
     var addresses: [Count] u64
     for i in Count do
-        addresses[i] = cast(u64, allocOne(itf, 100_000))
+        addresses[i] = cast(u64, allocOne(itf, 66_000))
     for i in Count do
         freeOne(itf, cast(*void, addresses[i]))
 
@@ -954,6 +959,7 @@ func freeAddress(itf: IAllocator, address: u64)
     alloc.trim()
     Swag.assert(alloc.cachedBlockCount == 0)
     Swag.assert(alloc.cachedBlockBytes == 0)
+    freeOne(itf, anchor)
     alloc.releaseAll()
 }
 

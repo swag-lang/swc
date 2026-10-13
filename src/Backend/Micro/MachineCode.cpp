@@ -59,7 +59,47 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
     passContext.sanitizerFunction        = sanitizerFunction;
 
 #ifdef _M_X64
-    X64Encoder encoder(ctx);
+    // One encoder per worker: its pages, unwind tracker and debug ranges are reset for the
+    // next function instead of being allocated and freed with each one. The lease keeps a
+    // lowering that nests inside another on this thread, should one ever appear, on an encoder
+    // of its own.
+    struct WorkerEncoder
+    {
+        std::optional<X64Encoder> encoder;
+        bool                      leased = false;
+    };
+    thread_local WorkerEncoder worker;
+    struct EncoderLease
+    {
+        WorkerEncoder*            worker = nullptr;
+        std::optional<X64Encoder> nested;
+        X64Encoder*               encoder = nullptr;
+
+        EncoderLease(WorkerEncoder& sharedWorker, TaskContext& ctx)
+        {
+            if (sharedWorker.leased)
+            {
+                encoder = &nested.emplace(ctx);
+                return;
+            }
+
+            worker = &sharedWorker;
+            if (sharedWorker.encoder)
+                sharedWorker.encoder->reset(ctx);
+            else
+                sharedWorker.encoder.emplace(ctx);
+            sharedWorker.leased = true;
+            encoder             = &*sharedWorker.encoder;
+        }
+
+        ~EncoderLease()
+        {
+            if (worker)
+                worker->leased = false;
+        }
+    };
+    EncoderLease lease(worker, ctx);
+    X64Encoder&  encoder = *lease.encoder;
 #endif
 
     encoder.setBackendBuildCfg(builder.backendBuildCfg());

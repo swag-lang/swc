@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -340,7 +341,7 @@ namespace InstructionCombine
                     if (cfg.hasLoop())
                     {
                         const MicroPassHelpers::MicroDomTree dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry, ssa);
-                        const auto                           loops = MicroPassHelpers::findNaturalLoops(cfg, dom);
+                        const auto&                          loops = MicroPassHelpers::naturalLoopsFor(passContext ? passContext->ssaState : nullptr, cfg, dom);
                         const auto                           refs  = cfg.instructionRefs();
                         for (const auto& loop : loops | std::views::values)
                         {

@@ -205,18 +205,18 @@ namespace
         if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return false;
 
-        const MicroPassHelpers::MicroDomTree      dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry, context.ssaState);
-        std::unordered_map<uint32_t, NaturalLoop> loopsByHeader = MicroPassHelpers::findNaturalLoops(cfg, dom);
+        const MicroPassHelpers::MicroDomTree    dom           = MicroPassHelpers::computeInstructionDominators(cfg, entry, context.ssaState);
+        const MicroPassHelpers::NaturalLoopMap& loopsByHeader = MicroPassHelpers::naturalLoopsFor(context.ssaState, cfg, dom);
         if (loopsByHeader.empty())
             return false;
 
         // Only a loop with a clean fall-through preheader can move code. Keep
         // the existing loop order, but reject the others before collecting
         // whole-function register effects, relocations, and frame privacy.
-        thread_local std::vector<NaturalLoop*> loops;
+        thread_local std::vector<const NaturalLoop*> loops;
         loops.clear();
         loops.reserve(loopsByHeader.size());
-        for (auto& loop : loopsByHeader | std::views::values)
+        for (const NaturalLoop& loop : loopsByHeader | std::views::values)
             loops.push_back(&loop);
         std::ranges::sort(loops, [](const NaturalLoop* a, const NaturalLoop* b) {
             return a->bodySize < b->bodySize;

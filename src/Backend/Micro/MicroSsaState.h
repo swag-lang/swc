@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
@@ -10,10 +11,6 @@ SWC_BEGIN_NAMESPACE();
 class MicroBuilder;
 class MicroControlFlowGraph;
 struct MicroPassContext;
-namespace MicroPassHelpers
-{
-    struct MicroDomTree;
-}
 
 class MicroSsaState
 {
@@ -95,12 +92,16 @@ public:
     // Copy the rename walk's dominance intervals only when they describe this
     // exact graph. Operand-only rewrites retain the graph; another function,
     // changed control flow or an invalid SSA snapshot must use the CFG analysis.
-    bool                       copyInstructionDominators(MicroPassHelpers::MicroDomTree& out, const MicroControlFlowGraph& cfg) const;
-    const ValueInfo*           valueInfo(uint32_t valueId) const;
-    const PhiInfo*             phiInfo(uint32_t phiIndex) const;
-    const PhiInfo*             phiInfoForValue(uint32_t valueId) const;
-    std::span<const ValueInfo> values() const { return std::span(valueInfos_.data(), valueInfoCount_); }
-    std::span<const PhiInfo>   phis() const { return std::span(phiInfos_.data(), phiInfoCount_); }
+    bool copyInstructionDominators(MicroPassHelpers::MicroDomTree& out, const MicroControlFlowGraph& cfg) const;
+    // The natural loops of this exact graph, on the same contract as the block graph: found once
+    // per graph identity, and read by every pass of the sweep that asks while the graph holds.
+    // 'dom' must be the dominator tree of that graph.
+    const MicroPassHelpers::NaturalLoopMap& naturalLoops(const MicroControlFlowGraph& cfg, const MicroPassHelpers::MicroDomTree& dom);
+    const ValueInfo*                        valueInfo(uint32_t valueId) const;
+    const PhiInfo*                          phiInfo(uint32_t phiIndex) const;
+    const PhiInfo*                          phiInfoForValue(uint32_t valueId) const;
+    std::span<const ValueInfo>              values() const { return std::span(valueInfos_.data(), valueInfoCount_); }
+    std::span<const PhiInfo>                phis() const { return std::span(phiInfos_.data(), phiInfoCount_); }
 
 private:
     struct InstrInfo
@@ -198,6 +199,10 @@ private:
     const MicroControlFlowGraph* blocksCfg_          = nullptr;
     uint64_t                     blocksCfgBuildId_   = 0;
     bool                         blocksHaveFrontier_ = false;
+    // Same contract for the loops: they belong to one build of one graph.
+    const MicroControlFlowGraph*     loopsCfg_        = nullptr;
+    uint64_t                         loopsCfgBuildId_ = 0;
+    MicroPassHelpers::NaturalLoopMap loops_;
     // Reused across builds: every entry is cleared before it is read.
     std::vector<SmallVector4<uint32_t>> defBlocksByReg_;
     // Phi placement and renaming overwrite these workspaces on every build.

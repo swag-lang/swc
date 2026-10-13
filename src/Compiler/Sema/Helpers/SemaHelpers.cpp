@@ -629,6 +629,18 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
     if (!typeRef.isValid() || !sema.frame().hasNarrowFacts())
         return TypeRef::invalid();
 
+    // Prefer stripping the Nullable flag from the type IN PLACE so the narrowed type
+    // keeps its exact structure (alias identity included); unwrap aliases only to find
+    // a flag hidden behind them. Most types carry no such flag, and a guarded region views
+    // every one of them: that answer comes before the current node is read.
+    const TypeInfo* nullableType = &sema.typeMgr().get(typeRef);
+    if (!nullableType->isNullable())
+    {
+        nullableType = nullableType->unwrapAliasEnumType(sema.ctx());
+        if (!nullableType || !nullableType->isNullable())
+            return TypeRef::invalid();
+    }
+
     // An assignment target keeps its declared type: narrowing applies to reads, not
     // writes (otherwise `x = <nullable>` inside a guard would reject its own kill).
     const AstNodeRef curRef = sema.curNodeRef();
@@ -657,17 +669,6 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
                 }
             }
         }
-    }
-
-    // Prefer stripping the Nullable flag from the type IN PLACE so the narrowed type
-    // keeps its exact structure (alias identity included); unwrap aliases only to find
-    // a flag hidden behind them.
-    const TypeInfo* nullableType = &sema.typeMgr().get(typeRef);
-    if (!nullableType->isNullable())
-    {
-        nullableType = nullableType->unwrapAliasEnumType(sema.ctx());
-        if (!nullableType || !nullableType->isNullable())
-            return TypeRef::invalid();
     }
 
     SmallVector4<const Symbol*> path;

@@ -60,7 +60,7 @@ public:
     void       setStrategy(Strategy strategy) noexcept { strategy_ = strategy; }
     Strategy   strategy() const noexcept { return strategy_; }
     Result     submit(TaskContext& ctx, const Request& request);
-    Completion consumeCompletion(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
+    Completion consumeCompletion(TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     bool       hasItem(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef) const;
     bool       hasCompletion(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef) const;
     bool       executePendingMainThread();

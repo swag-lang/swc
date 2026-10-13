@@ -995,8 +995,22 @@ std::string X64Encoder::formatRegisterName(MicroReg reg) const
 
 X64Encoder::X64Encoder(TaskContext& ctx) :
     Encoder(ctx),
-    unwind_(X64Unwind::create(ctx.compiler().cmdLine().targetOs))
+    unwind_(X64Unwind::create(ctx.compiler().cmdLine().targetOs)),
+    unwindTargetOs_(ctx.compiler().cmdLine().targetOs)
 {
+}
+
+void X64Encoder::reset(TaskContext& ctx)
+{
+    // The tracker is the target's; a job for another target gets another one.
+    const Runtime::TargetOs targetOs = ctx.compiler().cmdLine().targetOs;
+    if (targetOs != unwindTargetOs_)
+    {
+        unwind_         = X64Unwind::create(targetOs);
+        unwindTargetOs_ = targetOs;
+    }
+
+    Encoder::reset(ctx);
 }
 
 void X64Encoder::resetCode()

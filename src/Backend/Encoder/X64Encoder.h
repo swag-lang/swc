@@ -17,6 +17,7 @@ class X64Encoder : public Encoder
 {
 public:
     explicit X64Encoder(TaskContext& ctx);
+    void reset(TaskContext& ctx) override;
 
     void        buildUnwindInfo(ByteArray& outUnwindInfo) const override;
     std::string formatRegisterName(MicroReg reg) const override;
@@ -125,6 +126,7 @@ protected:
     bool supportsFusedFloatMultiplyAdd() const override { return true; }
 
     std::unique_ptr<X64Unwind> unwind_;
+    Runtime::TargetOs          unwindTargetOs_;
 };
 
 SWC_END_NAMESPACE();

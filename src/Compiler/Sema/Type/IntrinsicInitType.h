@@ -1,22 +1,13 @@
 #pragma once
-#include "Compiler/Sema/Type/TypeInfo.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
+class TaskContext;
+
 namespace IntrinsicInitType
 {
-    inline bool preservesAliasType(const TypeInfo& rawType)
-    {
-        return rawType.isEnum() ||
-               rawType.isBool() ||
-               rawType.isIntLike() ||
-               rawType.isFloat() ||
-               rawType.isAnyPointer() ||
-               rawType.isReference() ||
-               rawType.isCString() ||
-               rawType.isTypeInfo() ||
-               (rawType.isFunction() && !rawType.isLambdaClosure());
-    }
+    TypeRef normalizeTypeRef(TaskContext& ctx, TypeRef typeRef);
 }
 
 SWC_END_NAMESPACE();

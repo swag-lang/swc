@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/IntrinsicInitType.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -20,30 +21,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef normalizeIntrinsicInitTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (!typeInfo.isAlias())
-            return typeRef;
-
-        const TypeRef rawTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(sema.typeMgr().get(rawTypeRef)))
-            return rawTypeRef;
-        return typeRef;
-    }
-
     TypeRef intrinsicLifecycleTargetTypeRef(Sema& sema, TypeRef whatTypeRef, const bool flattenArrays)
     {
-        whatTypeRef = normalizeIntrinsicInitTypeRef(sema, whatTypeRef);
+        whatTypeRef = IntrinsicInitType::normalizeTypeRef(sema.ctx(), whatTypeRef);
         if (!whatTypeRef.isValid())
             return TypeRef::invalid();
 
         const TypeInfo& whatType = sema.typeMgr().get(whatTypeRef);
         if (whatType.isReference() || whatType.isAnyPointer())
-            whatTypeRef = normalizeIntrinsicInitTypeRef(sema, whatType.payloadTypeRef());
+            whatTypeRef = IntrinsicInitType::normalizeTypeRef(sema.ctx(), whatType.payloadTypeRef());
 
         if (!flattenArrays)
             return whatTypeRef;
@@ -53,7 +39,7 @@ namespace
             const TypeInfo& currentType = sema.typeMgr().get(whatTypeRef);
             if (!currentType.isArray())
                 break;
-            whatTypeRef = normalizeIntrinsicInitTypeRef(sema, currentType.payloadArrayElemTypeRef());
+            whatTypeRef = IntrinsicInitType::normalizeTypeRef(sema.ctx(), currentType.payloadArrayElemTypeRef());
         }
 
         return whatTypeRef;

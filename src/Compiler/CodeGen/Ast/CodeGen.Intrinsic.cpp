@@ -20,6 +20,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/IntrinsicInitType.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -46,21 +47,6 @@ namespace
             return typeInfo.isFloat();
         const TypeInfo* storageType = typeInfo.unwrapAliasEnumType(codeGen.ctx());
         return storageType ? storageType->isFloat() : typeInfo.isFloat();
-    }
-
-    TypeRef normalizeIntrinsicInitTypeRef(CodeGen& codeGen, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (!typeInfo.isAlias())
-            return typeRef;
-
-        const TypeRef rawTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid() && !IntrinsicInitType::preservesAliasType(codeGen.typeMgr().get(rawTypeRef)))
-            return rawTypeRef;
-        return typeRef;
     }
 
     TypeRef intrinsicLifecycleTargetTypeRef(CodeGen& codeGen, TypeRef whatTypeRef, const bool hasExplicitCount)
@@ -136,13 +122,13 @@ namespace
     IntrinsicInitTarget resolveIntrinsicInitTarget(CodeGen& codeGen, TypeRef whatTypeRef)
     {
         IntrinsicInitTarget result;
-        result.fillTypeRef = normalizeIntrinsicInitTypeRef(codeGen, whatTypeRef);
+        result.fillTypeRef = IntrinsicInitType::normalizeTypeRef(codeGen.ctx(), whatTypeRef);
         if (!result.fillTypeRef.isValid())
             return result;
 
         const TypeInfo& whatType = codeGen.typeMgr().get(result.fillTypeRef);
         if (whatType.isReference() || whatType.isAnyPointer())
-            result.fillTypeRef = normalizeIntrinsicInitTypeRef(codeGen, whatType.payloadTypeRef());
+            result.fillTypeRef = IntrinsicInitType::normalizeTypeRef(codeGen.ctx(), whatType.payloadTypeRef());
 
         uint64_t totalCount = 1;
         while (result.fillTypeRef.isValid())
@@ -157,7 +143,7 @@ namespace
                 SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
             }
 
-            result.fillTypeRef = normalizeIntrinsicInitTypeRef(codeGen, currentType.payloadArrayElemTypeRef());
+            result.fillTypeRef = IntrinsicInitType::normalizeTypeRef(codeGen.ctx(), currentType.payloadArrayElemTypeRef());
         }
 
         result.implicitCount = static_cast<uint32_t>(totalCount);

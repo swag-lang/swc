@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"

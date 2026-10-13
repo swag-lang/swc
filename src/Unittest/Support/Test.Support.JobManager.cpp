@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/Command/CommandLine.h"

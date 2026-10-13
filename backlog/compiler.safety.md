@@ -45,39 +45,77 @@ is the current scorecard.
 
 ### compiler.safety.030 — Prove that nothing changes a struct argument while the call runs
 
-- Area: compiler/sema, call-site argument analysis; `SemaEscape` borrow summaries; `Sanitizer`
-- Evidence: a struct parameter is a value
-  ([006_001_declaration.swg](../bin/reference/modules/language/src/006_001_declaration.swg)): the
-  callee cannot write it, and the backend reads each field once and keeps it across stores and
-  calls (`isImmutableIndirectParameter` in
-  [CodeGenFunctionHelpers.cpp](../src/Compiler/CodeGen/Core/CodeGenFunctionHelpers.cpp)). A
-  program that changes the caller's object during the call, through another pointer on the same
-  thread or from another thread, reads a stale field, and only in an optimized build: devmode runs
-  neither loop-invariant code motion nor value numbering, the callee must not be inlined, and a
-  struct of eight bytes or less is copied into a register whatever the build. Nothing diagnoses it
-  today. The audio update thread polled its stop flag through a by-value `Thread` until the body
-  took a pointer; `pollUntilEnd(worker, &worker)` in
-  [immutable_parameter_reads.swg](../bin/unittests/native/optimizer/immutable_parameter_reads.swg)
-  was the single-thread shape, now written with two pointers.
-- Static, in order of reach: (1) one call passes an object by value and its address, or the
-  address of one of its fields, as another argument, `f(x, &x)`, judged at the call site from the
-  argument expressions alone, the shape Swift rejects at compile time for locals; (2) the callee,
-  or a function it calls, writes a global by name, recorded as a "writes global" fact in the borrow
-  summaries that already chain through wrappers and cross modules in `Swag.BorrowSummary`, so that
-  `f(g)` is rejected when `f` can write `g`; (3) the callee stores through a pointer parameter of
-  the by-value parameter's type and reads the by-value parameter afterwards, a sanity warning when
-  the call site cannot prove the pointer points elsewhere. A write from another thread is not a
-  static property: it is why a thread body takes `const *Thread` and reads a `Swag.AtomicFlag`.
-- Dynamic, rejected: copying the parameter into a local slot at entry and comparing each field
-  read with the caller's storage would catch every shape on the real execution, but it costs a copy
-  per call and a load and compare per field read, in devmode too, for a defect confined to
-  optimized builds. No runtime guard is planned here.
-- Next: implement (1): when a resolved parameter is a by-value struct and its argument is an
-  lvalue, reject an `&` argument of the same call whose operand is that lvalue or a member path
-  under it; error test by diagnostic id in `bin/unittests/errors/sema`; `pollUntilEnd(&worker, &worker)`
-  stays legal.
-- Done when: (1) is a compile error with a test, and (2) and (3) each have an implementation or a
-  recorded reason to stop.
+- Area: compiler/sema, call-site storage provenance and effect analysis; `SemaEscape` summaries;
+  immutable-storage facts in code generation.
+- Evidence: [the struct parameter contract](../bin/reference/modules/language/src/006_001_declaration.swg)
+  forbids changes to the caller's struct during a value call. `isImmutableIndirectParameter` in
+  [CodeGenFunctionHelpers.cpp](../src/Compiler/CodeGen/Core/CodeGenFunctionHelpers.cpp) marks
+  its storage invariant across stores and calls without a call-site stability proof. A const
+  access path alone does not establish this invariant. The observable failure can depend on
+  inlining, scalarization and optimization; it is not confined to one build configuration.
+- ABI boundary: [CallConv.cpp](../src/Backend/ABI/CallConv.cpp) passes structs of exactly
+  1, 2, 4 or 8 bytes directly; other sizes are indirect. Direct Swag calls borrow the storage.
+  C currently resolves to Windows x64 and requires an indirect copy. The normal call lowering's
+  `materializePreparedIndirectCopyArg` reserves stack storage rounded to the ABI's 16-byte
+  alignment, copies the bytes, and passes that address. Runtime function-value calls also request
+  defensive aggregate copies. Existing cases in
+  [Test.ABI.FFI.cpp](../src/Unittest/ABI/Test.ABI.FFI.cpp) check native mutation of the copy and
+  preservation of the source. Keep C value semantics separate from the Swag borrow rule.
+- Required proof: treat the argument's inline storage (including embedded fields and arrays) as
+  a shared read borrow for the call. Every reachable write, move, destruction, release or
+  reallocation must be proven disjoint from that storage, and its lifetime must cover all uses.
+  Multiple read aliases are legal. A copied pointer or slice header does not freeze its external
+  pointee; follow a pointee only when its provenance can lead back into the borrowed storage.
+  Self-pointers, enclosing-object pointers, byte views and overlapping union fields defeat a
+  same-type-only check. Do not promote storage invariance into unrestricted `noalias`.
+- Static implementation path:
+  1. Resolve storage roots and projections at the call site: `f(x, &x)`, `f(x, &x.field)` and
+     `f(x.field, &x)`, then saved aliases, field-carried aliases and indexed regions. Compare
+     overlapping storage, not just matching AST syntax. A mutable route that may overlap and
+     has no proven read-only effect is a conflict; two read-only routes stay accepted.
+  2. Infer transitive write and invalidation effects through parameters, receiver projections,
+     globals and closure captures. Reuse `SemaEscape`'s deferred checks and summary fixpoint,
+     but add effects: current `stores` describes retention, not arbitrary memory writes, and
+     `observesExternal` is not a no-write proof. Export effects with module APIs; an absent or
+     opaque summary means unknown, never pure. Model callbacks and indirect calls conservatively,
+     even when the outer function has no direct store, and include lifecycle hooks.
+  3. Prove easy positive cases first: non-escaping local storage with no reachable mutable alias,
+     fresh temporary storage, genuine immutable storage, and calls whose complete effect set is
+     disjoint. Freeze from the language-defined argument evaluation point through the final use;
+     account for later argument evaluation, default expressions and reentrant calls. Keep hidden
+     return storage disjoint too: destination reuse in `x = f(x)` must not overwrite live input.
+  4. Make unresolved overlap an explicit policy decision. Keeping guaranteed zero-copy calls
+     requires rejecting unproven cases in safe code, with an explicit snapshot or pointer API as
+     the remedy. Alternatively, copying at unproven sites preserves value semantics and the ABI
+     pointer shape but gives up guaranteed zero-copy. A snapshot must respect `NoCopy`, copy/drop
+     hooks, self-borrows and lifetime rules; a raw byte copy is not a universal remedy.
+- Mandatory boundary: the proof must run independently of optional sanity guards, optimization,
+  inlining and ABI size classification if this is a language safety guarantee. A diagnostic for
+  obvious overlap is a useful first increment, not completion. Unknown provenance from raw memory,
+  forged pointers or uncontracted foreign code needs the unsafe boundary of compiler.safety.006.
+  Concurrent mutation can be excluded statically by ownership, immutable sharing or checked
+  capabilities, but present capture/lifetime summaries do not establish race freedom. Atomics
+  prevent some races; they do not make a by-value object's bytes invariant during a call.
+- External comparison: [Zig issue 5973](https://github.com/ziglang/zig/issues/5973) identifies the
+  hidden-reference aliasing problem and records removal of PRO during the 0.16.0 cycle. A sound
+  borrow proof addresses that objection; a const pointer plus selected warnings does not.
+  [D const/immutable](https://dlang.org/spec/const3.html) distinguishes a read-only access path
+  from transitively immutable data. `immutable` is useful positive evidence but cannot safely be
+  manufactured by casting still-aliased mutable storage. D's
+  [`in` parameters](https://dlang.org/spec/function.html#in-params), with `-preview=in`, permit
+  compiler-chosen reference passing and add `const scope`; scope limits escape, not mutation
+  through another alias. They are not themselves a general alias-exclusion proof.
+- Next: implement the direct overlapping-root check with read-only controls, then prototype
+  write/invalidation summaries on saved-alias, enclosing-object, global and callback cases.
+  Measure compile-time cost and rejected valid consumers before choosing the unknown-case policy.
+  Cover semantic diagnostics, cross-module summary export and native invariant-load behavior;
+  include small/odd/large layouts, explicit copies, self-borrows and hidden return destinations.
+- Done when: every accepted safe Swag value call has a storage-stability and lifetime proof,
+  or the chosen policy supplies a semantically valid copy; unknown cases cannot silently retain
+  invariant-load assumptions. C copy isolation remains covered, and unproven concurrency/raw-memory
+  cases have an explicit enforced boundary rather than a warning-only contract.
+- Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,
+  language.parallelism.005, language.parallelism.007.
 
 ### compiler.safety.025 — The box-content release summary stops at the module boundary
 

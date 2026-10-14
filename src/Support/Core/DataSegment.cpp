@@ -263,26 +263,52 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
 
     const RelocationOffsetProjection projection{.relocations = &relocations_};
 
-    const auto appendRange = [&](const std::vector<uint32_t>& index) {
-        for (auto it = std::ranges::lower_bound(index, offset, {}, projection); it != index.end(); ++it)
-        {
-            const DataSegmentRelocation& relocation = relocations_[*it];
-            if (relocation.offset - offset >= size)
-                break;
-            outRelocations.push_back(relocation);
-        }
+    auto indexed = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    auto tail    = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
+    const auto appendRange = [&](const std::vector<uint32_t>& index, auto it) {
+        for (; it != index.end() && relocations_[*it].offset - offset < size; ++it)
+            outRelocations.push_back(relocations_[*it]);
     };
+    const bool tailRangeEmpty     = tail == relocationsTailByOffset_.end() || relocations_[*tail].offset - offset >= size;
+    const bool rangesAlreadyOrdered = indexed == relocationsByOffset_.end() || tailRangeEmpty ||
+                                      relocations_[relocationsByOffset_.back()].offset <= relocations_[*tail].offset;
+    if (rangesAlreadyOrdered)
+    {
+        appendRange(relocationsByOffset_, indexed);
+        appendRange(relocationsTailByOffset_, tail);
+        return;
+    }
 
-    appendRange(relocationsByOffset_);
-    const size_t indexedCount = outRelocations.size();
-    appendRange(relocationsTailByOffset_);
+    // Merge into the output to avoid materializing both ranges before a second merge pass.
+    // The indexed prefix predates the tail, so choosing it on ties preserves insertion order.
+    while (indexed != relocationsByOffset_.end() && tail != relocationsTailByOffset_.end())
+    {
+        const DataSegmentRelocation& indexedRelocation = relocations_[*indexed];
+        const DataSegmentRelocation& tailRelocation    = relocations_[*tail];
+        if (indexedRelocation.offset - offset >= size)
+            break;
+        if (tailRelocation.offset - offset >= size)
+        {
+            outRelocations.push_back(indexedRelocation);
+            ++indexed;
+            continue;
+        }
 
-    // Both ranges are sorted on their own, so the result only needs the two of them merged. The
-    // merge is stable: relocations sharing an offset keep the order they were recorded in.
-    // An ordered boundary makes the concatenation sorted already.
-    if (indexedCount && outRelocations.size() != indexedCount &&
-        outRelocations[indexedCount].offset < outRelocations[indexedCount - 1].offset)
-        std::ranges::inplace_merge(outRelocations, outRelocations.begin() + indexedCount, {}, &DataSegmentRelocation::offset);
+        if (indexedRelocation.offset <= tailRelocation.offset)
+        {
+            outRelocations.push_back(indexedRelocation);
+            ++indexed;
+        }
+        else
+        {
+            outRelocations.push_back(tailRelocation);
+            ++tail;
+        }
+    }
+    for (; indexed != relocationsByOffset_.end() && relocations_[*indexed].offset - offset < size; ++indexed)
+        outRelocations.push_back(relocations_[*indexed]);
+    for (; tail != relocationsTailByOffset_.end() && relocations_[*tail].offset - offset < size; ++tail)
+        outRelocations.push_back(relocations_[*tail]);
 }
 
 bool DataSegment::findRelocationLocked(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const

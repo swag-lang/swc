@@ -775,6 +775,7 @@
         <ClInclude Include="src\Main\CompilerInstance.h"/>
         <ClInclude Include="src\Main\ExternalModuleManager.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.h"/>
+        <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Types.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Internal.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApi.Source.h"/>
         <ClInclude Include="src\Compiler\ModuleApi\ModuleApiExport.Internal.h"/>

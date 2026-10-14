@@ -127,34 +127,65 @@ namespace SemaRuntime
         return currentFunction != nullptr && isRuntimeArtifactFunction(sema, *currentFunction);
     }
 
-    // Every call site supplies a newly constructed output vector.
+    // Borrow the input until a filter actually removes a symbol.
     template<typename T>
-    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<std::remove_const_t<T>>& outSymbols, auto&& shouldKeep)
+    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, std::span<T>& outSymbols, SmallVector<std::remove_const_t<T>>& outStorage, auto&& shouldKeep)
     {
-        outSymbols.reserve(inSymbols.size());
-
         const bool    runtimeContext     = isRuntimeArtifactContext(sema);
         const Symbol* compilerOnlySymbol = nullptr;
-        for (T symbol : inSymbols)
+        bool          copied             = false;
+        outStorage.clear();
+        for (size_t index = 0; index < inSymbols.size(); ++index)
         {
-            if (!symbol || !shouldKeep(symbol))
-                continue;
-
-            const auto* baseSymbol = static_cast<const Symbol*>(symbol);
-            if (runtimeContext && isCompilerOnlySymbol(sema, *baseSymbol))
+            const T symbol = inSymbols[index];
+            bool keep = symbol && shouldKeep(symbol);
+            if (keep && runtimeContext)
             {
-                if (!compilerOnlySymbol)
-                    compilerOnlySymbol = baseSymbol;
+                const auto* baseSymbol = static_cast<const Symbol*>(symbol);
+                if (isCompilerOnlySymbol(sema, *baseSymbol))
+                {
+                    if (!compilerOnlySymbol)
+                        compilerOnlySymbol = baseSymbol;
+                    keep = false;
+                }
+            }
+
+            if (!keep)
+            {
+                if (!copied)
+                {
+                    outStorage.reserve(inSymbols.size());
+                    outStorage.append(inSymbols.data(), index);
+                    copied = true;
+                }
                 continue;
             }
 
-            outSymbols.push_back(symbol);
+            if (copied)
+                outStorage.push_back(symbol);
         }
 
+        outSymbols = copied ? std::span<T>{outStorage.data(), outStorage.size()} : inSymbols;
         if (!outSymbols.empty() || !compilerOnlySymbol)
             return Result::Continue;
 
         return SemaError::raiseRuntimeUsesCompilerOnlySymbol(sema, nodeRef, *compilerOnlySymbol);
+    }
+
+    template<typename T>
+    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, std::span<T>& outSymbols, SmallVector<std::remove_const_t<T>>& outStorage)
+    {
+        return filterRuntimeAccessibleSymbols(sema, nodeRef, inSymbols, outSymbols, outStorage, [](T) { return true; });
+    }
+
+    template<typename T>
+    Result filterRuntimeAccessibleSymbols(Sema& sema, AstNodeRef nodeRef, std::span<T> inSymbols, SmallVector<std::remove_const_t<T>>& outSymbols, auto&& shouldKeep)
+    {
+        std::span<T> filteredSymbols;
+        SWC_RESULT(filterRuntimeAccessibleSymbols(sema, nodeRef, inSymbols, filteredSymbols, outSymbols, shouldKeep));
+        if (filteredSymbols.data() != outSymbols.data() || filteredSymbols.size() != outSymbols.size())
+            outSymbols.assign(filteredSymbols.begin(), filteredSymbols.end());
+        return Result::Continue;
     }
 
     template<typename T>

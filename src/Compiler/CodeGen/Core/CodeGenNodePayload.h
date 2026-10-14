@@ -54,11 +54,6 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
         return fallbackTypeRef;
     }
 
-    bool hasFallibleFunctionTarget() const
-    {
-        return fallibleFunctionFailLabel.isValid();
-    }
-
     void clearFallibleWrapper()
     {
         fallibleWrapperOwnerRef = AstNodeRef::invalid();

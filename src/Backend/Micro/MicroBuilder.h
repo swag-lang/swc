@@ -116,6 +116,7 @@ public:
     void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);
     // Releases the pointer stored at [addrReg + offset], not the storage holding it.
     void emitSanityRelease(MicroReg addrReg, uint64_t offset);
+    void emitSanityIntDivision(MicroReg dividend, MicroReg divisor, MicroOpBits bits);
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
     void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);

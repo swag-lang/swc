@@ -5,9 +5,8 @@
 // tracked constant, so the accessed frame offset is exact and provably outside
 // the variable's storage. Each case is marked `#[Swag.Sanity(.BoundCheck, true)]`
 // so the static check runs (and aborts codegen) in every build config; the RUNTIME
-// guard is explicitly off — its panic call gives the frame a call area, and the
-// codegen then rebases the stack-base register, which stands the static check down
-// (see Sanitizer::stackBaseStable).
+// guard is explicitly off so each rejection comes from the static analysis.
+// Other generated guards may still give the function an outgoing call area.
 // ---------------------------------------------------------------------------
 
 // Read past the end through a variable index.

@@ -1251,6 +1251,67 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ArchiveBatchesLargeConstantSets)
+{
+    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("archive_batches_constants", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+    auto&                           builder = *fixture.nativeBuilder;
+
+    // One more allocation than the archive's 16-bit member directory can address.
+    constexpr uint32_t allocationCount = 65536;
+    builder.mergedRData.bytes.resize(allocationCount * sizeof(uint64_t));
+    for (uint32_t i = 0; i < allocationCount; ++i)
+    {
+        NativeRDataAllocationMapEntry allocation;
+        allocation.sourceOffset  = i * sizeof(uint64_t);
+        allocation.emittedOffset = allocation.sourceOffset;
+        allocation.size          = sizeof(uint64_t);
+        allocation.align         = alignof(uint64_t);
+        allocation.zeroFilled    = true;
+        builder.rdataAllocationMap[0].push_back(allocation);
+        builder.rdataAllocations.push_back(allocation);
+    }
+    builder.mergedRData.relocations.push_back({.offset = 0, .symbolName = builder.scopedSymbolNames().rdataBase, .addend = sizeof(uint64_t), .type = IMAGE_REL_AMD64_ADDR64});
+
+    SWC_RESULT(fixture.artifactBuilder->partitionArchiveObjects());
+    if (builder.objectDescriptions.size() > 65535)
+        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "constant objects exceed the archive member limit");
+
+    uint32_t nextAllocation = 0;
+    for (const auto& description : builder.objectDescriptions)
+    {
+        if (!description.rdataAllocationCount)
+            continue;
+        if (description.rdataShardIndex != 0 || description.rdataAllocationIndex != nextAllocation || description.rdataAllocationCount != 2)
+            return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batch partition loses allocation coverage or granularity");
+        nextAllocation += description.rdataAllocationCount;
+    }
+    if (nextAllocation != allocationCount)
+        return Result::Error;
+
+    const auto writer = NativeObjFileWriter::create(builder);
+    ByteArray  bytes;
+    SWC_RESULT(writer->buildObjectFile(bytes, builder.objectDescriptions[1]));
+    Diagnostic diag;
+    CoffObject object;
+    if (!readCoffObject(object, diag, bytes) || object.sections.size() != 3)
+        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batched object is invalid");
+    const auto& source   = object.sections[1];
+    const auto& target   = object.sections[2];
+    const auto& mappings = builder.rdataAllocationMap[0];
+    if (source.relocs.size() != 1 || source.relocs[0].symbolName != mappings[1].symbolName || source.bytes.readLe64(0) != 0)
+        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "intra-batch relocation changed its target or addend");
+    if (!target.isBss || target.bssSize != sizeof(uint64_t) || !target.bytes.empty())
+        return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batched zero allocation lost its uninitialized section");
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        const auto symbol = std::ranges::find(object.definedSymbols, mappings[i].symbolName, &CoffInputSymbol::name);
+        if (symbol == object.definedSymbols.end() || symbol->sectionIndex != i + 1 || symbol->value != 0)
+            return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batched allocation symbol addresses the wrong section");
+    }
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);

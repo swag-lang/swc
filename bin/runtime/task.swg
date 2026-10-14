@@ -149,11 +149,12 @@ impl Task
     // short, and must not wait for this task.
     //
     // A `Background` task runs its body at a lower thread priority, whichever thread runs it, so
-    // a long load or count does not slow the interface down.
+    // a long load or count does not slow the interface down. An `executor` runs the task on its own
+    // thread, after every task submitted to it before; otherwise a pool worker runs it.
     //
     // The task must not already be in flight. A task may be submitted again after it finished;
     // an outcome nobody took is released then.
-    mtd submit(body: func||()->T, notify: (func||())? = null, priority = TaskPriority.Normal)
+    mtd submit(body: func||()->T, notify: (func||())? = null, priority = TaskPriority.Normal, executor: *Executor? = null)
     {
         .prepare(notify, priority)
         .plainBody    = body
@@ -161,11 +162,11 @@ impl Task
 
         let task = me
         .run = func|task|() { task.runPlainBody() }
-        submitWork(&.node)
+        .dispatch(executor)
     }
 
     // Submits a `body` that can fail for one execution; [[Swag.Task.take]] raises its error.
-    mtd submit(body: func||()->T fail, notify: (func||())? = null, priority = TaskPriority.Normal)
+    mtd submit(body: func||()->T fail, notify: (func||())? = null, priority = TaskPriority.Normal, executor: *Executor? = null)
     {
         .prepare(notify, priority)
         .plainBody    = null
@@ -173,7 +174,7 @@ impl Task
 
         let task = me
         .run = func|task|() { task.runFallibleBody() }
-        submitWork(&.node)
+        .dispatch(executor)
     }
 
     // Asks the running work to stop.
@@ -197,7 +198,7 @@ impl Task
     mtd const isPending()->bool
     {
         let state = .node.state.load()
-        return state == WorkStateQueued or state == WorkStateRunning
+        return isWorkPending(state)
     }
 
     // Returns whether the last submission finished and its outcome was not taken yet.
@@ -233,8 +234,11 @@ impl Task
         defer .failure.reset()
         try .failure.raise()
 
-        #static if T != void do
+        // A value that owns something moves out; a scalar or a pointer is simply returned.
+        #static if #typeof(#type T).kind == .Struct do
             return #move .result
+        elif T != void do
+            return .result
     }
 }
 
@@ -249,6 +253,15 @@ private impl Task
         .priority   = priority
         .node.entry = &taskEntry
         .scope.stop.reset()
+    }
+
+    // Hands the prepared submission to `executor`, or to the pool.
+    mtd dispatch(executor: *Executor?)
+    {
+        if executor do
+            executor.post(&.node)
+        else do
+            submitWork(&.node)
     }
 
     // Runs a body that cannot fail and stores its value.

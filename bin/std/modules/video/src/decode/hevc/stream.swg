@@ -35,15 +35,12 @@ private enum HevcLaneState
     Decoding
 }
 
+// One persistent frame lane: its decoder's per-picture state stays on the lane's own thread.
 #[Swag.NoCopy]
 private struct HevcFrameThread
 {
-    thread:    Threading.Thread
-    wake:      Sync.Event
-    done:      Sync.Event
-    decoder:   *Decoder?
-    frame:     *Frame?
-    errorText: String
+    decode:   Swag.Task'(*Frame?)     // The picture this lane decodes, or its error.
+    executor: Swag.Executor           // The lane's own thread.
 }
 
 private struct ThreadedHevcSample
@@ -439,37 +436,23 @@ impl HevcStream
     // yet; at this resolution there are enough of them to keep a consumer that has to present on
     // a clock off the processor, and a decoder that races ahead while the picture on screen
     // stutters has won nothing.
-    private mtd ensureFrameThreads() fail
+    private mtd ensureFrameThreads()
     {
         if .threadsStarted do
             return
 
-        defer #fail .shutdownFrameThreads()
-        for lane in .laneCount
-        {
-            let frameThread = &.frameThreads[lane]
-            frameThread.wake.init(false)
-            frameThread.done.init(true)
-            try frameThread.thread.init(&runHevcFrameThread, frameThread, priority: .BelowNormal)
-            try frameThread.thread.start()
-        }
-
+        for lane in .laneCount do
+            .frameThreads[lane].executor.start(.Background)
         .threadsStarted = true
     }
 
+    // Stops the persistent frame owners. A picture still waiting for its lane is skipped.
     private mtd shutdownFrameThreads()
     {
-        for lane in .laneCount where .frameThreads[lane].thread.isValid() do
-            .frameThreads[lane].thread.safeForceEnd()
-        for lane in .laneCount where .frameThreads[lane].wake.isValid() do
-            .frameThreads[lane].wake.signal()
-        for lane in .laneCount where .frameThreads[lane].thread.isValid() do
-            .frameThreads[lane].thread.wait()
-        for lane in .laneCount
-        {
-            .frameThreads[lane].wake.release()
-            .frameThreads[lane].done.release()
-        }
+        for lane in .laneCount do
+            .frameThreads[lane].decode.cancel()
+        for lane in .laneCount do
+            .frameThreads[lane].executor.close()
 
         .threadsStarted = false
     }
@@ -479,7 +462,7 @@ impl HevcStream
         var index = .threadedHead
         for .threadedCount
         {
-            .frameThreads[.threaded[index].lane].done.wait()
+            .frameThreads[.threaded[index].lane].decode.wait()
             index = (index + 1) % HevcMaxFrameThreads
         }
     }
@@ -491,9 +474,13 @@ impl HevcStream
         {
             let lane        = .threaded[index].lane
             let frameThread = &.frameThreads[lane]
-            if frameThread.frame do
-                .release(frameThread.frame)
-            frameThread.frame = null
+            if frameThread.decode.isDone()
+            {
+                let frame = catch frameThread.decode.take()
+                if frame do
+                    .release(frame)
+            }
+
             .laneStates[lane] = .Free
             index = (index + 1) % HevcMaxFrameThreads
         }
@@ -548,11 +535,6 @@ impl HevcStream
             .reachedEnd = true
 
         let frameThread = &.frameThreads[lane]
-        frameThread.decoder   = decoder
-        frameThread.frame     = null
-        frameThread.errorText = ""
-        frameThread.done.reset()
-
         let codedUnits = try .codedUnitCount(payload.toSlice())
         let rank       = cast(u64, .rankOfSample[sample])
         if rank < .skipBefore and not try .isReferenceAccessUnit(payload.toSlice())
@@ -574,22 +556,36 @@ impl HevcStream
             if not frame do
                 fail InvalidFormatError{"H.265 access unit carries no picture"}
             Atomic.exchange(&frame.heldByCaller, 1)
-            frameThread.frame = frame
-            frameThread.done.signal()
+
+            // Already decoded here: the lane only carries the picture to its turn.
+            frameThread.decode.submit(func|frame|()->*Frame? => frame)
         }
 
         .threaded[.threadedTail] = {lane, rank}
         .threadedTail  = (.threadedTail + 1) % HevcMaxFrameThreads
         .threadedCount += 1
         .lastSetupLane = lane
-        if codedUnits == 1 do
-            frameThread.wake.signal()
+        if codedUnits == 1
+        {
+            frameThread.decode.submit(func|decoder|()->*Frame? fail
+            {
+                // A lane that shuts down before reaching this picture leaves it undecoded.
+                if Swag.isCancelled() do
+                    return null
+                defer #fail decoder.failPreparedPicture()
+                let frame = try decoder.decodePreparedPicture()
+                if frame do
+                    Atomic.exchange(&frame.heldByCaller, 1)
+                return frame
+            }, executor: &frameThread.executor)
+        }
+
         return true
     }
 
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
-        try .ensureFrameThreads()
+        .ensureFrameThreads()
         while .threadedCount < .laneCount and not .reachedEnd
         {
             if not try .startFrame(source) do
@@ -607,15 +603,9 @@ impl HevcStream
         .threadedHead  = (.threadedHead + 1) % HevcMaxFrameThreads
         .threadedCount -= 1
 
-        let frameThread = &.frameThreads[threaded.lane]
-        frameThread.done.wait()
-        if frameThread.errorText.length do
-            fail InvalidFormatError{Errors.mkString(frameThread.errorText.toString())}
-        if not frameThread.frame do
+        let frame = try .frameThreads[threaded.lane].decode.take()
+        if not frame do
             fail InvalidFormatError{"H.265 access unit carries no picture"}
-
-        let frame = frameThread.frame
-        frameThread.frame = null
         .laneStates[threaded.lane] = .Free
         try .fillFrameThreads(source)
         return {frame, threaded.rank}
@@ -729,31 +719,5 @@ impl HevcStream
         if not length or offset[] + length > data.count do
             fail InvalidFormatError{"H.265 access unit holds a truncated network abstraction layer unit"}
         return length
-    }
-}
-
-private func runHevcFrameThread(thread: const *Threading.Thread)
-{
-    let frameThread = cast(*HevcFrameThread, thread.userParam!)
-    while not thread.requestEnd.isRaised()
-    {
-        frameThread.wake.wait()
-        if thread.requestEnd.isRaised() do
-            break
-
-        var frame: *Frame?
-        frame = catch frameThread.decoder!.decodePreparedPicture() as decodeError
-        if decodeError != null
-        {
-            frameThread.decoder.failPreparedPicture()
-            frameThread.errorText = Errors.message(decodeError)
-        }
-        elif frame
-        {
-            Atomic.exchange(&frame.heldByCaller, 1)
-            frameThread.frame = frame
-        }
-
-        frameThread.done.signal()
     }
 }

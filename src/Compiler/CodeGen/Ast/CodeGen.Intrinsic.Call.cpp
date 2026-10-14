@@ -691,6 +691,36 @@ namespace
         return Result::Continue;
     }
 
+    // 'Swag.atomset' is one plain store the optimizer never drops, merges, or moves an access
+    // across: an aligned store is already a release on x86-64, so the locked exchange
+    // 'Swag.atomxchg' pays for is not needed to publish a value.
+    Result codeGenAtomicStore(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const AstNodeRef          ptrRef         = children[0];
+        const AstNodeRef          valueRef       = children[1];
+        const CodeGenNodePayload& ptrPayload     = codeGen.payload(ptrRef);
+        const CodeGenNodePayload& valuePayload   = codeGen.payload(valueRef);
+        const TypeRef             valueTypeRef   = intrinsicOperandTypeRef(codeGen, valueRef, valuePayload);
+        const SemaNodeView        ptrView        = codeGen.viewType(ptrRef);
+        const TypeRef             storageTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), ptrView.type()->payloadTypeRef());
+        const TypeInfo&           storageType    = codeGen.typeMgr().get(storageTypeRef);
+        const MicroOpBits         opBits         = CodeGenTypeHelpers::numericBits(storageType);
+
+        SWC_ASSERT(storageType.isIntLike());
+        SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+        const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+
+        MicroReg valueReg = MicroReg::invalid();
+        materializeIntrinsicNumericOperand(valueReg, codeGen, valuePayload, valueTypeRef, storageTypeRef);
+        codeGen.builder().emitStoreVolatileMemReg(ptrReg, 0, valueReg, opBits);
+        return Result::Continue;
+    }
+
     Result codeGenPrefetch(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         const AstNodeRef argumentRef = codeGen.ast().oneNode(node.spanChildrenRef);
@@ -2629,6 +2659,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenAtomicCompareExchange(codeGen, *this);
         case TokenId::IntrinsicAtomicGet:
             return codeGenAtomicLoad(codeGen, *this);
+        case TokenId::IntrinsicAtomicSet:
+            return codeGenAtomicStore(codeGen, *this);
 
         case TokenId::IntrinsicGetContext:
             return codeGenGetContext(codeGen);

@@ -593,7 +593,7 @@ SWC_TEST_END()
 // operation: that is where another thread publishes its next value. Mode 0 is the control.
 SWC_TEST_BEGIN(LICM_KeepsPrivateGlobalReadInLoopWithAtomic)
 {
-    for (const uint32_t mode : {0u, 1u, 2u, 3u})
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u})
     {
         constexpr MicroReg base   = MicroReg::virtualIntReg(1);
         constexpr MicroReg count  = MicroReg::virtualIntReg(2);
@@ -615,6 +615,8 @@ SWC_TEST_BEGIN(LICM_KeepsPrivateGlobalReadInLoopWithAtomic)
             builder.emitOpBinaryMemReg(base, 0, raised, MicroOp::Exchange, MicroOpBits::B32);
         else if (mode == 3)
             builder.emitCompareExchangeRegMemReg(flag, base, 0, raised, MicroOpBits::B32);
+        else if (mode == 4)
+            builder.emitStoreVolatileMemReg(base, 0, raised, MicroOpBits::B32);
         builder.emitLoadRegMem(value, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
         MicroRelocation relocation;
         relocation.kind           = MicroRelocation::Kind::GlobalZeroAddress;

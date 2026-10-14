@@ -405,9 +405,12 @@ impl AllocatorPage
         while Swag.atomcmpxchg(&.remoteLock, 0, 1) != 0 {}
     }
 
+    // A release is all an unlock needs: the next owner takes the lock with a compare-exchange,
+    // which sees every write made under it. The locked exchange it replaced ordered nothing more
+    // that anyone reads.
     mtd unlockRemote()
     {
-        discard Swag.atomxchg(&.remoteLock, 0)
+        Swag.atomset(&.remoteLock, 0)
     }
 
     // Moves the blocks other threads freed onto the owner's free list.

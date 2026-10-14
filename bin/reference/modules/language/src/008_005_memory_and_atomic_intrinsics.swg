@@ -62,6 +62,22 @@ it: a loop polling a value that another thread publishes reads memory on every i
 }
 
 /**
+# Atomic Write
+
+'Swag.atomset' writes an integer through a pointer as one atomic access, and returns
+nothing. It is a plain store on x86-64, where 'Swag.atomxchg' takes a bus lock, and the
+compiler never drops it, merges it, or moves another access across it. What a thread wrote
+before it is visible to a thread whose 'Swag.atomget' reads the value. The memory model
+states what that write does not order.
+*/
+#test
+{
+    var flag = 0'u32
+    Swag.atomset(&flag, 1)
+    Swag.assert(Swag.atomget(&flag) == 1)
+}
+
+/**
 # Prefetch
 
 'Swag.prefetch' tells the processor that the bytes at an address will be read soon, so

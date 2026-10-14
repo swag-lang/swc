@@ -527,6 +527,16 @@ void MicroBuilder::emitLoadVolatileRegMem(MicroReg reg, MicroReg memReg, uint64_
     ops[3].valueU64         = memOffset;
 }
 
+void MicroBuilder::emitStoreVolatileMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::StoreVolatileMemReg, 4);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = memReg;
+    ops[1].reg              = reg;
+    ops[2].opBits           = opBits;
+    ops[3].valueU64         = memOffset;
+}
+
 void MicroBuilder::emitLoadVecRegMem(MicroReg regDst, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::LoadVecRegMem, 4);

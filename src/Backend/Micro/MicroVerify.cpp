@@ -240,6 +240,7 @@ namespace
             case MicroInstrOpcode::TestMemImm:
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadVolatileRegMem:
+            case MicroInstrOpcode::StoreVolatileMemReg:
             case MicroInstrOpcode::LoadMemReg:
             case MicroInstrOpcode::LoadMemImm:
             case MicroInstrOpcode::LoadSignedExtRegReg:

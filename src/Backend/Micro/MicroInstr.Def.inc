@@ -286,6 +286,21 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 3,
         .opBitsMask            = (1 << 2),
     })
+// A store the optimizer leaves where it is: never dropped as dead, merged with another write,
+// forwarded to a later read, or reordered with a memory access. What 'Swag.atomset' lowers to:
+// an aligned store is already an atomic release on x86-64.
+SWC_MICRO_INSTR_DEF(
+    StoreVolatileMemReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
+    })
 SWC_MICRO_INSTR_DEF(
     LoadMemImm,
     MicroInstrDef{

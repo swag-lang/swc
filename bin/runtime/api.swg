@@ -1449,6 +1449,20 @@ func atomget(addr: *u16)->u16
 func atomget(addr: *u32)->u32
 func atomget(addr: *u64)->u64
 
+// Writes `value` at `addr` as one atomic access.
+//
+// It is a plain store on x86-64, so it takes no bus lock where [[Swag.atomxchg]] does, and the
+// compiler never drops, merges, or moves another access across it: everything written before it
+// is visible to a thread that reads the value with [[Swag.atomget]].
+func atomset(addr: *s8, value: s8)
+func atomset(addr: *s16, value: s16)
+func atomset(addr: *s32, value: s32)
+func atomset(addr: *s64, value: s64)
+func atomset(addr: *u8, value: u8)
+func atomset(addr: *u16, value: u16)
+func atomset(addr: *u32, value: u32)
+func atomset(addr: *u64, value: u64)
+
 // Intrinsics also evaluated at compile time.
 #[Swag.ConstExpr]
 {

@@ -115,7 +115,7 @@ is the current scorecard.
   invariant-load assumptions. C copy isolation remains covered, and unproven concurrency/raw-memory
   cases have an explicit enforced boundary rather than a warning-only contract.
 - Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,
-  language.parallelism.005, language.parallelism.007.
+  language.parallelism.005.
 
 ### compiler.safety.025 — The box-content release summary stops at the module boundary
 

@@ -4,7 +4,14 @@
 //
 // `T` is one of the sized integer types. Reads and writes go through this type's operations
 // only: an ordinary read or write of the same storage beside them is a data race, so the field
-// is not part of the API. Every operation is sequentially consistent.
+// is not part of the API.
+//
+// The plain operations are sequentially consistent: every thread observes all of them in one
+// order. [[Swag.AtomicValue.loadAcquire]] and [[Swag.AtomicValue.storeRelease]] order only what
+// one thread publishes to another, and the relaxed forms order nothing beyond the value itself.
+// A weaker form does not keep the plain form's guarantee, so use one only with a stated reason;
+// the memory model of the language reference says what each promises. Read-modify-write
+// operations are always sequentially consistent.
 //
 // ```swag
 // var counter: Swag.AtomicValue'u32
@@ -23,8 +30,25 @@ impl AtomicValue
     // Returns the current value.
     mtd const load()->T => Swag.atomget(cast #unconst (*T, &.storage))
 
+    // Returns the current value. When it was written by [[Swag.AtomicValue.storeRelease]],
+    // everything the writing thread did before that write is visible after this read.
+    mtd const loadAcquire()->T => Swag.atomget(cast #unconst (*T, &.storage))
+
+    // Returns the current value, ordered against nothing else: for a count or a statistic that no
+    // other access depends on.
+    mtd const loadRelaxed()->T => Swag.atomget(cast #unconst (*T, &.storage))
+
     // Replaces the value.
     mtd store(value: T) { discard Swag.atomxchg(&.storage, value) }
+
+    // Replaces the value. A thread whose [[Swag.AtomicValue.loadAcquire]] reads it also sees
+    // everything this thread wrote before: the way to publish data behind a flag, or to release a
+    // lock. It does not order a later read of this thread against it, which is what the plain
+    // [[Swag.AtomicValue.store]] is for.
+    mtd storeRelease(value: T) => Swag.atomset(&.storage, value)
+
+    // Replaces the value, ordered against nothing else.
+    mtd storeRelaxed(value: T) => Swag.atomset(&.storage, value)
 
     // Replaces the value and returns what it was.
     mtd exchange(value: T)->T => Swag.atomxchg(&.storage, value)

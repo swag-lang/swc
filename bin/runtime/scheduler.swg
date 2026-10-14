@@ -500,16 +500,56 @@ internal func waitWork(node: *WorkNode)
         spins += 1
         if spins >= 256
         {
-            parkWorkObserver(node)
+            discard parkWorkObserver(node, cancellable: false)
             return
         }
     }
 }
 
+// Waits like `waitWork`, but returns false as soon as the work running on this thread is asked
+// to stop, and true once `node` has finished.
+//
+// It never runs `node` itself: a thread running the work it waits for could not notice the request
+// until that work ends. A worker runs it instead; with no worker, it already ran when submitted.
+internal func waitWorkUnlessCancelled(node: *WorkNode)->bool
+{
+    var spins = 0'u32
+    for
+    {
+        let state = node.state.load()
+        if state != WorkStateQueued and state != WorkStateRunning do
+            return true
+        if isCancelled() do
+            return false
+
+        spins += 1
+        if spins >= 256 do
+            return parkWorkObserver(node, cancellable: true)
+    }
+}
+
+// Wakes the parked observers so a cancellable one can notice that its work was asked to stop.
+//
+// A request names no node, and requests are rare, so every parked observer wakes and rechecks.
+// The request is raised before this reads the parked count, and an observer counts itself before
+// reading the request, so one of the two always sees the other.
+internal func wakeCancelledObservers()
+{
+    let known = g_Scheduler.load()
+    if known == 0 do
+        return
+
+    let sched = cast(*Scheduler, known)
+    if sched.joining.load() != 0 do
+        wakeWorkObservers(sched)
+}
+
 // Queued descendants are claimed above before parking is considered. A long-running child
 // therefore does not burn its observer's CPU, while short joins retain the lock-free poll.
+// Returns whether `node` finished; a `cancellable` observer also returns, with false, once the
+// work running on this thread is asked to stop.
 #[Swag.NoInline]
-private func parkWorkObserver(node: *WorkNode)
+private func parkWorkObserver(node: *WorkNode, cancellable: bool)->bool
 {
     let sched = schedulerInstance()
     let slot  = claimObserverSlot(sched, cast(u64, node))
@@ -527,7 +567,9 @@ private func parkWorkObserver(node: *WorkNode)
     {
         let state = node.state.load()
         if state != WorkStateQueued and state != WorkStateRunning do
-            return
+            return true
+        if cancellable and isCancelled() do
+            return false
         sched.finished.wait(&sched.mutex)
     }
 }

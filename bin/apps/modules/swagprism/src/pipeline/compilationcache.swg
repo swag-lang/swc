@@ -20,20 +20,11 @@ impl BuildLease
             .cache!.release(.artifact)
     }
 
-    // Waits for the leased build to end; false when `cancelled` is raised first.
-    mtd wait(cancelled: *u32)->bool
+    // Waits for the leased build to end; false when the work that waits is asked to stop first.
+    mtd wait()->bool
     {
         Swag.assert(.artifact != null)
-        let artifact = .artifact
-
-        while not artifact.task.isDone()
-        {
-            if Atomic.get(cancelled) do
-                return false
-            Threading.Thread.sleep(1'ms)
-        }
-
-        return not Atomic.get(cancelled)
+        return .artifact.task.waitUnlessCancelled() and not Swag.isCancelled()
     }
 }
 
@@ -71,7 +62,7 @@ impl CompilationCache
         for entry in .entries
         {
             if entry.generation == .generation and
-               not Atomic.get(&entry.cancelled) and
+               not entry.task.isCancelled() and
                entry.request.satisfies(request)
             {
                 entry.users += 1
@@ -122,7 +113,7 @@ impl CompilationCache
         Swag.assert(entry.users != 0)
         entry.users -= 1
         if not entry.users and not entry.task.isDone() do
-            Atomic.exchange(&entry.cancelled, 1)
+            entry.task.cancel()
     }
 
     // All viewer tasks have joined before the owning window closes this cache.
@@ -131,7 +122,7 @@ impl CompilationCache
         for entry in .entries
         {
             Swag.assert(entry.users == 0)
-            Atomic.exchange(&entry.cancelled, 1)
+            entry.task.cancel()
             entry.task.wait()
             Memory.delete(entry)
         }

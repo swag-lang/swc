@@ -102,8 +102,8 @@ impl PreviewViewer
     mtd alreadyRuns(request: Pipeline.BuildRequest)->bool
     {
         return .running and
-               not Atomic.get(&.probe.cancelled) and
-               (not .preparing or not Atomic.get(&.preparing.cancelled)) and
+               not .probe.isCancelled() and
+               (not .preparing or not .preparing.isCancelled()) and
                .generation == .cache.generation and
                .request.kind == request.kind and
                .request.sameProgram(request)
@@ -119,7 +119,7 @@ impl PreviewViewer
         if .preparing
         {
             .queued = true
-            Atomic.exchange(&.preparing.cancelled, 1)
+            .preparing.cancel()
             return
         }
 
@@ -132,7 +132,7 @@ impl PreviewViewer
         if .running
         {
             .queued = true
-            Atomic.exchange(&.probe.cancelled, 1)
+            .probe.cancel()
             return
         }
 
@@ -200,7 +200,7 @@ impl PreviewViewer
             if candidate.task.isDone()
             {
                 .preparing = null
-                if Atomic.get(&candidate.cancelled)
+                if candidate.isCancelled()
                 {
                     Memory.delete(candidate)
                     .startReplacement()
@@ -213,12 +213,12 @@ impl PreviewViewer
                     .sigChanged.call(me)
                 }
             }
-            elif not Atomic.get(&candidate.cancelled) and
+            elif not candidate.isCancelled() and
                  Atomic.get(&candidate.ready) and
                  Atomic.get(&candidate.channel.header().published)
             {
                 // Keep the previous animation alive until the replacement has a complete frame.
-                Atomic.exchange(&.probe.cancelled, 1)
+                .probe.cancel()
                 .retired.add(.probe)
                 .probe      = candidate
                 .preparing  = null
@@ -275,16 +275,16 @@ impl PreviewViewer
     // Cancels every probe, waits for their workers, and closes the frame channel.
     mtd stop()
     {
-        Atomic.exchange(&.probe.cancelled, 1)
+        .probe.cancel()
         if .preparing
         {
-            Atomic.exchange(&.preparing.cancelled, 1)
+            .preparing.cancel()
             .retired.add(.preparing)
             .preparing = null
         }
 
         for probe in .retired do
-            Atomic.exchange(&probe.cancelled, 1)
+            probe.cancel()
         .probe.task.wait()
         for probe in .retired
         {

@@ -286,8 +286,17 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     Swag.assert(foundAscii and foundLittle and foundBig)
 
-    var cancelled = 1'u32
-    let stopped   = Hex.analyzeRange(fileName, {0, payload.count}, &cancelled)
+    // A scan run by work that was asked to stop ends before reading anything.
+    var stopper: Swag.Task'Hex.AnalysisResult
+    let self         = &stopper
+    let count        = payload.count
+    let path: string = fileName
+    stopper.submit(func|self, path, count|()->Hex.AnalysisResult
+    {
+        self.cancel()
+        return Hex.analyzeRange(path, {0, count})
+    })
+    let stopped = expect stopper.take()
     Swag.assert(stopped.cancelled and not stopped.scanned)
 }
 

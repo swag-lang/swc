@@ -5,8 +5,7 @@ using Core, Gui
 
 func waitBuild(lease: *Pipeline.BuildLease)
 {
-    var cancelled = 0'u32
-    Swag.assert(lease.wait(&cancelled))
+    Swag.assert(lease.wait())
     if lease.artifact!.result.failed do
         Console.print(lease.artifact.result.text)
     Swag.assert(not lease.artifact.result.failed)
@@ -84,7 +83,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     }
 
     waitBuild(&survivor)
-    Swag.assert(not Atomic.get(&survivor.artifact!.cancelled))
+    Swag.assert(not survivor.artifact!.task.isCancelled())
 }
 
 // Pixel execution and inspection consume the same native build when settings match.
@@ -104,7 +103,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     {
         Threading.Thread.sleep(5'ms)
         if micro.job.running do
-            host.fireTimer(micro.job.timer!)
+            host.pump()
         if preview.running do
             preview.poll()
     }

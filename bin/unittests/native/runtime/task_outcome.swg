@@ -228,3 +228,37 @@ impl OwnedOutcome
     task.wait()
     Swag.assert(not task.isCancelled())
 }
+
+// A cancellable join returns, with false, once the waiting work is asked to stop, while the
+// awaited task keeps running; a plain join of the same task still waits for its end.
+#test
+{
+    var release: Swag.AtomicFlag
+    var awaited: Swag.Task
+    awaited.submit(func|&release|()
+    {
+        // Compile-time execution runs this during its submission, where nothing could release it.
+        while not Swag.jit() and not release.isRaised() {}
+    })
+
+    let target = &awaited
+    var waiter: Swag.Task'bool
+    waiter.submit(func|target|()->bool => target.waitUnlessCancelled())
+    waiter.cancel()
+    let finished = expect waiter.take()
+
+    discard release.raise()
+    awaited.wait()
+    Swag.assert(Swag.jit() or not finished)
+    Swag.assert(awaited.isDone())
+}
+
+// Outside a cancelled task, a cancellable join waits for the end like a plain one.
+#test
+{
+    var task: Swag.Task'u32
+    task.submit(func()->u32 => 3)
+    Swag.assert(task.waitUnlessCancelled())
+    let value = expect task.take()
+    Swag.assert(value == 3)
+}

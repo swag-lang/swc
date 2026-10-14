@@ -231,15 +231,15 @@ of simplicity when every useful helper needs an unchecked contract.
 
 - Evidence: [Swag.Task'T](../bin/runtime/task.swg) hands its value or its error to one observer
   through `take`, and its destruction asks the body to stop before joining it. Cancellation is a
-  request the body reads, not an outcome: it returns a partial value or fails. But a task that
-  waits -- for another task, a lock, a foreign call -- occupies its worker for the whole wait,
-  reducing the capacity available to execute queued operations. Prism's `BuildLease.wait` polls
-  another task's `isDone` with a one-millisecond sleep inside a task of its own.
+  request the body reads, not an outcome: it returns a partial value or fails, and
+  `Task.waitUnlessCancelled` lets a waiting task give up as soon as it is asked to stop. But a task
+  that waits -- for another task, a lock, a foreign call -- still occupies its worker for the whole
+  wait, reducing the capacity available to execute queued operations; Prism's build lease is such a
+  wait.
 - Next: settle the suspension gates before implementing. Fix the `async`/`await` grammar, the
   effect in the callable type, stackless frame ownership, stable frame addresses, and the async
   boundary for both native and JIT execution. Decide what `try`, a catch-all, `defer #fail` and
-  `defer #nofail` observe across a suspension point. A cancellation-aware join that returns early
-  without suspending can come first: it is what the Prism lease needs.
+  `defer #nofail` observe across a suspension point.
 - Done when: an awaiting task releases its worker, and native and JIT lifecycle tests cover every
   exit after capture: immediate completion, a suspended frame, a cancelled waiter whose child
   still owns a loan, and destruction exactly once.
@@ -279,14 +279,14 @@ of simplicity when every useful helper needs an unchecked contract.
 - Evidence: the request is ambient: `Swag.isCancelled` answers for the running task, task-group
   child or `parallel for` partition, and a group or loop started inside cancelled work inherits
   the request. A `Swag.Task` deliberately does not inherit it, because it can outlive the work that
-  submitted it; dropping it cancels it instead. Consumers still keep their own flags -- the hex
-  analysis, the text reader, Prism's format and microcode workers, Swag Vault's progress -- because
-  they predate the ambient request. No task, group or loop carries a deadline: a program that wants
-  to stop after a duration polls a clock it wrote itself. The request is also invisible to every
-  wait. `Swag.Condition.waitFor` expires on its own timeout without consulting it, and
+  submitted it; dropping it cancels it instead. A request wakes a task parked in
+  `Task.waitUnlessCancelled`. Swag Vault's progress still keeps a cancellation flag of its own. No
+  task, group or loop carries a deadline: a program that wants to stop after a duration polls a
+  clock it wrote itself. The request is also invisible to the waiting primitives:
+  `Swag.Condition.waitFor` expires on its own timeout without consulting it, and
   `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken by it.
 - Next: make a deadline one more source of the same request rather than a second mechanism, then
-  migrate the private flags above to `Swag.isCancelled`. State the boundary at the waiting
+  migrate Swag Vault's flag to `Swag.isCancelled`. State the boundary at the waiting
   primitives instead of implying it: today `acquire` has no cancellation input or wake path.
   A cancellation-aware blocking wait can return early without async suspension; define its
   wake registration, permit-consumption race, and cleanup independently of .002.

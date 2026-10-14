@@ -163,16 +163,17 @@ private impl AnalysisResult
 
 // Returns the byte counts, entropy, and a bounded set of inferred ASCII and UTF-16 runs of `range` in `fileName`.
 //
-// The range is streamed in `AnalysisChunkSize` chunks. `cancelled` and `processed` are optional
-// atomics owned by an asynchronous caller: a non-zero `cancelled` stops the scan, and `processed`
-// follows the bytes scanned so far. A failure is reported in `failureReason`, never as an error.
-func analyzeRange(fileName: string, range: AnalysisRange, cancelled: *u32? = null, processed: *u64? = null)->AnalysisResult
+// The range is streamed in `AnalysisChunkSize` chunks. A request to stop the work running the scan
+// ([[Swag.isCancelled]]) ends it early with a partial result. `processed` is an optional atomic
+// owned by an asynchronous caller, which follows the bytes scanned so far. A failure is reported in
+// `failureReason`, never as an error.
+func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = null)->AnalysisResult
 {
     var result: retval
     result.range = range
     if not range.length do
         return result
-    if cancelled and Atomic.get(cancelled)
+    if Swag.isCancelled()
     {
         result.cancelled = true
         return result
@@ -203,7 +204,7 @@ func analyzeRange(fileName: string, range: AnalysisRange, cancelled: *u32? = nul
     var remaining = range.length
     while remaining
     {
-        if cancelled and Atomic.get(cancelled)
+        if Swag.isCancelled()
         {
             result.cancelled = true
             break
@@ -257,7 +258,6 @@ struct AnalysisOperation
     fileName:        String
     range:           AnalysisRange
     result:          AnalysisResult
-    cancelRequested: u32
     processed:       u64
 }
 
@@ -274,12 +274,11 @@ impl AnalysisOperation
         .fileName = fileName
         .range    = range
         .result   = {}
-        Atomic.exchange(&.cancelRequested, 0)
         Atomic.exchange(&.processed, 0)
 
         .submit(func|operation = me|()
         {
-            operation.result = analyzeRange(operation.fileName, operation.range, &operation.cancelRequested, &operation.processed)
+            operation.result = analyzeRange(operation.fileName, operation.range, &operation.processed)
         }, owner)
     }
 
@@ -287,7 +286,7 @@ impl AnalysisOperation
     mtd cancel()
     {
         if .started do
-            Atomic.exchange(&.cancelRequested, 1)
+            .task.cancel()
     }
 
     mtd progress()->u64 => Atomic.get(&.processed)

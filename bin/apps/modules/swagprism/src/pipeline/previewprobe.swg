@@ -15,7 +15,6 @@ struct PreviewProbe
     request:     BuildRequest
     folder:      Probe
     channel:     FrameChannel
-    cancelled:   u32
     ready:       u32
     reused:      bool
     artifactId:  u64
@@ -28,9 +27,15 @@ impl PreviewProbe
 {
     mtd opDrop()
     {
-        Atomic.exchange(&.cancelled, 1)
+        .cancel()
         .task.wait()
     }
+
+    // Asks the probe to stop: its build wait, its run and its frame watch all end early.
+    mtd cancel() => .task.cancel()
+
+    // Returns whether the probe was asked to stop.
+    mtd const isCancelled()->bool => .task.isCancelled()
 
     // Builds and runs `request` on a worker; a failure leaves a message in `diagnostics`.
     mtd start(request: BuildRequest, cache: *CompilationCache)
@@ -52,7 +57,7 @@ impl PreviewProbe
     mtd run(cache: *CompilationCache) fail
     {
         var lease = cache.acquire(.request)
-        if not lease.wait(&.cancelled) do
+        if not lease.wait() do
             return
 
         .compileMs  = lease.artifact!.elapsedMs
@@ -66,7 +71,7 @@ impl PreviewProbe
         }
 
         try .folder.open()
-        if Atomic.get(&.cancelled) do
+        if Swag.isCancelled() do
             return
 
         // The child renders into a mapped frame channel; this side only watches that frames keep coming.
@@ -83,7 +88,7 @@ impl PreviewProbe
         var lastFrame = 0'u32
         while not try child.tryWaitForExit(20'ms)
         {
-            if Atomic.get(&.cancelled) do
+            if Swag.isCancelled() do
                 return
             let header    = .channel.header()
             let published = Atomic.get(&header.published)

@@ -28,7 +28,7 @@ func awaitReplacement(viewer: *PreviewViewer)
     let previous = viewer.probe
     let oldFrame = viewer.frameCount
     viewer.compileSource("func shade(_: f32, _: f32, _: f32)->u32 => 0xFF445566")
-    Swag.assert(viewer.preparing != null and not Atomic.get(&previous.cancelled))
+    Swag.assert(viewer.preparing != null and not previous.isCancelled())
     Swag.assert(window.spinner.isVisible())
     awaitFrame(viewer, oldFrame)
     Swag.assert(viewer.probe == previous)

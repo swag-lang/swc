@@ -12,8 +12,8 @@ struct SourceFormatter
 impl SourceFormatter
 {
     // Checks the syntax of `source` and formats it with the compiler, out of process; empty when
-    // `cancelled` is raised.
-    mtd format(source: string, cancelled: *u32)->Result fail
+    // the work running it is asked to stop.
+    mtd format(source: string)->Result fail
     {
         try .folder.open()
         let file = Path.combine(.folder.root, "src", "source.swg")
@@ -26,7 +26,7 @@ impl SourceFormatter
         var result: retval
         for command in ["syntax", "format"]
         {
-            if Atomic.get(cancelled) do
+            if Swag.isCancelled() do
                 return {}
             let arguments = Env.joinArguments([command, "--num-cores", workers, "--file", file])
             var process   = try startPiped(compiler, arguments)
@@ -36,7 +36,7 @@ impl SourceFormatter
             watch.start()
             while not try process.tryWaitForExit(20'ms)
             {
-                if Atomic.get(cancelled) do
+                if Swag.isCancelled() do
                     return {}
                 if watch.elapsedMilliseconds() > CompilerTimeoutMs do
                     return {text: appStrings().msg_FormatTimeout, failed: true}

@@ -34,8 +34,6 @@ struct MainWindow
     cache:             Pipeline.CompilationCache
     formatter:         Pipeline.SourceFormatter
     formatTask:        Swag.Task
-    formatTimer:       *Timer?
-    formatCancelled:   u32
     formatSource:      String
     formatResult:      Pipeline.Result
     formatStatus:      FormatStatus
@@ -306,9 +304,8 @@ impl MainWindow
         .cancelEditTimer()
         if .formatStatus == .Working
         {
-            Atomic.exchange(&.formatCancelled, 1)
+            .formatTask.cancel()
             .formatTask.wait()
-            .stopTimer(&.formatTimer)
             .formatStatus = .None
         }
 
@@ -317,24 +314,22 @@ impl MainWindow
         .cache.close()
     }
 
-    // Formats the editor source on a worker; `finishFormat` applies the result once the timer sees
-    // the task done.
+    // Formats the editor source on a worker; `finishFormat` applies the result when the task's
+    // event arrives.
     mtd format()
     {
         if .formatStatus == .Working do
             return
         .cancelEditTimer()
-        .formatSource    = .editor.text()
-        .formatCancelled = 0
-        .formatStatus    = .Working
+        .formatSource = .editor.text()
+        .formatStatus = .Working
         .commandBar.formatButton.enable(false)
-        .formatTimer = .addTimer(20'ms)
         .formatTask.submit(func|window = me|()
         {
-            window.formatResult = catch window.formatter.format(window.formatSource, &window.formatCancelled) as error
+            window.formatResult = catch window.formatter.format(window.formatSource) as error
             if error != null do
                 window.formatResult.failed = true
-        })
+        }, .taskNotifier(&.formatTask))
         .refreshStatus()
     }
 
@@ -342,7 +337,6 @@ impl MainWindow
     // ran, and recompiles what it rewrote.
     mtd finishFormat()
     {
-        .stopTimer(&.formatTimer)
         .commandBar.formatButton.enable()
         if .formatResult.failed
         {
@@ -487,9 +481,15 @@ impl IWnd for MainWindow
     {
         if evt.timer == .editTimer do
             .compile()
-        if evt.timer == .formatTimer and .formatTask.isDone() do
-            .finishFormat()
         .wnd.IWnd.onTimerEvent(evt)
+    }
+
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        if evt.task == &.formatTask and .formatStatus == .Working and .formatTask.isDone() do
+            .finishFormat()
+        else do
+            evt.accepted = false
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

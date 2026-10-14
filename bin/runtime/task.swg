@@ -184,6 +184,7 @@ impl Task
     mtd cancel()
     {
         discard .scope.stop.raise()
+        wakeCancelledObservers()
     }
 
     // Returns whether a stop was requested for the current submission.
@@ -207,6 +208,13 @@ impl Task
     // ready tasks. Descendant-only joins therefore progress even when every worker is busy.
     // Waiting on a task that was never submitted returns immediately.
     mtd wait() => waitWork(&.node)
+
+    // Waits like [[Swag.Task.wait]], but returns early when the work that waits is asked to stop
+    // ([[Swag.isCancelled]]). Returns whether this task has finished.
+    //
+    // The waiting thread never runs this task itself, so it stays free to notice the request; the
+    // task keeps going on its own, and its owner still has to wait for it or cancel it.
+    mtd waitUnlessCancelled()->bool => waitWorkUnlessCancelled(&.node)
 
     // Waits for the work, then hands over its outcome: the value it produced, or the error it
     // raised, with its dynamic type.
@@ -469,6 +477,7 @@ impl TaskGroup
     mtd cancel()
     {
         discard .scope.stop.raise()
+        wakeCancelledObservers()
     }
 
     // Returns whether cancellation was requested for this group, or for the work that spawned it.

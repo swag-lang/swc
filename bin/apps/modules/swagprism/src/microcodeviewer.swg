@@ -19,9 +19,9 @@ enum StatusMessage
 One compilation running outside the interface thread.
 
 The compiler is a separate process and a compilation is tens to hundreds of milliseconds, which is
-long enough to stop a window that waits for it. The window submits the work instead and polls it on
-a timer, so it keeps drawing, keeps taking text, and keeps answering the reader while the compiler
-runs.
+long enough to stop a window that waits for it. The window submits the work instead and is told
+when it ends, so it keeps drawing, keeps taking text, and keeps answering the reader while the
+compiler runs.
 
 Only one compilation per viewer runs at a time. A request that arrives while one is running
 replaces whatever was waiting rather than joining a queue: the reader wants the answer to what they
@@ -29,9 +29,7 @@ last asked, not every stage they passed through on the way to it.
 */
 struct CompileJob
 {
-    cancelled: u32           // Set by the UI; observed by the process polling loop.
-    task:      Swag.Task     // Runs `MicrocodeViewer.runCompile` off the interface thread.
-    timer:     *Timer?       // Polls the task while it runs, and is removed when it finishes.
+    task: Swag.Task     // Runs `MicrocodeViewer.runCompile` off the interface thread.
 
     // Inputs, copied before the task starts so the editor stays editable while it runs.
     request:    Pipeline.BuildRequest
@@ -143,7 +141,7 @@ impl MicrocodeViewer
         if .job.running
         {
             .job.queued = true
-            Atomic.exchange(&.job.cancelled, 1)
+            .job.task.cancel()
             return
         }
 
@@ -157,7 +155,6 @@ impl MicrocodeViewer
         if index >= Pipeline.Stages.count do
             return
 
-        .job.cancelled = 0
         .job.request   = .pendingRequest
         .job.queued    = false
         .job.running   = true
@@ -165,15 +162,14 @@ impl MicrocodeViewer
         // Options remain editable while this viewer compiles; another request replaces its pending
         // input.
         .setStatus(.Working)
-        .job.timer = .addTimer(20'ms)
-        .job.task.submit(func|viewer = me|() { viewer.runCompile() })
+        .job.task.submit(func|viewer = me|() { viewer.runCompile() }, .taskNotifier(&.job.task))
     }
 
     // Runs on the job's thread. Nothing here may reach the window tree or anything it draws from.
     mtd runCompile()
     {
         var lease = .cache.acquire(.job.request)
-        if not lease.wait(&.job.cancelled) do
+        if not lease.wait() do
             return
         .job.result     = lease.artifact!.result
         .job.elapsed    = lease.artifact.elapsedMs
@@ -184,7 +180,6 @@ impl MicrocodeViewer
     // Reports what the finished job produced, then starts whatever was asked for meanwhile.
     mtd finishCompile()
     {
-        .stopTimer(&.job.timer)
         .job.running = false
 
         if .job.queued
@@ -210,11 +205,10 @@ impl MicrocodeViewer
     {
         if .job.running
         {
-            Atomic.exchange(&.job.cancelled, 1)
+            .job.task.cancel()
             .job.task.wait()
         }
 
-        .stopTimer(&.job.timer)
         .job.running = false
         .job.queued  = false
     }
@@ -270,11 +264,12 @@ impl IViewer for MicrocodeViewer
 
 impl IWnd for MicrocodeViewer
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer == .job.timer and .job.task.isDone() do
+        if evt.task == &.job.task and .job.running and .job.task.isDone() do
             .finishCompile()
-        .wnd.IWnd.onTimerEvent(evt)
+        else do
+            evt.accepted = false
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)

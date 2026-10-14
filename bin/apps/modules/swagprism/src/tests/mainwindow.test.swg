@@ -64,13 +64,13 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
     let left  = microcode(window, 0)
     let right = microcode(window, 1)
     window.panels[0].optimCombo.setSelectedIndex(1)
-    Swag.assert(left.job.running and left.job.timer != null)
+    Swag.assert(left.job.running)
     Swag.assert(left.job.request.settings.optimization == .O1)
     Swag.assert(not right.job.running)
     window.panels[0].optimCombo.setSelectedIndex(0)
     Swag.assert(left.job.queued and left.job.request.settings.optimization == .O1)
     window.shutdown()
-    Swag.assert(not left.job.running and left.job.timer == null)
+    Swag.assert(not left.job.running)
 }
 
 // The global mode button changes only the layout and retains both viewers' state.
@@ -121,15 +121,12 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
     while (left.job.running or right.job.running) and watch.elapsedMilliseconds() < 30_000
     {
         Threading.Thread.sleep(10'ms)
-        if left.job.running do
-            host.fireTimer(left.job.timer)
-        if right.job.running do
-            host.fireTimer(right.job.timer)
+        host.pump()
     }
 
     for viewer in [left, right]
     {
-        Swag.assert(not viewer.job.running and viewer.job.timer == null)
+        Swag.assert(not viewer.job.running)
         Swag.assert(not viewer.job.result.failed)
         Swag.assert(not viewer.outputIsHint and not viewer.outputText.colors.isEmpty())
         let plain    = viewer.output.text()
@@ -157,7 +154,7 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
     Swag.assert(second.job.running)
     window.setComparisonEnabled(false)
     window.shutdown()
-    Swag.assert(not second.job.running and second.job.timer == null)
+    Swag.assert(not second.job.running)
 }
 
 // Both supported layouts use the same themed structural panels.

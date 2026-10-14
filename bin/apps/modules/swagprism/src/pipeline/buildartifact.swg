@@ -16,7 +16,6 @@ struct BuildArtifact
     result:     Result
     binary:     String
     task:       Swag.Task
-    cancelled:  u32
     users:      u32
     generation: u64
     id:         u64
@@ -55,7 +54,7 @@ impl BuildArtifact
         watch.start()
         while not try process.tryWaitForExit(5'ms)
         {
-            if Atomic.get(&.cancelled) do
+            if Swag.isCancelled() do
                 return
             if watch.elapsedMilliseconds() > CompilerTimeoutMs
             {

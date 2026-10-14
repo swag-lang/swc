@@ -236,6 +236,22 @@ namespace
         return pointerPayloadsCompatible(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef());
     }
 
+    // How far a source signature may differ from the destination it converts to. Only the top
+    // level relaxes: a parameter or return type that is itself a function must match exactly.
+    enum class SignatureMatchE : uint8_t
+    {
+        Zero = 0,
+
+        // A plain function can become a closure.
+        IgnoreClosure = 1 << 0,
+
+        // A function that never fails can stand where failure is allowed. A fallible call only
+        // reads the context error flag after the callee returns, and a callee that never fails
+        // leaves it clear, so the conversion needs no adapter.
+        WidenToFallible = 1 << 1,
+    };
+    using SignatureMatch = EnumFlags<SignatureMatchE>;
+
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
     TypeRef methodReceiverTypeRef(Sema& sema, const SymbolFunction& func)
@@ -264,7 +280,8 @@ namespace
         return sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerTypeRef, typeFlags));
     }
 
-    bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)
+    // `rightFunc` is the destination when `match` relaxes anything.
+    bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, SignatureMatch match)
     {
         if (&leftFunc == &rightFunc)
             return true;
@@ -273,11 +290,11 @@ namespace
             return false;
         if (leftFunc.callConvKind() != rightFunc.callConvKind())
             return false;
-        if (!ignoreTopLevelClosure && leftFunc.isClosure() != rightFunc.isClosure())
+        if (!match.has(SignatureMatchE::IgnoreClosure) && leftFunc.isClosure() != rightFunc.isClosure())
             return false;
         if (leftFunc.isMethod() != rightFunc.isMethod())
             return false;
-        if (leftFunc.isFallible() != rightFunc.isFallible())
+        if (leftFunc.isFallible() != rightFunc.isFallible() && !(match.has(SignatureMatchE::WidenToFallible) && rightFunc.isFallible()))
             return false;
         if (leftFunc.isConst() != rightFunc.isConst())
             return false;
@@ -362,7 +379,7 @@ namespace
         if (!leftType.isFunction() || !rightType.isFunction())
             return false;
 
-        return sameFunctionSignatureRecursive(sema, leftType.payloadSymFunction(), rightType.payloadSymFunction(), false);
+        return sameFunctionSignatureRecursive(sema, leftType.payloadSymFunction(), rightType.payloadSymFunction(), SignatureMatchE::Zero);
     }
 }
 
@@ -877,12 +894,25 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
     {
         const SymbolFunction& srcFunc = srcType.payloadSymFunction();
         const SymbolFunction& dstFunc = dstType.payloadSymFunction();
-        if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, false))
+        if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, SignatureMatchE::Zero))
             return Result::Continue;
         if (sameMethodClosureAsFunctionSignatureRecursive(sema, srcFunc, dstFunc))
             return Result::Continue;
-        if (!srcFunc.isClosure() && dstFunc.isClosure() && sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, true))
+        if (!srcFunc.isClosure() && dstFunc.isClosure() && sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, SignatureMatchE::IgnoreClosure))
             return Result::Continue;
+
+        // Widening to a fallible destination is tried last, so overload resolution can tell it apart.
+        if (!srcFunc.isFallible() && dstFunc.isFallible())
+        {
+            SignatureMatch match = SignatureMatchE::WidenToFallible;
+            if (!srcFunc.isClosure() && dstFunc.isClosure())
+                match = match | SignatureMatchE::IgnoreClosure;
+            if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, match))
+            {
+                castRequest.usedFallibleWidening = true;
+                return Result::Continue;
+            }
+        }
     }
 
     if (castRequest.kind == CastKind::Explicit &&

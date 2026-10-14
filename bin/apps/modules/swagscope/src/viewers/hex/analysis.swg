@@ -263,11 +263,12 @@ struct AnalysisOperation
 
 impl AnalysisOperation
 {
-    // Starts analyzing `range` of `fileName` on a worker task.
+    // Starts analyzing `range` of `fileName` on a worker task; `owner` receives a
+    // [[Gui.TaskEvent]] when it ends.
     //
     // The operation must not be started already: the previous result has to be collected with
     // [[AnalysisOperation.finish]] or discarded by [[AnalysisOperation.retire]] first.
-    mtd start(fileName: string, range: AnalysisRange)
+    mtd start(fileName: string, range: AnalysisRange, owner: *Wnd? = null)
     {
         Swag.assert(not .started)
         .fileName = fileName
@@ -275,12 +276,11 @@ impl AnalysisOperation
         .result   = {}
         Atomic.exchange(&.cancelRequested, 0)
         Atomic.exchange(&.processed, 0)
-        .started = true
 
-        .task.submit(func|operation = me|()
+        .submit(func|operation = me|()
         {
             operation.result = analyzeRange(operation.fileName, operation.range, &operation.cancelRequested, &operation.processed)
-        })
+        }, owner)
     }
 
     // Asks a running analysis to stop; the partial result is still collected by [[AnalysisOperation.finish]].
@@ -302,14 +302,14 @@ impl AnalysisOperation
 
     // Cancels active work, and reports whether the worker has let go of this operation so it can be destroyed.
     //
-    // A retired analysis is no longer polled.
+    // A retired analysis is no longer waited for.
     mtd retire()->bool
     {
         .cancel()
         if .started and not .isDone() do
             return false
         .wait()
-        .stopPolling()
+        .abandon()
         return true
     }
 

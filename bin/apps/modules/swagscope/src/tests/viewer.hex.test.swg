@@ -109,14 +109,7 @@ func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*Hex.P
 
 func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 {
-    var steps = 0'u32
-    while view.analysis.isPending() and steps < 4_096
-    {
-        Threading.Thread.sleep(1'ms)
-        host.fireTimer(view.analysis.timer)
-        steps += 1
-    }
-
+    completeViewerBackgroundLoad(host, &view.analysis)
     Swag.assert(not view.analysis.isPending())
 }
 

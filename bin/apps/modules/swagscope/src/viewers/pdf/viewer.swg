@@ -100,16 +100,13 @@ private impl IWnd for Panel
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer != .load.timer
+        if not .load.claim(evt)
         {
             evt.accepted = false
             return
         }
-
-        if not .load.poll() do
-            return
 
         var content: ViewerContent
         .failureReason = .load.finish(&content)
@@ -273,7 +270,7 @@ private impl Panel
 
         result.applyLayout()
         result.refreshZoom()
-        result.load.startPolled(result, fileName, &loadViewerContent)
+        result.load.start(fileName, &loadViewerContent, result)
         return result
     }
 

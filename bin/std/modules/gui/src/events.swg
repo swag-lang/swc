@@ -152,6 +152,21 @@ struct TimerEvent
 
 impl IEvent for TimerEvent {}
 
+// Signals that a task a window watches has finished, so its outcome can be taken without waiting.
+//
+// The notification returned by [[Gui.Wnd.taskNotifier]] posts it from the thread that finished
+// the task.
+struct TaskEvent
+{
+    public
+    {
+        using base: Event          // Routing state shared by every GUI event.
+        late task:  const *void    // The task that finished, as given to [[Gui.Wnd.taskNotifier]].
+    }
+}
+
+impl IEvent for TaskEvent {}
+
 // Signals one application frame.
 struct FrameEvent
 {

@@ -345,16 +345,13 @@ private impl IWnd for Panel
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer != .load.timer
+        if not .load.claim(evt)
         {
             evt.accepted = false
             return
         }
-
-        if not .load.poll() do
-            return
 
         var content: ViewerContent
         .failureReason = .load.finish(&content)
@@ -484,7 +481,7 @@ private impl Panel
 
         result.applyLayout()
         result.setInitialFocus(result.imageView)
-        result.load.startPolled(result, host.fileName(), &loadViewerContent)
+        result.load.start(host.fileName(), &loadViewerContent, result)
         return result
     }
 

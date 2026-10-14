@@ -146,24 +146,27 @@ struct Panel
 
 private impl IWnd for Panel
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer == .load.timer
+        if not .load.claim(evt)
         {
-            if not .load.poll() do
-                return
-            .failureReason = .load.finish(&.archive)
-            if not .failureReason.isEmpty()
-            {
-                .services.failed(me, .failureReason)
-                return
-            }
-
-            .publishArchive()
-            .services.loadingChanged(me)
+            evt.accepted = false
             return
         }
 
+        .failureReason = .load.finish(&.archive)
+        if not .failureReason.isEmpty()
+        {
+            .services.failed(me, .failureReason)
+            return
+        }
+
+        .publishArchive()
+        .services.loadingChanged(me)
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
         if evt.timer == .previewTimer
         {
             if .extract.started and not .extract.isDone() do
@@ -486,7 +489,7 @@ private impl Panel
         }
 
         result.splitter.addPane(result.previewPane).minimumSize = 320
-        result.load.startPolled(result, host.fileName(), &Zip.load)
+        result.load.start(host.fileName(), &Zip.load, result)
         result.applyLayout()
         return result
     }

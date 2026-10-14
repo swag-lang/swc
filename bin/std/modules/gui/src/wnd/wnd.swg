@@ -192,6 +192,9 @@ interface IWnd
     // Handles expiration of a timer owned by this window.
     mtd onTimerEvent(evt: *TimerEvent)
 
+    // Handles the end of a task this window watches through [[Gui.Wnd.taskNotifier]].
+    mtd onTaskEvent(evt: *TaskEvent)
+
     // Handles keyboard-focus negotiation and changes.
     mtd onFocusEvent(evt: *FocusEvent)
 
@@ -408,6 +411,9 @@ impl IWnd for Wnd
         case TimerEvent as ptr:
             .itf.onTimerEvent(ptr)
 
+        case TaskEvent as ptr:
+            .itf.onTaskEvent(ptr)
+
         case FocusEvent as ptr:
             .itf.onFocusEvent(ptr)
 
@@ -475,6 +481,9 @@ impl IWnd for Wnd
 
     // Ignores timers by default.
     mtd impl onTimerEvent(_: *TimerEvent) {}
+
+    // Ignores finished tasks by default.
+    mtd impl onTaskEvent(_: *TaskEvent) {}
 
     // Declines state serialization by default.
     mtd impl onSerializeStateEvent(_: *SerializeStateEvent) {}
@@ -2387,6 +2396,26 @@ impl Wnd
         let ptr  = assume cast (*Event, evt)
         ptr.target = me
         srfn.app.postEvent(evt)
+    }
+
+    // Returns a notification for [[Swag.Task.submit]] that posts a [[Gui.TaskEvent]] naming `task`
+    // to this window once the task has finished.
+    //
+    // The notification runs on the thread that finished the task and reads nothing from this
+    // window there. The event reaches [[Gui.IWnd.onTaskEvent]] on the GUI thread during a later
+    // frame, and is dropped once the window's destruction has completed. The window must be on a
+    // surface.
+    mtd taskNotifier(task: const *void)->func||()
+    {
+        let app = .surface!.app
+        let wnd = me
+        return func|app, wnd, task|()
+        {
+            let evt = Event.create'TaskEvent()
+            evt.target = wnd
+            evt.task   = task
+            app.postEvent(evt)
+        }
     }
 
     // Queues a repaint of this window for the next frame.

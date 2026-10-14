@@ -107,7 +107,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   and the scripts -- goes through the runtime.
 - What the model does not yet promise: race freedom. The capture list is written, not proved
   (.005); a partition can fail but cannot state disjointness (.004); there is one executor and
-  no affinity (.003); nothing suspends and a task carries no typed result (.002). A program can
+  no affinity beyond a window's completion events (.003); nothing suspends (.002). A program can
   still write a data race through a capture, and the compiler accepts it.
 - Next: the four foundational entries (.002 through .005) remain, in dependency order:
   suspension and typed results, then executors, then partition proofs, then checked captures.
@@ -227,23 +227,22 @@ of simplicity when every useful helper needs an unchecked contract.
   clear affected caches when validating changed compiler behavior. Serialized effect summaries
   and runtime ABI changes must invalidate incompatible cached artifacts.
 
-### language.parallelism.002 — No suspension, and no typed task result
+### language.parallelism.002 — Nothing suspends
 
-- Evidence: [Swag.Task](../bin/runtime/task.swg) runs an infallible closure and reports only that it
-  finished. A consumer that produces a value writes it into captured storage and reads it after
-  the join, which is what `Viewer.BackgroundLoad` and `Gui.PdfView` do; a consumer that fails
-  stores the error beside the value. Nothing suspends: a task that waits occupies its worker for
-  the whole wait, reducing the capacity available to execute queued operations.
+- Evidence: [Swag.Task'T](../bin/runtime/task.swg) hands its value or its error to one observer
+  through `take`, and its destruction asks the body to stop before joining it. Cancellation is a
+  request the body reads, not an outcome: it returns a partial value or fails. But a task that
+  waits -- for another task, a lock, a foreign call -- occupies its worker for the whole wait,
+  reducing the capacity available to execute queued operations. Prism's `BuildLease.wait` polls
+  another task's `isDone` with a one-millisecond sleep inside a task of its own.
 - Next: settle the suspension gates before implementing. Fix the `async`/`await` grammar, the
   effect in the callable type, stackless frame ownership, stable frame addresses, and the async
-  boundary for both native and JIT execution. Decide whether cancellability is a separate control
-  effect or an outcome carried by `fail`, and what `try`, a catch-all, `defer #fail` and
-  `defer #nofail` observe. Then give the runtime a typed `Task'T` whose result is owned and
-  consumed once, with failure and cancellation as terminal outcomes beside success.
-- Done when: a `Task'T` transfers its result or its failure to exactly one observer, an
-  awaiting task releases its worker, and native and JIT lifecycle tests cover every exit after
-  capture: immediate completion, a suspended frame, a cancelled waiter whose child still owns a
-  loan, and destruction exactly once.
+  boundary for both native and JIT execution. Decide what `try`, a catch-all, `defer #fail` and
+  `defer #nofail` observe across a suspension point. A cancellation-aware join that returns early
+  without suspending can come first: it is what the Prism lease needs.
+- Done when: an awaiting task releases its worker, and native and JIT lifecycle tests cover every
+  exit after capture: immediate completion, a suspended frame, a cancelled waiter whose child
+  still owns a loan, and destruction exactly once.
 - Elsewhere: [Swift structured concurrency](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md)
   scopes child-task lifetime; [Go's memory model](https://go.dev/ref/mem) makes synchronization and
   happens-before part of the language contract. These are references for separate decisions, not a
@@ -275,25 +274,24 @@ of simplicity when every useful helper needs an unchecked contract.
 - Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
   compiler.safety.014
 
-### language.parallelism.009 — Cancellation stops at one group and has no deadline
+### language.parallelism.009 — Cancellation has no deadline and wakes no wait
 
-- Evidence: `Swag.TaskGroup.cancel` raises one flag that only the children of that group can read,
-  and only through a captured reference to the group. A child that opens a group of its own gets
-  a fresh flag, so the outer request never reaches the grandchildren. `Swag.Task` carries no
-  cancellation state at all, `parallel for` carries none, and no task, group or loop carries a
-  deadline: a program that wants to stop after a duration polls a clock it wrote itself. The
-  request is also invisible to every wait. `Swag.Condition.waitFor` expires on its own timeout
-  without consulting it, and `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken
-  by it.
-- Next: decide where the state lives before adding to it -- ambient state the runtime propagates
-  into every child, or a value each spawn is handed explicitly. Then propagate it through nested
-  groups, give `parallel for` and `Swag.Task` a way to read it, and make a deadline one more
-  source of the same request rather than a second mechanism. State the boundary at the waiting
+- Evidence: the request is ambient: `Swag.isCancelled` answers for the running task, task-group
+  child or `parallel for` partition, and a group or loop started inside cancelled work inherits
+  the request. A `Swag.Task` deliberately does not inherit it, because it can outlive the work that
+  submitted it; dropping it cancels it instead. Consumers still keep their own flags -- the hex
+  analysis, the text reader, Prism's format and microcode workers, Swag Vault's progress -- because
+  they predate the ambient request. No task, group or loop carries a deadline: a program that wants
+  to stop after a duration polls a clock it wrote itself. The request is also invisible to every
+  wait. `Swag.Condition.waitFor` expires on its own timeout without consulting it, and
+  `Swag.Semaphore.acquire` and `Swag.Barrier.arrive` cannot be woken by it.
+- Next: make a deadline one more source of the same request rather than a second mechanism, then
+  migrate the private flags above to `Swag.isCancelled`. State the boundary at the waiting
   primitives instead of implying it: today `acquire` has no cancellation input or wake path.
   A cancellation-aware blocking wait can return early without async suspension; define its
   wake registration, permit-consumption race, and cleanup independently of .002.
-- Done when: cancelling an outer group is observed by a grandchild, a deadline produces the
-  same observable request, and a cancelled tree joins with every borrowed resource still valid.
+- Done when: a deadline produces the same observable request, a cancelled wait returns early, and
+  no consumer keeps a cancellation flag of its own.
 - Elsewhere: Swift propagates cancellation to every child task and exposes it as task-local
   state; Kotlin cancels a `Job` together with its children; Java's `StructuredTaskScope` and
   .NET's linked `CancellationTokenSource` both build the tree explicitly. All four are
@@ -405,9 +403,11 @@ of simplicity when every useful helper needs an unchecked contract.
   The same reasoning applies to `Swag.Semaphore.acquire` and `Swag.Condition.wait`: a waiting
   thread runs no ready work, so what it waits for must already be running. The three
   documentation comments now say so, and the suite test uses one participant.
-- Evidence: `Swag.setWorkerCount` sizes one general pool and `Swag.startWorkers` starts it. There is
-  no main/UI executor, no blocking executor, no dedicated-thread executor, and no way to require
-  that a value is created, used and destroyed on one thread. Consumers that need thread affinity
+- Evidence: `Swag.setWorkerCount` sizes one general pool and `Swag.startWorkers` starts it. A
+  task's notification can post a `Gui.TaskEvent` to a window, which is how Swag Scope learns that a
+  background load ended without polling it; that is completion delivery, not an executor. There is
+  no blocking executor, no dedicated-thread executor, and no way to require that a value is
+  created, used and destroyed on one thread. Consumers that need thread affinity
   still own a `Core.Threading.Thread` of their own -- the video frame threads, the audio device,
   and the GUI event loop -- so the process runs the runtime pool beside private threads instead of
   one scheduler.

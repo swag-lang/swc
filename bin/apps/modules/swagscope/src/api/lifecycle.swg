@@ -3,7 +3,7 @@
 
 using Core, Gui
 
-// How often a viewer polls one of its own background operations for completion.
+// How often a viewer polls a background operation that does not tell it when it ends.
 const BackgroundPollInterval: Time.Duration = 16'ms
 
 // Reports whether a view is still doing work whose result has not reached the screen.
@@ -53,23 +53,35 @@ func(T) loadLifecycle(view: *T)->LifecycleApi
 // Whether work is running, and waiting for it to end, are the same questions whatever the worker
 // loads. Naming them separately lets the host presentation and a deterministic test hold an
 // operation without naming the value behind it.
+//
+// An operation submitted for an owner window tells that window when the work ends: the window
+// receives a [[Gui.TaskEvent]], which [[Viewer.BackgroundOperation.claim]] recognizes. Nothing
+// polls.
 struct BackgroundOperation
 {
     task:    Swag.Task     // The scheduled work; borrowed by the runtime until it completes.
-    started: bool          // Whether the runtime currently owns this operation.
-    timer:   *Timer?       // Polls the operation from its owner's window; null when nobody waits for it.
-    owner:   *Wnd?         // The window that receives the polling timer's events.
+    started: bool          // Whether the runtime owns this operation, or its result is not collected yet.
+    owner:   *Wnd?         // The window waiting for the end of the work; null when nobody waits for it.
 }
 
 impl BackgroundOperation
 {
+    // Submits `body`. When `owner` is given, it receives a [[Gui.TaskEvent]] once the work ends.
+    mtd submit(body: func||(), owner: *Wnd? = null)
+    {
+        Swag.assert(not .started)
+        .started = true
+        .owner   = owner
+        .task.submit(body, owner ? owner.taskNotifier(&.task) : null)
+    }
+
     // Reports whether a started operation has finished running on its worker.
     mtd const isDone()->bool => .started and .task.isDone()
 
     // Blocks until the worker has released the operation.
     //
-    // The GUI thread polls [[Viewer.BackgroundOperation.isDone]] instead; this is for a caller
-    // that has nothing to do until the result exists, such as teardown or a test.
+    // The owner window waits for its [[Gui.TaskEvent]] instead; this is for a caller that has
+    // nothing to do until the result exists, such as teardown or a test.
     mtd wait()
     {
         if not .started do
@@ -80,104 +92,102 @@ impl BackgroundOperation
 
     // Reports whether the owner still waits for the operation, which is what a viewer reports as
     // loading.
-    mtd const isPending()->bool => .timer != null
+    mtd const isPending()->bool => .owner != null
 
-    // Polls the operation from `owner` every [[Viewer.BackgroundPollInterval]]. The owner's timer
-    // events go to [[Viewer.BackgroundOperation.poll]].
-    mtd pollFrom(owner: *Wnd)
+    // Returns whether `evt` reports the end of this operation; the owner then stops waiting for it.
+    mtd claim(evt: *TaskEvent)->bool
     {
-        Swag.assert(.timer == null)
-        .owner = owner
-        .timer = owner.addTimer(BackgroundPollInterval)
-    }
-
-    // Answers a tick of the operation's timer: true once the work is done, after the timer stopped.
-    mtd poll()->bool
-    {
-        if not .isDone() do
+        if evt.task != &.task or .owner == null or not .isDone() do
             return false
-        .stopPolling()
+        .owner = null
         return true
     }
 
-    // Stops the timer that polls the operation, if it runs.
-    mtd stopPolling()
+    // Stops waiting for the operation, whatever the worker still does.
+    mtd abandon()
     {
-        if let owner = .owner do
-            owner.stopTimer(&.timer)
+        .owner = null
     }
 }
 
 // Owns the result of one scheduled value-producing operation.
 //
-// The worker borrows this object until `isDone` answers true. Its owner therefore exposes the
+// The worker borrows this object until the work is done. Its owner therefore exposes the
 // operation through [[Viewer.Retire]] and is destroyed only after `retire` succeeds.
 // [[Swag.Task]] may run the work during submission or while waiting; a separate worker
 // thread is not guaranteed.
 struct(T) BackgroundLoad
 {
-    using operation: BackgroundOperation
-    fileName:        String
-    value:           T
-    error:           String
-    late load:       func(string)->T fail
+    task:      Swag.Task'T     // The scheduled work and its outcome.
+    started:   bool            // Whether the runtime owns this load, or its result is not collected yet.
+    owner:     *Wnd?           // The window waiting for the end of the load; null when nobody waits for it.
+    fileName:  String
+    late load: func(string)->T fail
 }
 
 impl BackgroundLoad
 {
-    // Starts `load` for `fileName` after any previous operation has been joined.
+    // Starts `load` for `fileName` after any previous load has been collected.
     //
-    // A failure of `load` is copied into an owned message before the worker returns, and
-    // [[Viewer.BackgroundLoad.finish]] hands that message back to the caller.
-    mtd start(fileName: string, load: func(string)->T fail)
+    // When `owner` is given, it receives a [[Gui.TaskEvent]] once the load ends, which
+    // [[Viewer.BackgroundLoad.claim]] recognizes. [[Viewer.BackgroundLoad.finish]] then hands over
+    // the value, or the failure as a message.
+    mtd start(fileName: string, load: func(string)->T fail, owner: *Wnd? = null)
     {
         Swag.assert(not .started)
         .fileName = fileName
         .load     = load
         .started  = true
+        .owner    = owner
 
         let operation = me
-        .task.submit(func|operation|()
-        {
-            operation.value = catch operation.load(operation.fileName) as loadError
-            operation.error = Viewer.failureText(loadError)
-        })
+        .task.submit(func|operation|()->T fail => try operation.load(operation.fileName), owner ? owner.taskNotifier(&.task) : null)
     }
 
-    // Starts `load` for `fileName`, polled from `owner` until [[Viewer.BackgroundOperation.poll]]
-    // reports it done.
-    mtd startPolled(owner: *Wnd, fileName: string, load: func(string)->T fail)
+    // Reports whether a started load has finished running on its worker.
+    mtd const isDone()->bool => .started and .task.isDone()
+
+    // Reports whether the owner still waits for the load, which is what a viewer reports as loading.
+    mtd const isPending()->bool => .owner != null
+
+    // Returns whether `evt` reports the end of this load; the owner then stops waiting for it.
+    mtd claim(evt: *TaskEvent)->bool
     {
-        .start(fileName, load)
-        .pollFrom(owner)
+        if evt.task != &.task or .owner == null or not .isDone() do
+            return false
+        .owner = null
+        return true
     }
 
-    // Moves the loaded value into `value` and returns the captured failure message.
+    // Moves the loaded value into `value` and returns the failure message.
     //
-    // The operation must be done. The message is empty when the load succeeded.
-    // The returned message owns its text and survives reuse or destruction of this operation.
+    // The load must be done. The message is empty when the load succeeded.
     mtd finish(value: *T)->String
     {
         Swag.assert(.isDone())
-        .wait()
-        value[] = #move .value
-        return #move .error
+        .started = false
+        .owner   = null
+        value[]  = catch .task.take() as loadError
+        return Viewer.failureText(loadError)
     }
 
-    // Reports when the borrowed worker state may be destroyed without waiting on the GUI thread.
+    // Asks the load to stop, and reports when the worker has let go of this object so it can be
+    // destroyed without waiting on the GUI thread.
     //
-    // A retired load is no longer polled.
+    // A retired load is no longer waited for.
     mtd retire()->bool
     {
-        if .started and not .isDone() do
+        .task.cancel()
+        if .task.isPending() do
             return false
-        .wait()
-        .stopPolling()
+        .started = false
+        .owner   = null
         return true
     }
 
     mtd opDrop()
     {
-        .wait()
+        .task.cancel()
+        .task.wait()
     }
 }

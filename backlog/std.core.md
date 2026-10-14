@@ -325,10 +325,9 @@ stuck at the boundary.
   do with their own arrays and their own failure flag.
 - Next: review that family as one operation set rather than adding members one at a time, and
   settle what each does with a losing branch: cancel it, join it, and only then release anything it
-  borrows. Combinators that select one result need
-  [language.parallelism.002](language.parallelism.md) to land first, because a task carries no
-  typed result yet. Keep scheduling below Core; these are algorithms over the runtime types, not a
-  second scheduler.
+  borrows. `Swag.Task'T` now carries a typed result and an ambient cancellation request, which is
+  what a combinator selecting one result needs. Keep scheduling below Core; these are algorithms
+  over the runtime types, not a second scheduler.
 - Done when: the operations preserve result and error ownership, join losing work before
   releasing its borrows, and the manual fan-outs in `std/video` are written with them instead.
 - Related: language.parallelism.002, language.parallelism.011, std.core.028

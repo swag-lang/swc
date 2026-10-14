@@ -59,10 +59,11 @@ private func recordParallelCost(profile: *ParallelProfile?, count, elapsed: u64)
 // accepted nodes stay bounded by the worker count rather than by the number of blocks.
 private struct ParallelDispatch
 {
-    next: AtomicValue'u64
-    end:  u64
-    step: u64
-    body: (func||(u64, u64))?
+    next:  AtomicValue'u64
+    end:   u64
+    step:  u64
+    body:  (func||(u64, u64))?
+    scope: *CancelScope?     // The caller's cancellation state, observed by every partition.
 }
 
 // One runner of a parallel range, submitted to the scheduler as its own unit of work.
@@ -80,7 +81,8 @@ struct ParallelChunk
 // returns only after every partition has finished.
 //
 // Partition boundaries and the order partitions run in are not part of the contract, so a body
-// must not depend on either. The body can execute on the caller or a worker, so everything it reaches must
+// must not depend on either. Every partition observes the caller's cancellation state through
+// [[Swag.isCancelled]]; a request does not stop the range by itself. The body can execute on the caller or a worker, so everything it reaches must
 // either be owned by that partition or be safe to share; the caller's frame stays alive for the
 // whole call, which is what makes an `&` capture of a local valid here.
 //
@@ -215,8 +217,9 @@ private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(
     let balanced = (count - 1) / (chunks * 8) + 1
     var dispatch: ParallelDispatch
     dispatch.end  = end
-    dispatch.step = balanced > grain ? balanced : grain
-    dispatch.body = body
+    dispatch.step  = balanced > grain ? balanced : grain
+    dispatch.body  = body
+    dispatch.scope = Swag.getContext().cancelScope
 
     // Reserve useful work for the caller before publishing nodes, so worker startup cannot
     // consume its whole sample or leave it idle while a few expensive iterations remain.
@@ -245,9 +248,17 @@ private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(
         waitWork(&slices[index].node)
 }
 
+// Runs one queued runner, on a worker or on a joining thread, under the caller's cancellation state.
 private func parallelChunkEntry(node: *WorkNode)
 {
-    discard runParallelChunk(assume cast (*ParallelChunk, node))
+    let chunk    = assume cast (*ParallelChunk, node)
+    let context  = Swag.getContext()
+    let previous = context.cancelScope
+    if let dispatch = chunk.dispatch do
+        context.cancelScope = dispatch.scope
+
+    discard runParallelChunk(chunk)
+    context.cancelScope = previous
 }
 
 private func runParallelChunk(chunk: *ParallelChunk)->u64

@@ -697,6 +697,8 @@ namespace Swag
             panicStackCount: u32     // Number of valid addresses in panicStack.
             #[Swag.NoDoc]
             panicCatch: *void?     // Innermost 'catchPanic' running on this context.
+            #[Swag.NoDoc]
+            cancelScope: *CancelScope?     // Cancellation state of the work running on this context.
         }
     }
 

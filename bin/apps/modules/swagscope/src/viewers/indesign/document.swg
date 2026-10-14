@@ -492,19 +492,20 @@ struct PreviewLoad
 
 private impl PreviewLoad
 {
-    mtd start(fileName: string, preview: const *Preview)
+    // Renders `preview` of `fileName` on the worker task; `owner` receives a [[Gui.TaskEvent]]
+    // when it ends.
+    mtd start(fileName: string, preview: const *Preview, owner: *Wnd? = null)
     {
         Swag.assert(not .started)
         .fileName = fileName
         .preview  = preview[]
-        .started  = true
 
         let operation = me
-        .task.submit(func|operation|()
+        .submit(func|operation|()
         {
             operation.value = catch loadPreview(operation.fileName, &operation.preview) as loadError
             operation.error = Viewer.failureText(loadError)
-        })
+        }, owner)
     }
 
     mtd finish(value: *Image)->String
@@ -522,7 +523,7 @@ private impl PreviewLoad
         if not .isDone() do
             return false
         .wait()
-        .stopPolling()
+        .abandon()
         return true
     }
 

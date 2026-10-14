@@ -167,6 +167,36 @@ struct ParallelInputError
 }
 
 /**
+# Cancellation
+
+A request to stop the work that runs the loop -- a cancelled [[Swag.Task]], a
+cancelled [[Swag.TaskGroup]] -- reaches every partition: [[Swag.isCancelled]]
+answers for the loop's body as it does for the code around it. The request does
+not stop the loop by itself. A body that asks can skip its remaining work; the
+loop still runs every index and joins every partition.
+*/
+#test
+{
+    var task: Swag.Task'u64
+    let self = &task
+    task.submit(func|self|()->u64
+    {
+        self.cancel()
+        var skipped: Swag.AtomicValue'u64
+        parallel for |&skipped| 8
+        {
+            if Swag.isCancelled() do
+                skipped.add(1)
+        }
+
+        return skipped.load()
+    })
+
+    let skipped = expect task.take()
+    Swag.assert(skipped == 8)
+}
+
+/**
 # Shared Results
 
 An accumulator every index writes is shared storage, so it goes through

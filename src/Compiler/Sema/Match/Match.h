@@ -21,6 +21,7 @@ namespace Match
     {
         Exact,
         Standard,
+        FallibleWidening, // a callable that never fails, passed where failure is allowed
         CopyToMove,
         MoveToValue,
         Ellipsis,

@@ -153,16 +153,13 @@ private impl Panel
 
 private impl IWnd for Panel
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer != .load.timer
+        if not .load.claim(evt)
         {
             evt.accepted = false
             return
         }
-
-        if not .load.poll() do
-            return
 
         var content: ViewerContent
         .failureReason = .load.finish(&content)
@@ -213,7 +210,7 @@ impl Panel
         result.createCommandBar()
 
         result.applyLayout()
-        result.load.startPolled(result, fileName, &loadViewerContent)
+        result.load.start(fileName, &loadViewerContent, result)
         return result
     }
 

@@ -285,9 +285,9 @@ struct ZoomButton
 
 impl IWnd for ZoomButton
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer != .statisticsLoad.timer or not .statisticsLoad.poll() do
+        if not .statisticsLoad.claim(evt) do
             return
         let error = .statisticsLoad.finish(&.statistics)
         .hasStatistics = error.isEmpty()
@@ -317,7 +317,6 @@ impl ZoomButton
             return false
 
         // Totals that arrive while the view retires have nobody left to show them to.
-        .statisticsLoad.stopPolling()
         return .statisticsLoad.retire()
     }
 
@@ -478,7 +477,7 @@ func createViewer(host: Viewer.Host)
 
     view.userData       = zoomButton
     zoomButton.services = services
-    zoomButton.statisticsLoad.startPolled(zoomButton, host.fileName(), &TextStatisticsCounter.loadUtf8)
+    zoomButton.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8, zoomButton)
 
     with var lifecycle: Viewer.LifecycleApi
     {

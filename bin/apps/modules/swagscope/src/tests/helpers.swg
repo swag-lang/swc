@@ -68,12 +68,13 @@ func collectViewerMatches(collect: Viewer.CollectSearchMatches, text: string, ma
         Threading.Thread.sleep(1'ms)
 }
 
-// Completes a viewer worker deterministically, then lets the headless GUI publish its result.
-func completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *Viewer.BackgroundOperation)
+// Completes a viewer worker deterministically, then lets the headless GUI deliver the event that
+// publishes its result. A result already delivered by an earlier pump is left as it is.
+func(T) completeViewerBackgroundLoad(host: *Testing.HeadlessHost, load: *T)
 {
-    Swag.assert(load.started and load.isPending())
     load.task.wait()
-    host.fireTimer(load.timer)
+    host.pump()
+    Swag.assert(not load.isPending())
 }
 
 // Ages the current wait past the delay the activity mark waits for, and lets the window decide again.

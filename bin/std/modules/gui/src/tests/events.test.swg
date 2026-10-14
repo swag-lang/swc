@@ -295,3 +295,63 @@ impl OffsetOwnedEvent
     sysCommand.kind = .Restore
     Swag.assert(sysCommand.kind == .Restore)
 }
+
+var g_TaskEventsSeen: u32
+
+// A window that records the tasks it is told have finished.
+struct TaskWatcher
+{
+    using wnd: Wnd
+    lastTask:  const *void?
+}
+
+impl IWnd for TaskWatcher
+{
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        g_TaskEventsSeen += 1
+        .lastTask = evt.task
+    }
+}
+
+// A finished task reaches the window that watches it once, during a frame of the GUI thread.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    g_TaskEventsSeen = 0
+    let watcher = Wnd.create'TaskWatcher(&host.root)
+    var task: Swag.Task'u32
+    task.submit(func()->u32 => 3, watcher.taskNotifier(&task))
+    task.wait()
+    Swag.assert(g_TaskEventsSeen == 0)
+
+    host.pumpPostedEvents()
+    Swag.assert(g_TaskEventsSeen == 1 and watcher.lastTask == &task)
+    let value = expect task.take()
+    Swag.assert(value == 3)
+
+    host.pumpPostedEvents()
+    Swag.assert(g_TaskEventsSeen == 1)
+}
+
+// A window whose destruction completed before the event is delivered never receives it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    g_TaskEventsSeen = 0
+    let watcher = Wnd.create'TaskWatcher(&host.root)
+    var task: Swag.Task
+    task.submit(func() {}, watcher.taskNotifier(&task))
+    task.wait()
+
+    watcher.destroy()
+    host.pumpDestroyEvents()
+    host.pumpPostedEvents()
+    Swag.assert(g_TaskEventsSeen == 0)
+}

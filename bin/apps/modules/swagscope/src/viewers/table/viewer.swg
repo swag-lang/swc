@@ -338,16 +338,13 @@ private impl IWnd for Panel
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer != .load.timer
+        if not .load.claim(evt)
         {
             evt.accepted = false
             return
         }
-
-        if not .load.poll() do
-            return
 
         .failureReason = .load.finish(&.document)
         if not .failureReason.isEmpty()
@@ -541,7 +538,7 @@ impl Panel
         with let result = Panel.createBase(parent)
         {
             .services = services
-            .load.startPolled(result, fileName, &loadDocument)
+            .load.start(fileName, &loadDocument, result)
         }
 
         return result

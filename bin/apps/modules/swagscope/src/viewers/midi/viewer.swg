@@ -129,16 +129,13 @@ private impl Panel
 
 private impl IWnd for Panel
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer != .load.timer
+        if not .load.claim(evt)
         {
             evt.accepted = false
             return
         }
-
-        if not .load.poll() do
-            return
 
         var document: Document
         .failureReason = .load.finish(&document)
@@ -190,7 +187,7 @@ impl Panel
         result.zoomLabel.sigPressed += func|view = result|(_) { view.showZoomMenu() }
 
         result.applyLayout()
-        result.load.startPolled(result, host.fileName(), &loadDocument)
+        result.load.start(host.fileName(), &loadDocument, result)
         return result
     }
 }

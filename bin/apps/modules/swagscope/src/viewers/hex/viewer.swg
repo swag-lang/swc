@@ -100,6 +100,7 @@ struct Panel
     zoomLabel:      *IconButton?
     searchPattern:  SearchPattern
     analysis:       AnalysisOperation
+    analysisTimer:  *Timer?     // Refreshes the progress of a running analysis.
     fileName:       String
     details:        String
     load:           Viewer.BackgroundLoad'Document
@@ -111,28 +112,31 @@ private impl IWnd for Panel
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .analysis.timer
+        if evt.timer != .analysisTimer
         {
-            if not .analysis.poll()
-            {
-                .analysisView.setProgress(.analysis.progress())
-                return
-            }
+            evt.accepted = false
+            return
+        }
 
+        .analysisView.setProgress(.analysis.progress())
+    }
+
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        if .analysis.claim(evt)
+        {
+            .stopTimer(&.analysisTimer)
             var result = .analysis.finish()
             .analysisView.publish(&result)
             .analysisButton.enable(.grid.doc.fileSize != 0)
             return
         }
 
-        if evt.timer != .load.timer
+        if not .load.claim(evt)
         {
             evt.accepted = false
             return
         }
-
-        if not .load.poll() do
-            return
 
         var document: Document
         .failureReason = .load.finish(&document)
@@ -169,7 +173,10 @@ impl Panel
     // A false result means a worker still borrows the view; the host polls again.
     mtd retire()->bool
     {
-        return .load.retire() and .analysis.retire()
+        if not .load.retire() or not .analysis.retire() do
+            return false
+        .stopTimer(&.analysisTimer)
+        return true
     }
 
     private mtd analysisRange()->{range: AnalysisRange, selection: bool}
@@ -205,8 +212,8 @@ impl Panel
         .analysisView.show()
         .analysisView.begin(range, selection, .grid.offsetDigits)
         .applyLayout()
-        .analysis.start(.fileName, range)
-        .analysis.pollFrom(me)
+        .analysis.start(.fileName, range, me)
+        .analysisTimer = .addTimer(Viewer.BackgroundPollInterval)
     }
 
     // Hides the analysis panel and cancels a running analysis.
@@ -578,7 +585,7 @@ impl Panel
         result.refreshInspector()
         result.refreshZoom()
         result.setInitialFocus(result.grid)
-        result.load.startPolled(result, host.fileName(), &loadDocument)
+        result.load.start(host.fileName(), &loadDocument, result)
         return result
     }
 

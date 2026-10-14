@@ -248,7 +248,7 @@ impl DocumentOutline
     {
         if .loaded or .load.started do
             return
-        .load.startPolled(me, .markdownFile, &loadMarkdownHeadings)
+        .load.start(.markdownFile, &loadMarkdownHeadings, me)
         .refresh()
     }
 
@@ -260,9 +260,9 @@ impl DocumentOutline
 
 impl IWnd for DocumentOutline
 {
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer != .load.timer or not .load.poll() do
+        if not .load.claim(evt) do
             return
         var headings: Array'DocumentHeading
         .failure = .load.finish(&headings)

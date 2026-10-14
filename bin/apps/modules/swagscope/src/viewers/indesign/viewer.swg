@@ -313,8 +313,7 @@ private impl Panel
 
         .loadingPreviewIndex   = .requestedPreviewIndex
         .requestedPreviewIndex = NoPreview
-        .previewLoad.start(.fileName, &.previews[.loadingPreviewIndex])
-        .previewLoad.pollFrom(me)
+        .previewLoad.start(.fileName, &.previews[.loadingPreviewIndex], me)
         .services.loadingChanged(me)
     }
 
@@ -525,13 +524,10 @@ private impl IWnd for Panel
         }
     }
 
-    mtd impl onTimerEvent(evt: *TimerEvent)
+    mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if evt.timer == .load.timer
+        if .load.claim(evt)
         {
-            if not .load.poll() do
-                return
-
             var document: ViewerDocument
             .failureReason = .load.finish(&document)
             if not .failureReason.isEmpty()
@@ -545,14 +541,11 @@ private impl IWnd for Panel
             return
         }
 
-        if evt.timer != .previewLoad.timer
+        if not .previewLoad.claim(evt)
         {
             evt.accepted = false
             return
         }
-
-        if not .previewLoad.poll() do
-            return
 
         let completedIndex = .loadingPreviewIndex
         .loadingPreviewIndex = NoPreview
@@ -720,7 +713,7 @@ impl Panel
 
         result.applyLayout()
         result.refreshZoom()
-        result.load.startPolled(result, host.fileName(), &loadViewerDocument)
+        result.load.start(host.fileName(), &loadViewerDocument, result)
         return result
     }
 

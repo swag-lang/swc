@@ -929,6 +929,27 @@ namespace
             }
         }
 
+        // Parentheses leave '#move' as an expression instead of an initializer modifier.
+        // Materialize that transfer before applying the ordinary initialization conversion.
+        if (!context.flags.has(AstVarDeclFlagsE::Parameter) && nodeInitView.type() && nodeInitView.type()->isMoveReference())
+        {
+            AstNodeRef sourceRef = nodeInitView.nodeRef();
+            while (sema.node(sourceRef).is(AstNodeId::ParenExpr))
+                sourceRef = sema.node(sourceRef).cast<AstParenExpr>().nodeExprRef;
+            if (sema.node(sourceRef).is(AstNodeId::UnaryExpr) && sema.token(sema.node(sourceRef).codeRef()).id == TokenId::ModifierMove)
+                SWC_RESULT(SemaHelpers::materializeMovedValue(sema, nodeInitView));
+        }
+
+        // A local owns the value read or moved through a parameter reference; it never
+        // stores the reference type. Use the ordinary initialization cast so copying,
+        // source reset and lifecycle dependencies match an explicitly typed declaration.
+        if (!context.flags.has(AstVarDeclFlagsE::Parameter) && explicitTypeRef.isInvalid() && nodeInitView.typeRef().isValid())
+        {
+            const TypeInfo& initType = SemaHelpers::aliasType(sema, nodeInitView);
+            if (initType.isMoveReference())
+                explicitTypeRef = initType.payloadTypeRef();
+        }
+
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
         const bool         isConst              = context.flags.has(AstVarDeclFlagsE::Const);

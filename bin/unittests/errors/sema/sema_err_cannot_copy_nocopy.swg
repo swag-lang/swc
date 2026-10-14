@@ -58,3 +58,14 @@ var g_target: Handle
     var a: Wrap
     var b = a     // swc-expected-error {{sema_err_cannot_copy_nocopy}}
 }
+
+#test
+{
+    // Inference unwraps the parameter reference but must still reject a value copy.
+    func copyParameter(v: #move Handle)
+    {
+        let owned = v     // swc-expected-error {{sema_err_cannot_copy_nocopy}}
+    }
+    var h = Handle{1}
+    copyParameter(#move h)
+}

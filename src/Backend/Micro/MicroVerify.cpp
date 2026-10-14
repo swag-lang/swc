@@ -230,6 +230,7 @@ namespace
             case MicroInstrOpcode::LoadRegPtrReloc:
             case MicroInstrOpcode::TestRegReg:
             case MicroInstrOpcode::TestRegImm:
+            case MicroInstrOpcode::SanityIntDivision:
             case MicroInstrOpcode::CmpRegReg:
             case MicroInstrOpcode::CmpRegImm:
             case MicroInstrOpcode::OpUnaryReg:

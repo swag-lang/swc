@@ -604,6 +604,7 @@
         <ClInclude Include="src\Backend\Micro\MicroPassHelpers.h"/>
         <ClInclude Include="src\Backend\Micro\MicroSsaState.h"/>
         <ClInclude Include="src\Backend\Micro\MicroStorage.h"/>
+        <ClInclude Include="src\Backend\Micro\MicroCompare.h"/>
         <ClInclude Include="src\Backend\Micro\MicroControlFlowGraph.h"/>
         <ClInclude Include="src\Unittest\UnittestHelpers.h"/>
         <ClInclude Include="src\Unittest\UnittestHeap.h"/>

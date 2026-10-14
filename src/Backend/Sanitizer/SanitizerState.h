@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroCompare.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Sanitizer/SanitizerValue.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
@@ -427,6 +428,7 @@ struct SanitizerState
 
     MicroReg flagsSubject = MicroReg::invalid();
     uint8_t  flagsBits    = 0;
+    MicroCompare comparison;
 };
 
 SWC_END_NAMESPACE();

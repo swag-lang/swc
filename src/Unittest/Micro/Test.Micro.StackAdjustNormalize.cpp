@@ -353,18 +353,20 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RebasesAdjacentCopiesWithRecycledRefs)
     builder.emitRet();
 
     SWC_RESULT(runStackAdjustNormalizePass(builder));
-    if (builder.instructions().count() != 9)
+    if (builder.instructions().count() != 7)
         return Result::Error;
 
-    // Original order differs from slot order, and each copy needs exactly one
-    // compensation before its original successor, including the adjacent copy.
-    const auto  firstAdd  = builder.instructions().findNextInstructionRef(firstCopy);
-    const auto  secondAdd = builder.instructions().findNextInstructionRef(secondCopy);
-    const auto& operands  = builder.operands();
-    if (!Backend::Unittest::isStackAdjust(*builder.instructions().ptr(firstAdd), builder.instructions().ptr(firstAdd)->ops(operands), r10, MicroOp::Add, 32) ||
-        !Backend::Unittest::isStackAdjust(*builder.instructions().ptr(secondAdd), builder.instructions().ptr(secondAdd)->ops(operands), r11, MicroOp::Add, 32))
-        return Result::Error;
-    if (builder.instructions().findNextInstructionRef(firstAdd) != secondCopy)
+    // Original order differs from slot order. Both copies keep their identity
+    // and become single address definitions, without clobbering CPU flags.
+    for (const auto ref : {firstCopy, secondCopy})
+    {
+        const MicroInstr* inst = builder.instructions().ptr(ref);
+        const auto*       ops  = inst->ops(builder.operands());
+        if (inst->op != MicroInstrOpcode::LoadAddrRegMem || ops[1].reg != rsp || ops[3].valueU64 != 32 ||
+            ops[0].reg != (ref == firstCopy ? r10 : r11))
+            return Result::Error;
+    }
+    if (builder.instructions().findNextInstructionRef(firstCopy) != secondCopy)
         return Result::Error;
     return Result::Continue;
 }

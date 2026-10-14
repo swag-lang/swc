@@ -581,6 +581,9 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, runtimeStorageTypeRef, "__index_runtime_storage"));
 
+    const auto* indexPayload = sema.semaPayload<IndexSpecOpPayloadBase>(sema.curNodeRef());
+    if (indexPayload && indexPayload->kind == IndexSpecOpPayloadKind::InlineValueBorrow)
+        sema.setSymbol(sema.curNodeRef(), static_cast<const InlineValueBorrowSemaPayload*>(indexPayload)->identity);
     return Result::Continue;
 }
 

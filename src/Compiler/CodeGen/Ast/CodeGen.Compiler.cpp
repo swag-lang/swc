@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -97,12 +98,9 @@ namespace
         MicroLabelRef doneLabel = MicroLabelRef::invalid();
     };
 
-    void buildCompilerFunctionStackLayout(CodeGen& codeGen)
+    void buildCompilerFunctionStackLayout(CodeGen& codeGen, AstNodeRef bodyRef)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
-        if (localSymbols.empty())
-            return;
-
         const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
         uint64_t        frameSize = 0;
         // Sema already fixed the per-local offsets. Codegen only turns that sparse layout into one
@@ -142,6 +140,7 @@ namespace
             frameSize += size;
         }
 
+        CodeGenSafety::configureValueBorrowSites(codeGen, bodyRef, frameSize);
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
         SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
@@ -205,7 +204,8 @@ namespace
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         buildCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
-        buildCompilerFunctionStackLayout(codeGen);
+        buildCompilerFunctionStackLayout(codeGen, bodyRef);
+        SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
         CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
         if (returnTypeRef.isValid())
@@ -218,6 +218,7 @@ namespace
         }
 
         materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
+        CodeGenSafety::initializeValueBorrowSites(codeGen);
         return Result::Continue;
     }
 
@@ -284,12 +285,14 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
 
     SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
     buildCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
-    buildCompilerFunctionStackLayout(codeGen);
+    buildCompilerFunctionStackLayout(codeGen, nodeBodyRef);
+    SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
     CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
     codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
 
     materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
+    CodeGenSafety::initializeValueBorrowSites(codeGen);
     return Result::Continue;
 }
 
@@ -316,7 +319,8 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     const CallConv&    callConv     = CallConv::get(callConvKind);
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
-    buildCompilerFunctionStackLayout(codeGen);
+    buildCompilerFunctionStackLayout(codeGen, codeGen.curNode().cast<AstCompilerRunExpr>().nodeExprRef);
+    SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
     CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
     // Compiler-run entry points receive the caller output buffer in the first integer argument.
@@ -324,6 +328,7 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
     const CodeGenNodePayload& nodePayload      = codeGen.setPayloadAddress(codeGen.curNodeRef());
     MicroBuilder&             builder          = codeGen.builder();
     builder.emitLoadRegReg(nodePayload.reg, outputStorageReg, MicroOpBits::B64);
+    CodeGenSafety::initializeValueBorrowSites(codeGen);
     return Result::Continue;
 }
 
@@ -436,7 +441,6 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const bool                             payloadLValue    = exprPayload.isAddress();
     const CodeGenNodePayload&              runExprPayload   = codeGen.payload(codeGen.curNodeRef());
     const MicroReg                         outputStorageReg = runExprPayload.reg;
-    const AstNode&                         exprNode         = codeGen.node(nodeExprRef);
     const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, *exprView.type(), ABITypeNormalize::Usage::Return);
     const bool                             needsPersistent  = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), exprView.typeRef());
 
@@ -450,12 +454,8 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        // A direct call expression may still own the ABI return registers, so write them back without
-        // round-tripping through a freshly materialized virtual value.
-        if (CodeGenFunctionHelpers::canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet.isVoid, normalizedRet.isIndirect))
-            ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
-        else
-            ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+        // Argument cleanup can call runtime helpers after the result was materialized.
+        ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
 
         if (needsPersistent)
         {

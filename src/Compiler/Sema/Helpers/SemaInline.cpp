@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Backend/ABI/ABITypeNormalize.h"
+#include "Backend/ABI/CallConv.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -1854,6 +1857,7 @@ namespace
     // shape the prefix `let` that replaces it must take.
     struct InlineBindingMaterialization
     {
+        bool borrowedValue    = false; // indirect value argument: home only its address
         bool required         = false; // a prefix `let` has to be emitted at all
         bool bindsByAddress   = false; // the parameter aliases the caller's storage
         bool homesAddress     = false; // the home holds the argument's ADDRESS, not its value
@@ -1982,7 +1986,16 @@ namespace
                             (!isCaptured && inlineBindingNeedsRepeatedLValueMaterialization(sema, binding, use)) ||
                             (!isCaptured && bindsPointeeByAddress && use.pointerLevel);
 
-        mat.required = forced || isCaptured || inlineBindingNeedsMaterialization(sema, binding.exprRef, context.identifiers.locals);
+        const TypeInfo& valueType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), param.typeRef()));
+        const bool      valueAggregate = valueType.isStruct() || valueType.isAggregateStruct() || valueType.isString() || valueType.isSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
+        if (context.isOrdinaryInline && valueAggregate)
+        {
+            const auto abi    = ABITypeNormalize::normalize(sema.ctx(), CallConv::get(context.fn->callConvKind()), paramType, ABITypeNormalize::Usage::Argument);
+            mat.borrowedValue = abi.isIndirect && context.fn->callConvKind() == CallConvKind::Swag;
+        }
+        if (mat.borrowedValue)
+            mat.homesAddress = true;
+        mat.required = mat.borrowedValue || forced || isCaptured || inlineBindingNeedsMaterialization(sema, binding.exprRef, context.identifiers.locals);
         if (mat.required)
             mat.needsMutableHome = forGeneratedCode || use.mutableUse;
         return mat;
@@ -2003,9 +2016,17 @@ namespace
         // Every cast below wraps the detached clone, never the caller's expression.
         if (mat.homesAddress)
         {
-            const TypeRef homeSourceTypeRef = sema.viewType(ioBinding.exprRef).typeRef();
-            const bool    attachStorage     = !sema.isLValue(ioBinding.exprRef) && homeSourceTypeRef.isValid();
-            SWC_RESULT(makeInlineAddressHome(sema, clonedInitRef, param.typeRef(), homeSourceTypeRef, attachStorage));
+            TypeRef homeSourceTypeRef = sema.viewType(ioBinding.exprRef).typeRef();
+            if (mat.borrowedValue)
+            {
+                // Materialize conversions before taking the address. In particular, null
+                // needs a full nullable descriptor, and an array needs a slice header.
+                clonedInitRef     = Cast::createCastNode(sema, param.typeRef(), clonedInitRef);
+                homeSourceTypeRef = param.typeRef();
+            }
+            const bool    attachStorage = !sema.isLValue(ioBinding.exprRef) && homeSourceTypeRef.isValid();
+            const TypeRef homeType      = mat.borrowedValue ? sema.typeMgr().addType(TypeInfo::makeBlockPointer(param.typeRef())) : param.typeRef();
+            SWC_RESULT(makeInlineAddressHome(sema, clonedInitRef, homeType, homeSourceTypeRef, attachStorage));
         }
         // The home initializer re-runs sema inside the inline frame, where the caller's
         // flow proofs are gone. The call site already validated the argument against the
@@ -2065,6 +2086,28 @@ namespace
         // The home is synthetic storage. Every cloned read names its use in the
         // callee body, regardless of why the argument needed a home.
         ioBinding.exprRef            = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
+        if (mat.borrowedValue)
+        {
+            auto [loadRef, load]   = sema.ast().makeNode<AstNodeId::IndexExpr>(paramNameRef);
+            load->nodeExprRef      = ioBinding.exprRef;
+            auto [indexRef, index] = sema.ast().makeNode<AstNodeId::Identifier>(paramNameRef);
+            index->addFlag(AstIdentifierFlagsE::ConstantBinding);
+            sema.setType(indexRef, sema.typeMgr().typeU64());
+            sema.setConstant(indexRef, sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeIntSized<uint64_t>(sema.ctx(), 0)));
+            sema.setIsValue(*index);
+            load->nodeArgRef = indexRef;
+            // Keep a distinct semantic identity for the value, separate from its address
+            // home. Flow narrowing uses the declared value type and must not narrow the
+            // implementation pointer or conflate two expansions of the same parameter.
+            auto* valueIdentity = Symbol::make<SymbolVariable>(sema.ctx(), load, paramNameRef, SemaHelpers::getUniqueIdentifier(sema, "__inline_value"), sema.frame().flagsForCurrentAccess());
+            valueIdentity->setTypeRef(param.typeRef());
+            valueIdentity->addExtraFlag(SymbolVariableFlagsE::Let);
+            auto* valuePayload     = sema.compiler().allocate<InlineValueBorrowSemaPayload>();
+            valuePayload->identity = valueIdentity;
+            sema.setSemaPayload(loadRef, valuePayload);
+            ioBinding.exprRef            = loadRef;
+            ioBinding.valueBorrowHomeRef = declRef;
+        }
         ioBinding.preserveUseCodeRef = true;
         ioBinding.mutableHomeUse     = context.isOrdinaryInline && !materializedAsLet && !mat.homesAddress;
         if (!mat.forVariadic)
@@ -3119,6 +3162,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
     frame.setInlineContextRootRef(inlineRootRef);
+    inlinePayload->callerRuntimeSafetyMask = frame.currentAttributes().effectiveRuntimeSafetyMask(sema.runtimeSafetyGuards());
     if (isOrdinaryInline)
     {
         // Caller flow-narrowing facts stay live inside an ordinary-inline expansion:

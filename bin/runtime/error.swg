@@ -197,6 +197,7 @@ namespace Swag
     {
         var frame: PanicCatchFrame
         let cxt = Swag.getContext()
+        frame.valueBorrowCheckpoint = __valueBorrowCheckpoint()
         frame.previousHook  = cxt.panic
         frame.previousFrame = cxt.panicCatch
         frame.errorCaptures = cxt.errorCaptures
@@ -250,6 +251,7 @@ namespace Swag
 
 private struct PanicCatchFrame
 {
+    valueBorrowCheckpoint: u64
     resumeStorage: [HostResumeStorageSize] u8
     caught:        CaughtPanic
     previousHook:  (func(string?, SourceCodeLocation))?
@@ -290,6 +292,7 @@ private func catchPanicHook(message: string?, loc: SourceCodeLocation)
     cxt.hasError   = frame.hasError
 
     frame.caught.raised = true
+    __valueBorrowReset(frame.valueBorrowCheckpoint)
     __hostResume(&frame.resumeStorage[0])
 }
 
@@ -392,7 +395,7 @@ private func __releaseErrMessages(first: *ErrorMessageLink?)
                 }
 
                 let next = retired.next
-                __freeErrMemory(retired.allocator, retired, #sizeof(ErrorMessageLink))
+                __freeErrMemory(#copy retired.allocator, retired, #sizeof(ErrorMessageLink))
                 link = next
                 continue
             }
@@ -403,7 +406,7 @@ private func __releaseErrMessages(first: *ErrorMessageLink?)
         let resume = pending
         pending = resume.releaseNext
         link    = resume.next
-        __freeErrMemory(resume.allocator, resume, #sizeof(ErrorMessageLink))
+        __freeErrMemory(#copy resume.allocator, resume, #sizeof(ErrorMessageLink))
     }
 }
 
@@ -910,6 +913,8 @@ func panic(message: string?, loc: SourceCodeLocation)
     // Capture while the application caller is still immediately above this frame, and store it in
     // the process context so a hook compiled into another Swag module sees the same capture.
     let cxt = Swag.getContext()
+    let checkpoint = cxt.panicCatch ? cast(*PanicCatchFrame, cxt.panicCatch).valueBorrowCheckpoint : 0
+    __valueBorrowReset(checkpoint)
     cxt.panicStackCount = __captureStack(0, cxt.panicStack)
 
     // A hook can report the panic, or transfer control out of it as the native test runner and
@@ -936,6 +941,7 @@ func safetyPanic(message: string, loc: SourceCodeLocation)
 {
     if Swag.jit()
     {
+        __valueBorrowReset()
         __raiseException666(message, loc, .Safety)
         unreachable
     }

@@ -207,6 +207,8 @@ struct MicroInstr
     MicroOperandRef  opsRef      = MicroOperandRef::invalid();
     MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
     uint8_t          numOperands = 0;
+    // Generated guards may touch their private records, but preserve source-program memory.
+    bool compilerSafetyCall = false;
 
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;

@@ -20,6 +20,7 @@ namespace SemaClone
         // const-assignment targets.
         bool                  mutableHomeUse = false;
         const SymbolVariable* sourceParam    = nullptr;
+        AstNodeRef            valueBorrowHomeRef = AstNodeRef::invalid();
     };
 }
 

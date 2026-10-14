@@ -236,6 +236,18 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
     const Token& tok = codeGen.token(codeRef());
     switch (tok.id)
     {
+        case TokenId::ModifierCopy:
+        {
+            const TypeRef  typeRef     = codeGen.curViewType().typeRef();
+            const MicroReg destination = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            const auto&    source      = codeGen.payload(nodeExprRef);
+            CodeGenMemoryHelpers::storePayloadToAddress(codeGen, destination, source, static_cast<uint32_t>(codeGen.typeMgr().get(typeRef).sizeOf(codeGen.ctx())));
+            SWC_RESULT(codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::PostCopy, destination));
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), destination, typeRef).ownsValue = true;
+            if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
+                codeGen.registerTemporaryDrop(codeGen.curNodeRef(), typeRef, *codeGen.runtimeStorageSymbol(codeGen.curNodeRef()));
+            return Result::Continue;
+        }
         case TokenId::SymPlus:
             return codeGenUnaryPlus(codeGen, nodeExprRef);
         case TokenId::SymMinus:

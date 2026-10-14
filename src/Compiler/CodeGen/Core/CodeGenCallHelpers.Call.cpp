@@ -14,6 +14,7 @@
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNode.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -23,6 +24,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -118,7 +120,7 @@ namespace
         // Prefer the active view, but keep stored/resolved fallbacks. Inlining,
         // auto-members and substitutions can move the selected symbol away from the
         // surface callee node while preserving it in NodePayload.
-        if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.curViewSymbol()))
+        if (SymbolFunction* calledFunction = CodeGenCallHelpers::selectedCallFunction(codeGen, codeGen.curNodeRef()))
         {
             outCalledFunction = calledFunction;
             return Result::Continue;
@@ -482,8 +484,7 @@ namespace
     {
         SmallVector<ABICall::PreparedArg>  args;
         SmallVector<PostCallTemporaryDrop> postCallDrops;
-        uint32_t                           transientStackSize          = 0;
-        bool                               copyIndirectValueAggregates = false;
+        uint32_t                           transientStackSize = 0;
     };
 
     // A plain struct value bound to a '#move' parameter is passed as a temporary deep copy:
@@ -1018,13 +1019,6 @@ namespace
             ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedType, ABITypeNormalize::Usage::Argument);
             if (arg.passKind == CallArgumentPassKind::InterfaceObject)
                 normalizedArg.needsIndirectCopy = false;
-            else if (out.copyIndirectValueAggregates && normalizedArg.isIndirect)
-            {
-                const TypeInfo* unwrappedType = normalizedType.unwrapAliasEnumType(codeGen.ctx());
-                const TypeInfo& expandedType  = unwrappedType ? *unwrappedType : normalizedType;
-                if (expandedType.isStruct() || expandedType.isAggregateStruct())
-                    normalizedArg.needsIndirectCopy = true;
-            }
             SWC_RESULT(materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, out.transientStackSize));
             materializePreparedBorrowedAggregateArg(codeGen, argPayload, callConv, normalizedType, normalizedArg, argRef, out.transientStackSize);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedType, normalizedArg);
@@ -1614,6 +1608,71 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const
 
     return Result::Continue;
 }
+SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNodeRef callRef)
+{
+    if (auto* function = CodeGenExprView::singleFunction(codeGen.viewSymbol(callRef)))
+        return function;
+
+    // Operators retain their selected function in a semantic payload because publishing
+    // a symbol on the result would overwrite its type or its inline substitution.
+    switch (codeGen.node(callRef).id())
+    {
+        case AstNodeId::BinaryExpr:
+            if (const auto* payload = codeGen.sema().semaPayload<BinarySpecOpPayload>(callRef))
+                return payload->calledFn;
+            break;
+        case AstNodeId::RelationalExpr:
+            if (const auto* payload = codeGen.sema().semaPayload<RelationalSpecOpPayload>(callRef))
+                return payload->calledFn;
+            break;
+        case AstNodeId::UnaryExpr:
+            if (const auto* payload = codeGen.sema().semaPayload<UnarySpecOpPayload>(callRef))
+                return payload->calledFn;
+            break;
+        case AstNodeId::AssignStmt:
+            if (const auto* payload = codeGen.sema().semaPayload<AssignSpecOpPayload>(callRef))
+                return payload->calledFn;
+            break;
+        case AstNodeId::SingleVarDecl:
+            if (const auto* payload = codeGen.sema().semaPayload<VarInitSpecOpPayload>(callRef))
+                return payload->calledFn;
+            break;
+        case AstNodeId::CountOfExpr:
+            if (const auto* payload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(callRef))
+                return payload->calledFn;
+            break;
+        case AstNodeId::IntrinsicCall:
+            if (codeGen.token(codeGen.node(callRef).codeRef()).id == TokenId::IntrinsicDataOf)
+            {
+                if (const auto* payload = codeGen.sema().semaPayload<DataOfSpecOpPayload>(callRef))
+                    return payload->calledFn;
+            }
+            break;
+        case AstNodeId::IndexExpr:
+        case AstNodeId::IndexListExpr:
+            if (const auto* payload = codeGen.sema().semaPayload<IndexSpecOpPayloadBase>(callRef))
+            {
+                if (payload->kind == IndexSpecOpPayloadKind::Read)
+                    return static_cast<const IndexSpecOpSemaPayload*>(payload)->calledFn;
+                if (payload->kind == IndexSpecOpPayloadKind::ReadSlice)
+                    return static_cast<const SliceSpecOpSemaPayload*>(payload)->calledFn;
+            }
+            break;
+        case AstNodeId::CastExpr:
+        case AstNodeId::AutoCastExpr:
+            if (const auto* payload = codeGen.sema().semaPayload<CastSpecOpPayload>(callRef))
+            {
+                if (payload->kind == CastSpecialOpPayloadKind::OpCast)
+                    return payload->calledFn;
+                return codeGen.sema().semaPayload<CastSetPayload>(callRef)->calledFn;
+            }
+            break;
+        default:
+            break;
+    }
+    return nullptr;
+}
+
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction* selectedFunction)
 {
     MicroBuilder&   builder        = codeGen.builder();
@@ -1647,7 +1706,6 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     // cleanups back into the AST payload.
     SmallVector<ResolvedCallArgument> args;
     PreparedCallArguments             preparedArgs;
-    preparedArgs.copyIndirectValueAggregates = calleePayload && !calledFunction->isClosure() && !calledFunction->hasInterfaceMethodSlot();
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     SWC_RESULT(buildPreparedABIArguments(preparedArgs, codeGen, codeGen.curNodeRef(), *calledFunction, closureContextReg, args));
 

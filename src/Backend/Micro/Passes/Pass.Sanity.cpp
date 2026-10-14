@@ -57,7 +57,7 @@ Result MicroSanityPass::run(MicroPassContext& context)
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end();)
     {
         const auto current = it++;
-        if (current->op == MicroInstrOpcode::SanityRelease)
+        if (current->op == MicroInstrOpcode::SanityRelease || current->op == MicroInstrOpcode::SanityIntDivision)
         {
             context.instructions->erase(current.current);
             context.passChanged = true;

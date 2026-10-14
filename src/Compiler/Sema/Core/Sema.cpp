@@ -3,6 +3,7 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -11,6 +12,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -1532,6 +1534,16 @@ Result Sema::postNode(AstNode& node)
 
     if (result == Result::Continue)
     {
+        if (const auto* function = frame().currentFunction())
+        {
+            const auto*    expansion   = frame().currentInlinePayload();
+            const uint16_t baseMask    = expansion ? expansion->runtimeSafetyMask : function->attributes().effectiveRuntimeSafetyMask(runtimeSafetyGuards());
+            const bool     baseEnabled = (baseMask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0;
+            const bool     enabled     = frame().currentAttributes().hasRuntimeSafety(runtimeSafetyGuards(), Runtime::SafetyWhat::ValueBorrow);
+            if (enabled != baseEnabled)
+                SemaHelpers::ensureCodeGenLoweringPayload(*this, nodeRef).valueBorrowSafetyOverride = enabled;
+        }
+
         // An armed body publishes what it proved here, while the frame it owns is still the
         // current one: the pop below is what the capture exists to survive.
         if (!narrowFactCaptures_.empty())

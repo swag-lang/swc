@@ -362,7 +362,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|complete|fail|nofail|raw|simd)\\b"
+          "match": "\\#(prom|wrap|nodrop|copy|move|relocate|fwd|bit|unconst|complete|fail|nofail|raw|simd)\\b"
         }
       ]
     },

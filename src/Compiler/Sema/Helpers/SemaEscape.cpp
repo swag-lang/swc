@@ -206,6 +206,12 @@ namespace
         return isByValueParameterStorage(sema, symVar) && !hasOwningLifecycle(sema, symVar.typeRef());
     }
 
+    bool isExplicitCopyStorage(Sema& sema, const SymbolVariable& symVar)
+    {
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) && symVar.decl() &&
+               symVar.decl()->is(AstNodeId::UnaryExpr) && sema.token(symVar.decl()->codeRef()).id == TokenId::ModifierCopy;
+    }
+
     bool isLocalVariableStorage(Sema& sema, const SymbolVariable& symVar)
     {
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) ||
@@ -270,6 +276,8 @@ namespace
             if (info.kind == SemaEscapeKind::Parameter)
                 setParameterOrigin(sema, info, symVar);
         }
+        else if (isExplicitCopyStorage(sema, symVar))
+            info.kind = SemaEscapeKind::Temporary;
         else if (isLocalVariableStorage(sema, symVar))
             info.kind = SemaEscapeKind::Local;
         else
@@ -672,6 +680,12 @@ namespace
             case AstNodeId::UnaryExpr:
             {
                 const auto& unary = node.cast<AstUnaryExpr>();
+                if (sema.token(node.codeRef()).id == TokenId::ModifierCopy)
+                {
+                    const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(resolvedRef);
+                    outWholeVariable     = true;
+                    return lowering ? lowering->runtimeStorageSym : nullptr;
+                }
 
                 // A dereference designates the pointee storage, not the pointer variable: it
                 // is a borrow root only when the pointer itself borrows a tracked local. A
@@ -4783,6 +4797,24 @@ namespace SemaEscape
         if (!typeCanCarryBorrowImpl(sema, targetTypeRef))
         {
             sema.clearVariableEscapeInfo(symVar);
+            return Result::Continue;
+        }
+
+        // A copy temporary cannot escape at its construction. Retain the shallow
+        // fields' provenance and judge their eventual use, just as for a local copy.
+        if (isExplicitCopyStorage(sema, symVar))
+        {
+            SmallVector<AggregateBorrowBinding> bindings;
+            if (collectAggregateBorrows(sema, bindings, {.root = &symVar}, initRef, targetTypeRef))
+            {
+                for (const auto& binding : bindings)
+                    sema.setProjectionEscapeInfo(binding.projection, binding.info);
+            }
+            else
+            {
+                uint32_t budget = K_EXPR_BUDGET;
+                sema.setVariableEscapeInfo(symVar, expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget));
+            }
             return Result::Continue;
         }
 

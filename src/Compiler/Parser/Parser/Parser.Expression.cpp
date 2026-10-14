@@ -1137,6 +1137,7 @@ AstNodeRef Parser::parsePrefixExpr()
 {
     switch (id())
     {
+        case TokenId::ModifierCopy:
         case TokenId::ModifierMove:
         case TokenId::SymAmpersand:
         {

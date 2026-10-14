@@ -26,13 +26,13 @@
 //
 //   validateOffsetRebase             : dry-run rewrite; checks that no
 //                                      [sp + off] reference would overflow
-//                                      and that any `mov reg, sp` copy can
-//                                      be paired with a follow-up Add.
+//                                      and that stack-pointer copies use
+//                                      the full pointer width.
 //
 //   applyOffsetRebase                : rebase every [sp + off] / amc-form
 //                                      offset to the new SP origin and
-//                                      insert the compensating Add after
-//                                      `mov reg, sp` copies.
+//                                      replace `mov reg, sp` copies with
+//                                      a single rebased address definition.
 //
 //   final fix-up                     : drop the original sub/add SP sites
 //                                      and emit one sub at function entry
@@ -254,8 +254,6 @@ namespace
             MicroReg copiedStackReg = MicroReg::invalid();
             if (!parseStackPointerCopyForRebase(inst, ops, conv.stackPointer, copiedStackReg))
                 return false;
-            if (copiedStackReg.isValid() && index + 1 == analysisResult.instructionDepths.size())
-                return false;
         }
 
         return true;
@@ -266,8 +264,7 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        // Visit only original instructions: compensation adds inserted before the
-        // next original ref must not acquire a depth or be rebased themselves.
+        // Use the original depths throughout the rewrite.
         for (size_t index = 0; index < analysisResult.instructionDepths.size(); ++index)
         {
             const InstructionDepth& entry = analysisResult.instructionDepths[index];
@@ -290,16 +287,17 @@ namespace
             if (!copiedStackReg.isValid())
                 continue;
 
-            SWC_ASSERT(index + 1 < analysisResult.instructionDepths.size());
-            if (index + 1 == analysisResult.instructionDepths.size())
-                continue;
-
-            MicroInstrOperand addOps[4];
-            addOps[0].reg      = copiedStackReg;
-            addOps[1].opBits   = MicroOpBits::B64;
-            addOps[2].microOp  = MicroOp::Add;
-            addOps[3].valueU64 = delta;
-            context.instructions->insertSyntheticBefore(*context.operands, analysisResult.instructionDepths[index + 1].instRef, MicroInstrOpcode::OpBinaryRegImm, addOps);
+            // Keep the frame base a single definition. A compensating add would
+            // invalidate the sanitizer's local extents and clobber live flags.
+            MicroInstrOperand addressOps[4];
+            addressOps[0].reg      = copiedStackReg;
+            addressOps[1].reg      = conv.stackPointer;
+            addressOps[2].opBits   = MicroOpBits::B64;
+            addressOps[3].valueU64 = delta;
+            MicroInstr* rewritten  = context.instructions->ptr(entry.instRef);
+            rewritten->op          = MicroInstrOpcode::LoadAddrRegMem;
+            rewritten->opsRef      = context.operands->append(addressOps);
+            rewritten->numOperands = 4;
         }
     }
 }

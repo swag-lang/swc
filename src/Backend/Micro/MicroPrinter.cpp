@@ -1892,6 +1892,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 }
                 break;
 
+            case MicroInstrOpcode::SanityIntDivision:
+                appendRegRegBits(out, ctx, ops, 0, 1, 2, regPrintMode, encoder);
+                break;
+
             case MicroInstrOpcode::SanityInvalidate:
             case MicroInstrOpcode::SanityRelease:
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);

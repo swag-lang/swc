@@ -5,9 +5,11 @@
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -616,6 +618,25 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, view));
     }
     sema.setIsValue(*this);
+
+    // An explicit copy always owns distinct storage, even when the surrounding
+    // call normally borrows its argument. It follows ordinary copy lifecycle rules.
+    if (opId == TokenId::ModifierCopy)
+    {
+        SWC_RESULT(SemaHelpers::readReferenceValue(sema, view));
+        const TypeRef typeRef = view.typeRef();
+        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), typeRef, typeRef, AstModifierFlagsE::Zero, false, true));
+        SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, typeRef, SpecOpKind::OpPostCopy));
+        SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, typeRef, SpecOpKind::OpDrop));
+        auto& lowering = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+        if (!lowering.runtimeStorageSym)
+            lowering.runtimeStorageSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, *this, "__copied_value");
+        lowering.ownsValue = true;
+        SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *lowering.runtimeStorageSym, typeRef));
+        SWC_RESULT(SemaEscape::checkVariableInitializer(sema, *lowering.runtimeStorageSym, view.nodeRef(), typeRef));
+        sema.setType(sema.curNodeRef(), typeRef);
+        return Result::Continue;
+    }
 
     bool handledSpecialOp = false;
     SWC_RESULT(SemaSpecOp::tryResolveUnary(sema, *this, view, handledSpecialOp));

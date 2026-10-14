@@ -35,6 +35,16 @@ namespace Runtime
         ScratchAllocator pushErrorAllocator;
     };
 
+    struct ValueBorrowRecord
+    {
+        ValueBorrowRecord*        next;
+        ValueBorrowRecord*        previous;
+        const void*               address;
+        uint64_t                  size;
+        uint64_t                  threadId;
+        const SourceCodeLocation* location;
+    };
+
     struct Context
     {
         Interface          allocator;

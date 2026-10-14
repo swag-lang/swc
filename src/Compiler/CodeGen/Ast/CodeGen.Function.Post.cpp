@@ -669,36 +669,6 @@ namespace
         return codeGen.resolveLocalStackPayload(inlineResultStorageSymbol(codeGen, inlinePayload), false).reg;
     }
 
-    bool tryEmitInlineDirectCallResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
-    {
-        if (exprRef.isInvalid())
-            return false;
-
-        const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(exprRef);
-        if (!resolvedExprRef.isValid())
-            return false;
-
-        const AstNode& exprNode = codeGen.node(resolvedExprRef);
-        if (exprNode.isNot(AstNodeId::CallExpr))
-            return false;
-
-        const SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
-        if (!calledFunction)
-            calledFunction = CodeGenExprView::singleFunction(codeGen.viewSymbol(resolvedExprRef));
-        if (!calledFunction)
-            return false;
-
-        const CallConvKind                     callConvKind  = calledFunction->callConvKind();
-        const CallConv&                        callConv      = CallConv::get(callConvKind);
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(calledFunction->returnTypeRef()), ABITypeNormalize::Usage::Return);
-        if (normalizedRet.isVoid || normalizedRet.isIndirect)
-            return false;
-
-        const MicroReg resultAddr = inlineResultAddressReg(codeGen, inlinePayload);
-        ABICall::storeReturnRegsToReturnBuffer(codeGen.builder(), callConvKind, resultAddr, normalizedRet);
-        return true;
-    }
-
     // An owned temporary the return transfers is no longer an operand temporary of the return.
     // The storage the returned value occupies can differ from the one recorded on the node: an
     // implicit conversion of a call result builds its own value from the call's.
@@ -724,9 +694,6 @@ namespace
 
         const SymbolVariable& resultStorage = inlineResultStorageSymbol(codeGen, inlinePayload);
         const MicroReg        resultAddr    = inlineResultAddressReg(codeGen, inlinePayload);
-        if (tryEmitInlineDirectCallResultStore(codeGen, inlinePayload, exprRef))
-            return Result::Continue;
-
         AstNodeRef payloadExprRef = codeGen.resolvedNodeRef(exprRef);
         if (payloadExprRef.isInvalid())
             payloadExprRef = exprRef;
@@ -1209,7 +1176,6 @@ namespace
             const CodeGenNodePayload& exprPayload     = codeGen.payload(exprRef);
             const MicroReg            payloadReg      = exprPayload.reg;
             const bool                payloadLValue   = exprPayload.isAddress();
-            const AstNode&            exprNode        = codeGen.node(exprRef);
             const bool                needsPersistent = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
             if (normalizedRet.isIndirect)
@@ -1222,10 +1188,8 @@ namespace
             }
             else
             {
-                if (CodeGenFunctionHelpers::canUseDirectCallReturnWriteBack(exprNode, exprPayload, normalizedRet.isVoid, normalizedRet.isIndirect))
-                    ABICall::storeReturnRegsToReturnBuffer(builder, callConvKind, outputStorageReg, normalizedRet);
-                else
-                    ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+                // Argument cleanup can call runtime helpers after the result was materialized.
+                ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
 
                 if (needsPersistent)
                 {

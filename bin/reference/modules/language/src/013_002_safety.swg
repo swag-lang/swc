@@ -58,6 +58,53 @@ flow-narrowed code. Keep required side effects outside the assertion.
 }
 
 /**
+# Value Argument Stability
+
+Swag can pass a struct value by a read-only reference instead of copying it. While the
+call borrows that value, its storage must remain alive and unchanged, including when
+another argument, a callback, or a global pointer can reach it. Evaluating later
+arguments is part of this interval. The rule also covers indirectly passed string,
+slice, interface and 'any' descriptors; it does not freeze their external pointees.
+Array parameters retain their existing view semantics. Small structs passed in registers
+already have an independent value. The C calling convention keeps its ABI-required copies.
+
+'Swag.SafetyWhat.ValueBorrow' checks writes against the live borrowed ranges and panics
+before an overlapping write. It also checks explicit initialization, destruction, moves,
+memory and atomic intrinsics, and invalidation by the runtime allocators. A failed atomic
+compare-exchange that only reads is allowed. Disjoint fields and writes after the call
+returns remain allowed. Swag calls through callbacks use the same checks without user
+annotations or a static proof of the callback's effects.
+
+The guard is enabled in 'devmode' and disabled in 'release'. Keep it in a release module
+with 'buildCfg.safetyGuards |= .ValueBorrow', or select it with
+'#[Swag.Safety(.ValueBorrow, true)]'. Disabling the guard removes the checks; the stability
+rule still applies. The checks only cover executed, instrumented operations. Foreign code,
+code built without this safety, and custom allocator invalidation outside the instrumented
+runtime remain the caller's responsibility. This guard is not a data-race detector:
+concurrent accesses still need synchronization, and the range check does not make a
+following store atomic with another thread starting a borrow.
+
+Use '#copy value' when the callee needs a stable snapshot while the original changes.
+The copy has its own storage and follows the type's copy and drop hooks. It is shallow:
+its pointers can still alias other arguments, and a copy hook can publish an alias to
+the new storage. Those writes are checked too. 'Swag.NoCopy' still forbids an explicit copy.
+*/
+#test
+{
+    struct Value { first, second, third: u64 }
+    #[Swag.NoInline]
+    func readSnapshot(value: Value, original: *Value)->u64
+    {
+        original.first = 0
+        return value.first
+    }
+
+    var value: Value = {first: 17}
+    let observed = readSnapshot(#copy value, &value)
+    Swag.assert(observed == 17 and value.first == 0)
+}
+
+/**
 # Overflow Safety
 Example:
 

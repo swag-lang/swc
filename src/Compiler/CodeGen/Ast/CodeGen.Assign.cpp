@@ -473,6 +473,8 @@ namespace
     Result emitAssignLifecycle(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& originalRightPayload, TypeRef rightTypeRef, TypeRef originalRightTypeRef, TokenId assignOp, AstModifierFlags modifierFlags, AstNodeRef rightRef)
     {
         const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp);
+        if (encodeCtx.target.payload.isAddress())
+            SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, encodeCtx.target.payload.reg, codeGen.typeMgr().get(encodeCtx.target.typeRef).sizeOf(codeGen.ctx())));
         if (assignOp != TokenId::SymEqual)
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
         if (!encodeCtx.target.opTypeRef.isValid())
@@ -636,6 +638,8 @@ namespace
     Result emitAssignDestructuringField(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& fieldPayload, TypeRef fieldTypeRef, CodeGen::LifecycleKind postKind)
     {
         AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, fieldPayload, fieldTypeRef, TokenId::SymEqual);
+        if (encodeCtx.target.payload.isAddress())
+            SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, encodeCtx.target.payload.reg, codeGen.typeMgr().get(encodeCtx.target.typeRef).sizeOf(codeGen.ctx())));
 
         const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
         if (!targetType.isStruct() && !targetType.isArray())

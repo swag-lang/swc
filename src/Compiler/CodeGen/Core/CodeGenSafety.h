@@ -31,6 +31,19 @@ namespace CodeGenSafety
     using LoadNumericOperandFn        = void (*)(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef);
     using MaterializeNumericOperandFn = void (*)(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef);
 
+    void   configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyRef, uint64_t& frameSize);
+    void   initializeValueBorrowSites(CodeGen& codeGen);
+    Result emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef);
+    bool   isBorrowedValueType(CodeGen& codeGen, TypeRef typeRef);
+    bool   hasValueBorrowSafety(const CodeGen& codeGen);
+    Result prepareValueBorrowSafety(CodeGen& codeGen);
+    Result emitValueBorrowBegin(CodeGen& codeGen, uint32_t recordOffset, MicroReg address, uint64_t size);
+    Result emitValueBorrowEnd(CodeGen& codeGen, uint32_t recordOffset);
+    Result emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, uint64_t size);
+    Result emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, MicroReg size);
+
+    Result emitValueBorrowWriteElements(CodeGen& codeGen, MicroReg address, MicroReg count, uint64_t elementSize);
+
     bool hasMathRuntimeSafety(const CodeGen& codeGen);
     bool hasOverflowRuntimeSafety(const CodeGen& codeGen);
     bool hasLifecycleRuntimeSafety(const CodeGen& codeGen);

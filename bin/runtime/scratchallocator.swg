@@ -63,6 +63,22 @@ impl ScratchAllocator
         if .releaseHook do
             .releaseHook(me)
 
+        #static if #safety(Swag.SafetyWhat.ValueBorrow)
+        {
+            if .block
+            {
+                let location = #curlocation
+                __valueBorrowWrite(.block, .used, &location)
+            }
+            var leak = cast(*LeakHeader?, .firstLeak)
+            while leak
+            {
+                let location = #curlocation
+                __valueBorrowWrite(leak.allocation, leak.allocationSize, &location)
+                leak = leak.next
+            }
+        }
+
         .used = 0
         while .firstLeak
         {
@@ -95,6 +111,8 @@ impl IAllocator for ScratchAllocator
 
         Swag.assert(.block != null)
         let reqAddr = request.address
+        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+            __valueBorrowWrite(reqAddr, request.size, &request.callerLoc)
 
         // If this is the last allocated block in the buffer, we can free it
         // by changing the allocated used size
@@ -201,6 +219,11 @@ impl IAllocator for ScratchAllocator
 
         let oldAddress = request.address
         let oldSize    = request.oldSize
+        #static if #safety(Swag.SafetyWhat.ValueBorrow)
+        {
+            if oldAddress do
+                __valueBorrowWrite(oldAddress, oldSize, &request.callerLoc)
+        }
 
         request.address = null
         .allocBlock(request)

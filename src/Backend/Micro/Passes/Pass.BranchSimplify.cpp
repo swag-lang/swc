@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.BranchSimplify.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroCompare.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -557,67 +558,7 @@ namespace
 
     bool tryEvaluateCompareCondition(bool& outTaken, const uint64_t lhsValue, const uint64_t rhsValue, const MicroOpBits opBits, const MicroCond cond)
     {
-        const uint32_t bitWidth = getNumBits(opBits);
-        if (!bitWidth)
-            return false;
-
-        const ApInt lhs(lhsValue, bitWidth);
-        const ApInt rhs(rhsValue, bitWidth);
-
-        switch (cond)
-        {
-            case MicroCond::Equal:
-            case MicroCond::Zero:
-                outTaken = lhs.eq(rhs);
-                return true;
-
-            case MicroCond::NotEqual:
-            case MicroCond::NotZero:
-                outTaken = !lhs.eq(rhs);
-                return true;
-
-            case MicroCond::Above:
-                outTaken = lhs.ugt(rhs);
-                return true;
-
-            case MicroCond::AboveOrEqual:
-                outTaken = lhs.uge(rhs);
-                return true;
-
-            case MicroCond::Below:
-                outTaken = lhs.ult(rhs);
-                return true;
-
-            case MicroCond::BelowOrEqual:
-            case MicroCond::NotAbove:
-                outTaken = lhs.ule(rhs);
-                return true;
-
-            case MicroCond::Greater:
-                outTaken = lhs.sgt(rhs);
-                return true;
-
-            case MicroCond::GreaterOrEqual:
-                outTaken = lhs.sge(rhs);
-                return true;
-
-            case MicroCond::Less:
-                outTaken = lhs.slt(rhs);
-                return true;
-
-            case MicroCond::LessOrEqual:
-                outTaken = lhs.sle(rhs);
-                return true;
-
-            case MicroCond::Unconditional:
-                outTaken = true;
-                return true;
-
-            default:
-                break;
-        }
-
-        return false;
+        return MicroCompare::evaluate(lhsValue, rhsValue, opBits).tryCondition(outTaken, cond);
     }
 
     bool tryEvaluateKnownBranch(bool& outTaken, const KnownValueContext& context, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef flagDefRef, MicroCond jumpCond)

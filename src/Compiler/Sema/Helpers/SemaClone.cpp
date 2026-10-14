@@ -732,6 +732,7 @@ namespace
         if (!clonedPayload.runtimeArrayFillCstRef.isValid() && sourcePayload->runtimeArrayFillCstRef.isValid())
             clonedPayload.runtimeArrayFillCstRef = sourcePayload->runtimeArrayFillCstRef;
         clonedPayload.runtimeSafetyMask |= sourcePayload->runtimeSafetyMask;
+        clonedPayload.valueBorrowSafetyOverride = sourcePayload->valueBorrowSafetyOverride;
         clonedPayload.notNullUnwrap |= sourcePayload->notNullUnwrap;
         clonedPayload.ufcsReceiverAddress |= sourcePayload->ufcsReceiverAddress;
         clonedPayload.dynamicCast |= sourcePayload->dynamicCast;
@@ -1162,9 +1163,17 @@ namespace
                 copyImplicitCastLoweringPayload(sema, detachedContext, sourceRef, clonedRef);
             }
         }
-        if (sema.node(sourceRef).is(AstNodeId::Identifier) &&
-            sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
-            sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+        if (sema.node(sourceRef).is(AstNodeId::Identifier))
+        {
+            auto& identifier = sema.node(clonedRef).cast<AstIdentifier>();
+            if (sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
+                identifier.addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+            // Injection's caller binding is provisional until its expression is resolved.
+            // A detached, typed argument must keep that result: rechecking shadowing in
+            // the callee can bind its initializer to its own not-yet-typed argument home.
+            if (sema.viewType(sourceRef).typeRef().isValid())
+                identifier.flags().clearMask(AstIdentifierFlagsE::MacroInjectCallerBinding);
+        }
 
         if (!shouldReexpand &&
             resolvedRef.isValid() &&
@@ -1317,7 +1326,7 @@ namespace
             AstNodeRef clonedExprRef                         = AstNodeRef::invalid();
             const bool bindingNeedsContextualAutoMemberClone = binding->typeRef.isValid() && containsAutoMemberAccess(sema, binding->exprRef);
             const bool bindingNeedsReferenceStateClone       = binding->sourceParam && binding->sourceParam->type(sema.ctx()).isReference();
-            if (cloneContext.preserveBindingExprState || bindingNeedsContextualAutoMemberClone || bindingNeedsReferenceStateClone)
+            if (cloneContext.preserveBindingExprState || bindingNeedsContextualAutoMemberClone || bindingNeedsReferenceStateClone || binding->valueBorrowHomeRef.isValid())
                 clonedExprRef = cloneDetachedExprImpl(sema, binding->exprRef);
             else if (cloneContext.resolveBindingExprWithParentBindings)
             {

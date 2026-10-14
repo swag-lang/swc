@@ -226,11 +226,13 @@ namespace
         const TypeInfo* type  = &sema.typeMgr().get(dataTypeRef);
         TypeInfoFlags   flags = type->flags();
         flags.add(view.type()->flags());
-        if (SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))
+        // The inline parameter freezes its descriptor, not the slice's elements.
+        const bool inlineSliceParameter = type->isSlice() && sema.constAssignSourceParameter(SemaHelpers::resolveTransparentConditionExprSourceRef(sema, view.nodeRef()));
+        if (!inlineSliceParameter && SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))
             flags.add(TypeInfoFlagsE::Const);
 
         TypeInfoFlags bindingFlags = flags;
-        if (view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant()))
+        if (!inlineSliceParameter && view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant()))
             bindingFlags.add(TypeInfoFlagsE::Const);
 
         TypeRef resultTypeRef = TypeRef::invalid();

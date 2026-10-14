@@ -1625,6 +1625,9 @@ impl Allocator
         if header.isElectric do
             .checkSlack(header, callerLoc)
 
+        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+            __valueBorrowWrite(cast(*void, address), header.userSize, &callerLoc)
+
         .unlinkAllocated(header)
 
         atomicSubU64(&.headerBytes, header.blockSize)
@@ -1724,6 +1727,12 @@ impl Allocator
                 return false
             if page.looksFree(address) do
                 return false
+        }
+
+        #static if #safety(Swag.SafetyWhat.ValueBorrow)
+        {
+            let location = #curlocation
+            __valueBorrowWrite(cast(*void, address), page.blockSize, &location)
         }
 
         let heap  = fastThreadHeap()
@@ -1878,6 +1887,11 @@ impl Allocator
                not oldHeader.isElectric
             {
                 let oldSize = oldHeader.userSize
+                #static if #safety(Swag.SafetyWhat.ValueBorrow)
+                {
+                    if request.size < oldSize do
+                        __valueBorrowWrite(cast(*void, oldAddress + request.size), oldSize - request.size, &request.callerLoc)
+                }
                 .setFooterMagic(oldHeader, 0)
                 oldHeader.userSize = request.size
                 .setFooterMagic(oldHeader, MagicAlloc)
@@ -1897,9 +1911,17 @@ impl Allocator
            (request.alignment == 0 or (oldAddress & (cast(u64, request.alignment) - 1)) == 0) and
            not .diagnosticMode()
         {
+            #static if #safety(Swag.SafetyWhat.ValueBorrow)
+            {
+                if request.size < oldBlockSize do
+                    __valueBorrowWrite(cast(*void, oldAddress + request.size), oldBlockSize - request.size, &request.callerLoc)
+            }
             request.address = cast(*void, oldAddress)
             return
         }
+
+        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+            __valueBorrowWrite(cast(*void, oldAddress), oldCopySize, &request.callerLoc)
 
         var allocReq = request[]
         allocReq.address = null
@@ -1959,6 +1981,9 @@ impl Allocator
             if page.looksFree(address) and ((owned and page.holdsOwnFreeBlock(address)) or page.holdsRemoteFreeBlock(address)) do
                 Swag.panic("memory block is freed twice", request.callerLoc)
         }
+
+        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+            __valueBorrowWrite(cast(*void, address), page.blockSize, &request.callerLoc)
 
         if .fillFree do
             Swag.memset(cast(*void, address), FreeByte, page.blockSize)

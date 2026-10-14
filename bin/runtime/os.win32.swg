@@ -251,16 +251,10 @@ func __hostConditionWait(condition: *__Win32RT.CONDITION_VARIABLE, lock: *__Win3
 
 // PROCESS-WIDE ANCHOR
 
-// Publishes `candidate` as the one process-wide value for `key`, and returns the value that
-// actually won. Every artifact of one process carries its own copy of the runtime, so a
-// scheduler stored in an ordinary global would exist once per executable and per shared
-// library. The anchor is a named, process-scoped section: the first artifact to ask installs
-// its candidate, and every later artifact -- including one loaded dynamically, and one running
-// on a thread the operating system created -- reads back the same pointer.
-//
-// A host that refuses the section leaves the caller with its own candidate, which stays correct
-// for a single-artifact program.
-func __hostProcessSingleton(key: u32, candidate: *void)->*void
+// Opens zero-initialized, process-wide storage shared by independently loaded artifacts.
+// The mapped view remains valid for the lifetime of the process.
+#[Swag.Safety(.ValueBorrow, false)]
+func __hostProcessStorage(key: u32, size: u32)->*void?
 {
     // "Local\Swag.Rt.<pid>.<key>", built without any allocation or string formatting.
     const Prefix = "Local\\Swag.Rt."
@@ -279,21 +273,37 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
     __hostAppendHex(&name, &length, key)
     name[length] = 0
 
-    let mapping = __Win32RT.CreateFileMappingW(__Win32RT.INVALID_HANDLE, null, __Win32RT.PAGE_READWRITE_MAP, 0, 8, &name[0])
+    let mapping = __Win32RT.CreateFileMappingW(__Win32RT.INVALID_HANDLE, null, __Win32RT.PAGE_READWRITE_MAP, 0, size, &name[0])
     if not mapping do
-        return candidate
+        return null
 
-    // The section stays mapped and its handle stays open for the life of the process: it holds
-    // the identity every later artifact resolves against.
-    let view = __Win32RT.MapViewOfFile(mapping, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, 8)
+    // A mapped view keeps the section alive after its opening handle closes.
+    let view = __Win32RT.MapViewOfFile(mapping, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, size)
+    discard __Win32RT.CloseHandle(mapping)
+    return view
+}
+
+// Publishes `candidate` as the one process-wide value for `key`, and returns the value that
+// actually won. Every artifact of one process carries its own copy of the runtime, so a
+// scheduler stored in an ordinary global would exist once per executable and per shared
+// library. The anchor is a named, process-scoped section: the first artifact to ask installs
+// its candidate, and every later artifact -- including one loaded dynamically, and one running
+// on a thread the operating system created -- reads back the same pointer.
+//
+// A host that refuses the section leaves the caller with its own candidate, which stays correct
+// for a single-artifact program.
+#[Swag.Safety(.ValueBorrow, false)]
+func __hostProcessSingleton(key: u32, candidate: *void)->*void
+{
+    let view = __hostProcessStorage(key, 8)
     if not view do
         return candidate
-
-    let slot     = cast(*u64, view)
+    let slot = cast(*u64, view)
     let previous = Swag.atomcmpxchg(slot, 0, cast(u64, candidate))
     return previous == 0 ? candidate : cast(*void, previous)
 }
 
+#[Swag.Safety(.ValueBorrow, false)]
 private func __hostAppendHex(name: *[64] __Win32RT.WCHAR, length: *u64, value: u32)
 {
     const Digits = "0123456789abcdef"
@@ -320,11 +330,28 @@ func __hostPageCommit(address: *void?, size: u64)->bool => __Win32RT.VirtualAllo
 
 func __hostPageDecommit(address: *void?, size: u64)
 {
+    #static if #safety(Swag.SafetyWhat.ValueBorrow)
+    {
+        if address
+        {
+            let location = #curlocation
+            Swag.__valueBorrowWrite(address, size, &location)
+        }
+    }
     discard __Win32RT.VirtualFree(address, size, __Win32RT.MEM_DECOMMIT)
 }
 
-func __hostPageRelease(address: *void?, _size: u64)
+func __hostPageRelease(address: *void?, size: u64)
 {
+    #static if #safety(Swag.SafetyWhat.ValueBorrow)
+    {
+        if address
+        {
+            let location = #curlocation
+            Swag.__valueBorrowWrite(address, size, &location)
+        }
+    }
+    discard size
     discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
 }
 
@@ -497,6 +524,7 @@ func __printString(message: string?)
     discard WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), message.buffer, len, null, null)
 }
 
+#[Swag.Safety(.ValueBorrow, false)]
 func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
 {
     // In a native binary there is no compiler above us to catch the exception:
@@ -524,6 +552,7 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     cxt.exceptionParams[1] = cast(const *void?, message.buffer)
     cxt.exceptionParams[2] = cast(const *void, cast(u64, message.count))
     cxt.exceptionParams[3] = cast(const *void, cast(u64, kind))
+    Swag.__valueBorrowReset()
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
@@ -555,6 +584,7 @@ private func __hostTestResumeContext()->*void
 #[Swag.NoReturn]
 func __hostTestResume()
 {
+    Swag.__valueBorrowReset()
     __Win32RT.RtlRestoreContext(__hostTestResumeContext(), null)
 }
 

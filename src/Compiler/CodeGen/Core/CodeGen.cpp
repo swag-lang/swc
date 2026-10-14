@@ -571,7 +571,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
         // The drop test reads the function's variables; the other one walks its whole body.
-        hasDeferredStatements_ = functionHasImplicitDrops(*this, symbolFunc) || containsDeferredActions(root);
+        hasDeferredStatements_ = (symbolFunc.attributes().effectiveRuntimeSafetyMask(buildCfg().safetyGuards) & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) || functionHasImplicitDrops(*this, symbolFunc) || containsDeferredActions(root);
         variablePayloads_      = {};
         variablePayloadChunks_.clear();
         variablePayloadCount_ = 0;
@@ -1168,6 +1168,8 @@ Result CodeGen::emitLifecycleAction(const SymbolFunction& calledFunction, const 
 
 Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind, const MicroReg addressReg)
 {
+    if (hasLifecycle(typeRef, lifecycleKind))
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(*this, addressReg, typeMgr().get(typeRef).sizeOf(ctx())));
     return emitLifecycleRec(*this, typeRef, lifecycleKind, addressReg);
 }
 
@@ -1459,6 +1461,19 @@ void CodeGen::pushDeferScope(AstNodeRef scopeRef, AstNodeRef breakOwnerRef, AstN
     deferScope.entryRef      = builder().instructions().lastInstructionRef();
 }
 
+CodeGenDeferScope& CodeGen::lifetimeDeferScope()
+{
+    // Borrow guards delimit argument evaluation, not the lifetime of a local
+    // declared by that expression (for example, a named catch capture).
+    for (size_t index = deferScopes_.size(); index != 0; --index)
+    {
+        if (!deferScopes_[index - 1].borrowOnly)
+            return deferScopes_[index - 1];
+    }
+    SWC_ASSERT(!deferScopes_.empty());
+    return deferScopes_.back();
+}
+
 void CodeGen::initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar)
 {
     SWC_ASSERT(!deferScopes_.empty());
@@ -1468,7 +1483,7 @@ void CodeGen::initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar)
     // A catch capture can be in a short-circuited expression. Its enclosing scope still owns
     // cleanup, so the empty owner must exist even when that expression is never evaluated.
     MicroStorage&       instructions = builder().instructions();
-    const MicroInstrRef beforeRef    = instructions.findNextInstructionRef(deferScopes_.back().entryRef);
+    const MicroInstrRef beforeRef    = instructions.findNextInstructionRef(lifetimeDeferScope().entryRef);
     const uint32_t      sizeOf       = CodeGenFunctionHelpers::checkedTypeSizeInBytes(*this, typeMgr().get(symVar.typeRef()));
     for (uint32_t offset = 0; offset < sizeOf;)
     {
@@ -1502,11 +1517,19 @@ void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef body
     if (deferScopes_.empty())
         return;
 
-    auto& action         = deferScopes_.back().actions.emplace_back();
+    auto& action         = lifetimeDeferScope().actions.emplace_back();
     action.kind          = CodeGenDeferredAction::Kind::DeferStmt;
     action.deferStmtRef  = resolvedNodeRef(deferStmtRef);
     action.bodyRef       = resolvedNodeRef(bodyRef);
     action.modifierFlags = modifierFlags;
+}
+
+void CodeGen::registerValueBorrowEnd(uint32_t recordOffset)
+{
+    SWC_ASSERT(!deferScopes_.empty());
+    auto& action              = deferScopes_.back().actions.emplace_back();
+    action.kind               = CodeGenDeferredAction::Kind::EndValueBorrow;
+    action.borrowRecordOffset = recordOffset;
 }
 
 void CodeGen::registerErrorScopePop()
@@ -1545,7 +1568,7 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFu
     if (deferScopes_.empty())
         return;
 
-    auto& action            = deferScopes_.back().actions.emplace_back();
+    auto& action            = lifetimeDeferScope().actions.emplace_back();
     action.kind             = CodeGenDeferredAction::Kind::ImplicitDrop;
     action.variable         = &symVar;
     action.lifecycleTypeRef = symVar.typeRef();
@@ -1565,14 +1588,12 @@ void CodeGen::registerImplicitParameterDrops(std::span<const CodeGenFunctionHelp
     }
 }
 
-namespace
-{
-}
-
 Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
 {
     switch (action.kind)
     {
+        case CodeGenDeferredAction::Kind::EndValueBorrow:
+            return CodeGenSafety::emitValueBorrowEnd(*this, action.borrowRecordOffset);
         case CodeGenDeferredAction::Kind::PopErrorScope:
         {
             const IdentifierRef idRef = idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::PopErr);
@@ -1889,6 +1910,10 @@ bool CodeGen::containsDeferredActions(AstNodeRef nodeRef)
             continue;
 
         const AstNode& currentNode = ast().node(currentRef);
+        if (const auto* lowering = loweringPayload(currentRef); lowering && lowering->valueBorrowSafetyOverride == 1)
+            return true;
+        if (const auto* expansion = sema().inlinePayload(currentRef); expansion && ((expansion->runtimeSafetyMask | expansion->callerRuntimeSafetyMask) & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)))
+            return true;
         if (currentNode.id() == AstNodeId::DeferStmt || currentNode.id() == AstNodeId::ErrorManagementExpr || currentNode.id() == AstNodeId::ErrorManagementStmt)
             return true;
 
@@ -2045,6 +2070,11 @@ Result CodeGen::preNode(AstNode& node)
         return Result::SkipChildren;
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
+    if (std::ranges::any_of(valueBorrowSites, [this](const ValueBorrowSite& site) { return !site.addressHome && site.scopeRef == curNodeRef(); }))
+    {
+        pushDeferScope(curNodeRef());
+        deferScopes_.back().borrowOnly = true;
+    }
     SWC_RESULT(info.codeGenPreNode(*this, node));
 
     const AstNodeRef currentNodeRef = curNodeRef();
@@ -2163,6 +2193,9 @@ Result CodeGen::postNode(AstNode& node)
         popFrame();
     }
 
+    if (std::ranges::any_of(valueBorrowSites, [this](const ValueBorrowSite& site) { return !site.addressHome && site.scopeRef == curNodeRef(); }))
+        SWC_RESULT(popDeferScope());
+    SWC_RESULT(CodeGenSafety::emitValueBorrowSite(*this, curNodeRef()));
     SWC_RESULT(flushTemporaryDrops(curNodeRef()));
 
     return result;

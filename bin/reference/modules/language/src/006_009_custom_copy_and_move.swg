@@ -56,6 +56,38 @@ impl Vector3
 }
 
 /**
+# Explicit Copy Expressions
+
+Use '#copy value' to construct a distinct value at an expression site. In particular,
+'consume(#copy value)' lets an argument use its own storage when another argument or a
+callee can modify the original. The operand is evaluated once. The copy runs 'opPostCopy'
+and is destroyed when its temporary lifetime ends, unless its ownership is transferred.
+The original keeps its value and ownership. Types marked 'Swag.NoCopy', and owning types
+without a copy operation, cannot be copied this way.
+
+The copy has the same meaning as an ordinary value copy. Copying a pointer copies the
+address; copying a slice copies its header. Neither duplicates the pointed-to data.
+Stored pointers and copy hooks can still create aliases. The dynamic value-borrow guard
+and the static lifetime checks still apply. '#copy' is therefore a request for a copy, not an assertion that aliasing
+or lifetime checks can be skipped.
+*/
+
+#[Swag.NoInline]
+func readSnapshot(value: Vector3, original: *Vector3)->s32
+{
+    original.x = 0
+    return value.x
+}
+
+#test
+{
+    var original = Vector3{10, 20, 30}
+    let observed = readSnapshot(#copy original, &original)
+    Swag.assert(observed == 11)
+    Swag.assert(original.x == 0)
+}
+
+/**
 # Drop Elision
 
 When the source of a '#move' is a plain local that is provably never used again — no

@@ -1,4 +1,4 @@
-﻿// TRIVIA
+// TRIVIA
 
 SWC_TOKEN_DEF(Invalid, "", TokenIdKindE::Zero)
 
@@ -194,6 +194,7 @@ SWC_TOKEN_DEF(CompilerType, "#type", TokenIdKindE::Compiler | TokenIdKindE::Intr
 SWC_TOKEN_DEF(ModifierPromote, "#prom", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierWrap, "#wrap", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierNoDrop, "#nodrop", TokenIdKindE::Modifier)
+SWC_TOKEN_DEF(ModifierCopy, "#copy", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierMove, "#move", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierRelocate, "#relocate", TokenIdKindE::Modifier)
 SWC_TOKEN_DEF(ModifierFwd, "#fwd", TokenIdKindE::Modifier)

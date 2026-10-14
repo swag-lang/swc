@@ -15,6 +15,7 @@ struct ResolvedCallArgument;
 
 namespace CodeGenCallHelpers
 {
+    SymbolFunction* selectedCallFunction(CodeGen& codeGen, AstNodeRef callRef);
     Result codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction* selectedFunction = nullptr);
     bool   materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef);
     Result emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args);

@@ -25,6 +25,7 @@ struct CodeGenLoweringPayload
     uint16_t        runtimeSafetyMask                  = 0;
     AstNodeRef      fallibleWrapperOwnerRef            = AstNodeRef::invalid();
     TokenId         fallibleWrapperTokenId             = TokenId::Invalid;
+    int8_t          valueBorrowSafetyOverride          = -1; // Local override; otherwise use the function or inline body.
     bool            ifVarDeclWhereUsesConditionBinding = false;
     bool            notNullUnwrap                      = false;
     // A UFCS receiver cast to a pointer parameter: the receiver's ADDRESS becomes the

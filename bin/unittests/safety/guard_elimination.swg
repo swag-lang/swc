@@ -1,4 +1,6 @@
 #global private
+// Exercise emitted bounds guards even for indices known to the static analyzer.
+#global #[Swag.Sanity(.BoundCheck, false)]
 
 // A guard the optimizer proves can never fire is removed, and so is one that repeats a test
 // an earlier guard already made. These cases stand on both sides of each proof: the guard

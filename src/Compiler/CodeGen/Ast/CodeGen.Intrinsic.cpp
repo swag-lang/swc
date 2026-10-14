@@ -322,6 +322,12 @@ namespace
 
         uint32_t   constantCount    = 0;
         const bool hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
+        const uint64_t elementSize      = codeGen.typeMgr().get(targetInfo.fillTypeRef).sizeOf(codeGen.ctx());
+        if (hasConstantCount || node.nodeCountRef.isInvalid())
+            SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, dstAddressReg, elementSize * (hasConstantCount ? constantCount : targetInfo.implicitCount)));
+        else
+            SWC_RESULT(CodeGenSafety::emitValueBorrowWriteElements(codeGen, dstAddressReg, materializeIntrinsicLifecycleCountReg(codeGen, node.nodeCountRef), elementSize));
+
         if (args.empty())
         {
             if (hasConstantCount)
@@ -361,7 +367,9 @@ namespace
     Result emitIntrinsicLifecycleStmt(CodeGen& codeGen, AstNodeRef whatRef, AstNodeRef countRef, const CodeGen::LifecycleKind lifecycleKind)
     {
         const TypeRef targetTypeRef = intrinsicLifecycleTargetTypeRef(codeGen, codeGen.viewType(whatRef).typeRef(), countRef.isValid());
-        if (!codeGen.hasLifecycle(targetTypeRef, lifecycleKind))
+        const bool    hasLifecycle  = codeGen.hasLifecycle(targetTypeRef, lifecycleKind);
+        const bool    checksDrop    = lifecycleKind == CodeGen::LifecycleKind::Drop && CodeGenSafety::hasValueBorrowSafety(codeGen);
+        if (!hasLifecycle && !checksDrop)
             return Result::Continue;
 
         const CodeGenNodePayload* whatPayload = codeGen.safePayload(whatRef);
@@ -371,6 +379,17 @@ namespace
         const MicroReg addressReg = materializeIntrinsicLifecycleAddress(codeGen, whatRef);
         SWC_ASSERT(addressReg.isValid());
         if (!addressReg.isValid())
+            return Result::Continue;
+
+        if (checksDrop)
+        {
+            const uint64_t elementSize = codeGen.typeMgr().get(targetTypeRef).sizeOf(codeGen.ctx());
+            if (countRef.isValid())
+                SWC_RESULT(CodeGenSafety::emitValueBorrowWriteElements(codeGen, addressReg, materializeIntrinsicLifecycleCountReg(codeGen, countRef), elementSize));
+            else
+                SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, addressReg, elementSize));
+        }
+        if (!hasLifecycle)
             return Result::Continue;
 
         // Under lifecycle safety, 'Swag.drop' poisons the dropped storage: the caller is

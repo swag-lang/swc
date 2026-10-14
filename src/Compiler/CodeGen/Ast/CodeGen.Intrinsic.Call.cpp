@@ -566,6 +566,7 @@ namespace
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, ptrReg, resultTypeInfo.sizeOf(codeGen.ctx())));
 
         MicroReg valueReg = MicroReg::invalid();
         materializeIntrinsicNumericOperand(valueReg, codeGen, valuePayload, valueTypeRef, resultTypeRef);
@@ -619,6 +620,7 @@ namespace
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         const MicroReg ptrReg = materializeIntrinsicIntArgReg(codeGen, ptrPayload, MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, ptrReg, resultTypeInfo.sizeOf(codeGen.ctx())));
 
         MicroReg valueReg = MicroReg::invalid();
         materializeIntrinsicNumericOperand(valueReg, codeGen, valuePayload, valueTypeRef, resultTypeRef);
@@ -659,7 +661,25 @@ namespace
         MicroReg exchangeReg = MicroReg::invalid();
         materializeIntrinsicNumericOperand(compareReg, codeGen, comparePayload, compareTypeRef, resultTypeRef);
         materializeIntrinsicNumericOperand(exchangeReg, codeGen, exchangePayload, exchangeTypeRef, resultTypeRef);
+        MicroLabelRef done = MicroLabelRef::invalid();
+        if (CodeGenSafety::hasValueBorrowSafety(codeGen))
+        {
+            // A mismatching compare is a read. Linearize that result at the volatile load,
+            // so an unsuccessful exchange does not reject a valid immutable borrow.
+            const MicroReg      observed = codeGen.nextVirtualIntRegister();
+            const MicroLabelRef mayWrite = builder.createLabel();
+            done                         = builder.createLabel();
+            builder.emitLoadVolatileRegMem(observed, ptrReg, 0, opBits);
+            builder.emitCmpRegReg(observed, compareReg, opBits);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, mayWrite);
+            builder.emitLoadRegReg(compareReg, observed, opBits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+            builder.placeLabel(mayWrite);
+            SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, ptrReg, resultTypeInfo.sizeOf(codeGen.ctx())));
+        }
         builder.emitCompareExchangeRegMemReg(compareReg, ptrReg, 0, exchangeReg, opBits);
+        if (done.isValid())
+            builder.placeLabel(done);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = compareReg;
@@ -714,6 +734,10 @@ namespace
         const CodeGenNodePayload& dstPayload = codeGen.payload(dstRef);
         const CodeGenNodePayload& srcPayload = codeGen.payload(srcRef);
 
+        const MicroReg checkedDestination = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
+        const MicroReg checkedSize        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(sizeRef), MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, checkedDestination, checkedSize));
+
         uint32_t sizeInBytes = 0;
         if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef);
@@ -738,6 +762,10 @@ namespace
         const AstNodeRef          sizeRef      = children[2];
         const CodeGenNodePayload& dstPayload   = codeGen.payload(dstRef);
         const CodeGenNodePayload& valuePayload = codeGen.payload(valueRef);
+
+        const MicroReg checkedDestination = materializeIntrinsicIntArgReg(codeGen, dstPayload, MicroOpBits::B64);
+        const MicroReg checkedSize        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(sizeRef), MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, checkedDestination, checkedSize));
 
         uint32_t sizeInBytes = 0;
         if (!tryGetIntrinsicMemSizeConst(codeGen, sizeRef, sizeInBytes))

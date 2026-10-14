@@ -165,9 +165,6 @@ namespace
 
     bool tryEmitAddressBackedPointerLikeCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef sourceTypeRef, TypeRef dstTypeRef)
     {
-        if (!srcPayload.isAddress())
-            return false;
-
         if (!sourceTypeRef.isValid())
             return false;
 
@@ -177,6 +174,10 @@ namespace
         const TypeInfo&    sourceType        = srcStorageType ? *srcStorageType : declaredSrcType;
         const TypeRef      sourceTypeToCheck = sourceType.typeRef();
         const TypeInfo&    dstType           = typeMgr.get(dstTypeRef);
+        // Wide non-vector values also carry a backing address when classified as
+        // values (slice expressions and constant descriptors, for example).
+        if (!srcPayload.isAddress() && (sourceType.sizeOf(codeGen.ctx()) <= 8 || srcPayload.reg.isAnyFloat()))
+            return false;
         if (sourceType.isPointerOrReference() || sourceType.isTypeInfo() || sourceType.isNull())
             return false;
         if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
@@ -1469,6 +1470,16 @@ namespace
         const TypeInfo& resolvedDstType    = dstStorageType ? *dstStorageType : dstType;
         const TypeRef   resolvedSrcTypeRef = resolvedSrcType.typeRef();
         const TypeRef   resolvedDstTypeRef = resolvedDstType.typeRef();
+        // Address homes refer to the descriptor itself, including an 'any' value.
+        // Resolve them before unboxing or converting the descriptor's contents.
+        if (castPayload && castPayload->ufcsReceiverAddress && resolvedDstType.isAnyPointer())
+        {
+            if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
+                return Result::Continue;
+            if (tryEmitValueBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef, castPayload))
+                return Result::Continue;
+        }
+
         if (resolvedSrcType.isAny())
         {
             // A bool conversion inserted by a condition or an 'is' pattern tests presence.
@@ -1545,16 +1556,6 @@ namespace
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, offsetof(Runtime::String, ptr), MicroOpBits::B64);
             return Result::Continue;
-        }
-
-        // A UFCS receiver cast passes the receiver's address as the pointer value; it must
-        // never fall into the numeric int-to-pointer conversion below.
-        if (castPayload && castPayload->ufcsReceiverAddress && resolvedDstType.isAnyPointer())
-        {
-            if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
-                return Result::Continue;
-            if (tryEmitValueBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef, castPayload))
-                return Result::Continue;
         }
 
         if (srcIntLikeType && resolvedDstType.isAnyPointer())

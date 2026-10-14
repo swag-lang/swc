@@ -90,7 +90,7 @@ follows them. They annotate what carries no symbol; a declaration takes an
 attribute instead.
 
 ```swag
-#bit  #complete  #fail  #fwd  #move  #nodrop  #nofail
+#bit  #complete  #copy  #fail  #fwd  #move  #nodrop  #nofail
 #prom  #raw  #relocate  #simd  #unconst  #wrap
 ```
 

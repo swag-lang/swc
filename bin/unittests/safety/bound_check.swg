@@ -1,4 +1,6 @@
 #global private
+// These fixtures exercise runtime guards even when the bad index is statically provable.
+#global #[Swag.Sanity(.BoundCheck, false)]
 
 #[Swag.Safety(.BoundCheck, false)]
 func boundCheckDisabled()->bool
@@ -31,8 +33,7 @@ func boundCheckEnabled()->bool
     #assert(value == true)
 }
 
-// Launders a compile-time-provable index through a non-inline call so the static
-// sanitizer cannot prove it: these tests target the RUNTIME bound-check guard.
+// Exercise index expressions through a function call too.
 func opaqueIdx(v: u64)->u64
 {
     return v

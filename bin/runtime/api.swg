@@ -374,6 +374,7 @@ namespace Swag
         Expect      = 0x0400     // Check presence for the postfix '!' assertion; 'expect' always panics on error
         Lifecycle   = 0x0800     // Use of moved-from values, and poisoning of abandoned or dropped storage
         Assert      = 0x1000     // Assertions; enabled by default in devmode and by the test command, including release
+        ValueBorrow = 0x4000     // Writes or invalidation of storage borrowed by a value argument
         Assume      = 0x2000     // Invariants asserted by 'assume', including casts and fallible operations
         None        = 0x0000     // No check
         All         = 0xFFFF     // Every check

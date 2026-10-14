@@ -4,6 +4,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class SymbolVariable;
 
 enum class IndexSpecOpPayloadKind : uint8_t
 {
@@ -11,11 +12,18 @@ enum class IndexSpecOpPayloadKind : uint8_t
     Read,
     ReadSlice,
     DeferredAssign,
+    InlineValueBorrow,
 };
 
 struct IndexSpecOpPayloadBase
 {
     IndexSpecOpPayloadKind kind = IndexSpecOpPayloadKind::None;
+};
+
+struct InlineValueBorrowSemaPayload : IndexSpecOpPayloadBase
+{
+    InlineValueBorrowSemaPayload() { kind = IndexSpecOpPayloadKind::InlineValueBorrow; }
+    SymbolVariable* identity = nullptr;
 };
 
 struct SliceIndexSemaPayload

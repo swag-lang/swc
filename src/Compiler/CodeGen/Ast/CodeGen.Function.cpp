@@ -3,10 +3,12 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenParameterReg.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -189,7 +191,7 @@ namespace
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
 
-            if (symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) && hasIndirectReturnArg)
+            if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
             {
                 symVar->setOffset(0);
                 symVar->setCodeGenLocalSize(0);
@@ -233,6 +235,15 @@ namespace
             assignLocalStackSlot(*symVar, frameSize, size, alignment);
         }
 
+        const auto* decl    = codeGen.function().decl();
+        AstNodeRef  bodyRef = AstNodeRef::invalid();
+        if (const auto* fn = decl->safeCast<AstFunctionDecl>())
+            bodyRef = fn->nodeBodyRef;
+        else if (const auto* fn = decl->safeCast<AstFunctionExpr>())
+            bodyRef = fn->nodeBodyRef;
+        else if (const auto* fn = decl->safeCast<AstClosureExpr>())
+            bodyRef = fn->nodeBodyRef;
+        CodeGenSafety::configureValueBorrowSites(codeGen, bodyRef, frameSize);
         appendDebugParameterSlots(codeGen, frameSize);
         configureGvtdScratchLayout(codeGen, frameSize);
         if (hasIndirectReturnArg)
@@ -245,6 +256,16 @@ namespace
             frameSize += hiddenReturnStorageSize;
         }
 
+        if (CodeGenSafety::hasValueBorrowSafety(codeGen))
+        {
+            frameSize                      = Math::alignUpU64(frameSize, alignof(Runtime::ValueBorrowRecord));
+            codeGen.valueBorrowStackOffset = static_cast<uint32_t>(frameSize);
+            for (size_t i = 0; i < params.size(); ++i)
+            {
+                if (paramInfos[i].isIndirect && !paramInfos[i].needsIndirectCopy && CodeGenSafety::isBorrowedValueType(codeGen, params[i]->typeRef()))
+                    frameSize += sizeof(Runtime::ValueBorrowRecord);
+            }
+        }
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
         SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
@@ -467,6 +488,7 @@ namespace
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         buildFunctionParameterInfos(codeGen, paramInfos, symbolFunc, normalizedRet.isIndirect);
         buildLocalStackLayout(codeGen, callConv, normalizedRet.isIndirect, paramInfos);
+        SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
         {
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
@@ -516,7 +538,25 @@ namespace
         // once for its whole body is inserted here.
         codeGen.setBodyEntryRef(codeGen.builder().instructions().lastInstructionRef());
 
+        CodeGenSafety::initializeValueBorrowSites(codeGen);
+
         codeGen.pushDeferScope(declRef);
+        if (CodeGenSafety::hasValueBorrowSafety(codeGen))
+        {
+            uint32_t recordOffset = codeGen.valueBorrowStackOffset;
+            for (size_t i = 0; i < paramInfos.size(); ++i)
+            {
+                const auto& param = *symbolFunc.parameters()[i];
+                if (!paramInfos[i].isIndirect || paramInfos[i].needsIndirectCopy || !CodeGenSafety::isBorrowedValueType(codeGen, param.typeRef()))
+                    continue;
+                const auto* payload = codeGen.variablePayload(param);
+                SWC_ASSERT(payload && payload->isAddress());
+                SWC_RESULT(CodeGenSafety::emitValueBorrowBegin(codeGen, recordOffset, payload->reg, codeGen.typeMgr().get(param.typeRef()).sizeOf(codeGen.ctx())));
+                recordOffset += sizeof(Runtime::ValueBorrowRecord);
+            }
+        }
+        if (normalizedRet.isIndirect)
+            SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind), normalizedRet.indirectSize));
         codeGen.registerImplicitParameterDrops(paramInfos);
 
         return Result::Continue;

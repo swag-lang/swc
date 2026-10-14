@@ -129,6 +129,9 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeFailedExpect, .str = "__failedExpect"},
         {.name = PredefinedName::RuntimeFailedCast, .str = "__failedCast"},
         {.name = PredefinedName::RuntimePanic, .str = "Swag.panic"},
+        {.name = PredefinedName::RuntimeValueBorrowEnter, .str = "__valueBorrowEnter"},
+        {.name = PredefinedName::RuntimeValueBorrowLeave, .str = "__valueBorrowLeave"},
+        {.name = PredefinedName::RuntimeValueBorrowWrite, .str = "__valueBorrowWrite"},
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "Swag.safetyPanic"},
         {.name = PredefinedName::RuntimeAs, .str = "__borrowAnyValue"},
         {.name = PredefinedName::RuntimeDynamicCast, .str = "__dynamicCast"},
@@ -170,6 +173,9 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedExpect)]           = predefined(PredefinedName::RuntimeFailedExpect);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedCast)]             = predefined(PredefinedName::RuntimeFailedCast);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]                  = predefined(PredefinedName::RuntimePanic);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowEnter)]       = predefined(PredefinedName::RuntimeValueBorrowEnter);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowLeave)]       = predefined(PredefinedName::RuntimeValueBorrowLeave);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowWrite)]       = predefined(PredefinedName::RuntimeValueBorrowWrite);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]            = predefined(PredefinedName::RuntimeSafetyPanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]                     = predefined(PredefinedName::RuntimeAs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::DynamicCast)]            = predefined(PredefinedName::RuntimeDynamicCast);

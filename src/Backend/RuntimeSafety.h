@@ -20,6 +20,7 @@ namespace Runtime
         Lifecycle   = 0x0800,
         Assert      = 0x1000,
         Assume      = 0x2000,
+        ValueBorrow = 0x4000,
         None        = 0x0000,
         All         = 0xFFFF,
     };

@@ -1,13 +1,16 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenArrayTraversal.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -17,6 +20,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -24,6 +28,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -242,6 +247,237 @@ namespace
     }
 }
 
+void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyRef, uint64_t& frameSize)
+{
+    codeGen.valueBorrowSites.clear();
+    codeGen.needsValueBorrowRuntime = hasValueBorrowSafety(codeGen);
+    RefSet<AstNodeRef> visited;
+    struct PendingNode
+    {
+        AstNodeRef ref;
+        bool       bodyEnabled;
+    };
+    SmallVector<PendingNode> pending;
+    SmallVector<AstNodeRef>  children;
+    pending.push_back({bodyRef, hasValueBorrowSafety(codeGen)});
+    while (!pending.empty())
+    {
+        const PendingNode next = pending.back();
+        pending.pop_back();
+        const AstNodeRef ref = codeGen.resolvedNodeRef(next.ref);
+        if (ref.isInvalid() || !visited.insert(ref))
+            continue;
+        const AstNode& node = codeGen.node(ref);
+        if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+            continue;
+        const auto* expansion   = codeGen.sema().inlinePayload(ref);
+        const auto* lowering    = codeGen.loweringPayload(ref);
+        const bool  bodyEnabled = expansion ? (expansion->runtimeSafetyMask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0 : next.bodyEnabled;
+        const bool  enabled     = lowering && lowering->valueBorrowSafetyOverride >= 0 ? lowering->valueBorrowSafetyOverride != 0 : bodyEnabled;
+        codeGen.needsValueBorrowRuntime |= enabled;
+        const bool callerEnabled = expansion && (expansion->callerRuntimeSafetyMask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow));
+        codeGen.needsValueBorrowRuntime |= callerEnabled;
+        if (callerEnabled && expansion->inlineRootRef == ref)
+        {
+            for (const auto& binding : expansion->argMappings)
+            {
+                if (binding.valueBorrowHomeRef.isInvalid())
+                    continue;
+                frameSize = Math::alignUpU64(frameSize, alignof(Runtime::ValueBorrowRecord));
+                SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+                codeGen.valueBorrowSites.push_back({binding.valueBorrowHomeRef, ref, binding.sourceParam->typeRef(), static_cast<uint32_t>(frameSize), true});
+                frameSize += sizeof(Runtime::ValueBorrowRecord);
+            }
+        }
+        if (enabled && codeGen.sema().currentNodePayloadContext().hasResolvedCallArguments(ref))
+        {
+            const SymbolFunction* function = CodeGenCallHelpers::selectedCallFunction(codeGen, ref);
+            if (!function && node.is(AstNodeId::CallExpr))
+            {
+                const auto callee = codeGen.viewType(node.cast<AstCallExpr>().nodeExprRef);
+                if (callee.type() && callee.type()->isFunction())
+                    function = &callee.type()->payloadSymFunction();
+            }
+            if (function)
+            {
+                SmallVector<ResolvedCallArgument> args;
+                codeGen.appendResolvedCallArguments(ref, args);
+                const auto& params = function->parameters();
+                for (size_t i = 0; i < args.size() && !params.empty(); ++i)
+                {
+                    if (args[i].argRef.isInvalid() || args[i].movesValueToParam)
+                        continue;
+                    const auto* param      = params[std::min(i, params.size() - 1)];
+                    TypeRef     borrowType = param->typeRef();
+                    if (param->type(codeGen.ctx()).isVariadic())
+                    {
+                        borrowType       = codeGen.viewType(args[i].argRef).typeRef();
+                        const auto& type = codeGen.typeMgr().get(borrowType);
+                        // Untyped varargs keep large values by address, but spill small values
+                        // and copy an existing 'any' descriptor into their own pack.
+                        if (type.isAny() || type.sizeOf(codeGen.ctx()) <= 8)
+                            continue;
+                    }
+                    if (!isBorrowedValueType(codeGen, borrowType))
+                        continue;
+                    const auto abi = ABITypeNormalize::normalize(codeGen.ctx(), CallConv::get(function->callConvKind()), codeGen.typeMgr().get(borrowType), ABITypeNormalize::Usage::Argument);
+                    if (!abi.isIndirect || abi.needsIndirectCopy)
+                        continue;
+                    frameSize = Math::alignUpU64(frameSize, alignof(Runtime::ValueBorrowRecord));
+                    SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+                    codeGen.valueBorrowSites.push_back({codeGen.resolvedNodeRef(args[i].argRef), ref, borrowType, static_cast<uint32_t>(frameSize), false});
+                    frameSize += sizeof(Runtime::ValueBorrowRecord);
+                }
+            }
+        }
+        children.clear();
+        node.collectChildrenFromAst(children, codeGen.ast());
+        for (const AstNodeRef child : children)
+            pending.push_back({child, bodyEnabled});
+    }
+}
+
+void CodeGenSafety::initializeValueBorrowSites(CodeGen& codeGen)
+{
+    // Conditional argument evaluation can skip registration but still reach cleanup.
+    for (const auto& site : codeGen.valueBorrowSites)
+        codeGen.builder().emitLoadMemImm(codeGen.localStackBaseReg(), site.stackOffset + offsetof(Runtime::ValueBorrowRecord, size), ApInt(0, 64), MicroOpBits::B64);
+}
+
+Result CodeGenSafety::emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef)
+{
+    for (const auto& borrow : codeGen.valueBorrowSites)
+    {
+        if (borrow.expressionRef != homeRef)
+            continue;
+        bool inScope = false;
+        for (size_t up = 0;; ++up)
+        {
+            const AstNodeRef parent = codeGen.visit().parentNodeRef(up);
+            if (parent.isInvalid())
+                break;
+            if (parent == borrow.scopeRef)
+            {
+                inScope = true;
+                break;
+            }
+        }
+        if (!inScope)
+            continue;
+        const AstNodeRef payloadRef = borrow.addressHome ? codeGen.node(homeRef).cast<AstSingleVarDecl>().nodeInitRef : homeRef;
+        const auto*      payloadPtr = codeGen.safePayload(payloadRef);
+        if (!payloadPtr || !payloadPtr->reg.isValid() || (!borrow.addressHome && !payloadPtr->isAddress()))
+            continue;
+        const auto& payload = *payloadPtr;
+        MicroReg    address = payload.reg;
+        if (borrow.addressHome && payload.isAddress())
+        {
+            address = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(address, payload.reg, 0, MicroOpBits::B64);
+        }
+        SWC_RESULT(emitValueBorrowBegin(codeGen, borrow.stackOffset, address, codeGen.typeMgr().get(borrow.typeRef).sizeOf(codeGen.ctx())));
+    }
+    return Result::Continue;
+}
+
+bool CodeGenSafety::isBorrowedValueType(CodeGen& codeGen, TypeRef typeRef)
+{
+    const TypeInfo& type = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef));
+    return type.isStruct() || type.isAggregateStruct() || type.isString() || type.isSlice() || type.isInterface() || type.isAny() || type.isLambdaClosure();
+}
+
+bool CodeGenSafety::hasValueBorrowSafety(const CodeGen& codeGen)
+{
+    const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
+    if (lowering && lowering->valueBorrowSafetyOverride >= 0)
+        return lowering->valueBorrowSafetyOverride != 0;
+    const auto*    expansion = codeGen.frame().currentInlineContext().payload;
+    const uint16_t mask      = expansion ? expansion->runtimeSafetyMask : codeGen.function().attributes().effectiveRuntimeSafetyMask(codeGen.buildCfg().safetyGuards);
+    return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0;
+}
+
+Result CodeGenSafety::prepareValueBorrowSafety(CodeGen& codeGen)
+{
+    if (!codeGen.needsValueBorrowRuntime)
+        return Result::Continue;
+    for (const auto kind : {IdentifierManager::RuntimeFunctionKind::ValueBorrowEnter, IdentifierManager::RuntimeFunctionKind::ValueBorrowLeave, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite})
+    {
+        SymbolFunction* fn = nullptr;
+        SWC_RESULT(codeGen.sema().waitRuntimeFunction(kind, fn, codeGen.function().codeRef()));
+        codeGen.function().addCallDependency(fn);
+    }
+    return Result::Continue;
+}
+
+namespace
+{
+    Result emitValueBorrowRuntimeCall(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, SmallVector<MicroReg>& args, bool withLocation)
+    {
+        const auto* function = codeGen.compiler().runtimeFunctionSymbol(codeGen.idMgr().runtimeFunction(kind));
+        SWC_ASSERT(function);
+        if (withLocation)
+        {
+            ConstantRef location;
+            SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), location, codeGen.curNode()));
+            args.push_back(CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, location).reg);
+        }
+        auto&               instructions = codeGen.builder().instructions();
+        const MicroInstrRef previous     = instructions.lastInstructionRef();
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *function, args.span()));
+        for (MicroInstrRef ref = instructions.findNextInstructionRef(previous); ref.isValid(); ref = instructions.findNextInstructionRef(ref))
+        {
+            auto* instruction = instructions.ptr(ref);
+            if (MicroInstr::info(instruction->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                instruction->compilerSafetyCall = true;
+        }
+        return Result::Continue;
+    }
+}
+
+Result CodeGenSafety::emitValueBorrowBegin(CodeGen& codeGen, uint32_t recordOffset, MicroReg address, uint64_t size)
+{
+    if (!size)
+        return Result::Continue;
+    const MicroReg record = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), recordOffset);
+    const MicroReg count  = codeGen.nextVirtualIntRegister();
+    codeGen.builder().emitLoadRegImm(count, ApInt(size, 64), MicroOpBits::B64);
+    SmallVector<MicroReg> args;
+    args.push_back(record);
+    args.push_back(address);
+    args.push_back(count);
+    SWC_RESULT(emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowEnter, args, true));
+    codeGen.registerValueBorrowEnd(recordOffset);
+    return Result::Continue;
+}
+
+Result CodeGenSafety::emitValueBorrowEnd(CodeGen& codeGen, uint32_t recordOffset)
+{
+    // Recompute the address after a branch: the argument may never have been evaluated.
+    const MicroReg        record = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), recordOffset);
+    SmallVector<MicroReg> args;
+    args.push_back(record);
+    return emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowLeave, args, false);
+}
+
+Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, MicroReg size)
+{
+    if (!hasValueBorrowSafety(codeGen))
+        return Result::Continue;
+    SmallVector<MicroReg> args;
+    args.push_back(address);
+    args.push_back(size);
+    return emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite, args, true);
+}
+
+Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, uint64_t size)
+{
+    if (!size || !hasValueBorrowSafety(codeGen))
+        return Result::Continue;
+    const MicroReg count = codeGen.nextVirtualIntRegister();
+    codeGen.builder().emitLoadRegImm(count, ApInt(size, 64), MicroOpBits::B64);
+    return emitValueBorrowWrite(codeGen, address, count);
+}
+
 bool CodeGenSafety::hasMathRuntimeSafety(const CodeGen& codeGen)
 {
     return hasRuntimeSafety(codeGen, Runtime::SafetyWhat::Math);
@@ -264,12 +500,35 @@ bool CodeGenSafety::hasLifecycleSanity(const CodeGen& codeGen)
     return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle)) != 0;
 }
 
+Result CodeGenSafety::emitValueBorrowWriteElements(CodeGen& codeGen, MicroReg address, MicroReg count, uint64_t elementSize)
+{
+    if (!elementSize || !hasValueBorrowSafety(codeGen))
+        return Result::Continue;
+    if (elementSize == 1)
+        return emitValueBorrowWrite(codeGen, address, count);
+
+    auto&               builder  = codeGen.builder();
+    const MicroReg      bytes    = codeGen.nextVirtualIntRegister();
+    const MicroLabelRef multiply = builder.createLabel();
+    const MicroLabelRef ready    = builder.createLabel();
+    builder.emitLoadRegReg(bytes, count, MicroOpBits::B64);
+    builder.emitCmpRegImm(count, ApInt(UINT64_MAX / elementSize, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, multiply);
+    // An invalid extent must not wrap to zero and bypass the overlap check.
+    builder.emitLoadRegImm(bytes, ApInt(UINT64_MAX, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, ready);
+    builder.placeLabel(multiply);
+    builder.emitOpBinaryRegImm(bytes, ApInt(elementSize, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+    builder.placeLabel(ready);
+    return emitValueBorrowWrite(codeGen, address, bytes);
+}
+
 bool CodeGenSafety::hasLifecycleInvalidate(const CodeGen& codeGen)
 {
     // Invalidation serves both worlds: the runtime poison (Safety) and the static
     // moved-from marker (Sanity). Emit it when either one is active; the emitter
     // gates each part on its own flag.
-    return hasLifecycleRuntimeSafety(codeGen) || hasLifecycleSanity(codeGen);
+    return hasLifecycleRuntimeSafety(codeGen) || hasLifecycleSanity(codeGen) || hasValueBorrowSafety(codeGen);
 }
 
 Result CodeGenSafety::emitLifecyclePoison(CodeGen& codeGen, const MicroReg addrReg, const uint64_t sizeInBytes)
@@ -314,6 +573,8 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
 {
     const TypeInfo& type        = codeGen.typeMgr().get(typeRef);
     const uint64_t  sizeInBytes = type.sizeOf(codeGen.ctx());
+
+    SWC_RESULT(emitValueBorrowWrite(codeGen, addrReg, sizeInBytes));
 
     // The 0xDD poison is a RUNTIME mitigation: it belongs to Swag.Safety(.Lifecycle).
     if (hasLifecycleRuntimeSafety(codeGen))
@@ -711,6 +972,12 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
 // signed-overflow arm already used and the reason it was written that way.
 Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg leftReg, const MicroReg rightReg, const MicroOp op, const MicroOpBits opBits, const bool isSigned, const bool zeroOnOverflow)
 {
+    // The guard bypasses the hardware operation on MIN/-1, even without runtime safety.
+    // Keep its source-level overflow visible to sanity before pruning guarded branches.
+    const uint16_t sanityMask = codeGen.function().attributes().effectiveSanityMask(codeGen.buildCfg().sanityGuards);
+    if (isSigned && (sanityMask & static_cast<uint16_t>(Runtime::SafetyWhat::Overflow)))
+        codeGen.builder().emitSanityIntDivision(leftReg, rightReg, opBits);
+
     const auto* nodePayload   = codeGen.loweringPayload(codeGen.curNodeRef());
     const bool  guardZero     = nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Math);
     const bool  guardOverflow = isSigned;

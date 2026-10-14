@@ -539,7 +539,7 @@ Result SemaCheck::noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef
     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_move_ref_type_context, errorRef, typeRef);
 }
 
-Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds)
+Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds, bool forceCopy)
 {
     SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, srcRef, destTypeRef, modifierFlags, destReferenceBinds));
     // '#move'/'#relocate' transfer ownership: not a copy.
@@ -570,7 +570,7 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
     // happens when reading an existing storage location, directly (lvalue) or through a
     // reference (including a '#move' parameter used without '#move').
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
-    if (!srcType.isReference() && !SemaHelpers::expressionBorrowsStorage(sema, srcRef))
+    if (!forceCopy && !srcType.isReference() && !SemaHelpers::expressionBorrowsStorage(sema, srcRef))
         return Result::Continue;
 
     // The copy variant generated from a '#fwd' parameter is discarded by overload

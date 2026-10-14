@@ -96,7 +96,7 @@ func expectTransform(actual, expected: Math.Transform2)
     expectVec2(transform.transformPoint(Math.Vector2{1, 1}), Math.Vector2{6, 8})
 
     var selfMul = Math.Transform2.createScale(2, 3, 0, 0)
-    selfMul.multiply(selfMul)
+    selfMul.multiplyBorrowed(&selfMul)
     expectTransform(selfMul, Math.Transform2{4, 0, 0, 9, 0, 0})
     expectVec2(selfMul.transformPoint(Math.Vector2{1, 1}), Math.Vector2{4, 9})
 }
@@ -148,13 +148,13 @@ func expectRect(actual, expected: Math.Rectangle)
 #test
 {
     var quarter = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
-    quarter.multiply(quarter)
+    quarter.multiplyBorrowed(&quarter)
     expectTransform(quarter, Math.Transform2.createRotation(Math.ConstF32.Pi, 0, 0))
 
     var skew     = Math.Transform2{1, 0.5, 0.25, 1, 3, -2}
     var expected = skew
     expected.multiply(Math.Transform2{1, 0.5, 0.25, 1, 3, -2})
-    skew.multiply(skew)
+    skew.multiplyBorrowed(&skew)
     expectTransform(skew, expected)
 }
 

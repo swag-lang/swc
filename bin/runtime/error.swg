@@ -198,12 +198,12 @@ namespace Swag
         var frame: PanicCatchFrame
         let cxt = Swag.getContext()
         frame.valueBorrowCheckpoint = __valueBorrowCheckpoint()
-        frame.previousHook  = cxt.panic
-        frame.previousFrame = cxt.panicCatch
-        frame.errorCaptures = cxt.errorCaptures
-        frame.errorIndex    = cxt.errorIndex
-        frame.traceIndex    = cxt.traceIndex
-        frame.hasError      = cxt.hasError
+        frame.previousHook          = cxt.panic
+        frame.previousFrame         = cxt.panicCatch
+        frame.errorCaptures         = cxt.errorCaptures
+        frame.errorIndex            = cxt.errorIndex
+        frame.traceIndex            = cxt.traceIndex
+        frame.hasError              = cxt.hasError
 
         cxt.panic      = &catchPanicHook
         cxt.panicCatch = &frame
@@ -252,14 +252,14 @@ namespace Swag
 private struct PanicCatchFrame
 {
     valueBorrowCheckpoint: u64
-    resumeStorage: [HostResumeStorageSize] u8
-    caught:        CaughtPanic
-    previousHook:  (func(string?, SourceCodeLocation))?
-    previousFrame: *void?
-    errorCaptures: *ErrorCapture?
-    errorIndex:    u32
-    traceIndex:    u32
-    hasError:      u32
+    resumeStorage:         [HostResumeStorageSize] u8
+    caught:                CaughtPanic
+    previousHook:          (func(string?, SourceCodeLocation))?
+    previousFrame:         *void?
+    errorCaptures:         *ErrorCapture?
+    errorIndex:            u32
+    traceIndex:            u32
+    hasError:              u32
 }
 
 #[Swag.NoReturn]
@@ -912,7 +912,7 @@ func panic(message: string?, loc: SourceCodeLocation)
 {
     // Capture while the application caller is still immediately above this frame, and store it in
     // the process context so a hook compiled into another Swag module sees the same capture.
-    let cxt = Swag.getContext()
+    let cxt        = Swag.getContext()
     let checkpoint = cxt.panicCatch ? cast(*PanicCatchFrame, cxt.panicCatch).valueBorrowCheckpoint : 0
     __valueBorrowReset(checkpoint)
     cxt.panicStackCount = __captureStack(0, cxt.panicStack)
@@ -939,7 +939,9 @@ func panic(message: string?, loc: SourceCodeLocation)
 #[Swag.Safety(.All, false), Swag.NoReturn]
 func safetyPanic(message: string, loc: SourceCodeLocation)
 {
-    if Swag.jit()
+    // An explicit catch owns recovery in JIT execution just as it does in native code.
+    // Uncaught safety failures still use the compiler's source diagnostic.
+    if Swag.jit() and not Swag.getContext().panicCatch
     {
         __valueBorrowReset()
         __raiseException666(message, loc, .Safety)

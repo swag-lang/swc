@@ -1892,6 +1892,7 @@ impl Allocator
                     if request.size < oldSize do
                         __valueBorrowWrite(cast(*void, oldAddress + request.size), oldSize - request.size, &request.callerLoc)
                 }
+
                 .setFooterMagic(oldHeader, 0)
                 oldHeader.userSize = request.size
                 .setFooterMagic(oldHeader, MagicAlloc)
@@ -1916,6 +1917,7 @@ impl Allocator
                 if request.size < oldBlockSize do
                     __valueBorrowWrite(cast(*void, oldAddress + request.size), oldBlockSize - request.size, &request.callerLoc)
             }
+
             request.address = cast(*void, oldAddress)
             return
         }

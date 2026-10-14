@@ -1132,22 +1132,24 @@ impl Painter
         .resetClippingRect()
         .resetTexture0()
         .resetTextureFont()
-        .setState(.curState)
+        .emitState()
     }
 
     // Replaces the current drawing state and emits its renderer-visible changes.
     mtd setState(state: PaintState)
     {
         .curState = state
-        .setTransform(.curState.transform)
+        .emitState()
+    }
+
+    private mtd emitState()
+    {
+        .emitTransform()
         .setBlendingMode(.curState.blendingMode)
         .setColorMask(.curState.colorMask)
 
-        if .curState.clippingRectOn
-        {
-            .curState.clippingRectOn = false
-            .setClippingRect(.curState.clippingRect)
-        }
+        if .curState.clippingRectOn do
+            .emitClippingRect()
     }
 
     // Returns a copy of the complete current drawing state.
@@ -1230,7 +1232,7 @@ impl Painter
             return
         let tr = Transform2.createTranslation(x, y)
         .curState.transform.multiply(tr)
-        .setTransform(.curState.transform)
+        .emitTransform()
     }
 
     // Appends a rotation around the path-space origin.
@@ -1240,7 +1242,7 @@ impl Painter
             return
         let tr = Transform2.createRotation(angle.radians, 0, 0)
         .curState.transform.multiply(tr)
-        .setTransform(.curState.transform)
+        .emitTransform()
     }
 
     // Appends a rotation around the specified path-space center.
@@ -1250,7 +1252,7 @@ impl Painter
             return
         let tr = Transform2.createRotation(angle.radians, centerX, centerY)
         .curState.transform.multiply(tr)
-        .setTransform(.curState.transform)
+        .emitTransform()
     }
 
     // Appends a rotation around the current translation of the transform.
@@ -1262,7 +1264,7 @@ impl Painter
             return
         let tr = Transform2.createRotation(angle.radians, .curState.transform.tx, .curState.transform.ty)
         .curState.transform.multiply(tr)
-        .setTransform(.curState.transform)
+        .emitTransform()
     }
 
     // Appends independent horizontal and vertical scale factors.
@@ -1272,7 +1274,7 @@ impl Painter
             return
         let tr = Transform2.createScale(x, y, 0, 0)
         .curState.transform.multiply(tr)
-        .setTransform(.curState.transform)
+        .emitTransform()
     }
 
     // Appends a uniform scale factor.
@@ -1282,7 +1284,7 @@ impl Painter
             return
         let tr = Transform2.createScale(x, x, 0, 0)
         .curState.transform.multiply(tr)
-        .setTransform(.curState.transform)
+        .emitTransform()
     }
 
     // Pushes a copy of the current transform.
@@ -1301,15 +1303,20 @@ impl Painter
     mtd resetTransform()
     {
         .curState.transform.setIdentity()
-        .setTransform(.curState.transform)
+        .emitTransform()
     }
 
     // Replaces the current path-to-surface transform.
     mtd setTransform(tr: Transform2)
     {
         .curState.transform = tr
+        .emitTransform()
+    }
+
+    private mtd emitTransform()
+    {
         let cmd = .newCommand(.Transform, true)
-        cmd.transform.tr = tr
+        cmd.transform.tr = .curState.transform
     }
 
     // Returns the current path-to-surface transform.
@@ -1343,7 +1350,12 @@ impl Painter
     {
         if .curState.clippingRect == rect and .curState.clippingRectOn do
             return
-        .curState.clippingRect   = rect
+        .curState.clippingRect = rect
+        .emitClippingRect()
+    }
+
+    private mtd emitClippingRect()
+    {
         .curState.clippingRectOn = true
         let cmd = .newCommand(.SetClippingRect, true)
         cmd.clippingRect.rect = .curState.clippingRect

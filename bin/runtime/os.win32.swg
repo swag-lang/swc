@@ -298,7 +298,7 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
     let view = __hostProcessStorage(key, 8)
     if not view do
         return candidate
-    let slot = cast(*u64, view)
+    let slot     = cast(*u64, view)
     let previous = Swag.atomcmpxchg(slot, 0, cast(u64, candidate))
     return previous == 0 ? candidate : cast(*void, previous)
 }
@@ -338,6 +338,7 @@ func __hostPageDecommit(address: *void?, size: u64)
             Swag.__valueBorrowWrite(address, size, &location)
         }
     }
+
     discard __Win32RT.VirtualFree(address, size, __Win32RT.MEM_DECOMMIT)
 }
 
@@ -351,6 +352,7 @@ func __hostPageRelease(address: *void?, size: u64)
             Swag.__valueBorrowWrite(address, size, &location)
         }
     }
+
     discard size
     discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
 }

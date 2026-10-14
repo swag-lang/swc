@@ -104,7 +104,10 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         {
             CastRequest request(CastKind::Implicit);
             request.errorNodeRef = nodeExprRef;
+            request.setConstantFoldingSrc(sourceView.cstRef());
             SWC_RESULT(Cast::castAllowed(sema, request, sourceView.typeRef(), targetTypeRef));
+            if (request.constantFoldingResult().isValid())
+                sema.setConstant(sema.curNodeRef(), request.constantFoldingResult());
         }
         return Result::Continue;
     }

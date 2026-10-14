@@ -173,10 +173,10 @@ func buildMutationStressInput(repeats: u32)->String
     a.add("one")
     a.add("two")
     Swag.assert(a.capacity == a.count)
-    a.add(a[0])
+    a.addBorrowed(&a[0])
     Swag.assert(a.count == 3 and a[0] == "one" and a[1] == "two" and a[2] == "one")
-    a.insertAt(0, a[1])
+    a.insertBorrowedAt(0, &a[1])
     Swag.assert(a.count == 4 and a[0] == "two" and a[1] == "one" and a[2] == "two" and a[3] == "one")
-    a.insertAt(2, a[3])
+    a.insertBorrowedAt(2, &a[3])
     Swag.assert(a.count == 5 and a[2] == "one" and a[3] == "two" and a[4] == "one")
 }

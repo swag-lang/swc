@@ -3,5 +3,5 @@
 {
     let cfg = Swag.compiler().getBuildCfg()!
     cfg.moduleNamespace = "BorrowConsumer"
-    cfg.backendKind = .Executable
+    cfg.backendKind     = .Executable
 }

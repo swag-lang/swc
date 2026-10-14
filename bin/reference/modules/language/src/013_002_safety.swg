@@ -88,10 +88,18 @@ Use '#copy value' when the callee needs a stable snapshot while the original cha
 The copy has its own storage and follows the type's copy and drop hooks. It is shallow:
 its pointers can still alias other arguments, and a copy hook can publish an alias to
 the new storage. Those writes are checked too. 'Swag.NoCopy' still forbids an explicit copy.
+
+An API that deliberately accepts an alias uses an explicit pointer parameter. For example,
+'array.addBorrowed(&array[0])' saves the element before growing the array, and
+'transform.multiplyBorrowed(&transform)' reads every product before updating the transform.
+These [[Core.Array.addBorrowed]] and [[Core.Math.Transform2.multiplyBorrowed]] contracts
+accept the alias without introducing an extra argument copy. A 'const *T' restricts writes
+through that pointer; it does not promise that other aliases leave the pointee unchanged.
 */
 #test
 {
     struct Value { first, second, third: u64 }
+
     #[Swag.NoInline]
     func readSnapshot(value: Value, original: *Value)->u64
     {
@@ -100,7 +108,7 @@ the new storage. Those writes are checked too. 'Swag.NoCopy' still forbids an ex
     }
 
     var value: Value = {first: 17}
-    let observed = readSnapshot(#copy value, &value)
+    let observed     = readSnapshot(#copy value, &value)
     Swag.assert(observed == 17 and value.first == 0)
 }
 

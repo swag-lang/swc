@@ -405,7 +405,7 @@ impl Array
     // Appends `value` unless the array already contains an equal element.
     //
     // The containment check is a linear search. The value is copied; pass it with `#move` to move
-    // it instead.
+    // it instead. Use [[Core.Array.addOnceBorrowed]] for an element of this array.
     mtd addOnce(value: #fwd T)
     {
         if .contains(value) do
@@ -413,19 +413,26 @@ impl Array
         .add(#fwd value)
     }
 
+    // Borrows an element for the containment check and copies it only when absent.
+    mtd addOnceBorrowed(value: const *T)
+        where Reflection.canCopy(T)
+    {
+        if .contains(value[]) do
+            return
+        .addBorrowed(value)
+    }
+
     // Appends `value` to the end of the array.
     //
-    // The value is copied; pass it with `#move` to move it instead. `value` can be an element of
-    // this array.
+    // The value is copied; pass it with `#move` to move it instead. Use [[Core.Array.addBorrowed]]
+    // to borrow an element of this array.
     mtd add(value: #fwd T)
     {
         // Growing releases the storage `value` may live in, so take it out first.
         if .count == .capacity
         {
             var staged: T = #fwd value
-            .grow(.count + 1)
-            .initNewSlots(.count, 1)
-            .buffer![.count] = #relocate staged
+            .appendSlot()[] = #relocate staged
             .count += 1
             return
         }
@@ -434,6 +441,32 @@ impl Array
         let buffer = .buffer!
         buffer[.count] = #nodrop #fwd value
         .count         += 1
+    }
+
+    // Copies a borrowed value, which may be an element of this array.
+    //
+    // The source is saved before any growth invalidates it. The pointer is not retained.
+    mtd addBorrowed(value: const *T)
+        where Reflection.canCopy(T)
+    {
+        if .count == .capacity
+        {
+            var staged = value[]
+            .appendSlot()[] = #relocate staged
+            .count += 1
+            return
+        }
+
+        .initNewSlots(.count, 1)
+        .buffer![.count] = #nodrop value[]
+        .count += 1
+    }
+
+    private mtd appendSlot()->*T
+    {
+        .grow(.count + 1)
+        .initNewSlots(.count, 1)
+        return &.buffer![.count]
     }
 
     // Appends `num` uninitialized elements and returns the address of the first one.
@@ -460,8 +493,8 @@ impl Array
 
     // Inserts `value` at `index`, shifting the following elements to the right.
     //
-    // The value is copied; pass it with `#move` to move it instead. `value` can be an element of
-    // this array.
+    // The value is copied; pass it with `#move` to move it instead. Use [[Core.Array.insertBorrowedAt]]
+    // to borrow an element of this array.
     mtd insertAt(index: u64, value: #fwd T)
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
@@ -470,6 +503,24 @@ impl Array
 
         // Growing and shifting both rewrite the storage `value` may live in, so take it out first.
         var staged: T = #fwd value
+        .insertSlot(index)[] = #relocate staged
+    }
+
+    // Inserts a copy of a borrowed value, which may be an element of this array.
+    //
+    // The source is saved before growth or shifting invalidates it. The pointer is not retained.
+    mtd insertBorrowedAt(index: u64, value: const *T)
+        where Reflection.canCopy(T)
+    {
+        Debug.safetyBoundCheck(index <= .count, "index out of range")
+        if index == .count do
+            return .addBorrowed(value)
+        var staged = value[]
+        .insertSlot(index)[] = #relocate staged
+    }
+
+    private mtd insertSlot(index: u64)->*T
+    {
         .grow(.count + 1)
         .count += 1
         .initNewSlots(.count - 1, 1)
@@ -485,7 +536,7 @@ impl Array
             Memory.copyOverlapping(buffer + index + 1, buffer + index, #sizeof(T) * (.count - 1 - index))
         }
 
-        buffer[index] = #relocate staged
+        return &buffer[index]
     }
 
     // Inserts copies of the elements of `values` at `index`, shifting the following elements to the right.

@@ -436,6 +436,7 @@ impl HashTable
     //
     // The key is always copied; the value is copied unless passed with `#move`. When `key` is
     // already present, its value is replaced only if `updateValue` is true.
+    // Use [[Core.HashTable.addBorrowed]] when either input is borrowed from this table.
     #[Discardable]
     mtd add(key: K, value: #fwd V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
@@ -493,6 +494,32 @@ impl HashTable
         table[index].hash = hashVal
         .count += 1
         return table + index
+    }
+
+    // Maps a borrowed key to a copy of a borrowed value and returns the entry.
+    //
+    // Both inputs may point into this table. They are saved before growth invalidates them;
+    // neither pointer is retained. Updating an entry from its own value leaves it unchanged.
+    #[Discardable]
+    mtd addBorrowed(key: const *K, value: const *V, updateValue = true)->*HashTableEntry
+        where Reflection.canCopy(K) and Reflection.canCopy(V)
+    {
+        if .growsOnInsert()
+        {
+            let stagedKey   = key[]
+            var stagedValue = value[]
+            .grow()
+            #static if Reflection.isStruct(V) do
+                return .add(stagedKey, #move stagedValue, updateValue)
+            else do
+                return .add(stagedKey, stagedValue, updateValue)
+        }
+
+        // Avoid assigning an owning value to the very storage it was borrowed from.
+        let existing = .tryFind(key[])
+        if existing and &existing.value == value do
+            return existing
+        return .add(key[], value[], updateValue)
     }
 
     // Relocates `key` and `value` into the table under a precomputed hash.
@@ -668,7 +695,8 @@ impl HashTable
     // Returns the entry for `key`, adding one with a default-initialized value when the key is absent.
     //
     // The key is hashed and probed once, whether it is found or inserted, instead of
-    // paying a full lookup and then a full insert on every miss.
+    // paying a full lookup and then a full insert on every miss. Use [[Core.HashTable.findOrAddBorrowed]]
+    // when the key is borrowed from this table.
     mtd findOrAdd(key: K)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
@@ -711,6 +739,22 @@ impl HashTable
         table[index].hash = hashVal
         .count += 1
         return table + index
+    }
+
+    // Finds or inserts a borrowed key, which may point into this table.
+    //
+    // The key is saved before growth invalidates it. The pointer is not retained.
+    mtd findOrAddBorrowed(key: const *K)->*HashTableEntry
+        where Reflection.canCopy(K)
+    {
+        if .growsOnInsert()
+        {
+            let stagedKey = key[]
+            .grow()
+            return .findOrAdd(stagedKey)
+        }
+
+        return .findOrAdd(key[])
     }
 
     // Drops every entry and leaves the table empty, keeping its slots for reuse.

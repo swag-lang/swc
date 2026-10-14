@@ -7,7 +7,7 @@ func observe(value: Value, original: const *Value)->bool => &value == original a
 #test
 {
     var value: Value = {first: 281}
-    let observed = observe(value, &value)
+    let observed     = observe(value, &value)
     Swag.assert(observed)
 }
 
@@ -23,6 +23,6 @@ func defaultCaller(target: *Value)->u64 => enabledInline(target)
 #test
 {
     var value: Value = {first: 317}
-    let panic = Swag.catchPanic(func|&value|() { discard defaultCaller(&value) })
+    let panic        = Swag.catchPanic(func|&value|() { discard defaultCaller(&value) })
     Swag.assert(panic.raised and value.first == 317)
 }

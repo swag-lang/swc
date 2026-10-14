@@ -199,8 +199,14 @@ impl Transform2
     // Composes `other` after this transform, in place.
     //
     // The result applies this transform first and `other` second: it maps a point `p` to
-    // `other.transformPoint(transformPoint(p))`. `other` may be this transform itself.
-    mtd multiply(other: Transform2)
+    // `other.transformPoint(transformPoint(p))`. Use `multiplyBorrowed(&transform)` to compose a
+    // transform with itself.
+    mtd multiply(other: Transform2)->void => .multiplyBorrowed(&other)
+
+    // Composes a borrowed transform after this transform, in place.
+    //
+    // `other` may point to this transform. The pointer is not retained.
+    mtd multiplyBorrowed(other: const *Transform2)
     {
         // `other` is read through its address and can alias `me`: every product is computed
         // before the first field is written.

@@ -13,8 +13,11 @@ private struct ValueBorrowRecord
 
 private struct ValueBorrowRegistry
 {
-    lock: u64
-    head: *ValueBorrowRecord?
+    lock:  u64
+    head:  *ValueBorrowRecord?
+    wide:  u64
+    epoch: u64
+    cells: [4096] u64
 }
 
 private var g_ValueBorrowRegistryAddress: u64
@@ -25,6 +28,7 @@ private func valueBorrowRegistry()->*ValueBorrowRegistry
     let known = Swag.atomget(&g_ValueBorrowRegistryAddress)
     if known != 0 do
         return cast(*ValueBorrowRegistry, known)
+
     // Mapped storage survives a JIT compiler instance and a native artifact unloading.
     let shared = __hostProcessStorage(2, #sizeof(ValueBorrowRegistry))
     if not shared do
@@ -36,13 +40,64 @@ private func valueBorrowRegistry()->*ValueBorrowRegistry
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
 private func valueBorrowLock(registry: *ValueBorrowRegistry)
 {
-    while Swag.atomcmpxchg(&registry.lock, 0, 1) != 0 {}
+    for
+    {
+        if Swag.atomcmpxchg(&registry.lock, 0, 1) == 0 do
+            return
+        // Poll with ordinary atomic loads while another thread owns the cache line.
+        while Swag.atomget(&registry.lock) != 0 {}
+    }
 }
 
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
 private func valueBorrowUnlock(registry: *ValueBorrowRegistry)
 {
     discard Swag.atomxchg(&registry.lock, 0)
+}
+
+// A counting filter lets unrelated writes avoid the shared list lock. Hash collisions
+// only request the exact overlap check. Large or wrapping ranges always take that check.
+#[Swag.Safety(.All, false), Swag.Sanity(.All, false)]
+private func valueBorrowCell(block: u64)->u64 => (block ^ (block >> 12) ^ (block >> 24)) & 4095
+
+#[Swag.Safety(.All, false), Swag.Sanity(.All, false)]
+private func valueBorrowFilterChange(registry: *ValueBorrowRegistry, address: *void, size, delta: u64)
+{
+    if size == 0 do
+        return
+    discard Swag.atomadd(&registry.epoch, 1)
+    let start = cast(u64, address)
+    if size - 1 > ~start or ((start + size - 1) >> 6) - (start >> 6) >= 8
+    {
+        discard Swag.atomadd(&registry.wide, delta)
+        discard Swag.atomadd(&registry.epoch, 1)
+        return
+    }
+
+    let last = (start + size - 1) >> 6
+    for var block = start >> 6; block <= last; block += 1 do
+        discard Swag.atomadd(&registry.cells[valueBorrowCell(block)], delta)
+    discard Swag.atomadd(&registry.epoch, 1)
+}
+
+#[Swag.Safety(.All, false), Swag.Sanity(.All, false)]
+private func valueBorrowFilterMiss(registry: *ValueBorrowRegistry, start, size: u64)->bool
+{
+    // A stable even epoch makes the lock-free reads one consistent filter snapshot.
+    let epoch = Swag.atomget(&registry.epoch)
+    if epoch & 1 != 0 or Swag.atomget(&registry.wide) != 0 or size - 1 > ~start do
+        return false
+    let first = start >> 6
+    let last  = (start + size - 1) >> 6
+    if last - first >= 8 do
+        return false
+    for var block = first; block <= last; block += 1
+    {
+        if Swag.atomget(&registry.cells[valueBorrowCell(block)]) != 0 do
+            return false
+    }
+
+    return epoch == Swag.atomget(&registry.epoch)
 }
 
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
@@ -54,6 +109,7 @@ private func valueBorrowRemove(registry: *ValueBorrowRegistry, record: *ValueBor
         registry.head = record.next
     if record.next do
         record.next.previous = record.previous
+    valueBorrowFilterChange(registry, record.address, record.size, ~0'u64)
     record.size = 0
 }
 
@@ -68,6 +124,7 @@ func __valueBorrowEnter(storage: *void, address: *void, size: u64, location: con
     record.location = location
     let registry = valueBorrowRegistry()
     valueBorrowLock(registry)
+    valueBorrowFilterChange(registry, address, size, 1)
     record.previous = null
     record.next     = registry.head
     if registry.head do
@@ -82,6 +139,7 @@ func __valueBorrowLeave(storage: *void)
     let registry = valueBorrowRegistry()
     valueBorrowLock(registry)
     let record = cast(*ValueBorrowRecord, storage)
+
     // A resume boundary can return normally after panic cleanup removed its record.
     if record.size != 0 do
         valueBorrowRemove(registry, record)
@@ -116,6 +174,8 @@ func __valueBorrowWrite(address: *void, size: u64, location: const *SourceCodeLo
         return
     let start    = cast(u64, address)
     let registry = valueBorrowRegistry()
+    if valueBorrowFilterMiss(registry, start, size) do
+        return
     valueBorrowLock(registry)
     var current  = registry.head
     var conflict = false
@@ -145,7 +205,7 @@ func __valueBorrowWrite(address: *void, size: u64, location: const *SourceCodeLo
 func __valueBorrowCheckpoint()->u64
 {
     let registry = valueBorrowRegistry()
-    let thread = __hostCurrentThreadId()
+    let thread   = __hostCurrentThreadId()
     valueBorrowLock(registry)
     var current = registry.head
     var checkpoint: u64
@@ -156,8 +216,10 @@ func __valueBorrowCheckpoint()->u64
             checkpoint = cast(u64, current)
             break
         }
+
         current = current.next
     }
+
     valueBorrowUnlock(registry)
     return checkpoint
 }

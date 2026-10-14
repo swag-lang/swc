@@ -159,8 +159,8 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
     s.add("one")
     s.add("two")
     s.add("three")
-    s.insertAt(0, s[2])
+    s.insertBorrowedAt(0, &s[2])
     Swag.assert(s.count == 4 and s[0] == "three" and s[1] == "one" and s[2] == "two" and s[3] == "three")
-    s.insertAt(1, s[3])
+    s.insertBorrowedAt(1, &s[3])
     Swag.assert(s.count == 5 and s[1] == "three" and s[2] == "one" and s[4] == "three")
 }

@@ -57,8 +57,8 @@ func write(value: Value, target: *Value)->u64
 #test
 {
     var value: Value = {first: 191}
-    let encoded = cast(u64, cast(*void, &write))
-    let callback = cast(Writer, cast(*void, encoded))
+    let encoded      = cast(u64, cast(*void, &write))
+    let callback     = cast(Writer, cast(*void, encoded))
     mustReject(func|callback, &value|() { discard callback(value, &value) })
     Swag.assert(value.first == 191)
     let observed = callback(#copy value, &value)
@@ -111,8 +111,8 @@ func replaceSlice(value: [..] u64, target: *[..] u64, replacement: [..] u64)->u6
     let length = replaceString(#copy text, &text)
     Swag.assert(length == 8 and text == "replacement")
 
-    var first = [1'u64, 2]
-    var second = [3'u64, 4, 5]
+    var first          = [1'u64, 2]
+    var second         = [3'u64, 4, 5]
     var view: [..] u64 = first
     mustReject(func|&view, &second|() { discard replaceSlice(view, &view, second) })
     Swag.assert(view.count == 2)
@@ -135,7 +135,7 @@ func readLater(value: Value, later: u64)->u64 => value.first + later
 func readFailingLater(value: Value)->u64 fail => readLater(value, try failLater())
 #test
 {
-    var value: Value = {first: 197}
+    var value:    Value = {first: 197}
     var observed: u64
     catch failWhileBorrowing(value, &observed)
     Swag.assert(observed == 197)
@@ -173,9 +173,9 @@ func writeByte(value: Value, target: [*] u8, offset: u64, count: u64)->u64
     let bytes = cast([*] u8, &values)
     let width = #sizeof(Value)
     // Empty and adjacent ranges are valid; crossing either boundary by one byte is not.
-    let empty = writeByte(values[1], bytes, width, 0)
+    let empty  = writeByte(values[1], bytes, width, 0)
     let before = writeByte(values[1], bytes, width - 1, 1)
-    let after = writeByte(values[1], bytes, width * 2, 1)
+    let after  = writeByte(values[1], bytes, width * 2, 1)
     Swag.assert(empty == 227 and before == 227 and after == 227)
     mustReject(func|&values, bytes, width|() { discard writeByte(values[1], bytes, width - 1, 2) })
     mustReject(func|&values, bytes, width|() { discard writeByte(values[1], bytes, width * 2 - 1, 2) })
@@ -200,7 +200,7 @@ func inlineEarlierArgument(value: Value, other: u64)->u64 => value.first + other
 #test
 {
     var value: Value = {first: 229}
-    let ordinary = sumEarlierArgument(value, probeEarlierArgument(&value, true))
+    let ordinary     = sumEarlierArgument(value, probeEarlierArgument(&value, true))
     Swag.assert(ordinary == 230 and value.first == 229)
     let copied = sumEarlierArgument(#copy value, probeEarlierArgument(&value, false))
     Swag.assert(copied == 230 and value.first == 0)
@@ -208,7 +208,7 @@ func inlineEarlierArgument(value: Value, other: u64)->u64 => value.first + other
 #test
 {
     var value: Value = {first: 233}
-    let inlined = inlineEarlierArgument(value, probeEarlierArgument(&value, true))
+    let inlined      = inlineEarlierArgument(value, probeEarlierArgument(&value, true))
     Swag.assert(inlined == 234 and value.first == 233)
     let copied = inlineEarlierArgument(#copy value, probeEarlierArgument(&value, false))
     Swag.assert(copied == 234 and value.first == 0)
@@ -278,7 +278,7 @@ func readAcrossTask(value: Value, target: *Value)->u64
 #test
 {
     var value: Value = {first: 307}
-    let observed = readAcrossTask(value, &value)
+    let observed     = readAcrossTask(value, &value)
     Swag.assert(observed == 307 and value.first == 307)
     value.first = 311
     Swag.assert(value.first == 311)

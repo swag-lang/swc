@@ -68,8 +68,8 @@ without a copy operation, cannot be copied this way.
 The copy has the same meaning as an ordinary value copy. Copying a pointer copies the
 address; copying a slice copies its header. Neither duplicates the pointed-to data.
 Stored pointers and copy hooks can still create aliases. The dynamic value-borrow guard
-and the static lifetime checks still apply. '#copy' is therefore a request for a copy, not an assertion that aliasing
-or lifetime checks can be skipped.
+and the static lifetime checks still apply. '#copy' requests a copy; it does not bypass
+aliasing or lifetime checks.
 */
 
 #[Swag.NoInline]

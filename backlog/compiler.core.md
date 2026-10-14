@@ -539,3 +539,16 @@ a reproduction and a next investigation step. Optimization passes and generated-
 are [compiler.optimization.md](compiler.optimization.md); the borrow, lifetime and sanity analyses
 are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands have their own files,
 [compiler.command.doc.md](compiler.command.doc.md) and [compiler.command.format.md](compiler.command.format.md).
+
+### compiler.core.084 ? Stop native test recovery from reusing state abandoned by a panic
+
+- Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex
+  skips the deferred unlock. The native test runner catches the panic and starts the next GUI
+  test in the same process; that test waits on the abandoned mutex until the module timeout.
+  The original failing test is reported, but subsequent tests cannot make progress.
+- Next: define the recovery boundary for an uncaught test panic. Stop the affected process or
+  isolate tests whose execution can abandon shared state; do not assume a caught panic ran
+  deferred cleanup. Keep explicit `Swag.catchPanic` tests supported.
+- Done when: a regression with a panic under a deferred mutex unlock reports the original
+  failure promptly without hanging the next test, and the campaign can continue with other
+  modules.

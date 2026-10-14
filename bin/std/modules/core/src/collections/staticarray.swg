@@ -259,7 +259,7 @@ impl StaticArray
     // Inserts `value` at `index`, shifting the following elements to the right.
     //
     // Asserts if the array is full. The value is copied; pass it with `#move` to move it instead.
-    // `value` can be an element of this array.
+    // Use [[Core.StaticArray.insertBorrowedAt]] for an element of this array.
     mtd insertAt(index: u64, value: #fwd T)
     {
         Swag.assert(index <= .count, "index out of range")
@@ -269,6 +269,26 @@ impl StaticArray
 
         // Shifting rewrites the storage `value` may live in, so take it out first.
         var staged: T = #fwd value
+        .insertSlot(index)[] = #relocate staged
+    }
+
+    // Inserts a copy of a borrowed value, which may be an element of this array.
+    //
+    // The source is saved before shifting invalidates it. The pointer is not retained.
+    // Asserts if the index exceeds the count or the array is full.
+    mtd insertBorrowedAt(index: u64, value: const *T)
+        where Reflection.canCopy(T)
+    {
+        Swag.assert(index <= .count, "index out of range")
+        Swag.assert(.count != N, "the array is full")
+        if index == .count do
+            return .add(value[])
+        var staged = value[]
+        .insertSlot(index)[] = #relocate staged
+    }
+
+    private mtd insertSlot(index: u64)->*T
+    {
         .count += 1
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
@@ -283,7 +303,7 @@ impl StaticArray
                                    #sizeof(T) * (.count - 1 - index))
         }
 
-        .buffer[index] = #relocate staged
+        return &.buffer[index]
     }
 
     // Inserts copies of the elements of `values` at `index`, shifting the following elements to the right.

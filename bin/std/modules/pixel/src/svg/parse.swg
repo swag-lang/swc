@@ -1692,7 +1692,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
 // Elements /////////////////////////////////////////////////////////////////////
 
-private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState)
+private func emitShape(drawing: *Drawing, list: #move LinePathList, state: *GroupState)
 {
     if list.paths.isEmpty() do
         return
@@ -1766,7 +1766,7 @@ private func emitShape(drawing: *Drawing, list: LinePathList, state: *GroupState
     emitShapeOne(drawing, #move list, state)
 }
 
-private func emitShapeOne(drawing: *Drawing, list: LinePathList, state: *GroupState)
+private func emitShapeOne(drawing: *Drawing, list: #move LinePathList, state: *GroupState)
 {
     let shapeIndex = drawing.shapes.count
     let shape      = drawing.shapes.emplaceInitAddress()
@@ -1841,7 +1841,7 @@ private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx, ry:
         appendRectContour(path, state, x, y, w, h, crx, cry)
     }
 
-    emitShape(drawing, list, state)
+    emitShape(drawing, #move list, state)
 }
 
 private func emitEllipse(drawing: *Drawing, state: *GroupState, cx, cy, rx, ry: f32)
@@ -1852,7 +1852,7 @@ private func emitEllipse(drawing: *Drawing, state: *GroupState, cx, cy, rx, ry: 
     var list: LinePathList
     let path = list.newPath()
     appendEllipse(path, state, cx, cy, rx, ry)
-    emitShape(drawing, list, state)
+    emitShape(drawing, #move list, state)
 }
 
 private func emitPoly(drawing: *Drawing, state: *GroupState, points: string, closeIt: bool)
@@ -1884,7 +1884,7 @@ private func emitPoly(drawing: *Drawing, state: *GroupState, points: string, clo
         return
     if closeIt do
         path.close()
-    emitShape(drawing, list, state)
+    emitShape(drawing, #move list, state)
 }
 
 private impl Parser
@@ -2688,7 +2688,7 @@ private impl Parser
                     var list:     LinePathList
                     var vertices: Array'MarkerVertex
                     parsePathData(&list, d.value.toString(), &state, state.hasMarkers() ? &vertices : null)
-                    emitShape(.drawing, list, &state)
+                    emitShape(.drawing, #move list, &state)
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
@@ -2742,7 +2742,7 @@ private impl Parser
                 path.lineTo(target.x, target.y)
                 var strokeOnly = state
                 strokeOnly.hasFill = false
-                emitShape(.drawing, list, &strokeOnly)
+                emitShape(.drawing, #move list, &strokeOnly)
 
                 if state.hasMarkers()
                 {

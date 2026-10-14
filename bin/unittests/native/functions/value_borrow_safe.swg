@@ -479,9 +479,9 @@ func readAndClearPointerSlot(value: Value, slot: *PointerSlot)->u64
 
 #test
 {
-    var value: Value = {a: 83}
-    var slot: PointerSlot = {target: &value}
-    let result = readAndClearPointerSlot(value, &slot)
+    var value: Value       = {a: 83}
+    var slot:  PointerSlot = {target: &value}
+    let result             = readAndClearPointerSlot(value, &slot)
     Swag.assert(result == 83)
     Swag.assert(slot.target == null)
 }
@@ -495,7 +495,7 @@ func relayPlainValue()->Value => makePlainValue()
 #test
 {
     var other: u64
-    let direct = writeOther(makePlainValue(), &other)
+    let direct  = writeOther(makePlainValue(), &other)
     let relayed = writeOther(relayPlainValue(), &other)
     Swag.assert(direct == 89 and relayed == 89 and other == 12)
 }
@@ -515,7 +515,7 @@ alias CValueCallback = func(value: Value, target: *Value)->u64
 #test
 {
     let callback: CValueCallback = &cValue
-    var value: Value = {a: 131}
+    var value:    Value = {a: 131}
     let result = callback(value, &value)
     Swag.assert(result == 131 and value.a == 13)
 }
@@ -549,24 +549,24 @@ func readAndClearOffsetPointerSlot(value: Value, slot: [*] PointerSlot)->u64
 
 #test
 {
-    var value: Value = {a: 137}
-    var slot: PointerSlot = {target: &value}
-    let result = readAndClearIndexedPointerSlot(value, cast([*] PointerSlot, &slot))
+    var value: Value       = {a: 137}
+    var slot:  PointerSlot = {target: &value}
+    let result             = readAndClearIndexedPointerSlot(value, cast([*] PointerSlot, &slot))
     Swag.assert(result == 137 and slot.target == null)
 }
 
 #test
 {
-    var value: Value = {a: 139}
-    var slot: PointerSlot = {target: &value}
-    let result = readAndClearOffsetPointerSlot(value, cast([*] PointerSlot, &slot))
+    var value: Value       = {a: 139}
+    var slot:  PointerSlot = {target: &value}
+    let result             = readAndClearOffsetPointerSlot(value, cast([*] PointerSlot, &slot))
     Swag.assert(result == 139 and slot.target == null)
 }
 
 struct DepthValue
 {
     value, padding: u64
-    target: *u64?
+    target:         *u64?
 }
 impl DepthValue
 {
@@ -575,7 +575,7 @@ impl DepthValue
 struct DepthEntry
 {
     target: *u64?
-    stamp: u64
+    stamp:  u64
 }
 struct DepthTable { entry: *DepthEntry }
 
@@ -584,7 +584,7 @@ func storeAndClearDeepAlias(table: *DepthTable, value: DepthValue)->u64
 {
     let entry = table.entry
     entry.target = value.target
-    entry.stamp = 157
+    entry.stamp  = 157
     entry.target = null
     return value.value
 }

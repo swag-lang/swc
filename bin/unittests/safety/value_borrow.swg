@@ -67,7 +67,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.Inline]
     func inlineConflict(value: BorrowedValue, destination: *BorrowedValue)->u64
     {
-        destination.first = 73 // swc-expected-error {{safety_err_runtime}}
+        destination.first = 73     // swc-expected-error {{safety_err_runtime}}
         return value.first
     }
 
@@ -87,7 +87,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.NoInline]
     func mutate(parent: *Parent, item: BorrowedValue)->u64
     {
-        parent.item.first = 0 // swc-expected-error {{safety_err_runtime}}
+        parent.item.first = 0     // swc-expected-error {{safety_err_runtime}}
         return item.first
     }
     func conflict()->u64
@@ -103,7 +103,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.NoInline]
     func write(target: *BorrowedValue)->u64
     {
-        target.first = 0 // swc-expected-error {{safety_err_runtime}}
+        target.first = 0     // swc-expected-error {{safety_err_runtime}}
         return 1
     }
     #[Swag.NoInline]
@@ -121,7 +121,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.NoInline]
     func mutate(value: BorrowedValue, target: *BorrowedValue)->u64
     {
-        Swag.init(target) // swc-expected-error {{safety_err_runtime}}
+        Swag.init(target)     // swc-expected-error {{safety_err_runtime}}
         return value.first
     }
     func conflict()->u64
@@ -137,7 +137,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.NoInline]
     func mutate(value: BorrowedValue, target: *BorrowedValue)->u64
     {
-        Swag.memset(target, 0, #sizeof(BorrowedValue)) // swc-expected-error {{safety_err_runtime}}
+        Swag.memset(target, 0, #sizeof(BorrowedValue))     // swc-expected-error {{safety_err_runtime}}
         return value.first
     }
     func conflict()->u64
@@ -153,7 +153,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.NoInline]
     func mutate(value: BorrowedValue, target: *BorrowedValue)->u64
     {
-        discard Swag.atomxchg(&target.first, 0) // swc-expected-error {{safety_err_runtime}}
+        discard Swag.atomxchg(&target.first, 0)     // swc-expected-error {{safety_err_runtime}}
         return value.first
     }
     func conflict()->u64
@@ -169,7 +169,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.NoInline]
     func mutate(value: BorrowedValue, bits: u64)->u64
     {
-        cast(*u64, bits)[] = 0 // swc-expected-error {{safety_err_runtime}}
+        cast(*u64, bits)[] = 0     // swc-expected-error {{safety_err_runtime}}
         return value.first
     }
     func conflict()->u64

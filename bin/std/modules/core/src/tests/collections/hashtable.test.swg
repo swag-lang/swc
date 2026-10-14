@@ -246,7 +246,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     for i in 200
     {
         let key = Format.toString("k%", i)
-        discard h.add(key, h.find("seed").value)
+        discard h.addBorrowed(&key, &h.find("seed").value)
     }
 
     Swag.assert(h.count == 201)
@@ -258,7 +258,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     for i in 100
     {
         discard keys.findOrAdd(Format.toString("%", i))
-        discard keys.findOrAdd(keys.find("first key that is long enough to allocate").key)
+        discard keys.findOrAddBorrowed(&keys.find("first key that is long enough to allocate").key)
     }
 
     Swag.assert(keys.count == 101 and keys.getOrDefault("first key that is long enough to allocate", 0) == 1)

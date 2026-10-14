@@ -50,7 +50,7 @@ func readValue(value: Value, original: const *Value)->u64
     scope()
     {
         var value: Value = {first: 47}
-        let observed = readValue(value: value, original: &value)
+        let observed     = readValue(value: value, original: &value)
         Swag.assert(observed == 47)
     }
     Swag.assert(value.first == 43)

@@ -70,6 +70,7 @@ impl ScratchAllocator
                 let location = #curlocation
                 __valueBorrowWrite(.block, .used, &location)
             }
+
             var leak = cast(*LeakHeader?, .firstLeak)
             while leak
             {

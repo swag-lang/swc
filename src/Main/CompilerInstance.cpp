@@ -269,27 +269,52 @@ namespace
         request->address       = alignment > sizeof(void*) ? mi_malloc_aligned(request->size, alignment) : mi_malloc(request->size);
     }
 
-    void runtimeAllocatorRealloc(const CompilerInstance*, Runtime::AllocatorRequest* request)
+    void checkRuntimeAllocatorBorrow(const CompilerInstance& compiler, const void* address, size_t size, const Runtime::SourceCodeLocation& location)
+    {
+        if (!address || !size)
+            return;
+        const auto  id       = compiler.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
+        const auto* function = compiler.runtimeFunctionSymbol(id);
+        if (!function || !function->jitEntryAddress())
+            return;
+        // The host allocator is outside generated code. Re-enter its compiled guard before
+        // invalidating storage, so JIT execution uses the same registry and panic catch.
+        using Guard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*);
+        reinterpret_cast<Guard>(function->jitEntryAddress())(address, size, &location);
+    }
+
+    void runtimeAllocatorRealloc(const CompilerInstance* compiler, Runtime::AllocatorRequest* request)
     {
         if (!request)
             return;
 
+        const size_t previousSize = mi_usable_size(request->address);
         if (request->size == 0)
         {
+            checkRuntimeAllocatorBorrow(*compiler, request->address, previousSize, request->callerLoc);
             mi_free(request->address);
             request->address = nullptr;
             return;
         }
 
         const size_t alignment = request->alignment ? request->alignment : sizeof(void*);
-        request->address       = alignment > sizeof(void*) ? mi_realloc_aligned(request->address, request->size, alignment) : mi_realloc(request->address, request->size);
+        if (request->address)
+        {
+            if (request->size < previousSize)
+                checkRuntimeAllocatorBorrow(*compiler, static_cast<const std::byte*>(request->address) + request->size, previousSize - request->size, request->callerLoc);
+            if (reinterpret_cast<uintptr_t>(request->address) % alignment == 0 && (request->size == previousSize || mi_expand(request->address, request->size)))
+                return;
+            checkRuntimeAllocatorBorrow(*compiler, request->address, previousSize, request->callerLoc);
+        }
+        request->address = alignment > sizeof(void*) ? mi_realloc_aligned(request->address, request->size, alignment) : mi_realloc(request->address, request->size);
     }
 
-    void runtimeAllocatorFree(const CompilerInstance*, Runtime::AllocatorRequest* request)
+    void runtimeAllocatorFree(const CompilerInstance* compiler, Runtime::AllocatorRequest* request)
     {
         if (!request)
             return;
 
+        checkRuntimeAllocatorBorrow(*compiler, request->address, mi_usable_size(request->address), request->callerLoc);
         mi_free(request->address);
         request->address = nullptr;
     }
@@ -303,7 +328,6 @@ namespace
     {
         // Not supported by the mimalloc-backed host allocator.
     }
-
 }
 
 CompilerInstance::SourceViewBuffer::SourceViewBuffer(const std::string_view source)

@@ -38,7 +38,7 @@ func localRead(value: Value, target: *Value)->u64
 {
     var value: Value = {first: 271}
     var other: Value = {first: 277}
-    let observed = readAfterCallback(value, &localWrite, &other)
+    let observed     = readAfterCallback(value, &localWrite, &other)
     Swag.assert(observed == 271 and value.first == 271 and other.first == 0)
     BorrowLibrary.write(&value)
     Swag.assert(read(value) == 0)

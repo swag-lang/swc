@@ -46,7 +46,6 @@ struct CodeGenTemporaryDrop
     AstNodeRef            flushRootRef = AstNodeRef::invalid();
     const SymbolVariable* storageSym   = nullptr;
     TypeRef               typeRef      = TypeRef::invalid();
-    bool                  ownsValue    = false;
 };
 
 enum class CodeGenLifecycleKind : uint8_t

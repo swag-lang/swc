@@ -762,6 +762,7 @@ namespace
             SWC_RESULT(emitInlineResultStore(codeGen, inlinePayload, exprRef, moveOutVar));
         }
 
+        SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         codeGen.setReturnMoveOutVar(moveOutVar);
         const Result deferredResult = codeGen.emitDeferredActionsUntilScopeRef(inlinePayload.inlineRootRef);
@@ -1033,6 +1034,7 @@ namespace
         if (normalizedRet.isVoid)
         {
             // Void returns only need control transfer; ABI return registers are irrelevant.
+            SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
             const ScopedDebugNoStep noStep(builder, true);
             CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
@@ -1065,6 +1067,13 @@ namespace
                 copyLifecycleKind.reset();
         }
 
+        if (movesOwnedTemporary)
+        {
+            const SymbolVariable* sourceStorage = codeGen.runtimeStorageSymbol(exprRef);
+            if (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage))
+                codeGen.cancelTemporaryDrop(*sourceStorage);
+        }
+
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         if (normalizedRet.isIndirect)
         {
@@ -1092,6 +1101,9 @@ namespace
                     SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
 
+            // Capture the result before destroying operand temporaries. Their
+            // generic post-node flush would execute after the return instruction.
+            SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
             codeGen.setReturnMoveOutVar(moveOutVar);
             const Result deferredResult = codeGen.emitDeferredActionsForReturn();
             codeGen.setReturnMoveOutVar(previousMoveOutVar);
@@ -1136,6 +1148,9 @@ namespace
                     SWC_RESULT(resetMovedReturnPlace(codeGen, returnTypeRef, exprRef, movedPlaceRef));
             }
 
+            // Capture the result before destroying operand temporaries. Their
+            // generic post-node flush would execute after the return instruction.
+            SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
             codeGen.setReturnMoveOutVar(moveOutVar);
             const Result deferredResult = codeGen.emitDeferredActionsForReturn();
             codeGen.setReturnMoveOutVar(previousMoveOutVar);
@@ -1157,13 +1172,6 @@ namespace
                     SWC_RESULT(resetMovedReturnPlace(codeGen, returnTypeRef, exprRef, movedPlaceRef));
             }
             ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
-        }
-
-        if (movesOwnedTemporary)
-        {
-            const SymbolVariable* sourceStorage = codeGen.runtimeStorageSymbol(exprRef);
-            if (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage))
-                codeGen.cancelTemporaryDrop(*sourceStorage);
         }
 
         {
@@ -1221,6 +1229,7 @@ namespace
             }
         }
 
+        SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
         SWC_RESULT(codeGen.emitDeferredActionsForReturn());
         {
             const ScopedDebugNoStep noStep(builder, true);

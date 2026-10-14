@@ -39,6 +39,73 @@ private func aacTestSound51()->SoundFile fail
     return try SoundFile.openPacketStream(path, .AacLc, 48_000, 6, packets.count * 1024, packets.toSlice(), Config)
 }
 
+// A packet without payload is a gap in the stream: it decodes to silence, and the sound around it
+// decodes exactly as it does without the gap, whether the whole sound is decoded or streamed.
+#test
+{
+    const Config:    [2] u8 = [0x12, 0x10]
+    const GapAt:     u64    = 10
+    const GapFrames: u32    = 2048
+    let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let packets = expect aacTestPackets(path)
+    var gapped: Array'SoundPacket
+    for packet, index in packets
+    {
+        if index == GapAt do
+            gapped.add({0, 0, GapFrames})
+        gapped.add(packet)
+    }
+
+    var plain  = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config)
+    var sparse = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024 + GapFrames, gapped.toSlice(), Config)
+    Swag.assert(sparse.sampleFrameCount() == plain.sampleFrameCount() + GapFrames)
+
+    var plainSamples, sparseSamples: Array's16
+    expect plain.decodePcm16(func|plainSamples = &plainSamples|(samples: const [..] s16)->bool
+    {
+        plainSamples.add(samples)
+        return true
+    })
+    expect sparse.decodePcm16(func|sparseSamples = &sparseSamples|(samples: const [..] s16)->bool
+    {
+        sparseSamples.add(samples)
+        return true
+    })
+
+    let gapStart = GapAt * 1024 * 2
+    let gapCount = cast(u64, GapFrames) * 2
+    let after    = plainSamples.count - gapStart
+    Swag.assert(sparseSamples.count == plainSamples.count + gapCount)
+    for index in gapCount do
+        Swag.assert(sparseSamples[gapStart + index] == 0)
+    Swag.assert(Memory.compare(sparseSamples.buffer!, plainSamples.buffer!, gapStart * #sizeof(s16)) == 0)
+    Swag.assert(Memory.compare(sparseSamples.buffer + gapStart + gapCount, plainSamples.buffer + gapStart, after * #sizeof(s16)) == 0)
+
+    // A streaming voice plays the same samples, including after a seek into the gap.
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = expect Voice.create(&sparse)
+    defer voice.destroy()
+    var streamed: Array's16
+    for
+    {
+        let chunk = expect voice.readBuffer()
+        if not chunk.size do
+            break
+        streamed.add(cast(const [*] s16, chunk.buffer!)[0 until chunk.size / #sizeof(s16)])
+    }
+
+    Swag.assert(streamed.count == sparseSamples.count)
+    Swag.assert(Memory.compare(streamed.buffer!, sparseSamples.buffer, streamed.count * #sizeof(s16)) == 0)
+
+    const IntoGap = GapAt * 1024 + 1000
+    discard expect voice.seekSampleFrame(IntoGap)
+    let resumed = expect voice.readBuffer()
+    let first   = cast(const [*] s16, resumed.buffer!)
+    Swag.assert(resumed.size >= gapCount * #sizeof(s16))
+    Swag.assert(Memory.compare(first, sparseSamples.buffer + IntoGap * 2, resumed.size) == 0)
+}
+
 private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channels, channel: u64, sampleRate, frequency: f64)->f64
 {
     var real, imaginary: f64

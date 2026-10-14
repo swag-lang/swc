@@ -189,7 +189,7 @@ namespace
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
 
-            if (symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) && hasIndirectReturnArg)
+            if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
             {
                 symVar->setOffset(0);
                 symVar->setCodeGenLocalSize(0);

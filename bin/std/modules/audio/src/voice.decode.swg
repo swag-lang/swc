@@ -178,6 +178,19 @@ impl Voice
             if packetDecodedBytes > destinationSize - writtenBytes do
                 break
 
+            // A packet without payload is a gap in the stream: it plays as silence, of which a
+            // seek discards the part before its target.
+            if not packet.byteSize
+            {
+                let discardFrames = Math.min(.seekDiscardFrames, packet.sampleFrameCount)
+                let keptBytes     = packetDecodedBytes - cast(u64, discardFrames) * file.channelCount * 2
+                Memory.clear(cast([*] u8, destination) + writtenBytes, keptBytes)
+                writtenBytes       += keptBytes
+                .seekDiscardFrames -= discardFrames
+                .streamPacketIdx   += 1
+                continue
+            }
+
             if .packetBuffer.count != packet.byteSize do
                 .packetBuffer.resize(packet.byteSize)
             if not .stream.isOpen() do

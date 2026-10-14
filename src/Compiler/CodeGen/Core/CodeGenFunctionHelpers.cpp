@@ -254,14 +254,51 @@ bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen,
     return normalizedRet.isIndirect;
 }
 
+namespace
+{
+    const SemaInlinePayload* inlineReturnStorageOwner(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (!symVar.decl())
+            return nullptr;
+        const AstNodeRef declRef = codeGen.ast().tryFindNodeRef(symVar.decl());
+        if (declRef.isInvalid())
+            return nullptr;
+        const auto* expansion = codeGen.sema().inlinePayload(declRef);
+        return expansion && !expansion->returnsToCallerSite() ? expansion : nullptr;
+    }
+}
+
 bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
 {
-    return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) && functionUsesIndirectReturnStorage(codeGen, codeGen.function());
+    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        return false;
+    if (const auto* expansion = inlineReturnStorageOwner(codeGen, symVar))
+        return expansion->resultVar != nullptr;
+    return functionUsesIndirectReturnStorage(codeGen, codeGen.function());
 }
 
 CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(CodeGen& codeGen, const SymbolVariable& symVar)
 {
     SWC_ASSERT(usesCallerReturnStorage(codeGen, symVar));
+
+    // A cloned 'retval' belongs to the inline expansion, even when the enclosing
+    // function also returns indirectly (possibly into a smaller buffer).
+    if (const auto* expansion = inlineReturnStorageOwner(codeGen, symVar))
+    {
+        for (const auto& frame : codeGen.frames())
+        {
+            const auto& context = frame.currentInlineContext();
+            if (context.payload != expansion || !context.resultStorageReg.isValid())
+                continue;
+            CodeGenNodePayload result;
+            result.typeRef = symVar.typeRef();
+            result.setIsAddress();
+            result.reg = context.resultStorageReg;
+            return result;
+        }
+        SWC_ASSERT(expansion->resultVar != nullptr);
+        return codeGen.resolveLocalStackPayload(*expansion->resultVar, false);
+    }
 
     if (codeGen.hasCurrentFunctionIndirectReturnStackOffset())
     {

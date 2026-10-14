@@ -710,6 +710,16 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // The `mov ar, fb` address definition recognized by pass 1.
         if (inst.op == MicroInstrOpcode::LoadRegReg && isFrameRegister(ops[1].reg) && ops[2].opBits == MicroOpBits::B64 && addrRegOffset.find(ops[0].reg.packed))
             continue;
+        // A second address calculation can cross into a different frame object.
+        // If pass 1 did not track its result, later reads through that result are
+        // opaque: expose the destination object, including the displacement.
+        if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 && isTracked(ops[1].reg))
+        {
+            uint64_t offset = 0;
+            if (!escapedObjectOffset(ops[1].reg, offset) || !poisonTrackedEscape(ops[1].reg, offset, ops[3].valueU64))
+                return Result::Continue;
+            continue;
+        }
         // The entry subtract and the releases, checked above.
         if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == stackPointer)
             continue;

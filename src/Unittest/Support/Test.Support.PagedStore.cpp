@@ -199,6 +199,27 @@ SWC_TEST_BEGIN(DataSegment_RelocationRangesPreserveIndexedAndTailEntries)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_RelocationRangeMergePreservesEqualOffsetOrder)
+{
+    DataSegment segment;
+    segment.addRelocation(64, 1);
+    segment.addRelocation(64, 2);
+    segment.addRelocation(32, 3);
+    segment.addRelocation(64, 4);
+
+    std::vector<DataSegmentRelocation> relocations;
+    segment.copyRelocations(relocations, 0, 128);
+    constexpr std::array expectedTargets{3u, 1u, 2u, 4u};
+    if (relocations.size() != expectedTargets.size())
+        return Result::Error;
+    for (size_t i = 0; i < relocations.size(); ++i)
+    {
+        if (relocations[i].targetOffset != expectedTargets[i])
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
 {
     DataSegment segment;

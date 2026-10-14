@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Fold.h"
 #include "Support/Report/Assert.h"
@@ -15,6 +16,44 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Points at the field that keeps a type from having an implicit default, so the user
+    // sees which value 'complete initialization' is waiting for.
+    void addRequiredFieldNote(Sema& sema, Diagnostic& diag, DiagnosticId diagId, TypeRef typeRef)
+    {
+        if (diagId != DiagnosticId::sema_err_type_requires_init)
+            return;
+
+        while (typeRef.isValid())
+        {
+            const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
+            const TypeInfo* storageType  = declaredType.unwrapAliasEnumType(sema.ctx());
+            const TypeInfo& type         = storageType ? *storageType : declaredType;
+            if (type.isArray())
+            {
+                typeRef = type.payloadArrayElemTypeRef();
+                continue;
+            }
+
+            if (!type.isStruct())
+                return;
+
+            for (const SymbolVariable* field : type.payloadSymStruct().fields())
+            {
+                if (!field || !SymbolStruct::fieldRequiresExplicitInitialization(sema, *field))
+                    continue;
+
+                diag.addArgument(Diagnostic::ARG_VALUE, field->name(sema.ctx()));
+                auto&             note    = diag.addElement(DiagnosticId::sema_note_required_struct_field_declared_here);
+                const SourceView& srcView = sema.compiler().srcView(field->srcViewRef());
+                note.setSrcView(&srcView);
+                note.addSpan(srcView.tokenCodeRange(sema.ctx(), field->tokRef()), "");
+                return;
+            }
+
+            return;
+        }
+    }
+
     AstNodeRef findLowestNonConstantChild(Sema& sema, AstNodeRef rootRef)
     {
         AstNodeRef lowest = AstNodeRef::invalid();
@@ -359,6 +398,7 @@ Result SemaError::raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const 
 {
     auto diag = report(sema, diagId, codeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    addRequiredFieldNote(sema, diag, diagId, typeRef);
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -367,6 +407,7 @@ Result SemaError::raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, AstNod
 {
     auto diag = report(sema, diagId, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    addRequiredFieldNote(sema, diag, diagId, typeRef);
     diag.report(sema.ctx());
     return Result::Error;
 }

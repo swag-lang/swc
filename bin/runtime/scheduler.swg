@@ -528,6 +528,32 @@ internal func waitWorkUnlessCancelled(node: *WorkNode)->bool
     }
 }
 
+// Parks until `check` answers true, which is how a thread waits on several nodes at once.
+//
+// While it waits, every completion and every cancellation request wakes it to ask again, so
+// `check` must only read state those publish. The caller counts as an observer without a slot
+// before asking, and a completion publishes Done before reading that count: one of the two always
+// sees the other. It never runs the nodes itself.
+internal func waitWorkChange(check: func||()->bool)
+{
+    if check() do
+        return
+
+    let sched = schedulerInstance()
+    discard sched.unslotted.add(1)
+    sched.mutex.lock()
+    sched.joining.add(1)
+    defer
+    {
+        sched.joining.sub(1)
+        sched.mutex.unlock()
+        discard sched.unslotted.sub(1)
+    }
+
+    while not check() do
+        sched.finished.wait(&sched.mutex)
+}
+
 // Wakes the parked observers so a cancellable one can notice that its work was asked to stop.
 //
 // A request names no node, and requests are rare, so every parked observer wakes and rechecks.

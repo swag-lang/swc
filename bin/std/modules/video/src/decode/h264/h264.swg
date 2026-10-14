@@ -143,8 +143,7 @@ struct Decoder
     pipelineSingleSlice: bool
     pipelineBandCount:   u32
     pipelineScheduled:   u32
-    pipelineFailed:      u32
-    pipelineTasks:       [ReconstructionBands] Swag.Task
+    pipelineGroup:       Swag.TaskGroup     // Reconstructs the bands already parsed; joined before the picture is used.
 
     // Picture order state carried between pictures.
     prevPocMsb:         s32
@@ -315,7 +314,6 @@ impl Decoder
         .pipelineSingleSlice = false
         .pipelineBandCount   = 0
         .pipelineScheduled   = 0
-        .pipelineFailed      = 0
         .preparedData        = false
 
         var offset = 0'u64
@@ -389,7 +387,6 @@ impl Decoder
         .pipelineSingleSlice = not deferReconstruction and .hasSinglePictureSlice(sample)
         .pipelineBandCount   = 0
         .pipelineScheduled   = 0
-        .pipelineFailed      = 0
         .preparedData        = false
         defer .waitReconstructionJobs()
         var offset = 0'u64
@@ -778,7 +775,6 @@ impl Decoder
         .pictureSlices.clear()
         .pipelineBandCount = .pipelineSingleSlice ? Math.min(Swag.workerCount(), ReconstructionBands, cast(u32, sps.mbHeight)) : 0
         .pipelineScheduled = 0
-        .pipelineFailed    = 0
     }
 
     // Returns the compact identity of the referenced picture whose order count is `poc`.

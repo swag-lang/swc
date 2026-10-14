@@ -190,6 +190,9 @@ impl Task
     // Returns whether a stop was requested for the current submission.
     mtd const isCancelled()->bool => .scope.stop.isRaised()
 
+    // Returns whether the last submission finished with an error that was not taken yet.
+    mtd const hasFailed()->bool => .isDone() and not .failure.isEmpty()
+
     // Returns whether the task is submitted and not finished.
     mtd const isPending()->bool
     {
@@ -345,9 +348,10 @@ private const GroupInlineCapacity = 4'u32
 #[Swag.NoDoc]
 struct GroupChild
 {
-    using node: WorkNode            // Scheduler state and dynamic identity.
-    body:       (func||())?         // The child's work.
-    scope:      *CancelScope?       // The cancellation state of the group that owns the child.
+    using node:   WorkNode               // Scheduler state and dynamic identity.
+    body:         (func||())?            // The child's work, when it cannot fail.
+    fallibleBody: (func||() fail)?       // The child's work, when it can fail.
+    group:        *TaskGroup?            // The group the child belongs to.
 }
 
 private const GroupBlockCapacity = cast(u32, ((AllocatorHostCommitGranularity - BootstrapAllocationHeaderSize - 2 * #sizeof(u64)) / #sizeof(GroupChild)))
@@ -371,6 +375,10 @@ struct GroupBlock
 // by a raised error.
 // Children use the same isolated error state as [[Swag.Task]], including when the joining
 // caller executes them during cleanup.
+//
+// A child can fail. The first error a child raises asks every other child to stop, and
+// [[Swag.TaskGroup.join]] raises it once every child has finished. Leaving the group's scope joins
+// the children too, but drops an error nobody joined.
 //
 // Cancellation is a request, not a stop. [[Swag.TaskGroup.cancel]] raises a request every child
 // reads through [[Swag.isCancelled]]; a child that never asks runs to its end. A group spawned
@@ -413,26 +421,23 @@ struct TaskGroup
     // Raised by cancel, read by children.
     #[Swag.NoDoc]
     scope: CancelScope
+
+    // Guards `failure` against children failing together.
+    #[Swag.NoDoc]
+    failureLock: Mutex
+
+    // The first error a child raised, until the group is joined.
+    #[Swag.NoDoc]
+    failure: Error
 }
 
 impl TaskGroup
 {
-    // Joins every child, then releases the group's storage.
+    // Joins every child, then releases the group's storage. An error nobody joined is dropped.
     mtd opDrop()
     {
         .wait()
-
-        var block = .blocks
-        while block
-        {
-            let next = block.next
-            __bootstrapFree(cast([*] void?, block))
-            block = next
-        }
-
-        .blocks      = null
-        .count       = 0
-        .inlinedUsed = 0
+        .recycle()
     }
 
     // Creates a child task running `body` and submits it.
@@ -441,14 +446,35 @@ impl TaskGroup
     // cancellation state, and that of the work spawning it, through [[Swag.isCancelled]].
     mtd spawn(body: func||())
     {
-        .scope.parent = Swag.getContext().cancelScope
-
-        let child = .reserveChild()
-        child.body       = body
-        child.scope      = &.scope
-        child.node.entry = &groupChildEntry
-        .count           += 1
+        let child = .prepareChild()
+        child.body         = body
+        child.fallibleBody = null
         submitWork(&child.node)
+    }
+
+    // Creates a child task running `body`, which can fail, and submits it.
+    //
+    // The first error a child raises asks every child of the group to stop;
+    // [[Swag.TaskGroup.join]] raises it.
+    mtd spawn(body: func||() fail)
+    {
+        let child = .prepareChild()
+        child.body         = null
+        child.fallibleBody = body
+        submitWork(&child.node)
+    }
+
+    // Waits for every child, then raises the first error a child raised, if any.
+    //
+    // The group is then empty again: it can take new children, and the stop request a failure or
+    // [[Swag.TaskGroup.cancel]] made is withdrawn.
+    mtd join() fail
+    {
+        .wait()
+        .recycle()
+
+        defer .failure.reset()
+        try .failure.raise()
     }
 
     // Waits until every child spawned so far has finished.
@@ -482,6 +508,48 @@ impl TaskGroup
 
     // Returns whether cancellation was requested for this group, or for the work that spawned it.
     mtd const isCancelled()->bool => .scope.isRaised()
+
+    // Takes the storage of one more child and links it to this group.
+    private mtd prepareChild()->*GroupChild
+    {
+        .scope.parent = Swag.getContext().cancelScope
+
+        let child = .reserveChild()
+        child.group      = me
+        child.node.entry = &groupChildEntry
+        .count           += 1
+        return child
+    }
+
+    // Keeps the first error a child raises, and asks the other children to stop.
+    private mtd recordFailure(error: any)
+    {
+        {
+            .failureLock.lock()
+            defer .failureLock.unlock()
+            if .failure.isEmpty() do
+                .failure.capture(error)
+        }
+
+        .cancel()
+    }
+
+    // Releases every child's storage once they have all finished, so the group starts empty.
+    private mtd recycle()
+    {
+        var block = .blocks
+        while block
+        {
+            let next = block.next
+            __bootstrapFree(cast([*] void?, block))
+            block = next
+        }
+
+        .blocks      = null
+        .count       = 0
+        .inlinedUsed = 0
+        .scope.stop.reset()
+    }
 
     // Returns storage for one more child, allocating a block when the inline storage and the
     // current block are both full.
@@ -517,10 +585,100 @@ impl TaskGroup
 private func groupChildEntry(node: *WorkNode)
 {
     let child = assume cast (*GroupChild, node)
-    let body  = child.body
+    let group = child.group
+    if not group do
+        return
+
+    if let body = child.body
+    {
+        runInScope(&group.scope, body)
+        return
+    }
+
+    // A body that can fail runs inside its own handler, so its error reaches the group.
+    runInScope(&group.scope, func|child|() { runFallibleChild(child) })
+}
+
+private func runFallibleChild(child: *GroupChild)
+{
+    let body = child.fallibleBody
     if not body do
         return
 
-    let safeBody = body orelse func() {}
-    runInScope(child.scope, safeBody)
+    catch body() as error
+    if error != null do
+        child.group!.recordFailure(error)
+}
+
+// Waits for every task of `tasks`. As soon as one of them fails, the others are asked to stop;
+// once they have all finished, the error of the first failed task, in the order of `tasks`, is
+// raised.
+//
+// The tasks keep their outcomes: take each value with [[Swag.Task.take]], which raises a failed
+// task's error again. Every task must be submitted, and its outcome not taken yet.
+public func(T) whenAll(tasks: [..] Task'T) fail
+{
+    waitWorkChange(func|tasks|()->bool
+    {
+        var pending = false
+        for task in tasks
+        {
+            if task.hasFailed() do
+                return true
+            if task.isPending() do
+                pending = true
+        }
+
+        return not pending
+    })
+
+    for task in tasks where task.hasFailed()
+    {
+        for &other in tasks do
+            other.cancel()
+        for &other in tasks do
+            other.wait()
+        try task.failure.raise()
+    }
+}
+
+// Waits until one task of `tasks` succeeds, asks the others to stop, and returns its index. When
+// every task fails, raises the error of the first one, in the order of `tasks`.
+//
+// The winner keeps its value for [[Swag.Task.take]]. The others still have to be waited for, or
+// destroyed, before what they borrow is released. Every task must be submitted, and its outcome
+// not taken yet.
+public func(T) whenAny(tasks: [..] Task'T)->u64 fail
+{
+    Swag.assert(tasks.count != 0, "whenAny needs at least one task")
+    waitWorkChange(func|tasks|()->bool
+    {
+        var pending = false
+        for task in tasks
+        {
+            if task.isDone() and not task.hasFailed() do
+                return true
+            if task.isPending() do
+                pending = true
+        }
+
+        return not pending
+    })
+
+    var winner = Swag.U64.Max
+    for task, index in tasks where task.isDone() and not task.hasFailed()
+    {
+        winner = index
+        break
+    }
+
+    for &task, index in tasks where index != winner do
+        task.cancel()
+    if winner != Swag.U64.Max do
+        return winner
+
+    for task in tasks where task.hasFailed() do
+        try task.failure.raise()
+    Swag.assert(false, "whenAny needs submitted tasks whose outcome was not taken")
+    return Swag.U64.Max
 }

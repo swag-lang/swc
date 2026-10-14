@@ -62,17 +62,17 @@ impl Decoder
             let decoder  = me
             let first    = firstRow * cast(u32, .sps.mbWidth)
             let last     = endRow * cast(u32, .sps.mbWidth)
-            .pipelineTasks[band].submit(func|decoder, first, last|() { reconstructBand(decoder, first, last) })
+            .pipelineGroup.spawn(func|decoder, first, last|() fail { try reconstructBand(decoder, first, last) })
             .pipelineScheduled += 1
         }
     }
 
-    // The parser can fail after earlier bands have already started. Always join borrowed tasks
-    // before decodeAccessUnit unwinds and its decoder storage can be reused or released.
+    // The parser can fail after earlier bands have already started. Always join the bands before
+    // decodeAccessUnit unwinds and its decoder storage can be reused or released. The picture is
+    // abandoned on this path, so a band's own error no longer matters.
     mtd waitReconstructionJobs()
     {
-        for index in .pipelineScheduled do
-            .pipelineTasks[index].wait()
+        catch .pipelineGroup.join()
     }
 
     // Reconstructs inter macroblocks in parallel. Entropy parsing has already
@@ -86,9 +86,7 @@ impl Decoder
 
         if .pipelineBandCount > 0
         {
-            .waitReconstructionJobs()
-            if Atomic.get(&.pipelineFailed) != 0 do
-                fail InvalidFormatError{"H.264 inter block has no reference picture"}
+            try .pipelineGroup.join()
         }
         else
         {
@@ -711,16 +709,16 @@ impl Slice
 }
 
 // Reconstructs the inter macroblocks of one band, and records a failure for the decoder.
-private func reconstructBand(decoder: *Decoder, first, end: u32)
+// Reconstructs the inter macroblocks of one band. A failure in another band stops this one too.
+private func reconstructBand(decoder: *Decoder, first, end: u32) fail
 {
     for index in first until end
     {
+        if Swag.isCancelled() do
+            return
         let mb = &decoder.parsedMbs[index]
-        if mb.class != MbClassInter do
-            continue
-        catch decoder.pictureSlices[mb.sliceIndex].reconstructMb(mb) as reconstructionError
-        if reconstructionError != null do
-            Atomic.exchange(&decoder.pipelineFailed, 1)
+        if mb.class == MbClassInter do
+            try decoder.pictureSlices[mb.sliceIndex].reconstructMb(mb)
     }
 }
 

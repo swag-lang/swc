@@ -316,20 +316,19 @@ stuck at the boundary.
   atomic storage through an ordinary pointer.
 - Related: language.parallelism.001, language.parallelism.005
 
-### std.core.025 — No task combinators over the runtime tasks
+### std.core.025 — A dependency graph of tasks is written by hand
 
-  `Core.Jobs` is gone and every consumer uses `Swag.Task` and `Swag.TaskGroup`
-- Evidence: the runtime provides one task, one group, and one partitioned loop. A caller that
-  wants bounded map, first completion, first success, all-results, or progress writes the fan-out
-  and the join by hand, as `H264.Decoder.scheduleParsedRows` and `Hevc` wavefront scheduling both
-  do with their own arrays and their own failure flag.
-- Next: review that family as one operation set rather than adding members one at a time, and
-  settle what each does with a losing branch: cancel it, join it, and only then release anything it
-  borrows. `Swag.Task'T` now carries a typed result and an ambient cancellation request, which is
-  what a combinator selecting one result needs. Keep scheduling below Core; these are algorithms
-  over the runtime types, not a second scheduler.
-- Done when: the operations preserve result and error ownership, join losing work before
-  releasing its borrows, and the manual fan-outs in `std/video` are written with them instead.
+- Evidence: the runtime joins a group whose children can fail (the first error asks the others to
+  stop), and waits for all or any of several typed tasks (`Swag.whenAll`, `Swag.whenAny`);
+  H.264 reconstruction bands use such a group. What remains hand-made is a dependency between
+  tasks: HEVC wavefront rows each wait for the row above to be two coding tree blocks ahead,
+  through an array of `Sync.Event`s, a progress array and a shared failure flag. Nothing bounds
+  how many children a group runs at once either.
+- Next: decide whether a row that waits on its neighbour's progress is a task-graph edge, with
+  cycle rejection, or a progress counter a task can wait on without occupying its worker; settle
+  it against the dependency-graph workload in language.parallelism.001.
+- Done when: HEVC wavefront decoding has no hand-made event array or failure flag, and its
+  speed is measured against what it does today.
 - Related: language.parallelism.002, language.parallelism.011, std.core.028
 
 ### std.core.028 — No asynchronous I/O contract

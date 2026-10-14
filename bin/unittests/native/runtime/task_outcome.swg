@@ -262,3 +262,102 @@ impl OwnedOutcome
     let value = expect task.take()
     Swag.assert(value == 3)
 }
+
+// The first error a group child raises asks the other children to stop, and joining raises it.
+// A joined group starts empty, without the stop request.
+#test
+{
+    var stopped: Swag.AtomicValue'u32
+    var fresh:   Swag.AtomicValue'u32
+    var group:   Swag.TaskGroup
+    group.spawn(func() fail { fail OutcomeFailure{7} })
+    for 3
+    {
+        group.spawn(func|&stopped|()
+        {
+            // Compile-time execution runs each child during its spawn, after the failure.
+            let attempts = Swag.jit() ? 1'u64 : 2_000_000_000'u64
+            for attempts
+            {
+                if Swag.isCancelled()
+                {
+                    stopped.add(1)
+                    return
+                }
+            }
+        })
+    }
+
+    catch group.join() as error
+    Swag.assert(error is OutcomeFailure and stopped.load() == 3)
+
+    group.spawn(func|&fresh|() { if not Swag.isCancelled() do fresh.add(1) })
+    expect group.join()
+    Swag.assert(fresh.load() == 1)
+}
+
+// 'whenAll' waits for every task and leaves each value to take.
+#test
+{
+    var tasks: [3] Swag.Task'u32
+    for &task, index in tasks
+    {
+        let value = cast(u32, index) * 10
+        task.submit(func|value|()->u32 => value)
+    }
+
+    expect Swag.whenAll(tasks)
+    var total = 0'u32
+    for &task in tasks do
+        total += expect task.take()
+    Swag.assert(total == 30)
+}
+
+// 'whenAll' raises the first failure and asks the other tasks to stop.
+#test
+{
+    var stopped: Swag.AtomicValue'u32
+    var tasks:   [3] Swag.Task'u32
+    tasks[0].submit(func()->u32 fail { fail OutcomeFailure{1} })
+    for index in 1 until 3
+    {
+        tasks[index].submit(func|&stopped|()->u32
+        {
+            let attempts = Swag.jit() ? 1'u64 : 2_000_000_000'u64
+            for attempts
+            {
+                if Swag.isCancelled()
+                {
+                    stopped.add(1)
+                    return 0
+                }
+            }
+
+            return 1
+        })
+    }
+
+    catch Swag.whenAll(tasks) as error
+    Swag.assert(error is OutcomeFailure)
+    Swag.assert(Swag.jit() or stopped.load() == 2)
+}
+
+// 'whenAny' returns the first task that succeeded, and raises the first error when all fail.
+#test
+{
+    var tasks: [2] Swag.Task'u32
+    tasks[0].submit(func()->u32 fail { fail OutcomeFailure{2} })
+    tasks[1].submit(func()->u32 => 5)
+    let winner = expect Swag.whenAny(tasks)
+    Swag.assert(winner == 1)
+    let value = expect tasks[1].take()
+    Swag.assert(value == 5)
+
+    var failing: [2] Swag.Task'u32
+    failing[0].submit(func()->u32 fail { fail OutcomeFailure{3} })
+    failing[1].submit(func()->u32 fail { fail OutcomeFailure{4} })
+    discard catch Swag.whenAny(failing) as error
+    Swag.assert(error is OutcomeFailure)
+    if error is OutcomeFailure as failure do
+        Swag.assert(failure.code == 3)
+}

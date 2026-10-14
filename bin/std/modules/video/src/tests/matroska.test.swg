@@ -195,6 +195,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 // The complete audio-only pass must not require picture samples after disabling picture indexing.
 // The opening cluster is playable immediately; the background pass then replaces it with the
 // complete ten-minute packet table instead of failing at the end of the segment.
+//
+// The fixture's sound stops for 0.38 s every 0.8 s. Only the silence filling those gaps keeps
+// the table on the film's timeline: played back to back, its packets end at 331 s.
 #test
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"))
@@ -207,13 +210,14 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     {
         let audioTrack = reader.audioTrack(0)
         if audioTrack do
-            hasCompleteAudio = audioTrack.durationInSeconds() >= 100
+            hasCompleteAudio = audioTrack.durationInSeconds() >= 590
 
         Threading.Thread.sleep(1'ms)
         attempts += 1
     }
 
     Swag.assert(hasCompleteAudio)
+    Swag.assert(Math.isEqualEpsilon(reader.audioTrack(0)!.durationInSeconds(), 599.641, 0.05))
 }
 
 // Memory-backed Matroska uses the borrowed bytes for video and does not manufacture file cursors

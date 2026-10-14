@@ -30,6 +30,13 @@ private const SsaSubtitleCodecId  = "S_TEXT/SSA"
 // An Opus decoder produces 48 kHz whatever rate the track states it was encoded from.
 private const OpusOutputRate = 48_000.0
 
+// A sound block that starts this much later than the sound before it ends leaves a gap, filled
+// with silence so later sound stays on its timestamps. Smaller differences are timestamp rounding.
+private const AudioGapNanoseconds = 100_000_000.0
+
+// The longest silence one gap packet stands for, so a long gap never needs one large buffer.
+private const AudioGapPacketFrames = 4096'u64
+
 private struct SubtitleSample
 {
     offset:       u64
@@ -170,6 +177,31 @@ private struct Track
 
 private impl Track
 {
+    // Adds the silence between the end of the sound indexed so far and a block starting at
+    // `timestamp`, when the two are further apart than rounding explains.
+    //
+    // Sound packets play back to back, so without it every gap in a track shifts the sound after
+    // it earlier on the timeline, and a track with regular gaps ends long before the picture.
+    mtd fillAudioGap(timestamp: s64) fail
+    {
+        let rate = .decodedSampleRate()
+        let end  = cast(f64, .audioStart) + cast(f64, .audioFrameCount) * 1_000_000_000.0 / rate
+        let gap  = cast(f64, timestamp) - end
+        if gap <= AudioGapNanoseconds do
+            return
+
+        var frames = cast(u64, Math.round(gap * rate / 1_000_000_000.0))
+        if .audioFrameCount > Swag.U64.Max - frames do
+            fail OverflowError{"Matroska audio packet table is too large"}
+        .audioFrameCount += frames
+        while frames
+        {
+            let part = Math.min(frames, AudioGapPacketFrames)
+            .audioPackets.add({0, 0, cast(u32, part)})
+            frames -= part
+        }
+    }
+
     // Returns the size the pictures of this track are shown at, or nothing when it is their own.
     //
     // A track states the two sizes separately, and their ratio is what matters: a display size
@@ -1433,6 +1465,8 @@ private impl Layout
             track.audioStart    = timestamp
             track.hasAudioStart = true
         }
+        else do
+            try track.fillAudioGap(timestamp)
 
         if not track.hasProbe
         {

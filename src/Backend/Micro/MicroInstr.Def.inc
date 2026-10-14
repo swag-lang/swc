@@ -116,6 +116,14 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+// Preserve a source signed division before its overflow guard bypasses the machine operation.
+SWC_MICRO_INSTR_DEF(
+    SanityIntDivision,
+    MicroInstrDef{
+        .regModes = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .flags = MicroInstrFlagsE::Zero,
+        .opBitsMask = (1 << 2),
+    })
 SWC_MICRO_INSTR_DEF(
     Ret,
     MicroInstrDef{

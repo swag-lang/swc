@@ -5,8 +5,10 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Sanity.h"
+#include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -448,6 +450,144 @@ SWC_TEST_BEGIN(MicroSanity_ExtendsKnownIndexedConstants)
         return Result::Error;
     if (runWideCopySanity(ctx, WideCopyCase::IndexedUnsignedByte) != Result::Error)
         return Result::Error;
+}
+SWC_TEST_END()
+
+// Generated guards preserve source facts, but still obey the physical-register ABI.
+SWC_TEST_BEGIN(MicroSanity_BoundsWithNormalizedCallFrame)
+{
+    SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    function.setReturnTypeRef(ctx.typeMgr().typeVoid());
+    SymbolVariable local(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    local.addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+    local.setCodeGenLocalSize(16);
+    local.setOffset(0);
+    function.addLocalVariable(ctx, &local);
+
+    const CallConv& conv    = CallConv::get(CallConvKind::Swag);
+    const MicroReg  frame   = MicroReg::virtualIntReg(1);
+    const MicroReg  pointer = MicroReg::virtualIntReg(2);
+    const MicroReg  value   = MicroReg::virtualIntReg(3);
+    for (const uint64_t offset : {uint64_t{12}, uint64_t{16}})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(24, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegReg(frame, conv.stackPointer, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitCallReg(conv.intArgRegs[0], CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(pointer, frame, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(pointer, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, pointer, 0, MicroOpBits::B32);
+        builder.emitOpBinaryRegImm(conv.stackPointer, ApInt(24, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroStackAdjustNormalizePass normalize;
+        MicroSanityPass               sanity;
+        MicroPassManager              manager;
+        manager.addStartPass(normalize);
+        manager.addPreRaAnalysisPass(sanity);
+        MicroPassContext context;
+        context.callConvKind             = CallConvKind::Swag;
+        context.debugStackBaseVirtualReg = frame;
+        context.sanitizerFunction        = &function;
+        context.sanitizerSafetyMask      = static_cast<uint16_t>(Runtime::SafetyWhat::BoundCheck);
+        const Result result              = builder.runPasses(manager, nullptr, context);
+        if (result != (offset == 16 ? Result::Error : Result::Continue))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_ConstantComparisonsPruneOnlyDeadEdges)
+{
+    struct Case
+    {
+        MicroOpBits bits;
+        uint64_t    left;
+        uint64_t    right;
+        MicroCond   condition;
+        bool        taken;
+    };
+    const Case cases[] = {
+        {MicroOpBits::B64, 1, 2, MicroCond::Below, true},
+        {MicroOpBits::B64, UINT64_MAX, 2, MicroCond::Below, false},
+        {MicroOpBits::B64, UINT64_MAX, 2, MicroCond::Less, true},
+        {MicroOpBits::B8, 0x101, 1, MicroCond::Equal, true},
+        {MicroOpBits::B8, 0xFF, 1, MicroCond::Greater, false},
+        {MicroOpBits::B16, 0x10001, 2, MicroCond::Below, true},
+        {MicroOpBits::B32, 0xFFFFFFFF, 1, MicroCond::Above, true},
+    };
+    for (const Case& test : cases)
+        for (const bool boolean : {false, true})
+            for (const bool reachable : {false, true})
+            {
+                const MicroReg left      = MicroReg::virtualIntReg(1);
+                const MicroReg right     = MicroReg::virtualIntReg(2);
+                const MicroReg pointer   = MicroReg::virtualIntReg(3);
+                const MicroReg value     = MicroReg::virtualIntReg(4);
+                const MicroReg condition = MicroReg::virtualIntReg(5);
+                MicroBuilder   builder(ctx);
+                const auto     done = builder.createLabel();
+                builder.emitLoadRegImm(left, ApInt(test.left, 64), MicroOpBits::B64);
+                builder.emitLoadRegImm(right, ApInt(test.right, 64), MicroOpBits::B64);
+                builder.emitLoadRegImm(pointer, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitCmpRegReg(left, right, test.bits);
+                MicroCond jump = test.condition;
+                if (boolean)
+                {
+                    builder.emitSetCondReg(condition, jump);
+                    builder.emitCmpRegImm(condition, ApInt(0, 8), MicroOpBits::B8);
+                    jump = MicroCond::NotEqual;
+                }
+                if (test.taken == reachable && !MicroPassHelpers::invertCondition(jump, jump))
+                    return Result::Error;
+                builder.emitJumpToLabel(jump, MicroOpBits::B32, done);
+                builder.emitLoadRegMem(value, pointer, 0, MicroOpBits::B32);
+                builder.placeLabel(done);
+                builder.emitRet();
+
+                MicroSanityPass  pass;
+                MicroPassManager manager;
+                manager.addPreRaAnalysisPass(pass);
+                MicroPassContext context;
+                context.callConvKind        = CallConvKind::Swag;
+                context.sanitizerSafetyMask = static_cast<uint16_t>(Runtime::SafetyWhat::Null);
+                const Result result         = builder.runPasses(manager, nullptr, context);
+                if (result != (reachable ? Result::Error : Result::Continue))
+                    return Result::Error;
+            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroSanity_DivisionMarkerSurvivesGuardLowering)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+        for (const bool overflow : {false, true})
+        {
+            const MicroReg left  = MicroReg::virtualIntReg(1);
+            const MicroReg right = MicroReg::virtualIntReg(2);
+            MicroBuilder   builder(ctx);
+            builder.emitLoadRegImm(left, ApInt(uint64_t{1} << (getNumBits(bits) - 1), 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(right, ApInt(overflow ? UINT64_MAX : 2, 64), MicroOpBits::B64);
+            builder.emitSanityIntDivision(left, right, bits);
+            // The hardware division can be absent after lowering its overflow branch.
+            builder.emitRet();
+            MicroSanityPass  pass;
+            MicroPassManager manager;
+            manager.addPreRaAnalysisPass(pass);
+            MicroPassContext context;
+            context.callConvKind        = CallConvKind::Swag;
+            context.sanitizerSafetyMask = static_cast<uint16_t>(Runtime::SafetyWhat::Overflow);
+            const Result result         = builder.runPasses(manager, nullptr, context);
+            if (result != (overflow ? Result::Error : Result::Continue))
+                return Result::Error;
+            if (!overflow && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::SanityIntDivision) != 0)
+                return Result::Error;
+        }
+    return Result::Continue;
 }
 SWC_TEST_END()
 

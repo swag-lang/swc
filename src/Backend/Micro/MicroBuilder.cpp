@@ -388,6 +388,15 @@ void MicroBuilder::emitSanityRelease(MicroReg addrReg, uint64_t offset)
     ops[1].valueU64         = offset;
 }
 
+void MicroBuilder::emitSanityIntDivision(MicroReg dividend, MicroReg divisor, MicroOpBits bits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::SanityIntDivision, 3);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = dividend;
+    ops[1].reg              = divisor;
+    ops[2].opBits           = bits;
+}
+
 MicroLabelRef MicroBuilder::createLabel()
 {
     const MicroLabelRef labelRef(static_cast<uint32_t>(labels_.size()));

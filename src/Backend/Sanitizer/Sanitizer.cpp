@@ -54,7 +54,7 @@ namespace
     uint8_t sanitizerCheckInterests(const MicroInstr& inst, const MicroInstrDef& def)
     {
         uint8_t result = 0;
-        if (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryRegReg)
+        if (inst.op == MicroInstrOpcode::SanityIntDivision || inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryRegReg)
             result |= static_cast<uint8_t>(SanitizerCheckInterest::Binary);
         if (def.flags.has(MicroInstrFlagsE::IsCallInstruction) || inst.op == MicroInstrOpcode::SanityRelease)
             result |= static_cast<uint8_t>(SanitizerCheckInterest::Call);
@@ -1087,6 +1087,12 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         changed                   = true;
     }
 
+    if (into.comparison.isKnown() && into.comparison != from.comparison)
+    {
+        into.comparison = {};
+        changed         = true;
+    }
+
     if (into.flagsSubject.isValid() && (into.flagsSubject != from.flagsSubject || into.flagsBits != from.flagsBits))
     {
         into.flagsSubject = MicroReg::invalid();
@@ -1245,6 +1251,9 @@ void Sanitizer::appendAliasClass(SmallVector<int64_t>& out, const SanitizerState
 
 void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops) const
 {
+    if (MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, ops) || def.flags.has(MicroInstrFlagsE::IsCallInstruction))
+        state.comparison = {};
+
     if (!state.stack.empty() && def.flags.has(MicroInstrFlagsE::WritesMemory) && !def.flags.has(MicroInstrFlagsE::IsCallInstruction))
     {
         int64_t slot = 0;
@@ -1351,6 +1360,9 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
 
     switch (inst.op)
     {
+        case MicroInstrOpcode::SanityIntDivision:
+            return;
+
         case MicroInstrOpcode::SanityRelease:
         {
             int64_t slot = 0;
@@ -1759,11 +1771,21 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         }
 
         case MicroInstrOpcode::CmpRegImm:
+        {
+            const auto left = getReg(state, ops[0].reg);
+            if (left.isConstant() && !ops[0].reg.isAnyFloat())
+                state.comparison = MicroCompare::evaluate(left.constant, ops[2].valueU64, ops[1].opBits);
             state.flagsSubject = ops[2].valueU64 == 0 ? ops[0].reg : MicroReg::invalid();
             state.flagsBits    = static_cast<uint8_t>(getNumBits(ops[1].opBits));
             return;
+        }
 
         case MicroInstrOpcode::CmpRegReg:
+        {
+            const auto left  = getReg(state, ops[0].reg);
+            const auto right = getReg(state, ops[1].reg);
+            if (left.isConstant() && right.isConstant() && !ops[0].reg.isAnyFloat() && !ops[1].reg.isAnyFloat())
+                state.comparison = MicroCompare::evaluate(left.constant, right.constant, ops[2].opBits);
             state.flagsBits = static_cast<uint8_t>(getNumBits(ops[2].opBits));
             if (getReg(state, ops[1].reg).isZero())
                 state.flagsSubject = ops[0].reg;
@@ -1772,10 +1794,18 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             else
                 state.flagsSubject = MicroReg::invalid();
             return;
+        }
 
         case MicroInstrOpcode::SetCondReg:
         {
-            SanitizerRegInfo        info;
+            SanitizerRegInfo info;
+            bool             taken = false;
+            if (state.comparison.tryCondition(taken, ops[1].cpuCond))
+            {
+                info.value = SanitizerValue::makeConstant(taken);
+                setReg(state, ops[0].reg, info);
+                return;
+            }
             const SanitizerRegInfo* subject       = state.flagsSubject.isValid() ? findReg(state, state.flagsSubject) : nullptr;
             bool                    trueIfZero    = false;
             bool                    subjectIsZero = false;
@@ -1983,6 +2013,15 @@ bool Sanitizer::condIsZeroTest(MicroCond cond, bool& outTrueIfZero)
 // and fall back to dropping provable zeros when it cannot be modelled.
 void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInstrOperand* ops, const MicroControlFlowGraph::EdgeList& succs, SmallVector<uint32_t, 32>& worklist)
 {
+    bool taken = false;
+    if (state.comparison.tryCondition(taken, ops[0].cpuCond))
+    {
+        state.comparison   = {};
+        state.flagsSubject = MicroReg::invalid();
+        propagate(std::move(state), succs[taken ? 0 : 1], worklist);
+        return;
+    }
+
     const bool              hasSubject   = state.flagsSubject.isValid();
     const SanitizerRegInfo* subject      = hasSubject ? findReg(state, state.flagsSubject) : nullptr;
     const SanitizerValue    subjectValue = stackBaseReg_.isValid() && state.flagsSubject == stackBaseReg_

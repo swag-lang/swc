@@ -711,6 +711,13 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
 // signed-overflow arm already used and the reason it was written that way.
 Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg leftReg, const MicroReg rightReg, const MicroOp op, const MicroOpBits opBits, const bool isSigned, const bool zeroOnOverflow)
 {
+    // The guard bypasses the hardware operation on MIN/-1, even without runtime safety.
+    // Keep its source-level overflow visible to sanity before pruning guarded branches.
+    const uint16_t sanityMask = codeGen.function().attributes().effectiveSanityMask(codeGen.buildCfg().sanityGuards);
+    if (isSigned && (sanityMask & static_cast<uint16_t>(Runtime::SafetyWhat::Overflow)))
+        codeGen.builder().emitSanityIntDivision(leftReg, rightReg, opBits);
+
+
     const auto* nodePayload   = codeGen.loweringPayload(codeGen.curNodeRef());
     const bool  guardZero     = nodePayload && nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Math);
     const bool  guardOverflow = isSigned;

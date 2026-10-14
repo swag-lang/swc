@@ -30,7 +30,7 @@ void IntOverflowCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
         return;
 
     // `dst = dst <op> divisor`, with dst read as the dividend.
-    if (inst.op == MicroInstrOpcode::OpBinaryRegReg && isSignedDivOrModulo(ops[3].microOp))
+    if (inst.op == MicroInstrOpcode::SanityIntDivision || (inst.op == MicroInstrOpcode::OpBinaryRegReg && isSignedDivOrModulo(ops[3].microOp)))
     {
         const SanitizerValue dividend = sanitizer.getReg(state, ops[0].reg);
         const SanitizerValue divisor  = sanitizer.getReg(state, ops[1].reg);

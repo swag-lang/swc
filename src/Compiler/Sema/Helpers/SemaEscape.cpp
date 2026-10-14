@@ -398,8 +398,16 @@ namespace
                 // An implicit conversion (e.g. the nullable widening synthesized when a
                 // flow-narrowed value meets a nullable target) must stay transparent for
                 // field-sensitive borrow tracking.
-                const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
-                if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
+                const AstNodeRef operandRef      = node.cast<AstCastExpr>().nodeExprRef;
+                const bool       selfSubstituted = castOperandSelfSubstituted(sema, resolvedRef, operandRef);
+                const TypeRef    operandTypeRef  = selfSubstituted ? sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef() : expressionTypeRef(sema, operandRef);
+                const TypeRef    resultTypeRef   = expressionTypeRef(sema, resolvedRef);
+                // Decoding an integer address designates its pointee, not the
+                // integer's local slot. It cannot preserve a storage projection.
+                if (resultTypeRef.isValid() && unwrapAliasEnumType(sema, resultTypeRef).isAnyPointer() &&
+                    (!operandTypeRef.isValid() || !unwrapAliasEnumType(sema, operandTypeRef).isAnyPointer()))
+                    return false;
+                if (selfSubstituted)
                     return storageProjectionAt(sema, operandRef, outProjection, depth + 1);
                 return storageProjection(sema, operandRef, outProjection, depth + 1);
             }

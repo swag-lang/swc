@@ -1,6 +1,6 @@
 #pragma once
 #include "Backend/Runtime.h"
-#include "Compiler/ModuleApi/ModuleApi.h"
+#include "Compiler/ModuleApi/ModuleApi.Types.h"
 #include "Compiler/Sema/Helpers/SemaEscapeTypes.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/SourceFile.h"

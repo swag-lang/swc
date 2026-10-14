@@ -85,7 +85,8 @@ struct NativeObjDescription
     bool                             includeData            = false;
     bool                             includeMergedRData     = false;
     bool                             splitRDataReferences   = false;
-    uint32_t                         rdataShardIndex        = INVALID_REF;
+    uint16_t                         rdataShardIndex        = 0;
+    uint16_t                         rdataAllocationCount   = 0;
     uint32_t                         rdataAllocationIndex   = INVALID_REF;
     bool                             allowUnresolvedSymbols = false;
 };

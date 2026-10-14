@@ -59,11 +59,18 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
         sections.push_back(std::move(section));
     }
 
-    if (description.rdataAllocationIndex != INVALID_REF)
+    if (description.rdataAllocationCount)
     {
-        CoffSectionBuild section;
-        SWC_RESULT(buildRDataAllocationSection(section, description));
-        sections.push_back(std::move(section));
+        SWC_ASSERT(!description.includeMergedRData);
+        SWC_ASSERT(description.rdataShardIndex < ConstantManager::SHARD_COUNT);
+        const auto& mappings = builder_->rdataAllocationMap[description.rdataShardIndex];
+        SWC_ASSERT(description.rdataAllocationIndex + description.rdataAllocationCount <= mappings.size());
+        for (uint32_t i = 0; i < description.rdataAllocationCount; ++i)
+        {
+            CoffSectionBuild section;
+            SWC_RESULT(buildRDataAllocationSection(section, mappings[description.rdataAllocationIndex + i]));
+            sections.push_back(std::move(section));
+        }
     }
 
     if (description.includeData && !builder_->mergedData.bytes.empty())
@@ -172,12 +179,8 @@ Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& des
     return Result::Continue;
 }
 
-Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& section, const NativeObjDescription& description) const
+Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& section, const NativeRDataAllocationMapEntry& allocation) const
 {
-    SWC_ASSERT(description.rdataShardIndex < ConstantManager::SHARD_COUNT);
-    const auto& mappings = builder_->rdataAllocationMap[description.rdataShardIndex];
-    SWC_ASSERT(description.rdataAllocationIndex < mappings.size());
-    const NativeRDataAllocationMapEntry& allocation = mappings[description.rdataAllocationIndex];
     SWC_ASSERT(allocation.emittedOffset + allocation.size <= builder_->mergedRData.bytes.size());
 
     // The collector emits allocations in offset order and sorts each allocation's relocations.
@@ -247,7 +250,7 @@ Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& 
         {
             SWC_ASSERT(owner.symbol != nullptr);
             generatedOwnerName = owner.symbol->getFullScopedName(builder_->ctx());
-            ownerName           = &generatedOwnerName;
+            ownerName          = &generatedOwnerName;
         }
 
         SWC_RESULT(appendSingleCodeRelocation(owner.textOffset, *ownerName, relocation, textSection, allowUnresolvedSymbols, splitRDataReferences));
@@ -355,23 +358,18 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
                                                 });
     }
 
-    if (description.rdataAllocationIndex != INVALID_REF)
+    for (uint32_t i = 0; i < description.rdataAllocationCount; ++i)
     {
-        const auto& allocation = builder_->rdataAllocationMap[description.rdataShardIndex][description.rdataAllocationIndex];
-        for (const auto& section : sections)
-        {
-            if (section.data.name != ".rdata" && section.data.name != ".rbss")
-                continue;
-
-            addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = builder_->rdataAllocationSymbol(allocation),
-                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                                                        .value         = 0,
-                                                        .type          = 0,
-                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                    });
-            break;
-        }
+        const auto& allocation = builder_->rdataAllocationMap[description.rdataShardIndex][description.rdataAllocationIndex + i];
+        const auto& section    = sections[i + 1];
+        SWC_ASSERT(section.data.name == ".rdata" || section.data.name == ".rbss");
+        addSymbolRecord(symbols, symbolIndices, {
+                                                    .name          = builder_->rdataAllocationSymbol(allocation),
+                                                    .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                    .value         = 0,
+                                                    .type          = 0,
+                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                });
     }
 
     if (!description.includeData)

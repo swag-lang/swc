@@ -1271,21 +1271,24 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         flushRootRef = parentRef;
     }
 
-    temporaryDrops_.push_back({flushRootRef, &storage, typeRef, ownsValue});
+    temporaryDrops_.push_back({flushRootRef, &storage, typeRef});
 }
 
 Result CodeGen::emitTemporaryDropsForFailure(AstNodeRef scopeRef)
 {
     // Emit the exceptional edge without retiring the successful edge's cleanups.
     // A handler nested in a later operand does not unwind earlier sibling operands.
+    // Every queued cleanup names an initialized temporary, including ordinary
+    // call results whose expression is not marked as an explicit owned move.
     for (size_t i = temporaryDrops_.size(); i != 0; --i)
     {
         const CodeGenTemporaryDrop drop = temporaryDrops_[i - 1];
-        if (!drop.storageSym || !drop.ownsValue)
+        if (!drop.storageSym)
             continue;
         for (size_t up = 0;; ++up)
         {
-            const AstNodeRef parentRef = visit_.parentNodeRef(up);
+            // The failure expression itself can own completed operand temporaries.
+            const AstNodeRef parentRef = up ? visit_.parentNodeRef(up - 1) : curNodeRef();
             if (parentRef.isInvalid())
                 break;
             if (parentRef == drop.flushRootRef)

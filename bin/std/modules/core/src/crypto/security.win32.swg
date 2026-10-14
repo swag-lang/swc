@@ -15,5 +15,5 @@ func(T) secureClear(buffer: [..] T)
     const elementSize = #sizeof(T)
     let byteCount = buffer.count * elementSize
     if byteCount do
-        discard RtlZeroMemory(buffer.buffer, byteCount)
+        RtlZeroMemory(buffer.buffer, byteCount)
 }

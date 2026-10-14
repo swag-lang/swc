@@ -18,45 +18,6 @@ Several entries rename a public name or a lexer token. Follow
 declaration. `src/Backend/Runtime*.h` mirrors part of `api.swg` field by field; keep both sides
 in sync in the same change.
 
-### runtime.api.001 — Nested `catch` overruns the context's error stack at depth 32
-
-- Evidence: every `catch`, `expect` and checked `assume` wrapper calls `__pushErr` on entry
-  ([CodeGen.Function.Post.cpp:1529](../src/Compiler/CodeGen/Ast/CodeGen.Function.Post.cpp#L1529))
-  and keeps the frame for its whole body. [`__pushErr`](../bin/runtime/error.swg#L613) indexes
-  `cxt.errors[cxt.errorIndex]` with no bound, and
-  [`__catchErr`](../bin/runtime/error.swg#L693) reads the slot at `errorIndex`, one past the last
-  pushed frame. Only `__installErrRecord` checks `MaxErrors`, and too late.
-- Repro (scratch `.swgs`, `swc.exe <file>`, devmode):
-
-  ```swag
-  func depth(n: u32)->u32 fail
-  {
-      if n == 0 do
-          return 0
-      let r = catch depth(n - 1)
-      return r + 1
-  }
-
-  #main
-  {
-      let v = catch depth(31)
-      Swag.print(v, "\n")
-  }
-  ```
-
-  `depth(30)` prints 30. `depth(31)` panics "index is out of bounds" at `error.swg:699`
-  (`__catchErr`), `depth(32)` at `error.swg:616` (`__pushErr`). Release builds have no bounds
-  check, so the same program writes a 144-byte `ErrorValue` past `Context.errors`, over the
-  fields declared after it (`exceptionLoc`, `exceptionParams`, the `panic` hook, `curError` and
-  the error counters).
-- Next: add the bound to `__pushErr` with the explicit panic `__installErrRecord` already uses,
-  sized so `__catchErr`'s slot stays in range (at most `MaxErrors - 1` pushed frames), and add
-  this repro to the runtime error tests at depths 30, 31 and 40. The depth itself is decided in
-  runtime.api.003; this entry only removes the overrun.
-- Done when: no nesting depth of `catch`/`expect` reads or writes outside `Context.errors` in
-  any configuration, and a test pins the behaviour at the limit.
-- Related: runtime.api.003
-
 ### runtime.api.002 — `F32.Min` is the smallest positive value, unlike every other `Min`
 
 - Evidence: in [api.swg](../bin/runtime/api.swg) `Swag.S8.Min` through `Swag.S64.Min` are the
@@ -65,14 +26,6 @@ in sync in the same change.
   `float.MinValue` and Go's `-math.MaxFloat32` idiom all mean the most negative finite value.
   The same name meaning two things inside one family is a trap; the Core vector constants
   already carry a warning comment about it (`Vector2.Min`: "not the most negative value").
-- Evidence: four maximum accumulators start from `Swag.F32.Min`, so they return a tiny positive
-  number when every sample is zero or negative:
-  - [inlineview.swg:1117](../bin/std/modules/gui/src/controls/markdown/inlineview.swg#L1117)
-    and [:1145](../bin/std/modules/gui/src/controls/markdown/inlineview.swg#L1145): `right` of a
-    selection or search highlight;
-  - [commanddump.swg:320-322](../bin/std/modules/pixel/src/testing/commanddump.swg#L320):
-    `bbMax` and `uvMax` of a vertex dump, wrong for any geometry left or above the origin;
-  - [swag.swgs:64](../bin/examples/scripts/swag.swgs#L64): `maxPos` of the glyph outline.
 - Evidence: the deliberate uses of the smallest normal are
   [parse.swg:326](../bin/std/modules/core/src/text/parse.swg#L326) and its test
   [parse.test.swg:59](../bin/std/modules/core/src/tests/text/parse.test.swg#L59), plus the
@@ -81,8 +34,7 @@ in sync in the same change.
   representable range, so `F32.Min == -F32.Max`. The smallest positive normal value is
   `F32.MinNormal` / `F64.MinNormal`. Keep `Inf`, `NegInf`, `NaN`, `MantBits`, `ExpBits` and
   `Bias` unchanged (`Bias` follows Go's `float64info` convention used by `decimal.swg`).
-- Next: fix the four accumulators first, to `-Swag.F32.Max`, in their own commit; they are bugs
-  under either meaning. Then add `MinNormal`, move the parse code and test to it, decide whether
+- Next: add `MinNormal`, move the parse code and test to it, decide whether
   `Math.VectorN.Min` follows `F32.Min` (recommended: yes, and drop the warning comment), and
   flip `F32.Min` / `F64.Min` in the same commit after grepping every remaining `F32.Min` and
   `F64.Min` in `bin/`, `tools/` and `bin/reference`. A silent meaning change cannot be split
@@ -107,23 +59,24 @@ in sync in the same change.
   ordinary "copy the current context, change the allocator, push it" pattern moves 7 KB of
   stack per use.
 - Evidence: the error stack is a fixed `[32] ErrorValue`. Each active `catch`/`expect` holds
-  one frame for its body, so a recursion that calls itself under `catch` is limited to about 31
-  levels; past that it currently overruns the array (runtime.api.001). Nothing in the language
-  reference states the limit.
+  one frame for its body, so a recursion that calls itself under `catch` stops with a panic once
+  the frames in use reach 31 (`__pushErr`, pinned by `native/runtime/error_nesting.swg`). Nothing
+  in the language reference states the limit.
 - Evidence: `user0`..`user3: u64` are four untyped slots. Their only users in `bin/` are
   `core/src/tests/system/context.test.swg`, which uses `user0` as a marker.
 - Next: decide the layout from the four costs above, in this order. (1) Keep the error frame
   stack small: store in `ErrorValue` only what `__popErr` restores (block, used, capacity), not
   a whole `ScratchAllocator`, and measure the new `#sizeof`. (2) Either grow the error stack on
   demand (the frames could live in the wrapper's own stack frame, which already owns an
-  `ErrorCapture`) or state its depth in the reference next to `catch`. (3) Make `pushContext` take `const *Swag.Context` (or a by-reference parameter) and
+  `ErrorCapture`) or state its depth in the reference next to `catch`.
+  (3) Make `pushContext` take `const *Swag.Context` (or a by-reference parameter) and
   migrate its callers. (4) Replace `user0..3` by one `userData: *void?` plus one `userTag: u64`,
   or remove them if no consumer wants them. Keep the fields marked "must stay first" and the
   C++ mirror in [RuntimeContext.h](../src/Backend/RuntimeContext.h) in sync.
 - Done when: `#sizeof(Swag.Context)` is recorded in a test, the error stack no longer embeds a
   scratch allocator per frame, the nesting limit is either gone or documented and tested, and
   `pushContext` no longer copies a context.
-- Related: runtime.api.001, runtime.api.007, language.parallelism.001
+- Related: runtime.api.007, language.parallelism.001
 
 ### runtime.api.004 — The `Swag` namespace has no admission rule, and the build API lives in it
 

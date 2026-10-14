@@ -61,7 +61,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         // The outline arrives in the type's own coordinates, so the word is measured before it is
         // placed. A hand-tuned offset only ever centers it in the one window it was tuned in.
         var minPos = Vector2{Swag.F32.Max, Swag.F32.Max}
-        var maxPos = Vector2{Swag.F32.Min, Swag.F32.Min}
+        var maxPos = Vector2{-Swag.F32.Max, -Swag.F32.Max}
 
         for path in pl.toSlice()
         {

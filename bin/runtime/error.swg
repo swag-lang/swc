@@ -546,9 +546,7 @@ func __copyOwnedErrRecord(source: *ErrorRecord)->*ErrorRecord
 
 private func __installErrRecord(record: *ErrorRecord)
 {
-    let context = Swag.getContext()
-    if context.errorIndex >= MaxErrors do
-        Swag.panic("error propagation nesting exceeds its supported depth", #curlocation)
+    let context  = Swag.getContext()
     let slot     = &context.errors[context.errorIndex]
     let previous = slot.record
     slot.record      = record
@@ -612,7 +610,12 @@ func __isErrContext()->bool
 
 func __pushErr()
 {
-    let cxt   = Swag.getContext()
+    // The slot above the pushed frames holds the error raised inside them, so a push must
+    // leave one free.
+    let cxt = Swag.getContext()
+    if cxt.errorIndex + 1 >= MaxErrors do
+        Swag.panic("error propagation nesting exceeds its supported depth", #curlocation)
+
     let frame = &cxt.errors[cxt.errorIndex]
     Swag.memcpy(&frame.pushErrorAllocator, &cxt.errorAllocator, #sizeof(ScratchAllocator))
     Swag.init(&cxt.errorAllocator, 1)

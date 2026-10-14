@@ -1,4 +1,4 @@
-# Runtime Backlog
+# Runtime API Backlog
 
 This backlog covers the public surface of [bin/runtime](../bin/runtime): the `Swag` namespace,
 its constants, the per-thread `Swag.Context`, the allocator interface, and the intrinsic
@@ -18,7 +18,7 @@ Several entries rename a public name or a lexer token. Follow
 declaration. `src/Backend/Runtime*.h` mirrors part of `api.swg` field by field; keep both sides
 in sync in the same change.
 
-### runtime.001 — Nested `catch` overruns the context's error stack at depth 32
+### runtime.api.001 — Nested `catch` overruns the context's error stack at depth 32
 
 - Evidence: every `catch`, `expect` and checked `assume` wrapper calls `__pushErr` on entry
   ([CodeGen.Function.Post.cpp:1529](../src/Compiler/CodeGen/Ast/CodeGen.Function.Post.cpp#L1529))
@@ -52,12 +52,12 @@ in sync in the same change.
 - Next: add the bound to `__pushErr` with the explicit panic `__installErrRecord` already uses,
   sized so `__catchErr`'s slot stays in range (at most `MaxErrors - 1` pushed frames), and add
   this repro to the runtime error tests at depths 30, 31 and 40. The depth itself is decided in
-  runtime.003; this entry only removes the overrun.
+  runtime.api.003; this entry only removes the overrun.
 - Done when: no nesting depth of `catch`/`expect` reads or writes outside `Context.errors` in
   any configuration, and a test pins the behaviour at the limit.
-- Related: runtime.003
+- Related: runtime.api.003
 
-### runtime.002 — `F32.Min` is the smallest positive value, unlike every other `Min`
+### runtime.api.002 — `F32.Min` is the smallest positive value, unlike every other `Min`
 
 - Evidence: in [api.swg](../bin/runtime/api.swg) `Swag.S8.Min` through `Swag.S64.Min` are the
   most negative values, while `Swag.F32.Min = 1.17549435e-38` and `Swag.F64.Min = 2.2250738e-308`
@@ -91,7 +91,7 @@ in sync in the same change.
   exists and is documented, no maximum accumulator in `bin/` starts from a positive constant,
   and the Core, GUI and Pixel tests pass.
 
-### runtime.003 — `Swag.Context` is 7 KB per thread and caps error nesting at 32
+### runtime.api.003 — `Swag.Context` is 7 KB per thread and caps error nesting at 32
 
 - Evidence: measured with `#sizeof` in a `.swgs` probe, `Swag.Context` is 7,064 bytes.
   `errors: [32] ErrorValue` takes 4,608 of them (65%), because each 144-byte `ErrorValue`
@@ -108,7 +108,7 @@ in sync in the same change.
   stack per use.
 - Evidence: the error stack is a fixed `[32] ErrorValue`. Each active `catch`/`expect` holds
   one frame for its body, so a recursion that calls itself under `catch` is limited to about 31
-  levels; past that it currently overruns the array (runtime.001). Nothing in the language
+  levels; past that it currently overruns the array (runtime.api.001). Nothing in the language
   reference states the limit.
 - Evidence: `user0`..`user3: u64` are four untyped slots. Their only users in `bin/` are
   `core/src/tests/system/context.test.swg`, which uses `user0` as a marker.
@@ -123,9 +123,9 @@ in sync in the same change.
 - Done when: `#sizeof(Swag.Context)` is recorded in a test, the error stack no longer embeds a
   scratch allocator per frame, the nesting limit is either gone or documented and tested, and
   `pushContext` no longer copies a context.
-- Related: runtime.001, runtime.007, language.parallelism.001
+- Related: runtime.api.001, runtime.api.007, language.parallelism.001
 
-### runtime.004 — The `Swag` namespace has no admission rule, and the build API lives in it
+### runtime.api.004 — The `Swag` namespace has no admission rule, and the build API lives in it
 
 - Evidence: [api.swg](../bin/runtime/api.swg) (1,909 lines) serves five audiences in one
   namespace: the language vocabulary (`AttrUsage`, `Inline`, `Macro`, `Foreign`, `Safety`...),
@@ -159,7 +159,7 @@ in sync in the same change.
   rule or has its own entry.
 - Related: std.core.031, std.core.035, language.parallelism.001
 
-### runtime.005 — Intrinsic spellings follow three conventions and leak x86 mnemonics
+### runtime.api.005 — Intrinsic spellings follow three conventions and leak x86 mnemonics
 
 - Evidence: the `Swag.` intrinsics declared in
   [Tokens.Def.inc](../src/Compiler/Lexer/Tokens.Def.inc) use three casings at once.
@@ -192,9 +192,9 @@ in sync in the same change.
 - Done when: every `Swag.` intrinsic except `memcpy`, `memmove`, `memset` and `memcmp` is
   camelCase, no vector intrinsic is named after an x86 instruction, and the reference and
   VSCode grammar list the new spellings only.
-- Related: runtime.006, cpu.simd.012, std.core.031
+- Related: runtime.api.006, cpu.simd.012, std.core.031
 
-### runtime.006 — Opaque and unidiomatic public names in the runtime
+### runtime.api.006 — Opaque and unidiomatic public names in the runtime
 
 - Evidence, one name each:
   - `Swag.gvtd()` / `Swag.Gvtd` ("global variables to drop"): a four-letter acronym in the
@@ -211,12 +211,12 @@ in sync in the same change.
 - Next: pick the new names in this entry (proposed: `globalsToDrop` / `GlobalToDrop`,
   `processInfo` / `ProcessInfo`, `bitCountOnes` or `popCount`, `Unscoped`), then rename each in
   its own commit together with its lexer token, its C++ mirror, the reference and its
-  consumers. Apply the casing rule of runtime.005 to the result.
+  consumers. Apply the casing rule of runtime.api.005 to the result.
 - Done when: none of the names listed above remains in `bin/`, `src/`, the reference or the
   VSCode grammar.
-- Related: runtime.005
+- Related: runtime.api.005
 
-### runtime.007 — `IAllocator` forces debug operations on every allocator, and `ScratchAllocator` publishes its bookkeeping
+### runtime.api.007 — `IAllocator` forces debug operations on every allocator, and `ScratchAllocator` publishes its bookkeeping
 
 - Evidence: [IAllocator](../bin/runtime/api.swg#L574) has five mandatory methods. Of the nine
   implementations in `bin/`, five write both `mtd impl freeAll(...) {}` and
@@ -229,7 +229,7 @@ in sync in the same change.
   `maxUsed`, `firstLeak`, `totalLeak` and `maxLeak` public and writable. Outside the runtime,
   only `core/src/tests/time/timer.test.swg` (reads `firstLeak`) and the native runtime unit
   tests read them. `releaseOwner` and `releaseHook` are internal but sit in the same struct and
-  in every `ErrorValue` (runtime.003).
+  in every `ErrorValue` (runtime.api.003).
 - Next: make `freeAll` and `assertAllocated` optional at the interface level: either give
   `IAllocator` default implementations if the language supports them, or replace both by one
   `capabilities()` query plus the two operations on a separate optional interface. Decide what
@@ -240,9 +240,9 @@ in sync in the same change.
 - Done when: an allocator that only allocates, reallocates and frees implements three
   methods, no implementation in `bin/` contains an empty `assertAllocated`, and no code outside
   the runtime writes a `ScratchAllocator` field.
-- Related: runtime.003, runtime.allocator.002
+- Related: runtime.api.003, runtime.allocator.002
 
-### runtime.008 — The runtime has one target, and its public enums say so
+### runtime.api.008 — The runtime has one target, and its public enums say so
 
 - Evidence: `Swag.TargetArch` has the single member `X86_64` and the runtime's only host leaf is
   [os.win32.swg](../bin/runtime/os.win32.swg) (745 lines). `CallConv.WindowsX64` is a public
@@ -250,9 +250,9 @@ in sync in the same change.
   [platform.portability.md](platform.portability.md); this entry only covers what the public
   runtime surface must look like once a second target exists.
 - Next: list every public runtime declaration whose name or members encode Windows or x86-64
-  (`TargetArch`, `TargetOs`, `CallConv`, the `Swag.vec*` ISA names of runtime.005, the
+  (`TargetArch`, `TargetOs`, `CallConv`, the `Swag.vec*` ISA names of runtime.api.005, the
   `SystemError.errorID` meaning), and state for each whether it stays as an enumerated target
   or moves behind a neutral name, so the first port does not have to rename public API.
 - Done when: that list exists in this entry with a decision per declaration, and every
   decision that renames something has its own entry or has landed.
-- Related: platform.portability.035, runtime.005
+- Related: platform.portability.035, runtime.api.005

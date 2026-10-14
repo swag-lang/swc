@@ -248,16 +248,9 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         worker.scheduler = sched
         worker.context   = template[]
 
-        // The copy still points at this thread's scratch blocks. Reset both before the worker
-        // can allocate, so it owns its own storage instead of releasing the creator's.
-        Swag.init(&worker.context.tempAllocator, 1)
-        Swag.init(&worker.context.errorAllocator, 1)
-        Swag.init(worker.context.errors.buffer, worker.context.errors.count)
-        worker.context.curError      = null
-        worker.context.errorCaptures = null
-        worker.context.hasError      = 0
-        worker.context.errorIndex    = 0
-        worker.context.traceIndex    = 0
+        // The copy still points at this thread's scratch blocks. Reset it before the worker can
+        // allocate, so it owns its own storage instead of releasing the creator's.
+        worker.context.resetThreadState()
 
         worker.handle = __hostThreadCreate(&schedulerWorkerEntry, worker)
         if not worker.handle do

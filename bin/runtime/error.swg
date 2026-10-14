@@ -224,6 +224,27 @@ namespace Swag
             Swag.assert(.errorIndex == 0 and .errorCaptures == null)
             __releaseErrContext(me)
         }
+
+        // Forgets the state a copied context still shares with the thread it was copied from.
+        //
+        // A context copied to start another thread keeps its settings -- allocators, flags,
+        // capacities -- but must own its scratch blocks and error state, and must not point at
+        // the creator's innermost panic catch or at the work the creator was running. Call it on
+        // the copy before the new thread uses it, then give the scratch allocators their capacity.
+        public mtd resetThreadState()
+        {
+            Swag.init(&.tempAllocator, 1)
+            Swag.init(&.errorAllocator, 1)
+            Swag.init(.errors.buffer, .errors.count)
+            .curError        = null
+            .errorCaptures   = null
+            .hasError        = 0
+            .errorIndex      = 0
+            .traceIndex      = 0
+            .panicStackCount = 0
+            .panicCatch      = null
+            .cancelScope     = null
+        }
     }
 }
 

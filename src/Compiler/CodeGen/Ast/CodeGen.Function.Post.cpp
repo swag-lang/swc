@@ -566,6 +566,44 @@ namespace
         return symVar;
     }
 
+    // The place 'return #move place' gives away when it outlives the return, such as a field, a
+    // global or a pointee. A variable of the function itself is not such a place: a local moves
+    // out through 'returnMoveOutSource', and 'retval' already is the return storage.
+    AstNodeRef returnMovedPlace(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        const auto* unary = codeGen.node(exprRef).safeCast<AstUnaryExpr>();
+        if (!unary || codeGen.token(unary->codeRef()).id != TokenId::ModifierMove)
+            return AstNodeRef::invalid();
+        if (!codeGen.sema().isLValue(codeGen.node(unary->nodeExprRef)))
+            return AstNodeRef::invalid();
+
+        const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, unary->nodeExprRef);
+        if (symVar && (symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal)))
+            return AstNodeRef::invalid();
+        return unary->nodeExprRef;
+    }
+
+    // Once the value of a moved place is in the return storage, the place is reset, so its own
+    // drop later finds nothing to release: exactly what 'var x = #move place' does.
+    Result resetMovedReturnPlace(CodeGen& codeGen, TypeRef typeRef, AstNodeRef exprRef, AstNodeRef placeRef)
+    {
+        if (!codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
+            return Result::Continue;
+        const CodeGenNodePayload& placePayload = codeGen.payload(placeRef);
+        const MicroReg            placeReg     = placePayload.isAddress() ? placePayload.reg : codeGen.payload(exprRef).reg;
+        return CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, typeRef, placeReg);
+    }
+
+    // Completes an indirect return of a moved place: the return storage takes the value with
+    // 'opPostMove', then the place is reset.
+    Result finishMovedPlaceReturn(CodeGen& codeGen, TypeRef typeRef, AstNodeRef exprRef, AstNodeRef placeRef, MicroReg outputStorageReg)
+    {
+        // An address payload already ran the hook with the return copy.
+        if (!codeGen.payload(exprRef).isAddress() && codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::PostMove))
+            SWC_RESULT(codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::PostMove, outputStorageReg));
+        return resetMovedReturnPlace(codeGen, typeRef, exprRef, placeRef);
+    }
+
     Result emitFallibleCleanup(CodeGen& codeGen, FallibleHandlerKind kind, AstNodeRef nodeRef, bool failurePath)
     {
         switch (kind)
@@ -661,8 +699,12 @@ namespace
         return true;
     }
 
-    Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef, const SymbolVariable* moveOutVar)
+    const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef);
+    AstNodeRef            returnExprThroughRetValMove(CodeGen& codeGen, AstNodeRef exprRef);
+
+    Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef returnExprRef, const SymbolVariable* moveOutVar)
     {
+        const AstNodeRef exprRef = returnExprThroughRetValMove(codeGen, returnExprRef);
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
         SWC_ASSERT(exprRef.isValid());
 
@@ -685,14 +727,19 @@ namespace
         SWC_RESULT(emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef));
 
         // The selected inline result storage must own its value, like a real return slot: a
-        // moved-out local or an owned call temporary transfers with 'opPostMove'; any other
-        // lifecycle source is deep-copied so the store does not alias a live value.
+        // moved-out local, the 'retval' local (never dropped itself), a moved place or an owned
+        // call temporary transfers with 'opPostMove'; any other lifecycle source is deep-copied so
+        // the store does not alias a live value.
         if (codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
             return Result::Continue;
-        const bool movesOwnership     = moveOutVar != nullptr || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
-        const auto storeLifecycleKind = movesOwnership ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        const AstNodeRef movedPlaceRef      = moveOutVar ? AstNodeRef::invalid() : returnMovedPlace(codeGen, exprRef);
+        const bool       returnsRetVal      = returnExprRetValVariable(codeGen, exprRef) != nullptr;
+        const bool       movesOwnership     = moveOutVar != nullptr || returnsRetVal || movedPlaceRef.isValid() || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
+        const auto       storeLifecycleKind = movesOwnership ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         if (!returnSourceIsConstantLiteral(codeGen, payloadExprRef, exprPayload) && codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
             SWC_RESULT(codeGen.emitLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind, resultAddr));
+        if (movedPlaceRef.isValid())
+            SWC_RESULT(resetMovedReturnPlace(codeGen, inlinePayload.returnTypeRef, exprRef, movedPlaceRef));
 
         if (movesOwnership)
         {
@@ -906,6 +953,19 @@ namespace
         return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ? &symVar : nullptr;
     }
 
+    // 'return #move result' on the 'retval' local asks for what 'return result' already does:
+    // the value is in the return storage. The operand is returned then, so the return recognizes
+    // that storage instead of copying it onto itself.
+    AstNodeRef returnExprThroughRetValMove(CodeGen& codeGen, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return exprRef;
+        const auto* unary = codeGen.node(exprRef).safeCast<AstUnaryExpr>();
+        if (!unary || codeGen.token(unary->codeRef()).id != TokenId::ModifierMove)
+            return exprRef;
+        return returnExprRetValVariable(codeGen, unary->nodeExprRef) ? unary->nodeExprRef : exprRef;
+    }
+
     bool shouldDelayReturnMaterializationForDeferredActions(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
@@ -960,8 +1020,9 @@ namespace
 
     bool isCompilerFunctionDecl(CodeGen& codeGen);
 
-    Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
+    Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef returnExprRef)
     {
+        const AstNodeRef                       exprRef                       = returnExprThroughRetValMove(codeGen, returnExprRef);
         MicroBuilder&                          builder                       = codeGen.builder();
         const CallConvKind                     callConvKind                  = symbolFunc.callConvKind();
         const CallConv&                        callConv                      = CallConv::get(callConvKind);
@@ -990,13 +1051,15 @@ namespace
         // Compiler-run persisted returns keep the copy semantics their machinery expects,
         // and a reference return borrows the local rather than consuming it.
         const SymbolVariable* moveOutVar          = nullptr;
+        AstNodeRef            movedPlaceRef       = AstNodeRef::invalid();
         bool                  movesOwnedTemporary = false;
         std::optional         copyLifecycleKind   = CodeGen::LifecycleKind::PostCopy;
         if (!needsPersistentCompilerReturn && !codeGen.typeMgr().get(returnTypeRef).isReference())
         {
             moveOutVar          = returnMoveOutSource(codeGen, exprRef);
+            movedPlaceRef       = moveOutVar ? AstNodeRef::invalid() : returnMovedPlace(codeGen, exprRef);
             movesOwnedTemporary = returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
-            if (moveOutVar != nullptr || movesOwnedTemporary)
+            if (moveOutVar != nullptr || movedPlaceRef.isValid() || movesOwnedTemporary)
                 copyLifecycleKind = CodeGen::LifecycleKind::PostMove;
             if (returnSourceIsConstantLiteral(codeGen, exprRef, exprPayload))
                 copyLifecycleKind.reset();
@@ -1017,12 +1080,16 @@ namespace
                 {
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
                     SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
+                    if (movedPlaceRef.isValid())
+                        SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
                 }
             }
             else if (!delayReturnMaterialization)
             {
                 emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
                 SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
+                if (movedPlaceRef.isValid())
+                    SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
 
             codeGen.setReturnMoveOutVar(moveOutVar);
@@ -1035,6 +1102,8 @@ namespace
             {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
                 SWC_RESULT(emitLifecycleAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg, copyLifecycleKind));
+                if (movedPlaceRef.isValid())
+                    SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
@@ -1061,6 +1130,10 @@ namespace
                     builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
                 else
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
+
+                // A register return transfers the bits and runs no hook; the moved place is still reset.
+                if (movedPlaceRef.isValid())
+                    SWC_RESULT(resetMovedReturnPlace(codeGen, returnTypeRef, exprRef, movedPlaceRef));
             }
 
             codeGen.setReturnMoveOutVar(moveOutVar);
@@ -1079,6 +1152,9 @@ namespace
                     builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
                 else
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
+
+                if (movedPlaceRef.isValid())
+                    SWC_RESULT(resetMovedReturnPlace(codeGen, returnTypeRef, exprRef, movedPlaceRef));
             }
             ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
         }

@@ -89,16 +89,10 @@ impl Thread
 
         .context = Swag.getContext()[]
         let inheritedCapacity = .context.tempAllocator.capacity
-        Swag.init(&.context.tempAllocator, 1)
 
         // A worker inherits allocator policy, not the creator's live scratch blocks or errors.
-        Swag.init(&.context.errorAllocator, 1)
-        Swag.init(.context.errors.buffer, .context.errors.count)
-        Swag.init(&.context.curError, 1)
-        .context.errorCaptures = null
-        .context.errorIndex    = 0
-        .context.traceIndex    = 0
-        .context.hasError      = 0
+        .context.resetThreadState()
+
         let allocator = .context.allocator!
         if tempAllocSize < 0 do
             .context.tempAllocator.setCapacity(inheritedCapacity, allocator)

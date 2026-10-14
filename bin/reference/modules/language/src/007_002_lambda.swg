@@ -128,3 +128,25 @@ Lambdas may have parameters with default values, allowing flexible invocation.
         x(true)
     }
 }
+
+/**
+# Passing a Lambda That Cannot Fail
+
+A parameter whose type allows failure also accepts a function that never fails:
+calling it can only succeed. The opposite direction is rejected, because a
+caller that expects no failure would have nowhere to send one. When overloads
+take both forms, the one without 'fail' is chosen for a function that cannot
+fail.
+*/
+func runChecked(step: func(s32)->s32 fail, value: s32)->s32 fail => try step(value)
+
+func doubleIt(value: s32)->s32 => value * 2
+
+#test
+{
+    let doubled = expect runChecked(&doubleIt, 21)
+    Swag.assert(doubled == 42)
+
+    let negated = expect runChecked(func(x) => -x, 5)
+    Swag.assert(negated == -5)
+}

@@ -71,14 +71,7 @@ impl Timer
             let tempCapacity  = .tempAllocator.capacity
             let errorCapacity = .errorAllocator.capacity
 
-            Swag.init(&.tempAllocator, 1)
-            Swag.init(&.errorAllocator, 1)
-            Swag.init(.errors.buffer, .errors.count)
-            .curError      = null
-            .errorCaptures = null
-            .hasError      = 0
-            .errorIndex    = 0
-            .traceIndex    = 0
+            .resetThreadState()
 
             let allocator = .allocator!
             .tempAllocator.setCapacity(tempCapacity, allocator)

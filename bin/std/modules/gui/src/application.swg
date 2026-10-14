@@ -504,8 +504,9 @@ private impl Application
         {
             let evt = assume cast (*Event, it)
 
+            // A window destroyed after the event was posted left it without a target.
             if it is InvalidateEvent do
-                evt.target!.invalidate()
+                evt.target?.invalidate()
             else do
                 .sendEvent(it)
 
@@ -582,7 +583,8 @@ private impl Application
             }
         }
 
-        // Be sure there's no posted event for that window
+        // Be sure there's no posted event for that window. Other threads can post meanwhile.
+        Sync.scopedLock(&.mutexPostedEvents)
         for e in .postedEvents
         {
             let ptr = assume cast (*Event, e)

@@ -1359,7 +1359,12 @@ namespace
             // copy-to-move as well: a dedicated copy overload ('#fwd') must stay preferred.
             const bool bindsValueToMoveRef = bindValueTypeRef.isValid() && sema.typeMgr().get(to).isMoveReference();
 
-            outRank = (castRequest.usedCopyToMoveRef || bindsValueToMoveRef) ? ConvRank::CopyToMove : ConvRank::Standard;
+            if (castRequest.usedCopyToMoveRef || bindsValueToMoveRef)
+                outRank = ConvRank::CopyToMove;
+            else if (castRequest.usedFallibleWidening)
+                outRank = ConvRank::FallibleWidening;
+            else
+                outRank = ConvRank::Standard;
             return Result::Continue;
         }
 

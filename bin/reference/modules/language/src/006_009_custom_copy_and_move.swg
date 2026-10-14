@@ -77,9 +77,13 @@ the return then deep-copies through 'opPostCopy' and the local drops normally.
 # Move Expression Positions
 
 An explicit '#move' can transfer into a variable declaration, assignment, call parameter,
-struct-literal field, array-literal element, or conditional branch. The result has the value's
-type; it does not store a move reference. The '#move T' type itself remains restricted to
-function parameters.
+struct-literal field, array-literal element, conditional branch, or return. The result has the
+value's type; it does not store a move reference. The '#move T' type itself remains restricted
+to function parameters.
+
+Returning '#move place', where the place outlives the return -- a field, a global, a pointee --
+hands its value to the caller the same way: the return storage takes it with 'opPostMove' and
+the place is reset, so the value keeps one owner.
 
 Literal operands are evaluated in source order, including named fields written out of
 declaration order. Evaluating '#move source' constructs an owned value, runs 'opPostMove',
@@ -98,6 +102,11 @@ to their final destination; a program must not rely on a fixed number of these r
 */
 
 struct MovedField { value: Vector3 }
+
+impl MovedField
+{
+    mtd takeValue()->Vector3 => #move .value
+}
 
 #test
 {
@@ -118,6 +127,10 @@ struct MovedField { value: Vector3 }
     Swag.assert(left.x == 666)
     Swag.assert(right.x == 400)
     Swag.assert(selected.x > 100)
+
+    var holder = MovedField{Vector3{7, 8, 9}}
+    let taken  = holder.takeValue()
+    Swag.assert(taken.x > 7 and holder.value.x == 666)
 }
 
 /**

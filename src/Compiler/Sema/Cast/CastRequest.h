@@ -66,6 +66,10 @@ struct CastRequest
     // call-site temporary copy: overload resolution ranks this below an exact match.
     bool usedCopyToMoveRef = false;
 
+    // Set when a callable that never fails converted to a fallible callable type: an overload
+    // taking the infallible type stays preferred.
+    bool usedFallibleWidening = false;
+
     CastRequest() = delete;
     explicit CastRequest(CastKind kind);
 

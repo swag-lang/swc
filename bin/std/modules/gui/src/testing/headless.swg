@@ -1136,8 +1136,11 @@ impl HeadlessHost
     // Drains the application's posted event queue.
     mtd pumpPostedEvents()
     {
+        // Other threads post while the test runs, exactly as they do beside the real event loop.
+        .app.mutexPostedEvents.lock()
         let copy = .app.postedEvents
         .app.postedEvents.clear()
+        .app.mutexPostedEvents.unlock()
 
         var needUpdateState = false
         for it in copy

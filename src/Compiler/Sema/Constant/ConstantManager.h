@@ -9,6 +9,10 @@ SWC_BEGIN_NAMESPACE();
 class CompilerInstance;
 class Sema;
 class TaskContext;
+namespace Runtime
+{
+    struct SourceCodeLocation;
+}
 
 class ConstantManager
 {
@@ -29,6 +33,7 @@ public:
     ConstantRef      addConstant(const TaskContext& ctx, const ConstantValue& value);
     ConstantRef      addMaterializedPayloadConstant(const ConstantValue& value);
     ConstantRef      addUniqueMaterializedPayloadConstant(const ConstantValue& value);
+    ConstantRef      addSourceCodeLocation(const TaskContext& ctx, TypeRef typeRef, const Runtime::SourceCodeLocation& location);
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
     // A payload a packed instruction reads straight from memory, which the
     // legacy SSE forms require aligned to its full width.
@@ -196,6 +201,14 @@ public:
         std::mutex                                                                               mutex; // writers only
     };
 
+    // Canonical string offsets, the type and all four coordinates determine the complete
+    // immutable location, including its relocation graph. Raw payload interning cannot do this.
+    using SourceLocationKey = std::array<uint32_t, 7>;
+    struct SourceLocationKeyHash
+    {
+        size_t operator()(const SourceLocationKey& key) const noexcept;
+    };
+
     struct Shard
     {
         // Keep storage alive until the intern tables have destroyed their canonical values.
@@ -206,6 +219,8 @@ public:
         std::unordered_map<uint64_t, DataSegmentRef>                                                                                          constantStorageMap;
         std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash>                                     runtimeBufferMap;
         std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash, RuntimeStringConstantCacheKeyEqual> runtimeStringMap;
+        std::unordered_map<SourceLocationKey, ConstantRef, SourceLocationKeyHash>                                                             sourceLocationMap;
+        std::mutex                                                                                                                            sourceLocationMutex;
         mutable std::shared_mutex                                                                                                             typeInfoMutex;
         mutable std::shared_mutex                                                                                                             zeroPayloadMutex;
         mutable std::shared_mutex                                                                                                             constantStorageMutex;

@@ -621,6 +621,109 @@ SWC_TEST_BEGIN(ConstantManager_ChecksSharedRelocationGraphsPerQuery)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_SourceLocationsShareCompleteStorage)
+{
+    ConstantManager             manager;
+    const TypeRef               type = ctx.typeMgr().typeString();
+    Runtime::SourceCodeLocation location{
+        .fileName  = {.ptr = "shared.swg", .length = 10},
+        .funcName  = {.ptr = "sample", .length = 6},
+        .lineStart = 12,
+        .colStart  = 3,
+        .lineEnd   = 12,
+        .colEnd    = 9,
+    };
+    const ConstantRef first         = manager.addSourceCodeLocation(ctx, type, location);
+    const auto        dataRef       = manager.get(first).dataSegmentRef();
+    const auto&       segment       = manager.shardDataSegment(dataRef.shardIndex);
+    const uint32_t    sizeBefore    = segment.size();
+    const uint64_t    versionBefore = segment.relocationVersion();
+    // Equal text at a different address must still share its location and relocations.
+    const std::string fileName     = "shared.swg";
+    const std::string functionName = "sample";
+    location.fileName.ptr          = fileName.data();
+    location.funcName.ptr          = functionName.data();
+    for (uint32_t i = 0; i < 128; ++i)
+        if (manager.addSourceCodeLocation(ctx, type, location) != first)
+            return Result::Error;
+    if (segment.size() != sizeBefore || segment.relocationVersion() != versionBefore)
+        return Result::Error;
+    const auto* stored = manager.get(first).getStruct<Runtime::SourceCodeLocation>(type);
+    if (std::string_view(stored->fileName.ptr, stored->fileName.length) != fileName || std::string_view(stored->funcName.ptr, stored->funcName.length) != functionName)
+        return Result::Error;
+    const auto relocations = segment.copyRelocations();
+    if (relocations.size() != 2)
+        return Result::Error;
+    for (const auto& relocation : relocations)
+    {
+        const char* expected = relocation.offset == dataRef.offset ? stored->fileName.ptr : stored->funcName.ptr;
+        if (segment.ptr<char>(relocation.targetOffset) != expected)
+            return Result::Error;
+    }
+    for (uint32_t field = 0; field < 7; ++field)
+    {
+        auto    different     = location;
+        TypeRef differentType = type;
+        switch (field)
+        {
+            case 0: different.fileName = {.ptr = "other.swg", .length = 9}; break;
+            case 1: different.funcName = {}; break;
+            case 2: different.lineStart++; break;
+            case 3: different.colStart++; break;
+            case 4: different.lineEnd++; break;
+            case 5: different.colEnd++; break;
+            case 6: differentType = ctx.typeMgr().typeU64(); break;
+        }
+        if (manager.addSourceCodeLocation(ctx, differentType, different) == first)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ConstantManager_SourceLocationsPublishOnceAcrossWorkers)
+{
+    ConstantManager                                                 manager;
+    constexpr size_t                                                workerCount   = 6;
+    constexpr size_t                                                locationCount = 32;
+    const TypeRef                                                   type          = ctx.typeMgr().typeString();
+    std::array<std::array<ConstantRef, locationCount>, workerCount> refs;
+    std::array<std::thread, workerCount>                            workers;
+    std::barrier                                                    rendezvous(workerCount);
+    for (size_t worker = 0; worker < workerCount; ++worker)
+    {
+        workers[worker] = std::thread([&, worker] {
+            TaskContext                 workerCtx(ctx);
+            Runtime::SourceCodeLocation location{
+                .fileName  = {.ptr = "parallel.swg", .length = 12},
+                .funcName  = {},
+                .lineStart = 1,
+                .colStart  = 1,
+                .lineEnd   = 1,
+                .colEnd    = 2,
+            };
+            for (uint32_t i = 0; i < locationCount; ++i)
+            {
+                location.lineStart = i + 1;
+                location.lineEnd   = i + 1;
+                rendezvous.arrive_and_wait();
+                refs[worker][i] = manager.addSourceCodeLocation(workerCtx, type, location);
+            }
+        });
+    }
+    for (auto& worker : workers)
+        worker.join();
+    for (size_t worker = 0; worker < workerCount; ++worker)
+        for (size_t i = 0; i < locationCount; ++i)
+            if (refs[worker][i] != refs[0][i])
+                return Result::Error;
+    uint64_t relocationCount = 0;
+    for (uint32_t i = 0; i < ConstantManager::SHARD_COUNT; ++i)
+        relocationCount += manager.shardDataSegment(i).copyRelocations().size();
+    if (relocationCount != locationCount)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

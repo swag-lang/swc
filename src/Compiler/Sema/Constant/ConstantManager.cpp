@@ -591,6 +591,50 @@ ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const Constant
     return addCstFinalize(*this, result);
 }
 
+size_t ConstantManager::SourceLocationKeyHash::operator()(const SourceLocationKey& key) const noexcept
+{
+    return Math::hash(std::as_bytes(std::span{key}));
+}
+
+ConstantRef ConstantManager::addSourceCodeLocation(const TaskContext& ctx, TypeRef typeRef, const Runtime::SourceCodeLocation& location)
+{
+    const std::string_view fileName{location.fileName.ptr, location.fileName.length};
+    const std::string_view funcName = location.funcName.length ? std::string_view{location.funcName.ptr, location.funcName.length} : std::string_view{};
+    // Route by content, never addresses: allocation order must not choose which strings
+    // a location shares in the emitted image.
+    uint32_t hash                     = Math::hash(fileName);
+    hash                              = Math::hashCombine(hash, Math::hash(funcName));
+    hash                              = Math::hashCombine(hash, location.lineStart);
+    hash                              = Math::hashCombine(hash, location.colStart);
+    hash                              = Math::hashCombine(hash, location.colEnd - location.colStart);
+    const uint32_t shardIndex         = hash & (SHARD_COUNT - 1);
+    Shard&         shard              = shards_[shardIndex];
+    auto&          segment            = shard.dataSegment;
+    const auto [fileView, fileOffset] = segment.addString(fileName);
+    const auto [funcView, funcOffset] = funcName.empty() ? std::pair{std::string_view{}, Ref{INVALID_REF}} : segment.addString(funcName);
+    const SourceLocationKey key{typeRef.get(), fileOffset, funcOffset, location.lineStart, location.lineEnd, location.colStart, location.colEnd};
+
+    // Publish only after both string relocations exist. Concurrent code-generation jobs
+    // must receive the same complete allocation, not duplicate or partly initialized data.
+    const std::unique_lock lock(shard.sourceLocationMutex);
+    const auto             found = shard.sourceLocationMap.find(key);
+    if (found != shard.sourceLocationMap.end())
+        return found->second;
+
+    const auto [offset, storage] = segment.reserve<Runtime::SourceCodeLocation>();
+    *storage                     = location;
+    storage->fileName            = {.ptr = fileView.data(), .length = fileView.size()};
+    storage->funcName            = {.ptr = funcView.data(), .length = funcView.size()};
+    segment.addRelocation(offset + offsetof(Runtime::SourceCodeLocation, fileName.ptr), fileOffset);
+    if (!funcName.empty())
+        segment.addRelocation(offset + offsetof(Runtime::SourceCodeLocation, funcName.ptr), funcOffset);
+    ConstantValue value = ConstantValue::makeStructBorrowed(ctx, typeRef, std::span{reinterpret_cast<const std::byte*>(storage), sizeof(*storage)});
+    value.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
+    const ConstantRef result = addUniqueMaterializedPayloadConstant(value);
+    shard.sourceLocationMap.emplace(key, result);
+    return result;
+}
+
 ConstantRef ConstantManager::cachedS32(int32_t value) const
 {
     switch (value)

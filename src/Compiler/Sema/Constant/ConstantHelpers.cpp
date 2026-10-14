@@ -37,19 +37,6 @@ namespace
         static constexpr size_t MAX_RETAINED_CAPACITY = 256;
     };
 
-    // The shard decides which strings a location shares with its neighbours, so it is derived
-    // from what the location says, never from a pointer or a load-order index: either would
-    // make the read-only data of two builds of the same program differ.
-    uint32_t sourceCodeLocationShardIndex(const SourceCodeRange& codeRange, std::string_view fileName, std::string_view funcName)
-    {
-        uint32_t hash = Math::hash(fileName);
-        hash          = Math::hashCombine(hash, Math::hash(funcName));
-        hash          = Math::hashCombine(hash, codeRange.line);
-        hash          = Math::hashCombine(hash, codeRange.column);
-        hash          = Math::hashCombine(hash, codeRange.len);
-        return hash & (ConstantManager::SHARD_COUNT - 1);
-    }
-
     Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, WalkPath<TypeRef>& visited);
 
     Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, const TypeInfo& typeInfo, AstNodeRef waitNodeRef, WalkPath<TypeRef>& visited)
@@ -742,11 +729,11 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     TypeRef            typeRef = TypeRef::invalid();
     SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, SourceCodeRef::invalid()));
 
-    const SourceView*      srcView = codeRange.srcView;
-    const SourceFile*      file    = srcView ? srcView->file() : nullptr;
+    const SourceView*      srcView  = codeRange.srcView;
+    const SourceFile*      file     = srcView ? srcView->file() : nullptr;
     const std::string_view fileName = file ? std::string_view{file->pathString()} : std::string_view{""};
-    std::string_view        funcName{""};
-    FunctionNameScratch     functionNameScratch;
+    std::string_view       funcName{""};
+    FunctionNameScratch    functionNameScratch;
     if (function)
     {
         thread_local Utf8 funcNameStorage;
@@ -756,42 +743,15 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
         funcName = funcNameStorage;
     }
 
-    const uint32_t shardIndex = sourceCodeLocationShardIndex(codeRange, fileName, funcName);
-    DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);
-
-    const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::SourceCodeLocation), alignof(Runtime::SourceCodeLocation), true);
-    if (!storage || offset == INVALID_REF)
-        return Result::Error;
-
-    const uint32_t fileNameLength = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, fileName.ptr), fileName);
-
-    uint32_t funcNameLength = 0;
-    if (funcName.empty())
-    {
-        auto* rtLoc = segment.ptr<Runtime::SourceCodeLocation>(offset);
-        if (!rtLoc)
-            return Result::Error;
-        rtLoc->funcName.ptr = nullptr;
-    }
-    else
-    {
-        funcNameLength = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, funcName.ptr), funcName);
-    }
-
-    auto* rtLoc = segment.ptr<Runtime::SourceCodeLocation>(offset);
-    if (!rtLoc)
-        return Result::Error;
-    rtLoc->fileName.length = fileNameLength;
-    rtLoc->funcName.length = funcNameLength;
-    rtLoc->lineStart       = codeRange.line;
-    rtLoc->colStart        = codeRange.column;
-    rtLoc->lineEnd         = codeRange.line;
-    rtLoc->colEnd          = codeRange.column + codeRange.len;
-
-    const auto    bytes  = std::span{storage, sizeof(Runtime::SourceCodeLocation)};
-    ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
-    cstVal.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
-    outCstRef = sema.cstMgr().addUniqueMaterializedPayloadConstant(cstVal);
+    const Runtime::SourceCodeLocation location{
+        .fileName  = {.ptr = fileName.data(), .length = fileName.size()},
+        .funcName  = {.ptr = funcName.data(), .length = funcName.size()},
+        .lineStart = codeRange.line,
+        .colStart  = codeRange.column,
+        .lineEnd   = codeRange.line,
+        .colEnd    = codeRange.column + codeRange.len,
+    };
+    outCstRef = sema.cstMgr().addSourceCodeLocation(ctx, typeRef, location);
     return Result::Continue;
 }
 

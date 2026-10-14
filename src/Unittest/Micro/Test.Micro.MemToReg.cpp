@@ -884,6 +884,61 @@ SWC_TEST_BEGIN(MemToReg_RecordFieldStoreClearsUnknownBytes)
 }
 SWC_TEST_END()
 
+// A second LEA can move from a tracked frame address into another local.
+// Promotion must retain that target's store, while unrelated locals still promote.
+SWC_TEST_BEGIN(MemToReg_ChainedAddressExposesDestinationObject)
+{
+    for (uint32_t variant = 0; variant < 2; ++variant)
+    {
+        SymbolFunction function(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolVariable origin(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolVariable target(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        SymbolVariable independent(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        for (SymbolVariable* local : {&origin, &target, &independent})
+        {
+            local->setTypeRef(ctx.typeMgr().typeU64());
+            local->addExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
+            local->setCodeGenLocalSize(8);
+            function.addLocalVariable(ctx, local);
+        }
+        origin.setOffset(0);
+        origin.setCodeGenLocalSize(0x40);
+        target.setOffset(0x40);
+        independent.setOffset(0x60);
+
+        const MicroReg     sp      = CallConv::get(CallConvKind::Swag).stackPointer;
+        constexpr MicroReg frame   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg base    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg address = MicroReg::virtualIntReg(3);
+        constexpr MicroReg value   = MicroReg::virtualIntReg(4);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitLoadMemImm(frame, 0x40, ApInt(42, 64), MicroOpBits::B64);
+        const MicroInstrRef targetStore = builder.instructions().lastInstructionRef();
+        if (variant == 0)
+            builder.emitLoadRegReg(base, frame, MicroOpBits::B64);
+        else
+            builder.emitLoadAddressRegMem(base, frame, 0x20, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(address, base, variant == 0 ? 0x40 : 0x20, MicroOpBits::B64);
+        builder.emitLoadRegMem(value, address, 0, MicroOpBits::B64);
+        builder.emitCmpRegImm(value, ApInt(42, 64), MicroOpBits::B64);
+        builder.emitLoadRegMem(value, frame, 0x40, MicroOpBits::B64);
+        builder.emitCmpRegImm(value, ApInt(42, 64), MicroOpBits::B64);
+        builder.emitLoadMemImm(frame, 0x60, ApInt(7, 64), MicroOpBits::B64);
+        const MicroInstrRef independentStore = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegMem(value, frame, 0x60, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder, &function, frame));
+        if (builder.instructions().ptr(targetStore)->op != MicroInstrOpcode::LoadMemImm)
+            return Result::Error;
+        if (builder.instructions().ptr(independentStore)->op != MicroInstrOpcode::LoadRegImm)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

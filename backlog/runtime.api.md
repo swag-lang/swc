@@ -1,4 +1,4 @@
-# Runtime Backlog
+# Runtime API Backlog
 
 This backlog covers the public surface of [bin/runtime](../bin/runtime): the `Swag` namespace,
 its constants, the per-thread `Swag.Context`, the allocator interface, and the intrinsic
@@ -18,80 +18,7 @@ Several entries rename a public name or a lexer token. Follow
 declaration. `src/Backend/Runtime*.h` mirrors part of `api.swg` field by field; keep both sides
 in sync in the same change.
 
-### runtime.001 — Nested `catch` overruns the context's error stack at depth 32
-
-- Evidence: every `catch`, `expect` and checked `assume` wrapper calls `__pushErr` on entry
-  ([CodeGen.Function.Post.cpp:1529](../src/Compiler/CodeGen/Ast/CodeGen.Function.Post.cpp#L1529))
-  and keeps the frame for its whole body. [`__pushErr`](../bin/runtime/error.swg#L613) indexes
-  `cxt.errors[cxt.errorIndex]` with no bound, and
-  [`__catchErr`](../bin/runtime/error.swg#L693) reads the slot at `errorIndex`, one past the last
-  pushed frame. Only `__installErrRecord` checks `MaxErrors`, and too late.
-- Repro (scratch `.swgs`, `swc.exe <file>`, devmode):
-
-  ```swag
-  func depth(n: u32)->u32 fail
-  {
-      if n == 0 do
-          return 0
-      let r = catch depth(n - 1)
-      return r + 1
-  }
-
-  #main
-  {
-      let v = catch depth(31)
-      Swag.print(v, "\n")
-  }
-  ```
-
-  `depth(30)` prints 30. `depth(31)` panics "index is out of bounds" at `error.swg:699`
-  (`__catchErr`), `depth(32)` at `error.swg:616` (`__pushErr`). Release builds have no bounds
-  check, so the same program writes a 144-byte `ErrorValue` past `Context.errors`, over the
-  fields declared after it (`exceptionLoc`, `exceptionParams`, the `panic` hook, `curError` and
-  the error counters).
-- Next: add the bound to `__pushErr` with the explicit panic `__installErrRecord` already uses,
-  sized so `__catchErr`'s slot stays in range (at most `MaxErrors - 1` pushed frames), and add
-  this repro to the runtime error tests at depths 30, 31 and 40. The depth itself is decided in
-  runtime.003; this entry only removes the overrun.
-- Done when: no nesting depth of `catch`/`expect` reads or writes outside `Context.errors` in
-  any configuration, and a test pins the behaviour at the limit.
-- Related: runtime.003
-
-### runtime.002 — `F32.Min` is the smallest positive value, unlike every other `Min`
-
-- Evidence: in [api.swg](../bin/runtime/api.swg) `Swag.S8.Min` through `Swag.S64.Min` are the
-  most negative values, while `Swag.F32.Min = 1.17549435e-38` and `Swag.F64.Min = 2.2250738e-308`
-  are the smallest positive normal values (C's `FLT_MIN`). Rust's `f32::MIN`, C#'s
-  `float.MinValue` and Go's `-math.MaxFloat32` idiom all mean the most negative finite value.
-  The same name meaning two things inside one family is a trap; the Core vector constants
-  already carry a warning comment about it (`Vector2.Min`: "not the most negative value").
-- Evidence: four maximum accumulators start from `Swag.F32.Min`, so they return a tiny positive
-  number when every sample is zero or negative:
-  - [inlineview.swg:1117](../bin/std/modules/gui/src/controls/markdown/inlineview.swg#L1117)
-    and [:1145](../bin/std/modules/gui/src/controls/markdown/inlineview.swg#L1145): `right` of a
-    selection or search highlight;
-  - [commanddump.swg:320-322](../bin/std/modules/pixel/src/testing/commanddump.swg#L320):
-    `bbMax` and `uvMax` of a vertex dump, wrong for any geometry left or above the origin;
-  - [swag.swgs:64](../bin/examples/scripts/swag.swgs#L64): `maxPos` of the glyph outline.
-- Evidence: the deliberate uses of the smallest normal are
-  [parse.swg:326](../bin/std/modules/core/src/text/parse.swg#L326) and its test
-  [parse.test.swg:59](../bin/std/modules/core/src/tests/text/parse.test.swg#L59), plus the
-  `Math.Vector2/3/4.Min` constants and their tests in `vector.test.swg`. `F64.Min` has no use.
-- Proposed contract: for every numeric type, `Min` and `Max` are the ends of the finite
-  representable range, so `F32.Min == -F32.Max`. The smallest positive normal value is
-  `F32.MinNormal` / `F64.MinNormal`. Keep `Inf`, `NegInf`, `NaN`, `MantBits`, `ExpBits` and
-  `Bias` unchanged (`Bias` follows Go's `float64info` convention used by `decimal.swg`).
-- Next: fix the four accumulators first, to `-Swag.F32.Max`, in their own commit; they are bugs
-  under either meaning. Then add `MinNormal`, move the parse code and test to it, decide whether
-  `Math.VectorN.Min` follows `F32.Min` (recommended: yes, and drop the warning comment), and
-  flip `F32.Min` / `F64.Min` in the same commit after grepping every remaining `F32.Min` and
-  `F64.Min` in `bin/`, `tools/` and `bin/reference`. A silent meaning change cannot be split
-  across commits.
-- Done when: `Swag.F32.Min == -Swag.F32.Max` and `Swag.F64.Min == -Swag.F64.Max`, `MinNormal`
-  exists and is documented, no maximum accumulator in `bin/` starts from a positive constant,
-  and the Core, GUI and Pixel tests pass.
-
-### runtime.003 — `Swag.Context` is 7 KB per thread and caps error nesting at 32
+### runtime.api.003 — `Swag.Context` is 7 KB per thread and caps error nesting at 32
 
 - Evidence: measured with `#sizeof` in a `.swgs` probe, `Swag.Context` is 7,064 bytes.
   `errors: [32] ErrorValue` takes 4,608 of them (65%), because each 144-byte `ErrorValue`
@@ -107,25 +34,26 @@ in sync in the same change.
   ordinary "copy the current context, change the allocator, push it" pattern moves 7 KB of
   stack per use.
 - Evidence: the error stack is a fixed `[32] ErrorValue`. Each active `catch`/`expect` holds
-  one frame for its body, so a recursion that calls itself under `catch` is limited to about 31
-  levels; past that it currently overruns the array (runtime.001). Nothing in the language
-  reference states the limit.
+  one frame for its body, so a recursion that calls itself under `catch` stops with a panic once
+  the frames in use reach 31 (`__pushErr`, pinned by `native/runtime/error_nesting.swg`). Nothing
+  in the language reference states the limit.
 - Evidence: `user0`..`user3: u64` are four untyped slots. Their only users in `bin/` are
   `core/src/tests/system/context.test.swg`, which uses `user0` as a marker.
 - Next: decide the layout from the four costs above, in this order. (1) Keep the error frame
   stack small: store in `ErrorValue` only what `__popErr` restores (block, used, capacity), not
   a whole `ScratchAllocator`, and measure the new `#sizeof`. (2) Either grow the error stack on
   demand (the frames could live in the wrapper's own stack frame, which already owns an
-  `ErrorCapture`) or state its depth in the reference next to `catch`. (3) Make `pushContext` take `const *Swag.Context` (or a by-reference parameter) and
+  `ErrorCapture`) or state its depth in the reference next to `catch`.
+  (3) Make `pushContext` take `const *Swag.Context` (or a by-reference parameter) and
   migrate its callers. (4) Replace `user0..3` by one `userData: *void?` plus one `userTag: u64`,
   or remove them if no consumer wants them. Keep the fields marked "must stay first" and the
   C++ mirror in [RuntimeContext.h](../src/Backend/RuntimeContext.h) in sync.
 - Done when: `#sizeof(Swag.Context)` is recorded in a test, the error stack no longer embeds a
   scratch allocator per frame, the nesting limit is either gone or documented and tested, and
   `pushContext` no longer copies a context.
-- Related: runtime.001, runtime.007, language.parallelism.001
+- Related: runtime.api.007, language.parallelism.001
 
-### runtime.004 — The `Swag` namespace has no admission rule, and the build API lives in it
+### runtime.api.004 — The `Swag` namespace has no admission rule, and the build API lives in it
 
 - Evidence: [api.swg](../bin/runtime/api.swg) (1,909 lines) serves five audiences in one
   namespace: the language vocabulary (`AttrUsage`, `Inline`, `Macro`, `Foreign`, `Safety`...),
@@ -159,7 +87,7 @@ in sync in the same change.
   rule or has its own entry.
 - Related: std.core.031, std.core.035, language.parallelism.001
 
-### runtime.005 — Intrinsic spellings follow three conventions and leak x86 mnemonics
+### runtime.api.005 — Intrinsic spellings follow three conventions and leak x86 mnemonics
 
 - Evidence: the `Swag.` intrinsics declared in
   [Tokens.Def.inc](../src/Compiler/Lexer/Tokens.Def.inc) use three casings at once.
@@ -192,9 +120,9 @@ in sync in the same change.
 - Done when: every `Swag.` intrinsic except `memcpy`, `memmove`, `memset` and `memcmp` is
   camelCase, no vector intrinsic is named after an x86 instruction, and the reference and
   VSCode grammar list the new spellings only.
-- Related: runtime.006, cpu.simd.012, std.core.031
+- Related: runtime.api.006, cpu.simd.012, std.core.031
 
-### runtime.006 — Opaque and unidiomatic public names in the runtime
+### runtime.api.006 — Opaque and unidiomatic public names in the runtime
 
 - Evidence, one name each:
   - `Swag.gvtd()` / `Swag.Gvtd` ("global variables to drop"): a four-letter acronym in the
@@ -211,12 +139,12 @@ in sync in the same change.
 - Next: pick the new names in this entry (proposed: `globalsToDrop` / `GlobalToDrop`,
   `processInfo` / `ProcessInfo`, `bitCountOnes` or `popCount`, `Unscoped`), then rename each in
   its own commit together with its lexer token, its C++ mirror, the reference and its
-  consumers. Apply the casing rule of runtime.005 to the result.
+  consumers. Apply the casing rule of runtime.api.005 to the result.
 - Done when: none of the names listed above remains in `bin/`, `src/`, the reference or the
   VSCode grammar.
-- Related: runtime.005
+- Related: runtime.api.005
 
-### runtime.007 — `IAllocator` forces debug operations on every allocator, and `ScratchAllocator` publishes its bookkeeping
+### runtime.api.007 — `IAllocator` forces debug operations on every allocator, and `ScratchAllocator` publishes its bookkeeping
 
 - Evidence: [IAllocator](../bin/runtime/api.swg#L574) has five mandatory methods. Of the nine
   implementations in `bin/`, five write both `mtd impl freeAll(...) {}` and
@@ -229,7 +157,7 @@ in sync in the same change.
   `maxUsed`, `firstLeak`, `totalLeak` and `maxLeak` public and writable. Outside the runtime,
   only `core/src/tests/time/timer.test.swg` (reads `firstLeak`) and the native runtime unit
   tests read them. `releaseOwner` and `releaseHook` are internal but sit in the same struct and
-  in every `ErrorValue` (runtime.003).
+  in every `ErrorValue` (runtime.api.003).
 - Next: make `freeAll` and `assertAllocated` optional at the interface level: either give
   `IAllocator` default implementations if the language supports them, or replace both by one
   `capabilities()` query plus the two operations on a separate optional interface. Decide what
@@ -240,9 +168,9 @@ in sync in the same change.
 - Done when: an allocator that only allocates, reallocates and frees implements three
   methods, no implementation in `bin/` contains an empty `assertAllocated`, and no code outside
   the runtime writes a `ScratchAllocator` field.
-- Related: runtime.003, runtime.allocator.002
+- Related: runtime.api.003, runtime.allocator.002
 
-### runtime.008 — The runtime has one target, and its public enums say so
+### runtime.api.008 — The runtime has one target, and its public enums say so
 
 - Evidence: `Swag.TargetArch` has the single member `X86_64` and the runtime's only host leaf is
   [os.win32.swg](../bin/runtime/os.win32.swg) (745 lines). `CallConv.WindowsX64` is a public
@@ -250,9 +178,9 @@ in sync in the same change.
   [platform.portability.md](platform.portability.md); this entry only covers what the public
   runtime surface must look like once a second target exists.
 - Next: list every public runtime declaration whose name or members encode Windows or x86-64
-  (`TargetArch`, `TargetOs`, `CallConv`, the `Swag.vec*` ISA names of runtime.005, the
+  (`TargetArch`, `TargetOs`, `CallConv`, the `Swag.vec*` ISA names of runtime.api.005, the
   `SystemError.errorID` meaning), and state for each whether it stays as an enumerated target
   or moves behind a neutral name, so the first port does not have to rename public API.
 - Done when: that list exists in this entry with a decision per declaration, and every
   decision that renames something has its own entry or has landed.
-- Related: platform.portability.035, runtime.005
+- Related: platform.portability.035, runtime.api.005

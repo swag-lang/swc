@@ -211,7 +211,7 @@ impl LinePathList
         }
 
         .minBounds = Vector2.Max
-        .maxBounds = Vector2.NegMax
+        .maxBounds = Vector2.Min
         for p in .paths
         {
             p.flatten(quality, scale)
@@ -269,7 +269,7 @@ impl LinePathList
 
         var newList: LinePathList
         newList.minBounds = Vector2.Max
-        newList.maxBounds = Vector2.NegMax
+        newList.maxBounds = Vector2.Min
 
         var serial = 0
         var i      = 0'u64
@@ -356,7 +356,7 @@ impl LinePathList
     {
         var newList: LinePathList
         newList.minBounds = Vector2.Max
-        newList.maxBounds = Vector2.NegMax
+        newList.maxBounds = Vector2.Min
 
         var serial = 0
         var i      = 0'u64
@@ -417,7 +417,7 @@ impl LinePathList
         }
 
         var minimum = Vector2.Max
-        var maximum = Vector2.NegMax
+        var maximum = Vector2.Min
         for path in .paths
         {
             minimum = Vector2.min(minimum, path.minBounds)

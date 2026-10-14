@@ -1114,7 +1114,7 @@ impl InlineView
         for &line in .lines
         {
             var left  = Swag.F32.Max
-            var right = Swag.F32.Min
+            var right = -Swag.F32.Max
 
             for index in line.first until line.last where .atoms[index].visible
             {
@@ -1142,7 +1142,7 @@ impl InlineView
         for &line in .lines
         {
             var left  = Swag.F32.Max
-            var right = Swag.F32.Min
+            var right = -Swag.F32.Max
             for index in line.first until line.last where .atoms[index].visible
             {
                 let atom    = &.atoms[index]

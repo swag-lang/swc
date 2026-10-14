@@ -472,26 +472,28 @@ namespace Swag
 
     namespace F32
     {
-        const Min      = 1.17549435082228750797e-38'f32
-        const Max      = 3.40282346638528859812e+38'f32
-        const NaN      = cast #bit (f32, 0x7F800001)
-        const Inf      = cast #bit (f32, 0x7F800000)
-        const NegInf   = cast #bit (f32, 0xFF800000)
-        const MantBits = 23
-        const ExpBits  = 8
-        const Bias     = -127
+        const Min       = -3.40282346638528859812e+38'f32     // Most negative finite 'f32' value
+        const Max       = 3.40282346638528859812e+38'f32      // Largest finite 'f32' value
+        const MinNormal = 1.17549435082228750797e-38'f32      // Smallest positive normal 'f32' value
+        const NaN       = cast #bit (f32, 0x7F800001)
+        const Inf       = cast #bit (f32, 0x7F800000)
+        const NegInf    = cast #bit (f32, 0xFF800000)
+        const MantBits  = 23
+        const ExpBits   = 8
+        const Bias      = -127
     }
 
     namespace F64
     {
-        const Min      = 2.2250738585072014e-308'f64
-        const Max      = 1.79769313486231570815e+308'f64
-        const NaN      = cast #bit (f64, 0x7FF8000000000001)
-        const Inf      = cast #bit (f64, 0x7FF0000000000000)
-        const NegInf   = cast #bit (f64, 0xFFF0000000000000)
-        const MantBits = 52
-        const ExpBits  = 11
-        const Bias     = -1023
+        const Min       = -1.79769313486231570815e+308'f64     // Most negative finite 'f64' value
+        const Max       = 1.79769313486231570815e+308'f64      // Largest finite 'f64' value
+        const MinNormal = 2.2250738585072014e-308'f64          // Smallest positive normal 'f64' value
+        const NaN       = cast #bit (f64, 0x7FF8000000000001)
+        const Inf       = cast #bit (f64, 0x7FF0000000000000)
+        const NegInf    = cast #bit (f64, 0xFFF0000000000000)
+        const MantBits  = 52
+        const ExpBits   = 11
+        const Bias      = -1023
     }
 
     // #########################################################
@@ -1449,6 +1451,20 @@ func atomget(addr: *u8)->u8
 func atomget(addr: *u16)->u16
 func atomget(addr: *u32)->u32
 func atomget(addr: *u64)->u64
+
+// Writes `value` at `addr` as one atomic access.
+//
+// It is a plain store on x86-64, so it takes no bus lock where [[Swag.atomxchg]] does, and the
+// compiler never drops, merges, or moves another access across it: everything written before it
+// is visible to a thread that reads the value with [[Swag.atomget]].
+func atomset(addr: *s8, value: s8)
+func atomset(addr: *s16, value: s16)
+func atomset(addr: *s32, value: s32)
+func atomset(addr: *s64, value: s64)
+func atomset(addr: *u8, value: u8)
+func atomset(addr: *u16, value: u16)
+func atomset(addr: *u32, value: u32)
+func atomset(addr: *u64, value: u64)
 
 // Intrinsics also evaluated at compile time.
 #[Swag.ConstExpr]

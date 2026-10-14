@@ -125,7 +125,7 @@ Swag.rol  Swag.ror  Swag.round  Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.t
 Memory and atomic intrinsics:
 
 ```swag
-Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomget  Swag.atomor  Swag.atomxchg  Swag.atomxor
+Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomget  Swag.atomor  Swag.atomset  Swag.atomxchg  Swag.atomxor
 Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset  Swag.prefetch
 ```
 

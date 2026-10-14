@@ -580,7 +580,7 @@ SWC_TEST_END()
 // function never writes is read again after one. Mode 0, a plain store, is the control.
 SWC_TEST_BEGIN(ValueNumbering_PrivateGlobalIsReadAgainAfterAtomic)
 {
-    for (uint32_t mode = 0; mode < 4; ++mode)
+    for (uint32_t mode = 0; mode < 5; ++mode)
     {
         constexpr MicroReg pointer = MicroReg::virtualIntReg(10);
         constexpr MicroReg first   = MicroReg::virtualIntReg(11);
@@ -612,6 +612,9 @@ SWC_TEST_BEGIN(ValueNumbering_PrivateGlobalIsReadAgainAfterAtomic)
                 break;
             case 2:
                 builder.emitOpBinaryMemReg(pointer, 0, raised, MicroOp::Exchange, MicroOpBits::B32);
+                break;
+            case 4:
+                builder.emitStoreVolatileMemReg(pointer, 0, raised, MicroOpBits::B32);
                 break;
             default:
                 builder.emitCompareExchangeRegMemReg(flag, pointer, 0, raised, MicroOpBits::B32);

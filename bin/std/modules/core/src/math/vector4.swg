@@ -24,9 +24,8 @@ impl Vector4
     const NegUnitZ = Vector4{0, 0, -1, 0}     // Unit vector along the negative Z axis (0, 0, -1, 0)
     const NegUnitW = Vector4{0, 0, 0, -1}     // Unit vector along the negative W axis (0, 0, 0, -1)
 
-    const Max    = Vector4{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}         // Largest finite `f32` in every component
-    const NegMax = Vector4{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
-    const Min    = Vector4{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}         // Smallest positive normalized `f32` in every component, not the most negative value
+    const Max = Vector4{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}         // Largest finite `f32` in every component
+    const Min = Vector4{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
 
     // Sets every component to `value`.
     //

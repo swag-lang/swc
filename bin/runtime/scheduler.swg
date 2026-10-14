@@ -306,6 +306,10 @@ private func runWork(sched: *Scheduler, node: *WorkNode, accounted: bool)
     }
 
     // Past this store the owner may reuse or destroy the node, so nothing may read it again.
+    //
+    // It stays sequentially consistent: this store and the observer reads below pair with an
+    // observer's registration and its own read of the state. A release store would let both
+    // threads read the old value, and a parked observer would miss this completion.
     node.state.store(WorkStateDone)
 
     let drained = accounted and sched.accepted.sub(1) == 1

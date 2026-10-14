@@ -261,7 +261,8 @@ of simplicity when every useful helper needs an unchecked contract.
 - Next: choose the instrument before writing it. Only a checker that knows the runtime's own
   synchronization points -- lock, unlock, atomic operation, submission, completion, join, and
   partition boundary -- can see the edges this runtime creates, so the shadow state belongs
-  beside the scheduler rather than in a foreign tool. Scope it to one build configuration with a
+  beside the scheduler rather than in a foreign tool. The edges to record are the ones the
+  memory model of the language reference lists. Scope it to one build configuration with a
   stated slowdown budget, start from the accesses the compiler already instruments for bounds and
   lifetime, and decide what it does with a foreign call, which is opaque to it for the same reason
   it is opaque to compiler.safety.007.
@@ -271,8 +272,7 @@ of simplicity when every useful helper needs an unchecked contract.
 - Elsewhere: Go ships `-race`, C++ and Rust use ThreadSanitizer, and Rust adds `loom` for
   exhaustive interleavings of a small structure. A language that claims checked memory access
   without a dynamic detector claims it only as far as its static analysis reaches.
-- Related: language.parallelism.005, language.parallelism.007, compiler.safety.007,
-  compiler.safety.014
+- Related: language.parallelism.005, compiler.safety.007, compiler.safety.014
 
 ### language.parallelism.009 — Cancellation has no deadline and wakes no wait
 
@@ -351,33 +351,6 @@ of simplicity when every useful helper needs an unchecked contract.
   give each worker its own deque and steal from the others, which is what makes recursive fork/join
   cheap.
 - Related: language.parallelism.001, language.parallelism.003, language.parallelism.005
-
-### language.parallelism.007 — The memory model is a design note, and only sequential consistency exists
-
-- Evidence: what a program may assume about ordering is written in this file and in scattered
-  documentation comments, not in the language reference. `Swag.AtomicValue` exposes `load`,
-  `store`, `exchange`, `compareExchange` and the arithmetic and bitwise forms, all lowered to
-  the sequentially consistent `Swag.atom*` intrinsics; `store` is a locked exchange. No acquire,
-  release or relaxed order is reachable and no fence exists. Nothing states the happens-before
-  edges a program may rely on either: lock release to lock acquisition, submission to body
-  start, body end to observed completion, `parallel for` entry to its join, atomic store to
-  atomic load.
-- Evidence: the absence costs on both sides. A reference count, a publication flag or a work
-  cursor pays a full barrier where an acquire or a relaxed increment is what the algorithm
-  needs; and a consumer reasoning about a lock-free structure has nothing normative to reason
-  against, which is the same gap `compiler.safety.014` names for the safe subset.
-- Next: write the model first, as a reference page: which operations create edges, what a data
-  race is, and what an invalid program is entitled to. Then expose the orders on the atomic
-  operations, keeping the sequentially consistent form as the default and documenting the weaker
-  ones as expert operations that do not inherit the default's claim. Decide in the same change
-  whether Swag keeps the C++ family of orders or a smaller set, and whether atomic storage may
-  ever be reached by an ordinary access.
-- Done when: the reference states one memory model, both the native backend and JIT execution
-  respect it, and one lock-free consumer uses a weaker order with a stated justification.
-- Elsewhere: Java and Go publish memory models as part of the language definition; C++11 and Rust
-  share one order family; Swift and C# state theirs against their runtime. None of them leaves
-  the model in a design note.
-- Related: language.parallelism.001, compiler.safety.014, std.core.031
 
 ### language.parallelism.004 — Partitions cannot prove disjointness
 

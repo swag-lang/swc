@@ -1117,6 +1117,7 @@ namespace
         switch (inst.op)
         {
             case MicroInstrOpcode::LoadMemReg:
+            case MicroInstrOpcode::StoreVolatileMemReg:
             case MicroInstrOpcode::StoreVecMemReg:
                 return getNumBits(ops[2].opBits) / 8;
             case MicroInstrOpcode::LoadMemImm:
@@ -1675,6 +1676,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         }
 
         case MicroInstrOpcode::LoadMemReg:
+        case MicroInstrOpcode::StoreVolatileMemReg:
         case MicroInstrOpcode::StoreVecMemReg:
         {
             // Whatever the destination is, an address written to memory can be read back

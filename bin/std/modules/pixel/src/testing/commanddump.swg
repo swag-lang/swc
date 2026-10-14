@@ -317,9 +317,9 @@ private
                 return
 
             var bbMin = Vector2{Swag.F32.Max, Swag.F32.Max}
-            var bbMax = Vector2{Swag.F32.Min, Swag.F32.Min}
+            var bbMax = Vector2{-Swag.F32.Max, -Swag.F32.Max}
             var uvMin = Vector2{Swag.F32.Max, Swag.F32.Max}
-            var uvMax = Vector2{Swag.F32.Min, Swag.F32.Min}
+            var uvMax = Vector2{-Swag.F32.Max, -Swag.F32.Max}
 
             var colors:   Array'u32
             var solid = true

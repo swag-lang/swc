@@ -384,6 +384,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::LoadVolatileRegMem:
             encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;
+        case MicroInstrOpcode::StoreVolatileMemReg:
+            encoder.encodeLoadMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
+            break;
         case MicroInstrOpcode::LoadRegMem:
         {
             const uint32_t loadRegMemStart = encoder.size();

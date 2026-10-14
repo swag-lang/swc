@@ -679,6 +679,44 @@ SWC_TEST_BEGIN(InstCombine_OverwrittenImmediateStore_IsErased)
 }
 SWC_TEST_END()
 
+// A volatile store is an atomic publication. A later store to the same bytes never makes it dead,
+// and a plain store before it stays too, however soon it is overwritten: another thread may read
+// it as soon as it sees the publication.
+SWC_TEST_BEGIN(InstCombine_VolatileStore_IsNeverDeadNorCrossed)
+{
+    for (const bool before : {false, true})
+    {
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg other  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg first  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg second = MicroReg::virtualIntReg(4);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(other, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegReg(first, MicroReg::intReg(8), MicroOpBits::B64);
+        builder.emitLoadRegReg(second, MicroReg::intReg(9), MicroOpBits::B64);
+        if (before)
+        {
+            builder.emitLoadMemReg(base, 8, first, MicroOpBits::B64);
+            builder.emitStoreVolatileMemReg(other, 0, second, MicroOpBits::B32);
+        }
+        else
+        {
+            builder.emitStoreVolatileMemReg(base, 8, first, MicroOpBits::B64);
+        }
+        builder.emitLoadMemReg(base, 8, second, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runInstCombinePass(builder));
+
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVolatileMemReg) != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != (before ? 2u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A store the next store to the same bytes covers whole is dead, unless
 // something in between may read what it wrote.
 SWC_TEST_BEGIN(InstCombine_OverwrittenStore_IsErased)

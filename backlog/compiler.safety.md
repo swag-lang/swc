@@ -72,7 +72,7 @@ is the current scorecard.
   affected consumers build without the former static refusals, and documented coverage matches
   the implemented write and invalidation boundaries.
 - Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,
-  language.parallelism.005, language.parallelism.007.
+  language.parallelism.005.
 
 ### compiler.safety.025 — The box-content release summary stops at the module boundary
 

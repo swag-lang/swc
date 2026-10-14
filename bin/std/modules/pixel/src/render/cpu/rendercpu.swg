@@ -263,7 +263,7 @@ private impl RenderCpu
         let transform = .deviceTransform()
 
         var lowest  = Vector2.Max
-        var highest = Vector2.NegMax
+        var highest = Vector2.Min
         for var i = start; i < start + count; i += 1
         {
             let p = transform.transformPoint(painter.vertexBuffer[i].pos)

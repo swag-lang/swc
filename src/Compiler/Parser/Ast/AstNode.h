@@ -100,12 +100,6 @@ struct AstNode
 
     using ParserFlags = uint8_t;
 
-    void clearFlags()
-    {
-        parserFlags_ = 0;
-        clearPayload();
-    }
-
     static void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef);
     static void collectChildren(SmallVector<AstNodeRef>& out, std::initializer_list<AstNodeRef> nodes);
     void        collectChildrenFromAst(SmallVector<AstNodeRef>& out, const Ast& ast) const;

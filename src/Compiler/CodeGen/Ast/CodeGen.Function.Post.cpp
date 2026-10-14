@@ -699,6 +699,20 @@ namespace
         return true;
     }
 
+    // An owned temporary the return transfers is no longer an operand temporary of the return.
+    // The storage the returned value occupies can differ from the one recorded on the node: an
+    // implicit conversion of a call result builds its own value from the call's.
+    void cancelReturnedTemporaryDrops(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
+    {
+        const SymbolVariable* nodeStorage = codeGen.runtimeStorageSymbol(exprRef);
+        if (nodeStorage && codeGen.hasTemporaryDrop(*nodeStorage))
+            codeGen.cancelTemporaryDrop(*nodeStorage);
+
+        const SymbolVariable* valueStorage = exprPayload.runtimeStorageSym;
+        if (valueStorage && valueStorage != nodeStorage && codeGen.hasTemporaryDrop(*valueStorage))
+            codeGen.cancelTemporaryDrop(*valueStorage);
+    }
+
     const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef);
     AstNodeRef            returnExprThroughRetValMove(CodeGen& codeGen, AstNodeRef exprRef);
 
@@ -742,11 +756,7 @@ namespace
             SWC_RESULT(resetMovedReturnPlace(codeGen, inlinePayload.returnTypeRef, exprRef, movedPlaceRef));
 
         if (movesOwnership)
-        {
-            const SymbolVariable* sourceStorage = codeGen.runtimeStorageSymbol(exprRef);
-            if (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage))
-                codeGen.cancelTemporaryDrop(*sourceStorage);
-        }
+            cancelReturnedTemporaryDrops(codeGen, exprRef, exprPayload);
 
         return Result::Continue;
     }
@@ -1068,11 +1078,7 @@ namespace
         }
 
         if (movesOwnedTemporary)
-        {
-            const SymbolVariable* sourceStorage = codeGen.runtimeStorageSymbol(exprRef);
-            if (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage))
-                codeGen.cancelTemporaryDrop(*sourceStorage);
-        }
+            cancelReturnedTemporaryDrops(codeGen, exprRef, exprPayload);
 
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         if (normalizedRet.isIndirect)

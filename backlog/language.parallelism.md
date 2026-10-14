@@ -409,14 +409,17 @@ of simplicity when every useful helper needs an unchecked contract.
   what is already queued before joining the thread, and under compile-time execution a task runs
   inside its submission. The H.264 and H.265 frame lanes moved to it: each lane is one executor
   and one `Swag.Task'(*Frame?)`, so the decoder's per-picture state stays on the lane's thread and
-  the hand-written wake/done events, error text and stop flag are gone.
+  the hand-written wake/done events, error text and stop flag are gone. Matroska's complete sound
+  scan and its sound window builds also run as tasks on two executors: both read the file for
+  seconds, and the scan sleeps while a picture is sought, so neither belongs on the pool.
 - Evidence: `Swag.setWorkerCount` sizes one general pool and `Swag.startWorkers` starts it. A
   task's notification can post a `Gui.TaskEvent` to a window, which is how Swag Scope learns that a
   background load ended without polling it, and `Swag.TaskPriority.Background` lowers the priority
   of the thread that runs a body. There is still no main/UI executor and no blocking executor, and
   nothing requires that a value is created, used and destroyed on one executor: the lane decoders
-  stay on their thread because the stream only submits their work there. The audio device and
-  the GUI event loop still own a private thread.
+  stay on their thread because the stream only submits their work there. The audio device, the
+  Swag Scope video producer and the GUI event loop still own a private thread; each runs one
+  loop rather than a sequence of tasks.
 - Next: a UI executor that the GUI event loop services, so a task can finish on the window thread
   instead of posting an event to it. Then the affinity restriction that makes a native handle's use
   and destruction stay on its executor, including during cancellation and shutdown, and a bounded

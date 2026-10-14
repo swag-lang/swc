@@ -1743,6 +1743,16 @@ namespace
             case MicroInstrOpcode::OpBinaryMemImm:
             case MicroInstrOpcode::OpUnaryMem:
             {
+                // An atomic exchange orders every access around it, and hands the old value to
+                // its register: no packed access may move across it.
+                if (MicroPassHelpers::isAtomicOrdering(inst, ops))
+                {
+                    scan.hasUnresolvedMemRead  = true;
+                    scan.hasUnresolvedMemWrite = true;
+                    setDefsOpaque(fn, scan, inst);
+                    return;
+                }
+
                 const MicroReg    baseReg  = ops[0].reg;
                 uint64_t          offset   = opcode == MicroInstrOpcode::OpBinaryMemReg ? ops[4].valueU64 : ops[3].valueU64;
                 const MicroOpBits sizeBits = opcode == MicroInstrOpcode::OpBinaryMemReg ? ops[2].opBits : ops[1].opBits;

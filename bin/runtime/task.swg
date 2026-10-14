@@ -69,6 +69,26 @@ struct TaskState
     notify:     (func||())?     // Told the outcome exists, before the task reads as done.
     scope:      CancelScope     // The cancellation state the body observes.
     priority:   TaskPriority    // How urgently the body runs.
+    submission: u64             // Counts the submissions, so a notification names the one it reports.
+}
+
+impl TaskState
+{
+    // Returns which submission the task runs or ran last. A notification reads it to name the
+    // submission it reports; it does not change while that submission runs.
+    mtd const currentSubmission()->u64 => .submission
+
+    // Waits until `submission` reads as done, unless the task has been submitted again since.
+    //
+    // A notification runs before the task reads as done, so whoever receives it on another thread
+    // may observe the task a moment too early. This closes that moment without ever waiting for a
+    // later submission. The caller must be the thread that submits the task again, or the answer
+    // can change between the check and the wait.
+    mtd const waitSubmission(submission: u64)
+    {
+        if .submission == submission do
+            waitWork(cast #unconst (*WorkNode, &.node))
+    }
 }
 
 // One piece of work the runtime runs on its own schedule, and the outcome it produces.
@@ -149,11 +169,12 @@ impl Task
     // short, and must not wait for this task.
     //
     // A `Background` task runs its body at a lower thread priority, whichever thread runs it, so
-    // a long load or count does not slow the interface down.
+    // a long load or count does not slow the interface down. An `executor` runs the task on its own
+    // thread, after every task submitted to it before; otherwise a pool worker runs it.
     //
     // The task must not already be in flight. A task may be submitted again after it finished;
     // an outcome nobody took is released then.
-    mtd submit(body: func||()->T, notify: (func||())? = null, priority = TaskPriority.Normal)
+    mtd submit(body: func||()->T, notify: (func||())? = null, priority = TaskPriority.Normal, executor: *Executor? = null)
     {
         .prepare(notify, priority)
         .plainBody    = body
@@ -161,11 +182,11 @@ impl Task
 
         let task = me
         .run = func|task|() { task.runPlainBody() }
-        submitWork(&.node)
+        .dispatch(executor)
     }
 
     // Submits a `body` that can fail for one execution; [[Swag.Task.take]] raises its error.
-    mtd submit(body: func||()->T fail, notify: (func||())? = null, priority = TaskPriority.Normal)
+    mtd submit(body: func||()->T fail, notify: (func||())? = null, priority = TaskPriority.Normal, executor: *Executor? = null)
     {
         .prepare(notify, priority)
         .plainBody    = null
@@ -173,7 +194,7 @@ impl Task
 
         let task = me
         .run = func|task|() { task.runFallibleBody() }
-        submitWork(&.node)
+        .dispatch(executor)
     }
 
     // Asks the running work to stop.
@@ -197,7 +218,7 @@ impl Task
     mtd const isPending()->bool
     {
         let state = .node.state.load()
-        return state == WorkStateQueued or state == WorkStateRunning
+        return isWorkPending(state)
     }
 
     // Returns whether the last submission finished and its outcome was not taken yet.
@@ -233,8 +254,11 @@ impl Task
         defer .failure.reset()
         try .failure.raise()
 
-        #static if T != void do
+        // A value that owns something moves out; a scalar or a pointer is simply returned.
+        #static if #typeof(#type T).kind == .Struct do
             return #move .result
+        elif T != void do
+            return .result
     }
 }
 
@@ -245,10 +269,20 @@ private impl Task
     {
         Swag.assert(not .isPending())
         .failure.reset()
+        .submission += 1
         .notify     = notify
         .priority   = priority
         .node.entry = &taskEntry
         .scope.stop.reset()
+    }
+
+    // Hands the prepared submission to `executor`, or to the pool.
+    mtd dispatch(executor: *Executor?)
+    {
+        if executor do
+            executor.post(&.node)
+        else do
+            submitWork(&.node)
     }
 
     // Runs a body that cannot fail and stores its value.

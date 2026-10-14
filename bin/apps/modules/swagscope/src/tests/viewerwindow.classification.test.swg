@@ -93,11 +93,11 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
     let previous     = assume cast(*PlainText.Panel, previousView)
     Swag.assert(not previous.isStreaming())
 
-    // Replace completed statistics with a count whose lifetime is controlled by this test, and
-    // which tells nobody when it ends.
+    // Replace completed statistics with a count whose lifetime is controlled by this test. Like
+    // every viewer task, it tells its view when it ends.
     completeTextStatistics(&host, previous)
     let held = &gate
-    previous.statisticsTask.submit(func|held|()->TextStatistics => holdClassificationStatistics(held))
+    previous.statisticsTask.submit(func|held|()->TextStatistics => holdClassificationStatistics(held), previous.taskNotifier(&previous.statisticsTask))
     defer gate.release.signal()
     gate.entered.wait()
     Swag.assert(previous.statisticsTask.isPending())
@@ -109,18 +109,19 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
     window.choiceLoad.task.wait()
     Swag.assert(window.choiceLoad.isDone())
 
-    // This callback must return while the statistics count remains behind the gate. It is
-    // the production retirement path, not the test helper, that asks the count to stop.
-    host.fireTimer(window.startupTimer)
+    // Delivering the end of the classification must return while the statistics count remains
+    // behind the gate. It is the production retirement path, not the test helper, that asks the
+    // count to stop.
+    host.pump()
     Swag.assert(previous.statisticsTask.isCancelled())
     Swag.assert(previous.statisticsTask.isPending())
     Swag.assert(window.currentView == previousView and window.currentFile == first)
     Swag.assert(window.pendingFile == next and window.choiceLoad.isDone())
-    Swag.assert(window.startupTimer != null)
 
-    // Another GUI poll still keeps the old document, without consuming or publishing the
-    // completed classification result.
-    host.fireTimer(window.startupTimer)
+    // Nothing asks again before the count ends: the window keeps the old document, without
+    // consuming or publishing the completed classification result.
+    Swag.assert(window.awaitingRetirement and window.startupTimer == null)
+    host.pump()
     Swag.assert(Atomic.get(&gate.finished) == 0)
     Swag.assert(window.currentView == previousView and window.pendingFile == next)
     Swag.assert(window.choiceLoad.started and window.choiceLoad.isDone())

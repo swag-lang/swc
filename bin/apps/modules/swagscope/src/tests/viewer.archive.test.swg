@@ -289,9 +289,8 @@ func writeZipFixture()->String
     viewer.requestPreview(1)
     Swag.assert(viewer.pendingPreview == Swag.U64.Max)
 
-    while viewer.extract.started and not viewer.extract.isDone() do
-        Threading.Thread.sleep(1'ms)
-    host.fireTimer(viewer.previewTimer)
+    viewer.extract.task.wait()
+    host.pump()
     Swag.assert(not viewer.previewFile.isEmpty())
 
     let embedded = assume cast(*EmbeddedViewer, viewer.previewPane.children[0])

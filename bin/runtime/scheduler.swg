@@ -42,6 +42,13 @@ internal const WorkStateRunning = 2'u32
 // The work finished. The owner may reuse or destroy the node.
 internal const WorkStateDone = 3'u32
 
+// The work is queued on an [[Swag.Executor]], which alone may start it: no join claims it.
+internal const WorkStateDedicated = 4'u32
+
+// Returns whether a node in `state` still has work to start or finish.
+#[Swag.Inline]
+internal func isWorkPending(state: u32)->bool => state == WorkStateQueued or state == WorkStateRunning or state == WorkStateDedicated
+
 // One worker thread and the runtime context it installs.
 #[Swag.NoDoc]
 struct Worker
@@ -241,20 +248,11 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
     if target > sched.capacity do
         target = sched.capacity
 
-    let template = Swag.getContext()
     while count < target
     {
         let worker = &sched.workers![count]
         worker.scheduler = sched
-        worker.context   = template[]
-
-        // The copy still points at this thread's scratch blocks. Reset it before the worker can
-        // allocate, so it owns its own storage instead of releasing the creator's. The pool
-        // starts at whichever submission comes first, possibly under a scoped allocator; a worker
-        // serves every later task, so it starts from the default one.
-        worker.context.resetThreadState()
-        if let allocator = worker.context.defaultAllocator do
-            worker.context.allocator = allocator
+        prepareWorkerContext(&worker.context)
 
         worker.handle = __hostThreadCreate(&schedulerWorkerEntry, worker)
         if not worker.handle do
@@ -262,6 +260,36 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         count += 1
         sched.count.store(count)
     }
+}
+
+// Gives a thread the runtime is about to start a context of its own, copied from this thread's.
+//
+// The copy keeps the settings but still points at this thread's scratch blocks; resetting it
+// lets the new thread own its storage instead of releasing the creator's. The thread serves
+// every later task, whatever allocator was active where it started, so it starts from the default
+// one.
+internal func prepareWorkerContext(context: *Context)
+{
+    context[] = Swag.getContext()[]
+    context.resetThreadState()
+    if let allocator = context.defaultAllocator do
+        context.allocator = allocator
+}
+
+// Installs a prepared context on the calling thread and gives its scratch allocators their capacity.
+internal func enterWorkerContext(context: *Context)
+{
+    Swag.setContext(context)
+    context.tempAllocator.setCapacity(__buildCfg.tempAllocatorCapacity, __runtimeAllocator())
+    context.errorAllocator.setCapacity(__buildCfg.errorAllocatorCapacity, __runtimeAllocator())
+}
+
+// Releases what a worker context owns before its thread ends.
+internal func leaveWorkerContext(context: *Context)
+{
+    context.tempAllocator.release()
+    __releaseErrContext(context)
+    releaseAllocatorThreadCache()
 }
 
 // Runs one node and publishes its completion.
@@ -411,9 +439,7 @@ private func schedulerWorkerEntry(param: *void?)->u32
     let worker = cast(*Worker, param!)
     let sched  = worker.scheduler!
 
-    Swag.setContext(&worker.context)
-    worker.context.tempAllocator.setCapacity(__buildCfg.tempAllocatorCapacity, __runtimeAllocator())
-    worker.context.errorAllocator.setCapacity(__buildCfg.errorAllocatorCapacity, __runtimeAllocator())
+    enterWorkerContext(&worker.context)
 
     for
     {
@@ -436,9 +462,7 @@ private func schedulerWorkerEntry(param: *void?)->u32
         sched.mutex.unlock()
     }
 
-    worker.context.tempAllocator.release()
-    __releaseErrContext(&worker.context)
-    releaseAllocatorThreadCache()
+    leaveWorkerContext(&worker.context)
     return 0
 }
 
@@ -483,7 +507,7 @@ internal func waitWork(node: *WorkNode)
     for
     {
         let state = node.state.load()
-        if state != WorkStateQueued and state != WorkStateRunning do
+        if not isWorkPending(state) do
             break
 
         if state == WorkStateQueued
@@ -517,7 +541,7 @@ internal func waitWorkUnlessCancelled(node: *WorkNode)->bool
     for
     {
         let state = node.state.load()
-        if state != WorkStateQueued and state != WorkStateRunning do
+        if not isWorkPending(state) do
             return true
         if isCancelled() do
             return false
@@ -592,7 +616,7 @@ private func parkWorkObserver(node: *WorkNode, cancellable: bool)->bool
     for
     {
         let state = node.state.load()
-        if state != WorkStateQueued and state != WorkStateRunning do
+        if not isWorkPending(state) do
             return true
         if cancellable and isCancelled() do
             return false

@@ -105,19 +105,26 @@ private impl SoundFile
 
         for packet in .packets
         {
-            if packetBytes.count != packet.byteSize do
-                packetBytes.resize(packet.byteSize)
-            try source.seek(packet.sourceOffset)
-            try source.readExact(packetBytes.toSlice())
-
             let decodedByteCount = cast(u64, packet.sampleFrameCount) * .channelCount * #sizeof(s16)
             if decodedBytes.count != decodedByteCount do
                 decodedBytes.resize(decodedByteCount)
-            let producedBytes = try packetCodec!.decodePacket(decodedBytes.storage(),
+
+            // A packet without payload is a gap in the stream, delivered as silence.
+            var producedBytes = decodedByteCount
+            if packet.byteSize
+            {
+                if packetBytes.count != packet.byteSize do
+                    packetBytes.resize(packet.byteSize)
+                try source.seek(packet.sourceOffset)
+                try source.readExact(packetBytes.toSlice())
+                producedBytes = try packetCodec!.decodePacket(decodedBytes.storage(),
                                                               decodedByteCount,
                                                               packetBytes.toSlice())
-            if producedBytes != decodedByteCount do
-                fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
+                if producedBytes != decodedByteCount do
+                    fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
+            }
+            else do
+                Memory.clear(decodedBytes.storage(), decodedByteCount)
 
             // Omit encoder priming before borrowing the samples to the consumer.
             let skippedFrames = Math.min(discardFrames, cast(u64, packet.sampleFrameCount))

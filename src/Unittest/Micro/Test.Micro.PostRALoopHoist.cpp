@@ -349,6 +349,50 @@ SWC_TEST_BEGIN(PostRALoopHoist_OpaqueStoreOverPrivateFrame_Hoists)
 }
 SWC_TEST_END()
 
+// Two locals whose addresses the function hands out, one written in the loop. A plain store lets
+// the reload of the other leave the loop. An atomic exchange is where another thread publishes
+// what the loop reads next, so the reload stays.
+SWC_TEST_BEGIN(PostRALoopHoist_AtomicExchangeKeepsEscapedReload)
+{
+    for (const bool atomic : {false, true})
+    {
+        const CallConv& conv   = CallConv::get(CallConvKind::Swag);
+        const MicroReg  sp     = conv.stackPointer;
+        const MicroReg  base   = conv.intTransientRegs[3];
+        const MicroReg  cnt    = conv.intTransientRegs[4];
+        const MicroReg  ticket = conv.intTransientRegs[5];
+        const MicroReg  data   = conv.intTransientRegs[6];
+        const MicroReg  flag   = conv.intTransientRegs[2];
+        MicroBuilder    builder(ctx);
+
+        const MicroLabelRef top = builder.createLabel();
+        builder.emitLoadRegImm(cnt, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(ticket, sp, 0x80, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(data, sp, 0x40, MicroOpBits::B64);
+        builder.placeLabel(top);
+        builder.emitLoadRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+        if (atomic)
+            builder.emitOpBinaryMemReg(sp, 0x80, flag, MicroOp::Exchange, MicroOpBits::B64);
+        else
+            builder.emitLoadMemReg(sp, 0x80, flag, MicroOpBits::B64);
+        builder.emitLoadRegMem(base, sp, 0x40, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(cnt, base, MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(cnt, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, top);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaLoopHoistPass(builder));
+
+        const uint32_t posLoad  = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+        const uint32_t posLabel = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        if ((posLoad > posLabel) != atomic)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A second reload of the same slot into a different register reads a value the
 // hoisted register already holds: it becomes a register copy, not a memory
 // access.

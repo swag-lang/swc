@@ -41,23 +41,51 @@ impl ViewerWindow
             .startupTimer = .addTimer(1'ms)
     }
 
+    // Takes the queued file, or the queued empty state, one step further once what it waited for
+    // has happened: the first frame, the classification, or the retirement of the viewer before it.
+    mtd continueStartup()
+    {
+        .stopTimer(&.startupTimer)
+        if not .pendingFile.isEmpty()
+        {
+            .processQueuedFile()
+        }
+        elif not .pendingEmpty.isEmpty()
+        {
+            let message = #move .pendingEmpty
+            .showEmpty(message)
+        }
+    }
+
+    // Asks a retiring viewer again, now that a task below the window has ended.
+    //
+    // The event that says so is still on its way to its window, which the answer may destroy, so
+    // the question waits for the next turn of the event loop.
+    mtd retryRetirement()
+    {
+        if not .awaitingRetirement do
+            return
+        .awaitingRetirement = false
+        if not .startupTimer do
+            .startupTimer = .addTimer(1'ms)
+    }
+
     // Advances one asynchronous file classification and publishes it only after the preceding
     // viewer has retired. Every filesystem probe stays on the worker side of this boundary.
+    //
+    // Nothing here polls: the classification ends with a task event to this window, and a viewer
+    // that is still retiring ends its work with a task event below it.
     private mtd processQueuedFile()
     {
         if .choiceLoad.started
         {
-            if not .choiceLoad.isDone()
-            {
-                .startupTimer = .addTimer(RetirePollInterval)
+            if not .choiceLoad.isDone() do
                 return
-            }
 
             if .choiceLoad.fileName != .pendingFile
             {
                 discard .choiceLoad.finish()
-                .choiceLoad.start(&.index, .pendingFile, .recent.toSlice())
-                .startupTimer = .addTimer(RetirePollInterval)
+                .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me)
                 return
             }
 
@@ -76,7 +104,7 @@ impl ViewerWindow
             .searchQuery.clear()
             if not .destroyInstances(preserveVisible: true)
             {
-                .startupTimer = .addTimer(RetirePollInterval)
+                .awaitingRetirement = true
                 return
             }
 
@@ -93,8 +121,7 @@ impl ViewerWindow
             return
         }
 
-        .choiceLoad.start(&.index, .pendingFile, .recent.toSlice())
-        .startupTimer = .addTimer(RetirePollInterval)
+        .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me)
     }
 
     mtd chooseFile()
@@ -133,7 +160,7 @@ impl ViewerWindow
     }
 
     // Returns the window to its empty state with `message`. While a viewer is still retiring or a
-    // classification is running, the request is kept in `pendingEmpty` and retried from a timer.
+    // classification is running, the request is kept in `pendingEmpty` until that work ends.
     mtd showEmpty(message: string)
     {
         .forgetSearch()
@@ -141,8 +168,8 @@ impl ViewerWindow
         if not retired or (.choiceLoad.started and not .choiceLoad.isDone())
         {
             .pendingEmpty = message
-            if not .startupTimer do
-                .startupTimer = .addTimer(RetirePollInterval)
+            if not retired do
+                .awaitingRetirement = true
             return
         }
 

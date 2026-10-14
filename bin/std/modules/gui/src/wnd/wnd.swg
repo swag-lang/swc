@@ -412,6 +412,9 @@ impl IWnd for Wnd
             .itf.onTimerEvent(ptr)
 
         case TaskEvent as ptr:
+            // The notification ran just before its task read as done; let that moment pass.
+            let state = cast(const *Swag.TaskState, ptr.task)
+            state.waitSubmission(ptr.submission)
             .itf.onTaskEvent(ptr)
 
         case FocusEvent as ptr:
@@ -2405,15 +2408,16 @@ impl Wnd
     // window there. The event reaches [[Gui.IWnd.onTaskEvent]] on the GUI thread during a later
     // frame, and is dropped once the window's destruction has completed. The window must be on a
     // surface.
-    mtd taskNotifier(task: const *void)->func||()
+    mtd taskNotifier(task: const *Swag.TaskState)->func||()
     {
         let app = .surface!.app
         let wnd = me
         return func|app, wnd, task|()
         {
             let evt = Event.create'TaskEvent()
-            evt.target = wnd
-            evt.task   = task
+            evt.target     = wnd
+            evt.task       = task
+            evt.submission = task.currentSubmission()
             app.postEvent(evt)
         }
     }

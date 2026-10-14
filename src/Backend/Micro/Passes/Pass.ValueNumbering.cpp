@@ -458,10 +458,11 @@ namespace
         SmallVector<Write, 8> writes;
         uint32_t              blockedKinds = 0;
         bool                  hasCall      = false;
+        bool                  hasAtomic    = false; // Another thread may publish a new value there.
 
         bool preserves(const MicroRelocation& target, uint64_t offset, uint64_t width) const
         {
-            if (hasCall || !target.privateGlobal ||
+            if (hasCall || hasAtomic || !target.privateGlobal ||
                 (target.kind != MicroRelocation::Kind::GlobalInitAddress && target.kind != MicroRelocation::Kind::GlobalZeroAddress) ||
                 (blockedKinds & (1u << static_cast<uint32_t>(target.kind))))
                 return false;
@@ -489,6 +490,11 @@ namespace
                 return result;
             }
             const auto* ops = it->ops(*context.operands);
+            if (MicroPassHelpers::isAtomicOrdering(*it, ops))
+            {
+                result.hasAtomic = true;
+                return result;
+            }
             if (info.flags.has(MicroInstrFlagsE::WritesMemory) && ops &&
                 info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
                 ops[info.memBaseOperandIndex].reg.isInstructionPointer() && !relocations.find(it.current))

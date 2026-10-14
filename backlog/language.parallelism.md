@@ -106,8 +106,8 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   is gone and every consumer -- pixel, truetype, video, gui, the four applications, the examples
   and the scripts -- goes through the runtime.
 - What the model does not yet promise: race freedom. The capture list is written, not proved
-  (.005); a partition can fail but cannot state disjointness (.004); there is one executor and
-  no affinity beyond a window's completion events (.003); nothing suspends (.002). A program can
+  (.005); a partition can fail but cannot state disjointness (.004); there is no UI or blocking
+  executor and no affinity rule beyond submitting to a dedicated executor (.003); nothing suspends (.002). A program can
   still write a data race through a capture, and the compiler accepts it.
 - Next: the four foundational entries (.002 through .005) remain, in dependency order:
   suspension and typed results, then executors, then partition proofs, then checked captures.
@@ -393,31 +393,26 @@ of simplicity when every useful helper needs an unchecked contract.
   overlapping mutable views are rejected, and success still means every index ran exactly once.
 - Related: std.pixel.md, language.parallelism.001.
 
-### language.parallelism.003 — One executor, one placement
+### language.parallelism.003 — A dedicated executor, but no UI or blocking executor
 
-  evidence that the pool is the wrong owner for anything that waits for another task
 - Evidence: a `Swag.Barrier` with four participants, entered by four `Swag.TaskGroup` children,
   hangs. The pool decides how many children run at once; a participant then waits for one the
   pool has not started, and the waiting participants occupy the workers that would start it.
   Under compile-time execution, where the count is zero, the first child blocks the only thread.
   The same reasoning applies to `Swag.Semaphore.acquire` and `Swag.Condition.wait`: a waiting
   thread runs no ready work, so what it waits for must already be running. The three
-  documentation comments now say so, and the suite test uses one participant.
-- Evidence: `Swag.setWorkerCount` sizes one general pool and `Swag.startWorkers` starts it. A
-  task's notification can post a `Gui.TaskEvent` to a window, which is how Swag Scope learns that a
-  background load ended without polling it, and `Swag.TaskPriority.Background` lowers the priority
-  of the thread that runs a body; that is completion delivery and a priority, not an executor. There is
-  no blocking executor, no dedicated-thread executor, and no way to require that a value is
-  created, used and destroyed on one thread. Consumers that need thread affinity
-  still own a `Core.Threading.Thread` of their own -- the video frame threads, the audio device,
-  and the GUI event loop -- so the process runs the runtime pool beside private threads instead of
-  one scheduler.
-- Next: define the executor contract before adding a second executor: affinity, accepted operation
-  kinds, completion ownership, and what happens when submission fails or shutdown starts. Then add
-  the main/UI, blocking and dedicated-thread executors and the affinity restriction that makes a
-  native handle's use and destruction stay on its thread, including during cancellation and
-  shutdown. A bounded blocking executor does not promise progress for mutually dependent foreign
-  calls; document and test that boundary.
+  documentation comments now say so, and the suite test uses one participant. This is the
+  evidence that the pool is the wrong owner for anything that waits for another task.
+- Evidence: besides the pool, `Swag.Executor` gives work one thread of its own, and a task's
+  notification can post a `Gui.TaskEvent` to a window. There is still no main/UI executor and no
+  blocking executor, and nothing requires that a value is created, used and destroyed on one
+  executor: the H.264 and H.265 lane decoders stay on their thread only because the stream submits
+  their work there. The audio device and the GUI event loop still own a private thread; each runs
+  one loop rather than a sequence of tasks.
+- Next: a UI executor that the GUI event loop services, so a task can finish on the window thread
+  instead of posting an event to it. Then the affinity restriction that makes a native handle's use
+  and destruction stay on its executor, including during cancellation and shutdown, and a bounded
+  blocking executor whose limit for mutually dependent foreign calls is documented and tested.
 - Done when: a thread-affine resource is created, used and destroyed on its required executor
   under a shutdown that races its last callback, and the UI executor keeps servicing completion
   and destruction while it drains.

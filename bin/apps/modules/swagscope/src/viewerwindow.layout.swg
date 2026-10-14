@@ -441,6 +441,7 @@ impl ViewerWindow
             case KeyEvent as key where window.routePlaybackKey(key):         return true
             case KeyEvent as key where window.routeSearchNavigationKey(key): return true
             case MouseEvent as mouse where mouse.kind == .Move or mouse.kind == .Enter: window.updateFullScreenChrome(mouse.surfacePos)
+            case TaskEvent: window.retryRetirement()
             }
 
             return false

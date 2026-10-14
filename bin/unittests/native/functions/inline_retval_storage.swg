@@ -59,9 +59,9 @@ func enclosingLarge()->Large
 #[Swag.Inline]
 func twoNames()->Large
 {
-    var first: retval
+    var first:  retval
     var second: retval
-    first.first = 37
+    first.first   = 37
     second.second = 41
     return first
 }

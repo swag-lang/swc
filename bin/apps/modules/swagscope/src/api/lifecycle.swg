@@ -14,8 +14,10 @@ alias NeedsLoadingOverlay = func||()->bool
 
 // Requests release of a viewer's external resources without blocking the GUI thread.
 //
-// A false result asks the host to poll again. The host destroys the document and its contributed
-// chrome only after this callback returns true.
+// A false result means work is still stopping. That work must end with a [[Gui.TaskEvent]]
+// delivered to the view or to one of its windows: the host asks again once such an event has
+// been delivered, and never polls. The host destroys the document and its contributed chrome
+// only after this callback returns true.
 alias Retire = func||()->bool
 
 // Configures optional progressive-loading and retirement behavior.

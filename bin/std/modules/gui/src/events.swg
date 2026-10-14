@@ -155,13 +155,16 @@ impl IEvent for TimerEvent {}
 // Signals that a task a window watches has finished, so its outcome can be taken without waiting.
 //
 // The notification returned by [[Gui.Wnd.taskNotifier]] posts it from the thread that finished
-// the task.
+// the task. A window receives it once the submission it reports reads as done; when the task has
+// been submitted again since, the event arrives without waiting for the new submission, and the
+// task may then still be running.
 struct TaskEvent
 {
     public
     {
-        using base: Event          // Routing state shared by every GUI event.
-        late task:  const *void    // The task that finished, as given to [[Gui.Wnd.taskNotifier]].
+        using base: Event              // Routing state shared by every GUI event.
+        late task:  const *void        // The task that finished, as given to [[Gui.Wnd.taskNotifier]].
+        submission: u64                // The submission that finished.
     }
 }
 

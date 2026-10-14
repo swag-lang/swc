@@ -198,11 +198,13 @@ struct Panel
     slots:     Array'Slot
     slotCount: u32
 
-    // Exactly one decode owns `video` and one free slot at a time. It runs on a persistent Swag
-    // thread instead of occupying a scheduler worker: the codec can therefore give all global
-    // workers to entropy parsing, reconstruction, filtering, and color conversion.
-    decodeThread: Threading.Thread
-    decodeWake:   Sync.Event
+    // Exactly one decode owns `video` and one free slot at a time. It runs on an executor of its
+    // own instead of occupying a scheduler worker: the codec can therefore give all global workers
+    // to entropy parsing, reconstruction, filtering, and color conversion. Its end reaches this
+    // view as a task event, which is what a retirement waits for.
+    decode:         Swag.Task
+    decodeExecutor: Swag.Executor
+    decodeWake:     Sync.Event
     queueLock:    Sync.Mutex
 
     // Queue state, all read and written under `queueLock`.
@@ -266,8 +268,8 @@ private impl Panel
         if .retired do
             return
 
-        if .decodeThread.isValid() do
-            .decodeThread.wait()
+        .decode.wait()
+        .decodeExecutor.close()
         if .decodeWake.isValid() do
             .decodeWake.release()
 
@@ -322,15 +324,15 @@ private impl Panel
                 .audioEngineAcquired = false
             }
 
-            if .decodeThread.isValid()
+            if .decode.isPending()
             {
                 .video.requestCancel()
-                .decodeThread.safeForceEnd()
+                .decode.cancel()
                 .decodeWake.signal()
             }
         }
 
-        if .decodeThread.isValid() and not .decodeThread.isDone() do
+        if .decode.isPending() do
             return false
         .finishRetire()
         return true
@@ -705,12 +707,10 @@ private impl Panel
             return
         if state == OpenFailed
         {
-            // Failure exits the worker. Join only after termination, so reporting the error can
-            // retire the view without ever turning this poll into a wait.
-            if .decodeThread.isValid() and not .decodeThread.isDone() do
+            // Failure exits the worker. Report it only once the worker has ended, so reporting the
+            // error can retire the view without ever turning this poll into a wait.
+            if .decode.isPending() do
                 return
-            if .decodeThread.isValid() do
-                .decodeThread.wait()
         }
 
         .openFinished = true
@@ -952,8 +952,8 @@ private impl Panel
         // wait for it; see [[Sound.warmEngine]].
         Sound.warmEngine()
         result.decodeWake.init()
-        try result.decodeThread.init(&runViewerDecode, result, priority: .Normal)
-        try result.decodeThread.start()
+        result.decodeExecutor.start()
+        result.decode.submit(func|view = result|() { runViewerDecode(view) }, result.taskNotifier(&result.decode), executor: &result.decodeExecutor)
         result.timer = result.addTimer(10'ms)
         result.applyLayout()
         result.setInitialFocus(result.playButton)
@@ -961,12 +961,12 @@ private impl Panel
     }
 }
 
-// Opens the container and keeps its run-ahead queue full on the same persistent thread.
+// Opens the container and keeps its run-ahead queue full on the same persistent thread, until the
+// view cancels it.
 //
 // Keeping both phases on one runtime context avoids moving codec allocations between thread caches.
-private func runViewerDecode(thread: const *Threading.Thread)
+private func runViewerDecode(view: *Panel)
 {
-    let view  = cast(*Panel, thread.userParam!)
     var video = catch Reader.open(view.openFileName) as openError
     if openError != null
     {
@@ -975,7 +975,7 @@ private func runViewerDecode(thread: const *Threading.Thread)
         return
     }
 
-    if thread.requestEnd.isRaised()
+    if Swag.isCancelled()
     {
         video.close()
         return
@@ -983,10 +983,10 @@ private func runViewerDecode(thread: const *Threading.Thread)
 
     view.pendingVideo = #move video
     Atomic.exchange(&view.openState, OpenSucceeded)
-    while not thread.requestEnd.isRaised()
+    while not Swag.isCancelled()
     {
         view.decodeWake.wait()
-        while not thread.requestEnd.isRaised() and view.produceOne() {}
+        while not Swag.isCancelled() and view.produceOne() {}
     }
 
     // `Reader.close` joins codec-owned frame and indexing threads. It can take as long as a key

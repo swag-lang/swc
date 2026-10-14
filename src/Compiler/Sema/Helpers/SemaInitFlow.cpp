@@ -995,11 +995,24 @@ namespace
 
         // Marks every tracked variable referenced anywhere in a subtree as escaped:
         // used for nested functions/closures whose execution point is unknown.
-        void escapeSubtree(FlowState& state, AstNodeRef ref, uint32_t depth = 0)
+        void escapeSubtree(FlowState& state, AstNodeRef ref, uint32_t depth = 0, AstNodeRef parentRef = AstNodeRef::invalid())
         {
-            if (ref.isInvalid() || depth > 256 || aborted_)
+            if (ref.isInvalid() || aborted_)
                 return;
-            ref                 = resolve(ref);
+
+            // A subtree too deep to follow may hide an escaping capture. Give up on every
+            // elision rather than conclude that nothing escaped.
+            if (depth > 256)
+            {
+                aborted_ = true;
+                return;
+            }
+
+            // An operand substituted by its own wrapper -- an implicit cast of a closure
+            // argument, for one -- resolves back to that wrapper. Follow the raw operand then.
+            const AstNodeRef resolvedRef = resolve(ref);
+            if (resolvedRef != parentRef)
+                ref = resolvedRef;
             const AstNode& node = sema_->node(ref);
             if (node.is(AstNodeId::Identifier))
             {
@@ -1022,7 +1035,7 @@ namespace
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isValid())
-                    escapeSubtree(state, childRef, depth + 1);
+                    escapeSubtree(state, childRef, depth + 1, ref);
             }
         }
 

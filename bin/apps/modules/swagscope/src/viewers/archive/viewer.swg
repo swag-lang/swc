@@ -72,23 +72,22 @@ struct ZipEntryExtract
 
 impl ZipEntryExtract
 {
-    // Extracts `entry` of the archive to `destination` on the worker task. The caller polls for
-    // completion and then reads `error`.
-    mtd start(archiveFileName: string, entry: const *ZipEntry, destination: string)
+    // Extracts `entry` of the archive to `destination` on the worker task. `owner` receives a
+    // [[Gui.TaskEvent]] when it ends; [[ZipEntryExtract.finish]] then hands over the error.
+    mtd start(archiveFileName: string, entry: const *ZipEntry, destination: string, owner: *Wnd? = null)
     {
         Swag.assert(not .started)
         .archiveFileName = archiveFileName
         .entry           = entry[]
         .destination     = destination
         .error.clear()
-        .started = true
 
         let operation = me
-        .task.submit(func|operation|()
+        .submit(func|operation|()
         {
             catch Zip.extractEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
             operation.error = Viewer.failureText(extractError)
-        })
+        }, owner)
     }
 
     mtd finish()->String
@@ -130,24 +129,32 @@ struct Panel
         previewStatus: *Label
     }
 
-    late embedded:  Viewer.Embedded
-    archive:        Zip
-    entryLines:     Array'(*ListLine?)
-    load:           Viewer.BackgroundLoad'Zip
-    extract:        ZipEntryExtract
-    previewTimer:   *Timer?
-    pendingPreview: u64 = Swag.U64.Max
-    activePreview:  u64 = Swag.U64.Max
-    previewFile:    String
-    sourceFile:     String
-    services:       Viewer.HostServices
-    failureReason:  String
+    late embedded:      Viewer.Embedded
+    archive:            Zip
+    entryLines:         Array'(*ListLine?)
+    load:               Viewer.BackgroundLoad'Zip
+    extract:            ZipEntryExtract
+    previewTimer:       *Timer?
+    pendingPreview:     u64 = Swag.U64.Max
+    awaitingRetirement: bool     // The previous preview is still retiring; the next task event below the panel asks again.
+    retiring:           bool
+    activePreview:      u64 = Swag.U64.Max
+    previewFile:        String
+    sourceFile:         String
+    services:           Viewer.HostServices
+    failureReason:      String
 }
 
 private impl IWnd for Panel
 {
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if .extract.claim(evt)
+        {
+            .continuePreview()
+            return
+        }
+
         if not .load.claim(evt)
         {
             evt.accepted = false
@@ -169,8 +176,7 @@ private impl IWnd for Panel
     {
         if evt.timer == .previewTimer
         {
-            if .extract.started and not .extract.isDone() do
-                return
+            .stopTimer(&.previewTimer)
             .continuePreview()
             return
         }
@@ -298,9 +304,19 @@ private impl Panel
             return
         .pendingPreview = index
         .showPreviewStatus(texts().ui_Previewing)
-        if not .previewTimer do
-            .previewTimer = .addTimer(Viewer.BackgroundPollInterval)
         .continuePreview()
+    }
+
+    // Asks the previous preview again, now that a task below the panel has ended. The event that
+    // says so is still on its way to a window the answer may destroy, so the question waits for
+    // the next turn of the event loop.
+    mtd retryPreview()
+    {
+        if not .awaitingRetirement do
+            return
+        .awaitingRetirement = false
+        if not .previewTimer do
+            .previewTimer = .addTimer(1'ms)
     }
 
     mtd clearPreviewFile()
@@ -312,11 +328,17 @@ private impl Panel
         .activePreview = Swag.U64.Max
     }
 
-    // Advances the preview from the preview timer: opens the extracted entry once its extraction
-    // finishes, then retires the previous embedded viewer and extracts the next pending entry to a
-    // temporary file. A newer selection supersedes the extraction in flight.
+    // Advances the preview: opens the extracted entry once its extraction finishes, then retires the
+    // previous embedded viewer and extracts the next pending entry to a temporary file. A newer
+    // selection supersedes the extraction in flight.
+    //
+    // Nothing polls. The extraction ends with a task event to this panel, and a previous viewer
+    // that is still retiring ends its work with a task event below it.
     mtd continuePreview()
     {
+        if .retiring do
+            return
+
         if .extract.started
         {
             if not .extract.isDone() do
@@ -347,15 +369,14 @@ private impl Panel
             }
         }
 
-        if .pendingPreview == Swag.U64.Max
-        {
-            .stopTimer(&.previewTimer)
+        if .pendingPreview == Swag.U64.Max do
+            return
 
+        if not .embedded.retire()
+        {
+            .awaitingRetirement = true
             return
         }
-
-        if not .embedded.retire() do
-            return
 
         .clearPreviewFile()
         let index = .pendingPreview
@@ -369,7 +390,7 @@ private impl Panel
         var tempName = Format.toString("swagscope-archive-%", Guid64.random())
         tempName     += extension
         .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), tempName)
-        .extract.start(.sourceFile, entry, .previewFile)
+        .extract.start(.sourceFile, entry, .previewFile, me)
     }
 
     mtd showPreviewStatus(text: string)
@@ -454,6 +475,7 @@ private impl Panel
 
     mtd retire()->bool
     {
+        .retiring = true
         if not .load.retire() or not .extract.retire() or not .embedded.retire() do
             return false
         .stopTimer(&.previewTimer)
@@ -489,6 +511,13 @@ private impl Panel
         }
 
         result.splitter.addPane(result.previewPane).minimumSize = 320
+        result.hookOnChildEvent = func|viewer = result|(_, evt)
+        {
+            if evt is TaskEvent do
+                viewer.retryPreview()
+            return false
+        }
+
         result.load.start(host.fileName(), &Zip.load, result)
         result.applyLayout()
         return result

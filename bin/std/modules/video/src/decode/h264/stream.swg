@@ -45,17 +45,13 @@ private enum AvcLaneState
     Decoding
 }
 
-// One persistent frame thread. Its decoder owns every per-picture CABAC, macroblock, residual,
-// motion, reconstruction, and deblocking state until the owner joins the result.
+// One persistent frame lane. Its decoder owns every per-picture CABAC, macroblock, residual,
+// motion, reconstruction, and deblocking state until the owner takes the decoded picture.
 #[Swag.NoCopy]
 struct AvcFrameThread
 {
-    thread:    Threading.Thread
-    wake:      Sync.Event
-    done:      Sync.Event
-    decoder:   *H264.Decoder?
-    frame:     *H264.Frame?
-    errorText: String
+    decode:   Swag.Task'(*H264.Frame?)     // The picture this lane decodes, or its error.
+    executor: Swag.Executor                // The lane's own thread, so its decoder stays on it.
 }
 
 // One decode-order frame thread waiting to be joined by the output owner.
@@ -430,7 +426,7 @@ impl AvcStream
         for .threadedCount
         {
             let lane = .threaded[index].lane
-            .frameThreads[lane].done.wait()
+            .frameThreads[lane].decode.wait()
             index = (index + 1) % AvcMaxFrameThreads
         }
     }
@@ -443,38 +439,23 @@ impl AvcStream
     // not needed yet; at these resolutions there are enough of them to keep a consumer that
     // has to present on a clock off the processor, and a decoder that races ahead while the
     // picture on screen stutters has won nothing.
-    private mtd ensureFrameThreads() fail
+    private mtd ensureFrameThreads()
     {
         if .threadsStarted do
             return
 
-        defer #fail .shutdownFrameThreads()
-        for lane in .laneCount
-        {
-            let frameThread = &.frameThreads[lane]
-            frameThread.wake.init(false)
-            frameThread.done.init(true)
-            try frameThread.thread.init(&runAvcFrameThread, frameThread, priority: .BelowNormal)
-            try frameThread.thread.start()
-        }
-
+        for lane in .laneCount do
+            .frameThreads[lane].executor.start(.Background)
         .threadsStarted = true
     }
 
-    // Stops the persistent frame owners and releases their synchronization handles.
+    // Stops the persistent frame owners. A picture still waiting for its lane is skipped.
     private mtd shutdownFrameThreads()
     {
-        for lane in .laneCount where .frameThreads[lane].thread.isValid() do
-            .frameThreads[lane].thread.safeForceEnd()
-        for lane in .laneCount where .frameThreads[lane].wake.isValid() do
-            .frameThreads[lane].wake.signal()
-        for lane in .laneCount where .frameThreads[lane].thread.isValid() do
-            .frameThreads[lane].thread.wait()
-        for lane in .laneCount
-        {
-            .frameThreads[lane].wake.release()
-            .frameThreads[lane].done.release()
-        }
+        for lane in .laneCount do
+            .frameThreads[lane].decode.cancel()
+        for lane in .laneCount do
+            .frameThreads[lane].executor.close()
 
         .threadsStarted = false
     }
@@ -487,9 +468,13 @@ impl AvcStream
         {
             let lane        = .threaded[index].lane
             let frameThread = &.frameThreads[lane]
-            if frameThread.frame do
-                .decoders[lane].releaseFrame(frameThread.frame)
-            frameThread.frame = null
+            if frameThread.decode.isDone()
+            {
+                let frame = catch frameThread.decode.take()
+                if frame do
+                    .decoders[lane].releaseFrame(frame)
+            }
+
             .decoders[lane].discardAccessUnit()
             .laneStates[lane] = .Free
             index = (index + 1) % AvcMaxFrameThreads
@@ -543,10 +528,14 @@ impl AvcStream
                 fail InvalidFormatError{"H.264 access unit carries no picture"}
 
             let frameThread = &.frameThreads[lane]
-            frameThread.decoder   = decoder
-            frameThread.frame     = null
-            frameThread.errorText = ""
-            frameThread.done.reset()
+            frameThread.decode.submit(func|decoder|()->*H264.Frame? fail
+            {
+                // A lane that shuts down before reaching this picture leaves it undecoded.
+                if Swag.isCancelled() do
+                    return null
+                defer #fail decoder.failPreparedAccessUnit()
+                return try decoder.decodePreparedAccessUnit()
+            }, executor: &frameThread.executor)
 
             .threaded[.threadedTail] = {lane, rank}
             .threadedTail  = (.threadedTail + 1) % AvcMaxFrameThreads
@@ -554,8 +543,6 @@ impl AvcStream
             if .threadedCount > .threadedHighWater do
                 .threadedHighWater = .threadedCount
             .lastSetupLane = lane
-
-            frameThread.wake.signal()
             return true
         }
 
@@ -570,7 +557,7 @@ impl AvcStream
     // Keeps every automatic frame context busy.
     private mtd fillFrameThreads(source: *ByteSource) fail
     {
-        try .ensureFrameThreads()
+        .ensureFrameThreads()
         while .threadedCount < .laneCount and not .reachedEnd
         {
             if not try .startFrame(source) do
@@ -589,15 +576,9 @@ impl AvcStream
         .threadedHead  = (.threadedHead + 1) % AvcMaxFrameThreads
         .threadedCount -= 1
 
-        let frameThread = &.frameThreads[threaded.lane]
-        frameThread.done.wait()
-        if frameThread.errorText.length do
-            fail InvalidFormatError{Errors.mkString(frameThread.errorText.toString())}
-        if not frameThread.frame do
+        let frame = try .frameThreads[threaded.lane].decode.take()
+        if not frame do
             fail InvalidFormatError{"H.264 access unit carries no picture"}
-
-        let frame = frameThread.frame
-        frameThread.frame = null
         .laneStates[threaded.lane] = .Free
         try .fillFrameThreads(source)
         return {frame, threaded.rank}
@@ -658,31 +639,5 @@ impl AvcStream
         for entry in .pending do
             .decoders[0].releaseFrame(entry.frame!)
         .pending.clear()
-    }
-}
-
-// Decodes complete pictures in one persistent per-frame context.
-private func runAvcFrameThread(thread: const *Threading.Thread)
-{
-    let frameThread = cast(*AvcFrameThread, thread.userParam!)
-    while not thread.requestEnd.isRaised()
-    {
-        frameThread.wake.wait()
-        if thread.requestEnd.isRaised() do
-            break
-
-        var frame: *H264.Frame?
-        frame = catch frameThread.decoder!.decodePreparedAccessUnit() as decodeError
-        if decodeError != null
-        {
-            frameThread.decoder.failPreparedAccessUnit()
-            frameThread.errorText = Errors.message(decodeError)
-        }
-        else
-        {
-            frameThread.frame = frame
-        }
-
-        frameThread.done.signal()
     }
 }

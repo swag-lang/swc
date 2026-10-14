@@ -25,9 +25,9 @@ struct ViewerChoiceLoad
 impl ViewerChoiceLoad
 {
     // Classifies `fileName` on the worker task: its absolute path, existence, viewer choices, size
-    // and metadata, the `recent` files that still exist, and the sorted files of its folder. The
-    // caller polls for completion.
-    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String)
+    // and metadata, the `recent` files that still exist, and the sorted files of its folder.
+    // `owner` receives a [[Gui.TaskEvent]] when the classification ends.
+    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String, owner: *Wnd? = null)
     {
         Swag.assert(not .started)
 
@@ -37,10 +37,9 @@ impl ViewerChoiceLoad
         .index    = index
         .fileName = fileName
         .recent   = recent
-        .started  = true
 
         let operation = me
-        .task.submit(func|operation|()
+        .submit(func|operation|()
         {
             var absolute = catch Path.absolute(operation.fileName) as pathError
             if pathError != null do
@@ -71,7 +70,7 @@ impl ViewerChoiceLoad
                 operation.result.folderFiles.add(file.fullName)
 
             operation.result.folderFiles.sort(func(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
-        })
+        }, owner)
     }
 
     // Hands the classification to the caller once the worker is done with it.

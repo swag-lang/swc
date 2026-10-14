@@ -576,6 +576,59 @@ SWC_TEST_BEGIN(ValueNumbering_PrivateGlobalCrossesOnlyDisjointWrites)
 }
 SWC_TEST_END()
 
+// An atomic operation is where another thread publishes a new value, so a private global the
+// function never writes is read again after one. Mode 0, a plain store, is the control.
+SWC_TEST_BEGIN(ValueNumbering_PrivateGlobalIsReadAgainAfterAtomic)
+{
+    for (uint32_t mode = 0; mode < 4; ++mode)
+    {
+        constexpr MicroReg pointer = MicroReg::virtualIntReg(10);
+        constexpr MicroReg first   = MicroReg::virtualIntReg(11);
+        constexpr MicroReg second  = MicroReg::virtualIntReg(12);
+        constexpr MicroReg flag    = MicroReg::virtualIntReg(13);
+        constexpr MicroReg raised  = MicroReg::virtualIntReg(14);
+        MicroBuilder       builder(ctx);
+        builder.emitLoadRegReg(pointer, MicroReg::intReg(2), MicroOpBits::B64);
+        const auto relocate = [&] {
+            MicroRelocation relocation;
+            relocation.kind           = MicroRelocation::Kind::GlobalInitAddress;
+            relocation.form           = MicroRelocation::Form::Relative32;
+            relocation.instructionRef = builder.instructions().lastInstructionRef();
+            relocation.targetAddress  = 0x100;
+            relocation.privateGlobal  = true;
+            builder.addRelocation(relocation);
+        };
+        builder.emitLoadRegMem(first, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        relocate();
+        builder.emitLoadRegImm(flag, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitLoadRegImm(raised, ApInt(1, 64), MicroOpBits::B32);
+        switch (mode)
+        {
+            case 0:
+                builder.emitLoadMemReg(pointer, 0, raised, MicroOpBits::B32);
+                break;
+            case 1:
+                builder.emitLoadVolatileRegMem(flag, pointer, 0, MicroOpBits::B32);
+                break;
+            case 2:
+                builder.emitOpBinaryMemReg(pointer, 0, raised, MicroOp::Exchange, MicroOpBits::B32);
+                break;
+            default:
+                builder.emitCompareExchangeRegMemReg(flag, pointer, 0, raised, MicroOpBits::B32);
+                break;
+        }
+        builder.emitLoadRegMem(second, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        relocate();
+        const MicroInstrRef repeated = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+        SWC_RESULT(runValueNumberingPass(builder));
+        if (builder.instructions().ptr(repeated)->op != (mode == 0 ? MicroInstrOpcode::LoadRegReg : MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ValueNumbering_RipRelocationKeepsDifferentTargetsAndStores)
 {
     constexpr MicroReg pointer = MicroReg::virtualIntReg(10);

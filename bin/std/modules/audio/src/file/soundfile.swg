@@ -100,7 +100,8 @@ struct PacketStreamOptions
 //
 // Payloads need not be contiguous. `sampleFrameCount` is the number of decoded
 // sample frames contributed by the packet, across all interleaved channels.
-// Packet order is playback order.
+// Packet order is playback order. A packet without payload is that many frames of
+// silence: a container states one where its timestamps leave a gap in the sound.
 struct SoundPacket
 {
     public
@@ -385,9 +386,10 @@ impl SoundFile
         for packet in packets
         {
             // A packet may complete no frame at all: the first Vorbis packet of a stream only
-            // primes the overlap of the next one.
-            if not packet.byteSize do
-                fail BadParameterError{"sound packets need non-zero byte counts"}
+            // primes the overlap of the next one. One without payload is silence, so it needs
+            // a duration.
+            if not packet.byteSize and not packet.sampleFrameCount do
+                fail BadParameterError{"sound packets need a payload or a duration"}
             if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset do
                 fail InvalidFormatError{"sound packet runs past the end of its source file"}
             if decodedFrames > Swag.U64.Max - packet.sampleFrameCount or payloadBytes > Swag.U64.Max - packet.byteSize do

@@ -36,35 +36,68 @@ namespace SemaSymbolLookup
         return fn.isForeign() || !fn.isEmpty();
     }
 
+    // Borrow the overload list unless removing an empty declaration requires an owned copy.
     template<typename T>
-    void filterEmptyFunctionDeclarations(SmallVector<T>& symbols)
+    std::span<T> filterEmptyFunctionDeclarations(std::span<T> symbols, SmallVector<std::remove_const_t<T>>& storage)
     {
         if (symbols.size() < 2)
         {
             if (!symbols.empty() && !symbols[0])
-                symbols.clear();
-            return;
+            {
+                storage.clear();
+                return storage.span();
+            }
+            return symbols;
         }
 
-        const bool hasConcreteFunction = hasConcreteFunctionCandidate<T>(symbols.span());
-        // These call candidates were already filtered for runtime access, which removed null symbols.
+        const bool hasConcreteFunction = hasConcreteFunctionCandidate<T>(symbols);
         if (!hasConcreteFunction)
-            return;
+            return symbols;
 
-        size_t writeIndex = 0;
-        for (const T sym : symbols)
+        const bool ownsSymbols = symbols.data() == storage.data();
+        if (ownsSymbols)
         {
+            size_t writeIndex = 0;
+            for (const T sym : symbols)
+            {
+                if (sym->isFunction())
+                {
+                    const auto& fn = sym->template cast<SymbolFunction>();
+                    if (!fn.isForeign() && fn.isEmpty())
+                        continue;
+                }
+
+                storage[writeIndex++] = sym;
+            }
+            storage.resize(writeIndex);
+            return storage.span();
+        }
+
+        storage.clear();
+        bool copied = false;
+        for (size_t index = 0; index < symbols.size(); ++index)
+        {
+            const T sym = symbols[index];
             if (sym->isFunction())
             {
                 const auto& fn = sym->template cast<SymbolFunction>();
                 if (!fn.isForeign() && fn.isEmpty())
+                {
+                    if (!copied)
+                    {
+                        storage.reserve(symbols.size());
+                        storage.append(symbols.data(), index);
+                        copied = true;
+                    }
                     continue;
+                }
             }
 
-            symbols[writeIndex++] = sym;
+            if (copied)
+                storage.push_back(sym);
         }
 
-        symbols.resize(writeIndex);
+        return copied ? storage.span() : symbols;
     }
 
     template<typename T>

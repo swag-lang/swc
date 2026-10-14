@@ -3151,7 +3151,7 @@ private impl Parser
     {
         var result: retval
         result.min = Vector2.Max
-        result.max = Vector2.NegMax
+        result.max = Vector2.Min
         for path in shape.pathList.paths
         {
             result.min = Vector2.min(result.min, path.minBounds)
@@ -3745,7 +3745,7 @@ impl Drawing
     {
         shape.pathList.flatten(.Normal)
         var min = Vector2.Max
-        var max = Vector2.NegMax
+        var max = Vector2.Min
         for path in shape.pathList.paths
         {
             min = Vector2.min(min, path.minBounds)

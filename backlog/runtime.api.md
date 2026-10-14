@@ -18,31 +18,6 @@ Several entries rename a public name or a lexer token. Follow
 declaration. `src/Backend/Runtime*.h` mirrors part of `api.swg` field by field; keep both sides
 in sync in the same change.
 
-### runtime.api.002 — `F32.Min` is the smallest positive value, unlike every other `Min`
-
-- Evidence: in [api.swg](../bin/runtime/api.swg) `Swag.S8.Min` through `Swag.S64.Min` are the
-  most negative values, while `Swag.F32.Min = 1.17549435e-38` and `Swag.F64.Min = 2.2250738e-308`
-  are the smallest positive normal values (C's `FLT_MIN`). Rust's `f32::MIN`, C#'s
-  `float.MinValue` and Go's `-math.MaxFloat32` idiom all mean the most negative finite value.
-  The same name meaning two things inside one family is a trap; the Core vector constants
-  already carry a warning comment about it (`Vector2.Min`: "not the most negative value").
-- Evidence: the deliberate uses of the smallest normal are
-  [parse.swg:326](../bin/std/modules/core/src/text/parse.swg#L326) and its test
-  [parse.test.swg:59](../bin/std/modules/core/src/tests/text/parse.test.swg#L59), plus the
-  `Math.Vector2/3/4.Min` constants and their tests in `vector.test.swg`. `F64.Min` has no use.
-- Proposed contract: for every numeric type, `Min` and `Max` are the ends of the finite
-  representable range, so `F32.Min == -F32.Max`. The smallest positive normal value is
-  `F32.MinNormal` / `F64.MinNormal`. Keep `Inf`, `NegInf`, `NaN`, `MantBits`, `ExpBits` and
-  `Bias` unchanged (`Bias` follows Go's `float64info` convention used by `decimal.swg`).
-- Next: add `MinNormal`, move the parse code and test to it, decide whether
-  `Math.VectorN.Min` follows `F32.Min` (recommended: yes, and drop the warning comment), and
-  flip `F32.Min` / `F64.Min` in the same commit after grepping every remaining `F32.Min` and
-  `F64.Min` in `bin/`, `tools/` and `bin/reference`. A silent meaning change cannot be split
-  across commits.
-- Done when: `Swag.F32.Min == -Swag.F32.Max` and `Swag.F64.Min == -Swag.F64.Max`, `MinNormal`
-  exists and is documented, no maximum accumulator in `bin/` starts from a positive constant,
-  and the Core, GUI and Pixel tests pass.
-
 ### runtime.api.003 — `Swag.Context` is 7 KB per thread and caps error nesting at 32
 
 - Evidence: measured with `#sizeof` in a `.swgs` probe, `Swag.Context` is 7,064 bytes.

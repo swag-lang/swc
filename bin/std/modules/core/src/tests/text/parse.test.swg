@@ -56,7 +56,7 @@ using Swag
     let smallest = expect StrConv.parseF32("1.401298464324817e-45")
     Swag.assert(cast #bit (u32, smallest.value) == 1 and not smallest.ovf)
     let negative = expect StrConv.parseF32("-1e-40")
-    Swag.assert(negative.value < 0 and negative.value > -Swag.F32.Min)
+    Swag.assert(negative.value < 0 and negative.value > -Swag.F32.MinNormal)
     let zero = expect StrConv.parseF32("1e-50")
     Swag.assert(zero.value == 0)
     let huge = expect StrConv.parseF32("1e39")

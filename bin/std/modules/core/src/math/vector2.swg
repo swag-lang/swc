@@ -20,9 +20,8 @@ impl Vector2
     const NegUnitX = Vector2{-1, 0}     // Unit vector along the negative X axis (-1, 0)
     const NegUnitY = Vector2{0, -1}     // Unit vector along the negative Y axis (0, -1)
 
-    const Max    = Vector2{Swag.F32.Max, Swag.F32.Max}       // Largest finite `f32` in every component
-    const NegMax = Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
-    const Min    = Vector2{Swag.F32.Min, Swag.F32.Min}       // Smallest positive normalized `f32` in every component, not the most negative value
+    const Max = Vector2{Swag.F32.Max, Swag.F32.Max}       // Largest finite `f32` in every component
+    const Min = Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
 
     // Sets both components to `value`.
     //

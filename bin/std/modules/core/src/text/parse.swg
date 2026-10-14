@@ -323,7 +323,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 
 // Parses the floating-point number at the start of `str` as an `f32`, like [[Core.StrConv.parseF64]].
 //
-// A magnitude below `Swag.F32.Min` is kept as the subnormal value it rounds to, or as zero, the way
+// A magnitude below `Swag.F32.MinNormal` is kept as the subnormal value it rounds to, or as zero, the way
 // [[Core.StrConv.parseF64]] treats an `f64`: every `f32` written with enough digits reads back
 // unchanged. A magnitude above `Swag.F32.Max` saturates to that bound and sets `ovf`.
 func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail

@@ -21,9 +21,8 @@ impl Vector3
     const NegUnitY = Vector3{0, -1, 0}     // Unit vector along the negative Y axis (0, -1, 0)
     const NegUnitZ = Vector3{0, 0, -1}     // Unit vector along the negative Z axis (0, 0, -1)
 
-    const Max    = Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}        // Largest finite `f32` in every component
-    const NegMax = Vector3{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
-    const Min    = Vector3{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}        // Smallest positive normalized `f32` in every component, not the most negative value
+    const Max = Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}        // Largest finite `f32` in every component
+    const Min = Vector3{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Most negative finite `f32` in every component
 
     // Sets every component to `value`.
     //

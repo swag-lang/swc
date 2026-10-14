@@ -273,6 +273,8 @@ namespace InstructionCombine
                 const MicroInstr& inst = *walker;
                 if (isControlOrCall(inst))
                     return false;
+                if (MicroPassHelpers::isAtomicOrdering(inst, inst.ops(*ctx.operands)))
+                    return false;
                 if (writesMemory(inst) && !(baseFromOutside && storesIntoFrame(ctx, inst, walker.current)))
                     return false;
                 const MicroInstrUseDef* useDef = ctx.ssa->instrUseDef(walker.current);

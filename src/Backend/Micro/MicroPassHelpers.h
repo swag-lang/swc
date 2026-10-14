@@ -130,6 +130,20 @@ namespace MicroPassHelpers
                inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
     }
 
+    // An atomic operation: the volatile load of 'Swag.atomget', the exchange of 'Swag.atomxchg', and
+    // the compare-exchange behind the other atomic intrinsics. Each is an ordering point another
+    // thread synchronizes with, so no ordinary access may move across it, be forwarded across it,
+    // or be merged with an access on its other side - not even one the pass otherwise proves
+    // unchanged, such as a private global this function never writes.
+    inline bool isAtomicOrdering(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (inst.op == MicroInstrOpcode::LoadVolatileRegMem || inst.op == MicroInstrOpcode::CompareExchangeRegMemReg)
+            return true;
+        // OpBinaryMemReg: [memReg, reg, opBits, microOp, memOffset]. Without its operands, assume
+        // the exchange.
+        return inst.op == MicroInstrOpcode::OpBinaryMemReg && (!ops || ops[3].microOp == MicroOp::Exchange);
+    }
+
     // Immediate-dominator tree over the per-instruction CFG
     // (Cooper-Harvey-Kennedy). Shared by the passes that reason about
     // dominance on the linear instruction stream (LICM, value numbering).

@@ -411,6 +411,7 @@ namespace
             bool loopHasPointerStore = false;
             bool loopHasFrameStore   = false;
             bool loopHasNestedLoop   = false;
+            bool loopHasAtomic       = false;
             for (uint32_t i = loop->bodyBegin; i < loop->bodyEnd; ++i)
             {
                 if (!inBody[i])
@@ -437,6 +438,7 @@ namespace
                 }
                 if (!MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory))
                     continue;
+                loopHasAtomic |= MicroPassHelpers::isAtomicOrdering(*inst, inst->ops(operands));
                 // A writer carrying a relocation addresses its target directly.
                 if (const size_t* firstIndex = firstRelocation.find(instrRefs[i].get()))
                 {
@@ -834,6 +836,12 @@ namespace
 
                             // A call may write an ordinary loaded location.
                             if (loopHasCall && !constantPoolVector && !immutableLoad)
+                                continue;
+
+                            // An atomic operation is where another thread publishes what this loop
+                            // reads, a private global included. Only the read-only pool and storage
+                            // frozen for the call stay put.
+                            if (loopHasAtomic && !constantPoolVector && !immutableLoad)
                                 continue;
 
                             // Indexed values and pointer-sized fields of an

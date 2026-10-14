@@ -78,9 +78,11 @@ SWC_TEST_BEGIN(SlpVectorize_PacksZeroStoresWithoutConstantLoads)
 }
 SWC_TEST_END()
 
+// Variant 6 puts an atomic exchange between the two stores: another thread may observe the
+// first one before it, so the second never moves above it.
 SWC_TEST_BEGIN(SlpVectorize_ZeroStoresKeepObservableBoundaries)
 {
-    for (uint32_t variant = 0; variant < 6; ++variant)
+    for (uint32_t variant = 0; variant < 7; ++variant)
     {
         MicroBuilder   builder(ctx);
         X64Encoder     encoder(ctx);
@@ -97,6 +99,11 @@ SWC_TEST_BEGIN(SlpVectorize_ZeroStoresKeepObservableBoundaries)
             builder.placeLabel(builder.createLabel());
         if (variant == 4)
             builder.emitLoadVolatileRegMem(observed, sp, 0x48, MicroOpBits::B64);
+        if (variant == 6)
+        {
+            builder.emitLoadRegImm(observed, ApInt(1, 64), MicroOpBits::B64);
+            builder.emitOpBinaryMemReg(sp, 0x60, observed, MicroOp::Exchange, MicroOpBits::B64);
+        }
         if (variant != 0)
             builder.emitLoadMemImm(sp, variant == 1 ? 0x50 : 0x48, ApInt(variant == 5 ? 7 : 0, 64), MicroOpBits::B64);
         builder.emitRet();

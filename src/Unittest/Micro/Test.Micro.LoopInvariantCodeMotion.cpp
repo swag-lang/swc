@@ -589,6 +589,58 @@ SWC_TEST_BEGIN(LICM_FramePrivacyResolvesBackwardLayoutChainsBeforeEscapeChecks)
 }
 SWC_TEST_END()
 
+// A private global no store of the loop reaches still stays in a loop that holds an atomic
+// operation: that is where another thread publishes its next value. Mode 0 is the control.
+SWC_TEST_BEGIN(LICM_KeepsPrivateGlobalReadInLoopWithAtomic)
+{
+    for (const uint32_t mode : {0u, 1u, 2u, 3u})
+    {
+        constexpr MicroReg base   = MicroReg::virtualIntReg(1);
+        constexpr MicroReg count  = MicroReg::virtualIntReg(2);
+        constexpr MicroReg value  = MicroReg::virtualIntReg(3);
+        constexpr MicroReg acc    = MicroReg::virtualIntReg(4);
+        constexpr MicroReg flag   = MicroReg::virtualIntReg(5);
+        constexpr MicroReg raised = MicroReg::virtualIntReg(6);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(acc, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadRegImm(flag, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitLoadRegImm(raised, ApInt(1, 64), MicroOpBits::B32);
+        if (mode == 1)
+            builder.emitLoadVolatileRegMem(flag, base, 0, MicroOpBits::B32);
+        else if (mode == 2)
+            builder.emitOpBinaryMemReg(base, 0, raised, MicroOp::Exchange, MicroOpBits::B32);
+        else if (mode == 3)
+            builder.emitCompareExchangeRegMemReg(flag, base, 0, raised, MicroOpBits::B32);
+        builder.emitLoadRegMem(value, MicroReg::instructionPointer(), 0, MicroOpBits::B64);
+        MicroRelocation relocation;
+        relocation.kind           = MicroRelocation::Kind::GlobalZeroAddress;
+        relocation.form           = MicroRelocation::Form::Relative32;
+        relocation.instructionRef = builder.instructions().lastInstructionRef();
+        relocation.targetAddress  = 0x40;
+        relocation.privateGlobal  = true;
+        builder.addRelocation(relocation);
+        builder.emitOpBinaryRegReg(acc, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(acc, flag, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(CallConv::get(CallConvKind::Swag).intReturn, acc, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runLicmPass(builder));
+
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+        if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Control: a load nothing in the loop can alias moves to the preheader.
 SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)
 {

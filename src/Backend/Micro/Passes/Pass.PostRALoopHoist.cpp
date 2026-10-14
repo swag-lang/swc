@@ -60,6 +60,10 @@ namespace
                 offset = ops[2].valueU64;
                 break;
             case MicroInstrOpcode::OpBinaryMemReg:
+                // An atomic exchange is an ordering point, not a slot write: whatever escaped
+                // may change across it.
+                if (MicroPassHelpers::isAtomicOrdering(inst, ops))
+                    return false;
                 bits   = ops[2].opBits;
                 offset = ops[4].valueU64;
                 break;

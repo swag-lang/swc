@@ -243,6 +243,10 @@ namespace
                 isRead  = true;
                 break;
             case MicroInstrOpcode::OpBinaryMemReg:
+                // An atomic exchange is where another thread may observe or change memory: no
+                // chunk is kept in a register across it.
+                if (MicroPassHelpers::isAtomicOrdering(inst, ops))
+                    return false;
                 baseReg = ops[0].reg;
                 size    = getNumBytes(ops[2].opBits);
                 offset  = ops[4].valueU64;

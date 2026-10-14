@@ -229,8 +229,8 @@ namespace Swag
         //
         // A context copied to start another thread keeps its settings -- allocators, flags,
         // capacities -- but must own its scratch blocks and error state, and must not point at
-        // the creator's innermost panic catch or at the work the creator was running. Call it on
-        // the copy before the new thread uses it, then give the scratch allocators their capacity.
+        // the creator's innermost panic catch. Call it on the copy before the new thread uses it,
+        // then give the scratch allocators their capacity.
         public mtd resetThreadState()
         {
             Swag.init(&.tempAllocator, 1)
@@ -243,7 +243,6 @@ namespace Swag
             .traceIndex      = 0
             .panicStackCount = 0
             .panicCatch      = null
-            .cancelScope     = null
         }
     }
 }

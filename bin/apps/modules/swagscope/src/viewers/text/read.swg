@@ -14,7 +14,6 @@ struct Read
     limit:           u64
     contentStart:    u64
     replace:         bool
-    cancelled:       u32
     error:           String
     failed:          bool
     invalidUtf8:     bool
@@ -41,7 +40,7 @@ impl Read
         // reinterpret a malformed chunk in the middle of an otherwise continuous read.
         for adjustment in (.replace ? 4'u64 : 1'u64)
         {
-            if Atomic.get(&.cancelled) do
+            if Swag.isCancelled() do
                 return
             discard try stream.seek(.Begin, .start)
             var chunk = catch stream.readTextChunk(.limit, .encoding) as readError
@@ -70,26 +69,26 @@ impl Read
         }
     }
 
-    // Starts reading about `limit` bytes of `fileName` from `start` on a worker.
+    // Starts reading about `limit` bytes of `fileName` from `start` on a worker; `owner` receives a
+    // [[Gui.TaskEvent]] when the chunk is ready.
     //
     // `replace` asks for a new resident window, which may begin inside a character; otherwise the
     // chunk continues the text already shown.
-    mtd startRead(fileName: string, encoding: Text.Encoding, start, limit: u64, replace: bool)
+    mtd startRead(fileName: string, encoding: Text.Encoding, start, limit: u64, replace: bool, owner: *Wnd? = null)
     {
         Swag.assert(not .started)
-        .fileName  = fileName
-        .encoding  = encoding
-        .start     = start
-        .limit     = limit
-        .replace   = replace
-        .cancelled = 0
+        .fileName = fileName
+        .encoding = encoding
+        .start    = start
+        .limit    = limit
+        .replace  = replace
         .error.clear()
         .failed      = false
         .invalidUtf8 = false
         .text.clear()
-        .started = true
+
         let request = me
-        .task.submit(func|request|()
+        .submit(func|request|()
         {
             catch request.read() as readError
             if readError != null
@@ -97,8 +96,14 @@ impl Read
                 request.failed = true
                 request.error  = Viewer.failureText(readError)
             }
-        })
+        }, owner)
     }
+
+    // Asks the read in flight to stop; its result is then discarded.
+    mtd cancel() => .task.cancel()
+
+    // Returns whether the last read was asked to stop.
+    mtd const wasCancelled()->bool => .task.isCancelled()
 
     mtd opDrop() { .wait() }
 }

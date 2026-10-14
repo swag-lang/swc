@@ -105,6 +105,9 @@ namespace __Win32RT
         func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
         func CloseHandle(hObject: HANDLE)->BOOL
         func SwitchToThread()->BOOL
+        func GetCurrentThread()->HANDLE
+        func GetThreadPriority(hThread: HANDLE)->s32
+        func SetThreadPriority(hThread: HANDLE, nPriority: s32)->BOOL
         func Sleep(dwMilliseconds: DWORD)
         func GetActiveProcessorCount(groupNumber: USHORT)->DWORD
         func QueryPerformanceCounter(counter: *s64)->s32
@@ -178,6 +181,21 @@ func __hostThreadJoin(handle: *void?)
         return
     discard __Win32RT.WaitForSingleObject(handle, __Win32RT.INFINITE)
     discard __Win32RT.CloseHandle(handle)
+}
+
+// Lowers the calling thread below normal priority, and returns the priority to restore.
+func __hostThreadEnterBackground()->s32
+{
+    let thread   = __Win32RT.GetCurrentThread()
+    let previous = __Win32RT.GetThreadPriority(thread)
+    discard __Win32RT.SetThreadPriority(thread, -1)
+    return previous
+}
+
+// Restores the priority [[__hostThreadEnterBackground]] returned.
+func __hostThreadLeaveBackground(previous: s32)
+{
+    discard __Win32RT.SetThreadPriority(__Win32RT.GetCurrentThread(), previous)
 }
 
 // Yields the remainder of the calling thread's time slice.

@@ -72,22 +72,14 @@ func writeU32(bytes: *Array'u8, offset: u64, value: u32)
 
 func finishWaveform(view: *Sound.Panel)
 {
-    if view.waveformThread.isValid() do
-        view.waveformThread.wait()
+    view.waveformTask.wait()
     view.syncWaveform()
 }
 
 func waitForSoundOpen(host: *Testing.HeadlessHost, view: *Sound.Panel)
 {
-    var attempts: u32
-    while not view.openFinished and attempts < 5_000
-    {
-        Threading.Thread.sleep(1'ms)
-        if view.timer do
-            host.fireTimer(view.timer)
-        attempts += 1
-    }
-
+    view.openTask.wait()
+    host.pump()
     Swag.assert(view.openFinished)
 }
 
@@ -136,7 +128,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     view.userData = &failed
     Swag.assert(result.isLoading() and result.needsLoadingOverlay())
     waitForSoundOpen(&host, view)
-    Swag.assert(failed and not view.openFailure.isEmpty())
+    Swag.assert(failed and not view.opened)
 }
 
 #test

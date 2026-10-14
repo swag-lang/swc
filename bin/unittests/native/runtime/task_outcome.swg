@@ -205,3 +205,26 @@ impl OwnedOutcome
 
     Swag.assert(seen.load() == 3)
 }
+
+// A background task runs at a lower priority and hands its value over like any other task.
+#test
+{
+    var task: Swag.Task'u32
+    task.submit(func()->u32 => 11, priority: .Background)
+    let value = expect task.take()
+    Swag.assert(value == 11)
+}
+
+// A task answers whether its current submission was asked to stop; the next one starts clear.
+#test
+{
+    var task: Swag.Task
+    let self = &task
+    task.submit(func|self|() { self.cancel() })
+    task.wait()
+    Swag.assert(task.isCancelled())
+
+    task.submit(func() {})
+    task.wait()
+    Swag.assert(not task.isCancelled())
+}

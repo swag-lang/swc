@@ -51,6 +51,13 @@ private func runInScope(scope: *CancelScope?, body: func||())
     context.cancelScope = previous
 }
 
+// How urgently a task's body competes for the processor with the rest of the process.
+enum TaskPriority
+{
+    Normal         // As urgent as the code that submitted it.
+    Background     // Yields to interactive work: the thread running it drops below normal priority.
+}
+
 // The part of a task that does not depend on the value it produces. The scheduler's entry reaches
 // it through the node, whatever the task's result type.
 #[Swag.NoDoc]
@@ -61,6 +68,7 @@ struct TaskState
     run:        (func||())?     // Runs the body and stores its outcome; set at each submission.
     notify:     (func||())?     // Told the outcome exists, before the task reads as done.
     scope:      CancelScope     // The cancellation state the body observes.
+    priority:   TaskPriority    // How urgently the body runs.
 }
 
 // One piece of work the runtime runs on its own schedule, and the outcome it produces.
@@ -140,11 +148,14 @@ impl Task
     // [[Swag.Task.take]] will not wait, for example by posting an event to a window. It must be
     // short, and must not wait for this task.
     //
+    // A `Background` task runs its body at a lower thread priority, whichever thread runs it, so
+    // a long load or count does not slow the interface down.
+    //
     // The task must not already be in flight. A task may be submitted again after it finished;
     // an outcome nobody took is released then.
-    mtd submit(body: func||()->T, notify: (func||())? = null)
+    mtd submit(body: func||()->T, notify: (func||())? = null, priority = TaskPriority.Normal)
     {
-        .prepare(notify)
+        .prepare(notify, priority)
         .plainBody    = body
         .fallibleBody = null
 
@@ -154,9 +165,9 @@ impl Task
     }
 
     // Submits a `body` that can fail for one execution; [[Swag.Task.take]] raises its error.
-    mtd submit(body: func||()->T fail, notify: (func||())? = null)
+    mtd submit(body: func||()->T fail, notify: (func||())? = null, priority = TaskPriority.Normal)
     {
-        .prepare(notify)
+        .prepare(notify, priority)
         .plainBody    = null
         .fallibleBody = body
 
@@ -174,6 +185,9 @@ impl Task
     {
         discard .scope.stop.raise()
     }
+
+    // Returns whether a stop was requested for the current submission.
+    mtd const isCancelled()->bool => .scope.stop.isRaised()
 
     // Returns whether the task is submitted and not finished.
     mtd const isPending()->bool
@@ -216,11 +230,12 @@ impl Task
 private impl Task
 {
     // Readies a submission: the previous outcome and request no longer apply.
-    mtd prepare(notify: (func||())?)
+    mtd prepare(notify: (func||())?, priority: TaskPriority)
     {
         Swag.assert(not .isPending())
         .failure.reset()
         .notify     = notify
+        .priority   = priority
         .node.entry = &taskEntry
         .scope.stop.reset()
     }
@@ -268,7 +283,16 @@ private func taskEntry(node: *WorkNode)
         return
 
     let safeRun = run orelse func() {}
-    runInScope(&state.scope, safeRun)
+    if state.priority == .Background
+    {
+        let previous = __hostThreadEnterBackground()
+        runInScope(&state.scope, safeRun)
+        __hostThreadLeaveBackground(previous)
+    }
+    else
+    {
+        runInScope(&state.scope, safeRun)
+    }
 
     if let notify = state.notify do
         notify()

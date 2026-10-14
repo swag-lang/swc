@@ -9,11 +9,9 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     for 8
     {
-        if view.statisticsThread.isValid() do
-            view.statisticsThread.wait()
-        if view.statisticsTimer do
-            host.fireTimer(view.statisticsTimer)
-        if Atomic.get(&view.statisticsState) == PlainText.StatisticsCounted and
+        view.statisticsTask.wait()
+        host.pump()
+        if view.hasStatistics and
            view.statisticsEncoding == view.encoding and
            view.statisticsStart == view.contentStart do
             return
@@ -161,7 +159,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     view.read.task.wait()
     view.applyEncoding(.Utf32Be)
     view.applyEncoding(.Windows1252)
-    Swag.assert(Atomic.get(&view.read.cancelled))
+    Swag.assert(view.read.wasCancelled())
     discard host.render(view)
     Swag.assert(view.editor.text() == previousText)
     completeTextReads(&host, view)
@@ -176,7 +174,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     view.loadNextChunk()
     Swag.assert(view.read.started)
     discard view.retire()
-    Swag.assert(Atomic.get(&view.read.cancelled))
+    Swag.assert(view.read.wasCancelled())
     view.read.task.wait()
 }
 

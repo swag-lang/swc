@@ -53,15 +53,13 @@ struct ClassificationRetirementGate
     finished: u32
 }
 
-func holdClassificationStatistics(thread: const *Threading.Thread)
+// Holds a statistics count behind `gate` until the test releases it.
+func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStatistics
 {
-    with let gate = cast(*ClassificationRetirementGate, thread.userParam!)
-    {
-        .entered.signal()
-        .release.wait()
-    }
-
+    gate.entered.signal()
+    gate.release.wait()
     Atomic.exchange(&gate.finished, 1)
+    return {}
 }
 
 // A readable text document can still own native statistics work. Classification may finish
@@ -93,20 +91,16 @@ func holdClassificationStatistics(thread: const *Threading.Thread)
     Swag.assert(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)
     let previousView = window.currentView!
     let previous     = assume cast(*PlainText.Panel, previousView)
-    Swag.assert(previous.loadTimer == null)
+    Swag.assert(not previous.isStreaming())
 
-    // Replace completed statistics with a worker whose lifetime is controlled by this test.
-    // Remove its publication timer first: the completed operation's statisticsState must not
-    // cause a GUI timer to join the replacement while its release event is still unsignaled.
-    if previous.statisticsThread.isValid() do
-        previous.statisticsThread.wait()
-    previous.stopTimer(&previous.statisticsTimer)
-
-    expect previous.statisticsThread.init(&holdClassificationStatistics, &gate)
+    // Replace completed statistics with a count whose lifetime is controlled by this test, and
+    // which tells nobody when it ends.
+    completeTextStatistics(&host, previous)
+    let held = &gate
+    previous.statisticsTask.submit(func|held|()->TextStatistics => holdClassificationStatistics(held))
     defer gate.release.signal()
-    expect previous.statisticsThread.start()
     gate.entered.wait()
-    Swag.assert(not previous.statisticsThread.isDone())
+    Swag.assert(previous.statisticsTask.isPending())
 
     window.openFile(next, remember: false)
     Swag.assert(window.startupTimer != null)
@@ -115,18 +109,17 @@ func holdClassificationStatistics(thread: const *Threading.Thread)
     window.choiceLoad.task.wait()
     Swag.assert(window.choiceLoad.isDone())
 
-    // This callback must return while the statistics worker remains behind the gate. It is
-    // the production retirement path, not the test helper, that requests the worker to stop.
+    // This callback must return while the statistics count remains behind the gate. It is
+    // the production retirement path, not the test helper, that asks the count to stop.
     host.fireTimer(window.startupTimer)
-    Swag.assert(previous.statisticsThread.requestEnd.isRaised())
-    Swag.assert(not previous.statisticsThread.isDone())
+    Swag.assert(previous.statisticsTask.isCancelled())
+    Swag.assert(previous.statisticsTask.isPending())
     Swag.assert(window.currentView == previousView and window.currentFile == first)
     Swag.assert(window.pendingFile == next and window.choiceLoad.isDone())
     Swag.assert(window.startupTimer != null)
 
-    // Draining scheduler tasks cannot retire a native thread. Another GUI poll still keeps
-    // the old document, without consuming or publishing the completed classification result.
-    Swag.drainWork()
+    // Another GUI poll still keeps the old document, without consuming or publishing the
+    // completed classification result.
     host.fireTimer(window.startupTimer)
     Swag.assert(Atomic.get(&gate.finished) == 0)
     Swag.assert(window.currentView == previousView and window.pendingFile == next)

@@ -40,10 +40,6 @@ private
     const WaveformScaleHeight = 26.0
     const WaveformTickHeight  = 5.0
 
-    // What the opening worker publishes in `openState`: still running, opened, or failed.
-    const OpenRunning   = 0'u32
-    const OpenSucceeded = 1'u32
-    const OpenFailed    = 2'u32
 }
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
@@ -442,18 +438,16 @@ struct Panel
         waveform:       *WaveformView
     }
 
-    // Opening runs on a worker. `openState` holds one of the `Open` states.
+    // Opening runs in the background; its end arrives as a task event.
     sound:        SoundFile
-    pendingSound: SoundFile
     openFileName: String
-    openFailure:  String
-    openThread:   Thread
-    openState:    u32
+    openTask:     Swag.Task'SoundFile
     openFinished: bool
+    opened:       bool
 
-    waveformThread: Thread
-    waveformLock:   Sync.Mutex
-    waveformBuilt:  u64
+    waveformTask:  Swag.Task
+    waveformLock:  Sync.Mutex
+    waveformBuilt: u64
 
     voice:       *Voice?
     timer:       *Timer?
@@ -478,33 +472,23 @@ impl Panel
     {
         if not .openFinished do
             return true
-        if not .waveformThread.isValid() do
-            return false
 
         let built = .publishedWaveformCount()
-        return not .waveformThread.isDone() or .waveform.readyCount < built
+        return .waveformTask.isPending() or .waveform.readyCount < built
     }
 
     // Reports whether the host should cover the view, which is until the sound has opened.
     mtd needsLoadingOverlay()->bool => not .openFinished
 
-    // Publishes the file opened by the worker and initializes playback on the GUI thread.
+    // Publishes the file opened in the background and initializes playback on the GUI thread.
     mtd completeOpen() fail
     {
         if .openFinished do
             return
 
-        let state = Atomic.get(&.openState)
-        if state == OpenRunning or (.openThread.isValid() and not .openThread.isDone()) do
-            return
-        if .openThread.isValid() do
-            .openThread.wait()
-
         .openFinished = true
-        if state == OpenFailed do
-            fail InvalidFormatError{Errors.mkString(.openFailure)}
-
-        .sound    = #move .pendingSound
+        .sound        = try .openTask.take()
+        .opened       = true
         .duration = .sound.durationInSeconds()
         .waveform.duration = .duration
         if .duration > 0 do
@@ -546,7 +530,7 @@ impl Panel
         .volumeSlider.toolTip   = texts().ui_TipVolume
         .muteButton.toolTip     = texts().ui_TipMute
         .timeline.toolTip       = texts().ui_TipSeek
-        if not .openFinished or .openState != OpenSucceeded do
+        if not .opened do
             return
 
         if not .engineReady do
@@ -554,15 +538,13 @@ impl Panel
         .refreshDetails()
     }
 
-    // Finishes teardown once neither worker can touch the sound or waveform storage.
+    // Finishes teardown once neither task can touch the sound or waveform storage.
     mtd finishRetire()
     {
         if .retired do
             return
-        if .openThread.isValid() do
-            .openThread.wait()
-        if .waveformThread.isValid() do
-            .waveformThread.wait()
+        .openTask.wait()
+        .waveformTask.wait()
         .retired = true
     }
 
@@ -589,15 +571,11 @@ impl Panel
                 .engineReady = false
             }
 
-            if .openThread.isValid() do
-                .openThread.safeForceEnd()
-            if .waveformThread.isValid() do
-                .waveformThread.safeForceEnd()
+            .openTask.cancel()
+            .waveformTask.cancel()
         }
 
-        if .openThread.isValid() and not .openThread.isDone() do
-            return false
-        if .waveformThread.isValid() and not .waveformThread.isDone() do
+        if .openTask.isPending() or .waveformTask.isPending() do
             return false
         .finishRetire()
         return true
@@ -631,7 +609,7 @@ impl Panel
     //
     // Successive PCM16 chunks are reduced as they arrive; the callback never retains the decoder's
     // borrowed storage.
-    mtd buildWaveformInBackground(thread: const *Thread)
+    mtd buildWaveformInBackground()
     {
         let frameCount = .sound.sampleFrameCount()
         let pointCount = .waveform.samples.count
@@ -640,31 +618,26 @@ impl Panel
             return
 
         var reducer = WaveformReducer{&.waveform.samples, frameCount, pointCount, channels}
-        catch .sound.decodePcm16(func|reducer = &reducer, view = me, worker = thread|(samples: const [..] s16)->bool
+        catch .sound.decodePcm16(func|reducer = &reducer, view = me|(samples: const [..] s16)->bool
         {
             reducer.consume(samples)
             if reducer.readyCount do
                 view.publishWaveform(reducer.readyCount)
-            return not worker.requestEnd.isRaised()
+            return not Swag.isCancelled()
         })
         reducer.finish()
         .publishWaveform(reducer.readyCount)
     }
 
-    // Starts the worker that reduces the sound to its waveform.
+    // Starts the background task that reduces the sound to its waveform. The playback timer shows
+    // the points as they are published.
     mtd startWaveform()
     {
         let pointCount = Math.min(.sound.sampleFrameCount(), WaveformPointCount)
         if not pointCount do
             return
         .waveform.samples.resize(pointCount)
-        catch .waveformThread.init(func|view = me|(thread: const *Thread) { view.buildWaveformInBackground(thread) },
-                                   priority: .BelowNormal) as initError
-        if initError != null do
-            return
-        catch .waveformThread.start() as startError
-        if startError != null do
-            .waveformThread.wait()
+        .waveformTask.submit(func|view = me|() { view.buildWaveformInBackground() }, priority: .Background)
     }
 
     mtd syncWaveform()
@@ -802,6 +775,25 @@ impl IWnd for Panel
         .wnd.IWnd.onNotifyEvent(evt)
     }
 
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        if evt.task != &.openTask or not .openTask.isDone()
+        {
+            evt.accepted = false
+            return
+        }
+
+        if .retireRequested
+        {
+            discard catch .openTask.take()
+            return
+        }
+
+        catch .completeOpen() as openError
+        if openError != null do
+            .services.failed(me, Viewer.failureText(openError))
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer != .timer
@@ -810,13 +802,8 @@ impl IWnd for Panel
             return
         }
 
-        if not .openFinished
-        {
-            catch .completeOpen() as openError
-            if openError != null do
-                .services.failed(me, Viewer.failureText(openError))
+        if not .openFinished do
             return
-        }
 
         .syncWaveform()
         if not .playing or not .voice do
@@ -937,9 +924,9 @@ impl Panel
         }
     }
 
-    // Builds the sound panel: commands, transport bar and waveform view, then opens the file on a
-    // worker thread. Fails, destroying the panel, when that thread cannot start.
-    func create(host: Viewer.Host)->*Panel fail
+    // Builds the sound panel: commands, transport bar and waveform view, then opens the file in
+    // the background.
+    func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
 
@@ -948,8 +935,6 @@ impl Panel
             .backgroundStyle = .View
             .services        = services
         }
-
-        defer #fail result.destroy()
 
         result.commands = host.createCommandGroup(CommandWidth)
         result.createTransportBar()
@@ -965,53 +950,29 @@ impl Panel
         result.applyLayout()
         result.setInitialFocus(result.playButton)
         result.openFileName = host.fileName()
-        try result.openThread.init(&runViewerOpen, result, priority: .Normal)
-        try result.openThread.start()
+
+        // A worker allocates with the default allocator, so the owned packet table it builds can
+        // be handed to the GUI thread.
+        let view = result
+        result.openTask.submit(func|view|()->SoundFile fail => try SoundFile.load(view.openFileName, preloadData: false),
+                               result.taskNotifier(&result.openTask))
         return result
     }
-}
-
-// Opens and indexes the sound without occupying the GUI event loop.
-//
-// The default allocator makes the owned packet table safe to publish to the GUI thread once
-// loading completes.
-private func runViewerOpen(thread: const *Thread)
-{
-    let view    = cast(*Panel, thread.userParam!)
-    let context = Swag.getContext()
-    context.allocator = context.defaultAllocator!
-    var sound = catch SoundFile.load(view.openFileName, preloadData: false) as openError
-    if openError != null
-    {
-        view.openFailure = Viewer.failureText(openError)
-        Atomic.exchange(&view.openState, OpenFailed)
-        return
-    }
-
-    if thread.requestEnd.isRaised() do
-        return
-    view.pendingSound = #move sound
-    Atomic.exchange(&view.openState, OpenSucceeded)
 }
 
 // Creates the integrated sound playback and waveform view and connects it to the host.
 func createViewer(host: Viewer.Host)
 {
-    catch
+    let view = Panel.create(host)
+    host.attachView(view)
+    host.setDetails(view.details)
+
+    with var lifecycle: Viewer.LifecycleApi
     {
-        let view = try Panel.create(host)
-        host.attachView(view)
-        host.setDetails(view.details)
+        .retire    = func|view|()->bool => view.retire()
+        .isLoading = func|view|()->bool => view.isLoading()
+        .needsLoadingOverlay = func|view|()->bool => view.needsLoadingOverlay()
+    }
 
-        with var lifecycle: Viewer.LifecycleApi
-        {
-            .retire    = func|view|()->bool => view.retire()
-            .isLoading = func|view|()->bool => view.isLoading()
-            .needsLoadingOverlay = func|view|()->bool => view.needsLoadingOverlay()
-        }
-
-        host.setLifecycle(lifecycle)
-    } as createError
-    if createError != null do
-        host.reject(Viewer.failureText(createError))
+    host.setLifecycle(lifecycle)
 }

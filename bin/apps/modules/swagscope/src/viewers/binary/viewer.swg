@@ -37,10 +37,6 @@ private
     const FillRows       = 128'u64
     const CommandWidth   = 80.0
 
-    // What the loading worker publishes in `loadState`: still running, loaded, or failed.
-    const LoadRunning   = 0'u32
-    const LoadSucceeded = 1'u32
-    const LoadFailed    = 2'u32
 }
 
 // Commands shared by the context menu, keyboard, and command bar.
@@ -93,10 +89,9 @@ struct Panel
     failureReason:           String
     loadFileName:            String
     loadTexts:               Texts
-    loadThread:              Threading.Thread
+    loadTask:                Swag.Task'bool     // Reads the image into `pendingDoc`; true when it opened.
     loadTimer:               *Timer?
     filterTimer:             *Timer?
-    loadState:               u32
     loadPublished:           bool
     services:                Viewer.HostServices
     retireRequested:         bool
@@ -849,55 +844,54 @@ impl IWnd for Panel
             return
         }
 
-        let state = Atomic.get(&.loadState)
-        if state == LoadRunning do
-            return
-        if not .loadPublished
+        .continueFill()
+    }
+
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        if evt.task != &.loadTask or not .loadTask.isDone()
         {
-            if .loadThread.isValid() do
-                .loadThread.wait()
-            if .reloadLanguageRequested
-            {
-                .reloadLanguageRequested = false
-                .pendingDoc = {}
-                catch .startLoad() as reloadError
-                if reloadError != null do
-                    .publishLoadFailure(Viewer.failureText(reloadError))
-                return
-            }
-
-            if state == LoadFailed
-            {
-                .finishLoadTimer()
-                .failureReason = #move .pendingDoc.image.failureReason
-                .services.failed(me, .failureReason)
-                return
-            }
-
-            if .previewBand
-            {
-                .previewBand.destroy()
-                .previewBand = null
-            }
-
-            .list.clear()
-            .searchRow          = Swag.U64.Max
-            .searchVisibleIndex = Swag.U32.Max
-            .doc                = #move .pendingDoc
-            .details            = .doc.report.summary
-            .loadPublished      = true
-            .rebuildFilterIndex()
-            .beginFillList()
-            .services.showDetails(me, .details)
+            evt.accepted = false
+            return
         }
 
-        if not .fillListStep() do
+        let opened = assume .loadTask.take()
+        if .retireRequested do
             return
-        .fillPreviews()
-        .applyLayout()
-        .layoutPreviews()
-        .layoutColumns()
-        .finishLoadTimer()
+
+        if .reloadLanguageRequested
+        {
+            .reloadLanguageRequested = false
+            .pendingDoc = {}
+            .startLoad()
+            return
+        }
+
+        if not opened
+        {
+            .publishLoadFailure(.pendingDoc.image.failureReason)
+            return
+        }
+
+        if .previewBand
+        {
+            .previewBand.destroy()
+            .previewBand = null
+        }
+
+        .list.clear()
+        .searchRow          = Swag.U64.Max
+        .searchVisibleIndex = Swag.U32.Max
+        .doc                = #move .pendingDoc
+        .details            = .doc.report.summary
+        .loadPublished      = true
+        .rebuildFilterIndex()
+        .beginFillList()
+        .services.showDetails(me, .details)
+
+        // The report fills the list a slice per frame, so a large one never stalls the window.
+        .loadTimer = .addTimer(1'ms)
+        .continueFill()
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -957,6 +951,21 @@ impl Panel
         .restoreSelected = .selectedReportIndex()
     }
 
+    // Fills one more slice of the list, and finishes the load once the whole report is shown.
+    private mtd continueFill()
+    {
+        if not .fillListStep() do
+            return
+        .fillPreviews()
+        .applyLayout()
+        .layoutPreviews()
+        .layoutColumns()
+        .finishLoadTimer()
+    }
+
+    // Reports whether the report is still being read or shown.
+    mtd const isLoading()->bool => .loadTask.isPending() or .loadTask.isDone() or .loadTimer != null
+
     // Rebuilds the report in the new language, keeping the expanded rows and the selection. A load
     // in progress is asked to reload once it finishes.
     private mtd requestLanguageReload()
@@ -964,27 +973,32 @@ impl Panel
         if .retireRequested do
             return
         .captureViewState()
-        if .loadThread.isValid()
+        if .loadTask.isPending() or .loadTask.isDone()
         {
             .reloadLanguageRequested = true
             return
         }
 
         .pendingDoc = {}
-        catch .startLoad() as reloadError
-        if reloadError != null do
-            .publishLoadFailure(Viewer.failureText(reloadError))
+        .startLoad()
     }
 
-    private mtd startLoad(notify = true) fail
+    // Reads and analyzes the image in the background, in the language active now. Its end
+    // arrives as a [[Gui.TaskEvent]].
+    private mtd startLoad(notify = true)
     {
         .loadTexts     = texts()[]
-        .loadState     = LoadRunning
         .loadPublished = false
-        try .loadThread.init(&runViewerLoad, me, priority: .BelowNormal)
-        try .loadThread.start()
-        if not .loadTimer do
-            .loadTimer = .addTimer(1'ms)
+        .stopTimer(&.loadTimer)
+
+        let view = me
+        .loadTask.submit(func|view|()->bool
+        {
+            setTextsOverride(&view.loadTexts)
+            defer setTextsOverride(null)
+            return view.pendingDoc.open(view.loadFileName)
+        }, .taskNotifier(&.loadTask), .Background)
+
         if notify do
             .services.loadingChanged(me)
     }
@@ -1014,15 +1028,11 @@ impl Panel
         {
             .retireRequested = true
             .stopTimer(&.loadTimer)
-
-            if .loadThread.isValid() do
-                .loadThread.safeForceEnd()
+            .loadTask.cancel()
         }
 
-        if .loadThread.isValid() and not .loadThread.isDone() do
+        if .loadTask.isPending() do
             return false
-        if .loadThread.isValid() do
-            .loadThread.wait()
         .retired = true
         return true
     }
@@ -1031,8 +1041,7 @@ impl Panel
     mtd retireBlocking()
     {
         discard .retire()
-        if .loadThread.isValid() do
-            .loadThread.wait()
+        .loadTask.wait()
         .retired = true
     }
 
@@ -1083,7 +1092,7 @@ impl Panel
     }
 
     // Creates the viewer of the file `host` opens, and starts reading that file in the background.
-    func create(host: Viewer.Host)->*Panel fail
+    func create(host: Viewer.Host)->*Panel
     {
         let services = host.services()
 
@@ -1101,59 +1110,37 @@ impl Panel
         result.layoutColumns()
         result.setInitialFocus(result.list)
         result.loadFileName = host.fileName()
-        defer #fail
-        {
-            result.destroy()
-        }
-
-        try result.startLoad(notify: false)
+        result.startLoad(notify: false)
         return result
     }
-}
-
-// Reads and analyzes the bounded binary image without occupying the GUI event loop.
-private func runViewerLoad(thread: const *Threading.Thread)
-{
-    let view    = cast(*Panel, thread.userParam!)
-    let context = Swag.getContext()
-    context.allocator = context.defaultAllocator!
-    setTextsOverride(&view.loadTexts)
-    let opened = view.pendingDoc.open(view.loadFileName)
-    setTextsOverride(null)
-    Atomic.exchange(&view.loadState, opened ? LoadSucceeded : LoadFailed)
 }
 
 // Creates the integrated binary format view.
 func createViewer(host: Viewer.Host)
 {
-    catch
+    let view = Panel.create(host)
+    host.attachView(view)
+    host.setDetails(view.details)
+
+    with var search = Viewer.searchApi(view)
     {
-        let view = try Panel.create(host)
-        host.attachView(view)
-        host.setDetails(view.details)
-
-        with var search = Viewer.searchApi(view)
+        .describe = func(presentation)
         {
-            .describe = func(presentation)
-            {
-                presentation.canFilter         = true
-                presentation.filterPlaceholder = texts().ui_Filter
-                presentation.filterToolTip     = texts().ui_FilterTip
-            }
-
-            .filter = func|view|(text, options) => view.applyFilter(text, options)
+            presentation.canFilter         = true
+            presentation.filterPlaceholder = texts().ui_Filter
+            presentation.filterToolTip     = texts().ui_FilterTip
         }
 
-        host.setSearch(search)
+        .filter = func|view|(text, options) => view.applyFilter(text, options)
+    }
 
-        with var lifecycle: Viewer.LifecycleApi
-        {
-            .isLoading = func|view|()->bool => view.loadTimer != null
-            .retire    = func|view|()->bool => view.retire()
-        }
+    host.setSearch(search)
 
-        host.setLifecycle(lifecycle)
-    } as createError
-    if createError != null do
-        host.reject(Viewer.failureText(createError))
+    with var lifecycle: Viewer.LifecycleApi
+    {
+        .isLoading = func|view|()->bool => view.isLoading()
+        .retire    = func|view|()->bool => view.retire()
+    }
+
+    host.setLifecycle(lifecycle)
 }

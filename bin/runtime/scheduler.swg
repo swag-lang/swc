@@ -249,8 +249,12 @@ private func startWorkers(sched: *Scheduler, wanted: u32)
         worker.context   = template[]
 
         // The copy still points at this thread's scratch blocks. Reset it before the worker can
-        // allocate, so it owns its own storage instead of releasing the creator's.
+        // allocate, so it owns its own storage instead of releasing the creator's. The pool
+        // starts at whichever submission comes first, possibly under a scoped allocator; a worker
+        // serves every later task, so it starts from the default one.
         worker.context.resetThreadState()
+        if let allocator = worker.context.defaultAllocator do
+            worker.context.allocator = allocator
 
         worker.handle = __hostThreadCreate(&schedulerWorkerEntry, worker)
         if not worker.handle do

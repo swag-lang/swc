@@ -405,7 +405,8 @@ of simplicity when every useful helper needs an unchecked contract.
   documentation comments now say so, and the suite test uses one participant.
 - Evidence: `Swag.setWorkerCount` sizes one general pool and `Swag.startWorkers` starts it. A
   task's notification can post a `Gui.TaskEvent` to a window, which is how Swag Scope learns that a
-  background load ended without polling it; that is completion delivery, not an executor. There is
+  background load ended without polling it, and `Swag.TaskPriority.Background` lowers the priority
+  of the thread that runs a body; that is completion delivery and a priority, not an executor. There is
   no blocking executor, no dedicated-thread executor, and no way to require that a value is
   created, used and destroyed on one thread. Consumers that need thread affinity
   still own a `Core.Threading.Thread` of their own -- the video frame threads, the audio device,

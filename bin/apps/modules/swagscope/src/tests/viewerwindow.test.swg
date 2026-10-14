@@ -113,10 +113,7 @@ func delayTestViewerRetirement(wnd: *Wnd)->bool
 func completeViewerStatistics(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     let view = assume cast(*PlainText.Panel, window.currentView)
-    while Atomic.get(&view.statisticsState) == PlainText.StatisticsRunning do
-        host.pump()
-    if view.statisticsTimer do
-        host.fireTimer(view.statisticsTimer)
+    completeTextStatistics(host, view)
 }
 
 // Runs a search to its end: every streamed chunk, and every poll of a viewer that reads its
@@ -290,10 +287,7 @@ func createSidePanelFixture(host: Viewer.Host)
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view          = assume cast(*PlainText.Panel, viewerSession.view)
-    while Atomic.get(&view.statisticsState) == PlainText.StatisticsRunning do
-        host.pump()
-    if view.statisticsTimer do
-        host.fireTimer(view.statisticsTimer)
+    completeTextStatistics(&host, view)
 
     Swag.assert(view.statistics.lines == 2 and view.statistics.words == 3)
     let details = view.detailsText()
@@ -438,8 +432,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         .applyLayout()
     }
 
-    Swag.assert(view.encoding == .Utf8 and view.loadTimer != null)
-    host.fireTimer(view.loadTimer)
+    Swag.assert(view.encoding == .Utf8 and view.isStreaming())
     completeTextReads(&host, view)
     Swag.assert(view.encoding == .Windows1252)
     Swag.assert(Utf8.endsWith(view.editor.text(), "é\n"))
@@ -1010,8 +1003,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
     view.editor.setScrollPosition({0, view.virtualHeight * 0.2})
-    Swag.assert(view.pendingSeek and view.loadTimer != null)
-    host.fireTimer(view.loadTimer)
+    Swag.assert(view.pendingSeek and view.isStreaming())
     completeTextReads(&host, view)
     let lowOffset = cast(u64, (0.2 * cast(f32, view.fileSize)))
     Swag.assert(view.residentStart <= lowOffset and view.bytesRead >= lowOffset)
@@ -1021,8 +1013,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     {
         let requestedY = view.virtualHeight * ratio
         view.editor.setScrollPosition({0, requestedY})
-        Swag.assert(view.pendingSeek and view.loadTimer != null)
-        host.fireTimer(view.loadTimer)
+        Swag.assert(view.pendingSeek and view.isStreaming())
         completeTextReads(&host, view)
         let offset = cast(u64, (ratio * cast(f32, view.fileSize)))
         Swag.assert(view.residentStart <= offset and view.bytesRead >= offset)
@@ -1964,7 +1955,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.fireTimer(window.startupTimer)
 
     let discardedView  = assume cast(*PlainText.Panel, window.currentView)
-    let discardedTimer = discardedView.loadTimer!
+    let discardedTimer = discardedView.addTimer(Viewer.BackgroundPollInterval)
 
     // The replacement keeps the outgoing view on screen until its own first chunk is published,
     // so the swap is observed once that chunk is in rather than as soon as the file is chosen.

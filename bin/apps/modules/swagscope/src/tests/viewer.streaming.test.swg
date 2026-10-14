@@ -31,7 +31,7 @@ using Core, Pixel, Gui, Viewers
     view.loadNextChunk()
     Swag.assert(view.read.started)
     view.editor.setScrollPosition({0, 0})
-    Swag.assert(not view.pendingSeek and Atomic.get(&view.read.cancelled))
+    Swag.assert(not view.pendingSeek and view.read.wasCancelled())
     completeTextReads(&host, view)
     Swag.assert(view.residentStart == 0)
 
@@ -43,7 +43,7 @@ using Core, Pixel, Gui, Viewers
         Swag.assert(view.read.started)
         view.editor.setScrollPosition({0, view.virtualHeight * ratio})
         let requested = view.pendingSeekOffset
-        Swag.assert(view.pendingSeek and Atomic.get(&view.read.cancelled))
+        Swag.assert(view.pendingSeek and view.read.wasCancelled())
         discard host.render(view)
         Swag.assert(view.residentStart == previousStart)
         completeTextReads(&host, view)

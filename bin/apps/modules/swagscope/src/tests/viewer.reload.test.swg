@@ -104,7 +104,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         completeViewerWindowClassification(&host, window)
         Swag.drainWork()
         if extension == ".txt" do
-            assume cast(*PlainText.Panel, window.currentView).statisticsThread.wait()
+            assume cast(*PlainText.Panel, window.currentView).statisticsTask.wait()
         let key = String.from(window.choices[window.activeChoiceIndex].key)
 
         // Truncate while the progressive viewer still exists, then let the watcher reload it.

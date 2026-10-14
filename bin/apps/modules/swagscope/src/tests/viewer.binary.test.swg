@@ -8,15 +8,17 @@ func binaryFixturePath(name: string)->String => Path.combine(Path.combine(Path.d
 
 func finishBinaryViewer(host: *Testing.HeadlessHost, view: *Binary.Panel)
 {
+    view.loadTask.wait()
+    host.pump()
+
     var attempts: u32
     while view.loadTimer and attempts < 10_000
     {
-        Threading.Thread.sleep(1'ms)
         host.fireTimer(view.loadTimer)
         attempts += 1
     }
 
-    Swag.assert(view.loadTimer == null)
+    Swag.assert(not view.isLoading())
 }
 
 func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindow)

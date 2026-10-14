@@ -30,20 +30,19 @@ Entries stay in one flat list per domain.
   a tab preserves the other documents' state and outstanding-work ownership.
 - Related: std.gui.029, platform.portability.022, app.scope.003
 
-### app.scope.004 — Background work is still polled or runs on private threads
+### app.scope.004 — Windows poll for a viewer's retirement
 
-- Evidence: background loads (`Viewer.BackgroundLoad`) and the hex analysis and InDesign preview
-  now report their end through a `Gui.TaskEvent`. Three operations are still read by window timers
-  that also do other work: file classification on the startup timer, archive entry extraction on
-  the preview timer, and the text reader on its load timer. The text statistics, binary load,
-  sound open, sound waveform and video decode each run on a `Threading.Thread` of their own with a
-  hand-written atomic state, and cancel through `requestEnd`.
-- Next: move the three timer-read operations to `Viewer.BackgroundOperation.submit` with an owner,
-  keeping a timer only where it shows progress. Then move the statistics, binary and sound-open
-  threads to tasks, reading the request through `Swag.isCancelled`; they need a lower priority, so
-  settle that with language.parallelism.003 rather than keeping a private thread for it.
-- Done when: no viewer polls for the end of its own background work, and only the video decoder
-  and the audio device keep a dedicated thread.
+- Evidence: viewers learn that their own background work ended from a `Gui.TaskEvent`, and the
+  text statistics, binary load and sound open and waveform run as tasks instead of private
+  threads. Two window timers still poll: the viewer window's startup timer and the archive
+  viewer's preview timer. Each waits for a classification or an extraction and, in the same tick,
+  for the previous viewer to retire -- and `Viewer.Retire` is itself a polling contract: false
+  means "ask again".
+- Next: let a retiring viewer report that it may now be destroyed, from the task events it already
+  receives, so the host destroys it then instead of asking every tick. Then both timers reduce to
+  the events of the work they wait for.
+- Done when: no window polls for the retirement or the background work of a viewer; only the video
+  decoder and the audio device keep a dedicated thread.
 - Related: language.parallelism.003, language.parallelism.009
 
 ### app.scope.003 — Two documents cannot be shown side by side

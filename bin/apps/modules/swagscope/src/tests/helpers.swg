@@ -107,26 +107,27 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
         // starts its own work only after pendingFile has been cleared.
         Swag.drainWork()
 
-        // Text statistics run on a native thread outside the Swag worker pool. Join only
-        // after the real retirement callback requests its stop; classification may still
-        // decide to keep the current document during an interrupted external save.
-        for index in window.instances.count where index < window.choices.count
-        {
-            let instance = &window.instances[index]
-            if instance.view and window.choices[index].key == PlainText.ViewerKey
-            {
-                let view = assume cast(*PlainText.Panel, instance.view)
-                if view.statisticsThread.isValid() and view.statisticsThread.requestEnd.isRaised() do
-                    view.statisticsThread.wait()
-            }
-        }
-
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         steps += 1
     }
 
     Swag.assert(window.pendingFile.isEmpty())
+}
+
+// Lets the text viewer's count end and its result reach the viewer, including a count it
+// restarted because the interpretation changed meanwhile.
+func completeTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
+{
+    for 8
+    {
+        view.statisticsTask.wait()
+        host.pump()
+        if not view.statisticsTask.isPending() and not view.statisticsTask.isDone() do
+            return
+    }
+
+    Swag.assert(false, "text statistics did not settle")
 }
 
 // Completes file classification, then the selected viewer's own loading, and lets the activity mark go.

@@ -69,11 +69,6 @@ private
     const EncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
 }
 
-// What the statistics worker publishes in `statisticsState`: still counting, counted, or failed.
-const StatisticsRunning = 0'u32
-const StatisticsCounted = 1'u32
-const StatisticsFailed  = 2'u32
-
 // What the head of a file says about how it spells its characters.
 struct Probe
 {
@@ -110,9 +105,8 @@ struct Panel
     residentOffsetY:    f32
     virtualHeight:      f32
     loadTimer:          *Timer?
-    statisticsThread:   Threading.Thread
-    statisticsTimer:    *Timer?
-    statisticsState:    u32
+    statisticsTask:     Swag.Task'TextStatistics
+    hasStatistics:      bool
     statistics:         TextStatistics
     statisticsEncoding: Text.Encoding
     statisticsStart:    u64
@@ -133,44 +127,25 @@ struct Panel
 // the panel both answer it, so the shortcut behaves the same wherever the focus is.
 private func isWrapKey(evt: const *KeyEvent)->bool => evt.kind == .Pressed and evt.key == .W and evt.modifiers == .Control
 
-// Counts the text statistics on a worker thread, from `statisticsStart` to the end of the file, and
-// publishes the outcome through `statisticsState`. A cancelled run publishes nothing.
-private func runStatistics(thread: const *Threading.Thread)
+// Counts the text statistics of `fileName` from `start` to the end, as `encoding` decodes it.
+//
+// A count asked to stop returns what it has so far; the viewer never shows those totals.
+private func countStatistics(fileName: string, start: u64, encoding: Text.Encoding)->TextStatistics fail
 {
-    let view    = cast(*Panel, thread.userParam!)
-    let context = Swag.getContext()
-    context.allocator = context.defaultAllocator!
-
-    var stream = catch File.openReadLive(view.fileName) as openError
-    if openError != null
-    {
-        Atomic.exchange(&view.statisticsState, StatisticsFailed)
-        return
-    }
-
+    var stream = try File.openReadLive(fileName)
     defer stream.close()
-    discard catch stream.seek(.Begin, view.statisticsStart)
+    discard catch stream.seek(.Begin, start)
 
     var counter: TextStatisticsCounter
-    while not thread.requestEnd.isRaised()
+    while not Swag.isCancelled()
     {
-        let chunk = catch stream.readTextChunk(StreamChunkSize, view.statisticsEncoding) as readError
-        if readError != null
-        {
-            Atomic.exchange(&view.statisticsState, StatisticsFailed)
-            return
-        }
-
+        let chunk = try stream.readTextChunk(StreamChunkSize, encoding)
         if chunk.isEmpty() do
             break
-
         counter.append(chunk)
     }
 
-    if thread.requestEnd.isRaised() do
-        return
-    view.statistics = counter.finish()
-    Atomic.exchange(&view.statisticsState, StatisticsCounted)
+    return counter.finish()
 }
 
 impl Panel
@@ -195,7 +170,7 @@ impl Panel
         // Statistics describe the byte interpretation that produced them. Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
         // presented as facts about the newly decoded document.
-        if Atomic.get(&.statisticsState) != StatisticsCounted or
+        if not .hasStatistics or
            .statisticsEncoding != .encoding or
            .statisticsStart != .contentStart do
             return Format.toString(texts().ui_Details, encoding)
@@ -217,36 +192,45 @@ impl Panel
         .reportStatistics()
     }
 
+    // Counts lines and words in the background for the current encoding and content start. The
+    // totals reach the information band when the count's [[Gui.TaskEvent]] arrives.
     mtd startStatistics()
     {
-        .statisticsState    = StatisticsRunning
+        .hasStatistics      = false
         .statisticsEncoding = .encoding
         .statisticsStart    = .contentStart
-        catch .statisticsThread.init(&runStatistics, me, priority: .BelowNormal) as initError
-        if initError != null do
+
+        let view     = me
+        let start    = .statisticsStart
+        let encoding = .statisticsEncoding
+        .statisticsTask.submit(func|view, start, encoding|()->TextStatistics fail => try countStatistics(view.fileName, start, encoding),
+                               .taskNotifier(&.statisticsTask),
+                               .Background)
+    }
+
+    // Counts again for the current interpretation. A count still running is asked to stop, and
+    // its end starts the new one.
+    mtd restartStatistics()
+    {
+        if .statisticsTask.isPending()
+        {
+            .statisticsTask.cancel()
             return
-        catch .statisticsThread.start() as startError
-        if startError != null do
-            return
-        .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
+        }
+
+        .startStatistics()
     }
 
     // Stops loading and statistics so the viewer can be destroyed. Returns false while the
-    // statistics thread or the background read is still finishing; the caller retries.
+    // statistics count or the background read is still finishing; the caller retries.
     mtd retire()->bool
     {
         .retiring = true
         .stopLoading()
-        .stopTimer(&.statisticsTimer)
 
-        if .statisticsThread.isValid() and not .statisticsThread.isDone()
-        {
-            .statisticsThread.safeForceEnd()
+        .statisticsTask.cancel()
+        if .statisticsTask.isPending() do
             return false
-        }
-
-        if .statisticsThread.isValid() do
-            .statisticsThread.wait()
         if .read.started
         {
             if not .read.isDone() do
@@ -355,21 +339,26 @@ impl Panel
         .editor.setScrollPosition({position.x, position.y + .residentOffsetY - previousOffset})
     }
 
+    // Schedules the next read when the reader needs one and none is in flight. The short delay
+    // lets a burst of scrolling settle on its last position; a read in flight continues the
+    // stream itself, from its task event.
     mtd scheduleMore()
     {
-        if .retiring do
+        if .retiring or .read.started or .loadTimer do
             return
-        if .loadTimer or (not .read.started and not .pendingSeek and not .needsMore()) do
-            return
-        .loadTimer = .addTimer(8'ms)
+        if .pendingSeek or .needsMore() do
+            .loadTimer = .addTimer(8'ms)
     }
+
+    // Reports whether text is still being read for the view.
+    mtd const isStreaming()->bool => .read.started or .pendingSeek or .loadTimer != null
 
     mtd stopLoading()
     {
         .stopTimer(&.loadTimer)
-
+        .pendingSeek = false
         if .read.started do
-            Atomic.exchange(&.read.cancelled, 1)
+            .read.cancel()
     }
 
     mtd finishLoading()
@@ -391,7 +380,8 @@ impl Panel
         .editor.setEstimatedDocumentHeight(0)
     }
 
-    // Polling never waits for I/O. A newer seek retires the old result before reusing its storage.
+    // Publishes a finished read, or starts the next one; never waits for I/O. A newer seek retires
+    // the old result before reusing its storage.
     mtd loadNextChunk()
     {
         if .retiring do
@@ -401,7 +391,7 @@ impl Panel
             if not .read.isDone() do
                 return
             .read.wait()
-            if Atomic.get(&.read.cancelled)
+            if .read.wasCancelled()
             {
                 .scheduleMore()
                 return
@@ -426,13 +416,8 @@ impl Panel
             {
                 .residentStart = .read.start
                 .contentStart  = .read.contentStart
-                if .statisticsStart != .contentStart
-                {
-                    if .statisticsThread.isValid() do
-                        .statisticsThread.safeForceEnd()
-                    if not .statisticsTimer do
-                        .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
-                }
+                if .statisticsStart != .contentStart do
+                    .restartStatistics()
 
                 .residentText = .read.text
                 .editor.setText(.residentText)
@@ -474,12 +459,12 @@ impl Panel
             .pendingSeek = false
             let requested = Math.min(.pendingSeekOffset, .fileSize)
             let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
-            .read.startRead(.fileName, .encoding, start, 64 * 1024, true)
+            .read.startRead(.fileName, .encoding, start, 64 * 1024, true, me)
         }
         elif .needsMore()
         {
             .read.contentStart = .contentStart
-            .read.startRead(.fileName, .encoding, .bytesRead, StreamChunkSize, false)
+            .read.startRead(.fileName, .encoding, .bytesRead, StreamChunkSize, false, me)
         }
 
         .scheduleMore()
@@ -505,7 +490,7 @@ impl Panel
         }
 
         if .read.started do
-            Atomic.exchange(&.read.cancelled, 1)
+            .read.cancel()
         .pendingSeek       = true
         .pendingSeekOffset = Math.min(offset, .fileSize)
         .pendingMatch      = text
@@ -535,10 +520,7 @@ impl Panel
 
         .contentStart = 0
         discard .revealOffset(.residentStart, "")
-        if .statisticsThread.isValid() do
-            .statisticsThread.safeForceEnd()
-        if not .statisticsTimer do
-            .statisticsTimer = .addTimer(Viewer.BackgroundPollInterval)
+        .restartStatistics()
         for candidate, index in Encodings where candidate == encoding do
             .encodingCombo.setSelectedIndex(cast(u32, index), notify: false)
         .reportStatistics()
@@ -575,27 +557,34 @@ impl IWnd for Panel
     {
         discard .retire()
         .read.wait()
-        if .statisticsThread.isValid() do
-            .statisticsThread.wait()
+        .statisticsTask.wait()
+    }
+
+    // Publishes the statistics count that just ended.
+    mtd finishStatistics()
+    {
+        if not .statisticsTask.isDone() do
+            return
+
+        // A count that was asked to stop, or that describes an interpretation the reader has
+        // since left, is replaced rather than shown.
+        let stopped = .statisticsTask.isCancelled()
+        let counted = catch .statisticsTask.take() as countError
+        if .retiring do
+            return
+        if stopped or .statisticsEncoding != .encoding or .statisticsStart != .contentStart
+        {
+            .startStatistics()
+            return
+        }
+
+        .statistics    = counted
+        .hasStatistics = countError == null
+        .reportStatistics()
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .statisticsTimer
-        {
-            if .statisticsThread.isValid() and not .statisticsThread.isDone() do
-                return
-            .stopTimer(&.statisticsTimer)
-            if .statisticsThread.isValid() do
-                .statisticsThread.wait()
-            if .statisticsEncoding != .encoding or
-               .statisticsStart != .contentStart or
-               Atomic.get(&.statisticsState) == StatisticsRunning do
-                .startStatistics()
-            .reportStatistics()
-            return
-        }
-
         if evt.timer != .loadTimer
         {
             evt.accepted = false
@@ -603,6 +592,22 @@ impl IWnd for Panel
         }
 
         .stopTimer(&.loadTimer)
+        .updateEstimatedHeight()
+        .loadNextChunk()
+        .scheduleMore()
+    }
+
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        if not .read.claim(evt)
+        {
+            if evt.task != &.statisticsTask do
+                evt.accepted = false
+            else do
+                .finishStatistics()
+            return
+        }
+
         .updateEstimatedHeight()
         .loadNextChunk()
         .scheduleMore()
@@ -697,7 +702,7 @@ impl Panel
 
         // Returning to resident text also supersedes an in-flight replacement.
         if .read.started and (.pendingSeek or .read.replace) do
-            Atomic.exchange(&.read.cancelled, 1)
+            .read.cancel()
         if .pendingSeek
         {
             let ratio = Math.clamp(newPosition.y / .virtualHeight, 0, 1)
@@ -868,7 +873,7 @@ func createViewer(host: Viewer.Host)
 
     with var lifecycle: Viewer.LifecycleApi
     {
-        .isLoading = func|view|()->bool => view.loadTimer != null
+        .isLoading = func|view|()->bool => view.isStreaming()
         .retire    = func|view|()->bool => view.retire()
     }
 

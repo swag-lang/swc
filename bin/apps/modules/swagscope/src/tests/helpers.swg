@@ -103,9 +103,11 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
     while not window.pendingFile.isEmpty() and steps < 4_096
     {
         // Classification can also be waiting for the previous viewer to retire.
-        // Complete worker jobs before advancing that transition; the new viewer
-        // starts its own work only after pendingFile has been cleared.
+        // Complete worker jobs and deliver the events that report their end before
+        // advancing that transition; the new viewer starts its own work only after
+        // pendingFile has been cleared.
         Swag.drainWork()
+        host.pump()
 
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
@@ -149,6 +151,17 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
         }
         else
         {
+            // The end of background work arrives as an event; deliver it before firing the
+            // timers, which include the slideshow pace of a picture that is already shown.
+            Swag.drainWork()
+            host.pump()
+            if window.activeChoiceIndex < window.instances.count
+            {
+                let current = &window.instances[window.activeChoiceIndex]
+                if not current.view or not current.isLoading or not current.isLoading() do
+                    break
+            }
+
             Threading.Thread.sleep(1'ms)
             host.fireTimers()
         }

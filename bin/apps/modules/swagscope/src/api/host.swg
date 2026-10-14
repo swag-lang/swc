@@ -118,8 +118,9 @@ interface Embedded
 
     // Requests release of every hosted viewer and reports when its source file is no longer used.
     //
-    // A false result means progressive work is still retiring and the caller should poll again
-    // without blocking the GUI thread. Repeated calls after success are harmless.
+    // A false result means progressive work is still retiring. It ends with a [[Gui.TaskEvent]]
+    // delivered below the embedded host, which is when the caller asks again, without blocking
+    // the GUI thread. Repeated calls after success are harmless.
     mtd retire()->bool
 
     // Reports whether the selected hosted viewer is still producing visible content.

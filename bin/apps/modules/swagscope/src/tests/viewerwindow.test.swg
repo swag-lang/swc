@@ -1825,7 +1825,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 }
 
 // File selection never waits for a viewer that needs another event-loop turn to retire. The
-// generic host keeps the previous content visible, then opens the queued file on its timer.
+// generic host keeps the previous content visible, then opens the queued file once a task below
+// the window reports that the viewer's work ended.
 #test
 {
     var host: Testing.HeadlessHost
@@ -1852,9 +1853,16 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     host.fireTimer(window.startupTimer)
     window.choiceLoad.task.wait()
-    host.fireTimer(window.startupTimer)
+    host.pump()
     Swag.assert(window.currentView == old and retireCalls == 1)
-    Swag.assert(window.pendingFile == fileName and window.startupTimer != null)
+    Swag.assert(window.pendingFile == fileName and window.awaitingRetirement and window.startupTimer == null)
+
+    // The viewer's work ends the way every viewer's does, with a task event to one of its windows.
+    var ended: Swag.Task
+    ended.submit(func() {}, old.taskNotifier(&ended))
+    ended.wait()
+    host.pump()
+    Swag.assert(retireCalls == 1 and window.startupTimer != null)
 
     host.fireTimer(window.startupTimer)
     Swag.assert(retireCalls == 2 and old.isPendingDestroy)
@@ -1952,7 +1960,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.openFile(firstFile)
     host.fireTimer(window.startupTimer)
     window.choiceLoad.task.wait()
-    host.fireTimer(window.startupTimer)
+    host.pump()
 
     let discardedView  = assume cast(*PlainText.Panel, window.currentView)
     let discardedTimer = discardedView.addTimer(Viewer.BackgroundPollInterval)
@@ -2021,6 +2029,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         Swag.assert(window.closeButton.isEnabled())
         window.closeButton.sigPressed.call(window.closeButton)
         Swag.drainWork()
+        host.pump()
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         Swag.assert(window.pendingFile.isEmpty() and window.pendingEmpty.isEmpty())

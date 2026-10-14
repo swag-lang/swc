@@ -99,6 +99,7 @@ struct ViewerWindow
     instances:               Array'ViewerSession
     activeChoiceIndex:       u32  = Swag.U32.Max
     startupTimer:            *Timer?
+    awaitingRetirement:      bool     // A viewer is still retiring; the next task event below the window asks it again.
     searchTimer:             *Timer?
     searchBoundsTimer:       *Timer?
     loadingTimer:            *Timer?
@@ -400,16 +401,19 @@ impl IWnd for ViewerWindow
             return
         }
 
-        .stopTimer(&.startupTimer)
-        if not .pendingFile.isEmpty()
+        .continueStartup()
+    }
+
+    // The classification of a queued file ended.
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        if not .choiceLoad.claim(evt)
         {
-            .processQueuedFile()
+            evt.accepted = false
+            return
         }
-        elif not .pendingEmpty.isEmpty()
-        {
-            let message = #move .pendingEmpty
-            .showEmpty(message)
-        }
+
+        .continueStartup()
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -554,10 +558,6 @@ impl ViewerWindow
     const LoadingShowDelayMicroseconds       = 400_000'u64
     const LoadingMinVisibleMicroseconds      = 500_000'u64
     const LoadingPollInterval: Time.Duration = 50'ms
-
-    // How often a pending file change looks again for its classification and for the retirement of
-    // the viewer before it.
-    const RetirePollInterval: Time.Duration = 16'ms
 
     // In full screen the bars step aside; the pointer within this distance of an edge brings them
     // back. The surface loses its frame and stays above other windows.

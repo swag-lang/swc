@@ -76,6 +76,7 @@ func completeVideoHandover(host: *Testing.HeadlessHost, window: *ViewerWindow)
     {
         Threading.Thread.sleep(1'ms)
         Swag.drainWork()
+        host.pump()
         if window.startupTimer do
             host.fireTimer(window.startupTimer)
         steps += 1
@@ -267,6 +268,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
         while (window.outgoingView != previous or window.instances.isEmpty()) and attempts < 5_000
         {
             Threading.Thread.sleep(1'ms)
+            host.pump()
             if window.startupTimer do
                 host.fireTimer(window.startupTimer)
             attempts += 1

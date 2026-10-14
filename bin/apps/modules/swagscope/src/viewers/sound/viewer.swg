@@ -637,7 +637,7 @@ impl Panel
         if not pointCount do
             return
         .waveform.samples.resize(pointCount)
-        .waveformTask.submit(func|view = me|() { view.buildWaveformInBackground() }, priority: .Background)
+        .waveformTask.submit(func|view = me|() { view.buildWaveformInBackground() }, .taskNotifier(&.waveformTask), .Background)
     }
 
     mtd syncWaveform()

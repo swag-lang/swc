@@ -30,21 +30,6 @@ Entries stay in one flat list per domain.
   a tab preserves the other documents' state and outstanding-work ownership.
 - Related: std.gui.029, platform.portability.022, app.scope.003
 
-### app.scope.004 — Windows poll for a viewer's retirement
-
-- Evidence: viewers learn that their own background work ended from a `Gui.TaskEvent`, and the
-  text statistics, binary load and sound open and waveform run as tasks instead of private
-  threads. Two window timers still poll: the viewer window's startup timer and the archive
-  viewer's preview timer. Each waits for a classification or an extraction and, in the same tick,
-  for the previous viewer to retire -- and `Viewer.Retire` is itself a polling contract: false
-  means "ask again".
-- Next: let a retiring viewer report that it may now be destroyed, from the task events it already
-  receives, so the host destroys it then instead of asking every tick. Then both timers reduce to
-  the events of the work they wait for.
-- Done when: no window polls for the retirement or the background work of a viewer; only the video
-  decoder and the audio device keep a dedicated thread.
-- Related: language.parallelism.003, language.parallelism.009
-
 ### app.scope.003 — Two documents cannot be shown side by side
 
 - Evidence: `ViewerWindow` has one active viewer surface. The application has no pair of independently

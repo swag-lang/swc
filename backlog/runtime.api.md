@@ -18,41 +18,6 @@ Several entries rename a public name or a lexer token. Follow
 declaration. `src/Backend/Runtime*.h` mirrors part of `api.swg` field by field; keep both sides
 in sync in the same change.
 
-### runtime.api.003 — `Swag.Context` is 7 KB per thread and caps error nesting at 32
-
-- Evidence: measured with `#sizeof` in a `.swgs` probe, `Swag.Context` is 7,064 bytes.
-  `errors: [32] ErrorValue` takes 4,608 of them (65%), because each 144-byte `ErrorValue`
-  embeds a whole 88-byte `ScratchAllocator` (`pushErrorAllocator`). `traces: [32]
-  SourceCodeLocation` takes 1,536, `panicStack: [64] *void` 512, and the two scratch allocators
-  176. Odin's context is about a hundred bytes; Jai's is a few hundred.
-- Evidence: every worker ([scheduler.swg:58](../bin/runtime/scheduler.swg#L58)), every executor
-  ([executor.swg:59](../bin/runtime/executor.swg#L59)), every `Core.Thread`
-  ([thread.swg:29](../bin/std/modules/core/src/thread/thread.swg#L29)), every `Core.Timer`
-  ([timer.swg:21](../bin/std/modules/core/src/time/timer.swg#L21)) and the XAudio2 thread own a
-  full context by value. `System.pushContext(cxt: Swag.Context, ...)`
-  ([system.swg:6](../bin/std/modules/core/src/system/system.swg#L6)) takes it by value, so the
-  ordinary "copy the current context, change the allocator, push it" pattern moves 7 KB of
-  stack per use.
-- Evidence: the error stack is a fixed `[32] ErrorValue`. Each active `catch`/`expect` holds
-  one frame for its body, so a recursion that calls itself under `catch` stops with a panic once
-  the frames in use reach 31 (`__pushErr`, pinned by `native/runtime/error_nesting.swg`). Nothing
-  in the language reference states the limit.
-- Evidence: `user0`..`user3: u64` are four untyped slots. Their only users in `bin/` are
-  `core/src/tests/system/context.test.swg`, which uses `user0` as a marker.
-- Next: decide the layout from the four costs above, in this order. (1) Keep the error frame
-  stack small: store in `ErrorValue` only what `__popErr` restores (block, used, capacity), not
-  a whole `ScratchAllocator`, and measure the new `#sizeof`. (2) Either grow the error stack on
-  demand (the frames could live in the wrapper's own stack frame, which already owns an
-  `ErrorCapture`) or state its depth in the reference next to `catch`.
-  (3) Make `pushContext` take `const *Swag.Context` (or a by-reference parameter) and
-  migrate its callers. (4) Replace `user0..3` by one `userData: *void?` plus one `userTag: u64`,
-  or remove them if no consumer wants them. Keep the fields marked "must stay first" and the
-  C++ mirror in [RuntimeContext.h](../src/Backend/RuntimeContext.h) in sync.
-- Done when: `#sizeof(Swag.Context)` is recorded in a test, the error stack no longer embeds a
-  scratch allocator per frame, the nesting limit is either gone or documented and tested, and
-  `pushContext` no longer copies a context.
-- Related: language.parallelism.001
-
 ### runtime.api.004 — The `Swag` namespace has no admission rule, and the build API lives in it
 
 - Evidence: [api.swg](../bin/runtime/api.swg) (1,909 lines) serves five audiences in one

@@ -47,7 +47,8 @@ namespace Runtime
         uint64_t           user2;
         uint64_t           user3;
         SourceCodeLocation traces[32];
-        ErrorValue         errors[32];
+        ErrorValue         errorLevels[4];
+        void*              errorBlocks;
         SourceCodeLocation exceptionLoc;
         const void*        exceptionParams[4];
         void (*panic)(String, SourceCodeLocation);

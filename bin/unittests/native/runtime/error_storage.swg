@@ -204,6 +204,12 @@ func failStoredTextWithCleanup() fail
     defer context.errorAllocator.release()
     Swag.setContext(context)
 
+    // Both scenarios nest deeper than the levels a context holds itself. The error stack block
+    // they add belongs to the context until its error storage is released, so it is acquired
+    // before the baseline.
+    catch failNestedStoredText()
+    catch failStoredTextWithCleanup()
+
     let baseline = allocator.stats().countAlloc
     var pairValid, cleanupValid: bool
     {
@@ -220,6 +226,7 @@ func failStoredTextWithCleanup() fail
             cleanupValid = error.message == "the original failure survives cleanup"
     }
     let afterCleanup = allocator.stats().countAlloc
+    context.releaseErrorStorage()
     Swag.setContext(previous)
     Swag.assert(pairValid and cleanupValid)
     Swag.assert(storedTextCleanupCount == 1)

@@ -632,7 +632,6 @@ namespace Swag
         Safety
     }
 
-    const MaxErrors = 32     // Maximum nested errors
     const MaxTraces = 32     // Maximum error traces
 
     // The base of every error raised with 'fail'.
@@ -651,7 +650,7 @@ namespace Swag
         }
     }
 
-    // One raised error on the error stack of a [[Context]].
+    // One level of the error stack of a [[Context]].
     struct ErrorValue
     {
         public value: any?     // Error value (or null)
@@ -668,6 +667,28 @@ namespace Swag
         pushErrorAllocator: ScratchAllocator     // Parent message storage while this frame runs.
     }
 
+    // Number of error stack levels a [[Context]] holds itself. Handlers seldom nest deeper, so
+    // ordinary code never allocates for its error stack.
+    #[NoDoc]
+    const ErrorInlineCount = 4'u32
+
+    // Number of error stack levels a block of a [[Context]] holds above its own.
+    #[NoDoc]
+    const ErrorBlockCount = 16'u32
+
+    // A block of the error stack of a [[Context]], above the levels the context holds itself.
+    //
+    // The stack grows a block at a time as handlers nest, so its depth has no fixed limit.
+    // A block never moves once allocated: a context copied for the length of a scope shares the
+    // blocks of the context it was copied from, and only uses the levels above the ones in use.
+    #[NoDoc]
+    struct ErrorBlock
+    {
+        next:      *ErrorBlock?
+        allocator: IAllocator     // Where the block comes from, and goes back to.
+        values:    [ErrorBlockCount] ErrorValue
+    }
+
     // Per-thread state, as returned by [[Swag.getContext]].
     struct Context
     {
@@ -679,23 +700,26 @@ namespace Swag
 
             // Other fields, can be in any order
 
-            tempAllocator:    ScratchAllocator                         // A temporary allocator for the user
-            errorAllocator:   ScratchAllocator                         // Copied error messages for the current handled operation.
-            runtimeFlags:     RuntimeFlags                             // As initialized by the runtime
-            defaultAllocator: IAllocator?                              // The default allocator, to restore after a temporary change of 'allocator'
-            user0:            u64                                      // For user usage
-            user1:            u64                                      // For user usage
-            user2:            u64                                      // For user usage
-            user3:            u64                                      // For user usage
-            traces:           [MaxTraces] SourceCodeLocation           // Stack trace, in case of errors
-            errors:           [MaxErrors] ErrorValue                   // All errors
-            exceptionLoc:     SourceCodeLocation                       // When an exception is raised, this is the code location
-            exceptionParams:  [4] (const *void?)                       // When an exception is raised, these are its parameters
-            panic:            (func(string?, SourceCodeLocation))?     // A function to call if there's a panic
-            curError:         any?                                     // The current raised error
-            errorIndex:       u32                                      // Number of errors in the array
-            traceIndex:       u32                                      // Number of traces in the array
-            hasError:         u32                                      // Nonzero while an error is raised
+            tempAllocator:    ScratchAllocator     // A temporary allocator for the user
+            errorAllocator:   ScratchAllocator     // Copied error messages for the current handled operation.
+            runtimeFlags:     RuntimeFlags         // As initialized by the runtime
+            defaultAllocator: IAllocator?          // The default allocator, to restore after a temporary change of 'allocator'
+            user0:            u64                  // For user usage
+            user1:            u64                  // For user usage
+            user2:            u64                  // For user usage
+            user3:            u64                  // For user usage
+            traces:           [MaxTraces] SourceCodeLocation     // Stack trace, in case of errors
+            #[Swag.NoDoc]
+            errorLevels: [ErrorInlineCount] ErrorValue     // The first levels of the error stack.
+            #[Swag.NoDoc]
+            errorBlocks:     *ErrorBlock?           // The levels above them, allocated on first use.
+            exceptionLoc:    SourceCodeLocation     // When an exception is raised, this is the code location
+            exceptionParams: [4] (const *void?)     // When an exception is raised, these are its parameters
+            panic:           (func(string?, SourceCodeLocation))?     // A function to call if there's a panic
+            curError:        any?                   // The current raised error
+            errorIndex:      u32                    // Number of error stack levels in use
+            traceIndex:      u32                    // Number of traces in the array
+            hasError:        u32                    // Nonzero while an error is raised
             #[Swag.NoDoc]
             errorCaptures: *ErrorCapture?     // Live lexical owners of caught errors.
             #[Swag.NoDoc]

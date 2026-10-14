@@ -84,9 +84,20 @@ impl XAudio2DriverNative
 
         X3DAudioInitialize(.speakerMask, X3DAUDIO_SPEED_OF_SOUND, .x3DInstance)
 
-        // Context for xaudio2 threads
-        let cxt = Swag.getContext()
-        g_ThreadCxt = cxt[]
+        // Context for xaudio2 threads: the application's settings, with scratch and error
+        // storage of its own instead of the creating thread's.
+        g_ThreadCxt = Swag.getContext()[]
+        with g_ThreadCxt
+        {
+            let tempCapacity  = .tempAllocator.capacity
+            let errorCapacity = .errorAllocator.capacity
+
+            .resetThreadState()
+
+            let allocator = .allocator!
+            .tempAllocator.setCapacity(tempCapacity, allocator)
+            .errorAllocator.setCapacity(errorCapacity, allocator)
+        }
     }
 
     // Destroys the xaudio2 engine
@@ -117,6 +128,10 @@ impl XAudio2DriverNative
             let release     = safeXAudio2.vtbl.release
             discard release(safeXAudio2)
             .xAudio2 = null
+
+            // No callback can run any more.
+            g_ThreadCxt.tempAllocator.release()
+            g_ThreadCxt.releaseErrorStorage()
         }
 
         if .hasInitCOM

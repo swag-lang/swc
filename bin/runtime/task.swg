@@ -69,6 +69,26 @@ struct TaskState
     notify:     (func||())?     // Told the outcome exists, before the task reads as done.
     scope:      CancelScope     // The cancellation state the body observes.
     priority:   TaskPriority    // How urgently the body runs.
+    submission: u64             // Counts the submissions, so a notification names the one it reports.
+}
+
+impl TaskState
+{
+    // Returns which submission the task runs or ran last. A notification reads it to name the
+    // submission it reports; it does not change while that submission runs.
+    mtd const currentSubmission()->u64 => .submission
+
+    // Waits until `submission` reads as done, unless the task has been submitted again since.
+    //
+    // A notification runs before the task reads as done, so whoever receives it on another thread
+    // may observe the task a moment too early. This closes that moment without ever waiting for a
+    // later submission. The caller must be the thread that submits the task again, or the answer
+    // can change between the check and the wait.
+    mtd const waitSubmission(submission: u64)
+    {
+        if .submission == submission do
+            waitWork(cast #unconst (*WorkNode, &.node))
+    }
 }
 
 // One piece of work the runtime runs on its own schedule, and the outcome it produces.
@@ -249,6 +269,7 @@ private impl Task
     {
         Swag.assert(not .isPending())
         .failure.reset()
+        .submission += 1
         .notify     = notify
         .priority   = priority
         .node.entry = &taskEntry

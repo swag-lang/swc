@@ -297,6 +297,8 @@ impl OffsetOwnedEvent
 }
 
 var g_TaskEventsSeen: u32
+var g_RecordDone:     bool     // The watched task is a `Swag.Task'u32`, and the watcher records whether it is done.
+var g_DoneWhenSeen:   bool
 
 // A window that records the tasks it is told have finished.
 struct TaskWatcher
@@ -310,8 +312,31 @@ impl IWnd for TaskWatcher
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         g_TaskEventsSeen += 1
+        if g_RecordDone do
+            g_DoneWhenSeen = cast(const *Swag.Task'u32, evt.task).isDone()
         .lastTask = evt.task
     }
+}
+
+// Runs until `gate` is raised.
+func waitForGate(gate: const *Swag.AtomicFlag)->u32
+{
+    while not gate.isRaised() do
+        Threading.Thread.sleep(1'ms)
+    return 2
+}
+
+// Raises `gate` after `milliseconds`, or as soon as it is asked to stop.
+func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
+{
+    for milliseconds
+    {
+        if Swag.isCancelled() do
+            return
+        Threading.Thread.sleep(1'ms)
+    }
+
+    discard gate.raise()
 }
 
 // A finished task reaches the window that watches it once, during a frame of the GUI thread.
@@ -335,6 +360,76 @@ impl IWnd for TaskWatcher
 
     host.pumpPostedEvents()
     Swag.assert(g_TaskEventsSeen == 1)
+}
+
+// A notification runs just before its task reads as done. An event the window receives can
+// therefore come before that moment; delivery waits it out, so the outcome is ready to take.
+#test
+{
+    // The submission has to run on a worker while the window handles the event, and a second
+    // worker has to end it.
+    if Swag.workerCount() < 2 do
+        return
+
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    g_TaskEventsSeen = 0
+    let watcher = Wnd.create'TaskWatcher(&host.root)
+    var gate:    Swag.AtomicFlag
+    var release: Swag.Task
+    var task:    Swag.Task'u32
+    g_RecordDone = true
+    defer g_RecordDone = false
+
+    task.submit(func|&gate|()->u32 => waitForGate(&gate))
+    let notify = watcher.taskNotifier(&task)
+    notify()
+    release.submit(func|&gate|() { raiseGateLater(&gate, 20) })
+
+    host.pumpPostedEvents()
+    Swag.assert(g_TaskEventsSeen == 1 and g_DoneWhenSeen)
+    let value = expect task.take()
+    Swag.assert(value == 2)
+}
+
+// An event about a submission the window already collected arrives without waiting for the task's
+// next submission.
+#test
+{
+    if Swag.workerCount() < 2 do
+        return
+
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    g_TaskEventsSeen = 0
+    let watcher = Wnd.create'TaskWatcher(&host.root)
+    var gate:    Swag.AtomicFlag
+    var release: Swag.Task
+    var task:    Swag.Task'u32
+    g_RecordDone = true
+    defer g_RecordDone = false
+
+    task.submit(func()->u32 => 1)
+    task.wait()
+    let notify = watcher.taskNotifier(&task)
+    notify()
+    discard expect task.take()
+
+    // Should delivery wait for this submission, the gate still opens and the test fails instead
+    // of hanging.
+    task.submit(func|&gate|()->u32 => waitForGate(&gate))
+    release.submit(func|&gate|() { raiseGateLater(&gate, 2000) })
+
+    host.pumpPostedEvents()
+    Swag.assert(g_TaskEventsSeen == 1 and not g_DoneWhenSeen)
+    discard gate.raise()
+    release.cancel()
+    let value = expect task.take()
+    Swag.assert(value == 2)
 }
 
 // A window whose destruction completed before the event is delivered never receives it.

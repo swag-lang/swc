@@ -462,25 +462,7 @@ namespace
             else
                 builder.emitLoadRegReg(cstrReg, baseReg, MicroOpBits::B64);
 
-            builder.emitClearReg(resultPayload.reg, MicroOpBits::B64);
-
-            const MicroLabelRef loopLabel = builder.createLabel();
-            const MicroLabelRef doneLabel = builder.createLabel();
-            builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-            const MicroReg scanReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
-            builder.placeLabel(loopLabel);
-
-            const MicroReg charReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
-            builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
-            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-            builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
-            builder.placeLabel(doneLabel);
+            CodeGenMemoryHelpers::emitCStringCountReg(codeGen, resultPayload.reg, cstrReg);
             return Result::Continue;
         }
 

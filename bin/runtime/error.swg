@@ -338,10 +338,7 @@ private func __detachErrMessages(storage: *ScratchAllocator)
     arena.storage.releaseHook  = null
     storage.releaseOwner       = null
     storage.releaseHook        = null
-    storage.block              = null
-    storage.firstLeak          = null
-    storage.used               = 0
-    storage.totalLeak          = 0
+    storage.forgetStorage()
     __releaseErrArena(arena)
 }
 
@@ -619,8 +616,7 @@ func __pushErr()
     let frame = &cxt.errors[cxt.errorIndex]
     Swag.memcpy(&frame.pushErrorAllocator, &cxt.errorAllocator, #sizeof(ScratchAllocator))
     Swag.init(&cxt.errorAllocator, 1)
-    cxt.errorAllocator.allocator              = frame.pushErrorAllocator.allocator
-    cxt.errorAllocator.capacity               = frame.pushErrorAllocator.capacity
+    cxt.errorAllocator.inheritSettings(&frame.pushErrorAllocator)
     cxt.errors[cxt.errorIndex].pushTraceIndex = cast(u32, cxt.traceIndex)
     cxt.errors[cxt.errorIndex].pushHasError   = cxt.hasError
 

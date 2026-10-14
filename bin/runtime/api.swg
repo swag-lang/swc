@@ -584,26 +584,33 @@ namespace Swag
         // Frees a block allocated by this allocator.
         mtd free(request: *AllocatorRequest)
 
-        // Frees every block allocated with this allocator, when the allocator supports it.
-        mtd freeAll(request: *AllocatorRequest)
+        // Frees every block allocated with this allocator at once.
+        //
+        // An allocator that cannot release its blocks together keeps this default, which frees
+        // nothing: each block stays allocated until it is freed on its own.
+        mtd freeAll(_: *AllocatorRequest) {}
 
-        // Asserts that 'request.address' is currently allocated, when the allocator supports it.
-        mtd assertAllocated(request: *AllocatorRequest)
+        // Asserts that 'request.address' is a block this allocator currently owns.
+        //
+        // An allocator that does not track its blocks keeps this default, which checks nothing.
+        mtd assertAllocated(_: *AllocatorRequest) {}
     }
 
     // A linear allocator that acquires its buffer on first use and releases all blocks at once.
+    //
+    // Its bookkeeping is readable everywhere and written only by its own operations.
     struct ScratchAllocator
     {
-        public
+        public readonly
         {
-            allocator: IAllocator?
-            block:     [*] u8?
-            capacity:  u64
-            used:      u64
-            maxUsed:   u64
-            firstLeak: *void?
-            totalLeak: u64
-            maxLeak:   u64
+            allocator: IAllocator?     // Where the buffer and the blocks that do not fit come from
+            block:     [*] u8?         // The buffer, once acquired
+            capacity:  u64             // Size of the buffer, in bytes
+            used:      u64             // Bytes of the buffer in use
+            maxUsed:   u64             // Most bytes of the buffer ever in use
+            firstLeak: *void?          // First block that did not fit in the buffer
+            totalLeak: u64             // Bytes held by the blocks that did not fit
+            maxLeak:   u64             // Most bytes ever held by the blocks that did not fit
         }
 
         // An internal owner can retain the backing storage beyond this allocator's release.

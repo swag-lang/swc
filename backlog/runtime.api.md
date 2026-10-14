@@ -51,7 +51,7 @@ in sync in the same change.
 - Done when: `#sizeof(Swag.Context)` is recorded in a test, the error stack no longer embeds a
   scratch allocator per frame, the nesting limit is either gone or documented and tested, and
   `pushContext` no longer copies a context.
-- Related: runtime.api.007, language.parallelism.001
+- Related: language.parallelism.001
 
 ### runtime.api.004 — The `Swag` namespace has no admission rule, and the build API lives in it
 
@@ -121,32 +121,6 @@ in sync in the same change.
   camelCase, no vector intrinsic is named after an x86 instruction, and the reference and
   VSCode grammar list the new spellings only.
 - Related: cpu.simd.012, std.core.031
-
-### runtime.api.007 — `IAllocator` forces debug operations on every allocator, and `ScratchAllocator` publishes its bookkeeping
-
-- Evidence: [IAllocator](../bin/runtime/api.swg#L574) has five mandatory methods. Of the nine
-  implementations in `bin/`, five write both `mtd impl freeAll(...) {}` and
-  `mtd impl assertAllocated(...) {}` as empty bodies (`core/src/memory/alloc.swg`,
-  `core/src/tests/memory/alloc.test.swg` twice, `swagcapture/src/tests/library.test.swg`,
-  `unittests/workspace/.../memory.test.swg`); two more only delegate or assert false. An empty `assertAllocated` silently
-  accepts any address, which is the opposite of an assertion.
-  [CompilerInstance.cpp:657](../src/Main/CompilerInstance.cpp#L657) relies on the slot order.
-- Evidence: [ScratchAllocator](../bin/runtime/api.swg#L593) makes `capacity`, `used`,
-  `maxUsed`, `firstLeak`, `totalLeak` and `maxLeak` public and writable. Outside the runtime,
-  only `core/src/tests/time/timer.test.swg` (reads `firstLeak`) and the native runtime unit
-  tests read them. `releaseOwner` and `releaseHook` are internal but sit in the same struct and
-  in every `ErrorValue` (runtime.api.003).
-- Next: make `freeAll` and `assertAllocated` optional at the interface level: either give
-  `IAllocator` default implementations if the language supports them, or replace both by one
-  `capabilities()` query plus the two operations on a separate optional interface. Decide what
-  a missing `assertAllocated` means (no check, explicitly reported) and document it. Then make
-  the `ScratchAllocator` statistics read-only through methods (`used()`, `peakUsed()`,
-  `leakStats()`), keep the fields internal, and migrate the timer test and the runtime unit
-  tests.
-- Done when: an allocator that only allocates, reallocates and frees implements three
-  methods, no implementation in `bin/` contains an empty `assertAllocated`, and no code outside
-  the runtime writes a `ScratchAllocator` field.
-- Related: runtime.api.003, runtime.allocator.002
 
 ### runtime.api.008 — The runtime has one target, and its public enums say so
 

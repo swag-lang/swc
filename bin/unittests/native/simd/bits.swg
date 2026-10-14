@@ -123,44 +123,44 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
     let quads = cast(#simd [4] u32, Quads)
     let pairs = cast(#simd [2] u64, Pairs)
 
-    let nzBytes = cast([16] u8, Swag.bitCountNz(bytes))
-    let tzBytes = cast([16] u8, Swag.bitCountTz(bytes))
-    let lzBytes = cast([16] u8, Swag.bitCountLz(bytes))
+    let nzBytes = cast([16] u8, Swag.countOnes(bytes))
+    let tzBytes = cast([16] u8, Swag.trailingZeros(bytes))
+    let lzBytes = cast([16] u8, Swag.leadingZeros(bytes))
     for i in 16
     {
-        Swag.assert(nzBytes[i] == Swag.bitCountNz(Bytes[i]))
-        Swag.assert(tzBytes[i] == Swag.bitCountTz(Bytes[i]))
-        Swag.assert(lzBytes[i] == Swag.bitCountLz(Bytes[i]))
+        Swag.assert(nzBytes[i] == Swag.countOnes(Bytes[i]))
+        Swag.assert(tzBytes[i] == Swag.trailingZeros(Bytes[i]))
+        Swag.assert(lzBytes[i] == Swag.leadingZeros(Bytes[i]))
     }
 
-    let nzWords = cast([8] u16, Swag.bitCountNz(words))
-    let tzWords = cast([8] u16, Swag.bitCountTz(words))
-    let lzWords = cast([8] u16, Swag.bitCountLz(words))
+    let nzWords = cast([8] u16, Swag.countOnes(words))
+    let tzWords = cast([8] u16, Swag.trailingZeros(words))
+    let lzWords = cast([8] u16, Swag.leadingZeros(words))
     for i in 8
     {
-        Swag.assert(nzWords[i] == Swag.bitCountNz(Words[i]))
-        Swag.assert(tzWords[i] == Swag.bitCountTz(Words[i]))
-        Swag.assert(lzWords[i] == Swag.bitCountLz(Words[i]))
+        Swag.assert(nzWords[i] == Swag.countOnes(Words[i]))
+        Swag.assert(tzWords[i] == Swag.trailingZeros(Words[i]))
+        Swag.assert(lzWords[i] == Swag.leadingZeros(Words[i]))
     }
 
-    let nzQuads = cast([4] u32, Swag.bitCountNz(quads))
-    let tzQuads = cast([4] u32, Swag.bitCountTz(quads))
-    let lzQuads = cast([4] u32, Swag.bitCountLz(quads))
+    let nzQuads = cast([4] u32, Swag.countOnes(quads))
+    let tzQuads = cast([4] u32, Swag.trailingZeros(quads))
+    let lzQuads = cast([4] u32, Swag.leadingZeros(quads))
     for i in 4
     {
-        Swag.assert(nzQuads[i] == Swag.bitCountNz(Quads[i]))
-        Swag.assert(tzQuads[i] == Swag.bitCountTz(Quads[i]))
-        Swag.assert(lzQuads[i] == Swag.bitCountLz(Quads[i]))
+        Swag.assert(nzQuads[i] == Swag.countOnes(Quads[i]))
+        Swag.assert(tzQuads[i] == Swag.trailingZeros(Quads[i]))
+        Swag.assert(lzQuads[i] == Swag.leadingZeros(Quads[i]))
     }
 
-    let nzPairs = cast([2] u64, Swag.bitCountNz(pairs))
-    let tzPairs = cast([2] u64, Swag.bitCountTz(pairs))
-    let lzPairs = cast([2] u64, Swag.bitCountLz(pairs))
+    let nzPairs = cast([2] u64, Swag.countOnes(pairs))
+    let tzPairs = cast([2] u64, Swag.trailingZeros(pairs))
+    let lzPairs = cast([2] u64, Swag.leadingZeros(pairs))
     for i in 2
     {
-        Swag.assert(nzPairs[i] == Swag.bitCountNz(Pairs[i]))
-        Swag.assert(tzPairs[i] == Swag.bitCountTz(Pairs[i]))
-        Swag.assert(lzPairs[i] == Swag.bitCountLz(Pairs[i]))
+        Swag.assert(nzPairs[i] == Swag.countOnes(Pairs[i]))
+        Swag.assert(tzPairs[i] == Swag.trailingZeros(Pairs[i]))
+        Swag.assert(lzPairs[i] == Swag.leadingZeros(Pairs[i]))
     }
 
     // Every single-bit pattern of a byte lane, plus the empty one.
@@ -170,8 +170,8 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
         for i in 16 do
             probe[i] = i == 0 ? 0 : cast(u8, (1 << bit))
         let packed = cast(#simd [16] u8, probe)
-        let tz     = cast([16] u8, Swag.bitCountTz(packed))
-        let lz     = cast([16] u8, Swag.bitCountLz(packed))
+        let tz     = cast([16] u8, Swag.trailingZeros(packed))
+        let lz     = cast([16] u8, Swag.leadingZeros(packed))
         Swag.assert(tz[0] == 8 and lz[0] == 8)
         for i in 1 until 16
         {

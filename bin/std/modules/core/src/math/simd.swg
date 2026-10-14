@@ -19,7 +19,7 @@ using Swag
 // [[Math.min]], [[Math.max]], [[Math.abs]], [[Math.sqrt]], [[Math.mulAdd]], [[Math.floor]],
 // [[Math.ceil]] and [[Math.trunc]] accept the vector types directly, and so do the bit
 // operations [[Math.rol]], [[Math.ror]], [[Math.countOnes]], [[Math.leadingZeros]],
-// [[Math.trailingZeros]], [[Math.byteswap]] and [[Math.reverse]].
+// [[Math.trailingZeros]], [[Math.byteSwap]] and [[Math.reverse]].
 namespace Simd
 {
     alias U8x16 = #simd [16] u8     // Sixteen unsigned 8-bit lanes.
@@ -242,10 +242,10 @@ namespace Simd
         func bitwiseXor(value: U64x2)->u64 => Swag.vecreducexor(value)
 
         // Counts the mask lanes that are all-ones.
-        func countTrue(value: U8x16)->u32 => Swag.bitCountNz(Swag.vecmask(value))
-        func countTrue(value: U16x8)->u32 => Swag.bitCountNz(Swag.vecmask(value))
-        func countTrue(value: U32x4)->u32 => Swag.bitCountNz(Swag.vecmask(value))
-        func countTrue(value: U64x2)->u32 => Swag.bitCountNz(Swag.vecmask(value))
+        func countTrue(value: U8x16)->u32 => Swag.countOnes(Swag.vecmask(value))
+        func countTrue(value: U16x8)->u32 => Swag.countOnes(Swag.vecmask(value))
+        func countTrue(value: U32x4)->u32 => Swag.countOnes(Swag.vecmask(value))
+        func countTrue(value: U64x2)->u32 => Swag.countOnes(Swag.vecmask(value))
 
         // Sums the absolute differences of the bytes of each half into the low word
         // of the matching 64-bit lane.
@@ -562,31 +562,31 @@ namespace Simd
     func ror(x: Simd.U64x2, y: u8)->Simd.U64x2 => Swag.ror(x, y)
 
     // Returns the number of bits set to one, per lane.
-    func countOnes(x: Simd.U8x16)->Simd.U8x16 => Swag.bitCountNz(x)
-    func countOnes(x: Simd.U16x8)->Simd.U16x8 => Swag.bitCountNz(x)
-    func countOnes(x: Simd.U32x4)->Simd.U32x4 => Swag.bitCountNz(x)
-    func countOnes(x: Simd.U64x2)->Simd.U64x2 => Swag.bitCountNz(x)
+    func countOnes(x: Simd.U8x16)->Simd.U8x16 => Swag.countOnes(x)
+    func countOnes(x: Simd.U16x8)->Simd.U16x8 => Swag.countOnes(x)
+    func countOnes(x: Simd.U32x4)->Simd.U32x4 => Swag.countOnes(x)
+    func countOnes(x: Simd.U64x2)->Simd.U64x2 => Swag.countOnes(x)
 
     // Returns the number of zero bits above the highest set bit, per lane.
     //
     // An all-zero lane answers the lane width.
-    func leadingZeros(x: Simd.U8x16)->Simd.U8x16 => Swag.bitCountLz(x)
-    func leadingZeros(x: Simd.U16x8)->Simd.U16x8 => Swag.bitCountLz(x)
-    func leadingZeros(x: Simd.U32x4)->Simd.U32x4 => Swag.bitCountLz(x)
-    func leadingZeros(x: Simd.U64x2)->Simd.U64x2 => Swag.bitCountLz(x)
+    func leadingZeros(x: Simd.U8x16)->Simd.U8x16 => Swag.leadingZeros(x)
+    func leadingZeros(x: Simd.U16x8)->Simd.U16x8 => Swag.leadingZeros(x)
+    func leadingZeros(x: Simd.U32x4)->Simd.U32x4 => Swag.leadingZeros(x)
+    func leadingZeros(x: Simd.U64x2)->Simd.U64x2 => Swag.leadingZeros(x)
 
     // Returns the number of zero bits below the lowest set bit, per lane.
     //
     // An all-zero lane answers the lane width.
-    func trailingZeros(x: Simd.U8x16)->Simd.U8x16 => Swag.bitCountTz(x)
-    func trailingZeros(x: Simd.U16x8)->Simd.U16x8 => Swag.bitCountTz(x)
-    func trailingZeros(x: Simd.U32x4)->Simd.U32x4 => Swag.bitCountTz(x)
-    func trailingZeros(x: Simd.U64x2)->Simd.U64x2 => Swag.bitCountTz(x)
+    func trailingZeros(x: Simd.U8x16)->Simd.U8x16 => Swag.trailingZeros(x)
+    func trailingZeros(x: Simd.U16x8)->Simd.U16x8 => Swag.trailingZeros(x)
+    func trailingZeros(x: Simd.U32x4)->Simd.U32x4 => Swag.trailingZeros(x)
+    func trailingZeros(x: Simd.U64x2)->Simd.U64x2 => Swag.trailingZeros(x)
 
     // Reverses the bytes inside every lane.
-    func byteswap(x: Simd.U16x8)->Simd.U16x8 => Swag.byteSwap(x)
-    func byteswap(x: Simd.U32x4)->Simd.U32x4 => Swag.byteSwap(x)
-    func byteswap(x: Simd.U64x2)->Simd.U64x2 => Swag.byteSwap(x)
+    func byteSwap(x: Simd.U16x8)->Simd.U16x8 => Swag.byteSwap(x)
+    func byteSwap(x: Simd.U32x4)->Simd.U32x4 => Swag.byteSwap(x)
+    func byteSwap(x: Simd.U64x2)->Simd.U64x2 => Swag.byteSwap(x)
 
     // Returns the magnitude of `x` carrying the sign of `y`, per lane.
     //

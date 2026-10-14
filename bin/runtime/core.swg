@@ -474,7 +474,7 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
         return true
     }
 
-    if cmpFlags & .UnScoped do
+    if cmpFlags & .Unscoped do
         return Swag.stringCmp(type1.name, type2.name)
     return Swag.stringCmp(type1.fullname, type2.fullname)
 }
@@ -553,7 +553,7 @@ func __convertArgcArgv(args: const [*] u8?)
 func args()->const [..] string
 {
     if __argc == 0 do
-        __convertArgcArgv((Swag.processInfos().args).buffer)
+        __convertArgcArgv((Swag.processInfo().args).buffer)
     return Swag.makeSlice(&__argv[0], cast(u64, __argc))
 }
 
@@ -636,12 +636,12 @@ func __setupRuntime(flags: RuntimeFlags)
     let cxt = Swag.getContext()
     cxt.runtimeFlags = flags
 
-    // A native run owns its command line, and every artifact keeps its own 'Swag.processInfos()', so the
+    // A native run owns its command line, and every artifact keeps its own 'Swag.processInfo()', so the
     // executable seeds its copy here and hands it down the hook chain to the modules it imports.
     // Under the compiler the real command line belongs to 'swc' itself; the host has already
     // filled the slot with the one the program is effectively launched with, so leave it alone.
     if not (flags & .FromCompiler) do
-        Swag.processInfos().args = __osCommandLine()
+        Swag.processInfo().args = __osCommandLine()
 
     discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: not (flags & .FromCompiler))
 
@@ -677,7 +677,7 @@ func __closeRuntime()
 
 func __dropGlobalVariables()
 {
-    for g in Swag.gvtd()
+    for g in Swag.globalsToDrop()
     {
         var ptr = cast([*] u8, g.ptr)
         for x in g.count

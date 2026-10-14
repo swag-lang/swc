@@ -460,9 +460,9 @@ namespace
         // A '#test' running in JIT is a program run, not compile-time evaluation, so it must see
         // the same 'Swag.args()' as the generated executable pass: a test that reads a '--run-arg'
         // behaves identically in both. JIT::call only populates them for JITRuntimeSetupMode::None,
-        // which a test does not use, and compile-time '#run' keeps a zeroed 'Swag.processInfos()' because it
+        // which a test does not use, and compile-time '#run' keeps a zeroed 'Swag.processInfo()' because it
         // never comes through here.
-        ctx.compiler().ensureProcessInfosRunArgs();
+        ctx.compiler().ensureProcessInfoRunArgs();
 
         JITExecManager::Request request;
         request.function     = &function;

@@ -209,5 +209,5 @@ impl Volume
     }
 
     // Number of passwords that currently open this container.
-    mtd const keySlotCount()->u64 => Swag.bitCountNz(.keySlotMask)
+    mtd const keySlotCount()->u64 => Swag.countOnes(.keySlotMask)
 }

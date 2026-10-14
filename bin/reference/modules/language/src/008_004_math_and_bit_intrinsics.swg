@@ -12,9 +12,9 @@ unsigned widths from 'u8' through 'u64'.
     Swag.assert(Swag.max(4's32, 9's32) == 9)
     Swag.assert(Swag.abs(-7's32) == 7)
 
-    Swag.assert(Swag.bitCountNz(0b1011'u8) == 3)
-    Swag.assert(Swag.bitCountLz(1'u32) == 31)
-    Swag.assert(Swag.bitCountTz(0x10'u32) == 4)
+    Swag.assert(Swag.countOnes(0b1011'u8) == 3)
+    Swag.assert(Swag.leadingZeros(1'u32) == 31)
+    Swag.assert(Swag.trailingZeros(0x10'u32) == 4)
 }
 
 /**

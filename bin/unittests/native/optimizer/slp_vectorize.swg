@@ -146,10 +146,10 @@ func lanesRotate16WithRejectedGroup(values: *[16] u32)
     values[][5]  = Swag.rol(values[][1], 16)
     values[][6]  = Swag.rol(values[][2], 16)
     values[][7]  = Swag.rol(values[][3], 16)
-    values[][8]  = Swag.rol(values[][12], 16) - Swag.bitCountNz(values[][12])
-    values[][9]  = Swag.rol(values[][13], 16) - Swag.bitCountNz(values[][13])
-    values[][10] = Swag.rol(values[][14], 16) - Swag.bitCountNz(values[][14])
-    values[][11] = Swag.rol(values[][15], 16) - Swag.bitCountNz(values[][15])
+    values[][8]  = Swag.rol(values[][12], 16) - Swag.countOnes(values[][12])
+    values[][9]  = Swag.rol(values[][13], 16) - Swag.countOnes(values[][13])
+    values[][10] = Swag.rol(values[][14], 16) - Swag.countOnes(values[][14])
+    values[][11] = Swag.rol(values[][15], 16) - Swag.countOnes(values[][15])
 }
 
 // The output parameter cannot alias this function's own frame. Keep the four
@@ -254,7 +254,7 @@ func threeLanes(values: *[8] u32)
     for i in 4
     {
         Swag.assert(values[4 + i] == Swag.rol(values[i], 16))
-        Swag.assert(values[8 + i] == Swag.rol(values[12 + i], 16) - Swag.bitCountNz(values[12 + i]))
+        Swag.assert(values[8 + i] == Swag.rol(values[12 + i], 16) - Swag.countOnes(values[12 + i]))
     }
 }
 

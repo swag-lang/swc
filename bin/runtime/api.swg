@@ -509,8 +509,8 @@ namespace Swag
         }
     }
 
-    // Describes the current process, as returned by [[Swag.processInfos]].
-    struct ProcessInfos
+    // Describes the current process, as returned by [[Swag.processInfo]].
+    struct ProcessInfo
     {
         public
         {
@@ -520,7 +520,7 @@ namespace Swag
     }
 
     // Describes a global variable that the runtime drops when the process exits.
-    struct Gvtd
+    struct GlobalToDrop
     {
         public
         {
@@ -714,7 +714,7 @@ namespace Swag
     {
         Strict   = 0
         CastAny  = 1
-        UnScoped = 2
+        Unscoped = 2
     }
 
     // The kind of the typeinfo.
@@ -1343,13 +1343,13 @@ func getContext()->*Swag.Context
 func setContext(context: const *Swag.Context)
 
 // Returns the description of the current process.
-func processInfos()->*Swag.ProcessInfos
+func processInfo()->*Swag.ProcessInfo
 
 // Returns every loaded module.
 func modules()->const [..] Swag.Module?
 
 // Returns the global variables the runtime drops when the process exits.
-func gvtd()->const [..] Swag.Gvtd?
+func globalsToDrop()->const [..] Swag.GlobalToDrop?
 
 // Returns an [[ICompiler]] interface to communicate with the compiler.
 func compiler()->Swag.ICompiler
@@ -1522,22 +1522,22 @@ func atomset(addr: *u64, value: u64)
     func byteSwap(value: u64)->u64
 
     // Returns the number of bits set to 1.
-    func bitCountNz(value: u8)->u8
-    func bitCountNz(value: u16)->u16
-    func bitCountNz(value: u32)->u32
-    func bitCountNz(value: u64)->u64
+    func countOnes(value: u8)->u8
+    func countOnes(value: u16)->u16
+    func countOnes(value: u32)->u32
+    func countOnes(value: u64)->u64
 
     // Returns the number of zero bits below the lowest set bit, or the operand width when `value` is zero.
-    func bitCountTz(value: u8)->u8
-    func bitCountTz(value: u16)->u16
-    func bitCountTz(value: u32)->u32
-    func bitCountTz(value: u64)->u64
+    func trailingZeros(value: u8)->u8
+    func trailingZeros(value: u16)->u16
+    func trailingZeros(value: u32)->u32
+    func trailingZeros(value: u64)->u64
 
     // Returns the number of zero bits above the highest set bit, or the operand width when `value` is zero.
-    func bitCountLz(value: u8)->u8
-    func bitCountLz(value: u16)->u16
-    func bitCountLz(value: u32)->u32
-    func bitCountLz(value: u64)->u64
+    func leadingZeros(value: u8)->u8
+    func leadingZeros(value: u16)->u16
+    func leadingZeros(value: u32)->u32
+    func leadingZeros(value: u64)->u64
 
     // Returns '(val1 * val2) + val3'.
     func muladd(val1, val2, val3: f32)->f32
@@ -1610,18 +1610,18 @@ func atomset(addr: *u64, value: u64)
 
     // Element-wise bit counts, each lane answering what the scalar form answers
     // for one value of that width.
-    func bitCountNz(value: #simd [16] u8)->#simd [16] u8
-    func bitCountNz(value: #simd [8] u16)->#simd [8] u16
-    func bitCountNz(value: #simd [4] u32)->#simd [4] u32
-    func bitCountNz(value: #simd [2] u64)->#simd [2] u64
-    func bitCountTz(value: #simd [16] u8)->#simd [16] u8
-    func bitCountTz(value: #simd [8] u16)->#simd [8] u16
-    func bitCountTz(value: #simd [4] u32)->#simd [4] u32
-    func bitCountTz(value: #simd [2] u64)->#simd [2] u64
-    func bitCountLz(value: #simd [16] u8)->#simd [16] u8
-    func bitCountLz(value: #simd [8] u16)->#simd [8] u16
-    func bitCountLz(value: #simd [4] u32)->#simd [4] u32
-    func bitCountLz(value: #simd [2] u64)->#simd [2] u64
+    func countOnes(value: #simd [16] u8)->#simd [16] u8
+    func countOnes(value: #simd [8] u16)->#simd [8] u16
+    func countOnes(value: #simd [4] u32)->#simd [4] u32
+    func countOnes(value: #simd [2] u64)->#simd [2] u64
+    func trailingZeros(value: #simd [16] u8)->#simd [16] u8
+    func trailingZeros(value: #simd [8] u16)->#simd [8] u16
+    func trailingZeros(value: #simd [4] u32)->#simd [4] u32
+    func trailingZeros(value: #simd [2] u64)->#simd [2] u64
+    func leadingZeros(value: #simd [16] u8)->#simd [16] u8
+    func leadingZeros(value: #simd [8] u16)->#simd [8] u16
+    func leadingZeros(value: #simd [4] u32)->#simd [4] u32
+    func leadingZeros(value: #simd [2] u64)->#simd [2] u64
 
     // Element-wise byte reversal inside every lane.
     func byteSwap(value: #simd [8] u16)->#simd [8] u16

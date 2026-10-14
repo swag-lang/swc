@@ -128,9 +128,9 @@ impl City32
             h  = Math.ror(h, 19)
             h  = h * 5 + 0xE6546B64
             g  ^= a4
-            g  = Math.byteswap(g) * 5
+            g  = Math.byteSwap(g) * 5
             h  += a4 * 5
-            h  = Math.byteswap(h)
+            h  = Math.byteSwap(h)
             f  += a0
             swap(&f, &h)
             swap(&f, &g)

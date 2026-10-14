@@ -37,7 +37,7 @@ enum class SymbolFunctionFlagsE : uint16_t
     Attribute             = 1 << 5,
     Pure                  = 1 << 6,
     Variadic              = 1 << 7,
-    UsesGvtd              = 1 << 8,
+    UsesGlobalsToDrop     = 1 << 8,
     GenericRoot           = 1 << 9,
     GenericInstance       = 1 << 10,
     LazyBody              = 1 << 11,
@@ -309,8 +309,8 @@ public:
     Utf8             resolveForeignModuleName(const TaskContext& ctx) const;
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
-    bool usesGvtd() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::UsesGvtd); }
-    void setUsesGvtd() noexcept { addExtraFlag(SymbolFunctionFlagsE::UsesGvtd); }
+    bool usesGlobalsToDrop() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::UsesGlobalsToDrop); }
+    void setUsesGlobalsToDrop() noexcept { addExtraFlag(SymbolFunctionFlagsE::UsesGlobalsToDrop); }
 
     bool     hasInterfaceMethodSlot() const noexcept { return interfaceMethodSlot_ != K_INVALID_INTERFACE_METHOD_SLOT; }
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }

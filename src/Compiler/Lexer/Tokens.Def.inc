@@ -297,16 +297,16 @@ SWC_TOKEN_DEF(IntrinsicTableOf, "Swag.tableOf", TokenIdKindE::Intrinsic | TokenI
 SWC_TOKEN_DEF(IntrinsicArgs, "Swag.args", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicJit, "Swag.jit", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
 SWC_TOKEN_DEF(IntrinsicRtFlags, "Swag.runtimeFlags", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
-SWC_TOKEN_DEF(IntrinsicProcessInfos, "Swag.processInfos", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicProcessInfo, "Swag.processInfo", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicModules, "Swag.modules", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
-SWC_TOKEN_DEF(IntrinsicGvtd, "Swag.gvtd", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicGlobalsToDrop, "Swag.globalsToDrop", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 
 // INTRINSICS - BIT OPERATIONS
 
 SWC_TOKEN_DEF(IntrinsicByteSwap, "Swag.byteSwap", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
-SWC_TOKEN_DEF(IntrinsicBitCountNz, "Swag.bitCountNz", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
-SWC_TOKEN_DEF(IntrinsicBitCountTz, "Swag.bitCountTz", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
-SWC_TOKEN_DEF(IntrinsicBitCountLz, "Swag.bitCountLz", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicCountOnes, "Swag.countOnes", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicTrailingZeros, "Swag.trailingZeros", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicLeadingZeros, "Swag.leadingZeros", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicRol, "Swag.rol", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicRor, "Swag.ror", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 

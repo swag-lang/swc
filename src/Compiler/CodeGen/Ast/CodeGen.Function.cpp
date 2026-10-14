@@ -24,12 +24,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool tryBuildGvtdEntry(const CodeGen& codeGen, TypeRef typeRef, const SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
+    bool tryBuildGlobalToDropEntry(const CodeGen& codeGen, TypeRef typeRef, const SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
     {
         return codeGen.tryBuildLifecycleAction(typeRef, CodeGen::LifecycleKind::Drop, outOpDrop, outSizeOf, outCount);
     }
 
-    void collectGvtdEntriesRec(CodeGen& codeGen, const SymbolMap& symbolMap, SmallVector<CodeGenGvtdEntry>& outEntries)
+    void collectGlobalToDropEntriesRec(CodeGen& codeGen, const SymbolMap& symbolMap, SmallVector<CodeGenGlobalToDropEntry>& outEntries)
     {
         std::vector<const Symbol*> symbols;
         symbolMap.getAllSymbols(symbols);
@@ -57,7 +57,7 @@ namespace
                 const SymbolFunction* opDrop = nullptr;
                 uint32_t              sizeOf = 0;
                 uint32_t              count  = 0;
-                if (!tryBuildGvtdEntry(codeGen, symVar->typeRef(), opDrop, sizeOf, count))
+                if (!tryBuildGlobalToDropEntry(codeGen, symVar->typeRef(), opDrop, sizeOf, count))
                     continue;
 
                 outEntries.push_back({.variable = symVar, .opDrop = opDrop, .sizeOf = sizeOf, .count = count});
@@ -65,34 +65,34 @@ namespace
             }
 
             if (symbol->isModule() || symbol->isNamespace())
-                collectGvtdEntriesRec(codeGen, *symbol->asSymMap(), outEntries);
+                collectGlobalToDropEntriesRec(codeGen, *symbol->asSymMap(), outEntries);
         }
     }
 
-    void configureGvtdScratchLayout(CodeGen& codeGen, uint64_t& frameSize)
+    void configureGlobalsToDropScratchLayout(CodeGen& codeGen, uint64_t& frameSize)
     {
-        codeGen.clearGvtdScratchLayout();
+        codeGen.clearGlobalsToDropScratchLayout();
 
         const AstNodeRef functionDeclRef = codeGen.function().declNodeRef();
         if (!functionDeclRef.isValid())
             return;
 
-        if (!codeGen.function().usesGvtd())
+        if (!codeGen.function().usesGlobalsToDrop())
             return;
 
-        // `Swag.gvtd()` returns a slice built in the current frame, so reserve scratch space once in the local
+        // `Swag.globalsToDrop()` returns a slice built in the current frame, so reserve scratch space once in the local
         // stack layout and keep the referenced drop helpers alive as dependencies.
-        SmallVector<CodeGenGvtdEntry> entries;
+        SmallVector<CodeGenGlobalToDropEntry> entries;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
-            collectGvtdEntriesRec(codeGen, *rootModule, entries);
+            collectGlobalToDropEntriesRec(codeGen, *rootModule, entries);
 
         for (const auto& entry : entries)
             codeGen.function().addCallDependency(entry.opDrop);
 
-        constexpr uint32_t sliceSize      = sizeof(Runtime::Slice<Runtime::Gvtd>);
-        constexpr uint32_t sliceAlignment = alignof(Runtime::Slice<Runtime::Gvtd>);
-        constexpr uint32_t entrySize      = sizeof(Runtime::Gvtd);
-        constexpr uint32_t entryAlignment = alignof(Runtime::Gvtd);
+        constexpr uint32_t sliceSize      = sizeof(Runtime::Slice<Runtime::GlobalToDrop>);
+        constexpr uint32_t sliceAlignment = alignof(Runtime::Slice<Runtime::GlobalToDrop>);
+        constexpr uint32_t entrySize      = sizeof(Runtime::GlobalToDrop);
+        constexpr uint32_t entryAlignment = alignof(Runtime::GlobalToDrop);
         constexpr uint32_t scratchAlign   = std::max(sliceAlignment, entryAlignment);
         constexpr uint32_t entriesOffset  = Math::alignUpU32(sliceSize, entryAlignment);
         const uint64_t     scratchBase    = Math::alignUpU64(frameSize, scratchAlign);
@@ -103,7 +103,7 @@ namespace
         SWC_ASSERT(scratchEnd <= std::numeric_limits<uint32_t>::max());
 
         frameSize = scratchEnd;
-        codeGen.setGvtdScratchLayout(static_cast<uint32_t>(scratchBase), static_cast<uint32_t>(scratchSize), entries.span());
+        codeGen.setGlobalsToDropScratchLayout(static_cast<uint32_t>(scratchBase), static_cast<uint32_t>(scratchSize), entries.span());
     }
 
     bool tryGetSizedTypeLayout(uint32_t& outSize, uint32_t& outAlignment, CodeGen& codeGen, const TypeInfo& typeInfo)
@@ -234,7 +234,7 @@ namespace
         }
 
         appendDebugParameterSlots(codeGen, frameSize);
-        configureGvtdScratchLayout(codeGen, frameSize);
+        configureGlobalsToDropScratchLayout(codeGen, frameSize);
         if (hasIndirectReturnArg)
         {
             constexpr uint32_t hiddenReturnStorageSize      = sizeof(uint64_t);

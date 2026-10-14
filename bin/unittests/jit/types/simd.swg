@@ -84,9 +84,9 @@ func bitVocabulary()->u64
 
     var total = cast(u64, Swag.rol(bytes, 3)[8])
     total += cast(u64, Swag.ror(bytes, 3)[1])
-    total += cast(u64, Swag.bitCountNz(quads)[3])
-    total += cast(u64, Swag.bitCountTz(quads)[0])
-    total += cast(u64, Swag.bitCountLz(quads)[1])
+    total += cast(u64, Swag.countOnes(quads)[3])
+    total += cast(u64, Swag.trailingZeros(quads)[0])
+    total += cast(u64, Swag.leadingZeros(quads)[1])
     total += Swag.byteSwap(pairs)[1] >> 56
     return total
 }

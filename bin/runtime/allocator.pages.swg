@@ -314,9 +314,9 @@ impl AllocatorPage
     #[Swag.Safety(.Overflow, false)]
     mtd setupBlockDivision(blockSize: u32)
     {
-        let odd = blockSize >> cast(u32, Swag.bitCountTz(blockSize))
+        let odd = blockSize >> cast(u32, Swag.trailingZeros(blockSize))
         .blockSize  = blockSize
-        .blockShift = cast(u8, Swag.bitCountTz(blockSize))
+        .blockShift = cast(u8, Swag.trailingZeros(blockSize))
         .blockLimit = 0xFFFF_FFFF'u32 / blockSize
 
         var inverse = odd
@@ -650,7 +650,7 @@ impl AllocatorSegment
             if free == 0 do
                 return null
 
-            let index = cast(u32, Swag.bitCountTz(free))
+            let index = cast(u32, Swag.trailingZeros(free))
             let bit   = 1'u64 << index
             let seen  = Swag.atomcmpxchg(&.pageMask, mask, mask | bit)
             if seen != mask
@@ -723,7 +723,7 @@ impl AllocatorSegment
         var idle = atomicGet(&.idleMask)
         while idle
         {
-            let index = cast(u32, Swag.bitCountTz(idle))
+            let index = cast(u32, Swag.trailingZeros(idle))
             let bit   = 1'u64 << index
             idle &= ~bit
 

@@ -85,7 +85,7 @@ namespace Runtime
         uint32_t colEnd;
     };
 
-    struct Gvtd
+    struct GlobalToDrop
     {
         void* ptr;
         void (*opDrop)(void*);

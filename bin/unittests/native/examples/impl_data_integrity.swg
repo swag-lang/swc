@@ -243,7 +243,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     }
 
     for b in data do
-        report.bitEntropy += cast(u32, Swag.bitCountNz(b))
+        report.bitEntropy += cast(u32, Swag.countOnes(b))
 
     return report
 }
@@ -368,25 +368,25 @@ func analyze(data: const [..] u8)->IntegrityReport
 #test
 {
     // Population count (standard semantics)
-    Swag.assert(Swag.bitCountNz(0'u32) == 0)
-    Swag.assert(Swag.bitCountNz(1'u32) == 1)
-    Swag.assert(Swag.bitCountNz(0xFFFFFFFF'u32) == 32)
-    Swag.assert(Swag.bitCountNz(0xAAAAAAAA'u32) == 16)
-    Swag.assert(Swag.bitCountNz(0x55555555'u32) == 16)
-    Swag.assert(Swag.bitCountNz(0xDEADBEEF'u32) == 24)
+    Swag.assert(Swag.countOnes(0'u32) == 0)
+    Swag.assert(Swag.countOnes(1'u32) == 1)
+    Swag.assert(Swag.countOnes(0xFFFFFFFF'u32) == 32)
+    Swag.assert(Swag.countOnes(0xAAAAAAAA'u32) == 16)
+    Swag.assert(Swag.countOnes(0x55555555'u32) == 16)
+    Swag.assert(Swag.countOnes(0xDEADBEEF'u32) == 24)
 
     // Leading zeros (counts consecutive zero bits from the most significant bit)
-    Swag.assert(Swag.bitCountLz(0'u32) == 32)
-    Swag.assert(Swag.bitCountLz(0x80000000'u32) == 0)
-    Swag.assert(Swag.bitCountLz(1'u32) == 31)
-    Swag.assert(Swag.bitCountLz(0x00010000'u32) == 15)
+    Swag.assert(Swag.leadingZeros(0'u32) == 32)
+    Swag.assert(Swag.leadingZeros(0x80000000'u32) == 0)
+    Swag.assert(Swag.leadingZeros(1'u32) == 31)
+    Swag.assert(Swag.leadingZeros(0x00010000'u32) == 15)
 
     // Trailing zeros (counts consecutive zero bits from the least significant bit)
-    Swag.assert(Swag.bitCountTz(0'u32) == 32)
-    Swag.assert(Swag.bitCountTz(1'u32) == 0)
-    Swag.assert(Swag.bitCountTz(2'u32) == 1)
-    Swag.assert(Swag.bitCountTz(0x80000000'u32) == 31)
-    Swag.assert(Swag.bitCountTz(0x00010000'u32) == 16)
+    Swag.assert(Swag.trailingZeros(0'u32) == 32)
+    Swag.assert(Swag.trailingZeros(1'u32) == 0)
+    Swag.assert(Swag.trailingZeros(2'u32) == 1)
+    Swag.assert(Swag.trailingZeros(0x80000000'u32) == 31)
+    Swag.assert(Swag.trailingZeros(0x00010000'u32) == 16)
 
     // Rotate left/right
     Swag.assert(Swag.rol(0x80000001'u32, 1) == 0x00000003'u32)
@@ -430,6 +430,6 @@ func analyze(data: const [..] u8)->IntegrityReport
     let testBytes = cast(const [..] u8, message)
     for b in testBytes
     {
-        Swag.assert(Swag.bitCountNz(b) == Swag.bitCountNz(reverse8(b)))
+        Swag.assert(Swag.countOnes(b) == Swag.countOnes(reverse8(b)))
     }
 }

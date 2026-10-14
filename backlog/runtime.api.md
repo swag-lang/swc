@@ -120,29 +120,7 @@ in sync in the same change.
 - Done when: every `Swag.` intrinsic except `memcpy`, `memmove`, `memset` and `memcmp` is
   camelCase, no vector intrinsic is named after an x86 instruction, and the reference and
   VSCode grammar list the new spellings only.
-- Related: runtime.api.006, cpu.simd.012, std.core.031
-
-### runtime.api.006 — Opaque and unidiomatic public names in the runtime
-
-- Evidence, one name each:
-  - `Swag.gvtd()` / `Swag.Gvtd` ("global variables to drop"): a four-letter acronym in the
-    public API, documented as "Returns the global variables the runtime drops when the process
-    exits". Four uses in `bin/`; the C++ side uses the name about 80 times.
-  - `Swag.processInfos()` / `Swag.ProcessInfos`: "info" is uncountable in English; the idiom is
-    `processInfo` / `ProcessInfo`. 17 uses in `bin/`, about 60 in `src/`.
-  - `Swag.bitCountNz`: "number of non-zero bits" is a population count; `bitCountTz` and
-    `bitCountLz` are trailing and leading zero counts, so `Nz` reads as their sibling while
-    meaning something different. 72 uses.
-  - `Swag.TypeCmpFlags.UnScoped`: `Unscoped` is one word. Three uses.
-  - `Swag.TypeCmpFlags` and `Swag.typeCmp` abbreviate "compare" while `Swag.stringCmp` does too
-    but `memcmp` follows C; decide once and apply it to both functions and the flags.
-- Next: pick the new names in this entry (proposed: `globalsToDrop` / `GlobalToDrop`,
-  `processInfo` / `ProcessInfo`, `bitCountOnes` or `popCount`, `Unscoped`), then rename each in
-  its own commit together with its lexer token, its C++ mirror, the reference and its
-  consumers. Apply the casing rule of runtime.api.005 to the result.
-- Done when: none of the names listed above remains in `bin/`, `src/`, the reference or the
-  VSCode grammar.
-- Related: runtime.api.005
+- Related: cpu.simd.012, std.core.031
 
 ### runtime.api.007 — `IAllocator` forces debug operations on every allocator, and `ScratchAllocator` publishes its bookkeeping
 

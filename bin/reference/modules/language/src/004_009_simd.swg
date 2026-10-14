@@ -325,8 +325,8 @@ vector down and applies one element-wise operation.
 The bit intrinsics accept vectors of unsigned lanes and answer, for every lane,
 what the scalar form answers for one value of that width. 'Swag.rol' and 'Swag.ror'
 rotate by a count taken modulo the lane width, so a count of zero or of one
-whole width is the identity. 'Swag.bitCountNz' counts the bits set, 'Swag.bitCountTz'
-and 'Swag.bitCountLz' count the zeros below the lowest and above the highest set
+whole width is the identity. 'Swag.countOnes' counts the bits set, 'Swag.trailingZeros'
+and 'Swag.leadingZeros' count the zeros below the lowest and above the highest set
 bit, and an all-zero lane answers the lane width. 'Swag.byteSwap' reverses the
 bytes inside every lane.
 
@@ -347,12 +347,12 @@ counts go through a nibble table, and the byte reversal is one dynamic permute.
     let turned = cast([4] u32, Swag.rol(quads, 32))
     Swag.assert(turned[2] == 0x1234_5678)
 
-    let ones = cast([4] u32, Swag.bitCountNz(quads))
+    let ones = cast([4] u32, Swag.countOnes(quads))
     Swag.assert(ones[0] == 0 and ones[1] == 1 and ones[3] == 32)
 
     // An empty lane answers the lane width for both counts.
-    let below = cast([4] u32, Swag.bitCountTz(quads))
-    let above = cast([4] u32, Swag.bitCountLz(quads))
+    let below = cast([4] u32, Swag.trailingZeros(quads))
+    let above = cast([4] u32, Swag.leadingZeros(quads))
     Swag.assert(below[0] == 32 and below[1] == 0 and below[2] == 3)
     Swag.assert(above[0] == 32 and above[1] == 31 and above[3] == 0)
 

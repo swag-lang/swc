@@ -329,7 +329,7 @@ func registerType(type: typeinfo)
     registerTypeGraphNoLock(#typeof(f64))
     registerTypeGraphNoLock(#typeof(rune))
 
-    for m in Swag.processInfos().modules
+    for m in Swag.processInfo().modules
     {
         for t in m.types
         {

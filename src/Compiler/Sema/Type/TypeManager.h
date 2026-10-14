@@ -48,8 +48,8 @@ enum class RuntimeTypeKind : uint32_t
     Context,
     ContextFlags,
     Module,
-    ProcessInfos,
-    Gvtd,
+    ProcessInfo,
+    GlobalToDrop,
     BuildCfg,
     Count
 };
@@ -179,8 +179,8 @@ public:
     TypeRef structScratchAllocator() const { return runtimeType(RuntimeTypeKind::ScratchAllocator); }
     TypeRef structContext() const { return runtimeType(RuntimeTypeKind::Context); }
     TypeRef structModule() const { return runtimeType(RuntimeTypeKind::Module); }
-    TypeRef structProcessInfos() const { return runtimeType(RuntimeTypeKind::ProcessInfos); }
-    TypeRef structGvtd() const { return runtimeType(RuntimeTypeKind::Gvtd); }
+    TypeRef structProcessInfo() const { return runtimeType(RuntimeTypeKind::ProcessInfo); }
+    TypeRef structGlobalToDrop() const { return runtimeType(RuntimeTypeKind::GlobalToDrop); }
     TypeRef structBuildCfg() const { return runtimeType(RuntimeTypeKind::BuildCfg); }
 
     TypeRef enumContextFlags() const { return runtimeType(RuntimeTypeKind::ContextFlags); }

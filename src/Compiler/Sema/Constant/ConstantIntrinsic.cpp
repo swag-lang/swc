@@ -645,9 +645,9 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             return makeFloatResult(sema, sema.curNodeRef(), foldedValue.asDouble());
         }
 
-        case TokenId::IntrinsicBitCountNz:
-        case TokenId::IntrinsicBitCountTz:
-        case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicCountOnes:
+        case TokenId::IntrinsicTrailingZeros:
+        case TokenId::IntrinsicLeadingZeros:
         {
             SWC_ASSERT(args.size() == 1);
 
@@ -662,11 +662,11 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 val &= (1ULL << bits) - 1;
 
             uint64_t result = 0;
-            if (intrinsicId == TokenId::IntrinsicBitCountNz)
+            if (intrinsicId == TokenId::IntrinsicCountOnes)
             {
                 result = static_cast<uint64_t>(std::popcount(val));
             }
-            else if (intrinsicId == TokenId::IntrinsicBitCountTz)
+            else if (intrinsicId == TokenId::IntrinsicTrailingZeros)
             {
                 if (val == 0)
                     result = bits;

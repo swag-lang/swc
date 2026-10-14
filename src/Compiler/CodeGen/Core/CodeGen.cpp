@@ -580,7 +580,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         temporaryDrops_.clear();
         returnMoveOutVar_    = nullptr;
         moveElisionAnalyzed_ = false;
-        clearGvtdScratchLayout();
+        clearGlobalsToDropScratchLayout();
         frames_.clear();
         frames_.emplace_back();
         symbolFunc.setDebugStackFrameSize(0);
@@ -1939,19 +1939,19 @@ Result CodeGen::emitNodeNow(AstNodeRef nodeRef)
     return result;
 }
 
-void CodeGen::clearGvtdScratchLayout()
+void CodeGen::clearGlobalsToDropScratchLayout()
 {
-    gvtdScratchEntries_.clear();
-    gvtdScratchOffset_ = 0;
-    gvtdScratchSize_   = 0;
+    globalsToDropScratchEntries_.clear();
+    globalsToDropScratchOffset_ = 0;
+    globalsToDropScratchSize_   = 0;
 }
 
-void CodeGen::setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries)
+void CodeGen::setGlobalsToDropScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGlobalToDropEntry> entries)
 {
-    gvtdScratchOffset_ = offset;
-    gvtdScratchSize_   = size;
-    gvtdScratchEntries_.clear();
-    gvtdScratchEntries_.append(entries.data(), entries.size());
+    globalsToDropScratchOffset_ = offset;
+    globalsToDropScratchSize_   = size;
+    globalsToDropScratchEntries_.clear();
+    globalsToDropScratchEntries_.append(entries.data(), entries.size());
 }
 
 void CodeGen::pushFrame(const CodeGenFrame& frame)

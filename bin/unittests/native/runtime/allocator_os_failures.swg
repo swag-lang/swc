@@ -145,11 +145,11 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
 #test
 {
     var allocator: Allocator
-    let itf = failureAllocator(&allocator)
+    let itf   = failureAllocator(&allocator)
     let first = allocOne(itf, 64)!
     let page  = allocatorPageOf(cast(u64, first))!
     let fill  = cast(u64, page.capacityBytes() / page.blockSize) - 1
-    var held: [1024] (*void?)
+    var held:      [1024] (*void?)
     Swag.assert(fill <= held.count)
     for i in fill do
         held[i] = allocOne(itf, 64)
@@ -161,7 +161,7 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     Swag.assert(g_AllocatorOsFailures.commit.failures >= 1)
     allocatorClearOsFailures()
     Swag.assert(allocator.stats().countPage == 1)
-    Swag.assert(Swag.bitCountNz(atomicGet(&segment.pageMask)) == 1)
+    Swag.assert(Swag.countOnes(atomicGet(&segment.pageMask)) == 1)
     checkSegments(&allocator)
 
     allocatorFailOsCommit()
@@ -222,7 +222,7 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     for electric in [false, true]
     {
         var allocator: Allocator
-        let itf = failureAllocator(&allocator, electric)
+        let itf    = failureAllocator(&allocator, electric)
         let before = allocator.stats()
 
         allocatorFailOsReserve()

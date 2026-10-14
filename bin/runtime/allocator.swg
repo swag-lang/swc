@@ -115,14 +115,14 @@ struct AllocatorHeader
 
     // Where the payload starts. An ordinary header sits right before it; an electric header sits
     // in the first page of its region, which stays readable after the payload pages are gone.
-    userAddr:   u64
-    userSize:   u64
-    blockSize:  u64
-    prev:       *AllocatorHeader?
-    next:       *AllocatorHeader?
-    tracking:   *AllocatorTracking?
-    alignment:  u32
-    isTracked:  bool
+    userAddr:  u64
+    userSize:  u64
+    blockSize: u64
+    prev:      *AllocatorHeader?
+    next:      *AllocatorHeader?
+    tracking:  *AllocatorTracking?
+    alignment: u32
+    isTracked: bool
 
     // An electric block ends near a reserved guard page, with less than one alignment unit of
     // trailing slack that holds a pattern checked on free. It carries no footer: an access reaching
@@ -468,7 +468,7 @@ impl Allocator
             return AllocatorInvalidClass
 
         let value  = size - 1
-        let bucket = 63 - cast(u32, Swag.bitCountLz(value))
+        let bucket = 63 - cast(u32, Swag.leadingZeros(value))
         let step   = cast(u32, ((value >> (bucket - 2)) & 3))
         return 9 + (bucket - 7) * 4 + step
     }
@@ -947,7 +947,9 @@ impl Allocator
         let deadline = atomicGet(&.purgeDeadline)
         if deadline == 0
         {
-            if allocatorIdleBytes() != 0 or atomicGet(&.cachedBlockCount) != 0 or (own and own.frontCount != 0) do
+            if allocatorIdleBytes() != 0 or
+               atomicGet(&.cachedBlockCount) != 0 or
+               (own and own.frontCount != 0) do
                 discard Swag.atomcmpxchg(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
             return
         }
@@ -1116,7 +1118,9 @@ impl Allocator
             return null
 
         let header = cast(*AllocatorHeader, (base + #sizeof(AllocatorTracking)))
-        if (header.magic != MagicAlloc and header.magic != MagicFree) or not header.isElectric or header.userAddr != address do
+        if (header.magic != MagicAlloc and header.magic != MagicFree) or
+           not header.isElectric or
+           header.userAddr != address do
             return null
         return header
     }
@@ -1271,7 +1275,7 @@ impl Allocator
     {
         if size <= AllocatorLargeRoundMin do
             return size
-        let bucket = 63 - cast(u64, Swag.bitCountLz(size - 1))
+        let bucket = 63 - cast(u64, Swag.leadingZeros(size - 1))
         let step   = Swag.max(1'u64 << (bucket - 3), cast(u64, AllocatorCommitGranularity))
         if size > Swag.U64.Max - step do
             return size
@@ -1360,7 +1364,11 @@ impl Allocator
 
         // A block under the front's size waits in the freeing thread's own front while it has room.
         let heap = currentAllocatorThreadHeap()
-        if committed <= AllocatorBlockFrontMaxBytes and heap and heap.allocator == me and heap.retired == 0 and heap.frontCount < AllocatorBlockFrontCount
+        if committed <= AllocatorBlockFrontMaxBytes and
+           heap and
+           heap.allocator == me and
+           heap.retired == 0 and
+           heap.frontCount < AllocatorBlockFrontCount
         {
             let entry = &heap.front[heap.frontCount]
             entry.address   = cast(u64, address)
@@ -1423,8 +1431,8 @@ impl Allocator
         let entry = heap.front[best]
         heap.frontCount  -= 1
         heap.front[best] = heap.front[heap.frontCount]
-        blockSize[]  = entry.reserved
-        commitSize[] = entry.committed
+        blockSize[]      = entry.reserved
+        commitSize[]     = entry.committed
         return cast([*] u8, entry.address)
     }
 
@@ -1442,8 +1450,8 @@ impl Allocator
                 continue
             }
 
-            heap.frontCount  -= 1
-            heap.front[i]    = heap.front[heap.frontCount]
+            heap.frontCount -= 1
+            heap.front[i]   = heap.front[heap.frontCount]
             .osFree(cast(*void, entry.address), entry.committed)
         }
     }
@@ -1467,8 +1475,8 @@ impl Allocator
         let prefixAlign = .electricMode ? Swag.max(alignment, cast(u32, AllocatorCommitGranularity)) : alignment
         let prefix      = memAlign(trackingSize + #sizeof(AllocatorHeader), prefixAlign)
         let blockSize   = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
-        let payloadSize  = .electricMode ? request.size : blockSize
-        let overhead     = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
+        let payloadSize = .electricMode ? request.size : blockSize
+        let overhead    = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
         if payloadSize > Swag.U64.Max - overhead
         {
             request.address = null
@@ -1502,7 +1510,7 @@ impl Allocator
             {
                 let needed = allocSize
                 allocSize = largeBlockSize(needed)
-                let heap  = currentAllocatorThreadHeap()
+                let heap = currentAllocatorThreadHeap()
                 if heap and heap.allocator == me and heap.retired == 0 do
                     base = .popFrontBlock(heap, allocSize, &allocSize, &commitSize)
                 if not base do

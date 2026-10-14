@@ -4,51 +4,51 @@
 alias BitCountStrictU32 = u32
 
 // ============================================================
-// Swag.bitCountNz — population count (number of set bits)
+// Swag.countOnes — population count (number of set bits)
 // ============================================================
 
 #[Swag.NoInline]
-func nzU8(value: u8)->u8 => Swag.bitCountNz(value)
+func nzU8(value: u8)->u8 => Swag.countOnes(value)
 
 #[Swag.NoInline]
-func nzU16(value: u16)->u16 => Swag.bitCountNz(value)
+func nzU16(value: u16)->u16 => Swag.countOnes(value)
 
 #[Swag.NoInline]
-func nzU32(value: u32)->u32 => Swag.bitCountNz(value)
+func nzU32(value: u32)->u32 => Swag.countOnes(value)
 
 #[Swag.NoInline]
-func nzU64(value: u64)->u64 => Swag.bitCountNz(value)
+func nzU64(value: u64)->u64 => Swag.countOnes(value)
 
 #[Swag.NoInline]
-func nzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.bitCountNz(value)
+func nzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.countOnes(value)
 
 // Compile-time — nz
 #test
 {
-    const a: u8 = Swag.bitCountNz(0'u8)
-    const b: u8 = Swag.bitCountNz(0xFF'u8)
-    const c: u8 = Swag.bitCountNz(0b10110000'u8)
+    const a: u8 = Swag.countOnes(0'u8)
+    const b: u8 = Swag.countOnes(0xFF'u8)
+    const c: u8 = Swag.countOnes(0b10110000'u8)
     #assert(a == 0'u8)
     #assert(b == 8'u8)
     #assert(c == 3'u8)
 
-    const d: u16 = Swag.bitCountNz(0'u16)
-    const e: u16 = Swag.bitCountNz(0xFFFF'u16)
-    const f: u16 = Swag.bitCountNz(0xF0F0'u16)
+    const d: u16 = Swag.countOnes(0'u16)
+    const e: u16 = Swag.countOnes(0xFFFF'u16)
+    const f: u16 = Swag.countOnes(0xF0F0'u16)
     #assert(d == 0'u16)
     #assert(e == 16'u16)
     #assert(f == 8'u16)
 
-    const g: u32 = Swag.bitCountNz(0'u32)
-    const h: u32 = Swag.bitCountNz(0xFFFFFFFF'u32)
-    const i: u32 = Swag.bitCountNz(0x55555555'u32)
+    const g: u32 = Swag.countOnes(0'u32)
+    const h: u32 = Swag.countOnes(0xFFFFFFFF'u32)
+    const i: u32 = Swag.countOnes(0x55555555'u32)
     #assert(g == 0'u32)
     #assert(h == 32'u32)
     #assert(i == 16'u32)
 
-    const j: u64 = Swag.bitCountNz(0'u64)
-    const k: u64 = Swag.bitCountNz(0xFFFFFFFF_FFFFFFFF'u64)
-    const l: u64 = Swag.bitCountNz(0xF0000000_0000000F'u64)
+    const j: u64 = Swag.countOnes(0'u64)
+    const k: u64 = Swag.countOnes(0xFFFFFFFF_FFFFFFFF'u64)
+    const l: u64 = Swag.countOnes(0xF0000000_0000000F'u64)
     #assert(j == 0'u64)
     #assert(k == 64'u64)
     #assert(l == 8'u64)
@@ -101,46 +101,46 @@ func nzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.bitCountNz
 }
 
 // ============================================================
-// Swag.bitCountTz — count trailing zeros
+// Swag.trailingZeros — count trailing zeros
 // ============================================================
 
 #[Swag.NoInline]
-func tzU8(value: u8)->u8 => Swag.bitCountTz(value)
+func tzU8(value: u8)->u8 => Swag.trailingZeros(value)
 
 #[Swag.NoInline]
-func tzU16(value: u16)->u16 => Swag.bitCountTz(value)
+func tzU16(value: u16)->u16 => Swag.trailingZeros(value)
 
 #[Swag.NoInline]
-func tzU32(value: u32)->u32 => Swag.bitCountTz(value)
+func tzU32(value: u32)->u32 => Swag.trailingZeros(value)
 
 #[Swag.NoInline]
-func tzU64(value: u64)->u64 => Swag.bitCountTz(value)
+func tzU64(value: u64)->u64 => Swag.trailingZeros(value)
 
 #[Swag.NoInline]
-func tzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.bitCountTz(value)
+func tzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.trailingZeros(value)
 
 // Compile-time — tz
 #test
 {
-    const a: u8 = Swag.bitCountTz(0'u8)
-    const b: u8 = Swag.bitCountTz(1'u8)
-    const c: u8 = Swag.bitCountTz(0x80'u8)
+    const a: u8 = Swag.trailingZeros(0'u8)
+    const b: u8 = Swag.trailingZeros(1'u8)
+    const c: u8 = Swag.trailingZeros(0x80'u8)
     #assert(a == 8'u8)
     #assert(b == 0'u8)
     #assert(c == 7'u8)
 
-    const d: u16 = Swag.bitCountTz(0'u16)
-    const e: u16 = Swag.bitCountTz(0x8000'u16)
+    const d: u16 = Swag.trailingZeros(0'u16)
+    const e: u16 = Swag.trailingZeros(0x8000'u16)
     #assert(d == 16'u16)
     #assert(e == 15'u16)
 
-    const f: u32 = Swag.bitCountTz(0'u32)
-    const g: u32 = Swag.bitCountTz(0x80000000'u32)
+    const f: u32 = Swag.trailingZeros(0'u32)
+    const g: u32 = Swag.trailingZeros(0x80000000'u32)
     #assert(f == 32'u32)
     #assert(g == 31'u32)
 
-    const h: u64 = Swag.bitCountTz(0'u64)
-    const i: u64 = Swag.bitCountTz(0x80000000_00000000'u64)
+    const h: u64 = Swag.trailingZeros(0'u64)
+    const i: u64 = Swag.trailingZeros(0x80000000_00000000'u64)
     #assert(h == 64'u64)
     #assert(i == 63'u64)
 }
@@ -187,51 +187,51 @@ func tzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.bitCountTz
 }
 
 // ============================================================
-// Swag.bitCountLz — count leading zeros
+// Swag.leadingZeros — count leading zeros
 // ============================================================
 
 #[Swag.NoInline]
-func lzU8(value: u8)->u8 => Swag.bitCountLz(value)
+func lzU8(value: u8)->u8 => Swag.leadingZeros(value)
 
 #[Swag.NoInline]
-func lzU16(value: u16)->u16 => Swag.bitCountLz(value)
+func lzU16(value: u16)->u16 => Swag.leadingZeros(value)
 
 #[Swag.NoInline]
-func lzU32(value: u32)->u32 => Swag.bitCountLz(value)
+func lzU32(value: u32)->u32 => Swag.leadingZeros(value)
 
 #[Swag.NoInline]
-func lzU64(value: u64)->u64 => Swag.bitCountLz(value)
+func lzU64(value: u64)->u64 => Swag.leadingZeros(value)
 
 #[Swag.NoInline]
-func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.bitCountLz(value)
+func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.leadingZeros(value)
 
 // Compile-time — lz
 #test
 {
-    const a: u8 = Swag.bitCountLz(0'u8)
-    const b: u8 = Swag.bitCountLz(1'u8)
-    const c: u8 = Swag.bitCountLz(0x80'u8)
+    const a: u8 = Swag.leadingZeros(0'u8)
+    const b: u8 = Swag.leadingZeros(1'u8)
+    const c: u8 = Swag.leadingZeros(0x80'u8)
     #assert(a == 8'u8)
     #assert(b == 7'u8)
     #assert(c == 0'u8)
 
-    const d: u16 = Swag.bitCountLz(0'u16)
-    const e: u16 = Swag.bitCountLz(1'u16)
-    const f: u16 = Swag.bitCountLz(0x8000'u16)
+    const d: u16 = Swag.leadingZeros(0'u16)
+    const e: u16 = Swag.leadingZeros(1'u16)
+    const f: u16 = Swag.leadingZeros(0x8000'u16)
     #assert(d == 16'u16)
     #assert(e == 15'u16)
     #assert(f == 0'u16)
 
-    const g: u32 = Swag.bitCountLz(0'u32)
-    const h: u32 = Swag.bitCountLz(1'u32)
-    const i: u32 = Swag.bitCountLz(0x80000000'u32)
+    const g: u32 = Swag.leadingZeros(0'u32)
+    const h: u32 = Swag.leadingZeros(1'u32)
+    const i: u32 = Swag.leadingZeros(0x80000000'u32)
     #assert(g == 32'u32)
     #assert(h == 31'u32)
     #assert(i == 0'u32)
 
-    const j: u64 = Swag.bitCountLz(0'u64)
-    const k: u64 = Swag.bitCountLz(1'u64)
-    const l: u64 = Swag.bitCountLz(0x80000000_00000000'u64)
+    const j: u64 = Swag.leadingZeros(0'u64)
+    const k: u64 = Swag.leadingZeros(1'u64)
+    const l: u64 = Swag.leadingZeros(0x80000000_00000000'u64)
     #assert(j == 64'u64)
     #assert(k == 63'u64)
     #assert(l == 0'u64)
@@ -312,9 +312,9 @@ func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => Swag.bitCountLz
 // Strict aliases
 #test
 {
-    const nz = Swag.bitCountNz(cast(BitCountStrictU32, 0xF0F00000'u32))
-    const tz = Swag.bitCountTz(cast(BitCountStrictU32, 0x00008000'u32))
-    const lz = Swag.bitCountLz(cast(BitCountStrictU32, 0x00008000'u32))
+    const nz = Swag.countOnes(cast(BitCountStrictU32, 0xF0F00000'u32))
+    const tz = Swag.trailingZeros(cast(BitCountStrictU32, 0x00008000'u32))
+    const lz = Swag.leadingZeros(cast(BitCountStrictU32, 0x00008000'u32))
 
     #assert(#typeof(nz) == BitCountStrictU32)
     #assert(#typeof(tz) == BitCountStrictU32)

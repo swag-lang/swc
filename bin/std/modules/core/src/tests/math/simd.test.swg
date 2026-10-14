@@ -196,9 +196,9 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
         Swag.assert(trail[i] == Math.trailingZeros(quads[i]))
     }
 
-    let swapped = Math.byteswap(quads)
+    let swapped = Math.byteSwap(quads)
     for i in 4 do
-        Swag.assert(swapped[i] == Math.byteswap(quads[i]))
+        Swag.assert(swapped[i] == Math.byteSwap(quads[i]))
 
     let reversedBytes = Math.reverse(bytes)
     for i in 16 do

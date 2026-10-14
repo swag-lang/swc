@@ -138,7 +138,7 @@ impl CabacReader
     //
     // The bits loaded and not yet consumed sit between the marker and the offset, so the marker's
     // position says how many of the loaded bits are still ahead.
-    mtd const hasOverrun()->bool => .position * 8 + cast(u64, Swag.bitCountTz(.low)) > .size * 8 + 16
+    mtd const hasOverrun()->bool => .position * 8 + cast(u64, Swag.trailingZeros(.low)) > .size * 8 + 16
 
     // Loads the two bytes due once the marker has crossed the sixteen-bit line, as FFmpeg's
     // `refill2`: the marker moves down sixteen bits and the new bits land above it. Past the end
@@ -147,7 +147,7 @@ impl CabacReader
     #[Swag.Inline]
     private mtd reload(low: u32)->u32
     {
-        let extra = cast(u32, Swag.bitCountTz(low)) - 16
+        let extra = cast(u32, Swag.trailingZeros(low)) - 16
         var bits  = 0'u32
         if .position <= .size do
             bits = (cast(u32, .data![.position]) << 9) | (cast(u32, .data[.position + 1]) << 1)
@@ -811,7 +811,7 @@ impl Slice
         // hot loop kept resident and one more memory read on the only chain this decoder cannot
         // widen: a bin is decoded from the range the bin before it left. At a range of zero the
         // count gives 32, which is the shift of 9 the table held there.
-        let #uniq3 = Swag.bitCountLz(range) - 23
+        let #uniq3 = Swag.leadingZeros(range) - 23
         range <<= #uniq3
         low   <<= #uniq3
         if (low & 0xFFFF) == 0 do

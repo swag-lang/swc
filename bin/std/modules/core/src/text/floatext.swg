@@ -160,7 +160,7 @@ impl FloatExt
     {
         if .mant == 0 do
             return
-        let shift = Swag.bitCountLz(.mant)
+        let shift = Swag.leadingZeros(.mant)
         .mant <<= cast(u32, shift)
         .exp  -= cast(s64, shift)
     }

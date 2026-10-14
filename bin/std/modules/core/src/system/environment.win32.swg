@@ -462,7 +462,7 @@ func getNativeArgs()->string
     // launcher asked this program to see. The operating-system one only describes
     // a plain native start, and appending one to the other glues two command
     // lines into one unparseable text.
-    let handed = Swag.processInfos().args
+    let handed = Swag.processInfo().args
     if handed != null and handed.count do
         return handed
 

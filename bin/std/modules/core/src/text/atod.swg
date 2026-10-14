@@ -779,7 +779,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
         return result
 
     // Normalization.
-    let clz = Swag.bitCountLz(man)
+    let clz = Swag.leadingZeros(man)
     man <<= cast(u32, clz)
 
     const ExponentBias = 1023

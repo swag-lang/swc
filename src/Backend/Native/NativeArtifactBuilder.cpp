@@ -137,9 +137,9 @@ namespace
         }
     }
 
-    // Copies the caller's process command line into this artifact's own 'Swag.processInfos().args'.
+    // Copies the caller's process command line into this artifact's own 'Swag.processInfo().args'.
     //
-    // 'Swag.processInfos()' resolves to a per-artifact slot of the zero-initialized data segment, so every
+    // 'Swag.processInfo()' resolves to a per-artifact slot of the zero-initialized data segment, so every
     // executable and every shared library starts with its own empty copy. Whoever owns the real
     // command line -- the startup thunk of a native run, or the compiler for a JIT run -- passes it
     // down the hook chain, and each artifact adopts it here. Without this an imported module
@@ -152,7 +152,7 @@ namespace
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
 
         const MicroReg targetReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-        builder.emitLoadRegDataSegmentReloc(targetReg, DataSegmentKind::GlobalZero, compiler.nativeProcessInfosOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfos, args)));
+        builder.emitLoadRegDataSegmentReloc(targetReg, DataSegmentKind::GlobalZero, compiler.nativeProcessInfoOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfo, args)));
 
         const MicroReg wordReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         for (uint64_t offset = 0; offset < sizeof(Runtime::String); offset += sizeof(uint64_t))
@@ -993,12 +993,12 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     builder.emitLoadRegMem(hookArgs.tlsIdPlusOne, tlsStorageReg, 0, MicroOpBits::B64);
 
     // '__setupRuntime' has just read the real command line from the operating system into this
-    // executable's own 'Swag.processInfos().args'. Hand that slot down the hook chain so every imported module
-    // adopts it: 'Swag.processInfos()' is per-artifact, so without this 'Swag.args()' answers the executable and
+    // executable's own 'Swag.processInfo().args'. Hand that slot down the hook chain so every imported module
+    // adopts it: 'Swag.processInfo()' is per-artifact, so without this 'Swag.args()' answers the executable and
     // comes back empty in every shared library, and the runtime's own 'swag.test' guard -- which
     // is what makes a '#test' run at all -- never sees the argument the compiler passed.
     hookArgs.processArgs = nextVirtualIntReg(nextVirtualIntRegIndex);
-    builder.emitLoadRegDataSegmentReloc(hookArgs.processArgs, DataSegmentKind::GlobalZero, builder_->compiler().nativeProcessInfosOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfos, args)));
+    builder.emitLoadRegDataSegmentReloc(hookArgs.processArgs, DataSegmentKind::GlobalZero, builder_->compiler().nativeProcessInfoOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfo, args)));
 
     // The startup thunk runs compiler-generated lifecycle hooks and then hands off
     // process termination to the runtime wrapper for the active target.

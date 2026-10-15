@@ -111,7 +111,10 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
 // first differing pixel, and fails. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
 // raster differences; both limits default to exact comparison.
-// The check remains active when Pixel is built as a release dependency.
+// The check remains active when Pixel is built as a release dependency. Goldens are recorded from
+// devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased
+// samples slightly differently: a release build also accepts a channel delta of two and four
+// pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.assert(image != null and image.isValid(), "image golden needs allocated pixels")
@@ -138,8 +141,9 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
         return
     }
 
-    let difference = compareImages(&expected, image, options)
-    if isWithinTolerance(&difference, options) do
+    let tolerance  = releaseGoldenOptions(options)
+    let difference = compareImages(&expected, image, tolerance)
+    if isWithinTolerance(&difference, tolerance) do
         return
 
     let actual = actualPath(path.toString(), ".png")
@@ -150,6 +154,19 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     Console.println("         actual : ", actual)
     reportImageDifference(&difference, &expected, image)
     Swag.assert(false)
+}
+
+// Widens `options` by the rounding a release build may add to a golden recorded from devmode.
+private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptions
+{
+    var result = options
+    #static if #cfg == "release"
+    {
+        result.maxChannelDelta    = Math.max(result.maxChannelDelta, 2)
+        result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
+    }
+
+    return result
 }
 
 private

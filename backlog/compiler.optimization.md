@@ -87,7 +87,6 @@ new language syntax.
 
 ### compiler.optimization.130 — A loop-invariant read of immutable storage folded into an operand stays in the loop
 
-- Area: compiler/backend, instruction combine and loop-invariant code motion
 - Evidence: a string, slice or struct parameter is immutable storage for the call, and LICM hoists
   a `load_reg_mem` through it out of a loop that stores through another pointer (the `data` pointer
   of a struct `{ data: const [*] s64, count: u64 }` read on every trip leaves the loop). A field
@@ -105,7 +104,6 @@ new language syntax.
 
 ### compiler.optimization.126 — Preserve nullable value-pointer types in automatic inline bindings
 
-- Area: compiler/sema, automatic inlining and flow narrowing.
 - Evidence: nullable inline bindings retain their declared parameter contract, including widened
   non-null arguments and constants (`nullable_parameter_widening.swg`). Automatic eligibility
   still excludes nullable value-pointer wrappers with calls or postfix assertions; repeated
@@ -121,7 +119,6 @@ new language syntax.
 
 ### compiler.optimization.104 — The n-body pair loop keeps its pairs scalar
 
-- Area: compiler/backend, loop unrolling, memory forwarding and SLP vectorization
 - Evidence: accepted campaign `20261011-205413` has n-body 1.276x slower than Zig.
   The current inlined timestep still has ten scalar roots, 155 executed memory
   operands, 24 RSP operands and 31 full-width register copies. These counts
@@ -146,7 +143,6 @@ new language syntax.
 
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 
-- Area: compiler/backend, loop-invariant code motion and call effects
 - Evidence: `wordfreq`'s `qsort` compares through file-level `late` globals `g_Idx` and `g_Cnt`.
   In the native Release `qsort` (34aaf7520), private-global hoisting keeps `g_Idx` in `r15` but
   parks `g_Cnt`, `g_Off` and `g_Text` in the transient `rsi`, `rax` and `r9`, spilled before the
@@ -171,7 +167,6 @@ new language syntax.
 
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
-- Area: compiler/backend
 - Current boundary: post-allocation promotion caches private 64-bit spills across eligible loops,
   including call and shared-exit cases when entry seeding, clobber handling, and write-back are
   proven. Mixed-width and source-object slots remain outside the rule.
@@ -200,7 +195,6 @@ new language syntax.
 
 ### compiler.optimization.035 — Improve spill choices after register and memory promotion
 
-- Area: compiler/backend, register allocation and live ranges
 - Evidence: after removing the permanent integer legalization reserve,
   `Slice.parsePlaneResidualCabac` gained one memory operation and
   `Slice.parsePlaneResidualCavlc` gained six plus thirteen instructions.
@@ -222,7 +216,6 @@ new language syntax.
 
 ### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
 
-- Area: compiler/backend, memory alias analysis
 - Current boundary: LICM and SLP consume MicroPassHelpers::analyzeFramePrivacy.
   SLP additionally checks escape reachability so an escape after a loop does not
   invalidate its earlier private-frame proof. MemToReg now reconciles direct SP
@@ -278,7 +271,6 @@ new language syntax.
 
 ### compiler.optimization.005 — Investigate the remaining Levenshtein outer-loop allocation costs
 
-- Area: compiler/backend
 - Evidence: the exact indexed load/store copy loop now has a four-way scalar unroll with the
   original loop retained as its tail. Leven's checksum is unchanged, but its full `main` grows by
   15 instructions and noisy paired samples do not establish a timing gain. Odin vectorizes the
@@ -291,7 +283,6 @@ new language syntax.
 
 ### compiler.optimization.029 — Reduce SSA rebuilding after definition-changing and redirected-use rewrites
 
-- Area: compiler/backend, compilation time
 - Evidence: CFG identity and unchanged definitions now allow operand refresh and several analyses to
   reuse current SSA values, phi inputs, reaching definitions, and rename trees. Definition-changing
   rewrites still rebuild SSA; copy elimination is one remaining caller.
@@ -319,7 +310,6 @@ new language syntax.
 
 ### compiler.optimization.105 — Prove lz77's signed remainder bounds
 
-- Area: compiler/backend, value ranges and signed remainder lowering
 - Evidence: unsigned constant remainders with a proven bounded dividend already lower to a mask or
   multiply by a magic number. The remaining signed `i` and `p` remainders need a proof of
   nonnegativity under Swag's truncating remainder semantics; Zig's floor-modulo behavior is not
@@ -756,7 +746,6 @@ new language syntax.
 
 ### compiler.optimization.094 — Defer callee-saved XMM traffic past an early exit
 
-- Area: compiler/backend, register allocation, prologue and unwind information
 - Evidence: MSVC avoids saving and restoring four XMM registers on `raytrace`'s no-hit path by
   saving them only after the early guard. Swag's native and JIT unwind interfaces currently publish
   one range per function/allocation, so delayed saves cannot yet describe every path correctly.
@@ -828,7 +817,6 @@ new language syntax.
 
 ### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
 
-- Area: compiler/backend, constant-address relocation and indexed loads
 - Evidence: C++/MSVC's raytrace `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
 - A post-allocation rewrite that keeps the first array pointer and adds source-address differences to later loads is invalid for native artifacts: `NativeRDataCollector` emits only reachable allocations and may compact the gaps between them. JIT constants are resolved from shard and offset at patch time. Each indexed consumer therefore needs a relocation relative to a reusable segment or image base, or an equivalent layout contract that survives both backends. The existing emitter binds only RIP-relative scalar accesses, not indexed displacements.
 - The native linker already understands `IMAGE_REL_AMD64_ADDR32NB` as an image-relative `Rva32` relocation, but code emission has no base-relative indexed relocation form, and the internal linker does not expose `__ImageBase` as a code symbol. The JIT's 2 GiB proximity arena can host code and constant shards together; its exhaustion fallback needs an explicit range or copy strategy for any base-relative displacement. In `trace`, the transient pointer register is clobbered by the intervening `intersect` call, so reusing that register alone yields at most two four-array groups. One base across both groups requires an allocation and callee-save decision.

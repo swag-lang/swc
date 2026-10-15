@@ -45,10 +45,10 @@ is the current scorecard.
 
 ### compiler.safety.030 — Measure the runtime cost of value-borrow guards
 
-- Area: compiler/codegen, runtime safety, call argument lifetimes and invalidation.
 - Evidence: `SafetyWhat.ValueBorrow` registers indirect value arguments and checks writes
   against their live storage. Registration, overlap filtering and registry locking add runtime
-  work whose cost depends on call size, write frequency and concurrent access.
+  work whose cost depends on call size, write frequency and concurrent access. A direct write
+  to a function's own stack local is not checked while that function holds no borrow.
 - Next: compare identical native workloads with only `.ValueBorrow` toggled, using a quiet
   machine. Start with repeated non-inline calls borrowing a small struct and writing a separate
   output; distinguish this tiny-call stress case from a representative application workload.
@@ -60,7 +60,6 @@ is the current scorecard.
 
 ### compiler.safety.025 — The box-content release summary stops at the module boundary
 
-- Area: compiler/sema, `SemaEscape`; `Swag.BorrowSummary`; `Sanitizer`
 - Evidence: a function that releases the pointer stored in the box its parameter designates
   (`if let item = slot[] { Memory.delete(item); slot[] = null }`) now records
   `SymbolFunction::freesIndirectParamsMask` instead of claiming it frees the box, and a caller
@@ -78,7 +77,6 @@ is the current scorecard.
 
 ### compiler.safety.005 — A write through a pointer into a moved value is not reported
 
-- Area: compiler/backend, `Sanitizer`
 - Evidence: a struct holding a pointer into its own storage keeps that pointer after `#move`, and
   the pointer then addresses the abandoned source. Reading through it is now a compile-time error:
   `source.cursor = &source.values[0]; var target = #move source; return target.cursor![]` reports
@@ -159,7 +157,6 @@ is the current scorecard.
 
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
-- Area: language
 - Evidence: Swag has no common opt-in or compiler mode for operations that can violate memory
   safety: integer-to-pointer casts, unchecked raw-memory construction and access, pointer
   arithmetic, union reinterpretation, byte-copy intrinsics, lifecycle bypasses, and foreign calls.
@@ -175,7 +172,6 @@ is the current scorecard.
 
 ### compiler.safety.020 — A release through storage a callee could re-establish is not judged
 
-- Area: compiler/sema, `SemaEscape`
 - Evidence: caller-side use after a call can escape detection for receiver fields and globals.
   The body-local release/use check is already covered; this entry is only about what the caller can
   prove after a callee returns.
@@ -192,7 +188,6 @@ is the current scorecard.
 
 ### compiler.safety.011 — `!` and `late` stop asserting in release
 
-- Area: language, runtime guards
 - Evidence: `p!` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
   assertions under two different flags, both off in `release` by default. A violated invariant gets a located panic in `devmode`; in unguarded `release`,
   the assertion itself does not diagnose the null. A later dereference can fault or reach an
@@ -217,7 +212,6 @@ is the current scorecard.
 
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 
-- Area: compiler/sema, language
 - Evidence: the four allocation-loss shapes in `cwe401_memory_leak.swg` compile without a static
   diagnostic: no release, release on one path, overwritten pointer, and an owner without `opDrop`.
   The runtime half already exists: `Allocator.stats` counts live allocations, `printLeaks` reports
@@ -245,7 +239,6 @@ is the current scorecard.
 
 ### compiler.safety.018 — A release proven on one path only is never reported
 
-- Area: compiler/backend, `Sanitizer`
 - Evidence: `conditionalFree` in `cwe416_use_after_free.swg` releases inside an `if` and reads
   after it. The engine's join is an intersection, so the fact does not survive the merge and
   nothing is reported — which is what keeps the analysis free of false positives, and also what
@@ -265,7 +258,6 @@ is the current scorecard.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 
-- Area: language
 - Evidence: `cast(Color, 99)` is accepted with no check in any configuration, and the result is used
   as an ordinary `Color` — compared, switched on, indexed with. Nothing distinguishes it from a
   declared member. A plain switch can fall through on it. `switch #complete` already panics when
@@ -286,7 +278,6 @@ is the current scorecard.
 
 ### compiler.safety.014 — Nothing states what the safe subset guarantees
 
-- Area: documentation, language
 - Evidence: [013_002_safety.swg](../bin/reference/modules/language/src/013_002_safety.swg),
   [013_003_sanity.swg](../bin/reference/modules/language/src/013_003_sanity.swg) and
   [013_004_borrowing.swg](../bin/reference/modules/language/src/013_004_borrowing.swg) each describe
@@ -309,7 +300,6 @@ is the current scorecard.
 
 ### compiler.safety.007 — A foreign function is opaque to every safety analysis
 
-- Area: compiler/sema, `SemaEscape`
 - Evidence: `#[Swag.BorrowSummary]` can be written by hand on a `#[Foreign]` declaration, and the
   reference says so — but nothing requires it, nothing checks it against the callee, and a foreign
   function with no summary is treated as borrowing, storing and freeing nothing. A C function that
@@ -327,7 +317,6 @@ is the current scorecard.
 
 ### compiler.safety.029 — Converting an indexed heap pointer invents a container borrow
 
-- Area: compiler/sema, `SemaEscape::indexEscapeInfo`
 - Evidence: storing allocated blocks in `[2] ([*] u8?)` and passing `blocks[0]` to an
   inline release wrapper taking `[*] void?` reports `sanity_err_free_borrowed` against
   the local array. Reading the element through value iteration is accepted. The

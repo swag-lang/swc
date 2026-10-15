@@ -98,7 +98,7 @@ struct HevcStream
 impl HevcStream
 {
     // Configures the decoder from a container's decoder configuration and installs the samples.
-    mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
+    mtd open(config: const [..] u8, frames: #move Array'SampleEntry) fail
     {
         if not config.count do
             fail InvalidFormatError{"H.265 track has no decoder configuration"}
@@ -130,7 +130,7 @@ impl HevcStream
     }
 
     // Replaces the container window while keeping the configured decoder.
-    mtd replaceFrames(frames: Array'SampleEntry) fail
+    mtd replaceFrames(frames: #move Array'SampleEntry) fail
     {
         .stopFrameThreads()
         .releasePending()
@@ -198,7 +198,7 @@ impl HevcStream
     }
 
     // Builds the display order of the installed samples from their presentation times.
-    private mtd installFrames(frames: Array'SampleEntry)
+    private mtd installFrames(frames: #move Array'SampleEntry)
     {
         .frames = #move frames
         let count = .frames.count

@@ -51,7 +51,7 @@ struct Mpeg4Stream
 impl Mpeg4Stream
 {
     // Configures the decoder from a container's setup headers and installs the samples.
-    mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
+    mtd open(config: const [..] u8, frames: #move Array'SampleEntry) fail
     {
         if not config.count do
             fail InvalidFormatError{"MPEG-4 track has no decoder configuration"}
@@ -86,7 +86,7 @@ impl Mpeg4Stream
     }
 
     // Installs a window and starts over from its first picture.
-    mtd installFrames(frames: Array'SampleEntry)
+    mtd installFrames(frames: #move Array'SampleEntry)
     {
         .frames = #move frames
         .rebuildOrder()
@@ -98,7 +98,7 @@ impl Mpeg4Stream
     }
 
     // Replaces the container window while keeping the configured decoder.
-    mtd replaceFrames(frames: Array'SampleEntry) fail
+    mtd replaceFrames(frames: #move Array'SampleEntry) fail
     {
         .installFrames(#move frames)
     }

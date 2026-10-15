@@ -112,7 +112,7 @@ struct AvcStream
 impl AvcStream
 {
     // Configures every decoder context and builds the display-order tables.
-    mtd open(config: const [..] u8, frames: Array'SampleEntry) fail
+    mtd open(config: const [..] u8, frames: #move Array'SampleEntry) fail
     {
         if not config.count do
             fail InvalidFormatError{"H.264 track has no decoder configuration"}
@@ -141,7 +141,7 @@ impl AvcStream
 
     // Replaces the container window while retaining the configured decoder contexts.
     // The first sample must start a clean decode, as it does after a Matroska cue seek.
-    mtd replaceFrames(frames: Array'SampleEntry) fail
+    mtd replaceFrames(frames: #move Array'SampleEntry) fail
     {
         .stopFrameThreads()
         .releasePending()
@@ -158,7 +158,7 @@ impl AvcStream
         try .installFrames(#move frames)
     }
 
-    private mtd installFrames(frames: Array'SampleEntry) fail
+    private mtd installFrames(frames: #move Array'SampleEntry) fail
     {
         .frames = #move frames
         let count = .frames.count

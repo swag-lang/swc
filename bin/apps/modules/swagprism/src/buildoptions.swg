@@ -64,7 +64,7 @@ impl BuildOptions
         return result
     }
 
-    mtd settings(level: Swag.BuildCfgBackendOptimLevel)->Pipeline.BuildSettings =>
+    mtd settings(level: Swag.Build.BackendOptimLevel)->Pipeline.BuildSettings =>
     {
         preset: cast(Pipeline.BuildPreset, .presetCombo.selectedIndex),
         optimization: level,

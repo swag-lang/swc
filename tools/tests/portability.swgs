@@ -22,7 +22,7 @@ using Core
     Swag.assert(shortAttribute == 1)
     let comments = Tool.auditForeignImports("bin/std/modules/gui/src/surface.win32.swg", "// #[Foreign(\"user32\")]\n/* #foreignlib(\"user32\") */\nlet text = \"Swag.Foreign(\"\nlet longerForeignName = 0\n")
     Swag.assert(comments == 0)
-    let declaration = Tool.auditForeignImports("bin/runtime/api.swg", "attr Foreign(module: string)\n")
+    let declaration = Tool.auditForeignImports("bin/runtime/attributes.swg", "attr Foreign(module: string)\n")
     Swag.assert(declaration == 0)
     let bindingTest = Tool.auditForeignImports("bin/std/modules/win32/src/tests/example.test.swg", imports)
     Swag.assert(bindingTest == 2)

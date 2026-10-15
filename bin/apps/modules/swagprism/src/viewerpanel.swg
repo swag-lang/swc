@@ -19,7 +19,7 @@ struct ViewerPanel
         sourceEditor:  *RichEditCtrl
     }
 
-    defaultLevel:        Swag.BuildCfgBackendOptimLevel
+    defaultLevel:        Swag.Build.BackendOptimLevel
     cached:              [3] (IViewer?)     // The viewer created for each `ViewerKind`, kept while the panel shows another.
     viewer:              IViewer?
     kind:                ViewerKind
@@ -33,7 +33,7 @@ impl ViewerPanel
     const MinWidth = 330.0
 
     // Builds a panel showing the microcode viewer, with its header and build options.
-    func create(parent: *Wnd, sourceEditor: *RichEditCtrl, level: Swag.BuildCfgBackendOptimLevel, cache: *Pipeline.CompilationCache)->*ViewerPanel
+    func create(parent: *Wnd, sourceEditor: *RichEditCtrl, level: Swag.Build.BackendOptimLevel, cache: *Pipeline.CompilationCache)->*ViewerPanel
     {
         with let result = Wnd.create'ViewerPanel(parent, "prism.viewerPanel")
         {
@@ -181,7 +181,7 @@ impl ViewerPanel
     // The request compiling `source` for this panel: its viewer, stage, and build settings.
     mtd request(source: string)->Pipeline.BuildRequest
     {
-        let level = cast(Swag.BuildCfgBackendOptimLevel, .optimCombo.selectedIndex)
+        let level = cast(Swag.Build.BackendOptimLevel, .optimCombo.selectedIndex)
         return {source: source, stage: .viewer!.inspectionStage(), kind: .kind, settings: .options.settings(level)}
     }
 

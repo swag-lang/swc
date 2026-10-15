@@ -224,7 +224,7 @@ impl MainWindow
     }
 
     // Creates one viewer panel in the viewer split and routes its requests to the window.
-    mtd createViewerPanel(level: Swag.BuildCfgBackendOptimLevel)
+    mtd createViewerPanel(level: Swag.Build.BackendOptimLevel)
     {
         with let panel = ViewerPanel.create(.viewerSplit, .editor, level, &.cache)
         {
@@ -329,7 +329,8 @@ impl MainWindow
             window.formatResult = catch window.formatter.format(window.formatSource) as error
             if error != null do
                 window.formatResult.failed = true
-        }, .taskNotifier(&.formatTask))
+        },
+                           .taskNotifier(&.formatTask))
         .refreshStatus()
     }
 

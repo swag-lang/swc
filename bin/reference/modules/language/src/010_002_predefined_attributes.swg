@@ -3,7 +3,7 @@
 # Predefined Attributes
 
 The compiler runtime exports predefined attributes in the 'Swag' namespace.
-This page follows the API shipped in 'bin/runtime/api.swg'; it is the compact
+This page follows the API shipped in 'bin/runtime/attributes.swg'; it is the compact
 index, while the relevant language chapters demonstrate the attributes that
 change everyday program behavior.
 
@@ -44,7 +44,7 @@ struct CaptureOptions
 }
 ```
 
-This one is declared in 'bin/runtime/core.swg' rather than 'api.swg', because it
+This one is declared in 'bin/runtime/core.swg' rather than 'attributes.swg', because it
 needs 'typeinfo' and cannot exist in the bootstrap.
 
 # Compile-Time Execution and Code Generation

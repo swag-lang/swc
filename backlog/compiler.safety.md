@@ -129,7 +129,7 @@ is the current scorecard.
   indirect counterpart, so an importer calling `Wnd.stopTimer(&timer)` and then reading a copy
   of the old timer pointer gets no diagnostic. Wrappers that hand their own box parameter on
   (`func w(slot: **T) => stop(slot)`) do not forward the indirect bit either.
-- Next: add a `freesIndirect` argument to `Swag.BorrowSummary` (runtime `api.swg`, `Sema.Attributes`,
+- Next: add a `freesIndirect` argument to `Swag.BorrowSummary` (runtime `attributes.swg`, `Sema.Attributes`,
   `AttributeList`, the export), then forward the bit along direct edges whose argument is
   exactly the caller's parameter.
 - Done when: a cross-module caller of a box-content release reports the old-copy read the

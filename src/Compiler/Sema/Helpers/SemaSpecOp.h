@@ -70,7 +70,7 @@ struct DeferredIndexAssignSpecOpPayload : IndexSpecOpPayloadBase
     }
 };
 
-// Mirrors 'Swag.Operator' in bin/runtime/api.swg. The numeric values are the contract
+// Mirrors 'Swag.Operator' in bin/runtime/attributes.swg. The numeric values are the contract
 // between the compiler and the runtime enum: keep both lists in the same order.
 enum class SpecOperator : int32_t
 {

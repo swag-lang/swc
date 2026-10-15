@@ -1,7 +1,7 @@
 #pragma once
 
 // WARNING!
-// WARNING! These declarations must be in sync with "bin/runtime/api.swg"
+// WARNING! These declarations must be in sync with their declarations in "bin/runtime"
 // WARNING!
 
 SWC_BEGIN_NAMESPACE();

@@ -2,7 +2,7 @@
 #include "Backend/RuntimeBase.h"
 
 // WARNING!
-// WARNING! This file must be in sync with "bin/runtime/api.swg"
+// WARNING! This file must be in sync with "bin/runtime/context.swg"
 // WARNING!
 
 SWC_BEGIN_NAMESPACE();

@@ -47,7 +47,7 @@ itself. This is useful for compile-time inspection and validation.
 
 > NOTE:
 > The complete descriptor layouts are part of the compiler runtime API in
-> 'bin/runtime/api.swg'.
+> 'bin/runtime/reflection.swg'.
 */
 #test
 {

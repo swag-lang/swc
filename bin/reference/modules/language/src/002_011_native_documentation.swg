@@ -185,7 +185,7 @@ field documentation. Its public type and operations still need documentation.
 
 # Choosing a Documentation Mode
 
-Set 'Swag.BuildCfg.genDoc.kind' in 'module.swg':
+Set 'Swag.Build.Config.genDoc.kind' in 'module.swg':
 
 | Kind | Source organization | Result |
 |---|---|---|

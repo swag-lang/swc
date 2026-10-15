@@ -16,7 +16,7 @@ enum BuildPreset
 struct BuildSettings
 {
     preset:        BuildPreset
-    optimization:  Swag.BuildCfgBackendOptimLevel
+    optimization:  Swag.Build.BackendOptimLevel
     configuration: String
 }
 

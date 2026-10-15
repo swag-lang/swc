@@ -96,11 +96,17 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     if (!hasFlag(AstCastExprFlagsE::Explicit))
     {
         // A detached inline argument re-analyzes the literal below this resolved
-        // cast. Its elements then have their source types again. Reapply the slice
-        // conversion so operator-built elements cannot revive a stale constant.
+        // cast. Reapply element conversions and defaults before borrowing its storage;
+        // the source literal can have a different representation from the parameter.
         const TypeRef      targetTypeRef = sema.curViewType().typeRef();
         const SemaNodeView sourceView    = sema.viewTypeConstant(nodeExprRef);
-        if (targetTypeRef.isValid() && sourceView.type() && sourceView.type()->isAggregateArray() && sema.typeMgr().get(targetTypeRef).isSlice())
+        if (targetTypeRef.isInvalid() || !sourceView.type())
+            return Result::Continue;
+        const TypeInfo& targetType = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), targetTypeRef));
+        const bool needsElementCasts =
+            (sourceView.type()->isAggregateArray() && (targetType.isArray() || targetType.isSlice())) ||
+            (sourceView.type()->isAggregateStruct() && targetType.isStruct());
+        if (needsElementCasts)
         {
             CastRequest request(CastKind::Implicit);
             request.errorNodeRef = nodeExprRef;

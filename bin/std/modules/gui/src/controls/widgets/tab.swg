@@ -839,15 +839,15 @@ impl Tab
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
         options.easing   = .EaseOut
-        discard .app().animator.animateRectangle(me,
-                                                 AnimationChannel.from("Gui.Tab.SelectionRail"),
-                                                 .selectionRail,
-                                                 destination,
-                                                 func|tab=me|(_, value)
-                                                 {
-                                                     tab.selectionRail = value
-                                                 },
-                                                 options)
+        discard .app().animator.animateRectangleBorrowed(me,
+                                                         AnimationChannel.from("Gui.Tab.SelectionRail"),
+                                                         &.selectionRail,
+                                                         &destination,
+                                                         func|tab=me|(_, value)
+                                                         {
+                                                             tab.selectionRail = value
+                                                         },
+                                                         options)
 
         .sigSelectionChanged.call(me)
 

@@ -774,6 +774,8 @@ impl Animator
     }
 
     // Starts one color track.
+    //
+    // Use [[Gui.Animator.animateColorBorrowed]] when a callback writes either endpoint.
     mtd animateColor(target: *Wnd, channel: AnimationChannel, from, destination: Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
@@ -781,7 +783,20 @@ impl Animator
         return .start(#move group)
     }
 
+    // Starts one color track from explicitly borrowed endpoints.
+    //
+    // The endpoints are stored in the track before callbacks run, and their pointers are not
+    // retained. An update or completion callback may therefore write either original endpoint.
+    mtd animateColorBorrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Color, update: AnimationColorUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    {
+        var group = AnimationGroup.concurrent()
+        group.addColor(target, channel, from[], destination[], update, options, completion)
+        return .start(#move group)
+    }
+
     // Starts one point track.
+    //
+    // Use [[Gui.Animator.animatePointBorrowed]] when a callback writes either endpoint.
     mtd animatePoint(target: *Wnd, channel: AnimationChannel, from, destination: Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
@@ -789,7 +804,20 @@ impl Animator
         return .start(#move group)
     }
 
+    // Starts one point track from explicitly borrowed endpoints.
+    //
+    // The endpoints are stored in the track before callbacks run, and their pointers are not
+    // retained. An update or completion callback may therefore write either original endpoint.
+    mtd animatePointBorrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Math.Point, update: AnimationPointUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    {
+        var group = AnimationGroup.concurrent()
+        group.addPoint(target, channel, from[], destination[], update, options, completion)
+        return .start(#move group)
+    }
+
     // Starts one four-component vector track.
+    //
+    // Use [[Gui.Animator.animateVector4Borrowed]] when a callback writes either endpoint.
     mtd animateVector4(target: *Wnd, channel: AnimationChannel, from, destination: Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
@@ -797,11 +825,35 @@ impl Animator
         return .start(#move group)
     }
 
+    // Starts one four-component vector track from explicitly borrowed endpoints.
+    //
+    // The endpoints are stored in the track before callbacks run, and their pointers are not
+    // retained. An update or completion callback may therefore write either original endpoint.
+    mtd animateVector4Borrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Math.Vector4, update: AnimationVector4Update, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    {
+        var group = AnimationGroup.concurrent()
+        group.addVector4(target, channel, from[], destination[], update, options, completion)
+        return .start(#move group)
+    }
+
     // Starts one rectangle track.
+    //
+    // Use [[Gui.Animator.animateRectangleBorrowed]] when a callback writes either endpoint.
     mtd animateRectangle(target: *Wnd, channel: AnimationChannel, from, destination: Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
     {
         var group = AnimationGroup.concurrent()
         group.addRectangle(target, channel, from, destination, update, options, completion)
+        return .start(#move group)
+    }
+
+    // Starts one rectangle track from explicitly borrowed endpoints.
+    //
+    // The endpoints are stored in the track before callbacks run, and their pointers are not
+    // retained. An update or completion callback may therefore write either original endpoint.
+    mtd animateRectangleBorrowed(target: *Wnd, channel: AnimationChannel, from, destination: const *Math.Rectangle, update: AnimationRectangleUpdate, options: AnimationOptions = {}, completion: AnimationCompletion? = null)->AnimationHandle
+    {
+        var group = AnimationGroup.concurrent()
+        group.addRectangle(target, channel, from[], destination[], update, options, completion)
         return .start(#move group)
     }
 

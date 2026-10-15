@@ -115,15 +115,15 @@ public impl IWnd for ScrollWnd
                 var options: AnimationOptions
                 options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
                 options.easing   = .EaseOut
-                discard .app().animator.animatePoint(me,
-                                                     AnimationChannel.from("Gui.Scroll.Position"),
-                                                     .view.scrollPos,
-                                                     .scrollRequestPos,
-                                                     func|scrollWnd=me|(_, value)
-                                                     {
-                                                         discard scrollWnd.applyScrollPos(value.x, value.y)
-                                                     },
-                                                     options)
+                discard .app().animator.animatePointBorrowed(me,
+                                                             AnimationChannel.from("Gui.Scroll.Position"),
+                                                             &.view.scrollPos,
+                                                             &.scrollRequestPos,
+                                                             func|scrollWnd=me|(_, value)
+                                                             {
+                                                                 discard scrollWnd.applyScrollPos(value.x, value.y)
+                                                             },
+                                                             options)
                 break
             }
 

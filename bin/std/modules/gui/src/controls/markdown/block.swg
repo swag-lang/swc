@@ -51,7 +51,7 @@ private func visualHeadingKind(level: u32)->BlockKind
     }
 }
 
-private func appendBlock(blocks: *Array'Block, kind: BlockKind, text: String)
+private func appendBlock(blocks: *Array'Block, kind: BlockKind, text: #move String)
 {
     if text.isEmpty() and (kind < .AlertNote or kind > .AlertCaution) do
         return

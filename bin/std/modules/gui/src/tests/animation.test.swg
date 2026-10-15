@@ -494,3 +494,58 @@ func linearSecond()->AnimationOptions
     Swag.assert(target.presentationScale == Math.Point{2, 2})
     discard host.render()
 }
+
+// Explicit endpoint borrows permit immediate callbacks to update the caller's values.
+// Subsequent frames use the endpoints already stored in the track, not their old addresses.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 120)
+    defer host.shutdown()
+    host.setReducedMotion(false)
+    let target  = Wnd.create'Wnd(&host.root)
+    let options = linearSecond()
+
+    var point    = Math.Point{1, 2}
+    var pointEnd = Math.Point{3, 4}
+    discard host.app.animator.animatePointBorrowed(target,
+                                                   AnimationChannel.from("test.borrow.point"),
+                                                   &point,
+                                                   &pointEnd,
+                                                   func|&point, &pointEnd|(_, value) { point = value; pointEnd = {} },
+                                                   options)
+
+    var vector    = Math.Vector4{1, 2, 3, 4}
+    var vectorEnd = Math.Vector4{5, 6, 7, 8}
+    discard host.app.animator.animateVector4Borrowed(target,
+                                                     AnimationChannel.from("test.borrow.vector"),
+                                                     &vector,
+                                                     &vectorEnd,
+                                                     func|&vector, &vectorEnd|(_, value) { vector = value; vectorEnd = {} },
+                                                     options)
+
+    var rect    = Math.Rectangle{1, 2, 3, 4}
+    var rectEnd = Math.Rectangle{5, 6, 7, 8}
+    discard host.app.animator.animateRectangleBorrowed(target,
+                                                       AnimationChannel.from("test.borrow.rectangle"),
+                                                       &rect,
+                                                       &rectEnd,
+                                                       func|&rect, &rectEnd|(_, value) { rect = value; rectEnd = {} },
+                                                       options)
+
+    var color    = Color.fromArgb(Argb.Black)
+    var colorEnd = Color.fromArgb(Argb.White)
+    discard host.app.animator.animateColorBorrowed(target,
+                                                   AnimationChannel.from("test.borrow.color"),
+                                                   &color,
+                                                   &colorEnd,
+                                                   func|&color, &colorEnd|(_, value) { color = value; colorEnd = {} },
+                                                   options)
+
+    Swag.assert(pointEnd == {} and vectorEnd == {} and rectEnd == {} and colorEnd == {})
+    host.finishAnimations()
+    Swag.assert(point == Math.Point{3, 4})
+    Swag.assert(vector == Math.Vector4{5, 6, 7, 8})
+    Swag.assert(rect == Math.Rectangle{5, 6, 7, 8})
+    Swag.assert(color == Color.fromArgb(Argb.White))
+}

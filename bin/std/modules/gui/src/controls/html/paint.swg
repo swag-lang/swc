@@ -945,19 +945,17 @@ impl HtmlPainter
         return result
     }
 
-    mtd paint(visible: Math.Rectangle, scrollY: f32)
+    mtd paint()
     {
-        .visible = visible
-        .scrollY = scrollY
         if .layout.root == HtmlNoNode do
             return
 
         let canvas = .canvasBackground()
         .canvasBox = canvas.box
         if canvas.box != HtmlNoNode do
-            .painter.fillRect(visible, canvas.color)
+            .painter.fillRect(.visible, canvas.color)
 
-        .paintBox(.layout.root, {0, -scrollY}, 1)
+        .paintBox(.layout.root, {0, -.scrollY}, 1)
     }
 }
 

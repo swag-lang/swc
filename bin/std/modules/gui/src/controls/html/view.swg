@@ -1645,7 +1645,7 @@ internal impl IWnd for HtmlCanvas
 
         var painter = owner.painter()
         painter.painter = evt.paintContext.painter
-        painter.paint(painter.visible, painter.scrollY)
+        painter.paint()
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

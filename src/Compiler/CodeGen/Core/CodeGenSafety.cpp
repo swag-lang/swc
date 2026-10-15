@@ -302,12 +302,17 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
             {
                 SmallVector<ResolvedCallArgument> args;
                 codeGen.appendResolvedCallArguments(ref, args);
-                const auto& params = function->parameters();
+                const auto& params     = function->parameters();
+                size_t      paramIndex = 0;
                 for (size_t i = 0; i < args.size() && !params.empty(); ++i)
                 {
+                    // Interface dispatch prepends the receiver object, which no declared parameter describes.
+                    if (args[i].passKind == CallArgumentPassKind::InterfaceObject)
+                        continue;
+                    const size_t argParamIndex = paramIndex++;
                     if (args[i].argRef.isInvalid() || args[i].movesValueToParam)
                         continue;
-                    const auto* param      = params[std::min(i, params.size() - 1)];
+                    const auto* param      = params[std::min(argParamIndex, params.size() - 1)];
                     TypeRef     borrowType = param->typeRef();
                     if (param->type(codeGen.ctx()).isVariadic())
                     {

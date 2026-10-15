@@ -1038,7 +1038,8 @@ impl Surface
                 }
                 else
                 {
-                    .setPosition(.position)
+                    // setPosition overwrites `.position`, which its argument would otherwise borrow.
+                    .setPosition(#copy .position)
                 }
             }
         }

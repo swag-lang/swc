@@ -998,7 +998,8 @@ impl Surface
     // Shows the surface maximized and preserves its current bounds for restoration.
     mtd showMaximized()
     {
-        .showMaximized(.position)
+        // The window messages the call dispatches move `.position`; restore to what it is now.
+        .showMaximized(#copy .position)
     }
 
     // Shows the surface maximized, with `restoreTo` as the bounds a later restore returns to.

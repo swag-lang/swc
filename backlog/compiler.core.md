@@ -5,6 +5,19 @@ This backlog covers the compiler front end, back end, and workspace build engine
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
 
+### compiler.core.084 — Stop native test recovery from reusing state abandoned by a panic
+
+- Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex
+  skips the deferred unlock. The native test runner catches the panic and starts the next GUI
+  test in the same process; that test waits on the abandoned mutex until the module timeout.
+  The original failing test is reported, but subsequent tests cannot make progress.
+- Next: define the recovery boundary for an uncaught test panic. Stop the affected process or
+  isolate tests whose execution can abandon shared state; do not assume a caught panic ran
+  deferred cleanup. Keep explicit `Swag.catchPanic` tests supported.
+- Done when: a regression with a panic under a deferred mutex unlock reports the original
+  failure promptly without hanging the next test, and the campaign can continue with other
+  modules.
+
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Evidence: several remaining node maps are iterated in ways that affect diagnostics or output:
@@ -533,22 +546,3 @@ excluded from lookup.
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.
 - **A second language front end.** The compiler architecture is optimized for Swag; a second parser and semantic model would dilute the persisted-state and tooling work above.
 - **A package registry inside the compiler backlog.** Path and workspace dependencies remain compiler responsibilities. Registry identity, trust, lockfiles, acquisition, and publishing need a separate product backlog once their scope and owner are defined.
-
-Frontend, semantic analysis, and code generation defects: something observed in `swc` itself, with
-a reproduction and a next investigation step. Optimization passes and generated-code performance
-are [compiler.optimization.md](compiler.optimization.md); the borrow, lifetime and sanity analyses
-are [compiler.safety.md](compiler.safety.md); the `doc` and `format` commands have their own files,
-[compiler.command.doc.md](compiler.command.doc.md) and [compiler.command.format.md](compiler.command.format.md).
-
-### compiler.core.084 ? Stop native test recovery from reusing state abandoned by a panic
-
-- Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex
-  skips the deferred unlock. The native test runner catches the panic and starts the next GUI
-  test in the same process; that test waits on the abandoned mutex until the module timeout.
-  The original failing test is reported, but subsequent tests cannot make progress.
-- Next: define the recovery boundary for an uncaught test panic. Stop the affected process or
-  isolate tests whose execution can abandon shared state; do not assume a caught panic ran
-  deferred cleanup. Keep explicit `Swag.catchPanic` tests supported.
-- Done when: a regression with a panic under a deferred mutex unlock reports the original
-  failure promptly without hanging the next test, and the campaign can continue with other
-  modules.

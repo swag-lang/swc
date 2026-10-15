@@ -164,10 +164,9 @@ struct ChunkOptions
     }
 }
 
-#[Swag.NoDoc]
 #[Serialization.Version(1)]
 #[Serialization.Schema("core.scc.header")]
-struct Header
+internal struct Header
 {
     containerKind:    Guid128
     containerId:      Guid128
@@ -177,8 +176,7 @@ struct Header
     chunks:           Array'ChunkInfo
 }
 
-#[Swag.NoDoc]
-struct PendingChunk
+internal struct PendingChunk
 {
     info:      ChunkInfo
     alignment: u32

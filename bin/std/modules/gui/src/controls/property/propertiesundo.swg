@@ -20,8 +20,7 @@ using Core, Pixel
 // copied as raw bytes. The per-instance addresses are captured too, so a value can be restored without the row
 // it was recorded against: undo commands stay valid across a grid rebuild (clear +
 // addStruct), as long as the edited instances themselves are still alive.
-#[Swag.NoDoc]
-struct PropFieldValue
+internal struct PropFieldValue
 {
     public
     {
@@ -153,8 +152,7 @@ internal impl PropFieldValue
 //
 // The command does not reference the row it came from: `generation` records the grid content it was built against, so a command replayed after a rebuild silently
 // skips the row refresh (the values still land at the right addresses).
-#[Swag.NoDoc]
-struct PropUndoCommand
+internal struct PropUndoCommand
 {
     public
     {

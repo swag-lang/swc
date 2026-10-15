@@ -12,7 +12,6 @@ const InfiniteWait = 0xFFFF_FFFF'u32
 struct Mutex
 {
     // Host lock storage. Never read or written by user code.
-    #[Swag.NoDoc]
     storage: *void?
 }
 
@@ -36,7 +35,6 @@ impl Mutex
 struct RWLock
 {
     // Host lock storage. Never read or written by user code.
-    #[Swag.NoDoc]
     storage: *void?
 }
 
@@ -76,7 +74,6 @@ impl RWLock
 struct Condition
 {
     // Host condition storage. Never read or written by user code.
-    #[Swag.NoDoc]
     storage: *void?
 }
 
@@ -110,15 +107,12 @@ impl Condition
 struct Semaphore
 {
     // Serializes the permit count and its wait queue.
-    #[Swag.NoDoc]
     mutex: Mutex
 
     // Wakes a waiter when a permit is returned.
-    #[Swag.NoDoc]
     available: Condition
 
     // Permits currently free.
-    #[Swag.NoDoc]
     permits: u32
 }
 
@@ -186,23 +180,18 @@ impl Semaphore
 struct Barrier
 {
     // Serializes arrival counting.
-    #[Swag.NoDoc]
     mutex: Mutex
 
     // Wakes the phase when the last participant arrives.
-    #[Swag.NoDoc]
     released: Condition
 
     // Threads expected in one phase.
-    #[Swag.NoDoc]
     participants: u32
 
     // Threads still missing from the current phase.
-    #[Swag.NoDoc]
     waiting: u32
 
     // Phase number, so a late waiter cannot be released by the previous phase.
-    #[Swag.NoDoc]
     phase: u32
 }
 

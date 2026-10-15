@@ -7,8 +7,7 @@ using Core, Pixel
 // Building and laying out are separate passes on purpose: text is measured once when the boxes
 // are built, and a resize only breaks the lines again. That is what makes a window resize cost
 // line breaking rather than a full re-shaping of every word in the document.
-#[Swag.NoDoc]
-public struct HtmlLayout
+struct HtmlLayout
 {
     late
     {
@@ -61,8 +60,7 @@ public struct HtmlLayout
 }
 
 // The size a box resolves its percentages against.
-#[Swag.NoDoc]
-public struct HtmlContainingBlock
+struct HtmlContainingBlock
 {
     width:     f32
     height:    f32
@@ -70,16 +68,14 @@ public struct HtmlContainingBlock
 }
 
 // The two widths a box needs before it can be shrink-wrapped or put in a table column.
-#[Swag.NoDoc]
-public struct HtmlIntrinsicWidths
+struct HtmlIntrinsicWidths
 {
     min: f32
     max: f32
 }
 
 // The margin box one float occupies, and the side it is tucked against.
-#[Swag.NoDoc]
-public struct HtmlFloatBand
+struct HtmlFloatBand
 {
     left: bool
     rect: Math.Rectangle

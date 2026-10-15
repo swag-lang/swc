@@ -194,8 +194,7 @@ private func convertRowHalfChroma(destination: [*] u8, luma, cb, cr: const [*] u
 }
 
 // Public only because it is embedded in backend-owned storage; callers never construct it.
-#[Swag.NoDoc]
-struct YuvConversionFactors
+internal struct YuvConversionFactors
 {
     lumaScale:  s32
     lumaOffset: s32

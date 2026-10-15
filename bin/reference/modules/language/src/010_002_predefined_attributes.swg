@@ -179,8 +179,10 @@ declaration inherits it unless 'Foreign(callconv: ...)' states another ABI.
 | 'NoDoc()' | Exclude an otherwise public declaration from generated API documentation |
 
 Use 'Swag.NoDoc' only for declarations that are intentionally public but
-unsuitable for the generated API reference. It does not change visibility or
-module API export.
+unsuitable for the generated API reference, such as a non-generic function that a
+public generic body calls once it expands in another module. It does not change
+visibility or module API export. A type that only non-public fields name needs
+neither 'public' nor 'Swag.NoDoc': it travels with the struct that embeds it.
 
 See [Native documentation](#_002_011_native_documentation_swg) for ordinary '//'
 contracts, '//!' file overviews, Markdown guides, and generation modes.

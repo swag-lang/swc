@@ -127,27 +127,22 @@ impl TaskState
 struct(T = void) Task
 {
     // Scheduler and cancellation state shared by every result type.
-    #[Swag.NoDoc]
     using state: TaskState
 
     // The work itself, owned by this task between submission and completion. A body that
     // cannot fail is kept apart: calling it needs no error frame, so tasks run inside one another
     // nest without consuming the bounded error stack.
-    #[Swag.NoDoc]
     plainBody: (func||()->T)?
 
     // The work itself, when it can fail.
-    #[Swag.NoDoc]
     fallibleBody: (func||()->T fail)?
 
     // The error the last run raised, if it failed.
-    #[Swag.NoDoc]
     failure: Error
 
     #static if T != void
     {
         // The value the last run produced, until it is taken.
-        #[Swag.NoDoc]
         result: T
     }
 }
@@ -437,31 +432,24 @@ struct GroupBlock
 struct TaskGroup
 {
     // The first children, held by the group itself.
-    #[Swag.NoDoc]
     inlined: [GroupInlineCapacity] GroupChild
 
     // Children taken from the inline storage.
-    #[Swag.NoDoc]
     inlinedUsed: u32
 
     // Blocks holding the children beyond the inline storage, most recent first.
-    #[Swag.NoDoc]
     blocks: *GroupBlock?
 
     // Children spawned into this group.
-    #[Swag.NoDoc]
     count: u32
 
     // Raised by cancel, read by children.
-    #[Swag.NoDoc]
     scope: CancelScope
 
     // Guards `failure` against children failing together.
-    #[Swag.NoDoc]
     failureLock: Mutex
 
     // The first error a child raised, until the group is joined.
-    #[Swag.NoDoc]
     failure: Error
 }
 

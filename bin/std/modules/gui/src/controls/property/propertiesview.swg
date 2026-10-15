@@ -2,8 +2,7 @@ using Core, Pixel
 
 // Hosts layout, painting, and keyboard navigation for property rows.
 #[Swag.Opaque]
-#[Swag.NoDoc]
-public struct PropertiesView
+struct PropertiesView
 {
     public
     {

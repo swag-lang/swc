@@ -31,10 +31,11 @@ func markReadsOn(ground: Pixel.Color)->bool => MarkVoltage.contrastRatio(ground)
 // Owns GUI resources, top-level surfaces, input state, and the event loop.
 struct Application
 {
+    using native: ApplicationNative     // Platform-specific application state.
+
     public
     {
-        using native: ApplicationNative          // Platform-specific application state.
-        sigFrame:     SigArray'FrameCallback     // Emitted after each processed frame.
+        sigFrame: SigArray'FrameCallback     // Emitted after each processed frame.
 
         options: ApplicationOptions     // Diagnostics and development options.
         appIcon: Pixel.Image            // Icon used for native windows created by the application.

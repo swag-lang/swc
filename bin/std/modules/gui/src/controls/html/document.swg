@@ -2,19 +2,15 @@
 
 using Core
 
-// Index meaning "no node". A document always owns node 0, so zero is a valid index.
-//
-// The engine types are exported with [[Gui.HtmlView]], which carries them as fields, so the value
-// their defaults name has to travel with them.
-#[Swag.NoDoc]
+// Index meaning "no node", as returned by a lookup that finds nothing. A document always owns
+// node 0, so zero is a valid index.
 public const HtmlNoNode = Swag.U32.Max
 
 // The elements the engine treats specially.
 //
 // An element outside this set still parses, styles, and lays out; the enum exists so the parser,
 // the user-agent stylesheet, and the layout engine test an integer instead of a string.
-#[Swag.NoDoc]
-public enum HtmlTag
+enum HtmlTag
 {
     Unknown
     A
@@ -124,8 +120,7 @@ public enum HtmlTag
 }
 
 // What a node contributes to the tree.
-#[Swag.NoDoc]
-public enum HtmlNodeKind
+enum HtmlNodeKind
 {
     Document
     Element
@@ -136,8 +131,7 @@ public enum HtmlNodeKind
 //
 // Both are runs of the document's text pool: a page carries hundreds of thousands of attributes,
 // and an owning string costs seven times what a run costs.
-#[Swag.NoDoc]
-public struct HtmlAttribute
+struct HtmlAttribute
 {
     name:  HtmlRange
     value: HtmlRange
@@ -149,16 +143,14 @@ public struct HtmlAttribute
 // pool of text the source does not spell — a folded name, a run with a character reference in it.
 // That is what lets the overwhelming majority of a page's text, attribute values and names cost
 // nothing but the two numbers naming them.
-#[Swag.NoDoc]
-public struct HtmlRange
+struct HtmlRange
 {
     start: u32
     count: u32
 }
 
 // Marks a run as addressing the built text rather than the source.
-#[Swag.NoDoc]
-public const HtmlBuiltText = 0x8000_0000'u32
+const HtmlBuiltText = 0x8000_0000'u32
 
 // One node of the parsed tree.
 //
@@ -171,8 +163,7 @@ public const HtmlBuiltText = 0x8000_0000'u32
 // comes from its tag, and `text` carries the content of a text node or the raw name of an element
 // whose tag this engine does not know. Children are a chain rather than an array per node, which
 // is what makes an element cost no allocation at all; walk them with [[HtmlDocument.children]].
-#[Swag.NoDoc]
-public struct HtmlNode
+struct HtmlNode
 {
     kind:         HtmlNodeKind
     tag:          HtmlTag
@@ -191,8 +182,7 @@ public struct HtmlNode
 //
 // A cursor rather than a container: the chain lives in the nodes themselves, and nothing may add
 // a node while one of these is being walked.
-#[Swag.NoDoc]
-public struct HtmlChildren
+struct HtmlChildren
 {
     document: const *HtmlDocument
     first = HtmlNoNode
@@ -228,8 +218,7 @@ impl HtmlChildren
 // Attributes and classes live in pools rather than in per-node arrays: an element's attributes
 // are written consecutively as its start tag is read, so one run of the pool is all a node has to
 // remember, and the tree costs two allocations instead of three per element.
-#[Swag.NoDoc]
-public struct HtmlDocument
+struct HtmlDocument
 {
     nodes:         Array'HtmlNode
     attributePool: Array'HtmlAttribute

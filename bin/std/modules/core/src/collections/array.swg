@@ -223,8 +223,7 @@ impl Array
     }
 
     // Reallocates the buffer to `newCapacity` elements, relocating the existing ones.
-    #[Swag.NoDoc]
-    mtd realloc(newCapacity: u64)
+    private mtd realloc(newCapacity: u64)
     {
         if not .allocator do
             .allocator = Swag.getContext().allocator
@@ -302,8 +301,7 @@ impl Array
     mtd const storage()->[*] T => .buffer orelse cast([*] T, cast(u64, #alignof(T)))
 
     #[Inline]
-    #[Swag.NoDoc]
-    mtd initNewSlots(index, num: u64)
+    private mtd initNewSlots(index, num: u64)
     {
         if not num do
             return
@@ -320,8 +318,7 @@ impl Array
     // Ensures the capacity can hold at least `newCount` elements, at least doubling it when it grows.
     //
     // The element count is unchanged. See also [[reserve]].
-    #[Swag.NoDoc]
-    mtd grow(newCount: u64)
+    private mtd grow(newCount: u64)
     {
         if newCount <= .capacity do
             return

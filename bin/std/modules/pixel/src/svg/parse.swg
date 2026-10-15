@@ -94,17 +94,13 @@ struct Drawing
         height: f32     // View-box height, in user units.
     }
 
-    shapes:    Array'Shape     // Parsed vector shapes, including hidden definitions.
-    imageSize: Vector2         // Absolute root dimensions in CSS pixels, independent of view-box units.
-
-    public
-    {
-        texts:    Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
-        images:   Array'SvgImage                    // Decoded raster images referenced by the paint-order list.
-        items:    Array'DrawingItem                 // Visible elements in paint order.
-        patterns: HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
-        filters:  HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
-    }
+    shapes:    Array'Shape                       // Parsed vector shapes, including hidden definitions.
+    imageSize: Vector2                           // Absolute root dimensions in CSS pixels, independent of view-box units.
+    texts:     Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
+    images:    Array'SvgImage                    // Decoded raster images referenced by the paint-order list.
+    items:     Array'DrawingItem                 // Visible elements in paint order.
+    patterns:  HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
+    filters:   HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
 }
 
 private enum DrawingItemKind
@@ -114,8 +110,8 @@ private enum DrawingItemKind
     Image
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-struct DrawingItem
+#[Swag.Opaque]
+internal struct DrawingItem
 {
     kind:  DrawingItemKind
     index: u64
@@ -176,14 +172,14 @@ private struct SvgTextRun
     hasX, hasY:    bool
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-struct SvgText
+#[Swag.Opaque]
+internal struct SvgText
 {
     runs: Array'SvgTextRun
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-struct SvgImage
+#[Swag.Opaque]
+internal struct SvgImage
 {
     image:     Image
     rect:      Rectangle           // Destination in the user units of the element.
@@ -191,8 +187,8 @@ struct SvgImage
     opacity:   f32 = 1
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-struct Pattern
+#[Swag.Opaque]
+internal struct Pattern
 {
     first, count:        u64
     x, y, width, height: SvgLength
@@ -214,8 +210,8 @@ private struct FilterPrimitive
     color:  Color = Color.fromArgb(Argb.Black)
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-struct SvgFilter
+#[Swag.Opaque]
+internal struct SvgFilter
 {
     primitives: Array'FilterPrimitive
 }

@@ -3,12 +3,12 @@
 using Core, Core.Math
 
 // Platform context operations. Each backend supplies the implementation used by RenderOgl.
-#[Swag.Opaque, Swag.NoDoc]
-struct NativeRenderOgl {}
+#[Swag.Opaque]
+internal struct NativeRenderOgl {}
 
 // Describes a platform rendering context and drawable.
-#[Swag.Opaque, Swag.NoDoc]
-struct OglContext
+#[Swag.Opaque]
+internal struct OglContext
 {
     public
     {

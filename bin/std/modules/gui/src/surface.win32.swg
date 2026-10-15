@@ -36,10 +36,10 @@ private const HTBOTTOMRIGHT = 17
 // WM_SIZE state emitted when a native window has no drawable client area.
 private const SizeMinimized = 1'u64
 
-// Dependency-visible Windows storage embedded by `Surface`.
-#[Swag.Opaque, Swag.NoDoc]
+// Windows storage embedded by `Surface`.
+#[Swag.Opaque]
 #[Swag.NoCopy]
-struct NativeSurface
+internal struct NativeSurface
 {
     public
     {

@@ -6,8 +6,7 @@ using Core, Core.Math, Pixel
 //
 // The kind decides how a PDF character code reaches a glyph: a TrueType program is addressed
 // by glyph index, and the two PostScript ones by glyph name.
-#[Swag.NoDoc]
-public enum FontProgramKind
+enum FontProgramKind
 {
     None         // The font embeds no program and is drawn with a substitute face.
     TrueType     // A `FontFile2` program, or a `FontFile3` OpenType wrapper around one.
@@ -16,11 +15,7 @@ public enum FontProgramKind
 }
 
 // A font a decoded page refers to, with everything needed to lay its text out again.
-//
-// The type identity is part of the exported page layout, so it is public, but it carries
-// no public contract of its own.
-#[Swag.NoDoc]
-public struct FontResource
+struct FontResource
 {
     objectId: u32
     name:     String

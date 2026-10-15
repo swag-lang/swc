@@ -9,8 +9,7 @@ using Core, Pixel
 // until layout knows the box they apply to.
 // A zero length is what a box has when nothing says otherwise — a margin, a padding and a gap
 // are all zero by default — so `Pixels` is the kind an unset length carries.
-#[Swag.NoDoc]
-public enum HtmlLengthKind
+enum HtmlLengthKind
 {
     Pixels
     Auto
@@ -26,16 +25,14 @@ public enum HtmlLengthKind
 }
 
 // One CSS length, kept small enough to store a full property set per element.
-#[Swag.NoDoc]
-public struct HtmlLength
+struct HtmlLength
 {
     kind:  HtmlLengthKind
     value: f32
 }
 
 // The operation one node of a parsed `calc()` expression performs.
-#[Swag.NoDoc]
-public enum HtmlCalcOp
+enum HtmlCalcOp
 {
     Value
     Add
@@ -51,8 +48,7 @@ public enum HtmlCalcOp
 //
 // A `Value` node carries the coefficients of every unit that cannot be folded early, so
 // `calc(100% - 44px)` is one node and needs no tree at all.
-#[Swag.NoDoc]
-public struct HtmlCalcNode
+struct HtmlCalcNode
 {
     op:      HtmlCalcOp
     pixels:  f32
@@ -65,8 +61,7 @@ public struct HtmlCalcNode
 }
 
 // What a length needs from its surroundings to produce a pixel value.
-#[Swag.NoDoc]
-public struct HtmlLengthContext
+struct HtmlLengthContext
 {
     fontSize:       f32 = 16
     rootFontSize:   f32 = 16
@@ -80,8 +75,7 @@ public struct HtmlLengthContext
 //
 // Math expressions and the few strings a style carries live here so [[HtmlComputedStyle]] stays a
 // flat value that can be copied per element without a heap allocation.
-#[Swag.NoDoc]
-public struct HtmlValuePool
+struct HtmlValuePool
 {
     calc:    Array'HtmlCalcNode
     strings: Array'String

@@ -12,6 +12,5 @@ impl RenderThread
     // Borrows the manual-reset completion handle for integration with a native message wait.
     //
     // The caller must neither close nor signal nor reset it. It is null before start and after close.
-    #[Swag.NoDoc]
-    public mtd const win32CompletionHandle()->HANDLE? => .completed.handle
+    mtd const win32CompletionHandle()->HANDLE? => .completed.handle
 }

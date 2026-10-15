@@ -501,7 +501,7 @@ impl Value
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_GenericBodyPublishesSupportingDeclarations)
+SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_PublishesSupportingDeclarations)
 {
     ApiPublicationTestDirectory directory("SupportingDecls");
     struct Case
@@ -509,9 +509,9 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_GenericBodyPublishesSupportingDeclarations)
         std::string_view name;
         std::string_view source;
         std::string_view use;
-        // Fragments the generated interface must carry, or the export error when it cannot.
+        // Fragments the generated interface must carry, or of the export error when it cannot.
         std::vector<std::string_view> published;
-        std::string_view              because;
+        std::vector<std::string_view> because;
         std::string_view              helperFile;
     };
     const Case cases[] = {
@@ -574,7 +574,74 @@ func(T) exposed(value: T)->s32 => helper(cast(s32, value))
 )",
          "discard exposed(41)",
          {},
-         "symbol 'counter' is not exposed by the module API"},
+         {"cannot export non-public function 'helper', which a published generic body needs", "symbol 'counter' is not exposed by the module API", "export the referenced implementation too"}},
+        {"InternalFieldType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder
+{
+    slot:   Slot
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private struct Slot { a: s32 }"}},
+        {"InternalFieldAlias", R"(#global public
+private alias Handle = const *void?
+struct Holder
+{
+    handle: Handle
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private alias Handle = const *void?"}},
+        {"InternalFieldAnonymousType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder
+{
+    pair:   { first: Slot, second: s32 }
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private struct Slot { a: s32 }"}},
+        {"InternalFieldNamesGlobal", R"(#global public
+private var counter: s32 = 0
+struct Holder
+{
+    slot:   #decltype(counter)
+    public value: s32
+}
+)",
+         "",
+         {},
+         {"cannot export internal field 'slot' of public struct", "symbol 'counter' is not exposed by the module API"}},
+        {"InternalFieldTypeChain", R"(#global public
+private const Empty = 7
+private struct Inner { a: s32 = Empty }
+private struct Outer { inner: Inner }
+struct Holder
+{
+    outer:  [2] Outer
+    public value: s32
+}
+)",
+         "var holder: Holder\n    holder.value = 1",
+         {"private const Empty = 7", "private struct Inner { a: s32 = Empty }", "private struct Outer { inner: Inner }"}},
+        {"PublicFieldOfInternalType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder { public slot: Slot }
+)",
+         "",
+         {},
+         {"cannot export public struct 'Holder' because field 'slot' uses non-public type"}},
+        {"PublicFieldForeignGenericOfInternalType", R"(#global public
+private struct Slot { a: s32 }
+struct Holder { public slot: Swag.AtomicValue'Slot }
+)",
+         "",
+         {},
+         {"cannot export public struct 'Holder' because field 'slot' uses non-public type"}},
     };
 
     for (const Case& test : cases)
@@ -601,12 +668,13 @@ func(T) exposed(value: T)->s32 => helper(cast(s32, value))
 
         if (!test.because.empty())
         {
-            if (result.output.find("cannot export non-public function 'helper', which a published generic body needs") == std::string::npos ||
-                result.output.find(test.because) == std::string::npos ||
-                result.output.find("export the referenced implementation too") == std::string::npos)
+            for (const std::string_view fragment : test.because)
             {
-                std::println(stderr, "[supporting API {}] {}", test.name, result.output);
-                return Result::Error;
+                if (result.output.find(fragment) == std::string::npos)
+                {
+                    std::println(stderr, "[supporting API {}] {}", test.name, result.output);
+                    return Result::Error;
+                }
             }
             continue;
         }

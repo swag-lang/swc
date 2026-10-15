@@ -30,13 +30,14 @@ struct SurfaceState
 // Top-level drawable window managed by an [[Gui.Application]].
 struct Surface
 {
+    using native: NativeSurface     // Platform-specific window state.
+
     public
     {
-        using native: NativeSurface     // Platform-specific window state.
-        late app:     *Application      // Application that owns the surface.
-        late wnd:     *SurfaceWnd       // Root window containing the surface view.
-        userData:     *void?            // Optional caller-owned data.
-        surfaceId:    String            // Identifier used by cross-process custom messages.
+        late app:  *Application     // Application that owns the surface.
+        late wnd:  *SurfaceWnd      // Root window containing the surface view.
+        userData:  *void?           // Optional caller-owned data.
+        surfaceId: String           // Identifier used by cross-process custom messages.
 
         minSize: Math.Point     // Minimum allowed width and height in logical units; zero disables a dimension limit.
         maxSize: Math.Point     // Maximum allowed width and height in logical units; zero disables a dimension limit.

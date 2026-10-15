@@ -37,8 +37,8 @@ private const DefaultIcons            = #include(DefaultIconsName)
 // sheets inside the [[Gui.IconAtlas]] by cell size. A process that builds many themes — a test
 // executable creates one per headless host — then pays for the rasterization of each sheet once
 // rather than once per theme.
-#[Swag.Opaque, Swag.NoDoc]
-struct ThemeImages
+#[Swag.Opaque]
+internal struct ThemeImages
 {
     lock:           Swag.Mutex
     decoded:        bool

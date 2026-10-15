@@ -3,11 +3,8 @@
 using Core, Pixel
 
 // One decoded page a view keeps in memory, with the resources every frame that shows it reuses.
-//
-// The type identity is part of the exported widget layout, so it is public, but it carries no
-// public contract of its own.
-#[Swag.NoDoc, Swag.NoCopy]
-public struct PdfResidentPage
+#[Swag.NoCopy]
+struct PdfResidentPage
 {
     index: u64          // Zero-based page this entry holds.
     page:  Pdf.Page     // The decoded page, left empty when the document could not give it.
@@ -96,11 +93,8 @@ impl PdfResidentPage
 // answers page counts and page sizes from stays on the GUI thread. One page is decoded at a time
 // and the view adopts it between frames, so scrolling into a page, turning to one, or revealing a
 // search hit on one never decodes on the thread that draws.
-//
-// The type identity is part of the exported widget layout, so it is public, but it carries no
-// public contract of its own.
-#[Swag.NoDoc, Swag.NoCopy]
-public struct PdfPageCache
+#[Swag.NoCopy]
+struct PdfPageCache
 {
     // Resident pages, in no particular order. Entries are allocated one by one, so a page
     // borrowed for a frame stays where it is while another one is adopted or evicted.

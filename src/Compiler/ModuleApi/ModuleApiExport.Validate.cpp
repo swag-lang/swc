@@ -113,7 +113,17 @@ namespace
         if (type.isStruct())
         {
             const SymbolStruct& symbolStruct = type.payloadSymStruct();
-            return validateTypeReferenceSymbol(ctx, ownerSymbol, focusSymbol, usage, symbolStruct, stack);
+            SWC_RESULT(validateTypeReferenceSymbol(ctx, ownerSymbol, focusSymbol, usage, symbolStruct, stack));
+
+            // An instance of another module's generic names this module's types in its arguments.
+            SmallVector<GenericInstanceKey> genericArgs;
+            if (symbolStruct.isGenericInstance() && symbolStruct.tryGetGenericInstanceArgs(genericArgs))
+            {
+                for (const GenericInstanceKey& arg : genericArgs)
+                    SWC_RESULT(validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, arg.typeRef, stack));
+            }
+
+            return Result::Continue;
         }
 
         if (type.isInterface())

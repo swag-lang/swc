@@ -25,8 +25,7 @@ public enum PropDefaultState
 }
 
 // One default-constructed instance backing a struct added to the grid (owned; freed on destroy).
-#[Swag.NoDoc]
-public struct PropDefaultRoot
+struct PropDefaultRoot
 {
     public
     {

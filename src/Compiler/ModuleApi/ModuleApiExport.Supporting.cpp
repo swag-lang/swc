@@ -64,6 +64,13 @@ namespace
         return symbol.toFamily();
     }
 
+    void addDependencyDeclaredHereNote(TaskContext& ctx, Diagnostic& diag, const Symbol& referencedSymbol)
+    {
+        diag.addNote(DiagnosticId::cmd_note_api_dependency_declared_here);
+        diag.last().addArgument(Diagnostic::ARG_TARGET, referencedSymbol.getFullScopedName(ctx));
+        diag.last().addSpan(referencedSymbol.codeRange(ctx));
+    }
+
     Result reportSupportingDeclarationError(TaskContext& ctx, const Symbol& symbol, const SourceCodeRange& range, std::string_view because, const Symbol* referencedSymbol)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_supporting_decl_not_exportable, ctx.compiler().srcView(symbol.srcViewRef()).fileRef());
@@ -72,11 +79,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_BECAUSE, because);
         diag.last().addSpan(range, "", DiagnosticSeverity::Error);
         if (referencedSymbol)
-        {
-            diag.addNote(DiagnosticId::cmd_note_api_dependency_declared_here);
-            diag.last().addArgument(Diagnostic::ARG_TARGET, referencedSymbol->getFullScopedName(ctx));
-            diag.last().addSpan(referencedSymbol->codeRange(ctx));
-        }
+            addDependencyDeclaredHereNote(ctx, diag, *referencedSymbol);
         diag.report(ctx);
         return Result::Error;
     }
@@ -414,6 +417,8 @@ namespace
             case AstNodeId::GenericParamValue:
             case AstNodeId::StructDecl:
             case AstNodeId::UnionDecl:
+            case AstNodeId::AnonymousStructDecl:
+            case AstNodeId::AnonymousUnionDecl:
             case AstNodeId::EnumDecl:
             case AstNodeId::EnumValue:
             case AstNodeId::AliasDecl:
@@ -453,14 +458,21 @@ namespace
         return addSupportingSymbol(collector, symbol);
     }
 
-    Result collectResolvedDependencies(SupportingCollector& collector, const ModuleApiGeneratedRoot& root)
+    // A name a published declaration resolves to, which the interface cannot carry.
+    struct UnavailableSymbol
     {
-        const SourceFile&        file   = *root.file;
-        const Ast&               ast    = file.ast();
-        Result                   result = Result::Continue;
+        const Symbol*   symbol = nullptr;
+        SourceCodeRange focus;
+    };
+
+    // Publishes what the declaration at 'nodeRef' names, and returns the first name it cannot.
+    UnavailableSymbol collectResolvedNodeDependencies(SupportingCollector& collector, const SourceFile& file, AstNodeRef nodeRef)
+    {
+        const Ast&               ast = file.ast();
+        UnavailableSymbol        result;
         PointerSet<const Symbol> localSymbols;
-        Ast::visit(ast, root.nodeRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
-            const NodePayload::ResolvedSymbols resolved = file.nodePayloadContext().resolveSymbols(nodeRef);
+        Ast::visit(ast, nodeRef, [&](const AstNodeRef childRef, const AstNode& node) {
+            const NodePayload::ResolvedSymbols resolved = file.nodePayloadContext().resolveSymbols(childRef);
             if (isLocalDeclarationNode(node))
             {
                 for (const Symbol* symbol : resolved.symbols)
@@ -484,7 +496,7 @@ namespace
 
             if (!unavailable)
             {
-                const Symbol* folded = file.nodePayloadContext().foldedSourceSymbol(nodeRef);
+                const Symbol* folded = file.nodePayloadContext().foldedSourceSymbol(childRef);
                 if (folded && !isSupportingSymbolAvailable(collector, localSymbols, *folded))
                     unavailable = folded;
             }
@@ -492,12 +504,62 @@ namespace
             if (!unavailable)
                 return Ast::VisitResult::Continue;
 
-            const AstNode& focus   = node.is(AstNodeId::CallExpr) ? ast.node(node.cast<AstCallExpr>().nodeExprRef) : node;
-            const Utf8     because = std::format("symbol '{}' is not exposed by the module API", unavailable->getFullScopedName(*collector.ctx));
-            result                 = reportSupportingDeclarationError(*collector.ctx, *root.symbol, focus.codeRange(*collector.ctx), because.view(), unavailable);
+            const AstNode& focus = node.is(AstNodeId::CallExpr) ? ast.node(node.cast<AstCallExpr>().nodeExprRef) : node;
+            result.symbol        = unavailable;
+            result.focus         = focus.codeRange(*collector.ctx);
             return Ast::VisitResult::Stop;
         });
         return result;
+    }
+
+    Utf8 notExposedBecause(TaskContext& ctx, const Symbol& symbol)
+    {
+        return std::format("symbol '{}' is not exposed by the module API", symbol.getFullScopedName(ctx));
+    }
+
+    Result collectResolvedDependencies(SupportingCollector& collector, const ModuleApiGeneratedRoot& root)
+    {
+        const UnavailableSymbol unavailable = collectResolvedNodeDependencies(collector, *root.file, root.nodeRef);
+        if (!unavailable.symbol)
+            return Result::Continue;
+
+        const Utf8 because = notExposedBecause(*collector.ctx, *unavailable.symbol);
+        return reportSupportingDeclarationError(*collector.ctx, *root.symbol, unavailable.focus, because.view(), unavailable.symbol);
+    }
+
+    // An importer lays out a public struct from the interface, internal fields included. What
+    // those fields name is layout, not API: it travels as supporting declarations.
+    Result collectInternalFieldDependencies(SupportingCollector& collector, const ModuleApiGeneratedRoot& root)
+    {
+        const SymbolStruct* symbolStruct = root.symbol ? root.symbol->safeCast<SymbolStruct>() : nullptr;
+        if (!root.file || !symbolStruct || symbolStruct->isGenericRoot() || isModuleApiOpaqueType(*symbolStruct))
+            return Result::Continue;
+
+        TaskContext& ctx = *collector.ctx;
+        for (const SymbolVariable* field : symbolStruct->fields())
+        {
+            if (!field || field->isIgnored() || field->memberAccess() == MemberAccess::Public || !field->decl())
+                continue;
+
+            AstNodeRef fieldRef;
+            if (!tryFindReachableNodeRef(root.file->ast(), field->decl(), fieldRef))
+                continue;
+
+            const UnavailableSymbol unavailable = collectResolvedNodeDependencies(collector, *root.file, fieldRef);
+            if (!unavailable.symbol)
+                continue;
+
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_internal_field_not_exportable, ctx.compiler().srcView(symbolStruct->srcViewRef()).fileRef());
+            diag.addArgument(Diagnostic::ARG_SYM, symbolStruct->getFullScopedName(ctx));
+            diag.addArgument(Diagnostic::ARG_VALUE, field->name(ctx));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, notExposedBecause(ctx, *unavailable.symbol));
+            diag.last().addSpan(unavailable.focus, "", DiagnosticSeverity::Error);
+            addDependencyDeclaredHereNote(ctx, diag, *unavailable.symbol);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        return Result::Continue;
     }
 
     // The signature, fields and targets of a published helper name types the interface has to carry.
@@ -529,6 +591,13 @@ namespace ModuleApiExport
             const ModuleApiGeneratedRoot& root = ioRoots[index];
             if (root.file && root.symbol && needsSyntacticWalk(*root.symbol))
                 collectSyntacticDependencies(collector, root);
+        }
+
+        for (size_t index = 0; index < publicCount; ++index)
+        {
+            // Copy: the roots vector grows while the fields' dependencies are published.
+            const ModuleApiGeneratedRoot root = ioRoots[index];
+            SWC_RESULT(collectInternalFieldDependencies(collector, root));
         }
 
         while (!collector.pending.empty())

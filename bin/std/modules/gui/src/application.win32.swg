@@ -2,9 +2,9 @@
 
 using Win32, Core, Pixel, Gdi32
 
-// Dependency-visible Windows storage embedded by [[Gui.Application]].
-#[Swag.Opaque, Swag.NoDoc]
-public struct ApplicationNative
+// Windows storage embedded by [[Gui.Application]].
+#[Swag.Opaque]
+struct ApplicationNative
 {
     public
     {

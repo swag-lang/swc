@@ -21,7 +21,6 @@
 struct(T) AtomicValue
 {
     // Storage reached only through the atomic operations.
-    #[Swag.NoDoc]
     storage: T
 }
 
@@ -88,7 +87,6 @@ impl AtomicValue
 struct AtomicFlag
 {
     // Raised state, reached only through the flag operations.
-    #[Swag.NoDoc]
     state: AtomicValue'u32
 }
 

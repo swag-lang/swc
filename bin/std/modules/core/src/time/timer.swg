@@ -1,9 +1,8 @@
 #global public
 #global namespace Time
 
-// Internal native timer handle required by the public value layout.
-#[Swag.NoDoc]
-alias TimerHandle = const *void?
+// Native timer handle.
+internal alias TimerHandle = const *void?
 
 // Owns an operating-system timer that invokes a callback on a worker thread.
 //

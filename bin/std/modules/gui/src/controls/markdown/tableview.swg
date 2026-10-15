@@ -17,8 +17,8 @@ private struct TableCell
     column: u32
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-public struct TableView
+#[Swag.Opaque]
+struct TableView
 {
     using wnd: Wnd
 

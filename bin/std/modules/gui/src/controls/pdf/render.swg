@@ -103,10 +103,8 @@ private const MaxSubstituteCondense = 2.0'f32
 // table lookups and substitute-font selection for each run. An offline render owns one for
 // its lifetime; [[Gui.PdfView]] keeps one per displayed page, so no paint resolves a face
 // the previous paint already resolved.
-//
-// Dependency-visible backing type required by the concrete [[Gui.PdfView]] layout.
-#[Swag.Opaque, Swag.NoDoc]
-struct RenderFontCache
+#[Swag.Opaque]
+internal struct RenderFontCache
 {
     embedded:           Array'(*TypeFace?)     // Per page font index, once resolution was attempted.
     embeddedResolved:   Array'bool

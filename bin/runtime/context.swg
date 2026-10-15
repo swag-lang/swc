@@ -195,49 +195,42 @@ namespace Swag
     }
 
     // Per-thread state, as returned by [[Swag.getContext]].
+    //
+    // 'Runtime::Context' in the compiler mirrors this layout and reaches the fields by offset:
+    // a field is added, removed, or moved in both at once.
     struct Context
     {
         public
         {
-            // Must stay first, in that order, for backend generation
-
-            allocator: IAllocator?     // The current allocator interface
-
-            // Other fields, can be in any order
-
+            allocator:        IAllocator?          // The current allocator interface
             tempAllocator:    ScratchAllocator     // A temporary allocator for the user
-            errorAllocator:   ScratchAllocator     // Copied error messages for the current handled operation.
+            errorAllocator:   ScratchAllocator     // Copied error messages for the current handled operation
             runtimeFlags:     RuntimeFlags         // As initialized by the runtime
             defaultAllocator: IAllocator?          // The default allocator, to restore after a temporary change of 'allocator'
             user0:            u64                  // For user usage
             user1:            u64                  // For user usage
             user2:            u64                  // For user usage
             user3:            u64                  // For user usage
-            traces:           [MaxTraces] SourceCodeLocation     // Stack trace, in case of errors
-            #[Swag.NoDoc]
-            errorLevels: [ErrorInlineCount] ErrorValue     // The first levels of the error stack.
-            #[Swag.NoDoc]
-            errorBlocks:     *ErrorBlock?           // The levels above them, allocated on first use.
-            exceptionLoc:    SourceCodeLocation     // When an exception is raised, this is the code location
-            exceptionParams: [4] (const *void?)     // When an exception is raised, these are its parameters
-            panic:           (func(string?, SourceCodeLocation))?     // A function to call if there's a panic
-            curError:        any?                   // The current raised error
-            errorIndex:      u32                    // Number of error stack levels in use
-            traceIndex:      u32                    // Number of traces in the array
-            hasError:        u32                    // Nonzero while an error is raised
-            #[Swag.NoDoc]
-            errorCaptures: *ErrorCapture?     // Live lexical owners of caught errors.
-            #[Swag.NoDoc]
-            runtimeTlsIdPlusOne: u64     // Process TLS slot shared by dynamically loaded Swag modules.
-            #[Swag.NoDoc]
-            panicStack: [64] (*void?)     // Native call stack captured before entering a panic hook.
-            #[Swag.NoDoc]
-            panicStackCount: u32     // Number of valid addresses in panicStack.
-            #[Swag.NoDoc]
-            panicCatch: *void?     // Innermost 'catchPanic' running on this context.
-            #[Swag.NoDoc]
-            cancelScope: *CancelScope?     // Cancellation state of the work running on this context.
         }
+
+        traces:          [MaxTraces] SourceCodeLocation     // Stack trace, in case of errors
+        errorLevels:     [ErrorInlineCount] ErrorValue      // The first levels of the error stack
+        errorBlocks:     *ErrorBlock?                       // The levels above them, allocated on first use
+        exceptionLoc:    SourceCodeLocation                 // When an exception is raised, this is the code location
+        exceptionParams: [4] (const *void?)                 // When an exception is raised, these are its parameters
+
+        public panic: (func(string?, SourceCodeLocation))?     // A function to call if there's a panic
+
+        curError:            any?               // The current raised error
+        errorIndex:          u32                // Number of error stack levels in use
+        traceIndex:          u32                // Number of traces in the array
+        hasError:            u32                // Nonzero while an error is raised
+        errorCaptures:       *ErrorCapture?     // Live lexical owners of caught errors
+        runtimeTlsIdPlusOne: u64                // Process TLS slot shared by dynamically loaded Swag modules
+        panicStack:          [64] (*void?)      // Native call stack captured before entering a panic hook
+        panicStackCount:     u32                // Number of valid addresses in 'panicStack'
+        panicCatch:          *void?             // Innermost 'catchPanic' running on this context
+        cancelScope:         *CancelScope?      // Cancellation state of the work running on this context
     }
 
     // Represent a part of a source code file.

@@ -2798,7 +2798,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_AllocatorTracking">AllocatorTracking</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_AtomicFlag" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AtomicFlag</span> <a class="api-item-permalink" href="#Swag_AtomicFlag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L88">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_AtomicFlag" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AtomicFlag</span> <a class="api-item-permalink" href="#Swag_AtomicFlag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L87">src</a></div>
 <p>A one-way flag that any thread can raise and every thread can observe.</p>
 <p>A zero-initialized value is lowered. Raising is idempotent, so a request that several threads make at once is one request; nothing lowers a flag except an explicit <a href="#Swag_AtomicFlag_reset">Swag.AtomicFlag.reset</a> on a value no other thread can still reach.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_AtomicFlag">AtomicFlag</a></span></span></div>
@@ -2887,7 +2887,7 @@ counter.<span class="SFct">add</span>(<span class="SNum">1</span>)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_Barrier" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Barrier</span> <a class="api-item-permalink" href="#Swag_Barrier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L186">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_Barrier" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Barrier</span> <a class="api-item-permalink" href="#Swag_Barrier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L180">src</a></div>
 <p>A rendezvous point that releases a fixed number of participants together.</p>
 <p>Every phase is independent: once <span class="code-inline">participants</span> threads have arrived, all of them resume and the barrier is ready for the next phase. A participant that leaves without arriving strands the others, so the participant count must match the threads that actually reach the barrier.</p>
 <div class="blockquote blockquote-warning">
@@ -2975,7 +2975,7 @@ counter.<span class="SFct">add</span>(<span class="SNum">1</span>)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_Condition" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Condition</span> <a class="api-item-permalink" href="#Swag_Condition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L76">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_Condition" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Condition</span> <a class="api-item-permalink" href="#Swag_Condition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L74">src</a></div>
 <p>A wait queue attached to a <a href="#Swag_Mutex">Swag.Mutex</a>, for state one thread publishes and another awaits.</p>
 <p>A zero-initialized value is an empty queue. <a href="#Swag_Condition_wait">Swag.Condition.wait</a> releases the mutex, waits, and reacquires it, so a wake can be lost between the two: always wait in a loop that rechecks the predicate the state actually encodes.</p>
 <div class="code-block"><span class="SCde">mutex.<span class="SFct">lock</span>()
@@ -2999,8 +2999,9 @@ mutex.<span class="SFct">unlock</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_Context" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Context</span> <a class="api-item-permalink" href="#Swag_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/context.swg#L198">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_Context" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Context</span> <a class="api-item-permalink" href="#Swag_Context" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/context.swg#L201">src</a></div>
 <p>Per-thread state, as returned by <a href="#Swag_getContext">Swag.getContext</a>.</p>
+<p><span class="code-inline">Runtime::Context</span> in the compiler mirrors this layout and reaches the fields by offset: a field is added, removed, or moved in both at once.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Context">Context</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -3009,29 +3010,15 @@ mutex.<span class="SFct">unlock</span>()</span></div>
 <tbody>
 <tr><td id="Swag_Context_allocator" class="code-type">allocator</td><td class="code-type"><a href="#Swag_IAllocator">Swag.IAllocator</a>?</td><td><p>The current allocator interface</p>
 </td></tr>
-<tr><td id="Swag_Context_curError" class="code-type">curError</td><td class="code-type">any?</td><td><p>The current raised error</p>
-</td></tr>
 <tr><td id="Swag_Context_defaultAllocator" class="code-type">defaultAllocator</td><td class="code-type"><a href="#Swag_IAllocator">Swag.IAllocator</a>?</td><td><p>The default allocator, to restore after a temporary change of <span class="code-inline">allocator</span></p>
 </td></tr>
-<tr><td id="Swag_Context_errorAllocator" class="code-type">errorAllocator</td><td class="code-type"><a href="#Swag_ScratchAllocator">Swag.ScratchAllocator</a></td><td><p>Copied error messages for the current handled operation.</p>
-</td></tr>
-<tr><td id="Swag_Context_errorIndex" class="code-type">errorIndex</td><td class="code-type">u32</td><td><p>Number of error stack levels in use</p>
-</td></tr>
-<tr><td id="Swag_Context_exceptionLoc" class="code-type">exceptionLoc</td><td class="code-type"><a href="#Swag_SourceCodeLocation">Swag.SourceCodeLocation</a></td><td><p>When an exception is raised, this is the code location</p>
-</td></tr>
-<tr><td id="Swag_Context_exceptionParams" class="code-type">exceptionParams</td><td class="code-type">[4] (const *void?)</td><td><p>When an exception is raised, these are its parameters</p>
-</td></tr>
-<tr><td id="Swag_Context_hasError" class="code-type">hasError</td><td class="code-type">u32</td><td><p>Nonzero while an error is raised</p>
+<tr><td id="Swag_Context_errorAllocator" class="code-type">errorAllocator</td><td class="code-type"><a href="#Swag_ScratchAllocator">Swag.ScratchAllocator</a></td><td><p>Copied error messages for the current handled operation</p>
 </td></tr>
 <tr><td id="Swag_Context_panic" class="code-type">panic</td><td class="code-type">(func(string?, <a href="#Swag_SourceCodeLocation">Swag.SourceCodeLocation</a>))?</td><td><p>A function to call if there's a panic</p>
 </td></tr>
 <tr><td id="Swag_Context_runtimeFlags" class="code-type">runtimeFlags</td><td class="code-type"><a href="#Swag_RuntimeFlags">Swag.RuntimeFlags</a></td><td><p>As initialized by the runtime</p>
 </td></tr>
 <tr><td id="Swag_Context_tempAllocator" class="code-type">tempAllocator</td><td class="code-type"><a href="#Swag_ScratchAllocator">Swag.ScratchAllocator</a></td><td><p>A temporary allocator for the user</p>
-</td></tr>
-<tr><td id="Swag_Context_traceIndex" class="code-type">traceIndex</td><td class="code-type">u32</td><td><p>Number of traces in the array</p>
-</td></tr>
-<tr><td id="Swag_Context_traces" class="code-type">traces</td><td class="code-type">[32] <a href="#Swag_SourceCodeLocation">Swag.SourceCodeLocation</a></td><td><p>Stack trace, in case of errors</p>
 </td></tr>
 <tr><td id="Swag_Context_user0" class="code-type">user0</td><td class="code-type">u64</td><td><p>For user usage</p>
 </td></tr>
@@ -3268,7 +3255,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>()-&gt;<span
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_RWLock" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.RWLock</span> <a class="api-item-permalink" href="#Swag_RWLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L36">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_RWLock" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.RWLock</span> <a class="api-item-permalink" href="#Swag_RWLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L35">src</a></div>
 <p>A lock that admits either one writer or any number of concurrent readers.</p>
 <p>A zero-initialized value is a free lock. Readers and writers use different release operations, and a reader cannot upgrade to a writer while holding the shared side: release first, then acquire exclusively and revalidate whatever the read observed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_RWLock">RWLock</a></span></span></div>
@@ -3342,7 +3329,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>()-&gt;<span
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_Semaphore" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Semaphore</span> <a class="api-item-permalink" href="#Swag_Semaphore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L110">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_Semaphore" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Semaphore</span> <a class="api-item-permalink" href="#Swag_Semaphore" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L107">src</a></div>
 <p>A counted set of permits, acquired and released by any thread.</p>
 <p>A zero-initialized value holds no permit. Call <a href="#Swag_Semaphore_setPermits">Swag.Semaphore.setPermits</a> before the first acquisition, or release the initial permits explicitly. The count is the resource; the semaphore does not track which thread took a permit, so releasing one that was never acquired is a program error rather than a detected fault.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_Semaphore">Semaphore</a></span></span></div>
@@ -3362,7 +3349,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>()-&gt;<span
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_SourceCodeLocation" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.SourceCodeLocation</span> <a class="api-item-permalink" href="#Swag_SourceCodeLocation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/context.swg#L246">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_SourceCodeLocation" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.SourceCodeLocation</span> <a class="api-item-permalink" href="#Swag_SourceCodeLocation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/context.swg#L239">src</a></div>
 <p>Represent a part of a source code file.</p>
 <p>This is typically what will be returned by <span class="code-inline">#curlocation</span> or <span class="code-inline">#callerlocation</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span></span></div>
@@ -3441,7 +3428,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_TaskGroup" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TaskGroup</span> <a class="api-item-permalink" href="#Swag_TaskGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L437">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_TaskGroup" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TaskGroup</span> <a class="api-item-permalink" href="#Swag_TaskGroup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L432">src</a></div>
 <p>Owns a set of child tasks and joins every one of them before it is released.</p>
 <p>The group is the lifetime that makes a spawn safe: a child can borrow anything that outlives the group, because the group cannot be released while a child is still running. Leaving the scope of a group joins its children, whether the scope ends normally, by an early return, or by a raised error. Children use the same isolated error state as <a href="#Swag_Task">Swag.Task</a>, including when the joining caller executes them during cleanup.</p>
 <p>A child can fail. The first error a child raises asks every other child to stop, and <a href="#Swag_TaskGroup_join">Swag.TaskGroup.join</a> raises it once every child has finished. Leaving the group's scope joins the children too, but drops an error nobody joined.</p>
@@ -5220,100 +5207,100 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">takeIdleBit</span>(bit: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicFlag_isRaised" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicFlag.isRaised</span> <a class="api-item-permalink" href="#Swag_AtomicFlag_isRaised" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L102">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicFlag_isRaised" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicFlag.isRaised</span> <a class="api-item-permalink" href="#Swag_AtomicFlag_isRaised" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L100">src</a></div>
 <p>Returns whether the flag is raised.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isRaised</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicFlag_raise" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicFlag.raise</span> <a class="api-item-permalink" href="#Swag_AtomicFlag_raise" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicFlag_raise" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicFlag.raise</span> <a class="api-item-permalink" href="#Swag_AtomicFlag_raise" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L97">src</a></div>
 <p>Raises the flag, and returns whether this call is the one that raised it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">raise</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicFlag_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicFlag.reset</span> <a class="api-item-permalink" href="#Swag_AtomicFlag_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L105">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicFlag_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicFlag.reset</span> <a class="api-item-permalink" href="#Swag_AtomicFlag_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L103">src</a></div>
 <p>Lowers the flag. Valid only while no other thread can reach it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.add</span> <a class="api-item-permalink" href="#Swag_AtomicValue_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L64">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_add" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.add</span> <a class="api-item-permalink" href="#Swag_AtomicValue_add" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L63">src</a></div>
 <p>Adds <span class="code-inline">value</span> and returns the value held before the addition.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">add</span>(value: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_bitAnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.bitAnd</span> <a class="api-item-permalink" href="#Swag_AtomicValue_bitAnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_bitAnd" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.bitAnd</span> <a class="api-item-permalink" href="#Swag_AtomicValue_bitAnd" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L71">src</a></div>
 <p>Applies a bitwise and, and returns the value held before it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">bitAnd</span>(value: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_bitOr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.bitOr</span> <a class="api-item-permalink" href="#Swag_AtomicValue_bitOr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L76">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_bitOr" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.bitOr</span> <a class="api-item-permalink" href="#Swag_AtomicValue_bitOr" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L75">src</a></div>
 <p>Applies a bitwise or, and returns the value held before it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">bitOr</span>(value: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_bitXor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.bitXor</span> <a class="api-item-permalink" href="#Swag_AtomicValue_bitXor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L80">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_bitXor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.bitXor</span> <a class="api-item-permalink" href="#Swag_AtomicValue_bitXor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L79">src</a></div>
 <p>Applies a bitwise exclusive or, and returns the value held before it.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">bitXor</span>(value: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_compareExchange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.compareExchange</span> <a class="api-item-permalink" href="#Swag_AtomicValue_compareExchange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L60">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_compareExchange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.compareExchange</span> <a class="api-item-permalink" href="#Swag_AtomicValue_compareExchange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L59">src</a></div>
 <p>Replaces the value with <span class="code-inline">value</span> only if it currently equals <span class="code-inline">compare</span>.</p>
 <p>Returns the value found before the attempt, so the exchange succeeded when the result equals <span class="code-inline">compare</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">compareExchange</span>(compare, value: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_exchange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.exchange</span> <a class="api-item-permalink" href="#Swag_AtomicValue_exchange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_exchange" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.exchange</span> <a class="api-item-permalink" href="#Swag_AtomicValue_exchange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L53">src</a></div>
 <p>Replaces the value and returns what it was.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">exchange</span>(value: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.load</span> <a class="api-item-permalink" href="#Swag_AtomicValue_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L31">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.load</span> <a class="api-item-permalink" href="#Swag_AtomicValue_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L30">src</a></div>
 <p>Returns the current value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">load</span>()-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_loadAcquire" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.loadAcquire</span> <a class="api-item-permalink" href="#Swag_AtomicValue_loadAcquire" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L35">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_loadAcquire" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.loadAcquire</span> <a class="api-item-permalink" href="#Swag_AtomicValue_loadAcquire" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L34">src</a></div>
 <p>Returns the current value. When it was written by <a href="#Swag_AtomicValue_storeRelease">Swag.AtomicValue.storeRelease</a>, everything the writing thread did before that write is visible after this read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">loadAcquire</span>()-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_loadRelaxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.loadRelaxed</span> <a class="api-item-permalink" href="#Swag_AtomicValue_loadRelaxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L39">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_loadRelaxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.loadRelaxed</span> <a class="api-item-permalink" href="#Swag_AtomicValue_loadRelaxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L38">src</a></div>
 <p>Returns the current value, ordered against nothing else: for a count or a statistic that no other access depends on.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">loadRelaxed</span>()-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_store" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.store</span> <a class="api-item-permalink" href="#Swag_AtomicValue_store" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L42">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_store" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.store</span> <a class="api-item-permalink" href="#Swag_AtomicValue_store" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L41">src</a></div>
 <p>Replaces the value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">store</span>(value: <span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_storeRelaxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.storeRelaxed</span> <a class="api-item-permalink" href="#Swag_AtomicValue_storeRelaxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L51">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_storeRelaxed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.storeRelaxed</span> <a class="api-item-permalink" href="#Swag_AtomicValue_storeRelaxed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L50">src</a></div>
 <p>Replaces the value, ordered against nothing else.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">storeRelaxed</span>(value: <span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_storeRelease" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.storeRelease</span> <a class="api-item-permalink" href="#Swag_AtomicValue_storeRelease" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L48">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_storeRelease" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.storeRelease</span> <a class="api-item-permalink" href="#Swag_AtomicValue_storeRelease" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L47">src</a></div>
 <p>Replaces the value. A thread whose <a href="#Swag_AtomicValue_loadAcquire">Swag.AtomicValue.loadAcquire</a> reads it also sees everything this thread wrote before: the way to publish data behind a flag, or to release a lock. It does not order a later read of this thread against it, which is what the plain <a href="#Swag_AtomicValue_store">Swag.AtomicValue.store</a> is for.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">storeRelease</span>(value: <span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_AtomicValue_sub" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.sub</span> <a class="api-item-permalink" href="#Swag_AtomicValue_sub" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L68">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_AtomicValue_sub" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AtomicValue.sub</span> <a class="api-item-permalink" href="#Swag_AtomicValue_sub" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/atomic.swg#L67">src</a></div>
 <p>Subtracts <span class="code-inline">value</span> and returns the value held before the subtraction.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Discardable]</span>
 <span class="SKwd">mtd</span> <span class="SFct">sub</span>(value: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Barrier_arrive" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Barrier.arrive</span> <a class="api-item-permalink" href="#Swag_Barrier_arrive" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L223">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Barrier_arrive" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Barrier.arrive</span> <a class="api-item-permalink" href="#Swag_Barrier_arrive" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L212">src</a></div>
 <p>Waits until every participant of the current phase has arrived.</p>
 <p>Returns <span class="code-inline">true</span> to the participant that completed the phase, and <span class="code-inline">false</span> to the others.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">arrive</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Barrier_setParticipants" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Barrier.setParticipants</span> <a class="api-item-permalink" href="#Swag_Barrier_setParticipants" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L212">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Barrier_setParticipants" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Barrier.setParticipants</span> <a class="api-item-permalink" href="#Swag_Barrier_setParticipants" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L201">src</a></div>
 <p>Sets how many participants one phase expects. Call it before any thread arrives.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setParticipants</span>(count: <span class="STpe">u32</span>)</span></div>
 </section>
@@ -5323,24 +5310,24 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">message</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Condition_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.wait</span> <a class="api-item-permalink" href="#Swag_Condition_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L89">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Condition_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.wait</span> <a class="api-item-permalink" href="#Swag_Condition_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L86">src</a></div>
 <p>Releases <span class="code-inline">mutex</span>, waits for a wake, then reacquires <span class="code-inline">mutex</span> before returning.</p>
 <p>A waiting thread does not run ready work, so the wake must come from something that is already running rather than from work still queued behind this wait.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>(mutex: *<span class="SCst"><a href="#Swag_Mutex">Mutex</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Condition_waitFor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.waitFor</span> <a class="api-item-permalink" href="#Swag_Condition_waitFor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L95">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Condition_waitFor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.waitFor</span> <a class="api-item-permalink" href="#Swag_Condition_waitFor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L92">src</a></div>
 <p>Waits like <a href="#Swag_Condition_wait">Swag.Condition.wait</a> but gives up after <span class="code-inline">milliseconds</span>.</p>
 <p>Returns <span class="code-inline">false</span> when the deadline expired rather than a wake arriving. <span class="code-inline">mutex</span> is reacquired either way.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">waitFor</span>(mutex: *<span class="SCst"><a href="#Swag_Mutex">Mutex</a></span>, milliseconds: <span class="STpe">u32</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Condition_wake" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.wake</span> <a class="api-item-permalink" href="#Swag_Condition_wake" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L98">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Condition_wake" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.wake</span> <a class="api-item-permalink" href="#Swag_Condition_wake" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L95">src</a></div>
 <p>Wakes one waiter, if any is waiting.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wake</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Condition_wakeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.wakeAll</span> <a class="api-item-permalink" href="#Swag_Condition_wakeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L101">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Condition_wakeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Condition.wakeAll</span> <a class="api-item-permalink" href="#Swag_Condition_wakeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L98">src</a></div>
 <p>Wakes every current waiter.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wakeAll</span>()</span></div>
 </section>
@@ -5396,27 +5383,27 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Executor_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.close</span> <a class="api-item-permalink" href="#Swag_Executor_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L92">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Executor_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.close</span> <a class="api-item-permalink" href="#Swag_Executor_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L84">src</a></div>
 <p>Runs every task already submitted, then stops and joins the thread. Closing an executor that is not running does nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Executor_isStarted" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.isStarted</span> <a class="api-item-permalink" href="#Swag_Executor_isStarted" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L88">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Executor_isStarted" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.isStarted</span> <a class="api-item-permalink" href="#Swag_Executor_isStarted" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L80">src</a></div>
 <p>Returns whether the executor runs its own thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isStarted</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Executor_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.opDrop</span> <a class="api-item-permalink" href="#Swag_Executor_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L65">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Executor_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.opDrop</span> <a class="api-item-permalink" href="#Swag_Executor_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L57">src</a></div>
 <p>Runs every task already submitted, then stops the thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Executor_post" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.post</span> <a class="api-item-permalink" href="#Swag_Executor_post" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L107">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Executor_post" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.post</span> <a class="api-item-permalink" href="#Swag_Executor_post" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L99">src</a></div>
 <p>Queues <span class="code-inline">node</span> for the thread, or runs it here when the executor has no thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">mtd</span> <span class="SFct">post</span>(node: *<span class="SCst">WorkNode</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Executor_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.start</span> <a class="api-item-permalink" href="#Swag_Executor_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L73">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Executor_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Executor.start</span> <a class="api-item-permalink" href="#Swag_Executor_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/executor.swg#L65">src</a></div>
 <p>Starts the thread. A <span class="code-inline">Background</span> executor runs every task below normal priority.</p>
 <p>Failing to start a host thread raises a panic, as failing to allocate does.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(priority = <span class="SCst"><a href="#Swag_TaskPriority">TaskPriority</a></span>.<span class="SCst"><a href="#Swag_TaskPriority_Normal">Normal</a></span>)</span></div>
@@ -5467,17 +5454,17 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
     <span class="SLgc">where</span> <span class="SLgc">not</span> ptr</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Mutex_lock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mutex.lock</span> <a class="api-item-permalink" href="#Swag_Mutex_lock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L22">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Mutex_lock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mutex.lock</span> <a class="api-item-permalink" href="#Swag_Mutex_lock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L21">src</a></div>
 <p>Acquires the lock, waiting until no other thread holds it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lock</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Mutex_tryLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mutex.tryLock</span> <a class="api-item-permalink" href="#Swag_Mutex_tryLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L28">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Mutex_tryLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mutex.tryLock</span> <a class="api-item-permalink" href="#Swag_Mutex_tryLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L27">src</a></div>
 <p>Acquires the lock only if it is free, and returns whether it did.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryLock</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Mutex_unlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mutex.unlock</span> <a class="api-item-permalink" href="#Swag_Mutex_unlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L25">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Mutex_unlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mutex.unlock</span> <a class="api-item-permalink" href="#Swag_Mutex_unlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L24">src</a></div>
 <p>Releases the lock. Only the thread that acquired it may release it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unlock</span>()</span></div>
 </section>
@@ -5549,32 +5536,32 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">mtd</span>(ptr: <span class="STpe">bool</span>) <span class="SFct">opVisit</span>(stmt: <span class="SItr">#code</span>(item, index: <span class="STpe">u64</span>))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_RWLock_lock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.lock</span> <a class="api-item-permalink" href="#Swag_RWLock_lock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L46">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_RWLock_lock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.lock</span> <a class="api-item-permalink" href="#Swag_RWLock_lock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L44">src</a></div>
 <p>Acquires exclusive access, waiting until no reader or writer holds the lock.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lock</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_RWLock_lockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.lockShared</span> <a class="api-item-permalink" href="#Swag_RWLock_lockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L55">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_RWLock_lockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.lockShared</span> <a class="api-item-permalink" href="#Swag_RWLock_lockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L53">src</a></div>
 <p>Acquires shared access, waiting until no writer holds the lock.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">lockShared</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_RWLock_tryLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.tryLock</span> <a class="api-item-permalink" href="#Swag_RWLock_tryLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L52">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_RWLock_tryLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.tryLock</span> <a class="api-item-permalink" href="#Swag_RWLock_tryLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L50">src</a></div>
 <p>Acquires exclusive access only if the lock is free, and returns whether it did.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryLock</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_RWLock_tryLockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.tryLockShared</span> <a class="api-item-permalink" href="#Swag_RWLock_tryLockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L61">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_RWLock_tryLockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.tryLockShared</span> <a class="api-item-permalink" href="#Swag_RWLock_tryLockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L59">src</a></div>
 <p>Acquires shared access only if no writer holds the lock, and returns whether it did.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryLockShared</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_RWLock_unlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.unlock</span> <a class="api-item-permalink" href="#Swag_RWLock_unlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L49">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_RWLock_unlock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.unlock</span> <a class="api-item-permalink" href="#Swag_RWLock_unlock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L47">src</a></div>
 <p>Releases exclusive access.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unlock</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_RWLock_unlockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.unlockShared</span> <a class="api-item-permalink" href="#Swag_RWLock_unlockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L58">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_RWLock_unlockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RWLock.unlockShared</span> <a class="api-item-permalink" href="#Swag_RWLock_unlockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L56">src</a></div>
 <p>Releases shared access.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unlockShared</span>()</span></div>
 </section>
@@ -5620,23 +5607,23 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCapacity</span>(newCapacity: <span class="STpe">u64</span>, allocator: <span class="SCst"><a href="#Swag_IAllocator">IAllocator</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Semaphore_acquire" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.acquire</span> <a class="api-item-permalink" href="#Swag_Semaphore_acquire" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L139">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Semaphore_acquire" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.acquire</span> <a class="api-item-permalink" href="#Swag_Semaphore_acquire" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L133">src</a></div>
 <p>Takes one permit, waiting until one is free.</p>
 <p>A waiting thread does not run ready work, so a task that waits here occupies its worker. The permits must be returned by something that is already running.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">acquire</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Semaphore_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.release</span> <a class="api-item-permalink" href="#Swag_Semaphore_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L160">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Semaphore_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.release</span> <a class="api-item-permalink" href="#Swag_Semaphore_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L154">src</a></div>
 <p>Returns <span class="code-inline">count</span> permits and wakes that many waiters.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>(count: <span class="STpe">u32</span> = <span class="SNum">1</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Semaphore_setPermits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.setPermits</span> <a class="api-item-permalink" href="#Swag_Semaphore_setPermits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L128">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Semaphore_setPermits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.setPermits</span> <a class="api-item-permalink" href="#Swag_Semaphore_setPermits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L122">src</a></div>
 <p>Sets the number of free permits. Call it before any thread can acquire.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPermits</span>(count: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Semaphore_tryAcquire" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.tryAcquire</span> <a class="api-item-permalink" href="#Swag_Semaphore_tryAcquire" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L149">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Semaphore_tryAcquire" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Semaphore.tryAcquire</span> <a class="api-item-permalink" href="#Swag_Semaphore_tryAcquire" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L143">src</a></div>
 <p>Takes one permit only if one is free, and returns whether it did.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryAcquire</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -6519,14 +6506,14 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">internal</span> <span class="SKwd">func</span> <span class="SFct">schedulerInstance</span>()-&gt;*<span class="SCst">Scheduler</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_scopedLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.scopedLock</span> <a class="api-item-permalink" href="#Swag_scopedLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L255">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_scopedLock" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.scopedLock</span> <a class="api-item-permalink" href="#Swag_scopedLock" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L244">src</a></div>
 <p>Locks <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
 <p>The lock is released by the scope's exit, including an early return or a raised error.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">scopedLock</span>(syncObj: *<span class="SCst">T</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_scopedLockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.scopedLockShared</span> <a class="api-item-permalink" href="#Swag_scopedLockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L263">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_scopedLockShared" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.scopedLockShared</span> <a class="api-item-permalink" href="#Swag_scopedLockShared" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/sync.swg#L252">src</a></div>
 <p>Takes shared access to <span class="code-inline">syncObj</span> for the rest of the enclosing scope.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">scopedLockShared</span>(syncObj: *<span class="SCst">T</span>)</span></div>
@@ -6968,13 +6955,13 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">Warning</span>(what: <span class="STpe">string</span>, level: <span class="SCst"><a href="#Swag_WarningLevel">WarningLevel</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_whenAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAll</span> <a class="api-item-permalink" href="#Swag_whenAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L653">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_whenAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAll</span> <a class="api-item-permalink" href="#Swag_whenAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L641">src</a></div>
 <p>Waits for every task of <span class="code-inline">tasks</span>. As soon as one of them fails, the others are asked to stop; once they have all finished, the error of the first failed task, in the order of <span class="code-inline">tasks</span>, is raised.</p>
 <p>The tasks keep their outcomes: take each value with <a href="#Swag_Task_take">Swag.Task.take</a>, which raises a failed task's error again. Every task must be submitted, and its outcome not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">whenAll</span>(tasks: [..] <span class="SFct">Task</span>'<span class="SCst">T</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_whenAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAny</span> <a class="api-item-permalink" href="#Swag_whenAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L685">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_whenAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAny</span> <a class="api-item-permalink" href="#Swag_whenAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L673">src</a></div>
 <p>Waits until one task of <span class="code-inline">tasks</span> succeeds, asks the others to stop, and returns its index. When every task fails, raises the error of the first one, in the order of <span class="code-inline">tasks</span>.</p>
 <p>The winner keeps its value for <a href="#Swag_Task_take">Swag.Task.take</a>. The others still have to be waited for, or destroyed, before what they borrow is released. Every task must be submitted, and its outcome not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">whenAny</span>(tasks: [..] <span class="SFct">Task</span>'<span class="SCst">T</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
@@ -6987,39 +6974,39 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">workerCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.cancel</span> <a class="api-item-permalink" href="#Swag_Task_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L205">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.cancel</span> <a class="api-item-permalink" href="#Swag_Task_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L200">src</a></div>
 <p>Asks the running work to stop.</p>
 <p>The request is idempotent and covers the current submission only. It stops nothing by itself: the body observes it through <a href="#Swag_isCancelled">Swag.isCancelled</a>, as does every task-group child and <span class="code-inline">parallel for</span> partition the body starts.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cancel</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_hasFailed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.hasFailed</span> <a class="api-item-permalink" href="#Swag_Task_hasFailed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L215">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_hasFailed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.hasFailed</span> <a class="api-item-permalink" href="#Swag_Task_hasFailed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L210">src</a></div>
 <p>Returns whether the last submission finished with an error that was not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasFailed</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isCancelled</span> <a class="api-item-permalink" href="#Swag_Task_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L212">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isCancelled</span> <a class="api-item-permalink" href="#Swag_Task_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L207">src</a></div>
 <p>Returns whether a stop was requested for the current submission.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isCancelled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isDone</span> <a class="api-item-permalink" href="#Swag_Task_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L227">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_isDone" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isDone</span> <a class="api-item-permalink" href="#Swag_Task_isDone" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L222">src</a></div>
 <p>Returns whether the last submission finished and its outcome was not taken yet.</p>
 <p>A task that was never submitted is not done: it has nothing to report.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isDone</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_isPending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isPending</span> <a class="api-item-permalink" href="#Swag_Task_isPending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L218">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_isPending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.isPending</span> <a class="api-item-permalink" href="#Swag_Task_isPending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L213">src</a></div>
 <p>Returns whether the task is submitted and not finished.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isPending</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.opDrop</span> <a class="api-item-permalink" href="#Swag_Task_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L158">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.opDrop</span> <a class="api-item-permalink" href="#Swag_Task_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L153">src</a></div>
 <p>Asks the work to stop, then waits for it before releasing the task's storage.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_submit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.submit</span> <a class="api-item-permalink" href="#Swag_Task_submit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L177">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_submit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.submit</span> <a class="api-item-permalink" href="#Swag_Task_submit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L172">src</a></div>
 <p>Submits <span class="code-inline">body</span> for one execution.</p>
 <p><span class="code-inline">notify</span>, when given, runs once on the thread that finished the work, after the outcome is stored and before the task reads as done. It is how an owner on another thread learns that <a href="#Swag_Task_take">Swag.Task.take</a> will not wait, for example by posting an event to a window. It must be short, and must not wait for this task.</p>
 <p>A <span class="code-inline">Background</span> task runs its body at a lower thread priority, whichever thread runs it, so a long load or count does not slow the interface down. An <span class="code-inline">executor</span> runs the task on its own thread, after every task submitted to it before; otherwise a pool worker runs it.</p>
@@ -7029,47 +7016,47 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">submit</span>(body: <span class="SKwd">func</span>||()-&gt;<span class="SCst">T</span> <span class="SKwd">fail</span>, notify: (<span class="SKwd">func</span>||())? = <span class="SKwd">null</span>, priority = <span class="SCst"><a href="#Swag_TaskPriority">TaskPriority</a></span>.<span class="SCst"><a href="#Swag_TaskPriority_Normal">Normal</a></span>, executor: *<span class="SCst"><a href="#Swag_Executor">Executor</a></span>? = <span class="SKwd">null</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_take" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.take</span> <a class="api-item-permalink" href="#Swag_Task_take" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L248">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_take" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.take</span> <a class="api-item-permalink" href="#Swag_Task_take" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L243">src</a></div>
 <p>Waits for the work, then hands over its outcome: the value it produced, or the error it raised, with its dynamic type.</p>
 <p>The outcome is handed over once. Afterwards the task is no longer done, and can be submitted again.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">take</span>()-&gt;<span class="SCst">T</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.wait</span> <a class="api-item-permalink" href="#Swag_Task_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L234">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.wait</span> <a class="api-item-permalink" href="#Swag_Task_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L229">src</a></div>
 <p>Waits until the last submission has finished.</p>
 <p>The waiting thread can run this task if it is still queued; it does not run unrelated ready tasks. Descendant-only joins therefore progress even when every worker is busy. Waiting on a task that was never submitted returns immediately.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Task_waitUnlessCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.waitUnlessCancelled</span> <a class="api-item-permalink" href="#Swag_Task_waitUnlessCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L241">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Task_waitUnlessCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Task.waitUnlessCancelled</span> <a class="api-item-permalink" href="#Swag_Task_waitUnlessCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L236">src</a></div>
 <p>Waits like <a href="#Swag_Task_wait">Swag.Task.wait</a>, but returns early when the work that waits is asked to stop (<a href="#Swag_isCancelled">Swag.isCancelled</a>). Returns whether this task has finished.</p>
 <p>The waiting thread never runs this task itself, so it stays free to notice the request; the task keeps going on its own, and its owner still has to wait for it or cancel it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">waitUnlessCancelled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.cancel</span> <a class="api-item-permalink" href="#Swag_TaskGroup_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L537">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.cancel</span> <a class="api-item-permalink" href="#Swag_TaskGroup_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L525">src</a></div>
 <p>Requests that every child stop.</p>
 <p>The request is idempotent and is never withdrawn. It stops nothing by itself: a child observes it through <a href="#Swag_isCancelled">Swag.isCancelled</a> and returns early on its own.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cancel</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.isCancelled</span> <a class="api-item-permalink" href="#Swag_TaskGroup_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L544">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_isCancelled" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.isCancelled</span> <a class="api-item-permalink" href="#Swag_TaskGroup_isCancelled" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L532">src</a></div>
 <p>Returns whether cancellation was requested for this group, or for the work that spawned it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isCancelled</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_join" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.join</span> <a class="api-item-permalink" href="#Swag_TaskGroup_join" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L505">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_join" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.join</span> <a class="api-item-permalink" href="#Swag_TaskGroup_join" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L493">src</a></div>
 <p>Waits for every child, then raises the first error a child raised, if any.</p>
 <p>The group is then empty again: it can take new children, and the stop request a failure or <a href="#Swag_TaskGroup_cancel">Swag.TaskGroup.cancel</a> made is withdrawn.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">join</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.opDrop</span> <a class="api-item-permalink" href="#Swag_TaskGroup_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L471">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.opDrop</span> <a class="api-item-permalink" href="#Swag_TaskGroup_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L459">src</a></div>
 <p>Joins every child, then releases the group's storage. An error nobody joined is dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_spawn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.spawn</span> <a class="api-item-permalink" href="#Swag_TaskGroup_spawn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L481">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_spawn" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.spawn</span> <a class="api-item-permalink" href="#Swag_TaskGroup_spawn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L469">src</a></div>
 <p>Creates a child task running <span class="code-inline">body</span> and submits it.</p>
 <p>The child belongs to this group until the group joins it. <span class="code-inline">body</span> reads the group's cancellation state, and that of the work spawning it, through <a href="#Swag_isCancelled">Swag.isCancelled</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">spawn</span>(body: <span class="SKwd">func</span>||())</span></div>
@@ -7078,7 +7065,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">spawn</span>(body: <span class="SKwd">func</span>||() <span class="SKwd">fail</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_TaskGroup_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.wait</span> <a class="api-item-permalink" href="#Swag_TaskGroup_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L519">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_TaskGroup_wait" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TaskGroup.wait</span> <a class="api-item-permalink" href="#Swag_TaskGroup_wait" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L507">src</a></div>
 <p>Waits until every child spawned so far has finished.</p>
 <p>The waiting thread can run the child it is joining, but does not run unrelated ready tasks. Children spawned after this call are not covered by it; leaving the group's scope joins those too.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">wait</span>()</span></div>
@@ -7525,18 +7512,11 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 "s|Swag.Condition|Swag_Condition|A wait queue attached to a Swag.Mutex, for state one thread publishes and another awaits.",
 "s|Swag.Context|Swag_Context|Per-thread state, as returned by Swag.getContext.",
 "v|Swag.Context.allocator|Swag_Context_allocator|The current allocator interface",
-"v|Swag.Context.curError|Swag_Context_curError|The current raised error",
 "v|Swag.Context.defaultAllocator|Swag_Context_defaultAllocator|The default allocator, to restore after a temporary change of 'allocator'",
-"v|Swag.Context.errorAllocator|Swag_Context_errorAllocator|Copied error messages for the current handled operation.",
-"v|Swag.Context.errorIndex|Swag_Context_errorIndex|Number of error stack levels in use",
-"v|Swag.Context.exceptionLoc|Swag_Context_exceptionLoc|When an exception is raised, this is the code location",
-"v|Swag.Context.exceptionParams|Swag_Context_exceptionParams|When an exception is raised, these are its parameters",
-"v|Swag.Context.hasError|Swag_Context_hasError|Nonzero while an error is raised",
+"v|Swag.Context.errorAllocator|Swag_Context_errorAllocator|Copied error messages for the current handled operation",
 "v|Swag.Context.panic|Swag_Context_panic|A function to call if there's a panic",
 "v|Swag.Context.runtimeFlags|Swag_Context_runtimeFlags|As initialized by the runtime",
 "v|Swag.Context.tempAllocator|Swag_Context_tempAllocator|A temporary allocator for the user",
-"v|Swag.Context.traceIndex|Swag_Context_traceIndex|Number of traces in the array",
-"v|Swag.Context.traces|Swag_Context_traces|Stack trace, in case of errors",
 "v|Swag.Context.user0|Swag_Context_user0|For user usage",
 "v|Swag.Context.user1|Swag_Context_user1|For user usage",
 "v|Swag.Context.user2|Swag_Context_user2|For user usage",

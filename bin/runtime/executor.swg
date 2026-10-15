@@ -27,35 +27,27 @@
 struct Executor
 {
     // Guards the queue and the stop request.
-    #[Swag.NoDoc]
     mutex: Mutex
 
     // Wakes the thread when work arrives or the executor closes.
-    #[Swag.NoDoc]
     ready: Condition
 
     // Submitted work, oldest first.
-    #[Swag.NoDoc]
     head: *WorkNode?
 
     // The newest submitted work.
-    #[Swag.NoDoc]
     tail: *WorkNode?
 
     // Host thread handle while the executor runs.
-    #[Swag.NoDoc]
     handle: *void?
 
     // Set by close, read by the thread once the queue is empty.
-    #[Swag.NoDoc]
     stopping: bool
 
     // How urgently the thread competes with the rest of the process.
-    #[Swag.NoDoc]
     priority: TaskPriority
 
     // The thread's own runtime context.
-    #[Swag.NoDoc]
     context: Context
 }
 

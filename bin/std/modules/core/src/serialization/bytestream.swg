@@ -42,10 +42,8 @@ public impl ByteStream
     // Returns the total length of the underlying buffer, in bytes.
     mtd const length()->u64 => .writeBuffer ? .writeBuffer.count : (.readBuffer).count
 
-    // Kept in the exported dependency because public generic methods expand in
-    // their caller and need this primitive. It is not part of the documented API.
-    #[Swag.NoDoc]
-    mtd data()->const [*] u8 => .writeBuffer ? .writeBuffer.buffer! : (.readBuffer).buffer!
+    // Returns the start of the underlying buffer.
+    internal mtd data()->const [*] u8 => .writeBuffer ? .writeBuffer.buffer! : (.readBuffer).buffer!
 
     // Returns whether [[Core.ByteStream.advance]], [[Core.ByteStream.readU8]], or [[Core.ByteStream.setPosition]] reached the end of the buffer.
     mtd const isEof()->bool => .eof

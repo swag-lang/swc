@@ -21,12 +21,9 @@ struct(K, V) HashTableEntry
 struct(K, V) HashTable
 {
     // Special hash values to indicate the state of a slot in the table.
-    #[Swag.NoDoc]
-    const HASH_FREE = 0'u32
-    #[Swag.NoDoc]
+    const HASH_FREE    = 0'u32
     const HASH_DELETED = 1'u32
-    #[Swag.NoDoc]
-    const HASH_FIRST = 2'u32
+    const HASH_FIRST   = 2'u32
 
     internal allocator: IAllocator?
 
@@ -114,8 +111,7 @@ impl ReversedHashTable
 
 impl HashTable
 {
-    #[Swag.NoDoc]
-    func normalizeCapacity(newCapacity: u64)->u64
+    private func normalizeCapacity(newCapacity: u64)->u64
     {
         var result = 32'u64
         let target = Math.max(newCapacity, result)
@@ -124,11 +120,9 @@ impl HashTable
         return result
     }
 
-    #[Swag.NoDoc]
-    mtd tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
+    private mtd tablePtr()->[*] HashTableEntry => .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
 
-    #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashTableEntry
+    private mtd const constTablePtr()->const [*] HashTableEntry
     {
         let table = .table orelse cast([*] HashTableEntry'(K, V), 1'u64)
         return cast(const [*] HashTableEntry'(K, V), table)
@@ -287,8 +281,8 @@ impl HashTable
     // Only the two reserved values are lifted, never a whole bit: forcing a bit on
     // would make every starting probe index share it, so half of the slots could
     // only ever be reached by probing.
-    #[Inline, Swag.NoDoc]
-    func hashKey(key: K)->u32
+    #[Inline]
+    private func hashKey(key: K)->u32
     {
         let hashVal = Hash.hash32(key)
         return hashVal < HashTable.HASH_FIRST ? HashTable.HASH_FIRST : hashVal
@@ -320,12 +314,12 @@ impl HashTable
     //
     // Every insertion path asks, so it is a single compare against a threshold computed once per
     // resize. An empty table has a zero threshold and always grows.
-    #[Inline, Swag.NoDoc]
-    mtd const growsOnInsert()->bool => .count + .deleted >= .growThreshold
+    #[Inline]
+    private mtd const growsOnInsert()->bool => .count + .deleted >= .growThreshold
 
     // Doubles the capacity when the used slots, deleted ones included, reach half of it.
-    #[Inline, Swag.NoDoc]
-    mtd grow()
+    #[Inline]
+    private mtd grow()
     {
         if .growsOnInsert() do
             .reserve(.capacity * 2)
@@ -385,8 +379,7 @@ impl HashTable
     // Both loops test the cached hash first: an occupied slot that does not match is by far
     // the most frequent outcome, and it must cost a single compare. A table that has never
     // seen a removal takes the shorter loop, which has no deleted slot to remember.
-    #[Swag.NoDoc]
-    mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
+    private mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
         let mask  = .capacity - 1
         var index = idx
@@ -526,8 +519,8 @@ impl HashTable
     //
     // Rehashing relocates every entry rather than copying it, so a value that owns a release
     // travels here untouched. The key is still compared by value through getNewIndex.
-    #[Discardable, Swag.NoDoc]
-    mtd emplaceInternal(hashVal: u32, key: *K, value: *V)->*HashTableEntry
+    #[Discardable]
+    private mtd emplaceInternal(hashVal: u32, key: *K, value: *V)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()

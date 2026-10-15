@@ -3,8 +3,7 @@
 
 using Core
 
-#[Swag.NoDoc]
-enum BlockKind
+internal enum BlockKind
 {
     Paragraph
     Heading1
@@ -30,8 +29,7 @@ enum BlockKind
     AlertCaution
 }
 
-#[Swag.NoDoc]
-struct Block
+internal struct Block
 {
     kind:         BlockKind
     text:         String

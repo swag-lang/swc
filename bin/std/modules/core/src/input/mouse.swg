@@ -22,8 +22,8 @@ struct Mouse
 
 impl Mouse
 {
-    // Test and backend hook kept out of the documented product surface.
-    #[Swag.NoDoc]
+    // Sets whether `button` is down in the current state, for an input backend or a test harness
+    // that feeds buttons itself. The previous state and the click timing are left untouched.
     mtd setCurrentButtonState(button: MouseButton, pressed: bool)
     {
         .currentState.setPressed(button, pressed)
@@ -36,8 +36,8 @@ impl Mouse
         .doubleClicked[button] = doubleClicked
     }
 
-    // Test and backend hook kept out of the documented product surface.
-    #[Swag.NoDoc]
+    // Sets the previous and current cursor positions, for an input backend or a test harness
+    // that moves the cursor itself.
     mtd setPositions(previous, current: Point)
     {
         .previousState.setPosition(previous)

@@ -21,8 +21,7 @@ public enum VoicePlayFlags
 
 // Reports internal playback and destruction state.
 #[Swag.EnumFlags]
-#[Swag.NoDoc]
-public enum VoiceState
+enum VoiceState
 {
     None = 0           // The voice has not started playback.
     PlayedOnce         // At least one playback run has initialized its source buffers.

@@ -67,9 +67,9 @@ struct RenderCpu
     }
 }
 
-// Dependency-visible backing type required by the concrete [[Pixel.RenderCpu]] layout.
-#[Swag.Opaque, Swag.NoDoc]
-struct CpuTexture
+// A texture of [[Pixel.RenderCpu]], held in system memory.
+#[Swag.Opaque]
+internal struct CpuTexture
 {
     public
     {

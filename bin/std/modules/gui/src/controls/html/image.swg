@@ -28,8 +28,7 @@ internal func htmlLocalResourcePath(basePath, source: string)->String
 }
 
 // One image a document referenced, decoded at most once.
-#[Swag.NoDoc]
-public struct HtmlImageEntry
+struct HtmlImageEntry
 {
     source:      String
     image:       Image
@@ -48,8 +47,7 @@ public struct HtmlImageEntry
 // hundred times costs one attempt rather than one attempt per layout. Decoding happens while the
 // boxes are built, and the upload to the renderer waits for the first paint, because that is the
 // first moment a renderer exists.
-#[Swag.NoDoc]
-public struct HtmlImageCache
+struct HtmlImageCache
 {
     basePath: String
     entries:  Array'HtmlImageEntry

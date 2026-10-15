@@ -62,8 +62,7 @@ interface IDecoder
 }
 
 // Internal capability for a container whose sample index is built on first decode.
-#[Swag.NoDoc]
-interface IDeferredDecoder
+internal interface IDeferredDecoder
 {
     mtd frameCount()->u64
     mtd frameRate()->FrameRate

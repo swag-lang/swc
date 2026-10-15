@@ -62,8 +62,7 @@ const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast(0)     
 //
 // Public only because it names the type of a renderer field, which the generated module surface
 // spells out; nothing outside this backend has any use for it.
-#[Swag.NoDoc]
-struct ChromaPlanes
+internal struct ChromaPlanes
 {
     internal
     {
@@ -74,10 +73,8 @@ struct ChromaPlanes
 }
 
 // A clipping region drawn as coverage: one channel per device pixel of the target it serves.
-//
-// Dependency-visible backing type required by the concrete [[Pixel.RenderOgl]] layout.
-#[Swag.Opaque, Swag.NoDoc]
-public struct ClipMask
+#[Swag.Opaque]
+internal struct ClipMask
 {
     framebuffer: GLuint
     texture:     GLuint

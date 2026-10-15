@@ -37,8 +37,7 @@ interface IPropertyEditor
 //
 // It holds the implementing type, instantiated once per edited field, and an interface over a
 // null instance, used only for the `canEdit` capability query.
-#[Swag.NoDoc]
-struct PropertyEditorReg
+internal struct PropertyEditorReg
 {
     public
     {

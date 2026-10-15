@@ -17,7 +17,6 @@ namespace Crypto
 
     // A test build derives keys with a token cost. Nothing a test writes is
     // meant to survive, and a real profile would dominate every test run.
-    #[Swag.NoDoc]
     const TestProfile = #command == Swag.CompilerCommand.Test
 
     // The master key protects everything else; a slot key only ever unwraps it.

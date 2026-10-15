@@ -105,8 +105,7 @@ impl HtmlStyle
 }
 
 // The surface an [[Gui.HtmlView]] draws its document on.
-#[Swag.NoDoc]
-struct HtmlCanvas
+internal struct HtmlCanvas
 {
     using wnd: Wnd
 

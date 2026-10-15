@@ -27,8 +27,8 @@ interface IUndoCommand
     mtd undo()
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-struct UndoStep
+#[Swag.Opaque]
+internal struct UndoStep
 {
     public
     {

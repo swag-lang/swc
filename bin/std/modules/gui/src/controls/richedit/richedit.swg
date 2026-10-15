@@ -24,8 +24,8 @@ enum RichEditForm
 }
 
 // Associates one keyboard shortcut with an editor command.
-#[Swag.Opaque, Swag.NoDoc]
-struct RichEditMapping
+#[Swag.Opaque]
+internal struct RichEditMapping
 {
     public
     {

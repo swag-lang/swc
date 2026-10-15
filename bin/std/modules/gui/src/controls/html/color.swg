@@ -7,8 +7,7 @@ using Core, Pixel
 // `matched` separates "this text is not a color" from "this text is `transparent`", which are
 // different answers: the first leaves the cascade alone and the second sets a fully transparent
 // paint.
-#[Swag.NoDoc]
-public struct HtmlColorValue
+struct HtmlColorValue
 {
     color:   Color
     matched: bool

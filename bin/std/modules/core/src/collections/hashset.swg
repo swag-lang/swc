@@ -20,12 +20,9 @@ struct(K) HashSetEntry
 struct(K) HashSet
 {
     // Special hash values to indicate the state of a slot in the table.
-    #[Swag.NoDoc]
-    const HASH_FREE = 0'u32
-    #[Swag.NoDoc]
+    const HASH_FREE    = 0'u32
     const HASH_DELETED = 1'u32
-    #[Swag.NoDoc]
-    const HASH_FIRST = 2'u32
+    const HASH_FIRST   = 2'u32
 
     internal allocator: IAllocator?
 
@@ -97,8 +94,7 @@ impl ReversedHashSet
 
 impl HashSet
 {
-    #[Swag.NoDoc]
-    func normalizeCapacity(newCapacity: u64)->u64
+    private func normalizeCapacity(newCapacity: u64)->u64
     {
         var result = 32'u64
         let target = Math.max(newCapacity, result)
@@ -107,11 +103,9 @@ impl HashSet
         return result
     }
 
-    #[Swag.NoDoc]
-    mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry'(K), 1'u64)
+    private mtd tablePtr()->[*] HashSetEntry => .table orelse cast([*] HashSetEntry'(K), 1'u64)
 
-    #[Swag.NoDoc]
-    mtd const constTablePtr()->const [*] HashSetEntry
+    private mtd const constTablePtr()->const [*] HashSetEntry
     {
         let table = .table orelse cast([*] HashSetEntry'(K), 1'u64)
         return cast(const [*] HashSetEntry'(K), table)
@@ -227,8 +221,8 @@ impl HashSet
     // Only the two reserved values are lifted, never a whole bit: forcing a bit on
     // would make every starting probe index share it, so half of the slots could
     // only ever be reached by probing.
-    #[Inline, Swag.NoDoc]
-    func hashKey(key: K)->u32
+    #[Inline]
+    private func hashKey(key: K)->u32
     {
         let hashVal = Hash.hash32(key)
         return hashVal < HashSet.HASH_FIRST ? HashSet.HASH_FIRST : hashVal
@@ -257,8 +251,7 @@ impl HashSet
     }
 
     // Doubles the capacity when the used slots, deleted ones included, reach half of it.
-    #[Swag.NoDoc]
-    mtd grow()
+    private mtd grow()
     {
         if .growsOnInsert() do
             .reserve(.capacity * 2)
@@ -268,8 +261,8 @@ impl HashSet
     //
     // Linear probing degrades sharply past half full: a failed lookup averages 2.5 probes at a
     // 50% load factor, but 8.5 probes at 75%.
-    #[Inline, Swag.NoDoc]
-    mtd const growsOnInsert()->bool => .capacity == 0 or .capacity - (.count + .deleted) <= .capacity / 2
+    #[Inline]
+    private mtd const growsOnInsert()->bool => .capacity == 0 or .capacity - (.count + .deleted) <= .capacity / 2
 
     // Grows the set to at least `newCapacity` slots, rehashing every key.
     //
@@ -323,8 +316,7 @@ impl HashSet
     // Both loops test the cached hash first: an occupied slot that does not match is by far
     // the most frequent outcome, and it must cost a single compare. A set that has never seen
     // a removal takes the shorter loop, which has no deleted slot to remember.
-    #[Swag.NoDoc]
-    mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
+    private mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
         let mask  = .capacity - 1
         var index = idx
@@ -416,8 +408,8 @@ impl HashSet
     }
 
     // Relocates `key` into the set under a precomputed hash.
-    #[Discardable, Swag.NoDoc]
-    mtd emplaceInternal(hashVal: u32, key: *K)->*HashSetEntry
+    #[Discardable]
+    private mtd emplaceInternal(hashVal: u32, key: *K)->*HashSetEntry
         where Reflection.canCopy(#typeof(K))
     {
         .grow()

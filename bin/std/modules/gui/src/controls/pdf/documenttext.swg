@@ -11,11 +11,8 @@ using Core
 // [[Gui.Pdf.Reader.loadPageText]], and a page's text is readable as soon as `readyCount` passes
 // its index. The task borrows the value until `stop` or `wait` returns, so its owner stops it
 // before releasing it.
-//
-// The type identity is part of the exported widget layout, so it is public, but it carries no
-// public contract of its own.
-#[Swag.NoDoc, Swag.NoCopy]
-public struct DocumentText
+#[Swag.NoCopy]
+struct DocumentText
 {
     task:     Swag.Task
     fileName: String

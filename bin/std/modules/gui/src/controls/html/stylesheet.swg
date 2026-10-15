@@ -3,8 +3,7 @@
 using Core
 
 // How a compound selector relates to the one written before it.
-#[Swag.NoDoc]
-public enum HtmlCombinator
+enum HtmlCombinator
 {
     Descendant
     Child
@@ -13,8 +12,7 @@ public enum HtmlCombinator
 }
 
 // The comparison an attribute selector performs.
-#[Swag.NoDoc]
-public enum HtmlAttributeMatch
+enum HtmlAttributeMatch
 {
     Exists
     Equals
@@ -26,8 +24,7 @@ public enum HtmlAttributeMatch
 }
 
 // The generated box a selector addresses, when it addresses one.
-#[Swag.NoDoc]
-public enum HtmlPseudoElement
+enum HtmlPseudoElement
 {
     None
     Before
@@ -37,8 +34,8 @@ public enum HtmlPseudoElement
 }
 
 // The state-dependent and structural conditions a compound selector carries.
-#[Swag.EnumFlags, Swag.NoDoc]
-public enum HtmlPseudoClass
+#[Swag.EnumFlags]
+enum HtmlPseudoClass
 {
     None = 0
     Root
@@ -57,8 +54,7 @@ public enum HtmlPseudoClass
 }
 
 // One `[name op "value"]` condition.
-#[Swag.NoDoc]
-public struct HtmlAttributeSelector
+struct HtmlAttributeSelector
 {
     name:  String
     value: String
@@ -69,8 +65,7 @@ public struct HtmlAttributeSelector
 //
 // `:not(...)`, `:is(...)` and `:where(...)` hold compound selectors of their own, which live in
 // the sheet's shared pool so this stays a flat value.
-#[Swag.NoDoc]
-public struct HtmlSelectorPart
+struct HtmlSelectorPart
 {
     tag:           String
     id:            String
@@ -93,8 +88,7 @@ public struct HtmlSelectorPart
 //
 // A declaration is parsed once and matched many times, so its value only becomes a length or a
 // color for the elements that actually select it.
-#[Swag.NoDoc]
-public struct HtmlDeclaration
+struct HtmlDeclaration
 {
     property:  HtmlProperty
     name:      String
@@ -103,15 +97,13 @@ public struct HtmlDeclaration
 }
 
 // The declarations one `{ ... }` block holds, shared by every selector of its group.
-#[Swag.NoDoc]
-public struct HtmlDeclarationBlock
+struct HtmlDeclarationBlock
 {
     declarations: Array'HtmlDeclaration
 }
 
 // One selector with the block it applies.
-#[Swag.NoDoc]
-public struct HtmlRule
+struct HtmlRule
 {
     parts:       Array'HtmlSelectorPart
     block:       u32
@@ -121,8 +113,7 @@ public struct HtmlRule
 }
 
 // What the surroundings answer when a media query asks.
-#[Swag.NoDoc]
-public struct HtmlMediaState
+struct HtmlMediaState
 {
     viewportWidth:  f32
     viewportHeight: f32
@@ -134,8 +125,7 @@ public struct HtmlMediaState
 // Rules are bucketed by the id, classes and tag of their subject, so an element only compares
 // itself against the rules that can possibly apply to it. A sheet with a thousand rules then
 // costs a handful of comparisons per element instead of a thousand.
-#[Swag.NoDoc]
-public struct HtmlStyleSheet
+struct HtmlStyleSheet
 {
     blocks:     Array'HtmlDeclarationBlock
     rules:      Array'HtmlRule
@@ -152,8 +142,7 @@ public struct HtmlStyleSheet
 }
 
 // The document state a selector can ask about.
-#[Swag.NoDoc]
-public struct HtmlMatchContext
+struct HtmlMatchContext
 {
     late document: *HtmlDocument
 

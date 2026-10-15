@@ -7,8 +7,7 @@ using Core, Pixel
 // `key` packs the whole cascade order into one integer — importance above every specificity,
 // specificity above source order, source order above position in its block — so sorting the
 // declarations is a plain integer sort.
-#[Swag.NoDoc]
-public struct HtmlCascadeEntry
+struct HtmlCascadeEntry
 {
     key:         u64
     block:       u32
@@ -16,8 +15,7 @@ public struct HtmlCascadeEntry
 }
 
 // A style computed for a generated box rather than for an element.
-#[Swag.NoDoc]
-public struct HtmlPseudoStyle
+struct HtmlPseudoStyle
 {
     element: u32
     which:   HtmlPseudoElement
@@ -30,8 +28,7 @@ public struct HtmlPseudoStyle
 // the custom properties in scope are a stack that grows on the way down and shrinks on the way
 // back up. That is what makes `var()` cost nothing to look up and what keeps one style pass
 // linear in the number of elements.
-#[Swag.NoDoc]
-public struct HtmlStyleResolver
+struct HtmlStyleResolver
 {
     late
     {

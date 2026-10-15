@@ -11,8 +11,7 @@ private const TextWordGap     = 0.18'f32
 
 // One code of a run: the byte range it decoded to inside the run's text, and the horizontal
 // span it covers in the item's local units.
-#[Swag.NoDoc]
-public struct TextCode
+struct TextCode
 {
     byteStart: u32
     byteEnd:   u32
@@ -21,8 +20,7 @@ public struct TextCode
 
 // The part of [[Pdf.TextIndex.text]] one page item contributed, with the geometry to put any
 // slice of it back on the page.
-#[Swag.NoDoc]
-public struct TextRun
+struct TextRun
 {
     item:      u32     // Index of the page item.
     textStart: u64     // Byte range this run holds inside the page text.
@@ -41,8 +39,7 @@ public struct TextRun
 // it. Runs are ordered as they read — lines from top to bottom, each line from left to right —
 // and the page text inserts one space per word gap and one line feed per line break, which is
 // the plain-text shape a search or a copy expects.
-#[Swag.NoDoc]
-public struct TextIndex
+struct TextIndex
 {
     text: String
     runs: Array'TextRun

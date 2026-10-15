@@ -118,6 +118,11 @@ A member access block cannot contain another visibility level. Close it before s
 sibling 'public', 'internal', or 'private' group; bare 'readonly' is the one modifier that can
 ride inside it. An 'impl' is different: omit a repeated level, but a different level remains a
 deliberate local override, so a 'private impl' may still expose one method with 'public'.
+
+A public struct takes every field into the generated module API, because an importer lays it
+out. The types its non-public fields name travel with it as supporting declarations and keep
+their own access, so an implementation type stays internal however deep it is embedded. A
+public field is different: every importer can reach it, so the types it names must be public.
 */
 
 struct Counter

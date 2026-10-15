@@ -68,11 +68,7 @@ struct Page
 }
 
 // One clip shape a content stream established, beyond the rectangle every item carries.
-//
-// The type identity is part of the exported page layout, so it is public, but it carries
-// no public contract of its own.
-#[Swag.NoDoc]
-public struct ClipPath
+internal struct ClipPath
 {
     path:    LinePathList     // The shape, in page coordinates.
     evenOdd: bool             // Whether `W*` chose the alternating rule over the winding count.

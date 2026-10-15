@@ -71,8 +71,7 @@ impl Style
     func theme()->Style => {}
 }
 
-#[Swag.NoDoc]
-struct VisualBlock
+internal struct VisualBlock
 {
     late wnd:   *Wnd
     inline:     *InlineView?
@@ -114,8 +113,7 @@ internal impl VisualBlock
 //
 // The pair is a document position rather than a laid-out one, so it survives a relayout, a theme
 // change and a reading-width change; only rebuilding the blocks retires it.
-#[Swag.NoDoc]
-struct SelectionPoint
+internal struct SelectionPoint
 {
     view = Swag.U64.Max
     offset: u64

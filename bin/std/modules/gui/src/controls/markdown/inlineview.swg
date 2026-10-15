@@ -146,8 +146,8 @@ private impl InlineState
     }
 }
 
-#[Swag.Opaque, Swag.NoDoc]
-public struct InlineView
+#[Swag.Opaque]
+struct InlineView
 {
     using wnd: Wnd
 

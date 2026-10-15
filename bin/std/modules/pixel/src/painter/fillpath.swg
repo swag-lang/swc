@@ -17,11 +17,7 @@ public enum PathFillRule
 private func contourPointKey(point: Vector2)->u64 => cast(u64, cast #bit(u32, point.x)) << 32 | cast(u64, cast #bit(u32, point.y))
 
 // One region a fill triangulates as a unit, as a range of a companion contour array.
-//
-// The type identity is part of the exported [[Pixel.FillPreparer]] layout, so it is public, but
-// it carries no public contract of its own.
-#[Swag.NoDoc]
-public struct FillRegion
+struct FillRegion
 {
     flush: u64     // Index of the contour holding the region's tessellation.
     first: u64     // Index of the region's first contour.

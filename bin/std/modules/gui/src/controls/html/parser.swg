@@ -18,10 +18,7 @@ const HtmlTextStops: [2] u8 = ['<'u8, '&'u8]
 // implied closes, for the foster anchor, for a stray end tag — and reading it back from the node
 // array costs a cache miss into a structure that is two orders of magnitude larger than the
 // stack itself.
-//
-// It travels with [[Gui.HtmlView]], which carries the parser as a field.
-#[Swag.NoDoc]
-public struct HtmlOpenElement
+struct HtmlOpenElement
 {
     element: u32
     tag:     HtmlTag
@@ -31,8 +28,7 @@ public struct HtmlOpenElement
 //
 // A tag is read in one pass, but the element it opens only exists once the `>` that ends it is in
 // the buffer: what the pass finds waits here rather than in the document.
-#[Swag.NoDoc]
-public struct HtmlPendingAttribute
+struct HtmlPendingAttribute
 {
     name:         HtmlRange
     value:        HtmlRange
@@ -42,8 +38,7 @@ public struct HtmlPendingAttribute
 }
 
 // Where a start tag ends, and what its name is.
-#[Swag.NoDoc]
-public struct HtmlTagScan
+struct HtmlTagScan
 {
     nameStart:   u32
     nameEnd:     u32
@@ -58,8 +53,7 @@ public struct HtmlTagScan
 // a page's `body { ... }` rules only mean anything because of that. A fragment is content parsed
 // for a place that already exists — the raw HTML block of a Markdown document, for one — where
 // those elements would add a page's margins inside somebody else's box.
-#[Swag.NoDoc]
-public enum HtmlParserMode
+enum HtmlParserMode
 {
     Document
     Fragment
@@ -70,8 +64,7 @@ public enum HtmlParserMode
 // The parser is resumable: `feed` consumes every complete token it can see and keeps the
 // unfinished tail, so a document read from disk in fixed-size chunks produces exactly the tree
 // the whole file would. `finish` flushes that tail, closing whatever the source left open.
-#[Swag.NoDoc]
-public struct HtmlParser
+struct HtmlParser
 {
     late document: *HtmlDocument
 

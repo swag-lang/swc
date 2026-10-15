@@ -3,8 +3,7 @@
 using Core, Pixel
 
 // The box an element generates.
-#[Swag.NoDoc]
-public enum HtmlDisplay
+enum HtmlDisplay
 {
     None
     Contents
@@ -25,8 +24,7 @@ public enum HtmlDisplay
 }
 
 // How a box is placed relative to normal flow.
-#[Swag.NoDoc]
-public enum HtmlPosition
+enum HtmlPosition
 {
     Static
     Relative
@@ -36,8 +34,7 @@ public enum HtmlPosition
 }
 
 // How a box treats the white space of its text.
-#[Swag.NoDoc]
-public enum HtmlWhiteSpace
+enum HtmlWhiteSpace
 {
     Normal
     NoWrap
@@ -46,8 +43,7 @@ public enum HtmlWhiteSpace
     PreLine
 }
 
-#[Swag.NoDoc]
-public enum HtmlTextAlign
+enum HtmlTextAlign
 {
     Start
     Left
@@ -56,8 +52,7 @@ public enum HtmlTextAlign
     Justify
 }
 
-#[Swag.NoDoc]
-public enum HtmlTextTransform
+enum HtmlTextTransform
 {
     None
     Uppercase
@@ -66,16 +61,14 @@ public enum HtmlTextTransform
 }
 
 // Where a run may break inside a word.
-#[Swag.NoDoc]
-public enum HtmlWordBreak
+enum HtmlWordBreak
 {
     Normal
     BreakAll
     KeepAll
 }
 
-#[Swag.NoDoc]
-public enum HtmlOverflow
+enum HtmlOverflow
 {
     Visible
     Hidden
@@ -83,8 +76,7 @@ public enum HtmlOverflow
     Auto
 }
 
-#[Swag.NoDoc]
-public enum HtmlBorderStyle
+enum HtmlBorderStyle
 {
     None
     Solid
@@ -93,8 +85,7 @@ public enum HtmlBorderStyle
     Double
 }
 
-#[Swag.NoDoc]
-public enum HtmlListStyleType
+enum HtmlListStyleType
 {
     None
     Disc
@@ -107,8 +98,7 @@ public enum HtmlListStyleType
     UpperRoman
 }
 
-#[Swag.NoDoc]
-public enum HtmlFlexDirection
+enum HtmlFlexDirection
 {
     Row
     RowReverse
@@ -116,8 +106,7 @@ public enum HtmlFlexDirection
     ColumnReverse
 }
 
-#[Swag.NoDoc]
-public enum HtmlFlexWrap
+enum HtmlFlexWrap
 {
     NoWrap
     Wrap
@@ -125,8 +114,7 @@ public enum HtmlFlexWrap
 }
 
 // Distribution along the main axis, and along the cross axis for `align-content`.
-#[Swag.NoDoc]
-public enum HtmlJustify
+enum HtmlJustify
 {
     Start
     End
@@ -137,8 +125,7 @@ public enum HtmlJustify
 }
 
 // Alignment along the cross axis.
-#[Swag.NoDoc]
-public enum HtmlAlign
+enum HtmlAlign
 {
     Stretch
     Start
@@ -147,15 +134,13 @@ public enum HtmlAlign
     Baseline
 }
 
-#[Swag.NoDoc]
-public enum HtmlBoxSizing
+enum HtmlBoxSizing
 {
     ContentBox
     BorderBox
 }
 
-#[Swag.NoDoc]
-public enum HtmlVerticalAlign
+enum HtmlVerticalAlign
 {
     Baseline
     Top
@@ -171,8 +156,7 @@ public enum HtmlVerticalAlign
 //
 // A document names families the host does not carry, so the stack is reduced to the choice a
 // themed application can actually honour.
-#[Swag.NoDoc]
-public enum HtmlFontFamilyKind
+enum HtmlFontFamilyKind
 {
     Sans
     Serif
@@ -180,8 +164,8 @@ public enum HtmlFontFamilyKind
     Cjk
 }
 
-#[Swag.EnumFlags, Swag.NoDoc]
-public enum HtmlTextDecoration
+#[Swag.EnumFlags]
+enum HtmlTextDecoration
 {
     None = 0
     Underline
@@ -189,16 +173,14 @@ public enum HtmlTextDecoration
     LineThrough
 }
 
-#[Swag.NoDoc]
-public enum HtmlTextDecorationStyle
+enum HtmlTextDecorationStyle
 {
     Solid
     Dotted
 }
 
 // The four sides of a box, in CSS order.
-#[Swag.NoDoc]
-public struct HtmlEdges
+struct HtmlEdges
 {
     top:    HtmlLength
     right:  HtmlLength
@@ -208,8 +190,7 @@ public struct HtmlEdges
 
 // One border side, whose width is already in pixels because no border unit is relative to
 // anything layout discovers.
-#[Swag.NoDoc]
-public struct HtmlBorderEdge
+struct HtmlBorderEdge
 {
     width:    f32
     style:    HtmlBorderStyle
@@ -218,8 +199,7 @@ public struct HtmlBorderEdge
 }
 
 // The colors an element inherits from the host when the document names none.
-#[Swag.NoDoc]
-public struct HtmlStyleDefaults
+struct HtmlStyleDefaults
 {
     text:           Color
     faintText:      Color
@@ -237,8 +217,7 @@ public struct HtmlStyleDefaults
 //
 // The value is flat and copyable: a child starts from its parent's, which is what inheritance
 // means, and the cascade then overwrites what the document says.
-#[Swag.NoDoc]
-public struct HtmlComputedStyle
+struct HtmlComputedStyle
 {
     display:    HtmlDisplay = .Inline
     position:   HtmlPosition
@@ -448,8 +427,7 @@ impl HtmlComputedStyle
 // A property name is resolved once, when its stylesheet is parsed, and every element that
 // selects the declaration then switches on an integer. A document of twenty thousand elements
 // otherwise spends its style pass comparing the same strings over and over.
-#[Swag.NoDoc]
-public enum HtmlProperty
+enum HtmlProperty
 {
     Unknown
     Custom
@@ -692,8 +670,7 @@ func htmlPropertyFromName(name: string)->HtmlProperty
 }
 
 // What applying one declaration needs beyond the style it writes into.
-#[Swag.NoDoc]
-public struct HtmlDeclarationContext
+struct HtmlDeclarationContext
 {
     pool:     *HtmlValuePool
     length:   HtmlLengthContext

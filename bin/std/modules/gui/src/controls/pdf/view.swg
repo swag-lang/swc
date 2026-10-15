@@ -40,11 +40,7 @@ enum PdfZoomMode
 }
 
 // One position in a document's text: a page, and a byte offset in that page's text.
-//
-// The type identity is part of the exported widget layout, so it is public, but it carries no
-// public contract of its own.
-#[Swag.NoDoc]
-public struct PdfTextPosition
+internal struct PdfTextPosition
 {
     pageIndex = Swag.U64.Max     // Zero-based page, or `Swag.U64.Max` when there is no position.
     offset: u64     // UTF-8 byte offset in that page's indexed text.
@@ -68,11 +64,7 @@ impl PdfTextPosition
 }
 
 // The surface a [[Gui.PdfView]] draws its pages on.
-//
-// The type identity is part of the exported widget layout, so it is public, but it carries no
-// public contract of its own.
-#[Swag.NoDoc]
-public struct PdfCanvas
+internal struct PdfCanvas
 {
     using wnd: Wnd
 

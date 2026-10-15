@@ -155,11 +155,7 @@ struct ShapedGlyph
 }
 
 // Places one glyph of a run being drawn: where its quad starts and which rasterization it samples.
-//
-// The type identity is part of the exported [[Pixel.Painter]] layout, so it is public, but it
-// carries no public contract of its own.
-#[Swag.NoDoc]
-struct PlacedGlyph
+internal struct PlacedGlyph
 {
     late desc: const *GlyphDesc     // The glyph's rasterization at the subpixel position its pen fell on.
     x:         f32     // Pen position the quad is drawn from, on the device grid for a bitmap font.

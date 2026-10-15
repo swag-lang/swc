@@ -2,9 +2,9 @@
 
 using Win32
 
-// Dependency-visible Windows storage embedded by `Cursor`.
-#[Swag.Opaque, Swag.NoDoc]
-public struct NativeCursor
+// Windows storage embedded by `Cursor`.
+#[Swag.Opaque]
+struct NativeCursor
 {
     public cursor: HCURSOR     // Shared system cursor handle, never destroyed through the descriptor.
 }

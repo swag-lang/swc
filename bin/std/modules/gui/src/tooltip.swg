@@ -4,8 +4,8 @@
 //
 // Public only because [[Gui.ToolTip.State]] holds one and a module API cannot export a type
 // through a private field. Nothing outside builds or reads one.
-#[Swag.Opaque, Swag.NoDoc]
-public struct Request
+#[Swag.Opaque]
+struct Request
 {
     late owner: *Wnd           // Window that requested the tooltip.
     surfacePos: Math.Point     // Anchor in surface coordinates.

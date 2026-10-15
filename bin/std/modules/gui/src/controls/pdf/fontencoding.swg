@@ -6,10 +6,8 @@ using Core
 // array can use to override one code.
 //
 // Every table is embedded here: mapping a byte to a character never consults a system
-// font, a code page service, or any other outside source. The type is public only because
-// it appears in the exported page layout.
-#[Swag.NoDoc]
-public enum BaseEncoding
+// font, a code page service, or any other outside source.
+enum BaseEncoding
 {
     Standard
     WinAnsi

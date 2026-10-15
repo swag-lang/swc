@@ -7,8 +7,7 @@ using Core, Pixel
 // An inline element never becomes a box: it becomes a run of items inside the block that
 // contains it, which is what lets one paragraph mixing several spans stay one line-broken
 // object instead of a tree of nested fragments.
-#[Swag.NoDoc]
-public enum HtmlBoxKind
+enum HtmlBoxKind
 {
     Block
     Flex
@@ -20,8 +19,7 @@ public enum HtmlBoxKind
 }
 
 // What one entry of an inline formatting context carries.
-#[Swag.NoDoc]
-public enum HtmlInlineKind
+enum HtmlInlineKind
 {
     Text
     Space
@@ -32,8 +30,7 @@ public enum HtmlInlineKind
 }
 
 // One entry of an inline formatting context, before and after line breaking.
-#[Swag.NoDoc]
-public struct HtmlInlineItem
+struct HtmlInlineItem
 {
     kind:        HtmlInlineKind
     style:       u32
@@ -61,8 +58,7 @@ public struct HtmlInlineItem
 }
 
 // One laid-out line of an inline formatting context.
-#[Swag.NoDoc]
-public struct HtmlLineBox
+struct HtmlLineBox
 {
     top:      f32
     height:   f32
@@ -74,8 +70,7 @@ public struct HtmlLineBox
 }
 
 // What a box draws in the margin reserved beside its content.
-#[Swag.NoDoc]
-public enum HtmlMarkerKind
+enum HtmlMarkerKind
 {
     None
     Text
@@ -88,8 +83,7 @@ public enum HtmlMarkerKind
 //
 // Rectangles are border boxes in document coordinates, so painting and hit testing never have to
 // walk back up the tree to find out where a box really is.
-#[Swag.NoDoc]
-public struct HtmlBox
+struct HtmlBox
 {
     node   = HtmlNoNode
     style:    u32

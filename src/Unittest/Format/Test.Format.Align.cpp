@@ -803,6 +803,31 @@ SWC_TEST_BEGIN(FormatAlign_OperandsOutsideBracketAnchorOnStatement)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_OperandsAfterWhereKeyword)
+{
+    // A constraint's `where` leads its clause like a control keyword: the wrapped
+    // conditions line up under the first one, not under the keyword.
+    static constexpr std::string_view SOURCE =
+        "func(op: u32) foo()\n"
+        "    where op == 1 or\n"
+        "    op == 2\n"
+        "{\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func(op: u32) foo()\n"
+        "    where op == 1 or\n"
+        "          op == 2\n"
+        "{\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle   = FormatIndentStyle::Spaces;
+    options.alignOperands = true;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_OutlierGapLeavesLongLineAlone)
 {
     static constexpr std::string_view SOURCE =

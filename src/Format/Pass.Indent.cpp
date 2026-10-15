@@ -244,8 +244,9 @@ namespace
                     take(c + 1);
                     return;
                 }
+                // A leading control keyword, or a constraint's `where`, is not an operand.
                 if (c == 0)
-                    take(piece.hasRole(FormatRoleE::ControlKeyword) ? 1 : 0);
+                    take(piece.roles.hasAny({FormatRoleE::ControlKeyword, FormatRoleE::WhereKeyword}) ? 1 : 0);
             }
         }
 

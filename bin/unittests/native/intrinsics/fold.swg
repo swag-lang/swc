@@ -28,7 +28,7 @@
     const T:  f64 = Swag.exp2(0.0'f32)
     const U:  f64 = Swag.atan2(0.0'f32, 1.0'f32)
     const V:  f64 = Swag.pow(2.0, 8.0'f32)
-    const W:  f64 = Swag.muladd(2.0'f32, 3.0'f32, 4.0'f32)
+    const W:  f64 = Swag.mulAdd(2.0'f32, 3.0'f32, 4.0'f32)
     const X:  f64 = Swag.min(1.0, 2.0'f32)
     const Y:  f64 = Swag.max(1.0, 2.0'f32)
     const Z:  f64 = Swag.min(1.0'f64, 2.0'f64)
@@ -208,9 +208,9 @@
 
 #test
 {
-    const A: f64 = Swag.muladd(1.0'f64, 2.0'f64, 3.0'f64)
-    const B: f64 = Swag.muladd(0.0'f64, 100.0'f64, 5.0'f64)
-    const C: f64 = Swag.muladd(10.0'f64, 10.0'f64, -100.0'f64)
+    const A: f64 = Swag.mulAdd(1.0'f64, 2.0'f64, 3.0'f64)
+    const B: f64 = Swag.mulAdd(0.0'f64, 100.0'f64, 5.0'f64)
+    const C: f64 = Swag.mulAdd(10.0'f64, 10.0'f64, -100.0'f64)
     #assert(A == 5.0)
     #assert(B == 5.0)
     #assert(C == 0.0)
@@ -286,7 +286,7 @@ func rtTrunc64(v: f64)->f64 => Swag.trunc(v)
 func rtRound64(v: f64)->f64 => Swag.round(v)
 
 #[Swag.NoInline]
-func rtMuladd64(a: f64, b: f64, c: f64)->f64 => Swag.muladd(a, b, c)
+func rtMuladd64(a: f64, b: f64, c: f64)->f64 => Swag.mulAdd(a, b, c)
 
 #[Swag.NoInline]
 func rtSqrt32(v: f32)->f32 => Swag.sqrt(v)
@@ -410,7 +410,7 @@ func rtRound32(v: f32)->f32 => Swag.round(v)
     Swag.assert(rtRound32(2.5'f32) == 3.0'f32)
 }
 
-// Runtime — muladd
+// Runtime — mulAdd
 #test
 {
     Swag.assert(rtMuladd64(2.0, 3.0, 4.0) == 10.0)

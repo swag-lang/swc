@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 12: flood-fill garden regions, compute fencing.
 // Part 1: total cost = area × perimeter.  Part 2: area × number of sides.
 // Exercises: enum, impl/mtd with arrow syntax, short functions (=>),
-// defer, for with index, bitwise operators, Swag.bitCountNz,
+// defer, for with index, bitwise operators, Swag.countOnes,
 // #scope break-to-label, function overloading.
 
 const SmallInput =
@@ -185,8 +185,8 @@ func cornersOf(nb: Neighbors)->u32
     return n
 }
 
-// Bitwise helper: count set bits in a u8 (exercises Swag.bitCountNz)
-func popcount8(v: u8)->u32 => cast(u32, Swag.bitCountNz(v))
+// Bitwise helper: count set bits in a u8 (exercises Swag.countOnes)
+func popcount8(v: u8)->u32 => cast(u32, Swag.countOnes(v))
 
 // ---------------------------------------------------------------------------
 // BFS flood-fill — defer, #scope/break-to-label
@@ -367,7 +367,7 @@ func solve(text: string)->FenceCost
     Swag.assert(cornersOf(strip) == 0'u32)
 }
 
-// Swag.bitCountNz exercise
+// Swag.countOnes exercise
 #test
 {
     Swag.assert(popcount8(0) == 0'u32)

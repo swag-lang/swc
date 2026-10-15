@@ -19,7 +19,7 @@ private const UintBits   = 8'u32
 internal const BitRes = 3'u32
 
 // Returns the number of bits needed to hold `value`.
-internal func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.bitCountLz(value)) : 0
+internal func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.leadingZeros(value)) : 0
 
 // Pulls symbols out of one frame, both from its front through the range coder and from its
 // back as raw bits.

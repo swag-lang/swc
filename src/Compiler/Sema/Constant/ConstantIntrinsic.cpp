@@ -99,7 +99,7 @@ namespace
         return Result::Continue;
     }
 
-    // 'Swag.vecsplat' of a constant scalar is the one packed operation with a compile-time
+    // 'Swag.vecSplat' of a constant scalar is the one packed operation with a compile-time
     // answer: the lane bytes simply repeat. Folding it is what lets a vector constant be
     // declared, and the result is the same byte payload an aggregate literal produces.
     Result foldVectorSplat(Sema& sema, AstNodeRef callRef, std::span<AstNodeRef> args)
@@ -645,9 +645,9 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             return makeFloatResult(sema, sema.curNodeRef(), foldedValue.asDouble());
         }
 
-        case TokenId::IntrinsicBitCountNz:
-        case TokenId::IntrinsicBitCountTz:
-        case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicCountOnes:
+        case TokenId::IntrinsicTrailingZeros:
+        case TokenId::IntrinsicLeadingZeros:
         {
             SWC_ASSERT(args.size() == 1);
 
@@ -662,11 +662,11 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 val &= (1ULL << bits) - 1;
 
             uint64_t result = 0;
-            if (intrinsicId == TokenId::IntrinsicBitCountNz)
+            if (intrinsicId == TokenId::IntrinsicCountOnes)
             {
                 result = static_cast<uint64_t>(std::popcount(val));
             }
-            else if (intrinsicId == TokenId::IntrinsicBitCountTz)
+            else if (intrinsicId == TokenId::IntrinsicTrailingZeros)
             {
                 if (val == 0)
                     result = bits;

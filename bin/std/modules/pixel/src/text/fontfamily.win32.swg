@@ -2,7 +2,7 @@
 
 using Core, Win32, Gdi32
 
-private var g_SystemFallbackLock: Sync.Mutex
+private var g_SystemFallbackLock: Swag.Mutex
 private var g_SystemFallback:     SystemFontFallbackCache
 
 // Describes one Windows face discovered for a font-family style.

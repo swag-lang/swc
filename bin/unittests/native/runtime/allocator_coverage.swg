@@ -533,7 +533,7 @@ func freeOne(itf: IAllocator, address: *void?)
         p.out[] = req.address
 
         releaseAllocatorThreadCache()
-        Swag.atomadd(p.done, 1)
+        Swag.atomicAdd(p.done, 1)
         return 0
     }
 
@@ -572,7 +572,7 @@ func freeOne(itf: IAllocator, address: *void?)
         discard Th.WaitForSingleObject(h, Th.INFINITE)
         Th.CloseHandle(h)
 
-        Swag.assert(Swag.atomcmpxchg(&done, 0, 0) == 1)
+        Swag.assert(Swag.atomicCompareExchange(&done, 0, 0) == 1)
         Swag.assert(blockAddr != null)
         Swag.assert(alloc.stats().countAlloc == 1)
         Swag.assert(alloc.firstAbandoned != null)
@@ -675,8 +675,8 @@ func freeOne(itf: IAllocator, address: *void?)
         let itf    = shared.itf!
         var addresses: [PageThreadAllocCount] (*void?)
 
-        Swag.atomadd(&shared.ready, 1)
-        while Swag.atomcmpxchg(&shared.start, 0, 0) == 0 {}
+        Swag.atomicAdd(&shared.ready, 1)
+        while Swag.atomicCompareExchange(&shared.start, 0, 0) == 0 {}
 
         for i in PageThreadAllocCount
         {
@@ -709,8 +709,8 @@ func freeOne(itf: IAllocator, address: *void?)
             Swag.assert(handles[i] != null)
         }
 
-        while Swag.atomcmpxchg(&shared.ready, 0, 0) != PageThreadCount {}
-        discard Swag.atomxchg(&shared.start, 1)
+        while Swag.atomicCompareExchange(&shared.ready, 0, 0) != PageThreadCount {}
+        discard Swag.atomicExchange(&shared.start, 1)
 
         for i in PageThreadCount
         {
@@ -743,7 +743,7 @@ func freeOne(itf: IAllocator, address: *void?)
     func stressAllocRetireThread(param: *void)->Th.DWORD
     {
         let s    = cast(*StressShared, param)
-        let slot = Swag.atomadd(&s.index, 1)
+        let slot = Swag.atomicAdd(&s.index, 1)
 
         s.slots[slot] = allocOne(s.itf!, 64)
 
@@ -757,7 +757,7 @@ func freeOne(itf: IAllocator, address: *void?)
         let s = cast(*StressShared, param)
         for i in StressCount do
             freeOne(s.itf!, s.slots[i])
-        Swag.atomadd(&s.freerDone, 1)
+        Swag.atomicAdd(&s.freerDone, 1)
         return 0
     }
 
@@ -765,7 +765,7 @@ func freeOne(itf: IAllocator, address: *void?)
     func stressTrimThread(param: *void)->Th.DWORD
     {
         let s = cast(*StressShared, param)
-        while Swag.atomcmpxchg(&s.freerDone, 0, 0) == 0 do
+        while Swag.atomicCompareExchange(&s.freerDone, 0, 0) == 0 do
             s.alloc!.trim()
         return 0
     }

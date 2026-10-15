@@ -281,7 +281,7 @@ impl FileStream
         if unit == 2 and bytes.count >= 2
         {
             let littleEndian = Math.make16(bytes[bytes.count - 1], bytes[bytes.count - 2])
-            let lastUnit     = cast(u32, encoding == .Utf16Le ? littleEndian : Math.byteswap(littleEndian))
+            let lastUnit     = cast(u32, encoding == .Utf16Le ? littleEndian : Math.byteSwap(littleEndian))
             if lastUnit >= Utf16.Surr1 and lastUnit < Utf16.Surr2 and bytes.count > 2 do
                 bytes.resize(bytes.count - 2)
         }

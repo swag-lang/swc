@@ -34,7 +34,7 @@ private const ChannelSlots: [9, 8] u32 = [
 internal func speakerMask(channels: u32)->u32 => channels <= 8 ? SpeakerMasks[channels] : 0
 
 // Returns the number of bits needed to hold `value`, which is what the format calls `ilog`.
-private func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.bitCountLz(value)) : 0
+private func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.leadingZeros(value)) : 0
 
 // Unpacks the 32-bit floating-point representation the format uses for codebook scales.
 private func unpackFloat(raw: u32)->f32

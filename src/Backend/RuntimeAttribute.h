@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 namespace Runtime
 {
     // Where an attribute accepts being written. Keep in sync with the Swag mirror
-    // 'Swag.AttributeUsage' in bin/runtime/api.swg: 'AttrUsage' arguments are read back
+    // 'Swag.AttributeUsage' in bin/runtime/attributes.swg: 'AttrUsage' arguments are read back
     // from the reflected attribute value, so both spellings share these bits.
     enum class AttributeUsage : uint32_t
     {

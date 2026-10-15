@@ -23,7 +23,7 @@ struct NonNullRequiresInitForwardHolder
 
 struct NonNullRequiresInitHolder
 {
-    required: *NonNullRequiresInitItem
+    required: *NonNullRequiresInitItem     // swc-expected-note {{sema_note_required_struct_field_declared_here}}
     count:    s32 = 7
 }
 

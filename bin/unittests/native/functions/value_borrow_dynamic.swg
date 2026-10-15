@@ -137,8 +137,8 @@ func byteMutation(value: Thing, destination: *void, operation: u32)->u64
     case 0: Swag.memset(destination, 0, #sizeof(Thing))
     case 1: Swag.memcpy(destination, &source, #sizeof(Thing))
     case 2: Swag.memmove(destination, &source, #sizeof(Thing))
-    case 3: discard Swag.atomxchg(cast(*u64, destination), 0)
-    case 4: Swag.atomset(cast(*u64, destination), 0)
+    case 3: discard Swag.atomicExchange(cast(*u64, destination), 0)
+    case 4: Swag.atomicStore(cast(*u64, destination), 0)
     }
     return value.value
 }
@@ -439,7 +439,7 @@ func useLocallyCheckedWrite(value: Thing, target: *Thing)->u64
 #[Swag.NoInline]
 func exchangeIfEqual(value: Thing, target: *Thing, expected: u64)->u64
 {
-    discard Swag.atomcmpxchg(&target.value, expected, 0)
+    discard Swag.atomicCompareExchange(&target.value, expected, 0)
     return value.value
 }
 #test

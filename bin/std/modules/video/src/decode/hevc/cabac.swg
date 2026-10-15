@@ -185,7 +185,7 @@ impl CabacReader
             result = mps ^ 1
         }
 
-        let shift = Math.max(cast(s32, Swag.bitCountLz(range)) - 23, 0)
+        let shift = Math.max(cast(s32, Swag.leadingZeros(range)) - 23, 0)
         if shift != 0
         {
             range <<= cast(u32, shift)
@@ -231,7 +231,7 @@ impl CabacReader
         if .low >= .range do
             return 1
 
-        let shift = Math.max(cast(s32, Swag.bitCountLz(.range)) - 23, 0)
+        let shift = Math.max(cast(s32, Swag.leadingZeros(.range)) - 23, 0)
         if shift != 0
         {
             .range <<= cast(u32, shift)

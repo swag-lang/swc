@@ -845,10 +845,10 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::IntrinsicCompiler:
         case TokenId::IntrinsicRtFlags:
-        case TokenId::IntrinsicProcessInfos:
+        case TokenId::IntrinsicProcessInfo:
         case TokenId::IntrinsicArgs:
         case TokenId::IntrinsicModules:
-        case TokenId::IntrinsicGvtd:
+        case TokenId::IntrinsicGlobalsToDrop:
         case TokenId::IntrinsicJit:
             return parseIntrinsicCallConstantExpr();
 
@@ -876,9 +876,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicExp:
         case TokenId::IntrinsicExp2:
         case TokenId::IntrinsicByteSwap:
-        case TokenId::IntrinsicBitCountNz:
-        case TokenId::IntrinsicBitCountTz:
-        case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicCountOnes:
+        case TokenId::IntrinsicTrailingZeros:
+        case TokenId::IntrinsicLeadingZeros:
         case TokenId::IntrinsicVecSplat:
         case TokenId::IntrinsicVecWidenLo:
         case TokenId::IntrinsicVecWidenHi:

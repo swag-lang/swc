@@ -322,10 +322,10 @@ func exposed(value: s32)->s32
          "Swag.assert(value > 0)"},
         {"Atomic", R"(#global public
 #[Swag.Inline]
-func exposed(value: *s32)->s32 => Swag.atomadd(value, 1)
+func exposed(value: *s32)->s32 => Swag.atomicAdd(value, 1)
 )",
          {},
-         "=> Swag.atomadd(value, 1)",
+         "=> Swag.atomicAdd(value, 1)",
          "static-library",
          "var value: s32 = 42\n    discard exposed(&value)"},
         {"PublicHelper", R"(#global public

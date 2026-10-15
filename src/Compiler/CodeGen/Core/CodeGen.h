@@ -33,7 +33,7 @@ namespace CodeGenFunctionHelpers
     struct FunctionParameterInfo;
 }
 
-struct CodeGenGvtdEntry
+struct CodeGenGlobalToDropEntry
 {
     const SymbolVariable* variable = nullptr;
     const SymbolFunction* opDrop   = nullptr;
@@ -470,14 +470,14 @@ public:
     const SymbolVariable* returnMoveOutVar() const { return returnMoveOutVar_; }
     void                  setReturnMoveOutVar(const SymbolVariable* symVar) { returnMoveOutVar_ = symVar; }
 
-    void                              clearGvtdScratchLayout();
-    void                              setGvtdScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGvtdEntry> entries);
-    bool                              hasGvtdScratchLayout() const { return gvtdScratchSize_ != 0; }
-    uint32_t                          gvtdScratchOffset() const { return gvtdScratchOffset_; }
-    uint32_t                          gvtdScratchSize() const { return gvtdScratchSize_; }
-    std::span<const CodeGenGvtdEntry> gvtdScratchEntries() const { return gvtdScratchEntries_; }
-    void                              pushFrame(const CodeGenFrame& frame);
-    void                              popFrame();
+    void                                      clearGlobalsToDropScratchLayout();
+    void                                      setGlobalsToDropScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGlobalToDropEntry> entries);
+    bool                                      hasGlobalsToDropScratchLayout() const { return globalsToDropScratchSize_ != 0; }
+    uint32_t                                  globalsToDropScratchOffset() const { return globalsToDropScratchOffset_; }
+    uint32_t                                  globalsToDropScratchSize() const { return globalsToDropScratchSize_; }
+    std::span<const CodeGenGlobalToDropEntry> globalsToDropScratchEntries() const { return globalsToDropScratchEntries_; }
+    void                                      pushFrame(const CodeGenFrame& frame);
+    void                                      popFrame();
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& typeInfo);
@@ -540,9 +540,9 @@ private:
     uint32_t                                                                        currentDeferredAddressGeneration_ = 0;
     uint32_t                                                                        nextDeferredAddressGeneration_    = 1;
     bool                                                                            hasDeferredStatements_            = false;
-    uint32_t                                                                        gvtdScratchOffset_                = 0;
-    uint32_t                                                                        gvtdScratchSize_                  = 0;
-    SmallVector<CodeGenGvtdEntry>                                                   gvtdScratchEntries_;
+    uint32_t                                                                        globalsToDropScratchOffset_       = 0;
+    uint32_t                                                                        globalsToDropScratchSize_         = 0;
+    SmallVector<CodeGenGlobalToDropEntry>                                           globalsToDropScratchEntries_;
     SmallVector<CodeGenTemporaryDrop, 4>                                            temporaryDrops_;
     AstNodeRef                                                                      root_      = AstNodeRef::invalid();
     bool                                                                            started_   = false;

@@ -134,7 +134,7 @@ struct Application
     quitCode:            s32                  // Exit code the run loop returns.
     mustQuit:            bool                 // Whether the run loop stops at the end of the frame.
     endModal:            bool                 // Whether the innermost modal loop stops.
-    mutexPostedEvents:   Sync.Mutex           // Guards 'postedEvents' against other threads.
+    mutexPostedEvents:   Swag.Mutex           // Guards 'postedEvents' against other threads.
     duringTimerEvents:   bool                 // Whether timer callbacks are running, so lists defer.
     timers:              Array'(*Timer)       // Active timers.
     timersToAdd:         Array'(*Timer)       // Timers added while callbacks were running.

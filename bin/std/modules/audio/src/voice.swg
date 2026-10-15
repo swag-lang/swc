@@ -50,7 +50,7 @@ public struct Voice
         late allocationAllocator: IAllocator     // Allocator that owns this voice and its buffers.
         handle:    *void?                        // Identity of the voice inside the driver.
         file:      const *SoundFile?             // Borrowed source, alive for the voice's lifetime.
-        dataMutex: Sync.Mutex                    // Serializes buffer feeding with transport changes.
+        dataMutex: Swag.Mutex                    // Serializes buffer feeding with transport changes.
 
         requestedEncoding          = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
         codec:       ICodec?       = null     // Decoder instance for a streamed source.

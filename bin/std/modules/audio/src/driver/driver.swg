@@ -16,15 +16,15 @@ struct Driver
 
     updateTh:            Threading.Thread
     wakeupUpdate:        Sync.Event
-    mutexVoicesToUpdate: Sync.Mutex
+    mutexVoicesToUpdate: Swag.Mutex
     voicesToUpdate:      Array'{ voice: *Voice, command: UpdateCommand }
 
-    mutexRecycleVoices:   Sync.Mutex
+    mutexRecycleVoices:   Swag.Mutex
     activeVoices:         Array'(*Voice)
     pendingRecycleVoices: Array'(*Voice)
     toRecycleVoices:      Array'(*Voice)
 
-    mutexBuses: Sync.Mutex
+    mutexBuses: Swag.Mutex
     buses:      Array'(*Bus)
 
     driverIsClosing: bool

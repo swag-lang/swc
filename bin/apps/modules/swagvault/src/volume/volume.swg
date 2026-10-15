@@ -12,7 +12,7 @@ struct CryptoBatch
     records:     [..] u8        // Sealed records, `BlockRecordSize` bytes each.
     plain:       [..] u8        // Plain blocks, `BlockSize` bytes each.
     error:       Swag.Error     // Owns the first failure a job reported until the joining caller raises it.
-    errorLock:   Sync.Mutex
+    errorLock:   Swag.Mutex
     invalidTags: s32     // Number of records that failed authentication.
 }
 
@@ -137,8 +137,8 @@ struct Volume
     nodes:              Array'Node
     nodeLookup:         NodeIndex
     blocks:             BlockAllocator
-    ioLock:             Sync.Mutex      // Serializes the shared seek-based container stream.
-    accessLock:         Sync.RWLock     // Protects nodes and allocation across concurrent host callbacks.
+    ioLock:             Swag.Mutex      // Serializes the shared seek-based container stream.
+    accessLock:         Swag.RWLock     // Protects nodes and allocation across concurrent host callbacks.
     touched:            Array'u64       // Nodes changed since the last journal record.
     touchedSet:         HashSet'u64
     metadataTouched:    Array'u64     // Nodes whose block map and security data did not change.

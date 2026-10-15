@@ -159,6 +159,6 @@ enum SystemMetric
     {
         let str = getNativeArgs()
         if str.count do
-            Swag.processInfos().args = str
+            Swag.processInfo().args = str
     }
 }

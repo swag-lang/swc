@@ -182,8 +182,8 @@ namespace
         // in the compiler, so hand it to every imported module. Otherwise 'Swag.args()' answers from the
         // module's own, never-filled slot, and 'Env.hasArg' says something different depending on
         // whether it was compiled into the module under test or into an imported library.
-        ctx.compiler().ensureProcessInfosRunArgs();
-        const Runtime::String* processArgs = &ctx.compiler().processInfos().args;
+        ctx.compiler().ensureProcessInfoRunArgs();
+        const Runtime::String* processArgs = &ctx.compiler().processInfo().args;
         for (const CompilerInstance::NativeRuntimeImport& runtimeImport : runtimeImports)
         {
             if (!runtimeImport.hasSharedRuntimeHook)
@@ -2075,8 +2075,8 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
 
         // This is an actual program run (not compile-time evaluation), so make the
         // program's 'Swag.args()' reflect the command line it was effectively launched with.
-        // Done here rather than at codegen so compile-time '#run' keeps a zeroed Swag.processInfos().
-        ctx.compiler().ensureProcessInfosRunArgs();
+        // Done here rather than at codegen so compile-time '#run' keeps a zeroed Swag.processInfo().
+        ctx.compiler().ensureProcessInfoRunArgs();
     }
 
     bool hasException = false;

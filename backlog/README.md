@@ -53,7 +53,6 @@ file. Do not add status, dates, or progress summaries to the index.
 | [repo.prompts.md](repo.prompts.md) | Prompts for long-running campaigns |
 | [repo.tooling.md](repo.tooling.md) | Build, benchmark, and test tools |
 | [runtime.allocator.md](runtime.allocator.md) | Runtime allocator |
-| [runtime.api.md](runtime.api.md) | Runtime public surface, `Swag` namespace, context, and intrinsic spellings |
 | [std.audio.md](std.audio.md) | `std/audio` |
 | [std.core.md](std.core.md) | `std/core` |
 | [std.gui.html.md](std.gui.html.md) | HTML engine in `std/gui` |

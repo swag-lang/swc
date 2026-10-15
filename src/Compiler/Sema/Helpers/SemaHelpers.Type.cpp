@@ -1076,9 +1076,9 @@ bool SemaHelpers::isAliasPreservingNumericIntrinsic(TokenId tokenId)
         case TokenId::IntrinsicRol:
         case TokenId::IntrinsicRor:
         case TokenId::IntrinsicByteSwap:
-        case TokenId::IntrinsicBitCountNz:
-        case TokenId::IntrinsicBitCountTz:
-        case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicCountOnes:
+        case TokenId::IntrinsicTrailingZeros:
+        case TokenId::IntrinsicLeadingZeros:
         case TokenId::IntrinsicAtomicAdd:
         case TokenId::IntrinsicAtomicAnd:
         case TokenId::IntrinsicAtomicOr:

@@ -678,7 +678,7 @@ void CompilerInstance::setupRuntimeCompiler()
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
     // producing a null dispatch in a later module. A shared static itable never dangles.
     // Slot order after the typeinfo entry = IAllocator method DECLARATION order
-    // (bin/runtime/api.swg): alloc, realloc, free, freeAll, assertAllocated.
+    // (bin/runtime/context.swg): alloc, realloc, free, freeAll, assertAllocated.
     static void* sRuntimeAllocatorITable[6] = {
         nullptr,
         JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&runtimeAllocatorAlloc), 2),
@@ -726,31 +726,31 @@ uint32_t CompilerInstance::nativeRuntimeContextTlsIdOffset()
     return nativeRuntimeContextTlsIdOffset_;
 }
 
-uint32_t CompilerInstance::nativeProcessInfosOffset()
+uint32_t CompilerInstance::nativeProcessInfoOffset()
 {
-    std::call_once(nativeProcessInfosOffsetOnce_, [this] {
-        const auto [offset, storage] = globalZeroSegment_.reserve<Runtime::ProcessInfos>();
-        nativeProcessInfosOffset_    = offset;
+    std::call_once(nativeProcessInfoOffsetOnce_, [this] {
+        const auto [offset, storage] = globalZeroSegment_.reserve<Runtime::ProcessInfo>();
+        nativeProcessInfoOffset_     = offset;
         *storage                     = {};
     });
 
-    SWC_ASSERT(nativeProcessInfosOffset_ != UINT32_MAX);
-    return nativeProcessInfosOffset_;
+    SWC_ASSERT(nativeProcessInfoOffset_ != UINT32_MAX);
+    return nativeProcessInfoOffset_;
 }
 
-// Populate 'Swag.processInfos().args' for a JIT-hosted program run. A native executable fills this
+// Populate 'Swag.processInfo().args' for a JIT-hosted program run. A native executable fills this
 // from its real OS command line at startup, but a JIT-hosted run (swc run/test) never
 // does, so the program's 'Swag.args()' would come back empty -- which breaks the runtime's
 // 'swag.test' panic guard (it scans Swag.args()), letting a headless panic pop an interactive
 // dialog box. We build the command line the program is effectively launched with: argv[0]
 // plus the effective run args (which include the auto-added 'swag.test' for the test
 // command). This is done lazily at run time -- never at codegen -- so compile-time '#run'
-// code keeps seeing a zeroed Swag.processInfos() (see the context_intrinsics unit test).
-void CompilerInstance::ensureProcessInfosRunArgs()
+// code keeps seeing a zeroed Swag.processInfo() (see the context_intrinsics unit test).
+void CompilerInstance::ensureProcessInfoRunArgs()
 {
-    if (processInfosRunArgsReady_)
+    if (processInfoRunArgsReady_)
         return;
-    processInfosRunArgsReady_ = true;
+    processInfoRunArgsReady_ = true;
 
     Utf8       cmdLineStr;
     const auto appendQuoted = [&cmdLineStr](const std::string_view token) {
@@ -775,13 +775,13 @@ void CompilerInstance::ensureProcessInfosRunArgs()
     // (a workspace run builds each dependency with its own short-lived instance while core.dll
     // and its siblings stay loaded). The storage they point into must therefore never move and
     // never die with an instance: intern it for the lifetime of the process.
-    static std::mutex              processInfosArgsMutex;
-    static std::deque<std::string> processInfosArgsStorage;
+    static std::mutex              processInfoArgsMutex;
+    static std::deque<std::string> processInfoArgsStorage;
 
     std::string_view stableArgs;
     {
-        std::scoped_lock lock(processInfosArgsMutex);
-        for (const std::string& existing : processInfosArgsStorage)
+        std::scoped_lock lock(processInfoArgsMutex);
+        for (const std::string& existing : processInfoArgsStorage)
         {
             if (existing == cmdLineStr.view())
             {
@@ -791,18 +791,18 @@ void CompilerInstance::ensureProcessInfosRunArgs()
         }
 
         if (stableArgs.empty())
-            stableArgs = processInfosArgsStorage.emplace_back(cmdLineStr.view());
+            stableArgs = processInfoArgsStorage.emplace_back(cmdLineStr.view());
     }
 
-    auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfos>(nativeProcessInfosOffset());
+    auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfo>(nativeProcessInfoOffset());
     SWC_ASSERT(infos != nullptr);
     infos->args = {stableArgs.data(), stableArgs.length()};
 }
 
-// The process infos JIT-compiled code sees through 'Swag.processInfos()'.
-const Runtime::ProcessInfos& CompilerInstance::processInfos()
+// The process infos JIT-compiled code sees through 'Swag.processInfo()'.
+const Runtime::ProcessInfo& CompilerInstance::processInfo()
 {
-    const auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfos>(nativeProcessInfosOffset());
+    const auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfo>(nativeProcessInfoOffset());
     SWC_ASSERT(infos != nullptr);
     return *infos;
 }

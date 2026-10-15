@@ -67,7 +67,7 @@ func write(value: Value, target: *Value)->u64
 
 var published: u64
 #[Swag.NoInline]
-func publish(address: u64) { discard Swag.atomxchg(&published, address) }
+func publish(address: u64) { discard Swag.atomicExchange(&published, address) }
 struct PublishedValue { first, second, third: u64 }
 impl PublishedValue
 {

@@ -191,9 +191,9 @@ public:
     static Runtime::Context*        runtimeContextFromTls();
     static void                     setRuntimeContextForCurrentThread(Runtime::Context* context);
     uint32_t                        nativeRuntimeContextTlsIdOffset();
-    uint32_t                        nativeProcessInfosOffset();
-    void                            ensureProcessInfosRunArgs();
-    const Runtime::ProcessInfos&    processInfos();
+    uint32_t                        nativeProcessInfoOffset();
+    void                            ensureProcessInfoRunArgs();
+    const Runtime::ProcessInfo&     processInfo();
     void                            markImportedNativeExecution() { importedNativeExecuted_.store(true, std::memory_order_release); }
     // Set when the native backend starts, after the module's semantic analysis: whole-module
     // facts such as a global's address escaping are final from then on.
@@ -722,10 +722,10 @@ private:
     std::atomic<uint64_t>                                 compilerMessageExecutedPassMask_   = 0;
     std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_ = false;
     std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
-    std::once_flag                                        nativeProcessInfosOffsetOnce_;
+    std::once_flag                                        nativeProcessInfoOffsetOnce_;
     uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
-    uint32_t                                              nativeProcessInfosOffset_        = UINT32_MAX;
-    bool                                                  processInfosRunArgsReady_        = false;
+    uint32_t                                              nativeProcessInfoOffset_         = UINT32_MAX;
+    bool                                                  processInfoRunArgsReady_         = false;
     std::vector<SymbolFunction*>                          nativeCodeSegment_;
     std::unordered_set<SymbolFunction*>                   nativeCodeSegmentSet_;
     std::vector<SymbolFunction*>                          nativeTestFunctions_;

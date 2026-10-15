@@ -929,6 +929,11 @@ namespace
             }
         }
 
+        // A declared '#move' type is rejected for what it is, before the initializer is
+        // converted to it: only a parameter can have that type.
+        if (!context.flags.has(AstVarDeclFlagsE::Parameter))
+            SWC_RESULT(SemaCheck::noMoveRefType(sema, explicitTypeRef, finalTypeErrorRef(sema, context)));
+
         // Parentheses leave '#move' as an expression instead of an initializer modifier.
         // Materialize that transfer before applying the ordinary initialization conversion.
         if (!context.flags.has(AstVarDeclFlagsE::Parameter) && nodeInitView.type() && nodeInitView.type()->isMoveReference())

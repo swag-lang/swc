@@ -57,7 +57,7 @@ private
 {
     var g_Plans:    HashTable'(u64, *Plan)
     var g_PlanPool: ArrayPtr'Plan
-    var g_PlanLock: Sync.RWLock
+    var g_PlanLock: Swag.RWLock
 }
 
 private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail

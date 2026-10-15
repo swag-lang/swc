@@ -1,22 +1,22 @@
 #global private
 
 #[Swag.NoInline]
-func nonzero(values: const [*]u64, index: u64)->u64 => Swag.bitCountNz(values[index])
+func nonzero(values: const [*]u64, index: u64)->u64 => Swag.countOnes(values[index])
 
 #[Swag.NoInline]
-func leading(values: const [*]u64, index: u64)->u64 => Swag.bitCountLz(values[index])
+func leading(values: const [*]u64, index: u64)->u64 => Swag.leadingZeros(values[index])
 
 #[Swag.NoInline]
-func trailing(values: const [*]u64, index: u64)->u64 => Swag.bitCountTz(values[index])
+func trailing(values: const [*]u64, index: u64)->u64 => Swag.trailingZeros(values[index])
 
 #[Swag.NoInline]
-func narrowNonzero(values: const [*]u8, index: u64)->u8 => Swag.bitCountNz(values[index])
+func narrowNonzero(values: const [*]u8, index: u64)->u8 => Swag.countOnes(values[index])
 
 #[Swag.NoInline]
-func narrowLeading(values: const [*]u8, index: u64)->u8 => Swag.bitCountLz(values[index])
+func narrowLeading(values: const [*]u8, index: u64)->u8 => Swag.leadingZeros(values[index])
 
 #[Swag.NoInline]
-func narrowTrailing(values: const [*]u8, index: u64)->u8 => Swag.bitCountTz(values[index])
+func narrowTrailing(values: const [*]u8, index: u64)->u8 => Swag.trailingZeros(values[index])
 
 #test
 {

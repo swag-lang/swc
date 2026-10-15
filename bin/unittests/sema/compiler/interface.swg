@@ -7,5 +7,5 @@ func semaTest001()
     let cfg = c.getBuildCfg()
     c.compileString("")
     #assert(#typeof(msg) == const *Swag.CompilerMessage?)
-    #assert(#typeof(cfg) == *Swag.BuildCfg?)
+    #assert(#typeof(cfg) == *Swag.Build.Config?)
 }

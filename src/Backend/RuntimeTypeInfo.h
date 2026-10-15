@@ -236,7 +236,7 @@ namespace Runtime
         Slice<TypeInfo> types;
     };
 
-    struct ProcessInfos
+    struct ProcessInfo
     {
         Slice<Module> types;
         String        args;

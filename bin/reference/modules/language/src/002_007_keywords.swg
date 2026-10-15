@@ -99,8 +99,8 @@ attribute instead.
 Intrinsic values:
 
 ```swag
-Swag.args()  Swag.compiler()  Swag.gvtd()  Swag.jit()
-Swag.modules()  Swag.processInfos()  Swag.runtimeFlags()
+Swag.args()  Swag.compiler()  Swag.globalsToDrop()  Swag.jit()
+Swag.modules()  Swag.processInfo()  Swag.runtimeFlags()
 ```
 
 Type, value, lifecycle, and control intrinsics:
@@ -116,28 +116,29 @@ Swag.stringCmp  Swag.tableOf  Swag.typeCmp
 Math and bit intrinsics:
 
 ```swag
-Swag.abs  Swag.acos  Swag.asin  Swag.atan  Swag.atan2  Swag.bitCountLz  Swag.bitCountNz
-Swag.bitCountTz  Swag.byteSwap  Swag.ceil  Swag.cos  Swag.cosh  Swag.exp  Swag.exp2
-Swag.floor  Swag.log  Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.muladd  Swag.pow
-Swag.rol  Swag.ror  Swag.round  Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.tanh  Swag.trunc
+Swag.abs  Swag.acos  Swag.asin  Swag.atan  Swag.atan2  Swag.byteSwap  Swag.ceil  Swag.cos
+Swag.cosh  Swag.countOnes  Swag.exp  Swag.exp2  Swag.floor  Swag.leadingZeros  Swag.log
+Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.mulAdd  Swag.pow  Swag.rol  Swag.ror  Swag.round
+Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.tanh  Swag.trailingZeros  Swag.trunc
 ```
 
 Memory and atomic intrinsics:
 
 ```swag
-Swag.atomadd  Swag.atomand  Swag.atomcmpxchg  Swag.atomget  Swag.atomor  Swag.atomset  Swag.atomxchg  Swag.atomxor
+Swag.atomicAdd  Swag.atomicAnd  Swag.atomicCompareExchange  Swag.atomicExchange  Swag.atomicLoad
+Swag.atomicOr  Swag.atomicStore  Swag.atomicXor
 Swag.memcmp  Swag.memcpy  Swag.memmove  Swag.memset  Swag.prefetch
 ```
 
 Packed vector intrinsics:
 
 ```swag
-Swag.vecalign  Swag.vecall  Swag.vecany  Swag.vecavgr  Swag.vecclmul  Swag.vecgather  Swag.vecinterleavehi
-Swag.vecinterleavelo  Swag.vecmadd  Swag.vecmaddubs  Swag.vecmask  Swag.vecmulhi  Swag.vecpackss
-Swag.vecpackus  Swag.vecperm  Swag.vecreduceadd  Swag.vecreduceand  Swag.vecreducemax
-Swag.vecreducemin  Swag.vecreduceor  Swag.vecreducexor  Swag.vecsad  Swag.vecsatadd  Swag.vecsatsub
-Swag.vecselect  Swag.vecshuffle  Swag.vecshuffle2  Swag.vecsplat  Swag.vectruncs32  Swag.vecwidenhi
-Swag.vecwidenlo
+Swag.vecAlign  Swag.vecAll  Swag.vecAny  Swag.vecAvgRound  Swag.vecCarrylessMul  Swag.vecGather
+Swag.vecInterleaveHi  Swag.vecInterleaveLo  Swag.vecMask  Swag.vecMulAddPairs
+Swag.vecMulAddPairsSat  Swag.vecMulHigh  Swag.vecNarrowSatS  Swag.vecNarrowSatU  Swag.vecPermute
+Swag.vecReduceAdd  Swag.vecReduceAnd  Swag.vecReduceMax  Swag.vecReduceMin  Swag.vecReduceOr
+Swag.vecReduceXor  Swag.vecSatAdd  Swag.vecSatSub  Swag.vecSelect  Swag.vecShuffle  Swag.vecShuffle2
+Swag.vecSplat  Swag.vecSumAbsDiff  Swag.vecTruncToS32  Swag.vecWidenHi  Swag.vecWidenLo
 ```
 
 > NOTE:

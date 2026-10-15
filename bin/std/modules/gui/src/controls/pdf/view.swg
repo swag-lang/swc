@@ -186,7 +186,7 @@ struct PdfView
     // has a worker raise it one item at a time, so a frame waits at most for the item the worker
     // is on.
     prepareTask:    Swag.Task
-    pageLock:       Sync.Mutex
+    pageLock:       Swag.Mutex
     preparingPage:  *PdfResidentPage?
     preparingScale: f32
     prepareReady:   u32     // Set by the worker when the page holds `preparingScale`; read atomically.

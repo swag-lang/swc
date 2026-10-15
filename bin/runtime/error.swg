@@ -150,7 +150,7 @@ namespace Swag
                     // let its later pop restore the just-dismissed handler's borrowed view.
                     for index in context.errorIndex
                     {
-                        let saved = &context.errors[index].pushCurError
+                        let saved = &__errorValue(context, index).pushCurError
                         if record and saved[].buffer == record.value.buffer do
                             saved[] = .previousError
                     }
@@ -236,7 +236,8 @@ namespace Swag
         {
             Swag.init(&.tempAllocator, 1)
             Swag.init(&.errorAllocator, 1)
-            Swag.init(.errors.buffer, .errors.count)
+            Swag.init(.errorLevels.buffer, .errorLevels.count)
+            .errorBlocks     = null
             .curError        = null
             .errorCaptures   = null
             .hasError        = 0
@@ -341,10 +342,7 @@ private func __detachErrMessages(storage: *ScratchAllocator)
     arena.storage.releaseHook  = null
     storage.releaseOwner       = null
     storage.releaseHook        = null
-    storage.block              = null
-    storage.firstLeak          = null
-    storage.used               = 0
-    storage.totalLeak          = 0
+    storage.forgetStorage()
     __releaseErrArena(arena)
 }
 
@@ -440,7 +438,7 @@ private func __retainErrFrameMessages(record: *ErrorRecord)
     // those ancestor arenas too; their own context lease still protects unraised plain views.
     for index in context.errorIndex
     {
-        let parent = __errMessages(&context.errors[index].pushErrorAllocator)
+        let parent = __errMessages(&__errorValue(context, index).pushErrorAllocator)
         if parent do
             record.messages = __prependErrArena(record.messages, parent, record.allocator)
     }
@@ -451,7 +449,7 @@ private func __finishErrStorage(context: *Context, failed: bool)
     if not context.errorIndex do
         return
     let current = &context.errorAllocator
-    let parent  = &context.errors[context.errorIndex - 1].pushErrorAllocator
+    let parent  = &__errorValue(context, context.errorIndex - 1).pushErrorAllocator
     if failed or (not current.block and not current.firstLeak and not current.releaseOwner)
     {
         // A failed operand's record already owns its new messages. End the context's lease
@@ -491,10 +489,22 @@ func __releaseErrRecord(record: *ErrorRecord?)
 private func __findErrRecord(data: *void)->*ErrorRecord?
 {
     let context = Swag.getContext()
-    for &slot in context.errors
+    for &slot in context.errorLevels
     {
         if slot.record and slot.value.buffer == data do
             return slot.record
+    }
+
+    var block = context.errorBlocks
+    while block
+    {
+        for &slot in block.values
+        {
+            if slot.record and slot.value.buffer == data do
+                return slot.record
+        }
+
+        block = block.next
     }
 
     var capture = context.errorCaptures
@@ -550,7 +560,7 @@ func __copyOwnedErrRecord(source: *ErrorRecord)->*ErrorRecord
 private func __installErrRecord(record: *ErrorRecord)
 {
     let context  = Swag.getContext()
-    let slot     = &context.errors[context.errorIndex]
+    let slot     = __errorValue(context, context.errorIndex)
     let previous = slot.record
     slot.record      = record
     slot.value       = record.value
@@ -608,27 +618,21 @@ func __isErrContext()->bool
     // every fallible call is tested against has to be down for the duration, so the cleanup can
     // call fallible code and dismiss errors of its own, but the failure is still the reason the
     // cleanup is running and a '#fail' defer must see it.
-    return cxt.errorIndex != 0 and cxt.errors[cxt.errorIndex - 1].pushHasError != 0
+    return cxt.errorIndex != 0 and __errorValue(cxt, cxt.errorIndex - 1).pushHasError != 0
 }
 
 func __pushErr()
 {
-    // The slot above the pushed frames holds the error raised inside them, so a push must
-    // leave one free.
-    let cxt = Swag.getContext()
-    if cxt.errorIndex + 1 >= MaxErrors do
-        Swag.panic("error propagation nesting exceeds its supported depth", #curlocation)
-
-    let frame = &cxt.errors[cxt.errorIndex]
+    let cxt   = Swag.getContext()
+    let frame = __errorValue(cxt, cxt.errorIndex)
     Swag.memcpy(&frame.pushErrorAllocator, &cxt.errorAllocator, #sizeof(ScratchAllocator))
     Swag.init(&cxt.errorAllocator, 1)
-    cxt.errorAllocator.allocator              = frame.pushErrorAllocator.allocator
-    cxt.errorAllocator.capacity               = frame.pushErrorAllocator.capacity
-    cxt.errors[cxt.errorIndex].pushTraceIndex = cast(u32, cxt.traceIndex)
-    cxt.errors[cxt.errorIndex].pushHasError   = cxt.hasError
+    cxt.errorAllocator.inheritSettings(&frame.pushErrorAllocator)
+    frame.pushTraceIndex = cast(u32, cxt.traceIndex)
+    frame.pushHasError   = cxt.hasError
 
     // The handler's ErrorCapture owns this view while nested cleanup runs.
-    Swag.memcpy(&cxt.errors[cxt.errorIndex].pushCurError, &cxt.curError, #sizeof(any?))
+    Swag.memcpy(&frame.pushCurError, &cxt.curError, #sizeof(any?))
 
     cxt.hasError   = 0
     cxt.curError   = null
@@ -639,22 +643,24 @@ func __popErr()
 {
     let cxt    = Swag.getContext()
     let failed = cxt.hasError != 0
-    let record = cxt.errors[cxt.errorIndex].record
-    cxt.errors[cxt.errorIndex].record = null
-    cxt.errors[cxt.errorIndex].value  = null
+    let slot   = __errorValue(cxt, cxt.errorIndex)
+    let record = slot.record
+    slot.record = null
+    slot.value  = null
     __releaseErrRecord(record)
     __finishErrStorage(cxt, failed)
 
     cxt.errorIndex -= 1
 
-    cxt.hasError = cxt.errors[cxt.errorIndex].pushHasError
-    Swag.memcpy(&cxt.curError, &cxt.errors[cxt.errorIndex].pushCurError, #sizeof(any?))
-    Swag.memset(&cxt.errors[cxt.errorIndex].pushCurError, 0, #sizeof(any?))
-    cxt.traceIndex = cxt.errors[cxt.errorIndex].pushTraceIndex
+    let frame = __errorValue(cxt, cxt.errorIndex)
+    cxt.hasError = frame.pushHasError
+    Swag.memcpy(&cxt.curError, &frame.pushCurError, #sizeof(any?))
+    Swag.memset(&frame.pushCurError, 0, #sizeof(any?))
+    cxt.traceIndex = frame.pushTraceIndex
 
     // The frame is no longer live, so what it recorded must not be read by the '#fail' lookup in
     // '__isErrContext': left set, it would answer for a frame that was popped long ago.
-    cxt.errors[cxt.errorIndex].pushHasError = 0
+    frame.pushHasError = 0
 }
 
 // Kept as a runtime helper for callers that explicitly dismiss the ambient failure.
@@ -701,8 +707,8 @@ func __catchErr(owner: *ErrorCapture)
     let context = Swag.getContext()
     owner.handler = context.hasError != 0
     if context.errorIndex do
-        owner.previousError = context.errors[context.errorIndex - 1].pushCurError
-    let slot = &context.errors[context.errorIndex]
+        owner.previousError = __errorValue(context, context.errorIndex - 1).pushCurError
+    let slot = __errorValue(context, context.errorIndex)
     if context.hasError
     {
         let record = slot.record!
@@ -725,8 +731,9 @@ func __catchErr(owner: *ErrorCapture)
     if context.errorIndex
     {
         context.errorIndex -= 1
-        context.errors[context.errorIndex].pushHasError = 0
-        context.errors[context.errorIndex].pushCurError = null
+        let frame = __errorValue(context, context.errorIndex)
+        frame.pushHasError = 0
+        frame.pushCurError = null
     }
 
     __registerErrCapture(owner, context)
@@ -737,22 +744,74 @@ func __catchErr(owner: *ErrorCapture)
 // any explicitly transported record alive independently of this context.
 func __releaseErrContext(context: *Context)
 {
-    for &slot in context.errors
+    for &slot in context.errorLevels do
+        __releaseErrLevel(slot)
+    var block = context.errorBlocks
+    while block
     {
-        let record = slot.record
-        slot.record       = null
-        slot.value        = null
-        slot.pushCurError = null
-        slot.pushHasError = 0
-        __releaseErrRecord(record)
+        for &slot in block.values do
+            __releaseErrLevel(slot)
+        block = block.next
     }
 
     context.curError   = null
     context.hasError   = 0
     context.errorIndex = 0
-    for &slot in context.errors do
+
+    for &slot in context.errorLevels do
         slot.pushErrorAllocator.release()
+    block = context.errorBlocks
+    context.errorBlocks = null
+    while block
+    {
+        for &slot in block.values do
+            slot.pushErrorAllocator.release()
+        let next = block.next
+        __freeErrMemory(#copy block.allocator, block, #sizeof(ErrorBlock))
+        block = next
+    }
+
     context.errorAllocator.release()
+}
+
+private func __releaseErrLevel(slot: *ErrorValue)
+{
+    let record = slot.record
+    slot.record       = null
+    slot.value        = null
+    slot.pushCurError = null
+    slot.pushHasError = 0
+    __releaseErrRecord(record)
+}
+
+// The level of the error stack at `index`, allocating the blocks that lead to it on first use.
+func __errorValue(context: *Context, index: u32)->*ErrorValue
+{
+    if index < ErrorInlineCount do
+        return &context.errorLevels[index]
+
+    var link  = &context.errorBlocks
+    var first = ErrorInlineCount
+    for
+    {
+        if not link[] do
+            link[] = __allocateErrorBlock()
+        let block = link[]!
+        if index - first < ErrorBlockCount do
+            return &block.values[index - first]
+        first += ErrorBlockCount
+        link  = &block.next
+    }
+}
+
+// The stack outlives any allocator a scope installs for itself, so it comes from the default one.
+private func __allocateErrorBlock()->*ErrorBlock
+{
+    let context   = Swag.getContext()
+    let allocator = context.defaultAllocator orelse __runtimeAllocator()
+    let block     = cast(*ErrorBlock, __allocateErrMemory(allocator, #sizeof(ErrorBlock)))
+    block[] = ErrorBlock{allocator: allocator}
+    return block
 }
 
 // Native test recovery abandons the failed stack instead of unwinding it. Consume its lexical
@@ -777,8 +836,9 @@ func __failedCast() fail
 #[Swag.NoReturn]
 func __failedExpect(loc: SourceCodeLocation)
 {
-    let cxt  = Swag.getContext()
-    let type = Swag.kindOf(cxt.errors[cxt.errorIndex].value)
+    let cxt    = Swag.getContext()
+    let raised = __errorValue(cxt, cxt.errorIndex).value
+    let type   = Swag.kindOf(raised)
 
     var str: [512] u8
     var len: u64
@@ -804,7 +864,7 @@ func __failedExpect(loc: SourceCodeLocation)
         if (fields != null and fields.count > 0 and fields[0].pointedType == Swag.BaseError) or
            (type == Swag.BaseError)
         {
-            let data = (cxt.errors[cxt.errorIndex].value).buffer
+            let data = raised.buffer
             let val  = cast(const *Swag.BaseError, data!)
             maxLen = Swag.min(val.message.count, 128)
             if maxLen

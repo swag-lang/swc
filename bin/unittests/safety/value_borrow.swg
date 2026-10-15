@@ -153,7 +153,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     #[Swag.NoInline]
     func mutate(value: BorrowedValue, target: *BorrowedValue)->u64
     {
-        discard Swag.atomxchg(&target.first, 0)     // swc-expected-error {{safety_err_runtime}}
+        discard Swag.atomicExchange(&target.first, 0)     // swc-expected-error {{safety_err_runtime}}
         return value.first
     }
     func conflict()->u64

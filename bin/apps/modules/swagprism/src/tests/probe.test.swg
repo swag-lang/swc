@@ -82,7 +82,7 @@ using Core
 // Each optimization level reaches the real compiler, whose RGB output survives capture.
 #test
 {
-    const Levels: [?] Swag.BuildCfgBackendOptimLevel = [.O0, .O1, .O2]
+    const Levels: [?] Swag.Build.BackendOptimLevel = [.O0, .O1, .O2]
     for level in Levels
     {
         var artifact = Pipeline.BuildArtifact{request: {source: "using Core\nfunc value()->s32 => 42", stage: "pre-emit", kind: .Microcode, settings: {optimization: level}}}

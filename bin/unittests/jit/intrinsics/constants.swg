@@ -1,10 +1,10 @@
 #global private
 
 #[Swag.Compiler]
-func checkProcessInfosAndArgs()->bool
+func checkProcessInfoAndArgs()->bool
 {
-    let a = (Swag.processInfos().args).count
-    let b = Swag.processInfos().args
+    let a = (Swag.processInfo().args).count
+    let b = Swag.processInfo().args
     #assert(#typeof(b) == string?)
     let c = Swag.jit()
     #assert(#typeof(c) == bool)
@@ -28,16 +28,16 @@ func checkArgs()->bool
 }
 
 #[Swag.Compiler]
-func checkProcessInfosArgsType()->bool
+func checkProcessInfoArgsType()->bool
 {
-    let a = Swag.processInfos().args
+    let a = Swag.processInfo().args
     #assert(#typeof(a) == string?)
     return true
 }
 
 #test
 {
-    const ok = #run checkProcessInfosAndArgs()
+    const ok = #run checkProcessInfoAndArgs()
     #assert(ok)
 }
 
@@ -49,6 +49,6 @@ func checkProcessInfosArgsType()->bool
 
 #test
 {
-    const ok = #run checkProcessInfosArgsType()
+    const ok = #run checkProcessInfoArgsType()
     #assert(ok)
 }

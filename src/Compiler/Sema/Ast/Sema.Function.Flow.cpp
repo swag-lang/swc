@@ -1717,10 +1717,10 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
         setupIntrinsicAssertNarrowFacts(sema, *this);
     }
-    else if (intrinsicId == TokenId::IntrinsicGvtd)
+    else if (intrinsicId == TokenId::IntrinsicGlobalsToDrop)
     {
         if (SymbolFunction* fn = sema.currentFunction())
-            fn->setUsesGvtd();
+            fn->setUsesGlobalsToDrop();
     }
 
     SWC_RESULT(setupIntrinsicMathRuntimeSafety(sema, *this));

@@ -96,13 +96,13 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         for 20000
         {
             let slot = exchangeNext(&state) % ExchangeSlots
-            let old  = Swag.atomxchg(&exchange.slots[slot], 0)
+            let old  = Swag.atomicExchange(&exchange.slots[slot], 0)
             if old
             {
                 let bytes = cast([*] u8, old)
                 let size  = cast(const *u64, old)[]
                 if bytes[size - 1] != exchangeStamp(old, size) or (size > 16 and bytes[size / 2] != exchangeStamp(old, size)) do
-                    discard Swag.atomadd(&exchange.errors, 1)
+                    discard Swag.atomicAdd(&exchange.errors, 1)
 
                 var req: AllocatorRequest
                 req.address = cast(*void, old)
@@ -113,7 +113,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
                     req.size    = exchangeSize(&state)
                     exchange.allocator.realloc(&req)
                     if cast(const *u64, req.address!)[] != size do
-                        discard Swag.atomadd(&exchange.errors, 1)
+                        discard Swag.atomicAdd(&exchange.errors, 1)
                 }
 
                 exchange.allocator.free(&req)
@@ -125,7 +125,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             exchange.allocator.alloc(&req)
             let address = cast(u64, req.address)
             if req.alignment and (address & 63) != 0 do
-                discard Swag.atomadd(&exchange.errors, 1)
+                discard Swag.atomicAdd(&exchange.errors, 1)
 
             cast(*u64, address)[] = req.size
             let bytes = cast([*] u8, address)
@@ -133,7 +133,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
             if req.size > 16 do
                 bytes[req.size / 2] = exchangeStamp(address, req.size)
 
-            let previous = Swag.atomxchg(&exchange.slots[slot], address)
+            let previous = Swag.atomicExchange(&exchange.slots[slot], address)
             if previous
             {
                 var free: AllocatorRequest
@@ -156,7 +156,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         req.size    = 64
         payload.allocator.free(&req)
 
-        Swag.atomadd(payload.done, 1)
+        Swag.atomicAdd(payload.done, 1)
         return 0
     }
 }
@@ -916,7 +916,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         Swag.assert(handle != null)
         discard AllocatorThreadTest.WaitForSingleObject(handle, AllocatorThreadTest.INFINITE)
         AllocatorThreadTest.CloseHandle(handle)
-        Swag.assert(Swag.atomcmpxchg(&done, 0, 0) == 1)
+        Swag.assert(Swag.atomicCompareExchange(&done, 0, 0) == 1)
 
         // A remote free parks the block on the page's atomic list; the owner picks it up the next
         // time the page runs dry, or when the caller asks for idle memory back.
@@ -958,7 +958,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         Swag.assert(handle != null)
         discard AllocatorThreadTest.WaitForSingleObject(handle, AllocatorThreadTest.INFINITE)
         AllocatorThreadTest.CloseHandle(handle)
-        Swag.assert(Swag.atomcmpxchg(&done, 0, 0) == 1)
+        Swag.assert(Swag.atomicCompareExchange(&done, 0, 0) == 1)
         Swag.assert(alloc.stats().countAlloc == 0)
         Swag.assert(alloc.stats().countFree == 1)
 
@@ -998,7 +998,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         Swag.assert(handle != null)
         discard AllocatorThreadTest.WaitForSingleObject(handle, AllocatorThreadTest.INFINITE)
         AllocatorThreadTest.CloseHandle(handle)
-        Swag.assert(Swag.atomcmpxchg(&done, 0, 0) == 1)
+        Swag.assert(Swag.atomicCompareExchange(&done, 0, 0) == 1)
         Swag.assert(first.revisitQueued == 1)
 
         var reused = false

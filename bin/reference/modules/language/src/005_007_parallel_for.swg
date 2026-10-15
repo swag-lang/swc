@@ -69,7 +69,7 @@ one they are.
     var started = 0'u64
 
     parallel for |&started| 8 do
-        discard Swag.atomadd(&started, 1)
+        discard Swag.atomicAdd(&started, 1)
 
     Swag.assert(started == 8)
 }

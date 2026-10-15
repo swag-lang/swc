@@ -79,7 +79,7 @@ Static queries produce facts known by semantic analysis:
 
 Intrinsics participate in expressions. Some expose context ('Swag.args()',
 'Swag.getContext()'), some construct runtime-shaped values ('Swag.makeSlice', 'Swag.makeAny'), and some
-perform primitive operations ('Swag.sqrt', 'Swag.memcpy', 'Swag.atomadd').
+perform primitive operations ('Swag.sqrt', 'Swag.memcpy', 'Swag.atomicAdd').
 */
 
 #test
@@ -260,7 +260,7 @@ for value in values.reversed() {}
 # Choosing the Narrowest Scope
 
 '#wrap' opts one arithmetic operation into wrapping behavior. Broader runtime
-guard policy uses 'Swag.Safety' on a scope, and module defaults live in 'BuildCfg':
+guard policy uses 'Swag.Safety' on a scope, and module defaults live in 'Swag.Build.Config':
 
 Left shift is already truncating: bits shifted out of the left operand are
 discarded without an overflow panic. '#wrap' remains accepted on '<<' and

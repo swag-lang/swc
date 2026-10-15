@@ -65,11 +65,11 @@ enum TaskPriority
 struct TaskState
 {
     using node: WorkNode
-    run:        (func||())?     // Runs the body and stores its outcome; set at each submission.
-    notify:     (func||())?     // Told the outcome exists, before the task reads as done.
-    scope:      CancelScope     // The cancellation state the body observes.
-    priority:   TaskPriority    // How urgently the body runs.
-    submission: u64             // Counts the submissions, so a notification names the one it reports.
+    run:        (func||())?      // Runs the body and stores its outcome; set at each submission.
+    notify:     (func||())?      // Told the outcome exists, before the task reads as done.
+    scope:      CancelScope      // The cancellation state the body observes.
+    priority:   TaskPriority     // How urgently the body runs.
+    submission: u64              // Counts the submissions, so a notification names the one it reports.
 }
 
 impl TaskState
@@ -357,14 +357,14 @@ private func runTaskBody(body: func||())
 
     let context = Swag.getContext()
     __pushErr()
-    let frame   = context.errorIndex - 1
-    let pending = context.errors[frame].pushHasError
-    context.errors[frame].pushHasError = 0
+    let frame   = __errorValue(context, context.errorIndex - 1)
+    let pending = frame.pushHasError
+    frame.pushHasError = 0
     context.traceIndex = 0
 
     body()
 
-    context.errors[frame].pushHasError = pending
+    frame.pushHasError = pending
     __popErr()
 }
 
@@ -382,10 +382,10 @@ private const GroupInlineCapacity = 4'u32
 #[Swag.NoDoc]
 struct GroupChild
 {
-    using node:   WorkNode               // Scheduler state and dynamic identity.
-    body:         (func||())?            // The child's work, when it cannot fail.
-    fallibleBody: (func||() fail)?       // The child's work, when it can fail.
-    group:        *TaskGroup?            // The group the child belongs to.
+    using node:   WorkNode             // Scheduler state and dynamic identity.
+    body:         (func||())?          // The child's work, when it cannot fail.
+    fallibleBody: (func||() fail)?     // The child's work, when it can fail.
+    group:        *TaskGroup?          // The group the child belongs to.
 }
 
 private const GroupBlockCapacity = cast(u32, ((AllocatorHostCommitGranularity - BootstrapAllocationHeaderSize - 2 * #sizeof(u64)) / #sizeof(GroupChild)))

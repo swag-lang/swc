@@ -686,7 +686,7 @@ namespace
         return Result::Continue;
     }
 
-    // 'Swag.atomget' is one plain load the optimizer never hoists, merges, or drops: an
+    // 'Swag.atomicLoad' is one plain load the optimizer never hoists, merges, or drops: an
     // aligned load is already an atomic acquire on x86-64, so the locked read-modify-write
     // the compare-exchange form paid for is not needed to read a value another thread writes.
     Result codeGenAtomicLoad(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
@@ -711,9 +711,9 @@ namespace
         return Result::Continue;
     }
 
-    // 'Swag.atomset' is one plain store the optimizer never drops, merges, or moves an access
+    // 'Swag.atomicStore' is one plain store the optimizer never drops, merges, or moves an access
     // across: an aligned store is already a release on x86-64, so the locked exchange
-    // 'Swag.atomxchg' pays for is not needed to publish a value.
+    // 'Swag.atomicExchange' pays for is not needed to publish a value.
     Result codeGenAtomicStore(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         SmallVector<AstNodeRef> children;
@@ -1734,41 +1734,41 @@ namespace
         return contextPayload.reg;
     }
 
-    Result codeGenProcessInfos(CodeGen& codeGen)
+    Result codeGenProcessInfo(CodeGen& codeGen)
     {
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        codeGen.builder().emitLoadRegDataSegmentReloc(resultPayload.reg, DataSegmentKind::GlobalZero, codeGen.compiler().nativeProcessInfosOffset());
+        codeGen.builder().emitLoadRegDataSegmentReloc(resultPayload.reg, DataSegmentKind::GlobalZero, codeGen.compiler().nativeProcessInfoOffset());
         return Result::Continue;
     }
 
-    MicroReg gvtdScratchAddressReg(CodeGen& codeGen)
+    MicroReg globalsToDropScratchAddressReg(CodeGen& codeGen)
     {
-        SWC_ASSERT(codeGen.hasGvtdScratchLayout());
+        SWC_ASSERT(codeGen.hasGlobalsToDropScratchLayout());
         SWC_ASSERT(codeGen.localStackBaseReg().isValid());
 
-        if (!codeGen.gvtdScratchOffset())
+        if (!codeGen.globalsToDropScratchOffset())
             return codeGen.localStackBaseReg();
 
         MicroBuilder&  builder    = codeGen.builder();
         const MicroReg addressReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(addressReg, codeGen.localStackBaseReg(), MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(addressReg, ApInt(codeGen.gvtdScratchOffset(), 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(addressReg, ApInt(codeGen.globalsToDropScratchOffset(), 64), MicroOp::Add, MicroOpBits::B64);
         return addressReg;
     }
 
-    Result codeGenGvtd(CodeGen& codeGen)
+    Result codeGenGlobalsToDrop(CodeGen& codeGen)
     {
-        constexpr uint32_t slicePtrOffset   = offsetof(Runtime::Slice<Runtime::Gvtd>, ptr);
-        constexpr uint32_t sliceCountOffset = offsetof(Runtime::Slice<Runtime::Gvtd>, count);
-        constexpr uint32_t entriesOffset    = (sizeof(Runtime::Slice<Runtime::Gvtd>) + alignof(Runtime::Gvtd) - 1) & ~(alignof(Runtime::Gvtd) - 1);
+        constexpr uint32_t slicePtrOffset   = offsetof(Runtime::Slice<Runtime::GlobalToDrop>, ptr);
+        constexpr uint32_t sliceCountOffset = offsetof(Runtime::Slice<Runtime::GlobalToDrop>, count);
+        constexpr uint32_t entriesOffset    = (sizeof(Runtime::Slice<Runtime::GlobalToDrop>) + alignof(Runtime::GlobalToDrop) - 1) & ~(alignof(Runtime::GlobalToDrop) - 1);
 
-        SWC_ASSERT(codeGen.hasGvtdScratchLayout());
+        SWC_ASSERT(codeGen.hasGlobalsToDropScratchLayout());
 
         // Rebuild the returned slice in frame-local scratch storage on each call so both the slice header
         // and the entry array stay valid for the duration of the current function.
-        const MicroReg scratchReg = gvtdScratchAddressReg(codeGen);
+        const MicroReg scratchReg = globalsToDropScratchAddressReg(codeGen);
         MicroBuilder&  builder    = codeGen.builder();
-        const auto     entries    = codeGen.gvtdScratchEntries();
+        const auto     entries    = codeGen.globalsToDropScratchEntries();
 
         if (entries.empty())
         {
@@ -1784,17 +1784,17 @@ namespace
             for (size_t i = 0; i < entries.size(); ++i)
             {
                 const auto&    entry   = entries[i];
-                const uint64_t baseOff = entriesOffset + i * sizeof(Runtime::Gvtd);
+                const uint64_t baseOff = entriesOffset + i * sizeof(Runtime::GlobalToDrop);
 
                 const MicroReg ptrReg = codeGen.nextVirtualIntRegister();
                 CodeGenMemoryHelpers::emitGlobalVariableAddress(codeGen, ptrReg, *entry.variable);
-                builder.emitLoadMemReg(scratchReg, baseOff + offsetof(Runtime::Gvtd, ptr), ptrReg, MicroOpBits::B64);
+                builder.emitLoadMemReg(scratchReg, baseOff + offsetof(Runtime::GlobalToDrop, ptr), ptrReg, MicroOpBits::B64);
 
                 const MicroReg opDropReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegPtrReloc(opDropReg, 0, ConstantRef::invalid(), entry.opDrop);
-                builder.emitLoadMemReg(scratchReg, baseOff + offsetof(Runtime::Gvtd, opDrop), opDropReg, MicroOpBits::B64);
-                builder.emitLoadMemImm(scratchReg, baseOff + offsetof(Runtime::Gvtd, sizeOf), ApInt(entry.sizeOf, 32), MicroOpBits::B32);
-                builder.emitLoadMemImm(scratchReg, baseOff + offsetof(Runtime::Gvtd, count), ApInt(entry.count, 32), MicroOpBits::B32);
+                builder.emitLoadMemReg(scratchReg, baseOff + offsetof(Runtime::GlobalToDrop, opDrop), opDropReg, MicroOpBits::B64);
+                builder.emitLoadMemImm(scratchReg, baseOff + offsetof(Runtime::GlobalToDrop, sizeOf), ApInt(entry.sizeOf, 32), MicroOpBits::B32);
+                builder.emitLoadMemImm(scratchReg, baseOff + offsetof(Runtime::GlobalToDrop, count), ApInt(entry.count, 32), MicroOpBits::B32);
             }
         }
 
@@ -1993,7 +1993,7 @@ namespace
         return true;
     }
 
-    // 'Swag.vecsplat' fills every lane with one scalar. The result type carries the lane, and
+    // 'Swag.vecSplat' fills every lane with one scalar. The result type carries the lane, and
     // the argument already has that exact type, so nothing converts here.
     Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
     {
@@ -2224,9 +2224,9 @@ namespace
                 return Result::Continue;
             }
 
-            case TokenId::IntrinsicBitCountNz:
-            case TokenId::IntrinsicBitCountTz:
-            case TokenId::IntrinsicBitCountLz:
+            case TokenId::IntrinsicCountOnes:
+            case TokenId::IntrinsicTrailingZeros:
+            case TokenId::IntrinsicLeadingZeros:
             case TokenId::IntrinsicByteSwap:
             {
                 SWC_ASSERT(children.size() == 1);
@@ -2235,13 +2235,13 @@ namespace
                 CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
                 switch (tokId)
                 {
-                    case TokenId::IntrinsicBitCountNz:
+                    case TokenId::IntrinsicCountOnes:
                         resultPayload.reg = CodeGenVectorHelpers::emitPopCount(codeGen, valueReg, laneType);
                         break;
-                    case TokenId::IntrinsicBitCountTz:
+                    case TokenId::IntrinsicTrailingZeros:
                         resultPayload.reg = CodeGenVectorHelpers::emitCountTrailingZeros(codeGen, valueReg, laneType);
                         break;
-                    case TokenId::IntrinsicBitCountLz:
+                    case TokenId::IntrinsicLeadingZeros:
                         resultPayload.reg = CodeGenVectorHelpers::emitCountLeadingZeros(codeGen, valueReg, laneType);
                         break;
                     default:
@@ -2648,11 +2648,11 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenRotate(codeGen, *this, MicroOp::RotateRight);
         case TokenId::IntrinsicByteSwap:
             return codeGenByteSwap(codeGen, *this);
-        case TokenId::IntrinsicBitCountNz:
+        case TokenId::IntrinsicCountOnes:
             return codeGenBitCount(codeGen, *this, BitCountKind::Nz);
-        case TokenId::IntrinsicBitCountTz:
+        case TokenId::IntrinsicTrailingZeros:
             return codeGenBitCount(codeGen, *this, BitCountKind::Tz);
-        case TokenId::IntrinsicBitCountLz:
+        case TokenId::IntrinsicLeadingZeros:
             return codeGenBitCount(codeGen, *this, BitCountKind::Lz);
         case TokenId::IntrinsicMulAdd:
             return codeGenMulAdd(codeGen, *this);
@@ -2695,10 +2695,10 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenGetContext(codeGen);
         case TokenId::IntrinsicSetContext:
             return codeGenSetContext(codeGen, *this);
-        case TokenId::IntrinsicProcessInfos:
-            return codeGenProcessInfos(codeGen);
-        case TokenId::IntrinsicGvtd:
-            return codeGenGvtd(codeGen);
+        case TokenId::IntrinsicProcessInfo:
+            return codeGenProcessInfo(codeGen);
+        case TokenId::IntrinsicGlobalsToDrop:
+            return codeGenGlobalsToDrop(codeGen);
         case TokenId::IntrinsicCompiler:
             return codeGenCompiler(codeGen);
         case TokenId::IntrinsicBreakpoint:

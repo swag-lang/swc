@@ -1,7 +1,7 @@
 #pragma once
 
 // WARNING!
-// WARNING! These declarations must be in sync with "bin/runtime/api.swg"
+// WARNING! These declarations must be in sync with their declarations in "bin/runtime"
 // WARNING!
 
 SWC_BEGIN_NAMESPACE();
@@ -85,7 +85,7 @@ namespace Runtime
         uint32_t colEnd;
     };
 
-    struct Gvtd
+    struct GlobalToDrop
     {
         void* ptr;
         void (*opDrop)(void*);

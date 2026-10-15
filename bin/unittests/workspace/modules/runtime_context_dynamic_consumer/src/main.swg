@@ -12,7 +12,7 @@ func verifyExpandedContextSlot(library: *NativeLibrary)
     let previous       = Swag.getContext()
     let previousSlot   = previous.runtimeTlsIdPlusOne
     let flags          = cast(u64, previous.runtimeFlags)
-    let arguments      = &Swag.processInfos().args
+    let arguments      = &Swag.processInfo().args
 
     var slots: [65] u32
     var count = 0'u64

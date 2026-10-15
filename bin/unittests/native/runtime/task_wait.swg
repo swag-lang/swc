@@ -80,11 +80,11 @@ func completeDescendants(depth: u32, completed: *Swag.AtomicValue'u32)
     child.submit(func|depth, completed|() { completeDescendants(depth - 1, completed) })
 }
 
-// Successful nesting uses task frames, not the fixed-size error propagation stack.
+// Successful nesting uses task frames, not error stack levels.
 #test
 {
     var completed: Swag.AtomicValue'u32
-    completeDescendants(cast(u32, Swag.MaxErrors) + 8, &completed)
+    completeDescendants(40, &completed)
     Swag.assert(completed.load() == 1)
 }
 

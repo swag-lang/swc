@@ -9,5 +9,5 @@ func semaTest001()
 func semaTest002()
 {
     const a: typeinfo = s32
-    Swag.assert(Swag.typeCmp(a, a, .CastAny | .UnScoped))
+    Swag.assert(Swag.typeCmp(a, a, .CastAny | .Unscoped))
 }

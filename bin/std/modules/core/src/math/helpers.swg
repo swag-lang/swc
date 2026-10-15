@@ -39,7 +39,7 @@ func(T) bigEndianToNative(x: T)->T
     #static if BIG_ENDIAN do
         return x
     else do
-        return Math.byteswap(x)
+        return Math.byteSwap(x)
 }
 
 // Returns the integer `x`, in the byte order of the target, as big-endian.
@@ -51,7 +51,7 @@ func(T) nativeToBigEndian(x: T)->T
     #static if BIG_ENDIAN do
         return x
     else do
-        return Math.byteswap(x)
+        return Math.byteSwap(x)
 }
 
 // Returns the little-endian integer `x` in the byte order of the target.
@@ -61,7 +61,7 @@ func(T) nativeToBigEndian(x: T)->T
 func(T) littleEndianToNative(x: T)->T
 {
     #static if BIG_ENDIAN do
-        return Math.byteswap(x)
+        return Math.byteSwap(x)
     else do
         return x
 }
@@ -73,7 +73,7 @@ func(T) littleEndianToNative(x: T)->T
 func(T) nativeToLittleEndian(x: T)->T
 {
     #static if BIG_ENDIAN do
-        return Math.byteswap(x)
+        return Math.byteSwap(x)
     else do
         return x
 }

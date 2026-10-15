@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Runtime
 {
-    // Mirror of the Swag 'AllocatorRequest' (bin/runtime/api.swg): keep the field
+    // Mirror of the Swag 'AllocatorRequest' (bin/runtime/context.swg): keep the field
     // order and layout in sync. The operation is carried by the IAllocator METHOD
     // being called (alloc/realloc/free/freeAll/assertAllocated), not by the request.
     struct AllocatorRequest

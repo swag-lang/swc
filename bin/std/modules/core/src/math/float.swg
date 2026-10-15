@@ -345,6 +345,6 @@ alias ConstF64 = Const'f64
     func pow(x, y: f64) => Swag.pow(x, y)
 
     // Returns `x * y + z`.
-    func mulAdd(x, y, z: f32) => Swag.muladd(x, y, z)
-    func mulAdd(x, y, z: f64) => Swag.muladd(x, y, z)
+    func mulAdd(x, y, z: f32) => Swag.mulAdd(x, y, z)
+    func mulAdd(x, y, z: f64) => Swag.mulAdd(x, y, z)
 }

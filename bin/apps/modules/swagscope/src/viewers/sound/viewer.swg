@@ -39,7 +39,6 @@ private
     const WaveformInsetY      = 32.0
     const WaveformScaleHeight = 26.0
     const WaveformTickHeight  = 5.0
-
 }
 
 // Loudness of a slice, in the two readings a level meter carries: the transient that clips and the
@@ -446,7 +445,7 @@ struct Panel
     opened:       bool
 
     waveformTask:  Swag.Task
-    waveformLock:  Sync.Mutex
+    waveformLock:  Swag.Mutex
     waveformBuilt: u64
 
     voice:       *Voice?
@@ -486,10 +485,10 @@ impl Panel
         if .openFinished do
             return
 
-        .openFinished = true
-        .sound        = try .openTask.take()
-        .opened       = true
-        .duration = .sound.durationInSeconds()
+        .openFinished      = true
+        .sound             = try .openTask.take()
+        .opened            = true
+        .duration          = .sound.durationInSeconds()
         .waveform.duration = .duration
         if .duration > 0 do
             .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))

@@ -34,7 +34,7 @@
 {
     func pinfosAreZeroed()->bool
     {
-        return (Swag.processInfos().modules).count == 0 and (Swag.processInfos().args).count == 0
+        return (Swag.processInfo().modules).count == 0 and (Swag.processInfo().args).count == 0
     }
 
     const V = #run pinfosAreZeroed()

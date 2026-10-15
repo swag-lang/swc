@@ -115,14 +115,14 @@ struct AllocatorHeader
 
     // Where the payload starts. An ordinary header sits right before it; an electric header sits
     // in the first page of its region, which stays readable after the payload pages are gone.
-    userAddr:   u64
-    userSize:   u64
-    blockSize:  u64
-    prev:       *AllocatorHeader?
-    next:       *AllocatorHeader?
-    tracking:   *AllocatorTracking?
-    alignment:  u32
-    isTracked:  bool
+    userAddr:  u64
+    userSize:  u64
+    blockSize: u64
+    prev:      *AllocatorHeader?
+    next:      *AllocatorHeader?
+    tracking:  *AllocatorTracking?
+    alignment: u32
+    isTracked: bool
 
     // An electric block ends near a reserved guard page, with less than one alignment unit of
     // trailing slack that holds a pattern checked on free. It carries no footer: an access reaching
@@ -340,7 +340,7 @@ private func allocatorThreadHeapFlsId()->u64
     let candidate = __hostThreadStorageAlloc(&retireAllocatorThreadHeap)
     Swag.assert(candidate != 0)
 
-    let previous = Swag.atomcmpxchg(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
+    let previous = Swag.atomicCompareExchange(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
     if previous != AllocatorInvalidFlsId
     {
         __hostThreadStorageFree(candidate)
@@ -362,7 +362,7 @@ private func allocatorThreadHeapTlsId()->u64
     if candidate == AllocatorInvalidTlsId do
         return AllocatorInvalidTlsId
 
-    let previous = Swag.atomcmpxchg(&g_AllocatorThreadHeapTlsId, AllocatorInvalidTlsId, candidate)
+    let previous = Swag.atomicCompareExchange(&g_AllocatorThreadHeapTlsId, AllocatorInvalidTlsId, candidate)
     if previous != AllocatorInvalidTlsId
     {
         __hostTlsFree(candidate)
@@ -410,13 +410,13 @@ private func currentThreadId()->u64 => __hostCurrentThreadId()
 // a heap can retire at any moment while a page's metadata lives as long as its segment.
 func allocatorQueueRevisit(page: *AllocatorPage)
 {
-    if Swag.atomcmpxchg(&page.revisitQueued, 0, 1) != 0 do
+    if Swag.atomicCompareExchange(&page.revisitQueued, 0, 1) != 0 do
         return
 
     let allocator = cast(*Allocator?, allocatorSegmentOf(page).allocator)
     if not allocator
     {
-        discard Swag.atomxchg(&page.revisitQueued, 0)
+        discard Swag.atomicExchange(&page.revisitQueued, 0)
         return
     }
 
@@ -425,7 +425,7 @@ func allocatorQueueRevisit(page: *AllocatorPage)
     while true
     {
         page.revisitNext = head
-        let seen = Swag.atomcmpxchg(stack, head, cast(u64, page))
+        let seen = Swag.atomicCompareExchange(stack, head, cast(u64, page))
         if seen == head do
             return
         head = seen
@@ -468,7 +468,7 @@ impl Allocator
             return AllocatorInvalidClass
 
         let value  = size - 1
-        let bucket = 63 - cast(u32, Swag.bitCountLz(value))
+        let bucket = 63 - cast(u32, Swag.leadingZeros(value))
         let step   = cast(u32, ((value >> (bucket - 2)) & 3))
         return 9 + (bucket - 7) * 4 + step
     }
@@ -667,7 +667,7 @@ impl Allocator
     // still mapped.
     mtd retireThreadHeap(heap: *AllocatorThreadHeap)
     {
-        if Swag.atomxchg(&heap.retired, 1) != 0 do
+        if Swag.atomicExchange(&heap.retired, 1) != 0 do
             return
 
         .purgeFront(heap, Swag.U64.Max)
@@ -874,10 +874,10 @@ impl Allocator
     mtd parkFullPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)->bool
     {
         .unlinkPage(heap, page)
-        discard Swag.atomxchg(&page.inFull, 1)
+        discard Swag.atomicExchange(&page.inFull, 1)
         if atomicGet(&page.remoteFree) != 0
         {
-            discard Swag.atomxchg(&page.inFull, 0)
+            discard Swag.atomicExchange(&page.inFull, 0)
             .linkPageFront(heap, page)
             return false
         }
@@ -909,12 +909,12 @@ impl Allocator
         if atomicGet(&.revisitPages) == 0 do
             return
 
-        var list = Swag.atomxchg(&.revisitPages, 0)
+        var list = Swag.atomicExchange(&.revisitPages, 0)
         while list
         {
             let page = cast(*AllocatorPage, list)
             list = page.revisitNext
-            discard Swag.atomxchg(&page.revisitQueued, 0)
+            discard Swag.atomicExchange(&page.revisitQueued, 0)
             if page.ownerHeap == heap
             {
                 if page.inFull do
@@ -937,7 +937,7 @@ impl Allocator
         if delay == 0
         {
             delay = Swag.max(__hostMonotonicFrequency() * AllocatorPurgeDelayMs / 1000, 1)
-            discard Swag.atomxchg(&g_AllocatorPurgeDelayTicks, delay)
+            discard Swag.atomicExchange(&g_AllocatorPurgeDelayTicks, delay)
         }
 
         // An armed deadline is the common case while idle memory exists; only arming it reads the
@@ -947,13 +947,15 @@ impl Allocator
         let deadline = atomicGet(&.purgeDeadline)
         if deadline == 0
         {
-            if allocatorIdleBytes() != 0 or atomicGet(&.cachedBlockCount) != 0 or (own and own.frontCount != 0) do
-                discard Swag.atomcmpxchg(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
+            if allocatorIdleBytes() != 0 or
+               atomicGet(&.cachedBlockCount) != 0 or
+               (own and own.frontCount != 0) do
+                discard Swag.atomicCompareExchange(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
             return
         }
 
         let now = __hostMonotonicTicks()
-        if now < deadline or Swag.atomcmpxchg(&.purgeDeadline, deadline, 0) != deadline do
+        if now < deadline or Swag.atomicCompareExchange(&.purgeDeadline, deadline, 0) != deadline do
             return
 
         // The front belongs to this thread alone, so only its own purge check can empty it.
@@ -1116,7 +1118,9 @@ impl Allocator
             return null
 
         let header = cast(*AllocatorHeader, (base + #sizeof(AllocatorTracking)))
-        if (header.magic != MagicAlloc and header.magic != MagicFree) or not header.isElectric or header.userAddr != address do
+        if (header.magic != MagicAlloc and header.magic != MagicFree) or
+           not header.isElectric or
+           header.userAddr != address do
             return null
         return header
     }
@@ -1271,7 +1275,7 @@ impl Allocator
     {
         if size <= AllocatorLargeRoundMin do
             return size
-        let bucket = 63 - cast(u64, Swag.bitCountLz(size - 1))
+        let bucket = 63 - cast(u64, Swag.leadingZeros(size - 1))
         let step   = Swag.max(1'u64 << (bucket - 3), cast(u64, AllocatorCommitGranularity))
         if size > Swag.U64.Max - step do
             return size
@@ -1360,7 +1364,11 @@ impl Allocator
 
         // A block under the front's size waits in the freeing thread's own front while it has room.
         let heap = currentAllocatorThreadHeap()
-        if committed <= AllocatorBlockFrontMaxBytes and heap and heap.allocator == me and heap.retired == 0 and heap.frontCount < AllocatorBlockFrontCount
+        if committed <= AllocatorBlockFrontMaxBytes and
+           heap and
+           heap.allocator == me and
+           heap.retired == 0 and
+           heap.frontCount < AllocatorBlockFrontCount
         {
             let entry = &heap.front[heap.frontCount]
             entry.address   = cast(u64, address)
@@ -1423,8 +1431,8 @@ impl Allocator
         let entry = heap.front[best]
         heap.frontCount  -= 1
         heap.front[best] = heap.front[heap.frontCount]
-        blockSize[]  = entry.reserved
-        commitSize[] = entry.committed
+        blockSize[]      = entry.reserved
+        commitSize[]     = entry.committed
         return cast([*] u8, entry.address)
     }
 
@@ -1442,8 +1450,8 @@ impl Allocator
                 continue
             }
 
-            heap.frontCount  -= 1
-            heap.front[i]    = heap.front[heap.frontCount]
+            heap.frontCount -= 1
+            heap.front[i]   = heap.front[heap.frontCount]
             .osFree(cast(*void, entry.address), entry.committed)
         }
     }
@@ -1467,8 +1475,8 @@ impl Allocator
         let prefixAlign = .electricMode ? Swag.max(alignment, cast(u32, AllocatorCommitGranularity)) : alignment
         let prefix      = memAlign(trackingSize + #sizeof(AllocatorHeader), prefixAlign)
         let blockSize   = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
-        let payloadSize  = .electricMode ? request.size : blockSize
-        let overhead     = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
+        let payloadSize = .electricMode ? request.size : blockSize
+        let overhead    = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
         if payloadSize > Swag.U64.Max - overhead
         {
             request.address = null
@@ -1502,7 +1510,7 @@ impl Allocator
             {
                 let needed = allocSize
                 allocSize = largeBlockSize(needed)
-                let heap  = currentAllocatorThreadHeap()
+                let heap = currentAllocatorThreadHeap()
                 if heap and heap.allocator == me and heap.retired == 0 do
                     base = .popFrontBlock(heap, allocSize, &allocSize, &commitSize)
                 if not base do
@@ -1576,7 +1584,7 @@ impl Allocator
             tracking.loc        = request.callerLoc
             tracking.hint       = request.hint
             tracking.stackCount = .captureAllocStack ? __captureStack(2, Swag.makeSlice(&tracking.stack[0], tracking.stack.count)) : 0
-            tracking.allocId    = Swag.atomadd(&.nextId, 1) + 1
+            tracking.allocId    = Swag.atomicAdd(&.nextId, 1) + 1
             if tracking.allocId == .breakOnAllocId do
                 Swag.assert(false)
         }
@@ -2131,7 +2139,7 @@ impl Allocator
                             if cls.spare == scan do
                                 cls.spare = null
                             .unlinkPage(heap, scan)
-                            discard Swag.atomxchg(&scan.inFull, 0)
+                            discard Swag.atomicExchange(&scan.inFull, 0)
                             allocatorSegmentOf(scan).releasePage(scan)
                         }
 
@@ -2230,12 +2238,12 @@ impl Allocator
             .osFree(other, #sizeof(AllocatorThreadHeap))
         }
 
-        var revisit = Swag.atomxchg(&.revisitPages, 0)
+        var revisit = Swag.atomicExchange(&.revisitPages, 0)
         while revisit
         {
             let page = cast(*AllocatorPage, revisit)
             revisit = page.revisitNext
-            discard Swag.atomxchg(&page.revisitQueued, 0)
+            discard Swag.atomicExchange(&page.revisitQueued, 0)
         }
 
         var segment: *AllocatorSegment? = .firstSegment

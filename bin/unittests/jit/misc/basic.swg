@@ -54,22 +54,22 @@ struct S
 #test
 {
     const Cfg = #run Swag.compiler().getBuildCfg()![]
-    #assert(#typeof(Cfg) == Swag.BuildCfg)
+    #assert(#typeof(Cfg) == Swag.Build.Config)
     // const toto = #run Swag.compiler().compileString("toto")
 }
 
 #test
 {
     const Cfg = #run (Swag.compiler().getBuildCfg)()![]
-    #assert(#typeof(Cfg) == Swag.BuildCfg)
+    #assert(#typeof(Cfg) == Swag.Build.Config)
 }
 
 #test
 {
     const Cfg1 = #run Swag.compiler().getBuildCfg()![]
     const Cfg2 = #run Swag.compiler().getBuildCfg()![]
-    #assert(#typeof(Cfg1) == Swag.BuildCfg)
-    #assert(#typeof(Cfg2) == Swag.BuildCfg)
+    #assert(#typeof(Cfg1) == Swag.Build.Config)
+    #assert(#typeof(Cfg2) == Swag.Build.Config)
 }
 
 #test

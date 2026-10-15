@@ -153,7 +153,7 @@ func expectedRor16(value: u16, shift: u8)->u16
     return cast(u16, result)
 }
 
-func expectedByteswap16(value: u16)->u16
+func expectedByteSwap16(value: u16)->u16
 {
     let input = cast(u32, value)
     return cast(u16, ((input >> 8) | ((input << 8) & 0xFFFF)))
@@ -187,7 +187,7 @@ func expectedByteswap16(value: u16)->u16
         Swag.assert(Math.trailingZeros(input) == expectedTrailingZeros16(input))
         Swag.assert(Math.countOnes(input) == expectedCountOnes16(input))
         Swag.assert(Math.reverse(input) == expectedReverse16(input))
-        Swag.assert(Math.byteswap(input) == expectedByteswap16(input))
+        Swag.assert(Math.byteSwap(input) == expectedByteSwap16(input))
 
         for shift in 32
         {
@@ -324,39 +324,39 @@ func expectedByteswap16(value: u16)->u16
     Swag.assert(Math.reverse(0x12345678'u32) == 0x1E6A2C48'u32)
     Swag.assert(Math.reverse(0x01234567_89ABCDEF'u64) == 0xF7B3D591_E6A2C480'u64)
 
-    Swag.assert(Math.byteswap(0'u16) == 0'u16)
-    Swag.assert(Math.byteswap(0'u32) == 0'u32)
-    Swag.assert(Math.byteswap(0'u64) == 0'u64)
-    Swag.assert(Math.byteswap(0xFFFF'u16) == 0xFFFF'u16)
-    Swag.assert(Math.byteswap(0xFFFFFFFF'u32) == 0xFFFFFFFF'u32)
-    Swag.assert(Math.byteswap(0xFFFFFFFF_FFFFFFFF'u64) == 0xFFFFFFFF_FFFFFFFF'u64)
-    Swag.assert(Math.byteswap(0x1234'u16) == 0x3412'u16)
-    Swag.assert(Math.byteswap(0x12345678'u32) == 0x78563412'u32)
-    Swag.assert(Math.byteswap(0x01234567_89ABCDEF'u64) == 0xEFCDAB89_67452301'u64)
+    Swag.assert(Math.byteSwap(0'u16) == 0'u16)
+    Swag.assert(Math.byteSwap(0'u32) == 0'u32)
+    Swag.assert(Math.byteSwap(0'u64) == 0'u64)
+    Swag.assert(Math.byteSwap(0xFFFF'u16) == 0xFFFF'u16)
+    Swag.assert(Math.byteSwap(0xFFFFFFFF'u32) == 0xFFFFFFFF'u32)
+    Swag.assert(Math.byteSwap(0xFFFFFFFF_FFFFFFFF'u64) == 0xFFFFFFFF_FFFFFFFF'u64)
+    Swag.assert(Math.byteSwap(0x1234'u16) == 0x3412'u16)
+    Swag.assert(Math.byteSwap(0x12345678'u32) == 0x78563412'u32)
+    Swag.assert(Math.byteSwap(0x01234567_89ABCDEF'u64) == 0xEFCDAB89_67452301'u64)
 }
 
 // A single byte has no byte order, and a signed value keeps its exact bit pattern.
 #test
 {
-    Swag.assert(Math.byteswap(0x12'u8) == 0x12'u8)
-    Swag.assert(Math.byteswap(0x12's8) == 0x12's8)
-    Swag.assert(Math.byteswap(-1's8) == -1's8)
+    Swag.assert(Math.byteSwap(0x12'u8) == 0x12'u8)
+    Swag.assert(Math.byteSwap(0x12's8) == 0x12's8)
+    Swag.assert(Math.byteSwap(-1's8) == -1's8)
 
-    Swag.assert(Math.byteswap(800's16) == 0x2003's16)
-    Swag.assert(Math.byteswap(0x2003's16) == 800's16)
-    Swag.assert(Math.byteswap(-1's16) == -1's16)
-    Swag.assert(Math.byteswap(0x00FF's16) == cast #bit (s16, 0xFF00'u16))
+    Swag.assert(Math.byteSwap(800's16) == 0x2003's16)
+    Swag.assert(Math.byteSwap(0x2003's16) == 800's16)
+    Swag.assert(Math.byteSwap(-1's16) == -1's16)
+    Swag.assert(Math.byteSwap(0x00FF's16) == cast #bit (s16, 0xFF00'u16))
 
-    Swag.assert(Math.byteswap(0x12345678's32) == 0x78563412's32)
-    Swag.assert(Math.byteswap(-1's32) == -1's32)
-    Swag.assert(Math.byteswap(cast #bit (s32, 0xFFFFFF00'u32)) == 0x00FFFFFF's32)
+    Swag.assert(Math.byteSwap(0x12345678's32) == 0x78563412's32)
+    Swag.assert(Math.byteSwap(-1's32) == -1's32)
+    Swag.assert(Math.byteSwap(cast #bit (s32, 0xFFFFFF00'u32)) == 0x00FFFFFF's32)
 
-    Swag.assert(Math.byteswap(0x01234567_89ABCDEF's64) == cast #bit (s64, 0xEFCDAB89_67452301'u64))
-    Swag.assert(Math.byteswap(-1's64) == -1's64)
+    Swag.assert(Math.byteSwap(0x01234567_89ABCDEF's64) == cast #bit (s64, 0xEFCDAB89_67452301'u64))
+    Swag.assert(Math.byteSwap(-1's64) == -1's64)
 
     // Swapping twice is the identity on every width, including the negative values a
     // signed field carries.
-    Swag.assert(Math.byteswap(Math.byteswap(-12345's16)) == -12345's16)
-    Swag.assert(Math.byteswap(Math.byteswap(-1234567's32)) == -1234567's32)
-    Swag.assert(Math.byteswap(Math.byteswap(-5_000_000_000's64)) == -5_000_000_000's64)
+    Swag.assert(Math.byteSwap(Math.byteSwap(-12345's16)) == -12345's16)
+    Swag.assert(Math.byteSwap(Math.byteSwap(-1234567's32)) == -1234567's32)
+    Swag.assert(Math.byteSwap(Math.byteSwap(-5_000_000_000's64)) == -5_000_000_000's64)
 }

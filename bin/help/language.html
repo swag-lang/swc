@@ -514,7 +514,7 @@ indent-style = spaces</span></div>
 <div class="code-block"><span class="SCde">swc format --dump-config -d src &gt; src/.swc-format</span></div>
 <p>The canonical style deliberately leaves two dimensions alone. Line endings belong to the checkout rather than to the style, so they are preserved. And the style has no column budget: the formatter never adds and never removes a statement break, so where a line wraps is the author's decision and it survives formatting, which is what keeps a hand-laid data table intact. Setting <span class="code-inline">column-limit</span> turns wrapping on, and the formatter then breaks greedily, one break at a time, as high in the expression as it can.</p>
 <h3 id="_001_004_swc_command_line_swg_Documentation_Generation">Documentation Generation</h3>
-<p><span class="code-inline">swc doc</span> uses the module's <span class="code-inline">BuildCfg.genDoc</span> configuration. The documentation kind can generate a public API page, a numbered examples document, or one page per source file.</p>
+<p><span class="code-inline">swc doc</span> uses the module's <span class="code-inline">Swag.Build.Config.genDoc</span> configuration. The documentation kind can generate a public API page, a numbered examples document, or one page per source file.</p>
 <table class="table-markdown">
 <thead>
 <tr><th>Option</th><th>Effect</th></tr>
@@ -812,8 +812,8 @@ indent-style = spaces</span></div>
 <span class="SItr">#prom</span>  <span class="SItr">#raw</span>  <span class="SItr">#relocate</span>  <span class="SItr">#simd</span>  <span class="SItr">#unconst</span>  <span class="SItr">#wrap</span></span></div>
 <h3 id="_002_007_keywords_swg_Runtime_and_Compiler_Intrinsics">Runtime and Compiler Intrinsics</h3>
 <p>Intrinsic values:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">args</span>()  <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()  <span class="SNsp">Swag</span>.<span class="SFct">gvtd</span>()  <span class="SNsp">Swag</span>.<span class="SFct">jit</span>()
-<span class="SNsp">Swag</span>.<span class="SFct">modules</span>()  <span class="SNsp">Swag</span>.<span class="SFct">processInfos</span>()  <span class="SNsp">Swag</span>.<span class="SFct">runtimeFlags</span>()</span></div>
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.<span class="SFct">args</span>()  <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()  <span class="SNsp">Swag</span>.<span class="SFct">globalsToDrop</span>()  <span class="SNsp">Swag</span>.<span class="SFct">jit</span>()
+<span class="SNsp">Swag</span>.<span class="SFct">modules</span>()  <span class="SNsp">Swag</span>.<span class="SFct">processInfo</span>()  <span class="SNsp">Swag</span>.<span class="SFct">runtimeFlags</span>()</span></div>
 <p>Type, value, lifecycle, and control intrinsics:</p>
 <div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.assert  <span class="SNsp">Swag</span>.breakpoint  <span class="SNsp">Swag</span>.compilerError  <span class="SNsp">Swag</span>.compilerWarning
 .count  .buffer  <span class="SNsp">Swag</span>.drop  <span class="SNsp">Swag</span>.getContext  <span class="SNsp">Swag</span>.init
@@ -821,20 +821,21 @@ indent-style = spaces</span></div>
 <span class="SNsp">Swag</span>.postCopy  <span class="SNsp">Swag</span>.postMove  <span class="SNsp">Swag</span>.print  <span class="SNsp">Swag</span>.safetyPanic  <span class="SNsp">Swag</span>.setContext
 <span class="SNsp">Swag</span>.stringCmp  <span class="SNsp">Swag</span>.tableOf  <span class="SNsp">Swag</span>.typeCmp</span></div>
 <p>Math and bit intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.abs  <span class="SNsp">Swag</span>.acos  <span class="SNsp">Swag</span>.asin  <span class="SNsp">Swag</span>.atan  <span class="SNsp">Swag</span>.atan2  <span class="SNsp">Swag</span>.bitCountLz  <span class="SNsp">Swag</span>.bitCountNz
-<span class="SNsp">Swag</span>.bitCountTz  <span class="SNsp">Swag</span>.byteSwap  <span class="SNsp">Swag</span>.ceil  <span class="SNsp">Swag</span>.cos  <span class="SNsp">Swag</span>.cosh  <span class="SNsp">Swag</span>.exp  <span class="SNsp">Swag</span>.exp2
-<span class="SNsp">Swag</span>.floor  <span class="SNsp">Swag</span>.log  <span class="SNsp">Swag</span>.log10  <span class="SNsp">Swag</span>.log2  <span class="SNsp">Swag</span>.max  <span class="SNsp">Swag</span>.min  <span class="SNsp">Swag</span>.muladd  <span class="SNsp">Swag</span>.pow
-<span class="SNsp">Swag</span>.rol  <span class="SNsp">Swag</span>.ror  <span class="SNsp">Swag</span>.round  <span class="SNsp">Swag</span>.sin  <span class="SNsp">Swag</span>.sinh  <span class="SNsp">Swag</span>.sqrt  <span class="SNsp">Swag</span>.tan  <span class="SNsp">Swag</span>.tanh  <span class="SNsp">Swag</span>.trunc</span></div>
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.abs  <span class="SNsp">Swag</span>.acos  <span class="SNsp">Swag</span>.asin  <span class="SNsp">Swag</span>.atan  <span class="SNsp">Swag</span>.atan2  <span class="SNsp">Swag</span>.byteSwap  <span class="SNsp">Swag</span>.ceil  <span class="SNsp">Swag</span>.cos
+<span class="SNsp">Swag</span>.cosh  <span class="SNsp">Swag</span>.countOnes  <span class="SNsp">Swag</span>.exp  <span class="SNsp">Swag</span>.exp2  <span class="SNsp">Swag</span>.floor  <span class="SNsp">Swag</span>.leadingZeros  <span class="SNsp">Swag</span>.log
+<span class="SNsp">Swag</span>.log10  <span class="SNsp">Swag</span>.log2  <span class="SNsp">Swag</span>.max  <span class="SNsp">Swag</span>.min  <span class="SNsp">Swag</span>.mulAdd  <span class="SNsp">Swag</span>.pow  <span class="SNsp">Swag</span>.rol  <span class="SNsp">Swag</span>.ror  <span class="SNsp">Swag</span>.round
+<span class="SNsp">Swag</span>.sin  <span class="SNsp">Swag</span>.sinh  <span class="SNsp">Swag</span>.sqrt  <span class="SNsp">Swag</span>.tan  <span class="SNsp">Swag</span>.tanh  <span class="SNsp">Swag</span>.trailingZeros  <span class="SNsp">Swag</span>.trunc</span></div>
 <p>Memory and atomic intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.atomadd  <span class="SNsp">Swag</span>.atomand  <span class="SNsp">Swag</span>.atomcmpxchg  <span class="SNsp">Swag</span>.atomget  <span class="SNsp">Swag</span>.atomor  <span class="SNsp">Swag</span>.atomset  <span class="SNsp">Swag</span>.atomxchg  <span class="SNsp">Swag</span>.atomxor
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.atomicAdd  <span class="SNsp">Swag</span>.atomicAnd  <span class="SNsp">Swag</span>.atomicCompareExchange  <span class="SNsp">Swag</span>.atomicExchange  <span class="SNsp">Swag</span>.atomicLoad
+<span class="SNsp">Swag</span>.atomicOr  <span class="SNsp">Swag</span>.atomicStore  <span class="SNsp">Swag</span>.atomicXor
 <span class="SNsp">Swag</span>.memcmp  <span class="SNsp">Swag</span>.memcpy  <span class="SNsp">Swag</span>.memmove  <span class="SNsp">Swag</span>.memset  <span class="SNsp">Swag</span>.prefetch</span></div>
 <p>Packed vector intrinsics:</p>
-<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.vecalign  <span class="SNsp">Swag</span>.vecall  <span class="SNsp">Swag</span>.vecany  <span class="SNsp">Swag</span>.vecavgr  <span class="SNsp">Swag</span>.vecclmul  <span class="SNsp">Swag</span>.vecgather  <span class="SNsp">Swag</span>.vecinterleavehi
-<span class="SNsp">Swag</span>.vecinterleavelo  <span class="SNsp">Swag</span>.vecmadd  <span class="SNsp">Swag</span>.vecmaddubs  <span class="SNsp">Swag</span>.vecmask  <span class="SNsp">Swag</span>.vecmulhi  <span class="SNsp">Swag</span>.vecpackss
-<span class="SNsp">Swag</span>.vecpackus  <span class="SNsp">Swag</span>.vecperm  <span class="SNsp">Swag</span>.vecreduceadd  <span class="SNsp">Swag</span>.vecreduceand  <span class="SNsp">Swag</span>.vecreducemax
-<span class="SNsp">Swag</span>.vecreducemin  <span class="SNsp">Swag</span>.vecreduceor  <span class="SNsp">Swag</span>.vecreducexor  <span class="SNsp">Swag</span>.vecsad  <span class="SNsp">Swag</span>.vecsatadd  <span class="SNsp">Swag</span>.vecsatsub
-<span class="SNsp">Swag</span>.vecselect  <span class="SNsp">Swag</span>.vecshuffle  <span class="SNsp">Swag</span>.vecshuffle2  <span class="SNsp">Swag</span>.vecsplat  <span class="SNsp">Swag</span>.vectruncs32  <span class="SNsp">Swag</span>.vecwidenhi
-<span class="SNsp">Swag</span>.vecwidenlo</span></div>
+<div class="code-block"><span class="SCde"><span class="SNsp">Swag</span>.vecAlign  <span class="SNsp">Swag</span>.vecAll  <span class="SNsp">Swag</span>.vecAny  <span class="SNsp">Swag</span>.vecAvgRound  <span class="SNsp">Swag</span>.vecCarrylessMul  <span class="SNsp">Swag</span>.vecGather
+<span class="SNsp">Swag</span>.vecInterleaveHi  <span class="SNsp">Swag</span>.vecInterleaveLo  <span class="SNsp">Swag</span>.vecMask  <span class="SNsp">Swag</span>.vecMulAddPairs
+<span class="SNsp">Swag</span>.vecMulAddPairsSat  <span class="SNsp">Swag</span>.vecMulHigh  <span class="SNsp">Swag</span>.vecNarrowSatS  <span class="SNsp">Swag</span>.vecNarrowSatU  <span class="SNsp">Swag</span>.vecPermute
+<span class="SNsp">Swag</span>.vecReduceAdd  <span class="SNsp">Swag</span>.vecReduceAnd  <span class="SNsp">Swag</span>.vecReduceMax  <span class="SNsp">Swag</span>.vecReduceMin  <span class="SNsp">Swag</span>.vecReduceOr
+<span class="SNsp">Swag</span>.vecReduceXor  <span class="SNsp">Swag</span>.vecSatAdd  <span class="SNsp">Swag</span>.vecSatSub  <span class="SNsp">Swag</span>.vecSelect  <span class="SNsp">Swag</span>.vecShuffle  <span class="SNsp">Swag</span>.vecShuffle2
+<span class="SNsp">Swag</span>.vecSplat  <span class="SNsp">Swag</span>.vecSumAbsDiff  <span class="SNsp">Swag</span>.vecTruncToS32  <span class="SNsp">Swag</span>.vecWidenHi  <span class="SNsp">Swag</span>.vecWidenLo</span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p><span class="code-inline">#</span>-prefixed names belong to compiler syntax. Intrinsics use qualified names in <span class="code-inline">Swag</span>, so <span class="code-inline">min</span> and <span class="code-inline">print</span> remain available as user identifiers. The next section explains the distinction.</p>
@@ -888,7 +889,7 @@ indent-style = spaces</span></div>
 }</span></div>
 <p><span class="code-inline">#assert</span> itself runs during compilation. If its condition is not a constant <span class="code-inline">bool</span>, compilation fails.</p>
 <h3 id="_002_008_sigils_swg_Intrinsic_Values_and_Operations">Intrinsic Values and Operations</h3>
-<p>Intrinsics participate in expressions. Some expose context (<span class="code-inline">Swag.args()</span>, <span class="code-inline">Swag.getContext()</span>), some construct runtime-shaped values (<span class="code-inline">Swag.makeSlice</span>, <span class="code-inline">Swag.makeAny</span>), and some perform primitive operations (<span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.memcpy</span>, <span class="code-inline">Swag.atomadd</span>).</p>
+<p>Intrinsics participate in expressions. Some expose context (<span class="code-inline">Swag.args()</span>, <span class="code-inline">Swag.getContext()</span>), some construct runtime-shaped values (<span class="code-inline">Swag.makeSlice</span>, <span class="code-inline">Swag.makeAny</span>), and some perform primitive operations (<span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.memcpy</span>, <span class="code-inline">Swag.atomicAdd</span>).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> values: <span class="SKwd">const</span> [..] <span class="STpe">s32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>]
@@ -987,7 +988,7 @@ indent-style = spaces</span></div>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a + <span class="SItr">#prom</span> <span class="SItr">#wrap</span> <span class="SNum">1</span>'<span class="STpe">u8</span>) == <span class="STpe">u32</span>)
 }</span></div>
 <h3 id="_002_008_sigils_swg_Choosing_the_Narrowest_Scope">Choosing the Narrowest Scope</h3>
-<p><span class="code-inline">#wrap</span> opts one arithmetic operation into wrapping behavior. Broader runtime guard policy uses <span class="code-inline">Swag.Safety</span> on a scope, and module defaults live in <span class="code-inline">BuildCfg</span>:</p>
+<p><span class="code-inline">#wrap</span> opts one arithmetic operation into wrapping behavior. Broader runtime guard policy uses <span class="code-inline">Swag.Safety</span> on a scope, and module defaults live in <span class="code-inline">Swag.Build.Config</span>:</p>
 <p>Left shift is already truncating: bits shifted out of the left operand are discarded without an overflow panic. <span class="code-inline">#wrap</span> remains accepted on <span class="code-inline">&lt;&lt;</span> and <span class="code-inline">&lt;&lt;=</span> for compatibility, but it does not change their result or count rules.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.Overflow, false)]</span>
 {
@@ -1263,7 +1264,7 @@ indent-style = spaces</span></div>
 <p>API mode documents the public surface. <span class="code-inline">#[Swag.NoDoc]</span> excludes a declaration that must remain public but is intentionally outside the reader-facing reference. It does not change visibility, linkage, or the exported API. Use it for a deliberate exclusion, not as a replacement for a missing contract.</p>
 <p><span class="code-inline">#[Swag.Opaque]</span> hides a struct's representation from consumers and from generated field documentation. Its public type and operations still need documentation.</p>
 <h3 id="_002_011_native_documentation_swg_Choosing_a_Documentation_Mode">Choosing a Documentation Mode</h3>
-<p>Set <span class="code-inline">Swag.BuildCfg.genDoc.kind</span> in <span class="code-inline">module.swg</span>:</p>
+<p>Set <span class="code-inline">Swag.Build.Config.genDoc.kind</span> in <span class="code-inline">module.swg</span>:</p>
 <table class="table-markdown">
 <thead>
 <tr><th>Kind</th><th>Source organization</th><th>Result</th></tr>
@@ -3768,16 +3769,16 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_004_009_simd_swg_Construction">Construction</h3>
 <p>A vector builds from an array literal with one value per lane, or reinterprets the matching fixed-size array bit for bit; both fold at compile time when their operands are constant, and <span class="code-inline">#bit</span> reshapes any 16-byte vector or array into another.</p>
-<p>Filling every lane with the same value is a broadcast, not a conversion, so it has its own operation: <span class="code-inline">Swag.vecsplat</span> takes a scalar and the lane type it carries names the vector, so a <span class="code-inline">u8</span> fills sixteen lanes and an <span class="code-inline">f64</span> fills two. It folds like the other forms, which is what lets a vector be declared <span class="code-inline">const</span>.</p>
+<p>Filling every lane with the same value is a broadcast, not a conversion, so it has its own operation: <span class="code-inline">Swag.vecSplat</span> takes a scalar and the lane type it carries names the vector, so a <span class="code-inline">u8</span> fills sixteen lanes and an <span class="code-inline">f64</span> fills two. It folds like the other forms, which is what lets a vector be declared <span class="code-inline">const</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> lanes: <span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span> = [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
-    <span class="SKwd">let</span> fours = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">4</span>'<span class="STpe">s32</span>)
+    <span class="SKwd">let</span> fours = <span class="SNsp">Swag</span>.<span class="SFct">vecSplat</span>(<span class="SNum">4</span>'<span class="STpe">s32</span>)
     <span class="SKwd">let</span> sum   = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (lanes + fours))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(sum[<span class="SNum">0</span>] == <span class="SNum">5</span> <span class="SLgc">and</span> sum[<span class="SNum">3</span>] == <span class="SNum">8</span>)
 
     <span class="SCmt">// A broadcast of a constant is a constant.</span>
-    <span class="SKwd">const</span> <span class="SCst">Ones</span>     = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">1</span>'<span class="STpe">u8</span>)
+    <span class="SKwd">const</span> <span class="SCst">Ones</span>     = <span class="SNsp">Swag</span>.<span class="SFct">vecSplat</span>(<span class="SNum">1</span>'<span class="STpe">u8</span>)
     <span class="SKwd">const</span> <span class="SCst">OneLanes</span> = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SCst">Ones</span>)
     <span class="SCmp">#assert</span>(<span class="SCst">OneLanes</span>[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> <span class="SCst">OneLanes</span>[<span class="SNum">15</span>] == <span class="SNum">1</span>)
 
@@ -3817,12 +3818,12 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(products[<span class="SNum">0</span>] == <span class="SNum">0xFFFF_FFFF_FFFF_FFFE</span> <span class="SLgc">and</span> products[<span class="SNum">1</span>] == <span class="SNum">0x2_0000_0001</span>)
 
     <span class="SCmt">// Lanes wrap by definition.</span>
-    <span class="SKwd">let</span> big  = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">2_147_483_647</span>'<span class="STpe">s32</span>)
-    <span class="SKwd">let</span> wrap = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (big + <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">1</span>'<span class="STpe">s32</span>)))
+    <span class="SKwd">let</span> big  = <span class="SNsp">Swag</span>.<span class="SFct">vecSplat</span>(<span class="SNum">2_147_483_647</span>'<span class="STpe">s32</span>)
+    <span class="SKwd">let</span> wrap = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, (big + <span class="SNsp">Swag</span>.<span class="SFct">vecSplat</span>(<span class="SNum">1</span>'<span class="STpe">s32</span>)))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(wrap[<span class="SNum">0</span>] == -<span class="SNum">2_147_483_648</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Comparisons_And_Masks">Comparisons And Masks</h3>
-<p>An element-wise comparison produces a mask vector, not a bool: unsigned lanes of the same geometry, all-ones where the compare holds. <span class="code-inline">Swag.vecselect</span> blends two vectors through a mask, <span class="code-inline">Swag.vecmask</span> gathers the lane sign bits into an integer, and <span class="code-inline">Swag.vecany</span>/<span class="code-inline">Swag.vecall</span> reduce a mask to a bool.</p>
+<p>An element-wise comparison produces a mask vector, not a bool: unsigned lanes of the same geometry, all-ones where the compare holds. <span class="code-inline">Swag.vecSelect</span> blends two vectors through a mask, <span class="code-inline">Swag.vecMask</span> gathers the lane sign bits into an integer, and <span class="code-inline">Swag.vecAny</span>/<span class="code-inline">Swag.vecAll</span> reduce a mask to a bool.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">1</span>, <span class="SNum">50</span>, <span class="SNum">3</span>, <span class="SNum">70</span>])
@@ -3832,11 +3833,11 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> m    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, mask)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(m[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> m[<span class="SNum">1</span>] == <span class="SNum">0xFFFF_FFFF</span>)
 
-    <span class="SKwd">let</span> clamped = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecselect</span>(mask, b, a))
+    <span class="SKwd">let</span> clamped = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecSelect</span>(mask, b, a))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(clamped[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> clamped[<span class="SNum">1</span>] == <span class="SNum">20</span> <span class="SLgc">and</span> clamped[<span class="SNum">2</span>] == <span class="SNum">3</span> <span class="SLgc">and</span> clamped[<span class="SNum">3</span>] == <span class="SNum">40</span>)
 
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecmask</span>(mask) == <span class="SNum">0b1010</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecany</span>(mask) <span class="SLgc">and</span> <span class="SLgc">not</span> <span class="SNsp">Swag</span>.<span class="SFct">vecall</span>(mask))
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecMask</span>(mask) == <span class="SNum">0b1010</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecAny</span>(mask) <span class="SLgc">and</span> <span class="SLgc">not</span> <span class="SNsp">Swag</span>.<span class="SFct">vecAll</span>(mask))
 }</span></div>
 <h3 id="_004_009_simd_swg_Lane_Access">Lane Access</h3>
 <p>Lanes read and write like array elements. A constant index is checked at compile time against the lane count; a dynamic one is bound-checked at run time like an array index.</p>
@@ -3849,43 +3850,43 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v[i] == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Packed_Intrinsics">Packed Intrinsics</h3>
-<p>The <span class="code-inline">Swag.vec</span> intrinsic family carries the operations the operators cannot express: <span class="code-inline">Swag.vecsplat</span> broadcasts a scalar into every lane, <span class="code-inline">Swag.vecsatadd</span> and <span class="code-inline">Swag.vecsatsub</span> clamp instead of wrapping, <span class="code-inline">Swag.vecpackus</span> and <span class="code-inline">Swag.vecpackss</span> narrow two vectors with saturation, <span class="code-inline">Swag.vecinterleavelo</span> and <span class="code-inline">Swag.vecinterleavehi</span> alternate lanes from the corresponding input halves, <span class="code-inline">Swag.vecwidenlo</span> and <span class="code-inline">Swag.vecwidenhi</span> extend half the lanes to double width, <span class="code-inline">Swag.vecavgr</span> is the rounding average, <span class="code-inline">Swag.vecmadd</span> multiplies 16-bit pairs into 32-bit sums and <span class="code-inline">Swag.vecmaddubs</span> does the same for unsigned and signed bytes with a saturating sum, <span class="code-inline">Swag.vecsad</span> sums the absolute byte differences of each half, <span class="code-inline">Swag.vectruncs32</span> converts four <span class="code-inline">f32</span> lanes to <span class="code-inline">s32</span> by truncating toward zero, <span class="code-inline">Swag.vecgather</span> loads four <span class="code-inline">s32</span> values through four <span class="code-inline">u32</span> indices, and <span class="code-inline">Swag.vecperm</span> permutes bytes through a dynamic table. NaN and values outside the <span class="code-inline">s32</span> range become <span class="code-inline">s32.Min</span>. <span class="code-inline">Swag.min</span>, <span class="code-inline">Swag.max</span>, <span class="code-inline">Swag.abs</span>, <span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.muladd</span>, <span class="code-inline">Swag.floor</span>, <span class="code-inline">Swag.ceil</span> and <span class="code-inline">Swag.trunc</span> also accept vectors and compute per lane. Integer <span class="code-inline">Swag.abs</span> wraps the minimum lane value back to itself, like unary minus, while a float lane clears its sign bit, so a NaN stays that NaN and a negative zero becomes a positive one. A gather uses <span class="code-inline">vpgatherdd</span> on the supported x86-64-v3 baseline; every index must designate a readable table element and be at most <span class="code-inline">s32.Max</span>.</p>
+<p>The <span class="code-inline">Swag.vec</span> intrinsic family carries the operations the operators cannot express: <span class="code-inline">Swag.vecSplat</span> broadcasts a scalar into every lane, <span class="code-inline">Swag.vecSatAdd</span> and <span class="code-inline">Swag.vecSatSub</span> clamp instead of wrapping, <span class="code-inline">Swag.vecNarrowSatU</span> and <span class="code-inline">Swag.vecNarrowSatS</span> narrow two vectors with saturation, <span class="code-inline">Swag.vecInterleaveLo</span> and <span class="code-inline">Swag.vecInterleaveHi</span> alternate lanes from the corresponding input halves, <span class="code-inline">Swag.vecWidenLo</span> and <span class="code-inline">Swag.vecWidenHi</span> extend half the lanes to double width, <span class="code-inline">Swag.vecAvgRound</span> is the rounding average, <span class="code-inline">Swag.vecMulAddPairs</span> multiplies 16-bit pairs into 32-bit sums and <span class="code-inline">Swag.vecMulAddPairsSat</span> does the same for unsigned and signed bytes with a saturating sum, <span class="code-inline">Swag.vecSumAbsDiff</span> sums the absolute byte differences of each half, <span class="code-inline">Swag.vecTruncToS32</span> converts four <span class="code-inline">f32</span> lanes to <span class="code-inline">s32</span> by truncating toward zero, <span class="code-inline">Swag.vecGather</span> loads four <span class="code-inline">s32</span> values through four <span class="code-inline">u32</span> indices, and <span class="code-inline">Swag.vecPermute</span> permutes bytes through a dynamic table. NaN and values outside the <span class="code-inline">s32</span> range become <span class="code-inline">s32.Min</span>. <span class="code-inline">Swag.min</span>, <span class="code-inline">Swag.max</span>, <span class="code-inline">Swag.abs</span>, <span class="code-inline">Swag.sqrt</span>, <span class="code-inline">Swag.mulAdd</span>, <span class="code-inline">Swag.floor</span>, <span class="code-inline">Swag.ceil</span> and <span class="code-inline">Swag.trunc</span> also accept vectors and compute per lane. Integer <span class="code-inline">Swag.abs</span> wraps the minimum lane value back to itself, like unary minus, while a float lane clears its sign bit, so a NaN stays that NaN and a negative zero becomes a positive one. A gather uses <span class="code-inline">vpgatherdd</span> on the supported x86-64-v3 baseline; every index must designate a readable table element and be at most <span class="code-inline">s32.Max</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> a = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">200</span>'<span class="STpe">u8</span>)
-    <span class="SKwd">let</span> b = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">100</span>'<span class="STpe">u8</span>)
-    <span class="SKwd">let</span> r = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecsatadd</span>(a, b))
+    <span class="SKwd">let</span> a = <span class="SNsp">Swag</span>.<span class="SFct">vecSplat</span>(<span class="SNum">200</span>'<span class="STpe">u8</span>)
+    <span class="SKwd">let</span> b = <span class="SNsp">Swag</span>.<span class="SFct">vecSplat</span>(<span class="SNum">100</span>'<span class="STpe">u8</span>)
+    <span class="SKwd">let</span> r = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecSatAdd</span>(a, b))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">255</span>)
 
     <span class="SCmt">// The classic codec step: 16-bit intermediates narrowed back to bytes,</span>
     <span class="SCmt">// the clamp riding inside the pack.</span>
     <span class="SKwd">let</span> sums = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>, [-<span class="SNum">20</span>, <span class="SNum">0</span>, <span class="SNum">128</span>, <span class="SNum">300</span>, <span class="SNum">255</span>, <span class="SNum">256</span>, <span class="SNum">64</span>, <span class="SNum">1</span>])
-    <span class="SKwd">let</span> px   = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecpackus</span>(sums, sums))
+    <span class="SKwd">let</span> px   = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecNarrowSatU</span>(sums, sums))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(px[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> px[<span class="SNum">2</span>] == <span class="SNum">128</span> <span class="SLgc">and</span> px[<span class="SNum">3</span>] == <span class="SNum">255</span> <span class="SLgc">and</span> px[<span class="SNum">4</span>] == <span class="SNum">255</span>)
 
-    <span class="SKwd">let</span> wide = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecwidenlo</span>(a))
+    <span class="SKwd">let</span> wide = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecWidenLo</span>(a))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(wide[<span class="SNum">0</span>] == <span class="SNum">200</span>)
 
     <span class="SKwd">let</span> indices = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>])
-    <span class="SKwd">let</span> zipped  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecinterleavelo</span>(indices, b))
+    <span class="SKwd">let</span> zipped  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecInterleaveLo</span>(indices, b))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(zipped[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> zipped[<span class="SNum">1</span>] == <span class="SNum">100</span> <span class="SLgc">and</span> zipped[<span class="SNum">14</span>] == <span class="SNum">7</span> <span class="SLgc">and</span> zipped[<span class="SNum">15</span>] == <span class="SNum">100</span>)
 
-    <span class="SKwd">let</span> avg = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecavgr</span>(a, b))
+    <span class="SKwd">let</span> avg = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecAvgRound</span>(a, b))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(avg[<span class="SNum">0</span>] == <span class="SNum">150</span>)
 
     <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>])
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(quads) == <span class="SNum">10</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceAdd</span>(quads) == <span class="SNum">10</span>)
 
     <span class="SKwd">let</span> samples = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>, [<span class="SNum">1.9</span>, -<span class="SNum">1.9</span>, <span class="SNum">32767.9</span>, -<span class="SNum">32768.9</span>])
-    <span class="SKwd">let</span> ints    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vectruncs32</span>(samples))
+    <span class="SKwd">let</span> ints    = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecTruncToS32</span>(samples))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ints[<span class="SNum">0</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> ints[<span class="SNum">1</span>] == -<span class="SNum">1</span> <span class="SLgc">and</span> ints[<span class="SNum">2</span>] == <span class="SNum">32767</span> <span class="SLgc">and</span> ints[<span class="SNum">3</span>] == -<span class="SNum">32768</span>)
 
     <span class="SKwd">var</span> lookup: [<span class="SNum">5</span>] <span class="STpe">s32</span> = [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>]
-    <span class="SKwd">let</span> found = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecgather</span>(lookup.buffer, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">4</span>, <span class="SNum">0</span>, <span class="SNum">3</span>, <span class="SNum">1</span>])))
+    <span class="SKwd">let</span> found = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">s32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecGather</span>(lookup.buffer, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">4</span>, <span class="SNum">0</span>, <span class="SNum">3</span>, <span class="SNum">1</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found[<span class="SNum">0</span>] == <span class="SNum">50</span> <span class="SLgc">and</span> found[<span class="SNum">1</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> found[<span class="SNum">2</span>] == <span class="SNum">40</span> <span class="SLgc">and</span> found[<span class="SNum">3</span>] == <span class="SNum">20</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_The_Other_Half_Of_A_Product">The Other Half Of A Product</h3>
-<p><span class="code-inline">*</span> answers the low half of a lane product, the bits that fit the lane. <span class="code-inline">Swag.vecmulhi</span> answers the ones above it, read as the lane type is signed or not. Together they are the whole product: interleaving them puts each double-width product back in the lane it belongs to, which is what <span class="code-inline">Core.Math.Simd.mulWidenLow</span> and <span class="code-inline">mulWidenHigh</span> do.</p>
+<p><span class="code-inline">*</span> answers the low half of a lane product, the bits that fit the lane. <span class="code-inline">Swag.vecMulHigh</span> answers the ones above it, read as the lane type is signed or not. Together they are the whole product: interleaving them puts each double-width product back in the lane it belongs to, which is what <span class="code-inline">Core.Math.Simd.mulWidenLow</span> and <span class="code-inline">mulWidenHigh</span> do.</p>
 <p>A 16-bit lane has the instruction directly. The other widths compose it: bytes widen to words where the product is exact, 32-bit lanes take the two widening products the hardware offers and gather their high halves, and 64-bit lanes add up the four partial products of their halves.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -3893,75 +3894,75 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> y = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">s16</span>, [<span class="SNum">32767</span>, <span class="SNum">32767</span>, -<span class="SNum">2000</span>, <span class="SNum">2000</span>, <span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">12345</span>, -<span class="SNum">1</span>])
 
     <span class="SKwd">let</span> low  = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>, (x * y))
-    <span class="SKwd">let</span> high = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecmulhi</span>(x, y))
+    <span class="SKwd">let</span> high = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">s16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecMulHigh</span>(x, y))
 
     <span class="SCmt">// 1000 * -2000 is -2000000, which is 0xFFE17B80 over two lanes.</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>, low[<span class="SNum">2</span>]) == <span class="SNum">0x7B80</span> <span class="SLgc">and</span> <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">u16</span>, high[<span class="SNum">2</span>]) == <span class="SNum">0xFFE1</span>)
 
     <span class="SCmt">// Read as unsigned, the same bits give a different half above the lane.</span>
-    <span class="SKwd">let</span> unsignedHigh = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecmulhi</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, x), <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, y)))
+    <span class="SKwd">let</span> unsignedHigh = <span class="SKwd">cast</span>([<span class="SNum">8</span>] <span class="STpe">u16</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecMulHigh</span>(<span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, x), <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SItr">#simd</span> [<span class="SNum">8</span>] <span class="STpe">u16</span>, y)))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(unsignedHigh[<span class="SNum">2</span>] == <span class="SNum">0x03C9</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Lane_Permutation">Lane Permutation</h3>
-<p><span class="code-inline">Swag.vecshuffle</span> rearranges the lanes of a vector: result lane <span class="code-inline">i</span> takes the lane its pattern lane names, the index reduced modulo the lane count so no pattern is out of range. <span class="code-inline">Swag.vecshuffle2</span> does the same over two vectors, an index below the lane count reading the first and one above it reading the second at the index minus that count. <span class="code-inline">Swag.vecalign</span> takes sixteen bytes of the concatenation of two vectors starting at a byte offset, and answers zero past the thirty-two.</p>
-<p>A pattern the compiler can see selects an immediate form where the target has one: a permutation of 32-bit lanes is one <span class="code-inline">pshufd</span>, a two-source pattern whose low half comes from one vector and whose high half comes from the other is one <span class="code-inline">shufps</span>, and a constant byte offset is one <span class="code-inline">palignr</span>. Everything else becomes a permute against a constant byte table. A pattern that only exists at run time keeps the same meaning through the dynamic byte permute, which is what <span class="code-inline">Swag.vecperm</span> exposes on its own.</p>
+<p><span class="code-inline">Swag.vecShuffle</span> rearranges the lanes of a vector: result lane <span class="code-inline">i</span> takes the lane its pattern lane names, the index reduced modulo the lane count so no pattern is out of range. <span class="code-inline">Swag.vecShuffle2</span> does the same over two vectors, an index below the lane count reading the first and one above it reading the second at the index minus that count. <span class="code-inline">Swag.vecAlign</span> takes sixteen bytes of the concatenation of two vectors starting at a byte offset, and answers zero past the thirty-two.</p>
+<p>A pattern the compiler can see selects an immediate form where the target has one: a permutation of 32-bit lanes is one <span class="code-inline">pshufd</span>, a two-source pattern whose low half comes from one vector and whose high half comes from the other is one <span class="code-inline">shufps</span>, and a constant byte offset is one <span class="code-inline">palignr</span>. Everything else becomes a permute against a constant byte table. A pattern that only exists at run time keeps the same meaning through the dynamic byte permute, which is what <span class="code-inline">Swag.vecPermute</span> exposes on its own.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>])
 
-    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">3</span>, <span class="SNum">2</span>, <span class="SNum">1</span>, <span class="SNum">0</span>])))
+    <span class="SKwd">var</span> r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecShuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">3</span>, <span class="SNum">2</span>, <span class="SNum">1</span>, <span class="SNum">0</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">40</span> <span class="SLgc">and</span> r[<span class="SNum">1</span>] == <span class="SNum">30</span> <span class="SLgc">and</span> r[<span class="SNum">2</span>] == <span class="SNum">20</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">10</span>)
 
     <span class="SCmt">// An index past the last lane wraps around instead of reading nothing.</span>
-    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>])))
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecShuffle</span>(quads, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">40</span>)
 
     <span class="SKwd">let</span> other = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>])
-    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecshuffle2</span>(quads, other, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">0</span>, <span class="SNum">2</span>, <span class="SNum">5</span>, <span class="SNum">7</span>])))
+    r = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecShuffle2</span>(quads, other, <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">0</span>, <span class="SNum">2</span>, <span class="SNum">5</span>, <span class="SNum">7</span>])))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r[<span class="SNum">0</span>] == <span class="SNum">10</span> <span class="SLgc">and</span> r[<span class="SNum">1</span>] == <span class="SNum">30</span> <span class="SLgc">and</span> r[<span class="SNum">2</span>] == <span class="SNum">60</span> <span class="SLgc">and</span> r[<span class="SNum">3</span>] == <span class="SNum">80</span>)
 
     <span class="SKwd">let</span> bytes = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">0</span>, <span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">9</span>, <span class="SNum">10</span>, <span class="SNum">11</span>, <span class="SNum">12</span>, <span class="SNum">13</span>, <span class="SNum">14</span>, <span class="SNum">15</span>])
     <span class="SKwd">let</span> next  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">16</span>, <span class="SNum">17</span>, <span class="SNum">18</span>, <span class="SNum">19</span>, <span class="SNum">20</span>, <span class="SNum">21</span>, <span class="SNum">22</span>, <span class="SNum">23</span>, <span class="SNum">24</span>, <span class="SNum">25</span>, <span class="SNum">26</span>, <span class="SNum">27</span>, <span class="SNum">28</span>, <span class="SNum">29</span>, <span class="SNum">30</span>, <span class="SNum">31</span>])
-    <span class="SKwd">let</span> slid  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecalign</span>(bytes, next, <span class="SNum">4</span>))
+    <span class="SKwd">let</span> slid  = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecAlign</span>(bytes, next, <span class="SNum">4</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(slid[<span class="SNum">0</span>] == <span class="SNum">4</span> <span class="SLgc">and</span> slid[<span class="SNum">11</span>] == <span class="SNum">15</span> <span class="SLgc">and</span> slid[<span class="SNum">12</span>] == <span class="SNum">16</span> <span class="SLgc">and</span> slid[<span class="SNum">15</span>] == <span class="SNum">19</span>)
 
     <span class="SCmt">// Past the concatenation there is nothing to read.</span>
-    <span class="SKwd">let</span> empty = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecalign</span>(bytes, next, <span class="SNum">32</span>))
+    <span class="SKwd">let</span> empty = <span class="SKwd">cast</span>([<span class="SNum">16</span>] <span class="STpe">u8</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecAlign</span>(bytes, next, <span class="SNum">32</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(empty[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> empty[<span class="SNum">15</span>] == <span class="SNum">0</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Horizontal_Reductions">Horizontal Reductions</h3>
-<p>The <span class="code-inline">Swag.vecreduce</span> family combines every lane of a vector into one scalar of the lane type: <span class="code-inline">Swag.vecreduceadd</span> sums, <span class="code-inline">Swag.vecreducemin</span> and <span class="code-inline">Swag.vecreducemax</span> select, and <span class="code-inline">Swag.vecreduceand</span>, <span class="code-inline">Swag.vecreduceor</span> and <span class="code-inline">Swag.vecreducexor</span> fold the bits of integer lanes.</p>
+<p>The <span class="code-inline">Swag.vecReduce</span> family combines every lane of a vector into one scalar of the lane type: <span class="code-inline">Swag.vecReduceAdd</span> sums, <span class="code-inline">Swag.vecReduceMin</span> and <span class="code-inline">Swag.vecReduceMax</span> select, and <span class="code-inline">Swag.vecReduceAnd</span>, <span class="code-inline">Swag.vecReduceOr</span> and <span class="code-inline">Swag.vecReduceXor</span> fold the bits of integer lanes.</p>
 <p>Adjacent lanes combine first and their results after, so the order is a balanced tree over the lane index; that order is what a float sum observes. Integer sums wrap like every other lane arithmetic. The float minimum and maximum follow the element-wise <span class="code-inline">Swag.min</span> and <span class="code-inline">Swag.max</span>, which answer their second operand when either side is a NaN, so a NaN does not propagate out of a reduction.</p>
 <p>Nothing here goes through memory: each step slides the upper half of the vector down and applies one element-wise operation.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> quads = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>])
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(quads) == <span class="SNum">10</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemin</span>(quads) == <span class="SNum">1</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemax</span>(quads) == <span class="SNum">4</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceAdd</span>(quads) == <span class="SNum">10</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceMin</span>(quads) == <span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceMax</span>(quads) == <span class="SNum">4</span>)
 
     <span class="SKwd">let</span> bits = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">u32</span>, [<span class="SNum">0b1110</span>, <span class="SNum">0b1010</span>, <span class="SNum">0b1111</span>, <span class="SNum">0b0110</span>])
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceand</span>(bits) == <span class="SNum">0b0010</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceor</span>(bits) == <span class="SNum">0b1111</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducexor</span>(bits) == <span class="SNum">0b1101</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceAnd</span>(bits) == <span class="SNum">0b0010</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceOr</span>(bits) == <span class="SNum">0b1111</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceXor</span>(bits) == <span class="SNum">0b1101</span>)
 
     <span class="SCmt">// An integer sum wraps, like every other lane arithmetic.</span>
     <span class="SKwd">let</span> edge = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">s32</span>, [<span class="SNum">2_147_483_647</span>, <span class="SNum">1</span>, <span class="SNum">0</span>, <span class="SNum">0</span>])
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(edge) == -<span class="SNum">2_147_483_648</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceAdd</span>(edge) == -<span class="SNum">2_147_483_648</span>)
 
     <span class="SKwd">let</span> floats = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">4</span>] <span class="STpe">f32</span>, [<span class="SNum">1.5</span>, -<span class="SNum">2.5</span>, <span class="SNum">8.0</span>, <span class="SNum">0.25</span>])
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreduceadd</span>(floats) == <span class="SNum">7.25</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemin</span>(floats) == -<span class="SNum">2.5</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecreducemax</span>(floats) == <span class="SNum">8.0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceAdd</span>(floats) == <span class="SNum">7.25</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceMin</span>(floats) == -<span class="SNum">2.5</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">vecReduceMax</span>(floats) == <span class="SNum">8.0</span>)
 
     <span class="SCmt">// The absolute byte differences of each half land in one 64-bit lane each.</span>
     <span class="SKwd">let</span> left  = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">10</span>, <span class="SNum">20</span>, <span class="SNum">30</span>, <span class="SNum">40</span>, <span class="SNum">50</span>, <span class="SNum">60</span>, <span class="SNum">70</span>, <span class="SNum">80</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>])
     <span class="SKwd">let</span> right = <span class="SKwd">cast</span>(<span class="SItr">#simd</span> [<span class="SNum">16</span>] <span class="STpe">u8</span>, [<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>, <span class="SNum">5</span>, <span class="SNum">6</span>, <span class="SNum">7</span>, <span class="SNum">8</span>, <span class="SNum">255</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">0</span>])
-    <span class="SKwd">let</span> diffs = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecsad</span>(left, right))
+    <span class="SKwd">let</span> diffs = <span class="SKwd">cast</span>([<span class="SNum">2</span>] <span class="STpe">u64</span>, <span class="SNsp">Swag</span>.<span class="SFct">vecSumAbsDiff</span>(left, right))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(diffs[<span class="SNum">0</span>] == <span class="SNum">9</span> + <span class="SNum">18</span> + <span class="SNum">27</span> + <span class="SNum">36</span> + <span class="SNum">45</span> + <span class="SNum">54</span> + <span class="SNum">63</span> + <span class="SNum">72</span> <span class="SLgc">and</span> diffs[<span class="SNum">1</span>] == <span class="SNum">255</span>)
 }</span></div>
 <h3 id="_004_009_simd_swg_Packed_Bit_Operations">Packed Bit Operations</h3>
-<p>The bit intrinsics accept vectors of unsigned lanes and answer, for every lane, what the scalar form answers for one value of that width. <span class="code-inline">Swag.rol</span> and <span class="code-inline">Swag.ror</span> rotate by a count taken modulo the lane width, so a count of zero or of one whole width is the identity. <span class="code-inline">Swag.bitCountNz</span> counts the bits set, <span class="code-inline">Swag.bitCountTz</span> and <span class="code-inline">Swag.bitCountLz</span> count the zeros below the lowest and above the highest set bit, and an all-zero lane answers the lane width. <span class="code-inline">Swag.byteSwap</span> reverses the bytes inside every lane.</p>
+<p>The bit intrinsics accept vectors of unsigned lanes and answer, for every lane, what the scalar form answers for one value of that width. <span class="code-inline">Swag.rol</span> and <span class="code-inline">Swag.ror</span> rotate by a count taken modulo the lane width, so a count of zero or of one whole width is the identity. <span class="code-inline">Swag.countOnes</span> counts the bits set, <span class="code-inline">Swag.trailingZeros</span> and <span class="code-inline">Swag.leadingZeros</span> count the zeros below the lowest and above the highest set bit, and an all-zero lane answers the lane width. <span class="code-inline">Swag.byteSwap</span> reverses the bytes inside every lane.</p>
 <p>None of these has a single packed instruction on the baseline target: a constant rotation is a shift pair, a variable one reduces its count first, the counts go through a nibble table, and the byte reversal is one dynamic permute.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -3976,12 +3977,12 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> turned = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">rol</span>(quads, <span class="SNum">32</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(turned[<span class="SNum">2</span>] == <span class="SNum">0x1234_5678</span>)
 
-    <span class="SKwd">let</span> ones = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">bitCountNz</span>(quads))
+    <span class="SKwd">let</span> ones = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">countOnes</span>(quads))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ones[<span class="SNum">0</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> ones[<span class="SNum">1</span>] == <span class="SNum">1</span> <span class="SLgc">and</span> ones[<span class="SNum">3</span>] == <span class="SNum">32</span>)
 
     <span class="SCmt">// An empty lane answers the lane width for both counts.</span>
-    <span class="SKwd">let</span> below = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">bitCountTz</span>(quads))
-    <span class="SKwd">let</span> above = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">bitCountLz</span>(quads))
+    <span class="SKwd">let</span> below = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">trailingZeros</span>(quads))
+    <span class="SKwd">let</span> above = <span class="SKwd">cast</span>([<span class="SNum">4</span>] <span class="STpe">u32</span>, <span class="SNsp">Swag</span>.<span class="SFct">leadingZeros</span>(quads))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(below[<span class="SNum">0</span>] == <span class="SNum">32</span> <span class="SLgc">and</span> below[<span class="SNum">1</span>] == <span class="SNum">0</span> <span class="SLgc">and</span> below[<span class="SNum">2</span>] == <span class="SNum">3</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(above[<span class="SNum">0</span>] == <span class="SNum">32</span> <span class="SLgc">and</span> above[<span class="SNum">1</span>] == <span class="SNum">31</span> <span class="SLgc">and</span> above[<span class="SNum">3</span>] == <span class="SNum">0</span>)
 
@@ -4001,7 +4002,7 @@ swc test -w path/to/workspace -m messages</span></div>
     }
 
     <span class="SKwd">var</span> p: <span class="SCst">Pixels</span>
-    p.row = <span class="SNsp">Swag</span>.<span class="SFct">vecsplat</span>(<span class="SNum">7</span>'<span class="STpe">u8</span>)
+    p.row = <span class="SNsp">Swag</span>.<span class="SFct">vecSplat</span>(<span class="SNum">7</span>'<span class="STpe">u8</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(p.row[<span class="SNum">15</span>] == <span class="SNum">7</span>)
 }</span></div>
 <h2 id="_005_000_control_flow_swg">Control Flow</h2>
@@ -5185,7 +5186,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">var</span> started = <span class="SNum">0</span>'<span class="STpe">u64</span>
 
     <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;started| <span class="SNum">8</span> <span class="SLgc">do</span>
-        <span class="SKwd">discard</span> <span class="SNsp">Swag</span>.<span class="SFct">atomadd</span>(&amp;started, <span class="SNum">1</span>)
+        <span class="SKwd">discard</span> <span class="SNsp">Swag</span>.<span class="SFct">atomicAdd</span>(&amp;started, <span class="SNum">1</span>)
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(started == <span class="SNum">8</span>)
 }</span></div>
@@ -5428,7 +5429,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_006_001_declaration_swg_Structs_as_Function_Arguments">Structs as Function Arguments</h3>
 <p>Functions take a struct argument as an immutable <b>value</b>: the callee cannot write through the parameter, and nothing else may change the caller's struct while the call runs. The compiler relies on that. It passes the struct's address rather than copying it, at zero copy cost, and it may read each field once and keep the value across stores and calls. The code behaves as if a private copy had been made, and a program that changes the caller's struct during the call, through another pointer or from another thread, has no reliable image of it.</p>
-<p>To let a function modify the caller's struct, pass its address explicitly through a pointer parameter (<span class="code-inline">*Struct3</span>). A pointer is also what a function takes when it must watch an object that changes while it runs, such as a thread body polling its stop flag: a read through a pointer sees the live storage, and a value another thread publishes is read with <span class="code-inline">Swag.atomget</span> or an atomic type.</p>
+<p>To let a function modify the caller's struct, pass its address explicitly through a pointer parameter (<span class="code-inline">*Struct3</span>). A pointer is also what a function takes when it must watch an object that changes while it runs, such as a thread body polling its stop flag: a read through a pointer sees the live storage, and a value another thread publishes is read with <span class="code-inline">Swag.atomicLoad</span> or an atomic type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Struct3</span>
 {
     x, y, z: <span class="STpe">s32</span> = <span class="SNum">666</span>
@@ -7314,6 +7315,9 @@ swc test -w path/to/workspace -m messages</span></div>
 <li>packed vector operations.</li>
 </ul>
 <p>Use an intrinsic when its semantics are genuinely language-level or low-level. Prefer a typed library abstraction for ownership, platform APIs, containers, and application-level behavior.</p>
+<h3 id="_008_000_intrinsics_swg_What_Belongs_in__Swag_">What Belongs in <span class="code-inline">Swag</span></h3>
+<p>A declaration belongs to <span class="code-inline">Swag</span> when the compiler knows it by contract: it emits calls to it, lowers syntax to it, mirrors its layout, or reads it back at compile time. <span class="code-inline">Swag.Task</span> is there because 'parallel for' lowers to the scheduler, and <span class="code-inline">Swag.CompilerCommand</span> because <span class="code-inline">#command</span> compares against it. So does what a process must have exactly one of: its allocator, its scheduler, the context of each thread. Everything else belongs to a module. A module's build configuration is compiler-facing data rather than language vocabulary, and lives one level down, in <span class="code-inline">Swag.Build</span>.</p>
+<p>Every intrinsic is spelled in camelCase, like the rest of the language, and named after what it computes rather than after a processor instruction. The four memory operations keep their C names: <span class="code-inline">Swag.memcpy</span>, <span class="code-inline">Swag.memmove</span>, <span class="code-inline">Swag.memset</span> and <span class="code-inline">Swag.memcmp</span>.</p>
 <h3 id="_008_000_intrinsics_swg_Compile_Time_and_Runtime">Compile Time and Runtime</h3>
 <p>Many pure intrinsics accept constant operands and are evaluated by the compiler. The same call can also execute at runtime when an operand is dynamic.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">IntrinsicCompileTimeMinimum</span> = <span class="SNsp">Swag</span>.<span class="SFct">min</span>(<span class="SNum">12</span>'<span class="STpe">s32</span>, <span class="SNum">7</span>'<span class="STpe">s32</span>)
@@ -7326,7 +7330,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">min</span>(left, right) == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_008_000_intrinsics_swg_Failure_Behavior">Failure Behavior</h3>
-<p>'Swag.assert(condition, message)' is the standard assertion for programmer invariants, available without importing Core. It stops execution when an enabled assertion is false. <span class="code-inline">Swag.SafetyWhat.Assert</span> controls its emission through <span class="code-inline">BuildCfg.safetyGuards</span> and '#[Swag.Safety(.Assert, true/false)]': enabled by default in devmode and disabled in release. The <span class="code-inline">test</span> command enables assertions by default in every configuration, including release; explicit local <span class="code-inline">Swag.Safety</span> overrides still apply. Disabled assertions evaluate none of their arguments, so keep required side effects outside them. Arguments still type-check, and the asserted invariant still narrows subsequent code. A message is optional and is evaluated only on failure.</p>
+<p>'Swag.assert(condition, message)' is the standard assertion for programmer invariants, available without importing Core. It stops execution when an enabled assertion is false. <span class="code-inline">Swag.SafetyWhat.Assert</span> controls its emission through <span class="code-inline">Swag.Build.Config.safetyGuards</span> and '#[Swag.Safety(.Assert, true/false)]': enabled by default in devmode and disabled in release. The <span class="code-inline">test</span> command enables assertions by default in every configuration, including release; explicit local <span class="code-inline">Swag.Safety</span> overrides still apply. Disabled assertions evaluate none of their arguments, so keep required side effects outside them. Arguments still type-check, and the asserted invariant still narrows subsequent code. A message is optional and is evaluated only on failure.</p>
 <p>Use <span class="code-inline">#assert</span> for an unconditional compile-time assertion, and <span class="code-inline">Swag.panic</span> for an unconditional stop. Compiler-facing code can report diagnostics with <span class="code-inline">Swag.compilerError</span> and <span class="code-inline">Swag.compilerWarning</span>. Memory and math intrinsics are also subject to the safety and sanity policies described later in this reference.</p>
 <div class="blockquote blockquote-warning">
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
@@ -7522,9 +7526,9 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">max</span>(<span class="SNum">4</span>'<span class="STpe">s32</span>, <span class="SNum">9</span>'<span class="STpe">s32</span>) == <span class="SNum">9</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">abs</span>(-<span class="SNum">7</span>'<span class="STpe">s32</span>) == <span class="SNum">7</span>)
 
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">bitCountNz</span>(<span class="SNum">0b1011</span>'<span class="STpe">u8</span>) == <span class="SNum">3</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">bitCountLz</span>(<span class="SNum">1</span>'<span class="STpe">u32</span>) == <span class="SNum">31</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">bitCountTz</span>(<span class="SNum">0x10</span>'<span class="STpe">u32</span>) == <span class="SNum">4</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">countOnes</span>(<span class="SNum">0b1011</span>'<span class="STpe">u8</span>) == <span class="SNum">3</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">leadingZeros</span>(<span class="SNum">1</span>'<span class="STpe">u32</span>) == <span class="SNum">31</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">trailingZeros</span>(<span class="SNum">0x10</span>'<span class="STpe">u32</span>) == <span class="SNum">4</span>)
 }</span></div>
 <h3 id="_008_004_math_and_bit_intrinsics_swg_Byte_Order_and_Rotation">Byte Order and Rotation</h3>
 <p><span class="code-inline">Swag.byteSwap</span> reverses bytes within an integer. <span class="code-inline">Swag.rol</span> and <span class="code-inline">Swag.ror</span> rotate bits without discarding those shifted past an edge.</p>
@@ -7577,32 +7581,32 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> counter = <span class="SNum">10</span>'<span class="STpe">s32</span>
 
-    <span class="SKwd">let</span> beforeAdd = <span class="SNsp">Swag</span>.<span class="SFct">atomadd</span>(&amp;counter, <span class="SNum">5</span>)
+    <span class="SKwd">let</span> beforeAdd = <span class="SNsp">Swag</span>.<span class="SFct">atomicAdd</span>(&amp;counter, <span class="SNum">5</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(beforeAdd == <span class="SNum">10</span> <span class="SLgc">and</span> counter == <span class="SNum">15</span>)
 
-    <span class="SKwd">let</span> beforeExchange = <span class="SNsp">Swag</span>.<span class="SFct">atomxchg</span>(&amp;counter, <span class="SNum">20</span>)
+    <span class="SKwd">let</span> beforeExchange = <span class="SNsp">Swag</span>.<span class="SFct">atomicExchange</span>(&amp;counter, <span class="SNum">20</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(beforeExchange == <span class="SNum">15</span> <span class="SLgc">and</span> counter == <span class="SNum">20</span>)
 
-    <span class="SKwd">let</span> beforeCompareExchange = <span class="SNsp">Swag</span>.<span class="SFct">atomcmpxchg</span>(&amp;counter, <span class="SNum">20</span>, <span class="SNum">30</span>)
+    <span class="SKwd">let</span> beforeCompareExchange = <span class="SNsp">Swag</span>.<span class="SFct">atomicCompareExchange</span>(&amp;counter, <span class="SNum">20</span>, <span class="SNum">30</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(beforeCompareExchange == <span class="SNum">20</span> <span class="SLgc">and</span> counter == <span class="SNum">30</span>)
 }</span></div>
 <h3 id="_008_005_memory_and_atomic_intrinsics_swg_Atomic_Read">Atomic Read</h3>
-<p><span class="code-inline">Swag.atomget</span> reads an integer through a pointer as one atomic access. It is a plain load on x86-64, so it takes no bus lock, and the compiler never hoists, merges, or drops it: a loop polling a value that another thread publishes reads memory on every iteration.</p>
+<p><span class="code-inline">Swag.atomicLoad</span> reads an integer through a pointer as one atomic access. It is a plain load on x86-64, so it takes no bus lock, and the compiler never hoists, merges, or drops it: a loop polling a value that another thread publishes reads memory on every iteration.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> flag = <span class="SNum">0</span>'<span class="STpe">u32</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomget</span>(&amp;flag) == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomicLoad</span>(&amp;flag) == <span class="SNum">0</span>)
 
-    <span class="SKwd">discard</span> <span class="SNsp">Swag</span>.<span class="SFct">atomxchg</span>(&amp;flag, <span class="SNum">1</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomget</span>(&amp;flag) == <span class="SNum">1</span>)
+    <span class="SKwd">discard</span> <span class="SNsp">Swag</span>.<span class="SFct">atomicExchange</span>(&amp;flag, <span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomicLoad</span>(&amp;flag) == <span class="SNum">1</span>)
 }</span></div>
 <h3 id="_008_005_memory_and_atomic_intrinsics_swg_Atomic_Write">Atomic Write</h3>
-<p><span class="code-inline">Swag.atomset</span> writes an integer through a pointer as one atomic access, and returns nothing. It is a plain store on x86-64, where <span class="code-inline">Swag.atomxchg</span> takes a bus lock, and the compiler never drops it, merges it, or moves another access across it. What a thread wrote before it is visible to a thread whose <span class="code-inline">Swag.atomget</span> reads the value. The memory model states what that write does not order.</p>
+<p><span class="code-inline">Swag.atomicStore</span> writes an integer through a pointer as one atomic access, and returns nothing. It is a plain store on x86-64, where <span class="code-inline">Swag.atomicExchange</span> takes a bus lock, and the compiler never drops it, merges it, or moves another access across it. What a thread wrote before it is visible to a thread whose <span class="code-inline">Swag.atomicLoad</span> reads the value. The memory model states what that write does not order.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> flag = <span class="SNum">0</span>'<span class="STpe">u32</span>
-    <span class="SNsp">Swag</span>.<span class="SFct">atomset</span>(&amp;flag, <span class="SNum">1</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomget</span>(&amp;flag) == <span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">atomicStore</span>(&amp;flag, <span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">atomicLoad</span>(&amp;flag) == <span class="SNum">1</span>)
 }</span></div>
 <h3 id="_008_005_memory_and_atomic_intrinsics_swg_Prefetch">Prefetch</h3>
 <p><span class="code-inline">Swag.prefetch</span> tells the processor that the bytes at an address will be read soon, so it can start bringing their cache line in while other work proceeds. It is a hint and nothing more: it never faults, returns nothing, and changes no value the program can observe. The address may be null, dangling, or one past the end of a buffer, and a target without a prefetch instruction simply ignores the call. On x86-64 it is <span class="code-inline">prefetcht0</span>.</p>
@@ -8043,7 +8047,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_010_002_predefined_attributes_swg">Predefined Attributes</h3>
 <h3 id="_010_002_predefined_attributes_swg_Predefined_Attributes">Predefined Attributes</h3>
-<p>The compiler runtime exports predefined attributes in the <span class="code-inline">Swag</span> namespace. This page follows the API shipped in <span class="code-inline">bin/runtime/api.swg</span>; it is the compact index, while the relevant language chapters demonstrate the attributes that change everyday program behavior.</p>
+<p>The compiler runtime exports predefined attributes in the <span class="code-inline">Swag</span> namespace. This page follows the API shipped in <span class="code-inline">bin/runtime/attributes.swg</span>; it is the compact index, while the relevant language chapters demonstrate the attributes that change everyday program behavior.</p>
 <h3 id="_010_002_predefined_attributes_swg_Declaring_Attributes">Declaring Attributes</h3>
 <table class="table-markdown">
 <thead>
@@ -8072,7 +8076,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SAtr">#[Description("Show a large cross at the mouse position")]</span>
     drawCross = <span class="SKwd">true</span>
 }</span></div>
-<p>This one is declared in <span class="code-inline">bin/runtime/core.swg</span> rather than <span class="code-inline">api.swg</span>, because it needs <span class="code-inline">typeinfo</span> and cannot exist in the bootstrap.</p>
+<p>This one is declared in <span class="code-inline">bin/runtime/core.swg</span> rather than <span class="code-inline">attributes.swg</span>, because it needs <span class="code-inline">typeinfo</span> and cannot exist in the bootstrap.</p>
 <h3 id="_010_002_predefined_attributes_swg_Compile-Time_Execution_and_Code_Generation">Compile-Time Execution and Code Generation</h3>
 <table class="table-markdown">
 <thead>
@@ -8704,7 +8708,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p><span class="code-inline">#typeof</span> yields a constant pointer to a <span class="code-inline">Swag.TypeInfo</span> structure (alias of <span class="code-inline">typeinfo</span>). Each Swag type maps to a specific <span class="code-inline">TypeInfo</span> descriptor in the <span class="code-inline">Swag</span> namespace, which is part of the compiler runtime.</p>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
-<p>The complete descriptor layouts are part of the compiler runtime API in <span class="code-inline">bin/runtime/api.swg</span>.</p>
+<p>The complete descriptor layouts are part of the compiler runtime API in <span class="code-inline">bin/runtime/reflection.swg</span>.</p>
 </div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -11407,6 +11411,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|Returning Arrays Efficiently|_007_008_retval_swg_Returning_Arrays_Efficiently|",
 "h|Intrinsics|_008_000_intrinsics_swg|",
 "h|Intrinsics|_008_000_intrinsics_swg_Intrinsics|",
+"h|What Belongs in Swag|_008_000_intrinsics_swg_What_Belongs_in__Swag_|",
 "h|Compile Time and Runtime|_008_000_intrinsics_swg_Compile_Time_and_Runtime|",
 "h|Failure Behavior|_008_000_intrinsics_swg_Failure_Behavior|",
 "h|Init|_008_001_init_swg|",

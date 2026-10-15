@@ -40,7 +40,7 @@ private const DefaultIcons            = #include(DefaultIconsName)
 #[Swag.Opaque, Swag.NoDoc]
 struct ThemeImages
 {
-    lock:           Sync.Mutex
+    lock:           Swag.Mutex
     decoded:        bool
     widgets:        Svg.Drawing     // Vector widgets atlas, parsed once.
     widgetsRasters: HashTable'(s32, Image)     // Rasterizations of `widgets`, by whole scale.

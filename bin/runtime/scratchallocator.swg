@@ -44,6 +44,23 @@ impl ScratchAllocator
         return req.address
     }
 
+    // Forgets the buffer and the blocks that did not fit without freeing them, once another
+    // owner has taken them over.
+    mtd forgetStorage()
+    {
+        .block     = null
+        .firstLeak = null
+        .used      = 0
+        .totalLeak = 0
+    }
+
+    // Takes the backing allocator and the capacity of `from`, without any of its blocks.
+    mtd inheritSettings(from: const *ScratchAllocator)
+    {
+        .allocator = from.allocator
+        .capacity  = from.capacity
+    }
+
     // Release the allocated block
     mtd release()
     {

@@ -84,7 +84,7 @@ struct Frame
     // it predicts from rather than on the whole picture, which is what lets pictures overlap.
     progressRows:    s32
     progressWaiters: u32
-    progressLock:    Sync.Mutex
+    progressLock:    Swag.Mutex
     progressEvent:   Sync.Event
 
     colMotion: Array'ColMotion

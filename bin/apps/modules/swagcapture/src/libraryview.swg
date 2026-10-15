@@ -93,7 +93,7 @@ struct LibraryView
 
     allItems:     ArrayPtr'LibraryItem
     items:        Array'*LibraryItem
-    mutexLoaded:  Sync.Mutex
+    mutexLoaded:  Swag.Mutex
     thread:       Thread
     hotItem:      u32 = Swag.U32.Max
     focusItem:    u32 = Swag.U32.Max

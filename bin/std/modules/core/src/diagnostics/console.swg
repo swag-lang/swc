@@ -22,7 +22,7 @@ enum Color
 }
 
 internal var g_SilentMode: s32
-private var g_Lock:        Sync.Mutex
+private var g_Lock:        Swag.Mutex
 
 // Acquires the console lock, which serializes console output across threads.
 //

@@ -10,8 +10,6 @@ impl IAllocator for LibraryRejectAllocator
     mtd impl alloc(request: *AllocatorRequest) { request.address = null }
     mtd impl realloc(request: *AllocatorRequest) { request.address = null }
     mtd impl free(_: *AllocatorRequest) {}
-    mtd impl freeAll(_: *AllocatorRequest) {}
-    mtd impl assertAllocated(_: *AllocatorRequest) {}
 }
 
 // Library actions can be exercised against an empty headless library window:

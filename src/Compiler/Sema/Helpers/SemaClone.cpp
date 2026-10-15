@@ -1074,7 +1074,7 @@ namespace
         // the recursion above copied the callee's whole overload set / first overload. Override
         // the cloned callee with the function the call actually resolved to, so the preserved
         // body doesn't re-run (and mis-pick) overload selection in a foreign scope. Overloaded
-        // intrinsics (Swag.min, Swag.vecwidenlo, ...) resolve through the same declaration matching, so
+        // intrinsics (Swag.min, Swag.vecWidenLo, ...) resolve through the same declaration matching, so
         // their calls need the same override.
         const AstNode& sourceNode   = sema.node(sourceRef);
         const AstNode& clonedNode   = sema.node(clonedRef);
@@ -1363,11 +1363,11 @@ namespace
         auto [nodeRef, nodePtr]      = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()             = node.flags();
         nodePtr->setCodeRef(node.codeRef());
-        // An intrinsic name (Swag.min, Swag.vecsplat, ...) resolves by name in every scope and picks its
+        // An intrinsic name (Swag.min, Swag.vecSplat, ...) resolves by name in every scope and picks its
         // overload from the call's argument types, and its identifier only ever stores the first
         // overload of the set. Carrying that symbol pins a cloned call on the wrong overload when
         // the source call was folded to a constant and so kept no selected function of its own
-        // to override the pin with (an auto-inlined `v + Swag.vecsplat(1'u32)` came back as sixteen
+        // to override the pin with (an auto-inlined `v + Swag.vecSplat(1'u32)` came back as sixteen
         // bytes). Leave the name to re-resolve; the call pins its selected function afterwards
         // whenever the source kept one.
         const auto* intrinsicFunction           = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;

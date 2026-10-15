@@ -159,8 +159,8 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
         let owner = cast(*IdleOwner, param)
         for i in owner.blocks.count do
             owner.blocks[i] = allocOne(owner.itf!, 64)
-        discard Swag.atomxchg(&owner.allocated, 1)
-        while Swag.atomcmpxchg(&owner.release, 0, 0) == 0 {}
+        discard Swag.atomicExchange(&owner.allocated, 1)
+        while Swag.atomicCompareExchange(&owner.release, 0, 0) == 0 {}
 
         releaseAllocatorThreadCache()
         return 0
@@ -180,7 +180,7 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
         var tid: Th.DWORD
         let thread = Th.CreateThread(null, 0, &idleOwnerThread, &owner, 0, &tid)
         Swag.assert(thread != null)
-        while Swag.atomcmpxchg(&owner.allocated, 0, 0) == 0 {}
+        while Swag.atomicCompareExchange(&owner.allocated, 0, 0) == 0 {}
         Swag.assert(allocator.stats().countAlloc == owner.blocks.count)
 
         for block in owner.blocks do
@@ -193,7 +193,7 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
         allocator.trim()
         Swag.assert(allocator.stats().countPage == 1)
 
-        discard Swag.atomxchg(&owner.release, 1)
+        discard Swag.atomicExchange(&owner.release, 1)
         discard Th.WaitForSingleObject(thread, Th.INFINITE)
         Th.CloseHandle(thread)
         Swag.assert(allocator.stats().countPage == 0)

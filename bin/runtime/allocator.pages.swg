@@ -181,10 +181,10 @@ var g_AllocatorOsCommitCount:   u64
 var g_AllocatorOsDecommitCount: u64
 var g_AllocatorOsReserveCount:  u64
 
-func atomicGet(addr: *u32)->u32 => Swag.atomget(addr)
-func atomicGet(addr: *u64)->u64 => Swag.atomget(addr)
+func atomicGet(addr: *u32)->u32 => Swag.atomicLoad(addr)
+func atomicGet(addr: *u64)->u64 => Swag.atomicLoad(addr)
 
-func atomicAddU64(addr: *u64, delta: u64) { discard Swag.atomadd(addr, delta) }
+func atomicAddU64(addr: *u64, delta: u64) { discard Swag.atomicAdd(addr, delta) }
 
 // Two's complement wrap-around: the counters are unsigned and never underflow in a well-formed
 // sequence, so subtracting is adding the complement. The wrap is the mechanism, not an accident.
@@ -192,12 +192,12 @@ func atomicAddU64(addr: *u64, delta: u64) { discard Swag.atomadd(addr, delta) }
 {
     func atomicSubU64(addr: *u64, delta: u64)
     {
-        discard Swag.atomadd(addr, ~delta + 1)
+        discard Swag.atomicAdd(addr, ~delta + 1)
     }
 
     func atomicSubU32(addr: *u32, delta: u32)
     {
-        discard Swag.atomadd(addr, ~delta + 1)
+        discard Swag.atomicAdd(addr, ~delta + 1)
     }
 }
 
@@ -253,7 +253,7 @@ func allocatorOsDecommit(address: u64, size: u64)
 #[Swag.Safety(.Overflow, false)]
 private func allocatorNextKey(seed: u64)->u64
 {
-    var value = seed ^ (Swag.atomadd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15'u64) + 0x9E37_79B9_7F4A_7C15'u64)
+    var value = seed ^ (Swag.atomicAdd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15'u64) + 0x9E37_79B9_7F4A_7C15'u64)
     value ^= value >> 30
     value *= 0xBF58_476D_1CE4_E5B9'u64
     value ^= value >> 27
@@ -314,9 +314,9 @@ impl AllocatorPage
     #[Swag.Safety(.Overflow, false)]
     mtd setupBlockDivision(blockSize: u32)
     {
-        let odd = blockSize >> cast(u32, Swag.bitCountTz(blockSize))
+        let odd = blockSize >> cast(u32, Swag.trailingZeros(blockSize))
         .blockSize  = blockSize
-        .blockShift = cast(u8, Swag.bitCountTz(blockSize))
+        .blockShift = cast(u8, Swag.trailingZeros(blockSize))
         .blockLimit = 0xFFFF_FFFF'u32 / blockSize
 
         var inverse = odd
@@ -402,7 +402,7 @@ impl AllocatorPage
 
     mtd lockRemote()
     {
-        while Swag.atomcmpxchg(&.remoteLock, 0, 1) != 0 {}
+        while Swag.atomicCompareExchange(&.remoteLock, 0, 1) != 0 {}
     }
 
     // A release is all an unlock needs: the next owner takes the lock with a compare-exchange,
@@ -410,7 +410,7 @@ impl AllocatorPage
     // that anyone reads.
     mtd unlockRemote()
     {
-        Swag.atomset(&.remoteLock, 0)
+        Swag.atomicStore(&.remoteLock, 0)
     }
 
     // Moves the blocks other threads freed onto the owner's free list.
@@ -426,7 +426,7 @@ impl AllocatorPage
             return
 
         .lockRemote()
-        var list = Swag.atomxchg(&.remoteFree, 0)
+        var list = Swag.atomicExchange(&.remoteFree, 0)
         .unlockRemote()
         var taken = 0'u32
 
@@ -457,7 +457,7 @@ impl AllocatorPage
         while true
         {
             cast(*u64, address)[] = head ^ .remoteKey
-            let seen = Swag.atomcmpxchg(&.remoteFree, head, address)
+            let seen = Swag.atomicCompareExchange(&.remoteFree, head, address)
             if seen == head
             {
                 // The exchange above is a full barrier, so this read pairs with the owner's
@@ -650,9 +650,9 @@ impl AllocatorSegment
             if free == 0 do
                 return null
 
-            let index = cast(u32, Swag.bitCountTz(free))
+            let index = cast(u32, Swag.trailingZeros(free))
             let bit   = 1'u64 << index
-            let seen  = Swag.atomcmpxchg(&.pageMask, mask, mask | bit)
+            let seen  = Swag.atomicCompareExchange(&.pageMask, mask, mask | bit)
             if seen != mask
             {
                 mask = seen
@@ -723,14 +723,14 @@ impl AllocatorSegment
         var idle = atomicGet(&.idleMask)
         while idle
         {
-            let index = cast(u32, Swag.bitCountTz(idle))
+            let index = cast(u32, Swag.trailingZeros(idle))
             let bit   = 1'u64 << index
             idle &= ~bit
 
             let mask = atomicGet(&.pageMask)
             if mask & bit do
                 continue
-            if Swag.atomcmpxchg(&.pageMask, mask, mask | bit) != mask
+            if Swag.atomicCompareExchange(&.pageMask, mask, mask | bit) != mask
             {
                 idle = atomicGet(&.idleMask)
                 continue
@@ -754,7 +754,7 @@ impl AllocatorSegment
         var mask = .idleMask
         while true
         {
-            let seen = Swag.atomcmpxchg(&.idleMask, mask, mask | bit)
+            let seen = Swag.atomicCompareExchange(&.idleMask, mask, mask | bit)
             if seen == mask do
                 return
             mask = seen
@@ -767,7 +767,7 @@ impl AllocatorSegment
         var mask = .idleMask
         while mask & bit
         {
-            let seen = Swag.atomcmpxchg(&.idleMask, mask, mask & ~bit)
+            let seen = Swag.atomicCompareExchange(&.idleMask, mask, mask & ~bit)
             if seen == mask do
                 return true
             mask = seen
@@ -781,7 +781,7 @@ impl AllocatorSegment
         var mask = .pageMask
         while true
         {
-            let seen = Swag.atomcmpxchg(&.pageMask, mask, mask & ~bit)
+            let seen = Swag.atomicCompareExchange(&.pageMask, mask, mask & ~bit)
             if seen == mask do
                 return
             mask = seen
@@ -800,7 +800,7 @@ func allocatorReserveIdle(size: u64)->bool
     {
         if current + size > budget do
             return false
-        let seen = Swag.atomcmpxchg(&g_AllocatorIdleBytes, current, current + size)
+        let seen = Swag.atomicCompareExchange(&g_AllocatorIdleBytes, current, current + size)
         if seen == current do
             return true
         current = seen
@@ -830,7 +830,7 @@ private func allocatorAddArena()->bool
 
     // Publish the arena only once its bounds are readable, so a concurrent lookup never sees a
     // half-built entry.
-    discard Swag.atomadd(&g_AllocatorArenaCount, 1)
+    discard Swag.atomicAdd(&g_AllocatorArenaCount, 1)
     return true
 }
 

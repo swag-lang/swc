@@ -10,7 +10,7 @@ namespace Runtime
     //                behavior when optimization was on).
     //  - Auto:       MarkedOnly plus compiler-chosen small/cheap callees.
     // Default (and per-config presets) live in applyBuildCfgPreset. Keep these enums and the
-    // field order below in sync with the Swag mirror in bin/runtime/api.swg (the user-visible
+    // field order below in sync with the Swag mirror in bin/runtime/build.swg (the user-visible
     // build config is read directly through that layout).
     enum class BuildCfgBackendInlineMode : uint8_t
     {

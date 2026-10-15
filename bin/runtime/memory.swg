@@ -91,7 +91,7 @@ func memset(dst: [*] void?, value: u8, size: u64)
     var offset = 0'u64
 
     let word   = cast(u64, value) * 0x0101_0101_0101_0101
-    let vector = Swag.vecsplat(word)
+    let vector = Swag.vecSplat(word)
     while size - offset >= 4 * MemoryVectorSize
     {
         let targetVectors = cast([*] MemoryFillVector, (target + offset))
@@ -155,11 +155,11 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
     {
         let leftVector  = cast(const *MemoryVector, (leftBytes + offset))[]
         let rightVector = cast(const *MemoryVector, (rightBytes + offset))[]
-        let equalMask   = Swag.vecmask(leftVector == rightVector)
+        let equalMask   = Swag.vecMask(leftVector == rightVector)
         if equalMask != 0xFFFF
         {
             // The lowest clear mask bit is the first byte that differs.
-            let index = cast(u64, Swag.bitCountTz((~equalMask) & 0xFFFF))
+            let index = cast(u64, Swag.trailingZeros((~equalMask) & 0xFFFF))
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
@@ -174,7 +174,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
         if difference
         {
             // On the supported little-endian target, the lowest set bit names the first byte.
-            let index = Swag.bitCountTz(difference) / 8
+            let index = Swag.trailingZeros(difference) / 8
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
@@ -188,7 +188,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
         let difference = leftPart ^ rightPart
         if difference
         {
-            let index = cast(u64, Swag.bitCountTz(difference)) / 8
+            let index = cast(u64, Swag.trailingZeros(difference)) / 8
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
@@ -202,7 +202,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
         let difference = leftPart ^ rightPart
         if difference
         {
-            let index = cast(u64, Swag.bitCountTz(difference)) / 8
+            let index = cast(u64, Swag.trailingZeros(difference)) / 8
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 

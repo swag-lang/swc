@@ -339,7 +339,7 @@ private func hasWorkObserver(sched: *Scheduler, address: u64)->bool
     var taken = sched.occupancy.load()
     while taken != 0
     {
-        let index = Swag.bitCountTz(taken)
+        let index = Swag.trailingZeros(taken)
         if sched.observed[index].load() == address do
             return true
         taken &= taken - 1

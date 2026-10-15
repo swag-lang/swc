@@ -130,8 +130,8 @@ namespace MicroPassHelpers
                inst.op == MicroInstrOpcode::VecUnaryAmcRegMem;
     }
 
-    // An atomic operation: the volatile load of 'Swag.atomget', the volatile store of 'Swag.atomset',
-    // the exchange of 'Swag.atomxchg', and the compare-exchange behind the other atomic intrinsics. Each is an ordering point another
+    // An atomic operation: the volatile load of 'Swag.atomicLoad', the volatile store of 'Swag.atomicStore',
+    // the exchange of 'Swag.atomicExchange', and the compare-exchange behind the other atomic intrinsics. Each is an ordering point another
     // thread synchronizes with, so no ordinary access may move across it, be forwarded across it,
     // or be merged with an access on its other side - not even one the pass otherwise proves
     // unchanged, such as a private global this function never writes.

@@ -221,7 +221,7 @@ break at a time, as high in the expression as it can.
 
 # Documentation Generation
 
-`swc doc` uses the module's 'BuildCfg.genDoc' configuration. The documentation
+`swc doc` uses the module's 'Swag.Build.Config.genDoc' configuration. The documentation
 kind can generate a public API page, a numbered examples document, or one page
 per source file.
 

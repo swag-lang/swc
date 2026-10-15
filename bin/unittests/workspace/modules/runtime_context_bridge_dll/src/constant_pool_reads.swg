@@ -23,7 +23,7 @@ public func ctxPoolFourthValue()->u32  => ColorValues[3]
 // instruction.
 public func ctxPoolVectorSum(seed: s32)->s32
 {
-    let base  = cast(#simd [4] s32, Swag.vecsplat(seed))
+    let base  = cast(#simd [4] s32, Swag.vecSplat(seed))
     let steps = cast(#simd [4] s32, [1, 2, 3, 4])
     let sum   = cast([4] s32, (base + steps))
     return sum[0] + sum[1] + sum[2] + sum[3]

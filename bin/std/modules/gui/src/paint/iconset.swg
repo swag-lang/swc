@@ -14,7 +14,7 @@ using Core, Pixel
 // [[Gui.Theme.icon]], and an application owns its own beside its icon source.
 struct IconAtlas
 {
-    lock:    Sync.Mutex      // Guards the rasterizations against concurrent first use.
+    lock:    Swag.Mutex      // Guards the rasterizations against concurrent first use.
     drawing: Svg.Drawing     // The vector document, parsed once.
     rasters: HashTable'(s64, Image)     // Rasterizations of `drawing`, by cell size in device pixels.
 }

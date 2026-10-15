@@ -49,8 +49,8 @@ namespace
         map[static_cast<size_t>(Pn::Context)]            = RuntimeTypeKind::Context;
         map[static_cast<size_t>(Pn::ContextFlags)]       = RuntimeTypeKind::ContextFlags;
         map[static_cast<size_t>(Pn::Module)]             = RuntimeTypeKind::Module;
-        map[static_cast<size_t>(Pn::ProcessInfos)]       = RuntimeTypeKind::ProcessInfos;
-        map[static_cast<size_t>(Pn::Gvtd)]               = RuntimeTypeKind::Gvtd;
+        map[static_cast<size_t>(Pn::ProcessInfo)]        = RuntimeTypeKind::ProcessInfo;
+        map[static_cast<size_t>(Pn::GlobalToDrop)]       = RuntimeTypeKind::GlobalToDrop;
         map[static_cast<size_t>(Pn::BuildCfg)]           = RuntimeTypeKind::BuildCfg;
         return map;
     }

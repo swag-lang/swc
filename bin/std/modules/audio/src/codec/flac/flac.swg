@@ -101,7 +101,7 @@ private impl BitReader
             let masked    = cast(u32, .data![.bitPos >> 3]) & (0xFF'u32 >> bitOffset)
             if masked
             {
-                let highest = 31 - cast(u32, Swag.bitCountLz(masked))
+                let highest = 31 - cast(u32, Swag.leadingZeros(masked))
                 let found   = 7 - highest
                 zeros   += found - bitOffset
                 .bitPos += cast(u64, (found - bitOffset)) + 1

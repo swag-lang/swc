@@ -84,7 +84,7 @@ public struct LinePath
 // value no contour has carried before — a path cleared and rebuilt identically included.
 private var g_ContourRevision: u64
 
-private func nextContourRevision()->u64 => Swag.atomadd(&g_ContourRevision, 1) + 1
+private func nextContourRevision()->u64 => Swag.atomicAdd(&g_ContourRevision, 1) + 1
 
 // Returns how much two corner radii sharing one side must shrink to fit inside it.
 private func sideScale(side, first, second: f32)->f32

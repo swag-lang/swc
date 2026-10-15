@@ -9,7 +9,7 @@ using Swag
 #[Swag.Optimize(true)]
 func roundRows(dst: [*] s16, src: const [*] s16, rows: u64)
 {
-    let twos = cast(#simd [8] s16, Swag.vecsplat(2's16))
+    let twos = cast(#simd [8] s16, Swag.vecSplat(2's16))
     let mask = cast(#simd [8] s16, [0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0])
     for row in rows
     {
@@ -24,8 +24,8 @@ func tableOffsets(dst: [*] u8, src: const [*] u8)
     // Two constants of the same shape, read at two different lanes: each one
     // is its own pool entry, and neither may be confused with the other.
     let bytes = cast(const [*] #simd [16] u8, src)[0]
-    let ones  = cast(#simd [16] u8, Swag.vecsplat(1'u8))
-    let twos  = cast(#simd [16] u8, Swag.vecsplat(2'u8))
+    let ones  = cast(#simd [16] u8, Swag.vecSplat(1'u8))
+    let twos  = cast(#simd [16] u8, Swag.vecSplat(2'u8))
     cast([*] #simd [16] u8, dst)[0]        = bytes + ones
     cast([*] #simd [16] u8, (dst + 16))[0] = bytes + twos
 }

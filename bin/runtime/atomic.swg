@@ -28,56 +28,56 @@ struct(T) AtomicValue
 impl AtomicValue
 {
     // Returns the current value.
-    mtd const load()->T => Swag.atomget(cast #unconst (*T, &.storage))
+    mtd const load()->T => Swag.atomicLoad(cast #unconst (*T, &.storage))
 
     // Returns the current value. When it was written by [[Swag.AtomicValue.storeRelease]],
     // everything the writing thread did before that write is visible after this read.
-    mtd const loadAcquire()->T => Swag.atomget(cast #unconst (*T, &.storage))
+    mtd const loadAcquire()->T => Swag.atomicLoad(cast #unconst (*T, &.storage))
 
     // Returns the current value, ordered against nothing else: for a count or a statistic that no
     // other access depends on.
-    mtd const loadRelaxed()->T => Swag.atomget(cast #unconst (*T, &.storage))
+    mtd const loadRelaxed()->T => Swag.atomicLoad(cast #unconst (*T, &.storage))
 
     // Replaces the value.
-    mtd store(value: T) { discard Swag.atomxchg(&.storage, value) }
+    mtd store(value: T) { discard Swag.atomicExchange(&.storage, value) }
 
     // Replaces the value. A thread whose [[Swag.AtomicValue.loadAcquire]] reads it also sees
     // everything this thread wrote before: the way to publish data behind a flag, or to release a
     // lock. It does not order a later read of this thread against it, which is what the plain
     // [[Swag.AtomicValue.store]] is for.
-    mtd storeRelease(value: T) => Swag.atomset(&.storage, value)
+    mtd storeRelease(value: T) => Swag.atomicStore(&.storage, value)
 
     // Replaces the value, ordered against nothing else.
-    mtd storeRelaxed(value: T) => Swag.atomset(&.storage, value)
+    mtd storeRelaxed(value: T) => Swag.atomicStore(&.storage, value)
 
     // Replaces the value and returns what it was.
-    mtd exchange(value: T)->T => Swag.atomxchg(&.storage, value)
+    mtd exchange(value: T)->T => Swag.atomicExchange(&.storage, value)
 
     // Replaces the value with `value` only if it currently equals `compare`.
     //
     // Returns the value found before the attempt, so the exchange succeeded when the result
     // equals `compare`.
-    mtd compareExchange(compare, value: T)->T => Swag.atomcmpxchg(&.storage, compare, value)
+    mtd compareExchange(compare, value: T)->T => Swag.atomicCompareExchange(&.storage, compare, value)
 
     // Adds `value` and returns the value held before the addition.
     #[Swag.Discardable]
-    mtd add(value: T)->T => Swag.atomadd(&.storage, value)
+    mtd add(value: T)->T => Swag.atomicAdd(&.storage, value)
 
     // Subtracts `value` and returns the value held before the subtraction.
     #[Swag.Discardable]
-    mtd sub(value: T)->T => Swag.atomadd(&.storage, cast #wrap (T, (~value + #wrap 1)))
+    mtd sub(value: T)->T => Swag.atomicAdd(&.storage, cast #wrap (T, (~value + #wrap 1)))
 
     // Applies a bitwise and, and returns the value held before it.
     #[Swag.Discardable]
-    mtd bitAnd(value: T)->T => Swag.atomand(&.storage, value)
+    mtd bitAnd(value: T)->T => Swag.atomicAnd(&.storage, value)
 
     // Applies a bitwise or, and returns the value held before it.
     #[Swag.Discardable]
-    mtd bitOr(value: T)->T => Swag.atomor(&.storage, value)
+    mtd bitOr(value: T)->T => Swag.atomicOr(&.storage, value)
 
     // Applies a bitwise exclusive or, and returns the value held before it.
     #[Swag.Discardable]
-    mtd bitXor(value: T)->T => Swag.atomxor(&.storage, value)
+    mtd bitXor(value: T)->T => Swag.atomicXor(&.storage, value)
 }
 
 // A one-way flag that any thread can raise and every thread can observe.

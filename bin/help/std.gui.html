@@ -383,7 +383,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1206</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1211</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Gui_AboutDlg_addSection">AboutDlg.addSection</a></li>
@@ -401,11 +401,15 @@
 <li><a href="#Gui_AnimationHandle_isValid">AnimationHandle.isValid</a></li>
 <li><a href="#Gui_Animator_activeCount">Animator.activeCount</a></li>
 <li><a href="#Gui_Animator_animateColor">Animator.animateColor</a></li>
+<li><a href="#Gui_Animator_animateColorBorrowed">Animator.animateColorBorrowed</a></li>
 <li><a href="#Gui_Animator_animateF32">Animator.animateF32</a></li>
 <li><a href="#Gui_Animator_animateLayoutHeight">Animator.animateLayoutHeight</a></li>
 <li><a href="#Gui_Animator_animatePoint">Animator.animatePoint</a></li>
+<li><a href="#Gui_Animator_animatePointBorrowed">Animator.animatePointBorrowed</a></li>
 <li><a href="#Gui_Animator_animateRectangle">Animator.animateRectangle</a></li>
+<li><a href="#Gui_Animator_animateRectangleBorrowed">Animator.animateRectangleBorrowed</a></li>
 <li><a href="#Gui_Animator_animateVector4">Animator.animateVector4</a></li>
+<li><a href="#Gui_Animator_animateVector4Borrowed">Animator.animateVector4Borrowed</a></li>
 <li><a href="#Gui_Animator_cancel">Animator.cancel</a></li>
 <li><a href="#Gui_Animator_finishAll">Animator.finishAll</a></li>
 <li><a href="#Gui_Animator_isActive">Animator.isActive</a></li>
@@ -578,6 +582,7 @@
 <li><a href="#Gui_EditBox_deleteSelection">EditBox.deleteSelection</a></li>
 <li><a href="#Gui_EditBox_isValid">EditBox.isValid</a></li>
 <li><a href="#Gui_EditBox_restoreOriginalText">EditBox.restoreOriginalText</a></li>
+<li><a href="#Gui_EditBox_revalidate">EditBox.revalidate</a></li>
 <li><a href="#Gui_EditBox_selectAll">EditBox.selectAll</a></li>
 <li><a href="#Gui_EditBox_selection">EditBox.selection</a></li>
 <li><a href="#Gui_EditBox_setFloatingPointRange">EditBox.setFloatingPointRange</a></li>
@@ -2636,15 +2641,23 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateColor">Animator.animateColor</a></td><td><p>Starts one color track.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animateColorBorrowed">Animator.animateColorBorrowed</a></td><td><p>Starts one color track from explicitly borrowed endpoints.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateF32">Animator.animateF32</a></td><td><p>Starts one scalar track.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateLayoutHeight">Animator.animateLayoutHeight</a></td><td><p>Animates one layout-managed window to a new preferred height.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animatePoint">Animator.animatePoint</a></td><td><p>Starts one point track.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animatePointBorrowed">Animator.animatePointBorrowed</a></td><td><p>Starts one point track from explicitly borrowed endpoints.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateRectangle">Animator.animateRectangle</a></td><td><p>Starts one rectangle track.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animateRectangleBorrowed">Animator.animateRectangleBorrowed</a></td><td><p>Starts one rectangle track from explicitly borrowed endpoints.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateVector4">Animator.animateVector4</a></td><td><p>Starts one four-component vector track.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animateVector4Borrowed">Animator.animateVector4Borrowed</a></td><td><p>Starts one four-component vector track from explicitly borrowed endpoints.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_cancel">Animator.cancel</a></td><td><p>Cancels an active animation and reports <span class="code-inline">Cancelled</span> to unfinished callbacks.</p>
 </td></tr>
@@ -2989,6 +3002,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_EditBox_isValid">EditBox.isValid</a></td><td><p>Returns whether the current content is valid.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_EditBox_restoreOriginalText">EditBox.restoreOriginalText</a></td><td><p>Restores the text captured when focus was gained.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_EditBox_revalidate">EditBox.revalidate</a></td><td><p>Rechecks the current text and refreshes its validation indicator.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_EditBox_selectAll">EditBox.selectAll</a></td><td><p>Selects the whole content.</p>
 </td></tr>
@@ -6050,15 +6065,23 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateColor">animateColor</a></td><td><p>Starts one color track.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animateColorBorrowed">animateColorBorrowed</a></td><td><p>Starts one color track from explicitly borrowed endpoints.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateF32">animateF32</a></td><td><p>Starts one scalar track.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateLayoutHeight">animateLayoutHeight</a></td><td><p>Animates one layout-managed window to a new preferred height.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animatePoint">animatePoint</a></td><td><p>Starts one point track.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animatePointBorrowed">animatePointBorrowed</a></td><td><p>Starts one point track from explicitly borrowed endpoints.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateRectangle">animateRectangle</a></td><td><p>Starts one rectangle track.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animateRectangleBorrowed">animateRectangleBorrowed</a></td><td><p>Starts one rectangle track from explicitly borrowed endpoints.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_animateVector4">animateVector4</a></td><td><p>Starts one four-component vector track.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_Animator_animateVector4Borrowed">animateVector4Borrowed</a></td><td><p>Starts one four-component vector track from explicitly borrowed endpoints.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_Animator_cancel">cancel</a></td><td><p>Cancels an active animation and reports <span class="code-inline">Cancelled</span> to unfinished callbacks.</p>
 </td></tr>
@@ -7158,6 +7181,8 @@ options.motion      = .<span class="SCst"><a href="#Gui_AnimationMotion_Essentia
 <tr><td class="code-type"><a href="#Gui_EditBox_isValid">isValid</a></td><td><p>Returns whether the current content is valid.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_EditBox_restoreOriginalText">restoreOriginalText</a></td><td><p>Restores the text captured when focus was gained.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_EditBox_revalidate">revalidate</a></td><td><p>Rechecks the current text and refreshes its validation indicator.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Gui_EditBox_selectAll">selectAll</a></td><td><p>Selects the whole content.</p>
 </td></tr>
@@ -16940,14 +16965,21 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_activeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.activeCount</span> <a class="api-item-permalink" href="#Gui_Animator_activeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L881">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_activeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.activeCount</span> <a class="api-item-permalink" href="#Gui_Animator_activeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L933">src</a></div>
 <p>Returns the number of groups currently owned by the scheduler.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">activeCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_animateColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateColor</span> <a class="api-item-permalink" href="#Gui_Animator_animateColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L777">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_animateColor" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateColor</span> <a class="api-item-permalink" href="#Gui_Animator_animateColor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L779">src</a></div>
 <p>Starts one color track.</p>
+<p>Use <a href="#Gui_Animator_animateColorBorrowed">Gui.Animator.animateColorBorrowed</a> when a callback writes either endpoint.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateColor</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SCst">Color</span>, update: <span class="SCst"><a href="#Gui_AnimationColorUpdate">AnimationColorUpdate</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Animator_animateColorBorrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateColorBorrowed</span> <a class="api-item-permalink" href="#Gui_Animator_animateColorBorrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L790">src</a></div>
+<p>Starts one color track from explicitly borrowed endpoints.</p>
+<p>The endpoints are stored in the track before callbacks run, and their pointers are not retained. An update or completion callback may therefore write either original endpoint.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateColorBorrowed</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SKwd">const</span> *<span class="SCst">Color</span>, update: <span class="SCst"><a href="#Gui_AnimationColorUpdate">AnimationColorUpdate</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_Animator_animateF32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateF32</span> <a class="api-item-permalink" href="#Gui_Animator_animateF32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L769">src</a></div>
@@ -16955,38 +16987,59 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateF32</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="STpe">f32</span>, update: <span class="SCst"><a href="#Gui_AnimationF32Update">AnimationF32Update</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_animateLayoutHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateLayoutHeight</span> <a class="api-item-permalink" href="#Gui_Animator_animateLayoutHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L1004">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_animateLayoutHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateLayoutHeight</span> <a class="api-item-permalink" href="#Gui_Animator_animateLayoutHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L1056">src</a></div>
 <p>Animates one layout-managed window to a new preferred height.</p>
 <p>The parent lays the window out again on every frame of the track. When the track ends, the reached height becomes the <a href="#Gui_Wnd_preferredSize">Gui.Wnd.preferredSize</a> height of the window, so a cancelled track keeps the height it had reached.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateLayoutHeight</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, height: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_animatePoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animatePoint</span> <a class="api-item-permalink" href="#Gui_Animator_animatePoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L785">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_animatePoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animatePoint</span> <a class="api-item-permalink" href="#Gui_Animator_animatePoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L800">src</a></div>
 <p>Starts one point track.</p>
+<p>Use <a href="#Gui_Animator_animatePointBorrowed">Gui.Animator.animatePointBorrowed</a> when a callback writes either endpoint.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animatePoint</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>, update: <span class="SCst"><a href="#Gui_AnimationPointUpdate">AnimationPointUpdate</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_animateRectangle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateRectangle</span> <a class="api-item-permalink" href="#Gui_Animator_animateRectangle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L801">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_animatePointBorrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animatePointBorrowed</span> <a class="api-item-permalink" href="#Gui_Animator_animatePointBorrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L811">src</a></div>
+<p>Starts one point track from explicitly borrowed endpoints.</p>
+<p>The endpoints are stored in the track before callbacks run, and their pointers are not retained. An update or completion callback may therefore write either original endpoint.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animatePointBorrowed</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SKwd">const</span> *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>, update: <span class="SCst"><a href="#Gui_AnimationPointUpdate">AnimationPointUpdate</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Animator_animateRectangle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateRectangle</span> <a class="api-item-permalink" href="#Gui_Animator_animateRectangle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L842">src</a></div>
 <p>Starts one rectangle track.</p>
+<p>Use <a href="#Gui_Animator_animateRectangleBorrowed">Gui.Animator.animateRectangleBorrowed</a> when a callback writes either endpoint.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateRectangle</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, update: <span class="SCst"><a href="#Gui_AnimationRectangleUpdate">AnimationRectangleUpdate</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_animateVector4" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateVector4</span> <a class="api-item-permalink" href="#Gui_Animator_animateVector4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L793">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_animateRectangleBorrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateRectangleBorrowed</span> <a class="api-item-permalink" href="#Gui_Animator_animateRectangleBorrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L853">src</a></div>
+<p>Starts one rectangle track from explicitly borrowed endpoints.</p>
+<p>The endpoints are stored in the track before callbacks run, and their pointers are not retained. An update or completion callback may therefore write either original endpoint.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateRectangleBorrowed</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SKwd">const</span> *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>, update: <span class="SCst"><a href="#Gui_AnimationRectangleUpdate">AnimationRectangleUpdate</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Animator_animateVector4" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateVector4</span> <a class="api-item-permalink" href="#Gui_Animator_animateVector4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L821">src</a></div>
 <p>Starts one four-component vector track.</p>
+<p>Use <a href="#Gui_Animator_animateVector4Borrowed">Gui.Animator.animateVector4Borrowed</a> when a callback writes either endpoint.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateVector4</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector4">Vector4</a></span>, update: <span class="SCst"><a href="#Gui_AnimationVector4Update">AnimationVector4Update</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.cancel</span> <a class="api-item-permalink" href="#Gui_Animator_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L809">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_animateVector4Borrowed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.animateVector4Borrowed</span> <a class="api-item-permalink" href="#Gui_Animator_animateVector4Borrowed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L832">src</a></div>
+<p>Starts one four-component vector track from explicitly borrowed endpoints.</p>
+<p>The endpoints are stored in the track before callbacks run, and their pointers are not retained. An update or completion callback may therefore write either original endpoint.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">animateVector4Borrowed</span>(target: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, channel: <span class="SCst"><a href="#Gui_AnimationChannel">AnimationChannel</a></span>, from, destination: <span class="SKwd">const</span> *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Vector4">Vector4</a></span>, update: <span class="SCst"><a href="#Gui_AnimationVector4Update">AnimationVector4Update</a></span>, options: <span class="SCst"><a href="#Gui_AnimationOptions">AnimationOptions</a></span> = {}, completion: <span class="SCst"><a href="#Gui_AnimationCompletion">AnimationCompletion</a></span>? = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_Animator_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.cancel</span> <a class="api-item-permalink" href="#Gui_Animator_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L861">src</a></div>
 <p>Cancels an active animation and reports <span class="code-inline">Cancelled</span> to unfinished callbacks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cancel</span>(handle: <span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_finishAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.finishAll</span> <a class="api-item-permalink" href="#Gui_Animator_finishAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L852">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_finishAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.finishAll</span> <a class="api-item-permalink" href="#Gui_Animator_finishAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L904">src</a></div>
 <p>Completes every active animation at its requested endpoint.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">finishAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_isActive" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.isActive</span> <a class="api-item-permalink" href="#Gui_Animator_isActive" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L826">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_isActive" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.isActive</span> <a class="api-item-permalink" href="#Gui_Animator_isActive" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L878">src</a></div>
 <p>Reports whether a handle still names an active animation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isActive</span>(handle: <span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Reports whether one target property currently has a scheduled animation.</p>
@@ -16999,7 +17052,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(group: <span class="SItr">#move</span> <span class="SCst"><a href="#Gui_AnimationGroup">AnimationGroup</a></span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_Animator_transitionPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.transitionPage</span> <a class="api-item-permalink" href="#Gui_Animator_transitionPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L948">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_Animator_transitionPage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Animator.transitionPage</span> <a class="api-item-permalink" href="#Gui_Animator_transitionPage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/animation.swg#L1000">src</a></div>
 <p>Replaces one visible page with another using a covered cross-fade and horizontal arrival.</p>
 <p>Logical visibility changes immediately, so hit testing, layout, and keyboard focus follow the final page throughout the decorative transition. The outgoing page fades out under the incoming page until the handoff completes, so the page area is never empty. <span class="code-inline">direction</span> is normally <span class="code-inline">1</span> for forward navigation and <span class="code-inline">-1</span> for backward navigation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transitionPage</span>(outgoing: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>?, incoming: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, direction = <span class="SNum">1</span>'<span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Gui_AnimationHandle">AnimationHandle</a></span></span></div>
@@ -17919,7 +17972,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">deleteSelection</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.isValid</span> <a class="api-item-permalink" href="#Gui_EditBox_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1409">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.isValid</span> <a class="api-item-permalink" href="#Gui_EditBox_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1419">src</a></div>
 <p>Returns whether the current content is valid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -17929,12 +17982,18 @@ busy.<span class="SFct">hide</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">restoreOriginalText</span>()</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Gui_EditBox_revalidate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.revalidate</span> <a class="api-item-permalink" href="#Gui_EditBox_revalidate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1408">src</a></div>
+<p>Rechecks the current text and refreshes its validation indicator.</p>
+<p>Use this when state read by the custom validator changes. The installed validator, text, selection, and focus remain unchanged; no edit or commit notification is sent.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revalidate</span>()-&gt;<span class="SCst"><a href="#Gui_EditBoxCheckResult">EditBoxCheckResult</a></span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_EditBox_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.selectAll</span> <a class="api-item-permalink" href="#Gui_EditBox_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1222">src</a></div>
 <p>Selects the whole content.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_EditBox_selection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.selection</span> <a class="api-item-permalink" href="#Gui_EditBox_selection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1406">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_EditBox_selection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">EditBox.selection</span> <a class="api-item-permalink" href="#Gui_EditBox_selection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/widgets/editbox.swg#L1416">src</a></div>
 <p>Returns the selected byte range; <span class="code-inline">end</span> is the caret and may precede <span class="code-inline">start</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">selection</span>()-&gt;{ start: <span class="STpe">u64</span>, end: <span class="STpe">u64</span> }</span></div>
 </section>
@@ -26351,11 +26410,15 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.AnimationHandle.isValid|Gui_AnimationHandle_isValid|Reports whether this value names an animation that was started.",
 "f|Gui.Animator.activeCount|Gui_Animator_activeCount|Returns the number of groups currently owned by the scheduler.",
 "f|Gui.Animator.animateColor|Gui_Animator_animateColor|Starts one color track.",
+"f|Gui.Animator.animateColorBorrowed|Gui_Animator_animateColorBorrowed|Starts one color track from explicitly borrowed endpoints.",
 "f|Gui.Animator.animateF32|Gui_Animator_animateF32|Starts one scalar track.",
 "f|Gui.Animator.animateLayoutHeight|Gui_Animator_animateLayoutHeight|Animates one layout-managed window to a new preferred height.",
 "f|Gui.Animator.animatePoint|Gui_Animator_animatePoint|Starts one point track.",
+"f|Gui.Animator.animatePointBorrowed|Gui_Animator_animatePointBorrowed|Starts one point track from explicitly borrowed endpoints.",
 "f|Gui.Animator.animateRectangle|Gui_Animator_animateRectangle|Starts one rectangle track.",
+"f|Gui.Animator.animateRectangleBorrowed|Gui_Animator_animateRectangleBorrowed|Starts one rectangle track from explicitly borrowed endpoints.",
 "f|Gui.Animator.animateVector4|Gui_Animator_animateVector4|Starts one four-component vector track.",
+"f|Gui.Animator.animateVector4Borrowed|Gui_Animator_animateVector4Borrowed|Starts one four-component vector track from explicitly borrowed endpoints.",
 "f|Gui.Animator.cancel|Gui_Animator_cancel|Cancels an active animation and reports Cancelled to unfinished callbacks.",
 "f|Gui.Animator.finishAll|Gui_Animator_finishAll|Completes every active animation at its requested endpoint.",
 "f|Gui.Animator.isActive|Gui_Animator_isActive|Reports whether a handle still names an active animation.",
@@ -27020,6 +27083,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "f|Gui.EditBox.deleteSelection|Gui_EditBox_deleteSelection|Deletes the selected text.",
 "f|Gui.EditBox.isValid|Gui_EditBox_isValid|Returns whether the current content is valid.",
 "f|Gui.EditBox.restoreOriginalText|Gui_EditBox_restoreOriginalText|Restores the text captured when focus was gained.",
+"f|Gui.EditBox.revalidate|Gui_EditBox_revalidate|Rechecks the current text and refreshes its validation indicator.",
 "f|Gui.EditBox.selectAll|Gui_EditBox_selectAll|Selects the whole content.",
 "f|Gui.EditBox.selection|Gui_EditBox_selection|Returns the selected byte range; end is the caret and may precede start.",
 "f|Gui.EditBox.setFloatingPointRange|Gui_EditBox_setFloatingPointRange|Accepts 64-bit floating-point values from min to max inclusive.",

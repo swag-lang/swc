@@ -1398,8 +1398,18 @@ impl EditBox
     mtd setValidator(validator: (func||(*EditBox)->EditBoxCheckResult)?)
     {
         .validator = validator
-        discard .checkContent()
+        discard .revalidate()
+    }
+
+    // Rechecks the current text and refreshes its validation indicator.
+    //
+    // Use this when state read by the custom validator changes. The installed validator, text,
+    // selection, and focus remain unchanged; no edit or commit notification is sent.
+    mtd revalidate()->EditBoxCheckResult
+    {
+        let result = .checkContent()
         .invalidate()
+        return result
     }
 
     // Returns the selected byte range; `end` is the caret and may precede `start`.

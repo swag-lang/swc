@@ -633,3 +633,30 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
     assertEditContent(edit, "6", .Valid)
     assertEditContent(edit, "words + 42tail", .Valid)
 }
+
+// A validator can depend on external state without replacing the callback or editing the text.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 60)
+    defer host.shutdown()
+    let edit  = EditBox.create(&host.root, "query", {20, 20, 200, 26})
+    var valid = true
+    var calls: u32
+    edit.setValidator(func|&valid, &calls|(_)->EditBoxCheckResult
+    {
+        calls += 1
+        return valid ? .Valid : .InvalidVisible
+    })
+    Swag.assert(calls == 1 and edit.isValid())
+    edit.setSelection(1, 3)
+    edit.setFocus()
+
+    valid = false
+    Swag.assert(edit.revalidate() == .InvalidVisible and not edit.isValid())
+    valid = true
+    Swag.assert(edit.revalidate() == .Valid and edit.isValid())
+    Swag.assert(calls == 3 and edit.text() == "query" and edit.hasFocus())
+    let selection = edit.selection()
+    Swag.assert(selection.start == 1 and selection.end == 3)
+}

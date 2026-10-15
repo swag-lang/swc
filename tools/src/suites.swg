@@ -764,8 +764,12 @@ private func verifyWorkspaceDebugVariant(context: *Context, options: *Options, w
 // that compiler still runs: the mapped bytes move aside and the fresh ones take their path.
 private func verifyWorkspaceMappedDependencyRepublish(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
 {
-    let marker = Path.combine(workspace, ".output", "mapped_holder.marker")
+    let output  = Path.combine(workspace, ".output")
+    let request = Path.combine(output.toString(), "mapped_holder.hold")
+    let marker  = Path.combine(output.toString(), "mapped_holder.mapped")
     discard catch File.delete(marker.toString())
+    try Directory.create(output.toString(), recurse: true)
+    try File.writeAllText(request.toString(), "hold")
 
     var holder = workspaceModuleCommand("build", workspace, "mapped_holder", buildCfg)
     holder.add(["--rebuild"])
@@ -781,6 +785,7 @@ private func verifyWorkspaceMappedDependencyRepublish(context: *Context, options
 
     if not File.exists(marker.toString())
     {
+        discard catch File.delete(request.toString())
         discard catch holderProcess.waitForExit()
         Console.println("The holder compiler did not map its sibling library in time.")
         return 1
@@ -790,6 +795,7 @@ private func verifyWorkspaceMappedDependencyRepublish(context: *Context, options
     republish.add(["--rebuild"])
     options.appendExtra(&republish)
     let republishCode = try context.runCompiler(republish)
+    discard catch File.delete(request.toString())
     discard catch File.delete(marker.toString())
     let holderCode = try holderProcess.waitForExit()
     if republishCode != 0

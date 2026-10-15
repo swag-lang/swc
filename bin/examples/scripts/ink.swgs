@@ -138,8 +138,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             }
             else
             {
-                for other in drops do
-                    other.marble(drops.back()[])
+                // The last drop presses on the others, as a new one does in addInk, and not on itself.
+                let last = drops.back()
+                for other in drops where other != last do
+                    other.marble(last[])
             }
         }
         else

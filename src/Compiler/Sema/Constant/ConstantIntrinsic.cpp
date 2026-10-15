@@ -99,7 +99,7 @@ namespace
         return Result::Continue;
     }
 
-    // 'Swag.vecsplat' of a constant scalar is the one packed operation with a compile-time
+    // 'Swag.vecSplat' of a constant scalar is the one packed operation with a compile-time
     // answer: the lane bytes simply repeat. Folding it is what lets a vector constant be
     // declared, and the result is the same byte payload an aggregate literal produces.
     Result foldVectorSplat(Sema& sema, AstNodeRef callRef, std::span<AstNodeRef> args)

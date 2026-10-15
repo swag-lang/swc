@@ -269,7 +269,7 @@ SWC_MICRO_INSTR_DEF(
 // A load the optimizer leaves where it is: never hoisted, merged with another read,
 // dropped, or reordered with a memory access. It carries the memory-writer flag for
 // exactly that reason - every pass that steps around a store steps around it too. What
-// 'Swag.atomget' lowers to: an aligned load is already an atomic acquire on x86-64.
+// 'Swag.atomicLoad' lowers to: an aligned load is already an atomic acquire on x86-64.
 SWC_MICRO_INSTR_DEF(
     LoadVolatileRegMem,
     MicroInstrDef{
@@ -295,7 +295,7 @@ SWC_MICRO_INSTR_DEF(
         .opBitsMask            = (1 << 2),
     })
 // A store the optimizer leaves where it is: never dropped as dead, merged with another write,
-// forwarded to a later read, or reordered with a memory access. What 'Swag.atomset' lowers to:
+// forwarded to a later read, or reordered with a memory access. What 'Swag.atomicStore' lowers to:
 // an aligned store is already an atomic release on x86-64.
 SWC_MICRO_INSTR_DEF(
     StoreVolatileMemReg,

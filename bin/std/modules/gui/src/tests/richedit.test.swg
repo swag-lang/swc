@@ -29,7 +29,7 @@ using Swag, Core
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
     var lexer: RichEditLexerSwag
     ed.setLexer(&lexer)
-    ed.setText("Swag.assert(value)\nSwag.vecsplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]")
+    ed.setText("Swag.assert(value)\nSwag.vecSplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]")
     ed.lexAll()
 
     Swag.assert(ed.runeAt({0, 0}).style == RichEditLexerSwag.Style.Namespace)

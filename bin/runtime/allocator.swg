@@ -340,7 +340,7 @@ private func allocatorThreadHeapFlsId()->u64
     let candidate = __hostThreadStorageAlloc(&retireAllocatorThreadHeap)
     Swag.assert(candidate != 0)
 
-    let previous = Swag.atomcmpxchg(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
+    let previous = Swag.atomicCompareExchange(&g_AllocatorThreadHeapFlsId, AllocatorInvalidFlsId, candidate)
     if previous != AllocatorInvalidFlsId
     {
         __hostThreadStorageFree(candidate)
@@ -362,7 +362,7 @@ private func allocatorThreadHeapTlsId()->u64
     if candidate == AllocatorInvalidTlsId do
         return AllocatorInvalidTlsId
 
-    let previous = Swag.atomcmpxchg(&g_AllocatorThreadHeapTlsId, AllocatorInvalidTlsId, candidate)
+    let previous = Swag.atomicCompareExchange(&g_AllocatorThreadHeapTlsId, AllocatorInvalidTlsId, candidate)
     if previous != AllocatorInvalidTlsId
     {
         __hostTlsFree(candidate)
@@ -410,13 +410,13 @@ private func currentThreadId()->u64 => __hostCurrentThreadId()
 // a heap can retire at any moment while a page's metadata lives as long as its segment.
 func allocatorQueueRevisit(page: *AllocatorPage)
 {
-    if Swag.atomcmpxchg(&page.revisitQueued, 0, 1) != 0 do
+    if Swag.atomicCompareExchange(&page.revisitQueued, 0, 1) != 0 do
         return
 
     let allocator = cast(*Allocator?, allocatorSegmentOf(page).allocator)
     if not allocator
     {
-        discard Swag.atomxchg(&page.revisitQueued, 0)
+        discard Swag.atomicExchange(&page.revisitQueued, 0)
         return
     }
 
@@ -425,7 +425,7 @@ func allocatorQueueRevisit(page: *AllocatorPage)
     while true
     {
         page.revisitNext = head
-        let seen = Swag.atomcmpxchg(stack, head, cast(u64, page))
+        let seen = Swag.atomicCompareExchange(stack, head, cast(u64, page))
         if seen == head do
             return
         head = seen
@@ -667,7 +667,7 @@ impl Allocator
     // still mapped.
     mtd retireThreadHeap(heap: *AllocatorThreadHeap)
     {
-        if Swag.atomxchg(&heap.retired, 1) != 0 do
+        if Swag.atomicExchange(&heap.retired, 1) != 0 do
             return
 
         .purgeFront(heap, Swag.U64.Max)
@@ -874,10 +874,10 @@ impl Allocator
     mtd parkFullPage(heap: *AllocatorThreadHeap, page: *AllocatorPage)->bool
     {
         .unlinkPage(heap, page)
-        discard Swag.atomxchg(&page.inFull, 1)
+        discard Swag.atomicExchange(&page.inFull, 1)
         if atomicGet(&page.remoteFree) != 0
         {
-            discard Swag.atomxchg(&page.inFull, 0)
+            discard Swag.atomicExchange(&page.inFull, 0)
             .linkPageFront(heap, page)
             return false
         }
@@ -909,12 +909,12 @@ impl Allocator
         if atomicGet(&.revisitPages) == 0 do
             return
 
-        var list = Swag.atomxchg(&.revisitPages, 0)
+        var list = Swag.atomicExchange(&.revisitPages, 0)
         while list
         {
             let page = cast(*AllocatorPage, list)
             list = page.revisitNext
-            discard Swag.atomxchg(&page.revisitQueued, 0)
+            discard Swag.atomicExchange(&page.revisitQueued, 0)
             if page.ownerHeap == heap
             {
                 if page.inFull do
@@ -937,7 +937,7 @@ impl Allocator
         if delay == 0
         {
             delay = Swag.max(__hostMonotonicFrequency() * AllocatorPurgeDelayMs / 1000, 1)
-            discard Swag.atomxchg(&g_AllocatorPurgeDelayTicks, delay)
+            discard Swag.atomicExchange(&g_AllocatorPurgeDelayTicks, delay)
         }
 
         // An armed deadline is the common case while idle memory exists; only arming it reads the
@@ -950,12 +950,12 @@ impl Allocator
             if allocatorIdleBytes() != 0 or
                atomicGet(&.cachedBlockCount) != 0 or
                (own and own.frontCount != 0) do
-                discard Swag.atomcmpxchg(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
+                discard Swag.atomicCompareExchange(&.purgeDeadline, 0, __hostMonotonicTicks() + delay)
             return
         }
 
         let now = __hostMonotonicTicks()
-        if now < deadline or Swag.atomcmpxchg(&.purgeDeadline, deadline, 0) != deadline do
+        if now < deadline or Swag.atomicCompareExchange(&.purgeDeadline, deadline, 0) != deadline do
             return
 
         // The front belongs to this thread alone, so only its own purge check can empty it.
@@ -1584,7 +1584,7 @@ impl Allocator
             tracking.loc        = request.callerLoc
             tracking.hint       = request.hint
             tracking.stackCount = .captureAllocStack ? __captureStack(2, Swag.makeSlice(&tracking.stack[0], tracking.stack.count)) : 0
-            tracking.allocId    = Swag.atomadd(&.nextId, 1) + 1
+            tracking.allocId    = Swag.atomicAdd(&.nextId, 1) + 1
             if tracking.allocId == .breakOnAllocId do
                 Swag.assert(false)
         }
@@ -2112,7 +2112,7 @@ impl Allocator
                             if cls.spare == scan do
                                 cls.spare = null
                             .unlinkPage(heap, scan)
-                            discard Swag.atomxchg(&scan.inFull, 0)
+                            discard Swag.atomicExchange(&scan.inFull, 0)
                             allocatorSegmentOf(scan).releasePage(scan)
                         }
 
@@ -2211,12 +2211,12 @@ impl Allocator
             .osFree(other, #sizeof(AllocatorThreadHeap))
         }
 
-        var revisit = Swag.atomxchg(&.revisitPages, 0)
+        var revisit = Swag.atomicExchange(&.revisitPages, 0)
         while revisit
         {
             let page = cast(*AllocatorPage, revisit)
             revisit = page.revisitNext
-            discard Swag.atomxchg(&page.revisitQueued, 0)
+            discard Swag.atomicExchange(&page.revisitQueued, 0)
         }
 
         var segment: *AllocatorSegment? = .firstSegment

@@ -19,7 +19,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   operations. Scalar code already has the rounding contract: under the `fpMathFma` build setting
   (on in `release`), a post-RA peephole contracts a scalar product accumulation into
   `vfmadd231ss`/`sd` when every lane of the product is otherwise dead, while an explicit
-  `Swag.muladd` keeps its separate multiply and add rounding (`30feb4eb9`). Packed product
+  `Swag.mulAdd` keeps its separate multiply and add rounding (`30feb4eb9`). Packed product
   accumulations and vector `mulAdd` still emit a multiply followed by an add.
 - Evidence: a constant lane read of a register-resident vector never touches the frame. A 32- or
   64-bit lane is a `movd`/`movq`, through one `pshufd` past lane zero; an 8- or 16-bit lane slides
@@ -153,7 +153,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.009 — AES round and key instructions have no typed surface
 
-- Evidence: `Swag.vecclmul` and the four `Math.Simd.clmul...` wrappers already expose
+- Evidence: `Swag.vecCarrylessMul` and the four `Math.Simd.clmul...` wrappers already expose
   carry-less multiplication; `Hash.Crc32.foldClmul` consumes them and the x64 encoder has a byte
   test. AES round/key instructions have no equivalent typed API.
 - Intent: expose AES round/key operations with explicit availability and known-answer tests.

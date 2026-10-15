@@ -3,17 +3,17 @@
 // A constant-folded overloaded intrinsic call inside an auto-inlined body keeps its overload.
 // Cloning the body into the caller pinned the callee on the first overload of the set — the
 // one the intrinsic identifier stores — and a call folded to a constant had no selected
-// function of its own to override that pin, so `Swag.vecsplat(1'u32)` came back as sixteen bytes
+// function of its own to override that pin, so `Swag.vecSplat(1'u32)` came back as sixteen bytes
 // and `Swag.min(1'u32, ...)` lost its width. Only the release build inlines these automatically.
 
-func addOneU32(v: #simd [4] u32)->#simd [4] u32 => v + Swag.vecsplat(1'u32)
+func addOneU32(v: #simd [4] u32)->#simd [4] u32 => v + Swag.vecSplat(1'u32)
 
-func addTwoS16(v: #simd [8] s16)->#simd [8] s16 => v + Swag.vecsplat(2's16)
+func addTwoS16(v: #simd [8] s16)->#simd [8] s16 => v + Swag.vecSplat(2's16)
 
 func addLocalConst(v: #simd [4] u32)->#simd [4] u32
 {
     let one: u32 = 1
-    return v + Swag.vecsplat(one)
+    return v + Swag.vecSplat(one)
 }
 
 func clampedMin(x: u32)->u32 => Swag.min(x, Swag.max(300'u32, 200))

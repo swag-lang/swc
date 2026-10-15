@@ -290,7 +290,7 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
         return candidate
 
     let slot     = cast(*u64, view)
-    let previous = Swag.atomcmpxchg(slot, 0, cast(u64, candidate))
+    let previous = Swag.atomicCompareExchange(slot, 0, cast(u64, candidate))
     return previous == 0 ? candidate : cast(*void, previous)
 }
 

@@ -12,8 +12,8 @@ func sumRows(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
     for row in rows
     {
         let bytes = cast(const [*] #simd [16] u8, (src + row * stride))[0]
-        let lo    = Swag.vecwidenlo(bytes)
-        let hi    = Swag.vecwidenhi(bytes)
+        let lo    = Swag.vecWidenLo(bytes)
+        let hi    = Swag.vecWidenHi(bytes)
         cast([*] #simd [8] u16, (dst + row * 8))[0] = lo + hi
     }
 }
@@ -22,15 +22,15 @@ func sumRows(dst: [*] u16, src: const [*] u8, stride: u64, rows: u64)
 func widenWords(dst: [*] u32, src: const [*] u16)
 {
     let words = cast(const [*] #simd [8] u16, src)[0]
-    cast([*] #simd [4] u32, dst)[0]       = Swag.vecwidenlo(words)
-    cast([*] #simd [4] u32, (dst + 4))[0] = Swag.vecwidenhi(words)
+    cast([*] #simd [4] u32, dst)[0]       = Swag.vecWidenLo(words)
+    cast([*] #simd [4] u32, (dst + 4))[0] = Swag.vecWidenHi(words)
 }
 
 #[Swag.Optimize(true)]
 func widenSigned(dst: [*] s16, src: const [*] s8)
 {
     let bytes = cast(const [*] #simd [16] s8, src)[0]
-    cast([*] #simd [8] s16, dst)[0] = Swag.vecwidenlo(bytes)
+    cast([*] #simd [8] s16, dst)[0] = Swag.vecWidenLo(bytes)
 }
 
 #[Swag.Optimize(true)]
@@ -41,7 +41,7 @@ func gatherRows(dst: [*] u16, src: const [*] u8, offsets: const [*] u64, rows: u
     for row in rows
     {
         let bytes = cast(const [*] #simd [16] u8, (src + offsets[row]))[0]
-        cast([*] #simd [8] u16, (dst + row * 8))[0] = Swag.vecwidenlo(bytes) + Swag.vecwidenhi(bytes)
+        cast([*] #simd [8] u16, (dst + row * 8))[0] = Swag.vecWidenLo(bytes) + Swag.vecWidenHi(bytes)
     }
 }
 
@@ -52,7 +52,7 @@ func widenAfterStore(dst: [*] u16, buffer: [*] u8)
     // were loaded: the widening must see them as they were loaded.
     let bytes = cast(const [*] #simd [16] u8, buffer)[0]
     buffer[0] = 200
-    cast([*] #simd [8] u16, dst)[0] = Swag.vecwidenlo(bytes)
+    cast([*] #simd [8] u16, dst)[0] = Swag.vecWidenLo(bytes)
 }
 
 #[Swag.Optimize(true)]
@@ -65,8 +65,8 @@ func maskRows(dst: [*] u16, pix: const [*] u8, stride: u64, a, b: u16)
     let p0   = cast(const [*] #simd [16] u8, (pix - stride))[0]
     let q0   = cast(const [*] #simd [16] u8, pix)[0]
     let mask = cast(#simd [8] u16, [a, a, a, a, b, b, b, b])
-    let lo   = (Swag.vecwidenlo(p0) + Swag.vecwidenlo(q0)) & mask
-    let hi   = (Swag.vecwidenhi(p0) + Swag.vecwidenhi(q0)) & mask
+    let lo   = (Swag.vecWidenLo(p0) + Swag.vecWidenLo(q0)) & mask
+    let hi   = (Swag.vecWidenHi(p0) + Swag.vecWidenHi(q0)) & mask
     cast([*] #simd [8] u16, dst)[0]       = lo
     cast([*] #simd [8] u16, (dst + 8))[0] = hi
 }
@@ -81,7 +81,7 @@ func widenLocalPastStore(dst: [*] u16, value: u8)
         bytes[i] = cast(u8, i)
     let loaded = cast(const [*] #simd [16] u8, &bytes[0])[0]
     bytes[0] = value
-    cast([*] #simd [8] u16, dst)[0] = Swag.vecwidenlo(loaded) + Swag.vecwidenhi(loaded) + cast(u16, bytes[0])
+    cast([*] #simd [8] u16, dst)[0] = Swag.vecWidenLo(loaded) + Swag.vecWidenHi(loaded) + cast(u16, bytes[0])
 }
 
 #test

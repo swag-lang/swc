@@ -15,8 +15,8 @@ struct PageCommitShared
 func pageCommitWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*PageCommitShared, thread.userParam!)
-    discard Swag.atomadd(&shared.ready, 1)
-    while Swag.atomget(&shared.start) == 0 do
+    discard Swag.atomicAdd(&shared.ready, 1)
+    while Swag.atomicLoad(&shared.start) == 0 do
         Threading.Thread.yield()
 
     for round in 512
@@ -41,7 +41,7 @@ func pageCommitWorker(thread: const *Threading.Thread)
         {
             let bytes = cast([*] u8, addresses[i])
             if bytes[0] != cast(u8, i) or bytes[size - 1] != cast(u8, (round & 255)) do
-                discard Swag.atomadd(&shared.errors, 1)
+                discard Swag.atomicAdd(&shared.errors, 1)
             var request: AllocatorRequest
             request.address = cast(*void, addresses[i])
             shared.allocator.free(&request)
@@ -50,7 +50,7 @@ func pageCommitWorker(thread: const *Threading.Thread)
         Swag.releaseAllocatorThreadCache()
     }
 
-    discard Swag.atomadd(&shared.done, 1)
+    discard Swag.atomicAdd(&shared.done, 1)
 }
 
 // Concurrent trim and statistics must not see a partially initialized page or release a segment being committed.
@@ -67,11 +67,11 @@ func pageCommitWorker(thread: const *Threading.Thread)
         discard expect thread.start()
     }
 
-    while Swag.atomget(&shared.ready) != threads.count do
+    while Swag.atomicLoad(&shared.ready) != threads.count do
         Threading.Thread.yield()
-    discard Swag.atomxchg(&shared.start, 1)
+    discard Swag.atomicExchange(&shared.start, 1)
 
-    while Swag.atomget(&shared.done) != threads.count
+    while Swag.atomicLoad(&shared.done) != threads.count
     {
         allocator.trim()
         let snapshot = allocator.stats()

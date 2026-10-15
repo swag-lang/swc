@@ -35,46 +35,46 @@ exchange.
 {
     var counter = 10's32
 
-    let beforeAdd = Swag.atomadd(&counter, 5)
+    let beforeAdd = Swag.atomicAdd(&counter, 5)
     Swag.assert(beforeAdd == 10 and counter == 15)
 
-    let beforeExchange = Swag.atomxchg(&counter, 20)
+    let beforeExchange = Swag.atomicExchange(&counter, 20)
     Swag.assert(beforeExchange == 15 and counter == 20)
 
-    let beforeCompareExchange = Swag.atomcmpxchg(&counter, 20, 30)
+    let beforeCompareExchange = Swag.atomicCompareExchange(&counter, 20, 30)
     Swag.assert(beforeCompareExchange == 20 and counter == 30)
 }
 
 /**
 # Atomic Read
 
-'Swag.atomget' reads an integer through a pointer as one atomic access. It is a plain
+'Swag.atomicLoad' reads an integer through a pointer as one atomic access. It is a plain
 load on x86-64, so it takes no bus lock, and the compiler never hoists, merges, or drops
 it: a loop polling a value that another thread publishes reads memory on every iteration.
 */
 #test
 {
     var flag = 0'u32
-    Swag.assert(Swag.atomget(&flag) == 0)
+    Swag.assert(Swag.atomicLoad(&flag) == 0)
 
-    discard Swag.atomxchg(&flag, 1)
-    Swag.assert(Swag.atomget(&flag) == 1)
+    discard Swag.atomicExchange(&flag, 1)
+    Swag.assert(Swag.atomicLoad(&flag) == 1)
 }
 
 /**
 # Atomic Write
 
-'Swag.atomset' writes an integer through a pointer as one atomic access, and returns
-nothing. It is a plain store on x86-64, where 'Swag.atomxchg' takes a bus lock, and the
+'Swag.atomicStore' writes an integer through a pointer as one atomic access, and returns
+nothing. It is a plain store on x86-64, where 'Swag.atomicExchange' takes a bus lock, and the
 compiler never drops it, merges it, or moves another access across it. What a thread wrote
-before it is visible to a thread whose 'Swag.atomget' reads the value. The memory model
+before it is visible to a thread whose 'Swag.atomicLoad' reads the value. The memory model
 states what that write does not order.
 */
 #test
 {
     var flag = 0'u32
-    Swag.atomset(&flag, 1)
-    Swag.assert(Swag.atomget(&flag) == 1)
+    Swag.atomicStore(&flag, 1)
+    Swag.assert(Swag.atomicLoad(&flag) == 1)
 }
 
 /**

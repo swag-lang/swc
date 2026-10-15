@@ -34,19 +34,19 @@ operands are constant, and '#bit' reshapes any 16-byte vector or array into
 another.
 
 Filling every lane with the same value is a broadcast, not a conversion, so it
-has its own operation: 'Swag.vecsplat' takes a scalar and the lane type it carries
+has its own operation: 'Swag.vecSplat' takes a scalar and the lane type it carries
 names the vector, so a 'u8' fills sixteen lanes and an 'f64' fills two. It folds
 like the other forms, which is what lets a vector be declared 'const'.
 */
 #test
 {
     let lanes: #simd [4] s32 = [1, 2, 3, 4]
-    let fours = Swag.vecsplat(4's32)
+    let fours = Swag.vecSplat(4's32)
     let sum   = cast([4] s32, (lanes + fours))
     Swag.assert(sum[0] == 5 and sum[3] == 8)
 
     // A broadcast of a constant is a constant.
-    const Ones     = Swag.vecsplat(1'u8)
+    const Ones     = Swag.vecSplat(1'u8)
     const OneLanes = cast([16] u8, Ones)
     #assert(OneLanes[0] == 1 and OneLanes[15] == 1)
 
@@ -96,8 +96,8 @@ for every vector shape.
     Swag.assert(products[0] == 0xFFFF_FFFF_FFFF_FFFE and products[1] == 0x2_0000_0001)
 
     // Lanes wrap by definition.
-    let big  = Swag.vecsplat(2_147_483_647's32)
-    let wrap = cast([4] s32, (big + Swag.vecsplat(1's32)))
+    let big  = Swag.vecSplat(2_147_483_647's32)
+    let wrap = cast([4] s32, (big + Swag.vecSplat(1's32)))
     Swag.assert(wrap[0] == -2_147_483_648)
 }
 
@@ -105,9 +105,9 @@ for every vector shape.
 # Comparisons And Masks
 
 An element-wise comparison produces a mask vector, not a bool: unsigned lanes
-of the same geometry, all-ones where the compare holds. 'Swag.vecselect' blends
-two vectors through a mask, 'Swag.vecmask' gathers the lane sign bits into an
-integer, and 'Swag.vecany'/'Swag.vecall' reduce a mask to a bool.
+of the same geometry, all-ones where the compare holds. 'Swag.vecSelect' blends
+two vectors through a mask, 'Swag.vecMask' gathers the lane sign bits into an
+integer, and 'Swag.vecAny'/'Swag.vecAll' reduce a mask to a bool.
 */
 #test
 {
@@ -118,11 +118,11 @@ integer, and 'Swag.vecany'/'Swag.vecall' reduce a mask to a bool.
     let m    = cast([4] u32, mask)
     Swag.assert(m[0] == 0 and m[1] == 0xFFFF_FFFF)
 
-    let clamped = cast([4] s32, Swag.vecselect(mask, b, a))
+    let clamped = cast([4] s32, Swag.vecSelect(mask, b, a))
     Swag.assert(clamped[0] == 1 and clamped[1] == 20 and clamped[2] == 3 and clamped[3] == 40)
 
-    Swag.assert(Swag.vecmask(mask) == 0b1010)
-    Swag.assert(Swag.vecany(mask) and not Swag.vecall(mask))
+    Swag.assert(Swag.vecMask(mask) == 0b1010)
+    Swag.assert(Swag.vecAny(mask) and not Swag.vecAll(mask))
 }
 
 /**
@@ -145,20 +145,20 @@ time like an array index.
 # Packed Intrinsics
 
 The 'Swag.vec' intrinsic family carries the operations the operators cannot
-express: 'Swag.vecsplat' broadcasts a scalar
-into every lane, 'Swag.vecsatadd' and 'Swag.vecsatsub' clamp instead of wrapping,
-'Swag.vecpackus' and 'Swag.vecpackss' narrow two vectors with saturation,
-'Swag.vecinterleavelo' and 'Swag.vecinterleavehi' alternate lanes from the corresponding
+express: 'Swag.vecSplat' broadcasts a scalar
+into every lane, 'Swag.vecSatAdd' and 'Swag.vecSatSub' clamp instead of wrapping,
+'Swag.vecNarrowSatU' and 'Swag.vecNarrowSatS' narrow two vectors with saturation,
+'Swag.vecInterleaveLo' and 'Swag.vecInterleaveHi' alternate lanes from the corresponding
 input halves,
-'Swag.vecwidenlo' and 'Swag.vecwidenhi' extend half the lanes to double width,
-'Swag.vecavgr' is the rounding average, 'Swag.vecmadd' multiplies 16-bit pairs into
-32-bit sums and 'Swag.vecmaddubs' does the same for unsigned and signed bytes with
-a saturating sum, 'Swag.vecsad' sums the absolute byte differences of each half,
-'Swag.vectruncs32' converts four 'f32' lanes to 's32' by truncating
-toward zero, 'Swag.vecgather' loads four 's32' values through four 'u32' indices,
-and 'Swag.vecperm' permutes bytes through a dynamic table. NaN and
+'Swag.vecWidenLo' and 'Swag.vecWidenHi' extend half the lanes to double width,
+'Swag.vecAvgRound' is the rounding average, 'Swag.vecMulAddPairs' multiplies 16-bit pairs into
+32-bit sums and 'Swag.vecMulAddPairsSat' does the same for unsigned and signed bytes with
+a saturating sum, 'Swag.vecSumAbsDiff' sums the absolute byte differences of each half,
+'Swag.vecTruncToS32' converts four 'f32' lanes to 's32' by truncating
+toward zero, 'Swag.vecGather' loads four 's32' values through four 'u32' indices,
+and 'Swag.vecPermute' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. 'Swag.min',
-'Swag.max', 'Swag.abs', 'Swag.sqrt', 'Swag.muladd', 'Swag.floor', 'Swag.ceil' and 'Swag.trunc' also accept
+'Swag.max', 'Swag.abs', 'Swag.sqrt', 'Swag.mulAdd', 'Swag.floor', 'Swag.ceil' and 'Swag.trunc' also accept
 vectors and compute per lane. Integer 'Swag.abs' wraps the minimum lane value back
 to itself, like unary minus, while a float lane clears its sign bit, so a NaN
 stays that NaN and a negative zero becomes a positive one.
@@ -167,36 +167,36 @@ designate a readable table element and be at most 's32.Max'.
 */
 #test
 {
-    let a = Swag.vecsplat(200'u8)
-    let b = Swag.vecsplat(100'u8)
-    let r = cast([16] u8, Swag.vecsatadd(a, b))
+    let a = Swag.vecSplat(200'u8)
+    let b = Swag.vecSplat(100'u8)
+    let r = cast([16] u8, Swag.vecSatAdd(a, b))
     Swag.assert(r[0] == 255)
 
     // The classic codec step: 16-bit intermediates narrowed back to bytes,
     // the clamp riding inside the pack.
     let sums = cast(#simd [8] s16, [-20, 0, 128, 300, 255, 256, 64, 1])
-    let px   = cast([16] u8, Swag.vecpackus(sums, sums))
+    let px   = cast([16] u8, Swag.vecNarrowSatU(sums, sums))
     Swag.assert(px[0] == 0 and px[2] == 128 and px[3] == 255 and px[4] == 255)
 
-    let wide = cast([8] u16, Swag.vecwidenlo(a))
+    let wide = cast([8] u16, Swag.vecWidenLo(a))
     Swag.assert(wide[0] == 200)
 
     let indices = cast(#simd [16] u8, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
-    let zipped  = cast([16] u8, Swag.vecinterleavelo(indices, b))
+    let zipped  = cast([16] u8, Swag.vecInterleaveLo(indices, b))
     Swag.assert(zipped[0] == 0 and zipped[1] == 100 and zipped[14] == 7 and zipped[15] == 100)
 
-    let avg = cast([16] u8, Swag.vecavgr(a, b))
+    let avg = cast([16] u8, Swag.vecAvgRound(a, b))
     Swag.assert(avg[0] == 150)
 
     let quads = cast(#simd [4] s32, [1, 2, 3, 4])
-    Swag.assert(Swag.vecreduceadd(quads) == 10)
+    Swag.assert(Swag.vecReduceAdd(quads) == 10)
 
     let samples = cast(#simd [4] f32, [1.9, -1.9, 32767.9, -32768.9])
-    let ints    = cast([4] s32, Swag.vectruncs32(samples))
+    let ints    = cast([4] s32, Swag.vecTruncToS32(samples))
     Swag.assert(ints[0] == 1 and ints[1] == -1 and ints[2] == 32767 and ints[3] == -32768)
 
     var lookup: [5] s32 = [10, 20, 30, 40, 50]
-    let found = cast([4] s32, Swag.vecgather(lookup.buffer, cast(#simd [4] u32, [4, 0, 3, 1])))
+    let found = cast([4] s32, Swag.vecGather(lookup.buffer, cast(#simd [4] u32, [4, 0, 3, 1])))
     Swag.assert(found[0] == 50 and found[1] == 10 and found[2] == 40 and found[3] == 20)
 }
 
@@ -204,7 +204,7 @@ designate a readable table element and be at most 's32.Max'.
 # The Other Half Of A Product
 
 '*' answers the low half of a lane product, the bits that fit the lane.
-'Swag.vecmulhi' answers the ones above it, read as the lane type is signed or not.
+'Swag.vecMulHigh' answers the ones above it, read as the lane type is signed or not.
 Together they are the whole product: interleaving them puts each double-width
 product back in the lane it belongs to, which is what
 'Core.Math.Simd.mulWidenLow' and 'mulWidenHigh' do.
@@ -220,24 +220,24 @@ up the four partial products of their halves.
     let y = cast(#simd [8] s16, [32767, 32767, -2000, 2000, 5, 5, 12345, -1])
 
     let low  = cast([8] s16, (x * y))
-    let high = cast([8] s16, Swag.vecmulhi(x, y))
+    let high = cast([8] s16, Swag.vecMulHigh(x, y))
 
     // 1000 * -2000 is -2000000, which is 0xFFE17B80 over two lanes.
     Swag.assert(cast #bit (u16, low[2]) == 0x7B80 and cast #bit (u16, high[2]) == 0xFFE1)
 
     // Read as unsigned, the same bits give a different half above the lane.
-    let unsignedHigh = cast([8] u16, Swag.vecmulhi(cast #bit (#simd [8] u16, x), cast #bit (#simd [8] u16, y)))
+    let unsignedHigh = cast([8] u16, Swag.vecMulHigh(cast #bit (#simd [8] u16, x), cast #bit (#simd [8] u16, y)))
     Swag.assert(unsignedHigh[2] == 0x03C9)
 }
 
 /**
 # Lane Permutation
 
-'Swag.vecshuffle' rearranges the lanes of a vector: result lane 'i' takes the lane
+'Swag.vecShuffle' rearranges the lanes of a vector: result lane 'i' takes the lane
 its pattern lane names, the index reduced modulo the lane count so no pattern
-is out of range. 'Swag.vecshuffle2' does the same over two vectors, an index below
+is out of range. 'Swag.vecShuffle2' does the same over two vectors, an index below
 the lane count reading the first and one above it reading the second at the
-index minus that count. 'Swag.vecalign' takes sixteen bytes of the concatenation of
+index minus that count. 'Swag.vecAlign' takes sixteen bytes of the concatenation of
 two vectors starting at a byte offset, and answers zero past the thirty-two.
 
 A pattern the compiler can see selects an immediate form where the target has
@@ -246,39 +246,39 @@ low half comes from one vector and whose high half comes from the other is one
 'shufps', and a constant byte offset is one 'palignr'. Everything else becomes
 a permute against a constant byte table. A pattern that only exists at run time
 keeps the same meaning through the dynamic byte permute, which is what
-'Swag.vecperm' exposes on its own.
+'Swag.vecPermute' exposes on its own.
 */
 #test
 {
     let quads = cast(#simd [4] u32, [10, 20, 30, 40])
 
-    var r = cast([4] u32, Swag.vecshuffle(quads, cast(#simd [4] u32, [3, 2, 1, 0])))
+    var r = cast([4] u32, Swag.vecShuffle(quads, cast(#simd [4] u32, [3, 2, 1, 0])))
     Swag.assert(r[0] == 40 and r[1] == 30 and r[2] == 20 and r[3] == 10)
 
     // An index past the last lane wraps around instead of reading nothing.
-    r = cast([4] u32, Swag.vecshuffle(quads, cast(#simd [4] u32, [4, 5, 6, 7])))
+    r = cast([4] u32, Swag.vecShuffle(quads, cast(#simd [4] u32, [4, 5, 6, 7])))
     Swag.assert(r[0] == 10 and r[3] == 40)
 
     let other = cast(#simd [4] u32, [50, 60, 70, 80])
-    r = cast([4] u32, Swag.vecshuffle2(quads, other, cast(#simd [4] u32, [0, 2, 5, 7])))
+    r = cast([4] u32, Swag.vecShuffle2(quads, other, cast(#simd [4] u32, [0, 2, 5, 7])))
     Swag.assert(r[0] == 10 and r[1] == 30 and r[2] == 60 and r[3] == 80)
 
     let bytes = cast(#simd [16] u8, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     let next  = cast(#simd [16] u8, [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31])
-    let slid  = cast([16] u8, Swag.vecalign(bytes, next, 4))
+    let slid  = cast([16] u8, Swag.vecAlign(bytes, next, 4))
     Swag.assert(slid[0] == 4 and slid[11] == 15 and slid[12] == 16 and slid[15] == 19)
 
     // Past the concatenation there is nothing to read.
-    let empty = cast([16] u8, Swag.vecalign(bytes, next, 32))
+    let empty = cast([16] u8, Swag.vecAlign(bytes, next, 32))
     Swag.assert(empty[0] == 0 and empty[15] == 0)
 }
 
 /**
 # Horizontal Reductions
 
-The 'Swag.vecreduce' family combines every lane of a vector into one scalar of the
-lane type: 'Swag.vecreduceadd' sums, 'Swag.vecreducemin' and 'Swag.vecreducemax' select,
-and 'Swag.vecreduceand', 'Swag.vecreduceor' and 'Swag.vecreducexor' fold the bits of
+The 'Swag.vecReduce' family combines every lane of a vector into one scalar of the
+lane type: 'Swag.vecReduceAdd' sums, 'Swag.vecReduceMin' and 'Swag.vecReduceMax' select,
+and 'Swag.vecReduceAnd', 'Swag.vecReduceOr' and 'Swag.vecReduceXor' fold the bits of
 integer lanes.
 
 Adjacent lanes combine first and their results after, so the order is a
@@ -294,28 +294,28 @@ vector down and applies one element-wise operation.
 #test
 {
     let quads = cast(#simd [4] s32, [1, 2, 3, 4])
-    Swag.assert(Swag.vecreduceadd(quads) == 10)
-    Swag.assert(Swag.vecreducemin(quads) == 1)
-    Swag.assert(Swag.vecreducemax(quads) == 4)
+    Swag.assert(Swag.vecReduceAdd(quads) == 10)
+    Swag.assert(Swag.vecReduceMin(quads) == 1)
+    Swag.assert(Swag.vecReduceMax(quads) == 4)
 
     let bits = cast(#simd [4] u32, [0b1110, 0b1010, 0b1111, 0b0110])
-    Swag.assert(Swag.vecreduceand(bits) == 0b0010)
-    Swag.assert(Swag.vecreduceor(bits) == 0b1111)
-    Swag.assert(Swag.vecreducexor(bits) == 0b1101)
+    Swag.assert(Swag.vecReduceAnd(bits) == 0b0010)
+    Swag.assert(Swag.vecReduceOr(bits) == 0b1111)
+    Swag.assert(Swag.vecReduceXor(bits) == 0b1101)
 
     // An integer sum wraps, like every other lane arithmetic.
     let edge = cast(#simd [4] s32, [2_147_483_647, 1, 0, 0])
-    Swag.assert(Swag.vecreduceadd(edge) == -2_147_483_648)
+    Swag.assert(Swag.vecReduceAdd(edge) == -2_147_483_648)
 
     let floats = cast(#simd [4] f32, [1.5, -2.5, 8.0, 0.25])
-    Swag.assert(Swag.vecreduceadd(floats) == 7.25)
-    Swag.assert(Swag.vecreducemin(floats) == -2.5)
-    Swag.assert(Swag.vecreducemax(floats) == 8.0)
+    Swag.assert(Swag.vecReduceAdd(floats) == 7.25)
+    Swag.assert(Swag.vecReduceMin(floats) == -2.5)
+    Swag.assert(Swag.vecReduceMax(floats) == 8.0)
 
     // The absolute byte differences of each half land in one 64-bit lane each.
     let left  = cast(#simd [16] u8, [10, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0])
     let right = cast(#simd [16] u8, [1, 2, 3, 4, 5, 6, 7, 8, 255, 0, 0, 0, 0, 0, 0, 0])
-    let diffs = cast([2] u64, Swag.vecsad(left, right))
+    let diffs = cast([2] u64, Swag.vecSumAbsDiff(left, right))
     Swag.assert(diffs[0] == 9 + 18 + 27 + 36 + 45 + 54 + 63 + 72 and diffs[1] == 255)
 }
 
@@ -379,6 +379,6 @@ value: struct fields, arrays of vectors, and compile-time execution all work.
     }
 
     var p: Pixels
-    p.row = Swag.vecsplat(7'u8)
+    p.row = Swag.vecSplat(7'u8)
     Swag.assert(p.row[15] == 7)
 }

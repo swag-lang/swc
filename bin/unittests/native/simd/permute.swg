@@ -6,25 +6,25 @@ using Swag
 // time, since the two take different lowerings.
 
 #[Swag.NoInline]
-func liveShuffleBytes(value, pattern: #simd [16] u8)->#simd [16] u8 => Swag.vecshuffle(value, pattern)
+func liveShuffleBytes(value, pattern: #simd [16] u8)->#simd [16] u8 => Swag.vecShuffle(value, pattern)
 
 #[Swag.NoInline]
-func liveShuffleWords(value, pattern: #simd [8] u16)->#simd [8] u16 => Swag.vecshuffle(value, pattern)
+func liveShuffleWords(value, pattern: #simd [8] u16)->#simd [8] u16 => Swag.vecShuffle(value, pattern)
 
 #[Swag.NoInline]
-func liveShuffleQuads(value, pattern: #simd [4] u32)->#simd [4] u32 => Swag.vecshuffle(value, pattern)
+func liveShuffleQuads(value, pattern: #simd [4] u32)->#simd [4] u32 => Swag.vecShuffle(value, pattern)
 
 #[Swag.NoInline]
-func liveShufflePairs(value, pattern: #simd [2] u64)->#simd [2] u64 => Swag.vecshuffle(value, pattern)
+func liveShufflePairs(value, pattern: #simd [2] u64)->#simd [2] u64 => Swag.vecShuffle(value, pattern)
 
 #[Swag.NoInline]
-func liveShuffle2Quads(x, y, pattern: #simd [4] u32)->#simd [4] u32 => Swag.vecshuffle2(x, y, pattern)
+func liveShuffle2Quads(x, y, pattern: #simd [4] u32)->#simd [4] u32 => Swag.vecShuffle2(x, y, pattern)
 
 #[Swag.NoInline]
-func liveShuffle2Bytes(x, y, pattern: #simd [16] u8)->#simd [16] u8 => Swag.vecshuffle2(x, y, pattern)
+func liveShuffle2Bytes(x, y, pattern: #simd [16] u8)->#simd [16] u8 => Swag.vecShuffle2(x, y, pattern)
 
 #[Swag.NoInline]
-func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecalign(low, high, count)
+func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecAlign(low, high, count)
 
 #test
 {
@@ -39,7 +39,7 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecal
     let bytes   = cast(#simd [16] u8, source)
     let pattern = cast(#simd [16] u8, reverse)
 
-    var r = cast([16] u8, Swag.vecshuffle(bytes, cast(#simd [16] u8, [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])))
+    var r = cast([16] u8, Swag.vecShuffle(bytes, cast(#simd [16] u8, [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])))
     for i in 16 do
         Swag.assert(r[i] == source[15 - i])
 
@@ -61,35 +61,35 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecal
     let words     = cast(#simd [8] u16, [10, 20, 30, 40, 50, 60, 70, 80])
     let wordsBack = cast(#simd [8] u16, [7, 6, 5, 4, 3, 2, 1, 0])
 
-    var w = cast([8] u16, Swag.vecshuffle(words, cast(#simd [8] u16, [7, 6, 5, 4, 3, 2, 1, 0])))
+    var w = cast([8] u16, Swag.vecShuffle(words, cast(#simd [8] u16, [7, 6, 5, 4, 3, 2, 1, 0])))
     Swag.assert(w[0] == 80 and w[7] == 10)
     w = cast([8] u16, liveShuffleWords(words, wordsBack))
     Swag.assert(w[0] == 80 and w[7] == 10)
 
     // A duplication is as legal as a permutation.
-    w = cast([8] u16, Swag.vecshuffle(words, cast(#simd [8] u16, [0, 0, 0, 0, 7, 7, 7, 7])))
+    w = cast([8] u16, Swag.vecShuffle(words, cast(#simd [8] u16, [0, 0, 0, 0, 7, 7, 7, 7])))
     Swag.assert(w[0] == 10 and w[3] == 10 and w[4] == 80 and w[7] == 80)
 
     let quads     = cast(#simd [4] u32, [10, 20, 30, 40])
     let quadsBack = cast(#simd [4] u32, [3, 2, 1, 0])
-    var q         = cast([4] u32, Swag.vecshuffle(quads, cast(#simd [4] u32, [3, 2, 1, 0])))
+    var q         = cast([4] u32, Swag.vecShuffle(quads, cast(#simd [4] u32, [3, 2, 1, 0])))
     Swag.assert(q[0] == 40 and q[3] == 10)
     q = cast([4] u32, liveShuffleQuads(quads, quadsBack))
     Swag.assert(q[0] == 40 and q[3] == 10)
 
     let pairs     = cast(#simd [2] u64, [111, 222])
     let pairsBack = cast(#simd [2] u64, [1, 0])
-    var p         = cast([2] u64, Swag.vecshuffle(pairs, cast(#simd [2] u64, [1, 0])))
+    var p         = cast([2] u64, Swag.vecShuffle(pairs, cast(#simd [2] u64, [1, 0])))
     Swag.assert(p[0] == 222 and p[1] == 111)
     p = cast([2] u64, liveShufflePairs(pairs, pairsBack))
     Swag.assert(p[0] == 222 and p[1] == 111)
 
     let floats = cast(#simd [4] f32, [1.5, 2.5, 3.5, 4.5])
-    let f      = cast([4] f32, Swag.vecshuffle(floats, cast(#simd [4] u32, [2, 3, 0, 1])))
+    let f      = cast([4] f32, Swag.vecShuffle(floats, cast(#simd [4] u32, [2, 3, 0, 1])))
     Swag.assert(f[0] == 3.5 and f[1] == 4.5 and f[2] == 1.5 and f[3] == 2.5)
 
     let signed = cast(#simd [8] s16, [-1, -2, -3, -4, -5, -6, -7, -8])
-    let sr     = cast([8] s16, Swag.vecshuffle(signed, cast(#simd [8] u16, [7, 6, 5, 4, 3, 2, 1, 0])))
+    let sr     = cast([8] s16, Swag.vecShuffle(signed, cast(#simd [8] u16, [7, 6, 5, 4, 3, 2, 1, 0])))
     Swag.assert(sr[0] == -8 and sr[7] == -1)
 }
 
@@ -100,16 +100,16 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecal
 
     // The low half from one vector and the high half from the other is one
     // 'shufps'; the interleaved patterns take two byte tables.
-    var r = cast([4] u32, Swag.vecshuffle2(x, y, cast(#simd [4] u32, [0, 2, 5, 7])))
+    var r = cast([4] u32, Swag.vecShuffle2(x, y, cast(#simd [4] u32, [0, 2, 5, 7])))
     Swag.assert(r[0] == 10 and r[1] == 30 and r[2] == 60 and r[3] == 80)
 
-    r = cast([4] u32, Swag.vecshuffle2(x, y, cast(#simd [4] u32, [4, 0, 6, 2])))
+    r = cast([4] u32, Swag.vecShuffle2(x, y, cast(#simd [4] u32, [4, 0, 6, 2])))
     Swag.assert(r[0] == 50 and r[1] == 10 and r[2] == 70 and r[3] == 30)
 
     // A pattern that stays inside one vector never reads the other.
-    r = cast([4] u32, Swag.vecshuffle2(x, y, cast(#simd [4] u32, [3, 2, 1, 0])))
+    r = cast([4] u32, Swag.vecShuffle2(x, y, cast(#simd [4] u32, [3, 2, 1, 0])))
     Swag.assert(r[0] == 40 and r[3] == 10)
-    r = cast([4] u32, Swag.vecshuffle2(x, y, cast(#simd [4] u32, [7, 6, 5, 4])))
+    r = cast([4] u32, Swag.vecShuffle2(x, y, cast(#simd [4] u32, [7, 6, 5, 4])))
     Swag.assert(r[0] == 80 and r[3] == 50)
 
     let interleaved = cast(#simd [4] u32, [4, 0, 6, 2])
@@ -128,7 +128,7 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecal
 
     let bx = cast(#simd [16] u8, lowBytes)
     let by = cast(#simd [16] u8, highBytes)
-    var br = cast([16] u8, Swag.vecshuffle2(bx, by, cast(#simd [16] u8, [0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23])))
+    var br = cast([16] u8, Swag.vecShuffle2(bx, by, cast(#simd [16] u8, [0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23])))
     for i in 16
     {
         if i % 2 == 0 do
@@ -160,25 +160,25 @@ func liveAlign(low, high: #simd [16] u8, count: u8)->#simd [16] u8 => Swag.vecal
     let lowVec  = cast(#simd [16] u8, low)
     let highVec = cast(#simd [16] u8, high)
 
-    var r = cast([16] u8, Swag.vecalign(lowVec, highVec, 0))
+    var r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 0))
     for i in 16 do
         Swag.assert(r[i] == cast(u8, i))
 
-    r = cast([16] u8, Swag.vecalign(lowVec, highVec, 7))
+    r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 7))
     for i in 16 do
         Swag.assert(r[i] == cast(u8, (i + 7)))
 
-    r = cast([16] u8, Swag.vecalign(lowVec, highVec, 16))
+    r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 16))
     for i in 16 do
         Swag.assert(r[i] == cast(u8, (i + 16)))
 
     // The window runs out of bytes past the concatenation.
-    r = cast([16] u8, Swag.vecalign(lowVec, highVec, 31))
+    r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 31))
     Swag.assert(r[0] == 31)
     for i in 1 until 16 do
         Swag.assert(r[i] == 0)
 
-    r = cast([16] u8, Swag.vecalign(lowVec, highVec, 32))
+    r = cast([16] u8, Swag.vecAlign(lowVec, highVec, 32))
     for i in 16 do
         Swag.assert(r[i] == 0)
 

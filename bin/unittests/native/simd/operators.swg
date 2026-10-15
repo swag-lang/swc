@@ -33,8 +33,8 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 #test
 {
     // Wrapping is the definition, not an error: no overflow guard fires.
-    let big  = Swag.vecsplat(2_147_483_647's32)
-    let one  = Swag.vecsplat(1's32)
+    let big  = Swag.vecSplat(2_147_483_647's32)
+    let one  = Swag.vecSplat(1's32)
     let wrap = lanesOf(big + one)
     Swag.assert(wrap[0] == -2_147_483_648)
     Swag.assert(wrap[3] == -2_147_483_648)
@@ -89,7 +89,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
     Swag.assert(r[0] == -13 and r[2] == 0 and r[3] == -1)
 
     // A splat is a constant too, and so is the result of a constant cast.
-    let splat = Swag.vecsplat(5's32)
+    let splat = Swag.vecSplat(5's32)
     r = lanesOf(-splat)
     Swag.assert(r[0] == -5 and r[3] == -5)
 
@@ -197,21 +197,21 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 #test
 {
     // Sixteen u8 lanes and eight s16 lanes.
-    let a8 = Swag.vecsplat(200'u8)
-    let b8 = Swag.vecsplat(100'u8)
+    let a8 = Swag.vecSplat(200'u8)
+    let b8 = Swag.vecSplat(100'u8)
     let r8 = cast([16] u8, (a8 + b8))
     Swag.assert(r8[0] == 44 and r8[15] == 44)
 
     let mul8a = cast(#simd [16] u8, [200, 255, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
-    let mul8  = cast([16] u8, (mul8a * Swag.vecsplat(2'u8)))
+    let mul8  = cast([16] u8, (mul8a * Swag.vecSplat(2'u8)))
     Swag.assert(mul8[0] == 144 and mul8[1] == 254 and mul8[15] == 32)
 
     let signedMul8a = cast(#simd [16] s8, [-100, -128, -3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
-    let signedMul8  = cast([16] s8, (signedMul8a * Swag.vecsplat(3's8)))
+    let signedMul8  = cast([16] s8, (signedMul8a * Swag.vecSplat(3's8)))
     Swag.assert(signedMul8[0] == -44 and signedMul8[1] == -128 and signedMul8[2] == -9)
 
     let a16 = cast(#simd [8] s16, [1, -2, 3, -4, 5, -6, 7, -8])
-    let b16 = Swag.vecsplat(10's16)
+    let b16 = Swag.vecSplat(10's16)
     let r16 = cast([8] s16, (a16 * b16))
     Swag.assert(r16[0] == 10 and r16[1] == -20 and r16[7] == -80)
 
@@ -230,7 +230,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 {
     // Float lanes: the four arithmetic operators.
     let a = cast(#simd [4] f32, [1.0, 2.0, 3.0, 4.0])
-    let b = Swag.vecsplat(2.0'f32)
+    let b = Swag.vecSplat(2.0'f32)
     var r = cast([4] f32, (a * b))
     Swag.assert(r[0] == 2.0 and r[3] == 8.0)
     r = cast([4] f32, (a / b))
@@ -267,7 +267,7 @@ func lanesOf(v: #simd [4] s32)->[4] s32 => cast([4] s32, v)
 
     // Float compares use the hardware predicates.
     let fa = cast(#simd [4] f32, [1.0, 2.0, 3.0, 4.0])
-    let fb = Swag.vecsplat(2.5'f32)
+    let fb = Swag.vecSplat(2.5'f32)
     m = cast([4] u32, (fa < fb))
     Swag.assert(m[0] == 0xFFFF_FFFF and m[1] == 0xFFFF_FFFF and m[2] == 0 and m[3] == 0)
 }
@@ -316,14 +316,14 @@ func addEight(a, b, c, d, e, f, g, h: #simd [4] s32)->#simd [4] s32 => a + b + c
     let r = lanesOf(addAll(makeS32(1, 2, 3, 4), makeS32(10, 20, 30, 40), makeS32(100, 200, 300, 400)))
     Swag.assert(r[0] == 111 and r[1] == 222 and r[2] == 333 and r[3] == 444)
 
-    let one   = Swag.vecsplat(1's32)
-    let two   = Swag.vecsplat(2's32)
-    let three = Swag.vecsplat(3's32)
-    let four  = Swag.vecsplat(4's32)
-    let five  = Swag.vecsplat(5's32)
-    let six   = Swag.vecsplat(6's32)
-    let seven = Swag.vecsplat(7's32)
-    let eight = Swag.vecsplat(8's32)
+    let one   = Swag.vecSplat(1's32)
+    let two   = Swag.vecSplat(2's32)
+    let three = Swag.vecSplat(3's32)
+    let four  = Swag.vecSplat(4's32)
+    let five  = Swag.vecSplat(5's32)
+    let six   = Swag.vecSplat(6's32)
+    let seven = Swag.vecSplat(7's32)
+    let eight = Swag.vecSplat(8's32)
     let many  = lanesOf(addEight(one, two, three, four, five, six, seven, eight))
     Swag.assert(many[0] == 36 and many[1] == 36 and many[2] == 36 and many[3] == 36)
 }

@@ -91,7 +91,7 @@ func memset(dst: [*] void?, value: u8, size: u64)
     var offset = 0'u64
 
     let word   = cast(u64, value) * 0x0101_0101_0101_0101
-    let vector = Swag.vecsplat(word)
+    let vector = Swag.vecSplat(word)
     while size - offset >= 4 * MemoryVectorSize
     {
         let targetVectors = cast([*] MemoryFillVector, (target + offset))
@@ -155,7 +155,7 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
     {
         let leftVector  = cast(const *MemoryVector, (leftBytes + offset))[]
         let rightVector = cast(const *MemoryVector, (rightBytes + offset))[]
-        let equalMask   = Swag.vecmask(leftVector == rightVector)
+        let equalMask   = Swag.vecMask(leftVector == rightVector)
         if equalMask != 0xFFFF
         {
             // The lowest clear mask bit is the first byte that differs.

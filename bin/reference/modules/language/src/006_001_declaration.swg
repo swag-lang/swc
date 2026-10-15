@@ -179,7 +179,7 @@ To let a function modify the caller's struct, pass its address explicitly
 through a pointer parameter ('*Struct3'). A pointer is also what a function
 takes when it must watch an object that changes while it runs, such as a thread
 body polling its stop flag: a read through a pointer sees the live storage, and
-a value another thread publishes is read with 'Swag.atomget' or an atomic type.
+a value another thread publishes is read with 'Swag.atomicLoad' or an atomic type.
 */
 
 struct Struct3

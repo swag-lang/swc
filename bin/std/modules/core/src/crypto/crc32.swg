@@ -574,10 +574,10 @@ private
 
         // Fold 128 bits to 64, then Barrett-reduce to 32.
         var t = Math.Simd.clmulLowHigh(x1, k)
-        x1 = Swag.vecalign(x1, FoldZero, 8)
+        x1 = Swag.vecAlign(x1, FoldZero, 8)
         x1 ^= t
 
-        t  = Swag.vecalign(x1, FoldZero, 4)
+        t  = Swag.vecAlign(x1, FoldZero, 4)
         x1 &= FoldMask
         x1 = Math.Simd.clmulLowLow(x1, FoldK5)
         x1 ^= t

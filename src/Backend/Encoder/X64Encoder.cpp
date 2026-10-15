@@ -419,7 +419,7 @@ namespace
     }
 
     // The exchange stays a memory form: `xchg [mem], reg` is the atomic
-    // instruction 'Swag.atomxchg' asks for, and its register rewrite - a load,
+    // instruction 'Swag.atomicExchange' asks for, and its register rewrite - a load,
     // a register exchange and a store - is a plain read-modify-write.
     bool supportsOpBinaryMemReg(MicroOp op)
     {

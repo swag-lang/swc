@@ -14,7 +14,7 @@ func centerRows(dst: [*] u16, src: const [*] u8, stride: u64, height: u64)
         let line = src + row * stride
         let r0   = cast(const [*] #simd [16] u8, line)[0]
         let r1   = cast(const [*] #simd [16] u8, (line + 1))[0]
-        sums[row] = Swag.vecwidenlo(r0) + Swag.vecwidenlo(r1) + Swag.vecwidenhi(r0)
+        sums[row] = Swag.vecWidenLo(r0) + Swag.vecWidenLo(r1) + Swag.vecWidenHi(r0)
     }
 
     for row in height

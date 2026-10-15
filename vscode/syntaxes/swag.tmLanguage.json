@@ -252,7 +252,7 @@
     "intrinsics-buildin": {
       "patterns": [
         {
-          "match": "\\b(Swag)(\\.)(rol|ror|muladd|byteSwap|countOnes|trailingZeros|leadingZeros|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|memcpy|memmove|memset|memcmp|prefetch|atomadd|atomand|atomor|atomxor|atomxchg|atomcmpxchg|atomget|atomset|vecsplat|vecsatadd|vecsatsub|vecpackus|vecpackss|vecinterleavelo|vecinterleavehi|vecwidenlo|vecwidenhi|vecavgr|vecmaddubs|vecmadd|vecmulhi|vecclmul|vecreduceadd|vecreducemin|vecreducemax|vecreduceand|vecreduceor|vecreducexor|vecsad|vecshuffle2|vecshuffle|vecalign|vectruncs32|vecgather|vecperm|vecselect|vecmask|vecany|vecall)\\b",
+          "match": "\\b(Swag)(\\.)(rol|ror|mulAdd|byteSwap|countOnes|trailingZeros|leadingZeros|min|max|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|atan2|log|log2|log10|floor|ceil|trunc|round|abs|exp|exp2|pow|memcpy|memmove|memset|memcmp|prefetch|atomicAdd|atomicAnd|atomicOr|atomicXor|atomicExchange|atomicCompareExchange|atomicLoad|atomicStore|vecSplat|vecSatAdd|vecSatSub|vecNarrowSatU|vecNarrowSatS|vecInterleaveLo|vecInterleaveHi|vecWidenLo|vecWidenHi|vecAvgRound|vecMulAddPairsSat|vecMulAddPairs|vecMulHigh|vecCarrylessMul|vecReduceAdd|vecReduceMin|vecReduceMax|vecReduceAnd|vecReduceOr|vecReduceXor|vecSumAbsDiff|vecShuffle2|vecShuffle|vecAlign|vecTruncToS32|vecGather|vecPermute|vecSelect|vecMask|vecAny|vecAll)\\b",
           "captures": {
             "1": {
               "name": "entity.name.namespace.builtin.swag"

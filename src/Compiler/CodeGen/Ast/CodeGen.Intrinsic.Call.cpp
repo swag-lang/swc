@@ -666,7 +666,7 @@ namespace
         return Result::Continue;
     }
 
-    // 'Swag.atomget' is one plain load the optimizer never hoists, merges, or drops: an
+    // 'Swag.atomicLoad' is one plain load the optimizer never hoists, merges, or drops: an
     // aligned load is already an atomic acquire on x86-64, so the locked read-modify-write
     // the compare-exchange form paid for is not needed to read a value another thread writes.
     Result codeGenAtomicLoad(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
@@ -691,9 +691,9 @@ namespace
         return Result::Continue;
     }
 
-    // 'Swag.atomset' is one plain store the optimizer never drops, merges, or moves an access
+    // 'Swag.atomicStore' is one plain store the optimizer never drops, merges, or moves an access
     // across: an aligned store is already a release on x86-64, so the locked exchange
-    // 'Swag.atomxchg' pays for is not needed to publish a value.
+    // 'Swag.atomicExchange' pays for is not needed to publish a value.
     Result codeGenAtomicStore(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         SmallVector<AstNodeRef> children;
@@ -1964,7 +1964,7 @@ namespace
         return true;
     }
 
-    // 'Swag.vecsplat' fills every lane with one scalar. The result type carries the lane, and
+    // 'Swag.vecSplat' fills every lane with one scalar. The result type carries the lane, and
     // the argument already has that exact type, so nothing converts here.
     Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
     {

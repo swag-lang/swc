@@ -11,7 +11,7 @@
 func readU32Lanes(a, b: u32)->u64
 {
     let v = cast(#simd [4] u32, [a, b, a + b, a ^ b])
-    let w = v + Swag.vecsplat(1'u32)
+    let w = v + Swag.vecSplat(1'u32)
     return cast(u64, w[0]) + cast(u64, w[1]) * 3 + cast(u64, w[2]) * 5 + cast(u64, w[3]) * 7
 }
 
@@ -19,7 +19,7 @@ func readU32Lanes(a, b: u32)->u64
 func readS64Lanes(a, b: s64)->s64
 {
     let v = cast(#simd [2] s64, [a, b])
-    let w = v - Swag.vecsplat(2's64)
+    let w = v - Swag.vecSplat(2's64)
     return w[0] * 11 - w[1]
 }
 
@@ -27,7 +27,7 @@ func readS64Lanes(a, b: s64)->s64
 func readF32Lanes(a, b: f32)->f32
 {
     let v = cast(#simd [4] f32, [a, b, a * b, a - b])
-    let w = v * Swag.vecsplat(2.0'f32)
+    let w = v * Swag.vecSplat(2.0'f32)
     return w[0] + w[1] * 10 + w[2] * 100 + w[3] * 1000
 }
 
@@ -35,14 +35,14 @@ func readF32Lanes(a, b: f32)->f32
 func readF64Lanes(a, b: f64)->f64
 {
     let v = cast(#simd [2] f64, [a, b])
-    let w = v + Swag.vecsplat(0.5'f64)
+    let w = v + Swag.vecSplat(0.5'f64)
     return w[1] * 4 - w[0]
 }
 
 #[Swag.Optimize(true)]
 func readU8Lanes(seed: u8)->u32
 {
-    let base: #simd [16] u8 = Swag.vecsplat(seed)
+    let base: #simd [16] u8 = Swag.vecSplat(seed)
     let v = base + cast(#simd [16] u8, [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     return cast(u32, v[0]) + cast(u32, v[9]) * 256 + cast(u32, v[15]) * 65536
 }
@@ -60,8 +60,8 @@ func lowLanesThroughBitcast(bytes: #simd [16] u8)->u64
 #[Swag.Optimize(true)]
 func readSignedNarrowLanes(seed: s8)->s64
 {
-    let bytes: #simd [16] s8 = Swag.vecsplat(seed)
-    let words: #simd [8] s16 = Swag.vecsplat(cast(s16, seed) * 300)
+    let bytes: #simd [16] s8 = Swag.vecSplat(seed)
+    let words: #simd [8] s16 = Swag.vecSplat(cast(s16, seed) * 300)
     let v                    = bytes - cast(#simd [16] s8, [0's8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     let w                    = words + cast(#simd [8] s16, [0's16, 1, 2, 3, 4, 5, 6, 7])
     return cast(s64, v[0]) + cast(s64, v[7]) * 1000 + cast(s64, v[15]) * 1000000 + cast(s64, w[0]) + cast(s64, w[3]) + cast(s64, w[7])
@@ -70,7 +70,7 @@ func readSignedNarrowLanes(seed: s8)->s64
 #[Swag.Optimize(true)]
 func readU16Lanes(seed: u16)->u64
 {
-    let base: #simd [8] u16 = Swag.vecsplat(seed)
+    let base: #simd [8] u16 = Swag.vecSplat(seed)
     let v = base + cast(#simd [8] u16, [0'u16, 1, 2, 3, 4, 5, 6, 7])
     return cast(u64, v[0]) + (cast(u64, v[5]) << 16) + (cast(u64, v[7]) << 32)
 }

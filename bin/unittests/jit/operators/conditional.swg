@@ -215,8 +215,8 @@ var g_Int42:   s32 = 42
 {
     func ternarySimd(cond: bool)->#simd [16] u8
     {
-        let bits     = Swag.vecsplat(1'u8)
-        let selected = cond ? bits > Swag.vecsplat(0'u8) : Swag.vecsplat(17'u8)
+        let bits     = Swag.vecSplat(1'u8)
+        let selected = cond ? bits > Swag.vecSplat(0'u8) : Swag.vecSplat(17'u8)
         return selected
     }
 

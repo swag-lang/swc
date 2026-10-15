@@ -218,7 +218,7 @@ func rorLive(value: #simd [2] u64, count: u8)->#simd [2] u64 => Swag.ror(value, 
 
     // A NaN keeps its payload, so it stays a NaN instead of turning into one
     // of the boundary values.
-    let nan     = cast #bit (#simd [4] f32, Swag.vecsplat(0xFFC0_1234'u32))
+    let nan     = cast #bit (#simd [4] f32, Swag.vecSplat(0xFFC0_1234'u32))
     let cleared = cast #bit ([4] u32, Swag.abs(nan))
     Swag.assert(cleared[0] == 0x7FC0_1234)
 }

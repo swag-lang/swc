@@ -79,7 +79,7 @@ Static queries produce facts known by semantic analysis:
 
 Intrinsics participate in expressions. Some expose context ('Swag.args()',
 'Swag.getContext()'), some construct runtime-shaped values ('Swag.makeSlice', 'Swag.makeAny'), and some
-perform primitive operations ('Swag.sqrt', 'Swag.memcpy', 'Swag.atomadd').
+perform primitive operations ('Swag.sqrt', 'Swag.memcpy', 'Swag.atomicAdd').
 */
 
 #test

@@ -59,7 +59,7 @@
     #[Swag.NoInline]
     func powF64(a, b: f64)->f64 => Swag.pow(a, b)
     #[Swag.NoInline]
-    func mulAddF64(a, b, c: f64)->f64 => Swag.muladd(a, b, c)
+    func mulAddF64(a, b, c: f64)->f64 => Swag.mulAdd(a, b, c)
 
     #assert(#run minS32(4, -2) == -2)
     #assert(#run maxS32(4, -2) == 4)

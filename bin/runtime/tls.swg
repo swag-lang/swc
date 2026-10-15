@@ -58,14 +58,14 @@ private func __tlsCreatePtr(id: u64)->*void?
 // allocation because the normal Swag allocator itself reaches this path.
 func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
 {
-    var id = Swag.atomcmpxchg(idSlot, 0, 0)
+    var id = Swag.atomicCompareExchange(idSlot, 0, 0)
     if id == 0
     {
         let slot = __hostThreadStorageAlloc(&__releaseTlsVar)
         if not slot do
             Swag.panic("too many thread-local globals for the platform", #curlocation)
 
-        let previous = Swag.atomcmpxchg(idSlot, 0, slot)
+        let previous = Swag.atomicCompareExchange(idSlot, 0, slot)
         if previous == 0
         {
             id = slot

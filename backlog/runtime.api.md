@@ -52,41 +52,6 @@ in sync in the same change.
   rule or has its own entry.
 - Related: std.core.031, std.core.035, language.parallelism.001
 
-### runtime.api.005 — Intrinsic spellings follow three conventions and leak x86 mnemonics
-
-- Evidence: the `Swag.` intrinsics declared in
-  [Tokens.Def.inc](../src/Compiler/Lexer/Tokens.Def.inc) use three casings at once.
-  camelCase: `getContext`, `setContext`, `stringCmp`, `typeCmp`, `kindOf`, `makeSlice`,
-  `makeAny`, `tableOf`, `byteSwap`, `bitCountTz`, `bitCountLz`, `bitCountNz`, `postMove`,
-  `postCopy`, `safetyPanic`. Run-together lowercase: `muladd`, `atomadd`, `atomand`, `atomor`,
-  `atomxor`, `atomxchg`, `atomcmpxchg`, `atomget`, and the 31 `vec*` intrinsics
-  (`vecreduceadd`, `vecinterleavelo`, `vecwidenhi`...). C names: `memcpy`, `memmove`, `memset`,
-  `memcmp`. A reader cannot predict `Swag.mulAdd` from `Swag.byteSwap`, and `Core.Math.mulAdd`
-  wraps `Swag.muladd` with the other casing.
-- Evidence: several vector intrinsics are named after x86 instructions rather than after what
-  they compute: `vecmaddubs` (`pmaddubsw`), `vecmadd` (`pmaddwd`), `vecpackus` / `vecpackss`
-  (`packuswb` / `packsswb`), `vecsad` (`psadbw`), `vecclmul` (`pclmulqdq`), `vecavgr` (`pavgb`),
-  `vecmulhi`, `vectruncs32`. An ARM64 port keeps the names but loses their meaning.
-- Evidence: migration size in tracked sources: 607 `Swag.vec*` uses in 28 files, 187
-  `Swag.atom*`, 72 `Swag.bitCountNz`, 22 `Swag.muladd`. Core already wraps most of them
-  (`Core.Atomic`, `Core.Math`, `Simd`), so most consumers do not name the intrinsic directly.
-- Proposed rule: camelCase for every intrinsic, like the rest of the language; keep the four
-  C memory names as the single documented exception. Atomics become `atomicAdd`, `atomicAnd`,
-  `atomicOr`, `atomicXor`, `atomicExchange`, `atomicCompareExchange`, `atomicLoad`; vectors
-  become `vecSplat`, `vecReduceAdd`, `vecInterleaveLo`... ; `muladd` becomes `mulAdd`.
-  ISA-named vector intrinsics get semantic names chosen with cpu.simd's owner, for example
-  `vecDotU8S8Pairs` (maddubs), `vecDotS16Pairs` (madd), `vecNarrowSatU` / `vecNarrowSatS`
-  (packus/packss), `vecSumAbsDiff` (sad), `vecCarrylessMul` (clmul), `vecAvgRound` (avgr),
-  `vecMulHigh` (mulhi).
-- Next: write the full old-to-new table in this entry and get it approved before touching the
-  lexer. Then rename the tokens, the declarations in `api.swg`, the reference, the VSCode
-  grammar and every consumer in one change per family (atomics, vectors, scalars), with no
-  compatibility aliases, as the reflect-swag-syntax-changes skill requires.
-- Done when: every `Swag.` intrinsic except `memcpy`, `memmove`, `memset` and `memcmp` is
-  camelCase, no vector intrinsic is named after an x86 instruction, and the reference and
-  VSCode grammar list the new spellings only.
-- Related: cpu.simd.012, std.core.031
-
 ### runtime.api.008 — The runtime has one target, and its public enums say so
 
 - Evidence: `Swag.TargetArch` has the single member `X86_64` and the runtime's only host leaf is

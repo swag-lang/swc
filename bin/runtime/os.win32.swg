@@ -277,9 +277,12 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
     if not mapping do
         return null
 
-    // A mapped view keeps the section alive after its opening handle closes.
+    // Keep the handle as well as the view for the process lifetime. Closing the last
+    // handle removes the name even while a view remains, so another artifact would
+    // create an independent registry instead of joining this one.
     let view = __Win32RT.MapViewOfFile(mapping, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, size)
-    discard __Win32RT.CloseHandle(mapping)
+    if not view do
+        discard __Win32RT.CloseHandle(mapping)
     return view
 }
 

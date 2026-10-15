@@ -43,3 +43,14 @@ func localRead(value: Value, target: *Value)->u64
     BorrowLibrary.write(&value)
     Swag.assert(read(value) == 0)
 }
+
+// Only the DLL registers this borrow; the unchecked forwarding frame adds no record.
+#[Swag.NoInline, Swag.Safety(.ValueBorrow, false)]
+func fromUncheckedCaller(value: Value, target: *Value)->u64 => readAfterCallback(value, &localWrite, target)
+
+#test
+{
+    var value: Value = {first: 281}
+    mustReject(func|&value|() { discard fromUncheckedCaller(value, &value) })
+    Swag.assert(value.first == 281)
+}

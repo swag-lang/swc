@@ -44,10 +44,10 @@ impl AtomicValue
     // everything this thread wrote before: the way to publish data behind a flag, or to release a
     // lock. It does not order a later read of this thread against it, which is what the plain
     // [[Swag.AtomicValue.store]] is for.
-    mtd storeRelease(value: T) => Swag.atomicStore(&.storage, value)
+    mtd storeRelease(value: T) { Swag.atomicStore(&.storage, value) }
 
     // Replaces the value, ordered against nothing else.
-    mtd storeRelaxed(value: T) => Swag.atomicStore(&.storage, value)
+    mtd storeRelaxed(value: T) { Swag.atomicStore(&.storage, value) }
 
     // Replaces the value and returns what it was.
     mtd exchange(value: T)->T => Swag.atomicExchange(&.storage, value)

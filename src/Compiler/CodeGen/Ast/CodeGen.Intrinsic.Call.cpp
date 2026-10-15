@@ -737,6 +737,7 @@ namespace
 
         MicroReg valueReg = MicroReg::invalid();
         materializeIntrinsicNumericOperand(valueReg, codeGen, valuePayload, valueTypeRef, storageTypeRef);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, ptrReg, storageType.sizeOf(codeGen.ctx())));
         codeGen.builder().emitStoreVolatileMemReg(ptrReg, 0, valueReg, opBits);
         return Result::Continue;
     }

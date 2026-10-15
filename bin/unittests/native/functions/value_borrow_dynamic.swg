@@ -138,13 +138,14 @@ func byteMutation(value: Thing, destination: *void, operation: u32)->u64
     case 1: Swag.memcpy(destination, &source, #sizeof(Thing))
     case 2: Swag.memmove(destination, &source, #sizeof(Thing))
     case 3: discard Swag.atomxchg(cast(*u64, destination), 0)
+    case 4: Swag.atomset(cast(*u64, destination), 0)
     }
     return value.value
 }
 
 #test
 {
-    for operation in 4'u32
+    for operation in 5'u32
     {
         var value: Thing = {value: 47}
         mustReject(func|&value, operation|() { discard byteMutation(value, &value, operation) })
@@ -391,7 +392,7 @@ func growInPlace(value: Thing, request: *Swag.AllocatorRequest)->u64
     defer allocator.free(&request)
     let value = cast(*Thing, address)
     Swag.init(value)
-    value.value  = 127
+    value.value = 127
     // The host allocator exposes no spare capacity in padded JIT builds.
     // Native allocation rounds this block up, so its growth stays in place.
     request.size = Swag.jit() ? #sizeof(Thing) : 32

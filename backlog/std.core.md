@@ -316,32 +316,6 @@ stuck at the boundary.
   atomic storage through an ordinary pointer.
 - Related: language.parallelism.001, language.parallelism.005
 
-### std.core.035 — Two lock families, one of them Windows-only and public about it
-
-- Evidence: `Swag.Mutex` and `Swag.RWLock` ([sync.swg](../bin/runtime/sync.swg)) are portable:
-  zero-initialized, backed by the runtime's `__hostLock*` hooks, documented as not copyable
-  once shared. `Core.Sync.Mutex` ([mutex.win32.swg](../bin/std/modules/core/src/thread/mutex.win32.swg))
-  and `Core.Sync.RWLock` ([rwlock.win32.swg](../bin/std/modules/core/src/thread/rwlock.win32.swg))
-  implement the same operations a second time, exist only under `#global if WINDOWS`, and make
-  their native state public (`public v: SRWLOCK`), against the portability boundary of
-  [PORTABILITY.md](../bin/PORTABILITY.md). language.parallelism.001 states one owner per
-  concurrency type family; locks have two, like atomics (std.core.031).
-- Evidence: `Swag.Mutex` has 5 qualified uses in `bin/`; `Core.Sync` / `Sync.` is named in
-  about twenty files (log, pixel render thread, typeface, audio driver, GUI theme and icon set,
-  PDF view, Matroska and HEVC decoding, Scope video playback, Vault volume, and their tests),
-  plus files that reach `Mutex` unqualified through `using Sync`.
-  `Core.Sync.scopedLock` and `sharedLock` are generic over `*T` and already work with the
-  runtime types.
-- Next: compare the two contracts (zero-init, copy, drop, `tryLock`, reader/writer release) and
-  close any gap in the runtime type first. Then migrate every consumer of `Core.Sync.Mutex` and
-  `Core.Sync.RWLock` to `Swag.Mutex` / `Swag.RWLock`, delete the two Core files, and keep
-  `Core.Sync` for `Event`, `scopedLock` and `sharedLock`. Check that no unqualified `Mutex`
-  becomes ambiguous where a file has both `using Sync` and access to `Swag`.
-- Done when: `bin/std/modules/core/src/thread` declares no mutex or read-write lock, no public
-  field of a lock exposes a native type, and the Core, Pixel, GUI, Video, Audio and application
-  tests pass on the runtime locks.
-- Related: std.core.031, runtime.api.004, platform.portability.035, language.parallelism.001
-
 ### std.core.025 — A dependency graph of tasks is written by hand
 
 - Evidence: the runtime joins a group whose children can fail (the first error asks the others to

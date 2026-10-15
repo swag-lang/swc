@@ -4,7 +4,7 @@
 using Core, Pixel
 
 private var g_FontFamilies: HashTable'(String, [FontFamilyStyle.count] (*TypeFace?))
-private var g_FontLock:     Sync.Mutex
+private var g_FontLock:     Swag.Mutex
 
 // Returns the type faces of the first installed system family among `names`, one per style.
 //

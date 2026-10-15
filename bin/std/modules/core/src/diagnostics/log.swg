@@ -27,7 +27,7 @@ struct Log
 {
     internal
     {
-        lock:        Sync.Mutex                // Protects configuration, writers, and output.
+        lock:        Swag.Mutex                // Protects configuration, writers, and output.
         buf:         StrConv.StringBuilder     // Reused message buffer.
         dt:          Time.DateTime             // Timestamp captured for the current message.
         writers:     Array'ILogWriter          // Registered borrowed writer interfaces.

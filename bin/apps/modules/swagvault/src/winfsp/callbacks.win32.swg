@@ -80,8 +80,8 @@ namespace WinFsp
     func callbackSetVolumeLabel(context: *void?, label: const [*] u8?)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         let value = cString(label)
         if value.count > 32 * 4 do
             return StatusInvalidParameter
@@ -108,8 +108,8 @@ namespace WinFsp
     func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         let name = cString(path)
         if volume.resolve(name) do
             return StatusObjectNameCollision
@@ -137,8 +137,8 @@ namespace WinFsp
     func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, _: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
@@ -162,8 +162,8 @@ namespace WinFsp
     func callbackCleanup(context: *void?, nodeId: u64, flags: u32)
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         if (flags & CleanupDelete) != 0
         {
             discard catch volume.deleteNode(nodeId)
@@ -233,8 +233,8 @@ namespace WinFsp
         }
 
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
@@ -277,8 +277,8 @@ namespace WinFsp
     func callbackFlush(context: *void?, nodeId: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         discard catch volume.commit() as err
         if err != null do
             return statusFromError(err)
@@ -300,8 +300,8 @@ namespace WinFsp
     func callbackSetBasicInfo(context: *void?, nodeId: u64, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
@@ -331,8 +331,8 @@ namespace WinFsp
     func callbackSetFileSize(context: *void?, nodeId, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
@@ -374,8 +374,8 @@ namespace WinFsp
     func callbackRename(context: *void?, nodeId: u64, _, newPath: const [*] u8?, replace: u8)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         discard catch volume.renameNode(nodeId, cString(newPath), replace != 0) as err
         return err == null ? StatusSuccess : statusFromError(err, StatusAccessDenied)
     }
@@ -403,8 +403,8 @@ namespace WinFsp
     func callbackSetSecurity(context: *void?, nodeId: u64, security: const *void?, securitySize: u32)->s32
     {
         let volume = cast(*Volume, context!)
-        volume.accessLock.lockExclusive()
-        defer volume.accessLock.unlockExclusive()
+        volume.accessLock.lock()
+        defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound

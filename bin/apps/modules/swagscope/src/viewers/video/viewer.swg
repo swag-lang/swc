@@ -205,7 +205,7 @@ struct Panel
     decode:         Swag.Task
     decodeExecutor: Swag.Executor
     decodeWake:     Sync.Event
-    queueLock:    Sync.Mutex
+    queueLock:      Swag.Mutex
 
     // Queue state, all read and written under `queueLock`.
     //

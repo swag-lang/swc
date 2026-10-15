@@ -33,7 +33,7 @@ impl BuildLease
 #[Swag.NoCopy]
 struct CompilationCache
 {
-    mutex:      Sync.Mutex
+    mutex:      Swag.Mutex
     entries:    Array'*BuildArtifact
     generation: u64
     buildCount: u64

@@ -35,7 +35,7 @@ var g_HashTypeFace: HashTable'(String, *TypeFace)
 
 impl TypeFace
 {
-    var lock: Sync.Mutex
+    var lock: Swag.Mutex
 
     func addOutlineToPathList(pathList: *LinePathList, commands: const [..] OutlineCommand)
     {

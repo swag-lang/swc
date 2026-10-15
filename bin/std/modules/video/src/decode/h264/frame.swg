@@ -63,7 +63,7 @@ struct Frame
     // it rather than on the whole picture, which is what lets consecutive pictures overlap.
     progressRows:    s32
     progressWaiters: u32
-    progressLock:    Sync.Mutex
+    progressLock:    Swag.Mutex
     progressEvent:   Sync.Event
 
     // Motion exported for co-located prediction in later B slices, one entry per 4x4 block:

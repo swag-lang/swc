@@ -172,7 +172,7 @@ using Swag
 private var g_HashCrcToType:  HashTable'(u32, typeinfo)
 private var g_HashNameToType: HashTable'(string, typeinfo)
 private var g_HashKeyToType:  HashTable'(string, typeinfo?)
-private var g_HashLock:       Sync.RWLock
+private var g_HashLock:       Swag.RWLock
 
 private func addCrcTypeIdentity(crc: u32, type: typeinfo?)
 {

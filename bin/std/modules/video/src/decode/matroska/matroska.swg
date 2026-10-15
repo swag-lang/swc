@@ -1465,8 +1465,10 @@ private impl Layout
             track.audioStart    = timestamp
             track.hasAudioStart = true
         }
-        else do
+        else
+        {
             try track.fillAudioGap(timestamp)
+        }
 
         if not track.hasProbe
         {
@@ -1572,7 +1574,7 @@ internal struct FileIndex
     windowWorker:     Swag.Executor     // Runs window builds, so one never waits for the scan.
     windowTarget:     u64               // Latest timestamp a published sound window must cover.
     seekSounds:       Array'*PublishedSound
-    soundLock:        Sync.Mutex
+    soundLock:        Swag.Mutex
     cancel:           u32
     soundPause:       u32
     soundStatus:      u32
@@ -1896,7 +1898,8 @@ private impl Decoder
         {
             catch buildSoundIndex(index) as indexError
             Atomic.exchange(&index.soundStatus, indexError != null ? SoundIndexFailed : SoundIndexReady)
-        }, executor: &index.soundWorker)
+        },
+                                executor: &index.soundWorker)
     }
 
     // Restarts the single demux cursor on the key cluster advertised by Cues.
@@ -2119,7 +2122,8 @@ private impl Decoder
         index.windowBuild.submit(func|index|()
         {
             discard catch buildSoundWindow(index, Atomic.get(&index.windowTarget))
-        }, executor: &index.windowWorker)
+        },
+                                 executor: &index.windowWorker)
     }
 
     mtd resumeSoundIndex()

@@ -846,8 +846,37 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
     // One object per function and reachable read-only allocation. Object 0 owns writable data.
     // This gives the archive linker enough granularity to pull only the constants reached from
     // selected functions, while relocations between allocation objects preserve transitive roots.
-    const size_t   functionCount = builder_->functionInfos.size();
-    const uint32_t numObjects    = static_cast<uint32_t>(functionCount + builder_->rdataAllocations.size() + 1);
+    const size_t     functionCount = builder_->functionInfos.size();
+    constexpr size_t memberLimit   = std::numeric_limits<uint16_t>::max();
+    // Allocation sections follow .text and use signed 16-bit COFF section indices.
+    constexpr uint32_t maxBatchSize = std::numeric_limits<int16_t>::max() - 1;
+    uint32_t           batchSize    = 1;
+    size_t             objectCount  = functionCount + builder_->rdataAllocations.size() + 1;
+    if (objectCount > memberLimit)
+    {
+        const auto countObjects = [&](const uint32_t count) {
+            size_t result = functionCount + 1;
+            for (const auto& mappings : builder_->rdataAllocationMap)
+                result += (mappings.size() + count - 1) / count;
+            return result;
+        };
+        const size_t minimumCount = countObjects(maxBatchSize);
+        if (minimumCount > memberLimit)
+            return builder_->reportError(DiagnosticId::cmd_err_link_archive_member_limit, Diagnostic::ARG_COUNT, static_cast<uint64_t>(minimumCount));
+
+        // Preserve one-function members and the finest constant granularity that fits.
+        uint32_t upper = maxBatchSize;
+        while (batchSize < upper)
+        {
+            const uint32_t middle = batchSize + (upper - batchSize) / 2;
+            if (countObjects(middle) > memberLimit)
+                batchSize = middle + 1;
+            else
+                upper = middle;
+        }
+        objectCount = countObjects(batchSize);
+    }
+    const auto numObjects = static_cast<uint32_t>(objectCount);
     builder_->objectDescriptions.resize(numObjects);
 
     NativeArtifactPaths paths;
@@ -881,9 +910,14 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
             NativeRDataAllocationMapEntry& allocation = mappings[allocationIndex];
             allocation.symbolName                     = nativeScopedRDataAllocationSymbol(scopeHash, allocation.shardIndex, allocation.sourceOffset);
 
-            NativeObjDescription& description = builder_->objectDescriptions[objIndex++];
-            description.rdataShardIndex       = shardIndex;
-            description.rdataAllocationIndex  = allocationIndex;
+            if (allocationIndex % batchSize == 0)
+            {
+                static_assert(ConstantManager::SHARD_COUNT <= std::numeric_limits<uint16_t>::max());
+                NativeObjDescription& description = builder_->objectDescriptions[objIndex++];
+                description.rdataShardIndex       = static_cast<uint16_t>(shardIndex);
+                description.rdataAllocationIndex  = allocationIndex;
+                description.rdataAllocationCount  = static_cast<uint16_t>(std::min<size_t>(batchSize, mappings.size() - allocationIndex));
+            }
         }
     }
     SWC_ASSERT(objIndex == numObjects);

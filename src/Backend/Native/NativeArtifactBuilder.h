@@ -54,7 +54,8 @@ public:
     // Re-splits the very same machine code one function per object, which is the granularity the
     // archive is dead-stripped at: the linker pulls whole members, so a member holding ten
     // functions puts ten functions in an executable that asked for one. Object 0 keeps writable
-    // data, while read-only allocations get their own transitively linked members.
+    // data, while read-only allocations get their own transitively linked members. Large
+    // archives batch adjacent allocations to fit the 16-bit member directory.
     //
     // Valid only once the artifact this module publishes has been lowered, because it overwrites
     // the text offsets that lowering computed.

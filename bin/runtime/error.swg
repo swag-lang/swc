@@ -997,7 +997,9 @@ func panic(message: string?, loc: SourceCodeLocation)
 #[Swag.Safety(.All, false), Swag.NoReturn]
 func safetyPanic(message: string, loc: SourceCodeLocation)
 {
-    if Swag.jit()
+    // An explicit catch owns recovery in JIT execution just as it does in native code.
+    // Uncaught safety failures still use the compiler's source diagnostic.
+    if Swag.jit() and not Swag.getContext().panicCatch
     {
         __raiseException666(message, loc, .Safety)
         unreachable

@@ -43,34 +43,18 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.030 — Check writes to borrowed value arguments at runtime
+### compiler.safety.030 — Measure the runtime cost of value-borrow guards
 
 - Area: compiler/codegen, runtime safety, call argument lifetimes and invalidation.
-- Contract: retain Swag's no-copy value arguments. Their inline storage stays stable for
-  the borrow, including embedded arrays and fields, without freezing external pointees.
-  Keep C ABI copies separate. `#copy` requests a distinct value using ordinary copy/drop
-  hooks and respects `NoCopy`; it is a shallow snapshot unless the type's copy hook says otherwise.
-- Policy: `SafetyWhat.ValueBorrow` follows runtime safety configuration: enabled in devmode,
-  disabled in release by default, and explicitly selectable in either. Unknown alias provenance
-  must not reject a program or silently insert a copy. Static analysis may remove a guard only
-  when it proves that guard unnecessary. Disabling the guard does not relax the stability contract.
-- Evidence: immutable indirect-parameter facts let the backend reuse loads across stores and
-  calls. Read-only access through the parameter does not prevent writes through another alias.
-  The former whole-program proof attempt also rejected valid callback/reflection/runtime paths.
-- Next: finish registration from argument evaluation through the call, including inline bodies,
-  later arguments, callbacks, default arguments, error propagation and implicit lifecycle calls.
-  Check actual overlapping stores, byte intrinsics, atomics, moves, destruction and allocation
-  invalidation before they execute. Cover self-pointers, integer-erased addresses, subobjects,
-  borrowed handles, hidden return destinations and cleanup after a trapped JIT invocation.
-  Keep the registry consistent across imported native artifacts and avoid recursive guard
-  instrumentation in its own bootstrap. Bound and document coverage at uninstrumented foreign
-  calls and mixed-safety code; this guard alone does not establish race freedom. A check/store
-  gap across threads needs a defined synchronization contract before claiming concurrent protection.
-  Compare compilation time, peak memory and runtime cost with the same uninstrumented workloads.
-- Done when: focused positive and negative tests pass in JIT and native execution, inline and
-  non-inline, devmode, release without the guard and release with the guard explicitly enabled;
-  affected consumers build without the former static refusals, and documented coverage matches
-  the implemented write and invalidation boundaries.
+- Evidence: `SafetyWhat.ValueBorrow` registers indirect value arguments and checks writes
+  against their live storage. Registration, overlap filtering and registry locking add runtime
+  work whose cost depends on call size, write frequency and concurrent access.
+- Next: compare identical native workloads with only `.ValueBorrow` toggled, using a quiet
+  machine. Start with repeated non-inline calls borrowing a small struct and writing a separate
+  output; distinguish this tiny-call stress case from a representative application workload.
+  Report repeated timings and absolute overhead, without extrapolating one ratio to all programs.
+- Done when: reproducible measurements state the workload, compiler and program configurations,
+  guard settings and variability, and give a bounded assessment of the runtime overhead.
 - Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,
   language.parallelism.005.
 

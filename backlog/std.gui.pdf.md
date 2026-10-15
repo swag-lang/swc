@@ -19,7 +19,7 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   so closing a document while the worker is inside `Reader.loadPage` blocks the GUI thread for
   what remains of that page. A historical measurement put the worst page of an external 90 MB,
   95-page scanned document with 1 073 images at 2.8 s through `Reader.loadPage`; that file is not
-  in the stored corpus, and std.gui.pdf.025 carries no such figure.
+  in the stored corpus.
 - Next: give `decodePage` and the render loop the same cancellation signal, checked between
   content-stream operators and between items, and have `PdfPageCache` raise it instead of
   waiting.
@@ -43,14 +43,12 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.031 — Document parsing has no adversarial corpus or overall resource budget
 
-- Intent: the stored PDF corpus stays below three megabytes per file. Generated tests cover
-  cross-reference repair and incremental updates, and filter tests already reject a truncated
-  run-length stream. There is no document-level adversarial matrix for cyclic page trees,
-  contradictory lengths, declared-size attacks or very large scans. The parser has local depth
-  limits but no overall memory or node budget.
-- Note: two of these now have a test each — a blunted `startxref` falls through to the repair
-  scan, and an incremental update resolves to the revision its trailer names — but they build
-  their fixture at run time rather than carrying one, and neither is a hostile input.
+- Evidence: the stored corpus stays below three megabytes per file. Generated tests cover
+  cross-reference repair (a blunted `startxref`) and incremental updates
+  (`pdf.document.test.swg`), and filter tests reject a truncated run-length stream. None
+  carries a hostile fixture. There is no document-level adversarial matrix for cyclic page
+  trees, contradictory lengths, declared-size attacks or very large scans. The parser has local
+  depth limits but no overall memory or node budget.
 - Done when: a malformed corpus covers truncation, cycles, contradictory lengths and
   declared-size attacks with the expected error for each, a large fixture measures the full-file
   snapshot separately from lazy trailer/page indexing, and the parser refuses to allocate past
@@ -82,8 +80,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.039 — PdfView cannot fit a selected region to the viewport
 
-- Evidence: split from retired app.scope.document.014. `PdfZoomMode` exposes FitPage, FitWidth,
-  and Free; no operation derives zoom and scroll position from a selected page-space region.
+- Evidence: `PdfZoomMode` (`controls/pdf/view.swg`) exposes FitPage, FitWidth, and Free; no
+  operation derives zoom and scroll position from a selected page-space region.
 - Next: define whether Fit Selection accepts text bounds, an explicit rectangle, or both, and
   implement it using the same page-to-viewport transforms as selection and search highlighting.
 - Done when: fitting a nonempty region keeps it visible with defined padding, empty selection
@@ -92,9 +90,9 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.040 — PdfView cannot move a text caret or extend selection from the keyboard
 
-- Evidence: split from the earlier scope of app.scope.document.016. The widget already supports pointer selection
-  across pages, double-click word selection, Ctrl+A and Ctrl+C. Arrow keys scroll; they do not
-  move a text caret or extend a selection. `pdfview.test.swg` protects cross-page pointer copy.
+- Evidence: the widget already supports pointer selection across pages, double-click word
+  selection, Ctrl+A and Ctrl+C. Arrow keys scroll; they do not move a text caret or extend a
+  selection. `pdfview.test.swg` protects cross-page pointer copy.
 - Next: add keyboard movement and selection extension over the existing `PdfTextPosition` model,
   preserving pointer behavior and distinguishing text navigation from viewport scrolling.
 - Done when: keyboard selection crosses words, lines, and pages, respects modifiers, reveals
@@ -103,8 +101,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.041 — PDF copy has no choice between logical and visual text order
 
-- Evidence: split from the earlier scope of app.scope.document.016. `PdfView.selectedText` joins each selected page's
-  indexed text with line feeds. There is one extraction order and no caller-selected copy mode.
+- Evidence: `PdfView.selectedText` joins each selected page's indexed text with line feeds.
+  There is one extraction order and no caller-selected copy mode.
 - Next: define logical and visual copy orders against the retained glyph/source coordinates,
   including columns, bidirectional runs, and page boundaries, then expose the selected policy.
 - Done when: both forms preserve their documented order on independent text fixtures and
@@ -113,9 +111,9 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.042 — PdfView has no reflow reading mode
 
-- Evidence: split from the earlier scope of app.scope.document.016. `PdfView` paints positioned page items; zoom and
-  page layout preserve the source geometry. Neither the widget nor its text index composes a
-  reading surface whose lines wrap to the viewport width.
+- Evidence: `PdfView` paints positioned page items; zoom and page layout preserve the source
+  geometry. Neither the widget nor its text index composes a reading surface whose lines wrap
+  to the viewport width.
 - Next: define a reading-order contract and the supported text subset before composing a reflow
   surface, retaining a route from reflowed text to its source page and selection coordinates.
 - Done when: supported text reflows on resize without losing search or selection, unsupported
@@ -124,11 +122,10 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.037 — Resident-page memory accounting omits retained resources
 
-- Evidence: split from std.gui.pdf.036. `PdfResidentPage.measure` records only
-  `page.memoryUsage()`. The resident entry also holds renderer textures, resolved fonts and a
-  lazily built text index. Item accounting includes text and path storage but cannot account for
-  those resident resources. The historical eight-page observation reported 18 MB while eviction
-  freed 34 MB; it is not a new measurement of this checkout.
+- Evidence: `PdfResidentPage.measure` records only `page.memoryUsage()`. The resident entry
+  also holds renderer textures, resolved fonts and a lazily built text index. Item accounting
+  includes text and path storage but cannot account for those resident resources. An earlier
+  eight-page observation reported 18 MB resident while eviction freed 34 MB.
 - Next: define which owned and shared allocations the budget covers, account for resident
   resources without double-counting shared typefaces, and compare against measured eviction.
 - Done when: decode, first paint, text indexing and zoom update the documented accounting,
@@ -146,8 +143,6 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   needs a real password reports that distinctly from a malformed file so a caller can ask for it.
 - Note: this is a decryption capability, not an authoring one. Never weaken, strip, or bypass a
   permission flag the file declares, and keep encryption *writing* out of scope.
-- Note: the object index is now read from the file's own trailer chain, so a decrypted string or
-  stream is decrypted per object as it is parsed rather than in a pass over everything.
 
 ### std.gui.pdf.002 — One unsupported construct loses the whole page
 
@@ -188,21 +183,15 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 ### std.gui.pdf.025 — Decoding a page costs five times what MuPDF charges for it
 
-- Evidence: the recorded, undated comparison against MuPDF 1.28.2 used the whole corpus, alternating the two so both saw
-  the same machine, in release configuration and taking the best of three. Opening the sixteen
-  files cost 7.8 ms against 16.0 ms. The first page of each
-  document cost 123 ms against 51.5 ms. Walking all 360 pages cost 1 262 ms against 259 ms.
-  These are historical measurements, not validation of the current checkout.
-- Note: this is measured on `Reader.open` and `Reader.loadPage`, which is what the viewer runs:
-  [[Gui.PdfView]] paints the decoded page through the application's renderer, so the offline
-  `Page.render` path is not on it. A stopwatch is only usable here when the machine is quiet;
-  the same binary varies threefold across runs under load, and every conclusion below came from
-  a counter or from two builds alternated in one sitting.
-- Next: decoding a page splits, from accumulators inside `decodePage` in one run, into 1.4% of
-  stream decompression, 1.9% of fonts, and the rest inside the content parser: images are 71% of
-  it for 150 draws, text 12% for 163 000 runs, paths 0.3%. So the next thing to understand is why
-  one image costs what a thousand text runs cost, and how much of that is the copy an image item
-  takes rather than the decode itself.
+- Evidence: a historical comparison with MuPDF 1.28.2 over the whole corpus, in release,
+  alternated and best of three, measured `Reader.open` and `Reader.loadPage`, which are what
+  [[Gui.PdfView]] runs. Opening the sixteen files cost 7.8 ms against 16.0 ms, the first page
+  of each document about 2.4x MuPDF, and walking all 360 pages about 4.9x. A profile from that
+  time put most of `decodePage` in the content parser, with images dominating (71% for 150
+  draws) ahead of text (12% for 163 000 runs). The decoder has changed since.
+- Next: rebaseline against MuPDF on a quiet machine by the same alternated method, then use
+  accumulators inside `decodePage` to split image cost between the decode and the copy an
+  image item takes (std.gui.pdf.026).
 - Done when: the corpus decodes within twice MuPDF, measured the same way.
 - Related: std.gui.pdf.026
 

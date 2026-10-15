@@ -18,103 +18,101 @@ module's roadmap.
 
 ### app.vault.002 — Unmounting has no explicit busy-versus-force contract
 
-- Owner: Swag Vault
-- Current `WinFspMount.stop` stops the dispatcher, removes the mount point, and destroys the
-  filesystem without a busy-result or force parameter. Define an ordinary unmount result for
-  open handles and an explicit forced-unmount flow, including confirmation, outstanding-I/O
-  cancellation, and a truthful result.
+- Evidence: `WinFspMount.stop` stops the dispatcher, removes the mount point and destroys the
+  filesystem with no busy result or force parameter.
+- Next: define an ordinary unmount that reports open handles, and a forced unmount with
+  confirmation and outstanding-I/O cancellation.
+- Done when: unmounting a busy volume reports it instead of proceeding, and a forced unmount
+  cancels outstanding I/O and returns a truthful result.
 
 ### app.vault.007 — No normative container-format specification
 
-- Owner: Swag Vault
 - Evidence: [hidden-volumes.md](../bin/apps/modules/swagvault/hidden-volumes.md) documents the
-  version-1 hidden-locator extension and its protection rules. The base layout remains described
-  by implementation comments in `volume/format.swg`, `keyslot.swg` and `journal.swg`; neither is
-  a complete independent specification of the container.
-- Write a normative format document independent of the implementation, covering layout, key
-  derivation, record framing, validation order, versioning, and failure indistinguishability.
+  version-1 hidden-locator extension; the base layout is described only by comments in
+  `volume/format.swg`, `keyslot.swg` and `journal.swg`.
+- Next: write a format document independent of the implementation covering layout, key
+  derivation, record framing, validation order, versioning and failure indistinguishability.
+- Done when: an independent implementer can read and validate a container from the document
+  alone.
 - Related: app.vault.008, app.vault.009, app.vault.010, app.vault.011, app.vault.012
 
 ### app.vault.003 — Additional password slots are not in the interface
 
-- Owner: Swag Vault
-- Problem: `Volume.addPassword` and `Volume.removePassword` still have no way in. A container can
-  hold four passwords and the interface only ever writes the one a reader opened it with.
-- Fix: a key-slot list that can add and revoke passwords and show how many slots are occupied
-  without claiming which password maps to which slot.
-- Note: the current format version is 1 and `KeySlotCount` is fixed at four. A password attempt
-  performs one Argon2id derivation followed by four authenticated opens. Changing the slot count
-  would change the physical header/data offsets and requires a format decision; it is not needed
-  to expose the four existing slots.
+- Evidence: `Volume.addPassword` and `Volume.removePassword` have no interface caller, so the
+  interface only ever rewrites the password a reader opened with, although a version-1 container
+  holds four key slots (`KeySlotCount`). Exposing them needs no format change.
+- Next: add a key-slot list that adds and revokes passwords and shows how many slots are
+  occupied without revealing which password maps to which slot.
+- Done when: a user can add, use and revoke a second password from the interface, and a full
+  container refuses a fifth with a clear message.
 
 ### app.vault.004 — Header backup and restore
 
-- Owner: Swag Vault
-- Problem: key slots and both alternating headers live in the same file. Damage to the only
-  usable password slot or to both header copies can make otherwise intact data inaccessible.
-  A damaged header alone can already fall back to the other checkpoint and replay the journal.
-- Fix: export and restore of an independent encrypted header file, exposed in the interface. The
-  export must cover the key slot area as well, because that is now where the master key lives.
-- Document the trap VeraCrypt also documents: restoring a backed-up header reinstates the passwords
-  that were current when the backup was taken.
+- Evidence: key slots and both alternating headers live in the same file; damage to the only
+  usable key slot or to both headers makes intact data inaccessible.
+- Next: add interface commands to export and restore an independent encrypted header file that
+  includes the key-slot area, documenting that a restore reinstates the passwords current at
+  backup time.
+- Done when: a container whose headers and key slots were overwritten opens again after restore,
+  and the interface warns about reinstated passwords.
 
 ### app.vault.010 — Crash tests do not interrupt writes and checkpoints
 
-- Owner: Swag Vault
-- `volume.test.swg` already corrupts a journal record and verifies that replay stops before later
-  records; it also checks alternating-header recovery and misplaced journal sequences. These are
-  completed-file mutations. Add deterministic partial-write injection and process termination
-  during checkpoint persistence to exercise the ordering of actual writes.
+- Evidence: `volume.test.swg` mutates completed files (corrupted journal records, alternating
+  headers, misplaced sequences); no test interrupts an actual write.
+- Next: add deterministic partial-write injection and process termination during checkpoint
+  persistence.
+- Done when: every injected interruption point reopens to a consistent earlier or later state.
 - Related: app.vault.007
 
 ### app.vault.011 — Large metadata has no end-to-end scale benchmark
 
-- Owner: Swag Vault
-- `nodeindex.test.swg` already exercises 100,000 in-memory nodes, and `volume.test.swg` crosses
-  metadata paging with 300 nodes using smaller test headers. Add a bounded end-to-end correctness
-  and performance run at 100,000 files, covering durable creation, reopen, lookup, enumeration,
-  checkpointing, deletion, and memory usage.
+- Evidence: `nodeindex.test.swg` exercises 100,000 in-memory nodes and `volume.test.swg` crosses
+  metadata paging with 300 nodes; nothing runs a durable container at that scale.
+- Next: add a bounded end-to-end run at 100,000 files covering creation, reopen, lookup,
+  enumeration, checkpointing, deletion and memory usage.
+- Done when: the run is correct and reports time and peak memory for each phase.
 - Related: app.vault.001, app.vault.007
 
 ### app.vault.001 — No block cache
 
-- Owner: Swag Vault
-- Problem: `Volume.readPhysical` decrypts and verifies the tag on every call, with no memory
-  between calls. Repeated reads still pay authentication and decryption, and an unaligned write
-  still costs a read, a decrypt, an encrypt and a write.
-- Fix: a bounded LRU cache of decrypted blocks, held in locked memory and wiped at unmount.
-- Related: a bounded cache is also the natural place to put an explicit memory budget, which any
-  later working-set investigation will need.
+- Evidence: `Volume.readPhysical` decrypts and verifies the tag on every call, so repeated reads
+  pay authentication again and an unaligned write costs a read, decrypt, encrypt and write.
+- Next: add a bounded LRU cache of decrypted blocks held in locked memory, wiped at unmount, with
+  an explicit memory budget.
+- Done when: repeated reads of a cached block skip decryption, the cache never exceeds its
+  budget, and unmount wipes it.
 
 ### app.vault.005 — Filesystem mutations still use one volume-wide lock
 
-- Owner: Swag Vault
-- Problem: WinFsp now uses its fine guard, reads can proceed concurrently, and large transfers run
-  bounded parallel crypto batches. Mutating callbacks still take one volume-wide exclusive lock,
-  so writes to independent files cannot overlap.
-- Fix: replace the exclusive side with per-node locks plus a metadata lock.
-- Sequencing: only alongside a concurrent stress test. Getting this wrong is a correctness failure,
-  not a performance regression.
+- Evidence: reads take the shared side of `accessLock`, but mutating callbacks take its exclusive
+  side, so writes to independent files cannot overlap.
+- Next: write a concurrent mutation stress test, then replace the exclusive side with per-node
+  locks plus a metadata lock.
+- Done when: writes to independent files overlap and the stress test stays correct.
 
 ### app.vault.008 — No published Swag Vault format test vectors
 
-- Owner: Swag Vault
-- Publish deterministic vectors for key derivation, headers, records, locators, and full minimal
-  containers so independent implementations can be compared.
+- Next: publish deterministic vectors for key derivation, headers, records, locators and full
+  minimal containers.
+- Done when: the vectors ship with the format document and a test checks the implementation
+  against them.
 - Related: app.vault.007, app.vault.012
 
 ### app.vault.009 — Attacker-controlled container decoders are not fuzzed
 
-- Owner: Swag Vault
-- Fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize`, and `JournalRecord.decode` with
-  reproducible corpora and sanitizer coverage.
+- Next: fuzz `Volume.restore`, `Volume.loadNodes`, `Node.deserialize` and `JournalRecord.decode`
+  with reproducible corpora and sanitizer coverage.
+- Done when: each decoder has a reproducible fuzz corpus and every crash found is fixed with a
+  regression input.
 - Related: app.vault.007, app.vault.012
 
 ### app.vault.012 — External audit
 
-- Owner: project
-- After app.vault.007. Until it happens, the format and the implementation have had no independent
-  cryptographic review, and Swag Vault is not a proven replacement for VeraCrypt on critical data — no
-  matter what else on this list ships.
+- Evidence: neither the format nor the implementation has had independent review, so Swag Vault
+  is not a proven replacement for VeraCrypt on critical data.
+- Next: commission an external audit once app.vault.007 provides the format document.
+- Done when: an independent audit report is published and its findings are resolved.
+- Related: app.vault.007
 
 ---

@@ -9,7 +9,7 @@
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Support/Core/DenseBits.h"
 
-// compiler.optimization.024: the interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005,
+// The interval-splitting linear scan of Wimmer & Mössenböck (VEE 2005,
 // the allocator of HotSpot's client compiler), as a second allocation path the
 // pass selects per function, with the existing scan as the always-available
 // fallback. This file owns everything interval-shaped; the walk mutates
@@ -2227,7 +2227,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     return true;
 }
 
-// compiler.optimization.099: joins the two values of a copy whose source stays live after it,
+// Joins the two values of a copy whose source stays live after it,
 // when the two never hold different contents while both are live, as LLVM's register coalescer
 // joins a copy's intervals through value numbers. The walk sees one interval per value and treats
 // any overlap as interference, so `d = s` with `s` still read later occupies two registers and

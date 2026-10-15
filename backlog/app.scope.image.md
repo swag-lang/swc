@@ -9,7 +9,7 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.012 — Camera RAW files show nothing
 
-- Intent: extract an embedded JPEG preview when a supported camera RAW container carries one.
+- Next: extract an embedded JPEG preview when a supported camera RAW container carries one.
   Full RAW development is out of scope; a missing or unsupported preview must be stated explicitly.
 - Done when: the embedded preview of the common TIFF-based RAW containers is extracted and
   displayed, with its source and preview metadata in the existing `MediaInfoPanel` and any encoded
@@ -84,10 +84,11 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.008 — The image-set selector has no item descriptions or thumbnails
 
-- Evidence: `ImageViewer` now browses every indexed format through `Movie` and a shared slider;
-  `viewer.imageset.test.swg` covers all nine multi-image codec paths, including unequal dimensions.
-  The slider and counter do not show the selected item's kind, name, dimensions, mip/layer/face
-  coordinates, or thumbnail, although `ImageFrameInfo` already supplies the indexed properties.
+- Evidence: the image viewer (`Viewers.Picture.Panel`) browses every indexed format through
+  `Movie` and one `timeline` slider; `viewer.imageset.test.swg` covers all nine multi-image codec
+  paths, including unequal dimensions. The slider and counter do not show the selected item's
+  kind, name, dimensions, mip/layer/face coordinates, or thumbnail, although `ImageFrameInfo`
+  already supplies the indexed properties.
 - Next: present those properties and lazy thumbnails in a collection selector over the existing
   reader, keeping animation playback distinct from independent-image selection.
 - Done when: item identity survives view changes and the selector shows each item's description,
@@ -142,12 +143,12 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 - Evidence: sibling navigation replaces the current image. There is no synchronized pair, flicker,
   opacity wipe, difference/heat map, alignment, or per-pixel delta readout.
-- Next: build a two-image comparison surface on app.scope.001 with synchronized transform and an explicit
-  alignment anchor.
+- Next: build a two-image comparison surface with synchronized transform and an explicit
+  alignment anchor, reusing app.scope.003's paired presentation and app.scope.image.001's probe.
 - Done when: side-by-side, overlay, flicker, absolute difference, and heat-map modes work;
   pan/zoom can synchronize; size/color-space mismatches are stated; and the pixel probe reports
   both values plus delta.
-- Related: app.scope.001
+- Related: app.scope.003, app.scope.image.001
 
 ### app.scope.image.009 — The displayed image cannot be copied or exported with an explicit transformation policy
 

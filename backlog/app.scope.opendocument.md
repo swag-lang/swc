@@ -138,11 +138,12 @@ layout engine or a complete package model.
 
 ### app.scope.opendocument.003 — ODF XML decoding has a bounded namespace-aware recovery policy
 
-- Evidence: the current tokenizer accepts the markup needed by the fixture corpus but does not
-  retain namespace declarations, document-version facts, foreign elements, or a structured recovery
-  record for malformed XML.
-- Next: define a streaming ODF XML reader with namespace resolution, depth, attribute, text, and
-  entity-expansion limits; retain unknown foreign subtrees as named components when safe.
+- Evidence: `appendXml` resolves scoped `xmlns` bindings to the conventional ODF prefixes, but
+  names in unknown namespaces keep their spelling and are dropped silently, no
+  document-version facts are retained, XML depth, attribute, text, and entity expansion have no
+  limits of their own, and malformed XML fails without a structured recovery record.
+- Next: add depth, attribute, text, and entity-expansion limits to the ODF XML reader, record
+  version facts, and retain unknown foreign subtrees as named components when safe.
 - Done when: compliant XML round-trips into the document model, malformed or oversized input
   stops at a deterministic limit, and ignored markup is reported with element and namespace names.
 - Related: app.scope.binary.010, app.scope.viewers.011

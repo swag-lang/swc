@@ -41,6 +41,8 @@ large-file work without editing, implicit network access, macros or source mutat
   (and text wrapping) across a host reload of the same file only; opening another file or
   restarting returns to 100%. Markdown already keeps its bounded scale in
   `Viewers.MarkdownText.g_ViewerSettings`, accepts Ctrl+wheel, and keeps the visible block anchored.
+- Next: route Ctrl+wheel to the existing zoom command in Text, Code, and HTML, and persist the
+  chosen zoom the way Markdown does.
 - Done when: a shared zoom command and Ctrl+wheel gesture change text size in every basic and
   format-specific text view, persist the choice, and leave streaming-window arithmetic correct.
 
@@ -152,8 +154,10 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.023 — Log files have no dedicated view
 
-- Intent: a log opens as Basic text at the beginning. End and Ctrl+End already seek to the file
+- Evidence: a log opens as Basic text at the beginning. End and Ctrl+End already seek to the file
   tail, but there is no start-at-tail preference, severity/timestamp model or event navigation.
+- Next: add a log mode that recognizes common severity and timestamp spellings and groups
+  continuation lines into events, with an option to open at the tail.
 - Done when: common severity and timestamp spellings are recognized with confidence, the
   reader can start at the tail, entries rather than wrapped screen lines are navigable, multiline
   stack traces remain attached to their event, and uncertain parsing falls back to exact text.
@@ -433,10 +437,12 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.015 — The table viewer is bounded to 32 MiB
 
-- Intent: the table viewer detects comma, semicolon, tab or pipe separators, understands quoted
+- Evidence: the table viewer detects comma, semicolon, tab or pipe separators, understands quoted
   fields and embedded line breaks, keeps its header visible, and virtualizes the GUI rows. It reads
-  at most 32 MiB because the parsed source rows are still resident; the streamed basic-text viewer
-  remains selectable for a larger file instead of the table exhausting memory.
+  at most 32 MiB (`FileLimit`) because the parsed source rows are still resident; the streamed
+  basic-text viewer remains selectable for a larger file instead of the table exhausting memory.
+- Next: stream source rows through a bounded window that resumes quoting state across chunk
+  boundaries, and update the row count as the file is indexed.
 - Done when: source rows are themselves streamed through a bounded window and the row count is
   updated as the file is indexed, without weakening quoting across chunk boundaries.
 

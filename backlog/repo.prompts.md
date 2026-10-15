@@ -7,10 +7,9 @@ agent working through the rounds instead of stopping at the first thing that doe
 Each prompt names the goal, the evidence to collect, the loop to run, the rules that must not be
 broken, and — most importantly — the condition under which the campaign is allowed to end.
 Prompts 2 through 7 use the shared working protocol below; copy-pasting one of them into a fresh
-session works because it explicitly points back to that protocol. Every number quoted below was
-measured on this tree and is reproducible with the command next to it.
-Re-measure historical numbers when the campaign needs them; use a fresh source inventory for
-code-quality campaigns.
+session works because it explicitly points back to that protocol. Numbers quoted below are
+historical context unless a prompt says otherwise; re-measure them when a campaign needs them,
+and use a fresh source inventory for code-quality campaigns.
 
 ## Backlog policy for every campaign
 
@@ -243,13 +242,11 @@ Do not repeat the same checks after every small edit: make a coherent batch, ver
 commit it. A session that runs for an hour without landing an accepted batch has gone wrong;
 change the hypothesis or the task instead of measuring more.
 
-Static evidence is only safe when it covers everything the batch changed. On 2026-10-10 batches
-were accepted on their target loop and two or three hand-picked sentinels; the allocator fast
-paths every allocation-heavy task runs gained up to 22 memory operands in the same batches, and
-nobody looked. The same day, two targets lost 4-8 % of their instructions per iteration with no
-measurable effect. Avoid both blind spots by checking the affected code and the paths it can
-reach. Run the full cross-task comparison periodically and whenever a change materially broadens
-its reach, not after every narrow batch.
+Static evidence is only safe when it covers everything the batch changed. A batch judged only on
+its target loop and a few hand-picked sentinels can add memory operands to shared paths such as
+the allocator fast paths, and an instruction cut on a target can have no measurable effect.
+Check the affected code and the paths it can reach. Run the full cross-task comparison
+periodically and whenever a change materially broadens its reach, not after every narrow batch.
 
 GOAL
 
@@ -262,27 +259,11 @@ The campaign's runtime milestones, across every current task, are:
   - Geometric mean of those per-task ratios at or below 1.15x.
   - No reproducible regression in another affected task concealed by an aggregate improvement.
 
-An accepted full campaign, 20261001-165313, recorded these native release times (ms):
-
-  task         swag    fastest other runtime     other ms   ratio
-  binarytrees  35.727  JavaScript / Node.js        10.290    3.472x
-  chacha       20.627  Odin                        23.392    0.882x
-  csvagg       16.168  C++ / clang-cl              15.827    1.022x
-  dijkstra     28.704  C++ / MSVC                  31.598    0.908x
-  fannkuch     14.882  Rust                        15.143    0.983x
-  leven        12.013  Odin                        12.477    0.963x
-  lz77         22.316  C++ / clang-cl              21.031    1.061x
-  nbody        22.382  Zig                         16.855    1.328x
-  raytrace      8.771  C++ / MSVC                   9.777    0.897x
-  sha256       32.236  Zig                         36.390    0.886x
-  sort         18.024  C++ / MSVC                  17.351    1.039x
-  wordfreq     44.648  D / LDC                     46.687    0.956x
-  geometric mean across all twelve tasks                   1.096x
-
-This is a selection aid, not a baseline for any individual edit. Recompute the inventory and
-winners from the latest accepted results when one is available. Exclude every Swag native and
-JIT variant from the competing runtimes. Verify actual toolchain versions and build options; do
-not assume C++ or LLVM wins. Treat close rankings within measurement uncertainty as ties.
+Rank the tasks by the ratio of `swag-release` to the fastest other runtime in the latest accepted
+full campaign's per-task results (bench/results/<stamp>.json), excluding every Swag native and
+JIT variant from the competitors. The ranking is a selection aid, not a baseline for any
+individual edit. Verify actual toolchain versions and build options; do not assume C++ or LLVM
+wins. Treat close rankings within measurement uncertainty as ties.
 
 The historical aggregate in bench/history.py deliberately covers the original seven tasks.
 Report the complete current task set separately, including nbody, fannkuch, binarytrees, lz77,
@@ -291,7 +272,7 @@ panels into one improvement claim or change the published history to hide its co
 
 START WITH A FOCUSED DIAGNOSIS, THEN EDIT
 
-Use existing evidence (backlog entries, earlier campaigns, the table above) to choose one
+Use existing evidence (backlog entries, earlier campaigns, the ranking above) to choose one
 important gap. Preserve a baseline compiler and its runtime folder outside the checkout, in a
 folder no other agent uses, so the final machine code can be compared before and after. Do not
 start with a full repository campaign or a complete cross-language benchmark.
@@ -380,11 +361,10 @@ next hypothesis while the machine is busy.
 
 Placement is not the batch. When a task's time moves while microdiff shows its hot functions
 unchanged, the move comes from where the code landed in the image, and neither credits nor
-blames the batch. Two placement effects were found and fixed in the emitter: loop headers
-aligned to 16 bytes (7e72000a8, csvagg 20 %), and a loop's closing compare-and-branch kept
-inside its 32-byte window (f4fafb1fc, leven 12 %). A further placement sensitivity is a compiler
-defect: find which instruction group sits badly (disassemble both images, compare the hot
-loop's offsets modulo 32 and 64) and fix the emitter, following LLVM's handling of the case.
+blames the batch. The emitter already aligns loop headers and keeps loop-closing branch pairs
+inside their 32-byte window; any further placement sensitivity is a compiler defect: find which
+instruction group sits badly (disassemble both images, compare the hot loop's offsets modulo 32
+and 64) and fix the emitter, following LLVM's handling of the case.
 
 Not accepted: a change whose only effect is code size, cold code, Micro instruction totals or
 resemblance to the competitor. Revert it, or keep it on the branch only as the enabling half of
@@ -503,11 +483,8 @@ zero, overflow, null dereference, constant out-of-bounds, undefined read, use af
 after move) in src/Backend/Sanitizer/Checks. Tests live in bin/unittests/sanity - borrow_escape,
 borrow_invalidation, collection_mutation - and bin/unittests/safety.
 
-What is left is precision, and the live entries in `backlog/compiler.safety.md` are the authority.
-They currently include parameter-owned views, macro and inline expansions judged against the
-wrong body, and a backend check the language rule has made unreachable from source. Re-read that
-file before choosing a round;
-do not preserve this summary after an entry moves or is retired.
+What is left is precision, and the live entries in `backlog/compiler.safety.md` are the
+authority. Re-read that file before choosing a round.
 
 THE LOOP
 
@@ -734,17 +711,10 @@ Make swc need a fraction of what it needs today, at the same speed. Memory is wh
 modules can compile at once, and it is what makes the difference between a language you can run as
 a script and one you cannot.
 
-Where it stands (2026-09-05, Release swc.exe, --num-cores 6, after the first round: finished
-jobs release their Sema and CodeGen, 64 KiB arena blocks, api-export index dropped):
-
-  - std/core rebuild (50 690 lines): 517 MB peak working set in devmode, 360 MB in release.
-    Before the round: 731 MB and 638 MB. That is still roughly 10 KB of resident memory per
-    source line in devmode.
-  - Hello world: 60 MB peak (was 73 MB). To print one line.
-  - Building the bench tasks: swc peaks at 58-66 MB (was 74-83 MB) where clang-cl peaks at
-    69 MB and MSVC at 82-101 MB. rustc peaks at 201 MB.
-  - The largest block still resident at peak is the static sanitizer's flow state; see
-    compiler.core.005 for the attribution and the next lever.
+Where it stands: there is no current attribution. compiler.core.005 asks for a fresh six-worker
+`core` DevMode rebuild and hello-build peak before a reduction is chosen; read the latest
+`hello_build_peak_mb` from bench/history.json instead of quoting it here. For comparison when
+the bench tasks were last measured, clang-cl peaked at 69 MB and MSVC at 82-101 MB.
 
 Targets:
 

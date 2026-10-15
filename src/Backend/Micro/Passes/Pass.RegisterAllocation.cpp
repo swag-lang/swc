@@ -4758,7 +4758,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     }
     setupPools();
 
-    // compiler.optimization.024: the gated interval path replaces everything below when it
+    // The gated interval path replaces everything below when it
     // succeeds; any bail falls back to the existing allocator untouched.
     if (runIntervalAllocation())
     {

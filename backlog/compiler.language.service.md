@@ -6,17 +6,13 @@ Entries stay in one flat list. Keep each outcome testable.
 
 ### compiler.language.service.001 — Editor analysis rebuilds semantic state for each snapshot
 
-- Evidence: `vscode/src/server.js` keeps an LSP session with versioned open buffers, cancellation,
-  shutdown, and module snapshots. `swc sema --editor-index` exports compiler-resolved symbols;
-  `--editor-overlay` supplies unsaved buffers without replacing disk files. The editor worker now
-  retains one `CompilerInstance` per project/compiler pair. It reuses unchanged parsed and resolved
-  files, rebuilds changed files and the reverse dependency closure observed through resolved and
-  folded symbols, and ignores retired declarations while preserving unchanged module interfaces.
-  Cancellation of a stale LSP snapshot drops its result after the current pass so the retained
-  compiler can serve the next snapshot; a timeout still terminates that worker. Module manifest
-  changes start a fresh compiler instance. Dependency invalidation is conservative at file level,
-  and prior AST/source revisions remain alive because append-only symbol maps can still refer to
-  their declarations.
+- Evidence: the editor service (`src/Main/EditorService.cpp`) retains one `CompilerInstance`
+  per project/compiler pair. It reuses unchanged parsed and resolved files and rebuilds
+  changed files plus their reverse dependency closure, observed through resolved and folded
+  symbols. A module-manifest change starts a fresh instance. Invalidation is file-level and
+  conservative. Old AST/source revisions stay alive because append-only symbol maps can
+  still refer to them. A stale snapshot is dropped only after the current pass, and a
+  timeout terminates the worker.
 - Next: fingerprint observed symbol interfaces so private body edits do not reanalyze consumers,
   reclaim retired AST/source revisions safely, and add cancellation points inside compiler jobs.
   Keep the existing LSP integration tests as the transport-independent contract.
@@ -73,10 +69,10 @@ Entries stay in one flat list. Keep each outcome testable.
 
 ### compiler.language.service.008 — Offer semantic cleanup edits with explicit preservation checks
 
-- Evidence: the bin/ cleanup changed 53 direct-return bodies, five declaration/with pairs and
-  two relay locals. Candidate searches also found deliberate language-test syntax, owning locals
-  and typed temporaries which cannot safely be removed by a textual rewrite. The formatter
-  normalizes source shape; it cannot decide ownership, overload selection or evaluation effects.
+- Evidence: candidate cleanups (direct-return bodies, declaration-bound `with`, relay locals)
+  also match deliberate language-test syntax, owning locals and typed temporaries, which a
+  textual rewrite cannot safely remove. The formatter normalizes source shape but cannot
+  decide ownership, overload selection or evaluation effects.
   Existing LSP entries cover diagnostics, navigation, completion and rename, not these rewrites.
 - Proposed contract: a compiler-backed suggestion produces a previewable, versioned source edit
   only after proving the specific transformation preserves meaning. Start with expression bodies,
@@ -99,28 +95,29 @@ Entries stay in one flat list. Keep each outcome testable.
 
 ### compiler.language.service.006 — The editor has no semantic completion service
 
-
-**Intent.** Provide completion candidates from the semantic snapshot at a source position, including local scope, members, visible imports, generic parameters, and applicable language constructs.
-
-**Done when.**
-
-- Completion operates on unsaved, syntactically incomplete buffers and honors shadowing and visibility.
-- Items include stable kind, insertion text, signature/detail, and documentation fields where available.
-- Results are deterministic and cancellable, and a stale request cannot populate a newer buffer.
-- Protocol tests cover local, member, import, generic, incomplete-expression, and inaccessible-symbol cases.
-
-**Related:** compiler.language.service.001, compiler.language.service.003, compiler.language.service.005.
+- Evidence: the LSP server (`vscode/src/server.js`) advertises hover, definition, references,
+  document symbols, inlay hints and semantic tokens, but no completion.
+- Next: add a completion query on the compiler snapshot at a source position, covering local
+  scope, members, visible imports, generic parameters and applicable language constructs,
+  and expose it through the LSP server.
+- Done when: completion works on unsaved, syntactically incomplete buffers and honors
+  shadowing and visibility. Items carry stable kind, insertion text, detail and
+  documentation where available. Results are deterministic and cancellable, and a stale
+  request cannot populate a newer buffer. Protocol tests cover local, member, import,
+  generic, incomplete-expression and inaccessible-symbol cases.
+- Related: compiler.language.service.001, compiler.language.service.003,
+  compiler.language.service.005.
 
 ### compiler.language.service.007 — The editor cannot rename a symbol semantically
 
-
-**Intent.** Validate a requested identifier at a resolved declaration, reuse the semantic reference set, and produce a versioned workspace edit without changing unrelated text.
-
-**Done when.**
-
-- Prepare-rename rejects keywords, compiler-generated or immutable declarations, ambiguous positions, and names that would create a known collision.
-- Rename covers declarations and references across open and on-disk workspace files while preserving comments and strings.
-- Edits are sorted, non-overlapping, versioned where required, and rejected when snapshots become stale.
-- Protocol tests cover shadowing, members, overloads, aliases, cross-module use, collision, and cancellation.
-
-**Related:** compiler.language.service.001, compiler.language.service.004.
+- Evidence: the LSP server offers references within one module but no prepare-rename or
+  rename request.
+- Next: implement prepare-rename on a resolved declaration that rejects keywords,
+  compiler-generated or immutable declarations, ambiguous positions and known collisions.
+  Then produce a versioned workspace edit from the compiler.language.service.004 reference
+  set.
+- Done when: rename covers declarations and references across open and on-disk workspace
+  files and preserves comments and strings. Edits are sorted, non-overlapping, versioned
+  where required, and rejected when snapshots become stale. Protocol tests cover shadowing,
+  members, overloads, aliases, cross-module use, collision and cancellation.
+- Related: compiler.language.service.001, compiler.language.service.004.

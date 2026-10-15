@@ -18,11 +18,11 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.016 — Important hexadecimal commands need first-class actions and shortcuts
 
-- Evidence: the visible command group exposes row width, value width, representation, and byte
-  order selectors. Go To, copy-as-bytes, copy-as-text, copy-as-dump, and select-all are reachable
-  only through the context menu; the compact commands button that also exposed them has been
-  removed. Pattern search is discoverable through the shared search field, and only byte copy,
-  select-all, and Go To have keyboard shortcuts.
+- Evidence: the visible command group exposes row width, value width, representation, byte
+  order, and the analysis action. Go To, copy-as-bytes, copy-as-text, copy-as-dump, and
+  select-all are reachable only through the context menu. Pattern search is discoverable through
+  the shared search field, and only byte copy (Ctrl+C), select-all (Ctrl+A), and Go To (Ctrl+G)
+  have keyboard shortcuts.
 - Next: rank the frequent commands, give each one action identity and shortcut metadata, then expose
   the dominant Go To and copy actions directly in the viewer band.
 - Done when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,
@@ -274,14 +274,8 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.022 — Existing hexadecimal guarantees lack boundary and interaction tests
 
-- Evidence: current tests cover ordinary and synthetic multi-gigabyte streaming geometry, 16-digit
-  offsets, scalar modes, navigation, the named 1 MiB copy bound, search reveal, late short reads,
-  byte/nibble/scalar patterns across search-chunk boundaries, invalid search input, visible search
-  marks, the compact inspector including binary/octal/boolean readings and file percentage,
-  analysis reruns on live selection, rich Go To forms, context-menu command routing, explicit byte
-  order, font zoom/reset, focus-safe mouse capture, non-integer DPI, live English/French wording,
-  layout, and dark-theme goldens. Slow-I/O behavior, external file-version changes, and
-  accessibility have no deterministic seam yet.
+- Evidence: slow-I/O behavior, external file-version changes, and accessibility have no
+  deterministic test seam; `Viewers.Hex.Document` reads the file directly.
 - Next: add the injectable range-reader seam with app.scope.hexa.007/app.scope.hexa.008, then test delayed completion and
   version changes without timing or filesystem races, and add accessibility coverage with app.scope.hexa.014.
 - Done when: those remaining guarantees have deterministic focused tests, generated fixtures

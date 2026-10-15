@@ -137,8 +137,8 @@ struct MicroPassContext
     // restored from. Reset with the rest of the pipeline state.
     SmallVector<MicroReg> globalReservedRegs;
 
-    // The first sweep assigned the function with the interval allocator
-    // (compiler.optimization.024). Its output holds every value under a register's own name, so a
+    // The first sweep assigned the function with the interval allocator.
+    // Its output holds every value under a register's own name, so a
     // later sweep allocates through the concrete-liveness guards alone and
     // globalReservedRegs lists what that sweep may borrow around a scratch -
     // every pool register - rather than what it must keep away from.

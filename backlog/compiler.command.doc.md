@@ -19,81 +19,76 @@ not the discovery.
 
 ### compiler.command.doc.002 — Search stops at the page it is printed in
 
-- Each page now prints its own index and one inline script that searches it, so a page stays a
-  single file that reaches nothing. The cost is the boundary: from `std.core.html` no query
-  reaches `Gui.Widget`, and finding a symbol still means knowing which module declares it.
-- One shared index loaded by every page is what rustdoc does, and it is exactly the second file
-  the identity rule refuses ([design-swag-identity](../.agents/skills/design-swag-identity/SKILL.md)).
-  Two ways out that do not ask for it:
-  - A `search.html` carrying the whole workspace index and the same script, linked from the
-    header. One page pays the weight; every other page stays as it is.
-  - A no-hit fallback: each page also knows the workspace's module page names, so a query with no
-    local match offers `Gui`, `Pixel`, and the rest as places to continue.
+- Evidence: each page prints its own index and inline search script (`DocSearch`), so a page
+  stays a single file that reaches nothing. From `std.core.html`, no query reaches
+  `Gui.Widget`. A shared index loaded by every page is the second file that the identity
+  rule refuses ([design-swag-identity](../.agents/skills/design-swag-identity/SKILL.md)).
+- Next: choose between two options and implement it:
+  - a `search.html` that carries the whole workspace index with the same script and is
+    linked from the header
+  - a per-page no-hit fallback that offers the workspace's module pages as places to
+    continue
+- Done when: a query typed on any page can lead to a symbol declared in another module of the
+  workspace, while every other page stays one self-contained file.
 
 ### compiler.command.doc.001 — Code examples in documentation are rendered, never compiled
 
-- Every ```` ```swag ```` fence goes through `DocMarkdown::renderCodeBlock`, which syntax-colors it
-  and stops there. Nothing compiles it. The `truetype` module header carries a nine-line worked
-  example ([module.swg](../bin/std/modules/truetype/module.swg)) that no build checks.
-- rustdoc compiles and runs every example as a test; Go compiles `Example` functions and checks
-  their output. It is the reason their documentation does not rot.
-- Swag is unusually well placed here: `#test` exists, and `#run` executes real compiled code, so a
-  doc example is one synthesized test function away. This would turn every example in `bin/` from
-  a liability into coverage.
-- This is the highest value-to-effort entry in the command.
+- Evidence: every ```` ```swag ```` fence goes through `DocMarkdown::renderCodeBlock`, which
+  only syntax-colors it. Nothing compiles it, so examples such as the worked example in the
+  `truetype` module header ([module.swg](../bin/std/modules/truetype/module.swg)) are
+  unchecked.
+- Next: synthesize one `#test` per documentation example and compile and run it with the
+  module's tests, with an explicit marker for a fence that must not be compiled.
+- Done when: every unmarked ```` ```swag ```` example in `bin/` is compiled and run by the test
+  suite, and a broken example fails with a location inside its documentation comment.
+- Elsewhere: rustdoc compiles and runs every example; Go compiles `Example` functions and
+  checks their output.
 
 ### compiler.command.doc.003 — There is no serializable documentation model
 
-- The pipeline collects `DocItem`/`DocOverload` ([DocTypes.h](../src/Doc/DocTypes.h)) and renders
-  straight to HTML. Nothing else can consume it.
-- rustdoc emits JSON and Doxygen emits XML, which is how API-diffing, coverage reports, and
-  third-party doc sites exist for those languages. Swag has a genuine half of this already —
-  `--export-api-dir` publishes the public surface as Swag source — so what is missing is narrow:
-  a stable serialization of *items plus their documentation and links*.
+- Evidence: the pipeline collects `DocItem`/`DocOverload` ([DocTypes.h](../src/Doc/DocTypes.h))
+  and renders straight to HTML, so nothing else can consume it. `--export-api-dir` publishes
+  the public surface as Swag source, but not the items with their documentation and links.
+- Next: define a versioned serialization of the collected model, with stable item identity,
+  kind, signature, documentation, links and source location, and emit it from `swc doc`
+  beside the HTML.
+- Done when: a documentation run can write the serialized model, its item identities stay
+  stable across runs on unchanged sources, and a test reads it back.
 - Related: compiler.command.doc.004, compiler.command.doc.005
 
 ### compiler.command.doc.004 — No public-API diff consumes the documentation model
 
-
-Once compiler.command.doc.003 publishes stable item identities and signatures, compare two serialized models and
-report source-compatible additions, removals, and changes without scraping HTML.
-
+- Evidence: no tool compares two public surfaces without scraping HTML.
+- Next: once compiler.command.doc.003 publishes stable item identities and signatures,
+  compare two serialized models and report additions, removals and signature changes.
+- Done when: a command reports source-compatible additions, removals and changes between two
+  serialized models, with a test for each kind.
 - Related: compiler.command.doc.003
 
 ### compiler.command.doc.005 — No documentation-coverage report
 
-
-Report undocumented public symbols from the semantic documentation model, with a warning contract
-that can be enforced independently of API diffing.
-
+- Evidence: nothing reports undocumented public symbols.
+- Next: report undocumented public symbols from the compiler.command.doc.003 model, with a
+  warning contract that can be enforced independently of API diffing.
+- Done when: `swc doc` lists or warns on every undocumented public symbol of a module, and a
+  test covers a documented and an undocumented declaration.
 - Related: compiler.command.doc.003, compiler.command.doc.004
 
 ### compiler.command.doc.006 — A documentation run spends nine tenths of its time re-running sema
 
-- Area: compiler
-- Found while: investigating why some documentation pages take several seconds to generate
-- Observation: `swc doc` runs full workspace sema on every invocation, with or without
-  `--rebuild`, and the per-module stage line the user reads as "doc time" is dominated by it.
-  The page generation itself is small: with the reachable-node index in place, the doc side of
-  the whole `std` workspace is under 1 s of a ~8 s wall run (instrumented build, 22 workers), and no
-  single module keeps a doc stage above ~0.3 s. Inside the sema time, compile-time execution
-  JIT-emits 7 803 functions: session timers report 77 s CPU of semantic analysis plus 24.5 s CPU
-  codegen and 21.7 s CPU micro lowering, against 2.7 s parser and 0.7 s lexer. Each module also
-  re-analyzes its dependencies' exported public API (`ogl` has 29 own sources but sema
-  processes 133 files).
-- Evidence: an instrumented `swc doc --workspace bin/std --doc-output-dir <tmp> --rebuild` run,
-  with timing probes around `Command::doc`'s sema call and inside
-  `DocApi::generate` ([Command.Doc.cpp](../src/Main/Command/Command.Doc.cpp),
-  [DocApi.cpp](../src/Doc/DocApi.cpp)). Omitting `--rebuild` changes nothing: a doc run persists
-  no sema artifact it could reuse. A later six-worker DevMode probe counted 10 877 JIT
-  preparation roots across `std`: 6 929 constant calls, 702 constant-set calls, 2 608 immediate
-  statements, 263 run expressions, 210 function results, and 165 statements. The hottest roots
-  were `isStruct` (3 092), `__message_0` (2 605 immediate statements), `isEnum` (1 239),
-  `fromArgb` (644), and `fourCc` (581). Suppressing optional constant folding for `doc` changed
-  no measurable wall time (25.66 s versus a 25.25 s baseline), so that experiment was reverted:
-  repeated preparation requests are not evidence that they emit or lower a function again.
-- Next step: attribute each newly emitted function and its lowering CPU to the first JIT root and
+- Evidence: `swc doc` runs full workspace sema on every invocation, with or without
+  `--rebuild`, and persists no sema artifact. On the whole `std` workspace, page generation
+  takes under 1 s of a ~8 s wall run. Sema dominates, mostly through compile-time execution
+  that JIT-emits about 7,800 functions (77 s CPU sema, 24.5 s CPU codegen, 21.7 s CPU micro
+  lowering). Each module also re-analyzes its dependencies' exported API: `ogl` has 29 own
+  sources, but sema processes 133 files. The hottest JIT preparation roots are `isStruct`,
+  `__message_0`, `isEnum`, `fromArgb` and `fourCc`. Suppressing optional constant folding
+  for `doc` changed no wall time.
+- Next: attribute each newly emitted function and its lowering CPU to the first JIT root and
   dependency closure that demanded it, excluding already-ready preparations. Start with the
-  `isStruct`/`isEnum` closures and the repeated `__message_0` path; only then decide whether a
-  doc-mode fast path exists. Persisting sema and codegen across invocations remains compiler.core.002/compiler.core.003.
+  `isStruct`/`isEnum` closures and the repeated `__message_0` path, then decide whether a
+  doc-mode fast path exists.
+- Done when: `swc doc --workspace bin/std` no longer pays for JIT emission or lowering its
+  pages do not need, or the attribution shows that no doc-mode fast path exists and the
+  remaining cost is left to compiler.core.002 and compiler.core.003.
 - Related: compiler.core.002, compiler.core.003

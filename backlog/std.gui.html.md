@@ -55,8 +55,6 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 
 ### std.gui.html.023 — `z-index` does not hoist a positioned descendant into its stacking context
 
-- Historical provenance: split from std.gui.html.006, which owned it beside the containing-block
-  resolution that has since shipped.
 - Evidence: `paintChildren` orders positioned *siblings* by `stackingLevel` within their parent, and
   `hasStacked` is set on a box only when one of its own children carries a non-zero level. A
   positioned box nested under static ancestors therefore paints at its tree level: a `z-index: 10`
@@ -106,10 +104,9 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 
 ### std.gui.html.015 — Cascade layers collapse into source order
 
-- Evidence: `addSubSelectors` rejects an argument when compound parsing leaves unconsumed input;
-  `htmlview.test.swg` covers `:is(nav a)` and `:not(nav a)` without applying a truncated selector.
-- Intent: `@layer` blocks are still unwrapped into plain source order, so a sheet that uses
-  layers to de-prioritize its reset cascades in the wrong order.
+- Evidence: `@layer` blocks are parsed like `@supports` (`stylesheet.swg`), unwrapped into
+  plain source order, so a sheet that uses layers to de-prioritize its reset cascades in the
+  wrong order.
 - Done when: layers retain their declared order, ordinary layered rules order below unlayered
   rules, and important declarations reverse layer precedence, with focused cascade tests.
 
@@ -124,14 +121,13 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 
 ### std.gui.html.020 — What is left between this parser and a zero-copy one
 
-- Intent: the page above parses in 130 ms where `tl` takes 64 ms. Where the remaining difference
-  sits, measured by ablation on the 8.15 MB page: the tokenizer's own scan is about 40% of the
-  time, storing text about 30%, storing attributes about 24%, and building the 430 k nodes
-  themselves under 10 ms. Nothing here is a single missing idea any more — it is the write traffic
-  of 430 k nodes and 289 k attributes against a scan that already runs at about 100 MB/s.
-- Evidence: file loading, `createText`, and text replacement now call `reserveForSource`.
-- Next: refresh the profile after those reservations, then examine the two per-attribute costs: the
-  `class` test on every attribute name, and the pool append that follows it.
+- Evidence: `tests/datas/html.rustdoc-large.html` (8.15 MB, about 430 k nodes and 289 k
+  attributes) parsed in about 130 ms, against 64 ms for the zero-copy Rust `tl` crate. By
+  ablation, the tokenizer scan was about 40% of the time, storing text about 30%, storing
+  attributes about 24%, and building nodes under 10 ms. Source-sized reservations
+  (`reserveForSource`) have landed since that profile.
+- Next: re-profile the fixture, then examine the two per-attribute costs: the `class` test on
+  every attribute name, and the pool append that follows it.
 - Done when: the page parses under 100 ms, or the remaining distance is recorded here as the
   cost of the data model rather than of the code.
 
@@ -166,7 +162,7 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 
 - Intent: `layoutTable` assigns each cell to the column of its index, so a header spanning three
   columns compresses into one and every row below it shifts. Spans are the first thing a real
-  table uses. This was second in line in the old combined entry.
+  table uses.
 - Done when: a cell's `colspan` and `rowspan` attributes place and size it across its
   columns and rows, column min/max measurement distributes a spanning cell's width over the
   columns it covers, and `html.tables.html` gains span cases checked against a browser.

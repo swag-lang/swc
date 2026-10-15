@@ -7,9 +7,10 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.013 — CFF OpenType fonts do not reach the font specimen
 
-- Evidence: `fontViewerPlugin` selects `.ttf` and `.ttc`, and `fontPluginProbe` explicitly
-  excludes the `OTTO` signature. The shared `TrueType.Face` engine can load CFF OpenType,
-  but those files currently reach the Binary viewer's sfnt report instead of a specimen.
+- Evidence: the font viewer's `viewerPlugin` (`viewers/font/viewer.swg`) selects `.ttf` and
+  `.ttc`, and its `pluginProbe` leaves the `OTTO` signature unclaimed. The shared `TrueType.Face`
+  engine can load CFF OpenType, but those files reach the Binary viewer's sfnt report instead of
+  a specimen.
 - Next: validate CFF face loading through Pixel's typeface cache, then register `.otf` and
   the matching content probe at the viewer boundary. Keep unsupported font containers explicit.
 - Done when: a small licensed CFF OpenType fixture and a renamed copy both open a readable

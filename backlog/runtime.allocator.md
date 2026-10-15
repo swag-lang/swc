@@ -19,59 +19,43 @@ replace the allocator; a similar architecture alone does not establish comparabl
 
 ### runtime.allocator.002 — Close the remaining distance on the allocation hot path
 
-- Evidence: repeated release allocator measurements still leave `pair`, `trees`, mixed small
-  allocations, and concurrent large blocks materially slower than mimalloc. The ordinary Core
-  allocation path is scalar and inline, while `Memory.free` constructs an `AllocatorRequest`
-  and dispatches through `IAllocator.free`. Allocation and free each read the context; the page
-  path also reads its own thread-local heap slot.
-- Next: reduce the remaining request, dispatch, and thread-local lookup work, using the emitted
-  common path to attribute the gain. A scalar `Memory.free` kept out of line improved `pair`
-  but did not improve mixed live-set workloads; do not select that shape from `pair` alone.
-  Outlining allocation fallback and moving OS operations outside cache/segment locks likewise
-  need evidence beyond an initial favourable window before being reconsidered.
-  Assess any direct small-size page index separately: its standalone mixed-size and application
-  checks did not establish the gain seen when combined with other allocator layout changes.
-  Compare the TLS lookup in `freeFast` with the vendored mimalloc's page-local thread token
-  check (`mi_free_ex` and `_mi_prim_thread_id`). A token experiment must store its identity in
-  the page and preserve retirement publication; a remote free must not dereference an owner
-  heap that another thread can destroy.
-  Outlined 32/64-byte fast allocation improved aligned batches but regressed the ordinary
-  allocation/free pair by about 11%. Before retrying it, inspect the default-alignment caller's
-  generated code and layout, and require repeated ordinary-workload controls. The frame
-  compaction pass now drops the storage of inline branches a caller folds away, so class
-  rounding may be retried inside the inline fast path.
-- Preserve the release contract before inlining a scalar free. The interface call supplies
-  `SanityRelease` for `request.address`; merely calling `freeFast` loses that boundary. A private
-  freeing helper inside an inline public wrapper must also retain the caller's diagnostic
-  location. Use `inline_allocator_free.swg`, `use_after_free_parameter_location.swg`, and the
-  imported `lifecycle_summary.test.swg` boundary, together with custom allocator and diagnostic
-  mode tests. Related compiler work: compiler.optimization.113 and compiler.optimization.114.
-- Keeping one emptied page per class on its heap brought the gated `spreadrep:8` from 27.7 to 15.7 ns per operation against mimalloc's 11.7, and the slowest worker from 176 to 44 ns; the single-thread `spreadrep` stays faster than mimalloc (21 against 36 ns). What eight threads still contend for is the segment mutex of the pages a class acquires beyond its spare.
-- Measurement limits: use rotating before/after runs and identical-binary controls, inspect
-  within-window variation, and repeat concurrent workloads. Admission alone cannot detect work
-  that starts during a measurement. Also compare independently rebuilt controls when application
-  timings move without changed application micro-instructions: code/data placement needs its own
-  attribution. The short `spread` workloads still include thread lifecycle
-  costs (runtime.allocator.001). Large-block peak working set remains substantially below
-  mimalloc's; preserve that distinction from the idle-retention question.
+- Evidence: release measurements leave `pair`, `trees`, mixed small allocations, and
+  concurrent large blocks materially slower than mimalloc. Under `spreadrep:8`, threads still
+  contend on the segment mutex for pages a class acquires beyond its retained spare. Inline
+  `Memory.free` builds an `AllocatorRequest` and dispatches through `IAllocator.free`.
+  Allocation and free each read the context, and the page path also reads its thread-local
+  heap slot.
+- Next: reduce the request, dispatch, and thread-local lookup work, attributing each gain from
+  the emitted common path. Compare `freeFast`'s TLS lookup with mimalloc's page-local thread
+  token (`mi_free_ex`, `_mi_prim_thread_id`). A token must live in the page, preserve
+  retirement publication, and never let a remote free dereference an owner heap that another
+  thread can destroy.
+- Rejected shapes, not to be retried without new evidence: an out-of-line scalar
+  `Memory.free`, which helped only `pair`; an outlined 32/64-byte fast allocation, which made
+  the ordinary pair about 11% slower (inspect the default-alignment caller's code and layout
+  first); a standalone direct small-size page index; and outlined allocation fallback or OS
+  calls moved outside cache/segment locks. Class rounding inside the inline fast path may be
+  retried, because frame compaction now drops folded-away branch storage.
+- Constraint: an inlined scalar free keeps the `SanityRelease` boundary on `request.address`
+  and the caller's diagnostic location. Guard it with
+  `bin/unittests/sanity/inline_allocator_free.swg`,
+  `bin/unittests/sanity/use_after_free_parameter_location.swg`, `lifecycle_summary.test.swg`,
+  and the custom-allocator and diagnostic-mode tests.
+- Measurement: use rotating before/after runs, identical-binary controls, and repeated
+  concurrent workloads. Attribute code/data placement separately when application timings
+  move without changed micro-instructions.
 - Done when: generated-code attribution and repeated application/allocator measurements meet
   runtime.allocator.001's throughput and retention gate without losing allocator contracts.
+- Related: runtime.allocator.001, compiler.optimization.113, compiler.optimization.114
 
 ### runtime.allocator.001 — Complete comparable allocator workload and retention measurements
 
-- `bench/allocator/src/allocbench.swg` and `allocbench.c` provide fourteen single-thread and
-  concurrent workloads, including live-set growth without frees, plus opt-in `aligned` batches,
-  `huge` blocks, the gated repetition `spreadrep` and the retention run `retain`. Every run also
-  reports the slowest worker's time per operation beside the end-to-end figure, and `--latency`
-  reports per-operation 50th and 99th percentiles; the Swag program also reports its system
-  calls. The harness records medians, peak working set, and peak commit in fresh pinned
-  processes and rotates implementation order. The remaining scope is representative
-  application traces.
-- Timing boundary: both programs start the clock before thread creation and close the worker
-  handles inside it; the Swag program also creates its threads suspended and resumes them with a
-  context to inherit, which the worker timing excludes.
-- Next: run the campaign with the gated, latency and system-call figures on a quiet machine
-  and record them.
+- Evidence: `bench/allocator` (`allocbench.swg`, `allocbench.c`, `run.py`; protocol in its
+  README) measures the synthetic, gated (`spreadrep`), latency, system-call, and retention
+  (`retain`) figures in fresh pinned processes with rotated order. No quiet-machine record of
+  those figures exists, and no representative application trace is measured.
+- Next: run and record the campaign with the gated, latency, and system-call figures on a quiet
+  machine, then add representative application traces.
 - Parity gate: geometric-mean throughput within 10% of mimalloc, no representative workload
   more than 25% slower, and no unbounded retained-memory case.
 - Done when: repeated comparable results cover the listed workloads and parity gate, with
@@ -79,24 +63,15 @@ replace the allocator; a similar architecture alone does not establish comparabl
 
 ### runtime.allocator.005 — Scale the large-block cache with threads
 
-- Header-path blocks are reserved at one of eight sizes per power of two and commit only what the
-  request reaches; freed ones go to a best-fit cache (up to twice the request) indexed in the
-  allocator, behind a per-thread front of the last sixteen blocks a thread freed under 2 MiB,
-  which its own requests take without a lock. The list of ordinary live headers is sharded eight
-  ways by address, and only the live byte count moves on every operation.
-- Remaining: `large:4` (four threads cycling 64 KiB-1 MiB buffers) ran between 0.9 and 1.9
-  times mimalloc's time across three nine-round windows on a shared machine, against the 1.25
-  gate of runtime.allocator.001, and 20% faster than the same runtime without the front in a
-  direct comparison, at about half mimalloc's peak working set; single-thread `large` is faster
-  than mimalloc in every window. The cache now holds up to 256 blocks inside the same byte
-  budget, which the `large:4` live set of 128 blocks no longer overflows: 1392 to 1236 ns in
-  seven rotating rounds, at the same peak working set, and 1032 against mimalloc's 1042 in the
-  quietest window of the day. What is left per operation is the
-  live-byte atomic, the shard lock, the clock read on free, the global cache lock and its
-  linear best-fit scan on a front miss, and the page faults of a block that came from the
-  system, which mimalloc's page cache avoids more often.
-- Next: repeat `large:4` on a quiet machine to place it against the gate; then measure a front
-  keyed by size class rather than best-fit, and the cache lock held only when the front has no
+- Evidence: header-path blocks are freed into a best-fit cache (up to twice the request, 256
+  entries inside the byte budget), behind a lock-free per-thread front of the last sixteen
+  blocks under 2 MiB, with live headers sharded eight ways. On a front miss, each operation
+  still pays the live-byte atomic, the shard lock, the clock read on free, the global cache
+  lock with its linear best-fit scan, and page faults on blocks fresh from the system.
+  `large:4` lies around the 1.25 gate but has been measured only on a shared machine, at
+  about half mimalloc's peak working set.
+- Next: repeat `large:4` on a quiet machine to place it against the gate, then measure a front
+  keyed by size class instead of best-fit, and the cache lock taken only when the front has no
   candidate, with rotating runs and the application check.
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.

@@ -11,7 +11,7 @@ SWC_BEGIN_NAMESPACE();
 // folding and dead-branch removal then leave most of those slots unreferenced, but the
 // prologue keeps subtracting the whole layout: an allocation fast path inlined into a
 // recursive function paid for the locals of the branches its constant arguments had
-// folded away (compiler.optimization.129). The pass runs once on the converged pre-RA IR:
+// folded away. The pass runs once on the converged pre-RA IR:
 // it maps every surviving frame access to its object, drops the objects nothing reaches,
 // packs the rest in their original order, and rewrites the displacements, the entry
 // subtract and the releases. An access it cannot explain - a stack-pointer use at an

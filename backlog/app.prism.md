@@ -28,21 +28,15 @@ in their viewer, and the readouts report measured compilation and frame renderin
 
 ### app.prism.002 — Read the pipeline instead of printing it
 
-
-The output pane retains the compiler's terminal colors while displaying plain selectable text. The compiler knows
-much more than that text: `MicroPassManager` prints a header naming the stage, the optimization
-level, and the instruction count before and after with the gain it produced, and it colors every
-token by a `SyntaxColor` category that separates a physical register from a virtual one.
-
-Parsing that header turns the pane into the view the application is for: a frieze of the stages
-with the instruction count under each, a mark on the passes that changed the function and on those
-that left it alone, and a diff between the two sides of one pass. `SyntaxColorMode::ForDoc` already
-emits the same categories as tags rather than as escapes, which is the stream to read.
-
-Next: parse the `[micro]` header and instruction block, map the categories onto the theme palette,
-and show the count and the gain beside the stage selector.
-
-- Done when: The viewer groups parsed `[micro]` stages, shows each stage's instruction counts and gain, distinguishes changed passes, and renders a selectable before/after diff with category colors across shipped themes; malformed or incomplete compiler output remains readable and has focused coverage.
+- Evidence: the output pane shows plain selectable text in the compiler's terminal colors.
+  `MicroPassManager` prints a `[micro]` header with stage, optimization level and instruction
+  counts before and after with the gain, and `SyntaxColorMode::ForDoc` emits token categories as
+  tags rather than escapes.
+- Next: parse the `[micro]` header and instruction block from the `ForDoc` stream, map the
+  categories onto the theme palette, and show the count and gain beside the stage selector.
+- Done when: the viewer groups parsed stages with counts and gain, marks passes that changed the
+  function, renders a selectable before/after diff with category colors across shipped themes,
+  and malformed or incomplete output stays readable with focused coverage.
 
 ### app.prism.003 — Forward continuous input to the running preview
 

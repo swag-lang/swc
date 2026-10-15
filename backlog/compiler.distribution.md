@@ -33,24 +33,19 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.005 — The first command does not close the first-program loop
 
-- Evidence: `swc help` already shows `new script`, `new module`, and their follow-up commands, but
-  its links lead to a website and GitHub's moving `master` branch. A user holding only the executable
-  has no local route from a command, an error, or a generated starter to version-matched explanation.
-- Already implemented: `Command.New.cpp` embeds script/module starters, refuses an existing target,
-  and prints the source and follow-up command. `--dry-run` reports resolved inputs, expected
-  actions, native artifact paths and toolchain commands while suppressing execution and mutation.
-- Intent: finish the offline learning route and expand the starter catalogue around those existing
-  commands. Keep the existing workspace model; this is not a request for a package manifest or registry.
-- Required behaviour:
-  - `swc` and `swc help <command>` give a short human-oriented route, examples, defaults, side
-    effects, destructive behavior, and a local documentation topic for every command.
-  - `swc new` offers named embedded starter templates for a script, workspace executable, tests,
-    command-line arguments, files, errors, and a minimal GUI where its prerequisites are met.
-  - Extend the existing collision-safe creation result with expected output and a local topic to
-    continue with; do not create a second planning mode beside `--dry-run`.
-- Done when: an offline newcomer can complete a script and workspace tutorial from `swc` alone,
-  deliberately inspect a build before it runs, and recover from an intentional syntax and missing-
-  toolchain error without a browser or repository.
+- Evidence: `swc help` shows `new script`, `new module` and their follow-up commands, but its
+  links lead to the website and GitHub's moving `master` branch
+  (`CommandLineParser.Help.cpp`). `swc new` embeds only a script and a module starter
+  (`Command.New.cpp`). A user holding only the executable has no local route from a command,
+  an error, or a generated starter to version-matched explanation.
+- Next: give every command a local documentation topic in `swc help <command>`, with
+  examples, defaults, side effects and destructive behavior. Add named embedded templates
+  to `swc new` (workspace executable, tests, command-line arguments, files, errors, minimal
+  GUI). Extend the existing collision-safe creation result with expected output and a topic
+  to continue with, without a second planning mode beside `--dry-run`.
+- Done when: an offline newcomer can complete a script and workspace tutorial from `swc`
+  alone, inspect a build before it runs, and recover from an intentional syntax error and a
+  missing-toolchain error without a browser or repository.
 - Related: compiler.distribution.004, compiler.distribution.006, compiler.distribution.007,
   compiler.command.doc.001.
 
@@ -138,6 +133,9 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
     used together always originate from one manifest and compiler identity.
   - An installed complete `bin/` continues to run in place without an activation cache and keeps
     taking its colocated `runtime/` and `std/` as one unit.
+- Next: embed a signed manifest and compressed payload in a release `swc.exe`, then make
+  resource-root resolution verify the payload and activate it lazily under a release-hash
+  cache before any command needs `runtime/` or `std/`.
 - Done when: on a clean offline Windows profile, a lone release `swc.exe` can run `swc help`,
   `swc new script hello`, and `swc hello.swgs`; the same release works after moving the executable,
   after a killed first activation, and with two simultaneous first invocations. A complete `bin/`
@@ -240,20 +238,22 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
 
 ### compiler.distribution.010 — The distributed compiler does not expose a ready editor/agent endpoint
 
-- Evidence: the compiler-core backlog already owns the persistent LSP process and semantic editor
-  services, but a programmer who receives only a release has no documented, discoverable way to
-  launch that endpoint, identify its version, or ensure that its hover documentation and imported
-  standard APIs match the shipped payload.
-- Intent: once compiler.language.service.001 through compiler.language.service.007 exist, package them as a documented
-  `swc lsp` release command. Its initialization response and diagnostics identify the compiler and
-  payload versions; its document links resolve to the same local documentation index used by CLI
-  and agent queries. An editor remains optional: a text editor and the normal CLI always suffice.
-- Done when: an LSP client can start from a lone executable or complete `bin/` installation,
-  discover the exact endpoint/version without repository files, open an unsaved workspace document,
-  receive diagnostics/completion/hover with local documentation, and shut down without leaving
-  release or cache state ambiguous.
-- Related: compiler.language.service.001, compiler.language.service.002, compiler.language.service.006, compiler.language.service.003,
-  compiler.language.service.005, compiler.language.service.007, compiler.distribution.006, compiler.distribution.008.
+- Evidence: `swc service` runs a private stdio protocol that the Node LSP server in
+  `vscode/src/server.js` drives (spawned from `vscode/src/compiler.js`). A release user has
+  no documented `swc` command that speaks LSP, reports its compiler and payload versions, or
+  guarantees that hover documentation and imported standard APIs match the shipped payload.
+- Next: once compiler.language.service.001 provides a retained library service, add a
+  documented `swc lsp` command that speaks LSP over stdio. Its initialization response
+  identifies the compiler and payload versions, and its document links resolve to the local
+  documentation index of compiler.distribution.006.
+- Done when: an LSP client can start from a lone executable or a complete `bin/`
+  installation, discover the exact endpoint and version without repository files, open an
+  unsaved workspace document, receive diagnostics, completion and hover with local
+  documentation, and shut down without leaving release or cache state ambiguous.
+- Related: compiler.language.service.001, compiler.language.service.002,
+  compiler.language.service.006, compiler.language.service.003,
+  compiler.language.service.005, compiler.language.service.007, compiler.distribution.006,
+  compiler.distribution.008.
 
 ### compiler.distribution.011 — No release gate proves the first-use contract
 

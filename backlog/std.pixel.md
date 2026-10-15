@@ -31,63 +31,42 @@ ships; history lives in Git, not here.
 ### std.pixel.025 — Extend the explicit OpenGL campaign to the portable rendering scenes
 
 - Evidence: `tools/integrations.swgs opengl` runs only tests tagged
-  `integration.renderer.opengl`, independently of the headless campaign, and accepts `--all-cfg`.
-  `sampling.ogl.test.swg` compares CPU and GPU texture sampling at four scales;
-  `renderthread.test.swg` checks a worker-owned context and render-target readback. Both create
-  hidden native drawables. The stroke, text and layer scenes in `render.parity.test.swg` still
-  run only against the CPU renderer and its goldens.
-- Historical evidence: the removed broad parity harness produced corrupt or empty stroke images
-  under several drawable arrangements, including a newly created desktop. The two narrower
-  integration tests do not establish that those scene and lifecycle boundaries are covered.
-- Next: extend the existing named campaign with the portable stroke, text and layer scenes and
-  a fully realized window/message-loop fixture. Compare its first render without retries and
+  `integration.renderer.opengl`, in both configurations with `--all-cfg`. `sampling.ogl.test.swg`
+  compares CPU and GPU texture sampling, and `renderthread.test.swg` checks a worker-owned
+  context and render-target readback. The stroke, text and layer scenes in
+  `render.parity.test.swg` run only against `RenderCpu` and its goldens. Stroke output has
+  come back corrupt or empty under some drawable arrangements, so a hidden drawable alone does
+  not establish coverage.
+- Next: add the portable stroke, text and layer scenes to the named campaign together with a
+  fully realized window/message-loop fixture. Compare the first render without retries and
   cover context creation, presentation and teardown on an explicitly usable desktop.
 - Done when: those scenes and context transitions detect rendering regressions in both
-  program configurations, while ordinary headless tests continue to create no native windows.
+  program configurations, and ordinary headless tests still create no native windows.
 - Related: std.pixel.020
 
 ### std.pixel.020 — Measured strokes are not yet what an ordinary stroke does
 
-- What exists: `PaintParams.DistanceStrokes` makes a segment one quad carrying the signed distance
-  to its centre line, which both backends turn into coverage the same way — the value travels in
-  the ordinary coverage attribute, told apart from a band's ramp by sitting around
-  `StrokeCoverageBias`, so measured segments and banded joins and caps still draw in one batch.
-  `render.parity.test.swg` pins the software rasterizer with a golden over widths above and below
-  a device pixel, every join and cap style, a curve, a dash and a transform. The explicit
-  `integration.renderer.opengl` campaign already checks sampling and render-worker
-  lifecycle; the broad stroke-scene comparison still needs the coverage in std.pixel.025.
-  `Svg.Drawing.paintImpl` turns it on, so both ways of drawing a document — a viewport painted
-  small and the same drawing rasterized whole — stay the same picture.
-- What it bought (2026-09-01, release, Swag Scope showing a 1724 by 15036 document on a maximized
-  3894x2142 window): 4.53 million vertices a frame down to 1.76, the frame from 112 ms to 74, and
-  the adapter's share of it from 18 ms to half of one. Weight is unchanged to a third of a percent,
-  measured as ink over the drawing. The theme's icons are rasterized through the same path: 39
-  goldens moved, none by more than 0.96 % of its pixels, all of it edge coverage.
-- What is left. A segment is measured; **a join, a cap and a dash cap still emit a quad and a band
-  per edge**, which is most of what a stroke costs once joins are not being skipped — the minified
-  pass skips them, which is why a document gains so much and a widget gains nothing yet. Giving
-  them the same signed distance is the rest of this entry: a join is a wedge whose distance runs
-  from its pivot, a cap a half disc or a square around one, and both are affine per triangle.
-- Then the flag can be weighed as a default for every stroke. What decides it is a look, not a
-  number: a band pair carries a solid core out to the full half width and softens beyond it, while
-  the distance places the contour there and softens across it. On minified content the two are
-  within a third of a percent of the same ink; on a widget's one-pixel rule at its own size they
-  will not be, and that is the comparison to make before flipping it.
-- Done when: a stroke emits a constant small number of vertices per segment *and* per join, the
-  two backends still agree, and `DistanceStrokes` is either the default or has a written reason not
-  to be.
-- Related: std.pixel.008
+- Evidence: under `PaintParams.DistanceStrokes` a stroke segment is one quad (`drawpath.swg`)
+  carrying the signed distance to its centre line around `StrokeCoverageBias` (`painter.swg`),
+  and both backends resolve it the same way. Joins, caps and dash caps still emit a quad plus an
+  antialiasing band per edge through `drawJoin`/`drawJoinBevel`/`drawJoinRound`/`drawJoinMiter`,
+  which is most of a stroke's cost once joins are not skipped. The flag is opt-in. Only
+  `Svg.Drawing.paintImpl` enables it.
+- Next: give joins and caps the same signed distance. A join is a wedge whose distance runs
+  from its pivot, and a cap is a half disc or a square around it, both affine per triangle.
+  Then compare a widget's one-pixel rule at native size with and without the flag before
+  considering it as the default.
+- Done when: a stroke emits a constant small number of vertices per segment and per join, the
+  CPU and OpenGL backends still agree, and `DistanceStrokes` is either the default or has a
+  written reason not to be.
+- Related: std.pixel.008, std.pixel.025, std.pixel.026
 
 ### std.pixel.031 — Nothing reaches the unordered-intersection path
 
-- Historical identifier provenance: `7cf248ed7` retired `std.pixel.021` for OpenGL parity readback;
-  `d2f7ec754` reused that suffix for polygon intersection cleanup. The current polygon
-  investigation now has its own identifier, while the retired suffix remains reserved.
-- Evidence: `Transform.processIntersections` in `poly/clipper.swg` now releases the nodes of a
+- Evidence: `Transform.processIntersections` in `poly/clipper.swg` releases the nodes of a
   scanbeam whose intersections cannot be ordered, abandons the sweep, and returns an empty
   solution, which is what the reference library reports as a failed operation. No fixture reaches
-  that branch, so the choice is argued rather than pinned, and neither the release nor the
-  abandonment is covered.
+  that branch, so neither the release nor the abandonment is covered.
 - Next: build the input. The ordering failure needs three or more edges meeting so closely that
   no adjacent pair remains in the sorted edge list, which the union of near-coincident contours
   produces; drive `fixupIntersectionOrder` from a probe until it answers false, then reduce.
@@ -137,7 +116,6 @@ ships; history lives in Git, not here.
 
 ### std.pixel.027 — Dynamically registered typefaces cannot be released before module shutdown
 
-- Historical provenance: moved from retired std.gui.pdf.027.
 - Evidence: `TypeFace.create` and `load` return process-cache-owned pointers valid until module
   shutdown, with no unregister operation. PDF pages borrow those pointers; their embedded font
   program keys are already cached. Opening unrelated documents can grow the table for the
@@ -156,31 +134,18 @@ ships; history lives in Git, not here.
 
 ### std.pixel.026 — Stroking a page costs four times filling the same geometry
 
-- Intent: a fill keeps its tessellation inside the contour it filled, so a page drawn again only
-  appends vertices. A stroke keeps nothing: every frame rebuilds a quad per segment and, between
-  each pair of them, a join — two triangles and an antialiasing band along each of its outer
-  edges. Eighteen vertices for the join against six for the segment it bridges, on a contour
-  flattened from a curve where every turn is shallow.
-- Historical provenance: moved from retired std.gui.pdf.035.
-- Evidence: the historical comparison measured against a CPU renderer in release configuration, timing `drawPageItems`
-  alone, best of twenty-five warm frames on an idle machine. A page of 3 300 glyph-sized marks —
-  5 000 contours, 132 000 points, the shape a document that draws every glyph through a form of
-  its own produces — records in 8.9 ms filled and 39 to 46 ms stroked. Removing every join takes
-  the stroked page from 6.0 to 3.3 times the filled one, and to 1.8 times when the segments also
-  measure their coverage from the centre line, so the join alone is about half of a stroke's
-  recording.
-- Note: two shortcuts were measured and rejected. Skipping a join whose outer corners fall closer
-  than a tenth of a device pixel — which a minified pass already does — scallops every rounded
-  corner at normal scale, because a curve's corner is a run of such turns and dropping all of them
-  leaves the outer side unjoined; four focus-ring goldens and two stroke goldens caught it, with
-  channel differences up to 235. Drawing a page's strokes under
-  [[Pixel.PaintParams.DistanceStrokes]], as the SVG renderer does, was worth 7% of a stroked
-  page's recording and moved 0.08% to 0.9% of a rendered page's pixels, by up to a full channel:
-  the ink of a document is not ours to trade for that.
-- Next: lay a contour's stroke down as one mitered ribbon rather than a quad per segment and a
-  join between them, the way [[Pixel.Painter.fillPath]]'s antialiasing band already shares its
-  mitered corners between adjacent edges. A turn past the miter limit still needs a join; every
-  other turn stops needing one.
+- Evidence: a fill keeps its tessellation, so a page drawn again only appends vertices. A
+  stroke rebuilds every frame a quad per segment and a join between each pair, two triangles
+  plus a band along each outer edge, which is eighteen vertices against six for the segment on
+  a flattened curve. On a page of about 5 000 glyph-sized contours, stroking records several
+  times slower than filling, and the joins are about half of a stroke's recording.
+- Evidence: skipping sub-pixel joins at normal scale scallops rounded corners (focus-ring and
+  stroke goldens catch it). Drawing document strokes under
+  [[Pixel.PaintParams.DistanceStrokes]] saves little and changes document ink, so neither is
+  acceptable.
+- Next: lay a contour's stroke down as one mitered ribbon rather than a quad per segment plus
+  joins, the way [[Pixel.Painter.fillPath]]'s antialiasing band shares mitered corners between
+  adjacent edges. Only a turn past the miter limit keeps a join.
 - Done when: stroking a page costs the same order as filling the same contours, and a page of
   a few thousand stroked marks records in single-digit milliseconds on a warm cache.
 - Related: std.gui.pdf.030, std.pixel.020
@@ -212,9 +177,8 @@ ships; history lives in Git, not here.
 ### std.pixel.022 — Measure whether the clipper should join contours during the sweep
 
 - Evidence: `poly/clipper.swg` follows Clipper 6.4.2 and defers contour stitching to
-  `joinCommonEdges`, `joinPoints` and `joinHorz`. The corrected `joinHorz` predicate in
-  `d2f7ec754` and the later overlap correction were both in that post-pass. The file retains
-  reference-compatible internals so comparisons remain possible.
+  `joinCommonEdges`, `joinPoints` and `joinHorz`, where past correctness defects were found.
+  The file keeps reference-compatible internals so comparisons remain possible.
 - Next: instrument the join post-pass on a real document page and the existing glyph/overlapping
   polygon workloads. Establish its share of work before evaluating an in-sweep joining design.
   Preserve degenerate contours, holes and fill-rule behavior in any reduced prototype.

@@ -168,6 +168,7 @@ new language syntax.
 - Evidence: `Video.H264.mcChroma`, `Hevc.Decoder.filterLumaEdge`, and `Hevc.Decoder.interpolateLuma` have had frame traffic in their hot loops. Previous measurements predate the split allocator and are no longer a current baseline.
 - Next: dump the current Release functions and measure per-segment time. Attribute each remaining spill to register pressure or a missed allocation/hoist opportunity before changing the backend.
 - Done when: current evidence identifies a profitable change with byte-exact decoder output, or shows the remaining frame traffic is necessary and the entry is removed.
+
 ### compiler.optimization.015 — Extend carried-slot promotion beyond private 64-bit spills
 
 - Area: compiler/backend
@@ -186,21 +187,16 @@ new language syntax.
 
 ### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
 
-- Area: compiler/backend, memory optimization
-- Current evidence: the Release sift-up loop already retains its private heap
-  pointers and uses eight heap memory operations on a swapping iteration.
-  Function-wide value numbering now also removes redundant entry reads across
-  disjoint writes: whole `push` changes from 27 instructions / 16 memory operations
-  to 25 / 14, and `pop` from 43 / 28 to 39 / 24. Neither function needs a frame
-  access or saved register. [Comparison](../bench/results/generated-code/20261006-heap-values/README.md).
-- Remaining gap: `pop` compares both child values, selects the child index, then
-  reloads the selected value. The left value is not loaded on the path where the
-  right child is out of bounds, so plain forwarding is insufficient.
-- Next: carry the available child value through the selection while preserving
-  the one-child path, bounds, intervening alias writes and register pressure.
-  The historical private-global pointer-reload diagnosis is closed.
-- Done when: the selected-child reload disappears with sound path availability,
-  or a focused experiment identifies the register-residency constraint.
+- Evidence: the Release heap `push` and `pop` keep their heap pointers resident with no
+  frame access or saved register
+  ([comparison](../bench/results/generated-code/20261006-heap-values/README.md)). `pop`
+  compares both child values, selects the child index, then reloads the selected value.
+  The left value is not loaded on the path where the right child is out of bounds, so
+  plain forwarding is insufficient.
+- Next: carry the available child value through the selection while preserving the
+  one-child path, bounds, intervening alias writes and register pressure.
+- Done when: the selected-child reload disappears with sound path availability, or a
+  focused experiment identifies the register-residency constraint.
 
 ### compiler.optimization.035 — Improve spill choices after register and memory promotion
 
@@ -243,21 +239,17 @@ new language syntax.
 
 ### compiler.optimization.032 — Control register pressure in wider partial unrolling
 
-- Area: compiler/backend
 - Current boundary: exact even loops too large to fully unroll can group two straight-line
   bodies, reusing the full unroller's temporary renaming and retaining counter updates and
   relocations. Calls, internal control flow and CPU-flag consumers remain outside the rule.
   Write-only private spill homes can use the existing free-XMM loop cache.
 - Evidence: two SHA-256 rounds execute 95 instructions / four memory reads / zero frame
-  accesses, against 100 / four / zero before. Whole main output gains 42 instructions and
-  six explicit RSP accesses outside that compression loop. All seven program checksums,
-  287 native optimizer tests (JIT and native), and 23 H.264 tests pass in Release. See the
-  [retained code evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md).
-  No elapsed-time improvement is claimed.
-- Rejected wider prototype: four rounds execute 180 instructions, including a back-edge
-  register copy, and four frame stores per group. It uses three transient XMM registers
-  for integer values, leaving too few for all four write-only homes. The two-round form
-  needs one such home and retains zero frame traffic after the cache extension.
+  accesses, against 100 / four / zero before, but whole `main` gains 42 instructions and
+  six explicit RSP accesses outside that compression loop
+  ([code evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md)).
+  A four-round prototype executed 180 instructions with a back-edge register copy and four
+  frame stores per group: its three transient XMM registers for integer values left too
+  few for all four write-only homes.
 - Next: trace the remaining register-copy and store placement across four-round groups,
   and the six additional outer-loop frame accesses in the retained two-round form. Extend
   only with a joint allocation plan that preserves the now spill-free compression loop.
@@ -267,25 +259,17 @@ new language syntax.
 
 ### compiler.optimization.022 — An inlined by-value aggregate argument is copied even when the body only reads it
 
-- Area: compiler/sema
-- Found while: giving `Core.Math.Simd` its 4x4 and 8x8 transposes (2026-08-28).
-- Evidence: `func transpose4x4(rows: [4] U32x4)->[4] U32x4` inlined into a caller that already
-  holds the block still emitted four 128-bit loads and four stores copying the argument into a
-  fresh frame slot, then read every row back out of that copy, around the eight interleaves that
-  are the whole operation: 40 instructions and a 0x1C8 frame for eight instructions of work. The
-  same body taking `rows: *[4] U32x4` in place compiles to 28 instructions and a 0x80 frame, which
-  is what the API now does. `materializeInlineBindings` binds a by-value aggregate argument to a
-  concrete local. The current `classifyInlineBinding` already examines parameter uses and can
-  keep a direct binding; an indexed or foreach by-value aggregate still requires a home through
-  `use.indexOrFor`, even if those uses only read. Read-only syntax alone does not establish that
-  the caller's storage remains unchanged while the inlined body executes.
-- Retained boundary: completed pure leaf inlines borrow a plain array from a stable caller
-  variable when every argument is a same-type bare variable or constant. Parameter writes,
-  addresses/buffers, captures, calls, generated source and nontrivial copy/drop types retain
-  snapshots. A Release selector wrapper drops from 36 to 24 instructions and 22 to 18 memory
-  operations. The [code evidence and validation](../bench/results/generated-code/20261006-inline-array-borrow/README.md)
-  include alias, later-argument, callback and element-copy counterexamples; 3,631 native tests
-  pass in JIT and native execution. No timing improvement is claimed.
+- Evidence: `materializeInlineBindings` binds a by-value aggregate argument to a concrete
+  local. `classifyInlineBinding` can keep a direct binding, but an indexed or foreach
+  by-value aggregate still requires a home through `use.indexOrFor`, even if those uses only
+  read. Pure leaf inlines already borrow a plain array from a stable caller variable when
+  every argument is a same-type bare variable or constant; parameter writes,
+  addresses/buffers, captures, calls, generated source and nontrivial copy/drop types keep
+  snapshots ([code evidence](../bench/results/generated-code/20261006-inline-array-borrow/README.md)).
+  A by-value `[4] U32x4` transpose inlined into a caller cost 40 instructions and a 0x1C8
+  frame against 28 and 0x80 for the pointer form, which `Core.Math.Simd.transpose4x4` now
+  takes. Read-only syntax alone does not prove the caller's storage stays unchanged while
+  the inlined body runs.
 - Next: extend the stability proof to larger/non-leaf bodies and argument evaluations that
   currently fail the conservative leaf/constant-or-variable boundary. Revisit the SIMD
   transpose with evidence from its actual caller, preserving copy/drop and alias semantics.
@@ -320,20 +304,13 @@ new language syntax.
 
 ### compiler.optimization.036 — Finish shared address folding and isolate its remaining allocation cost
 
-- Area: compiler/backend
-- Resolved: late pre-allocation scheduling folds a single-use constant-offset address into
-  indexed and ordinary memory operands. Cross-block candidates require an SSA proof that the
-  original base remains unchanged. Frame promotion and vectorization see their original
-  array shape, avoiding the earlier prototype's predictor regression.
-- Evidence: the current 334-function Release H.264 cohort loses 128 instructions and 23
-  memory operations. `intraPredict8x8` loses five instructions with unchanged memory-operation
-  count; the five `residualCabac` instances lose 15 instructions. The 278 native optimizer
-  and 23 H.264 tests pass. See the
-  [retained structural evidence](../bench/results/generated-code/20261006-late-addresses/README.md).
-- Remaining: `Slice.parsePartitions` gains three instructions and two memory operations.
-  Shared addresses, including the context-array base used through several copies in
-  `residualCabac`, remain outside the single-use rule. A source dump before `sink-to-use`
-  shows the base at Slice + 0x98 feeding four copies rather than one memory operand.
+- Evidence: late pre-allocation scheduling folds a single-use constant-offset address into
+  indexed and ordinary memory operands. Cross-block candidates need an SSA proof that the
+  base is unchanged
+  ([structural evidence](../bench/results/generated-code/20261006-late-addresses/README.md)).
+  It costs `Slice.parsePartitions` three instructions and two memory operations. Shared
+  addresses stay outside the single-use rule, including the context-array base at
+  Slice + 0x98 that feeds four copies in `residualCabac`.
 - Next: attribute `parsePartitions`' new spill choice, and consider shared-base substitution
   only when every use preserves the base and removing the address does not extend pressure.
   Keep the late stage so array promotion/vectorization retain their input shape.
@@ -355,29 +332,26 @@ new language syntax.
 
 ### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
 
-- Evidence: native, JIT, foreign-return and callback dirty-state probes now match clean-state
-  numerical results and performance. Release dirty-state nbody falls from about 23 ms to 0.17 ms.
-  Ordinary Release sentinels do not establish a general speedup or a reproducible regression;
-  retain both measurement windows in the [evidence](../bench/results/generated-code/20261006-avx-vex/README.md).
-- Next: at a later measurement milestone, check compiler cost and establish which AVX state
-  reaches the unmodified benchmark from the Oct 5 investigation. The boundary fix does not
-  establish the cause of that historical timing change. Do not repeat the completed encoding work.
+- Evidence: native, JIT, foreign-return and callback dirty-AVX-state probes match
+  clean-state results and performance after the boundary fix
+  ([evidence](../bench/results/generated-code/20261006-avx-vex/README.md)). Two things are
+  not established: which AVX state reached the unmodified benchmark when its timing
+  changed, and the compiler cost of the boundary handling.
+- Next: at a measurement milestone, check the compiler cost of the boundary handling and
+  establish which AVX state reaches the unmodified benchmark. Do not repeat the completed
+  encoding work.
 - Done when: the unmodified caller-state question is resolved and compiler cost is assessed.
 - Related: compiler.optimization.121, cpu.simd.001.
 
 ### compiler.optimization.121 — Optimize final code and data layout with retained structure
 
-- Evidence: local cold-block placement and loop alignment exist; the integrated linker owns final
-  symbols/relocations. It can retain function/block boundaries and profile edges instead of
-  reconstructing them from an executable.
-- Regression evidence: the Oct 5 allocator investigation reproduces a 7.14% DevMode
-  `fannkuch` loss against the rebuilt old revision, with unchanged normalized hot instructions.
-  The main moves from RVA `0xaee0` to `0xafd0`. Candidate `5d3338007` stabilizes alignment
-  modulo 32 and passes functional tests, but remains off master: the final quiet 32-round
-  subset improves DevMode `fannkuch` by 5.10% while slowing DevMode `binarytrees` by 4.50%
-  (unchanged-binary control +0.07%). Blanket alignment does not meet the performance gate.
-  A contiguous-order experiment was removed. The candidate grows executable size by 1.28%
-  and text by 3.32% in median. See the [evidence and identities](../bench/results/generated-code/20261005-runtime-layout/README.md).
+- Evidence: local cold-block placement and loop alignment exist; the integrated linker owns
+  final symbols/relocations and can retain function/block boundaries and profile edges
+  instead of reconstructing them from an executable. DevMode `fannkuch` lost 7.14% when its
+  `main` moved from RVA `0xaee0` to `0xafd0` with unchanged hot instructions. Blanket
+  modulo-32 alignment (candidate `5d3338007`, not on master) recovered 5.10% on `fannkuch`
+  but cost 4.50% on `binarytrees` and grew text by 3.32%, so it fails the performance gate
+  ([evidence](../bench/results/generated-code/20261005-runtime-layout/README.md)).
 - Next: investigate selective alignment and repeat independent quiet blocks across native
   execution, compiler time/memory, and binary size with unchanged-binary controls. Then retain
   layout metadata through object/cache boundaries and reorder functions by weighted
@@ -803,18 +777,12 @@ new language syntax.
 - Existing boundary: the unroller already renames independent temporaries in straight-line
   copies, but leaves carried values and bodies with internal labels unchanged. A flattened
   nested loop can therefore still contain independent values sharing a register.
-- Rejected with the former hull allocator: the union-find prototype hoisted the deblock
-  modulo chain, but grew `interpolateLuma` from 1583 to 1684 instructions and 314 to 398 frame
-  references. No prototype from that experiment remains in the repository.
-- Current experiment: a scalar-double union-find reconstruction over SSA values, with live
-  phi and read-modify-write unions, still worsens unrelated floating code under interval
-  splitting. Raytrace `intersect` grows from 205 to 211 instructions, 44 to 48 memory operands
-  and 22 to 26 frame references; `trace` grows from 172 to 176 instructions and 56 to 58 memory
-  operands. ChaCha, SHA-256 and binarytrees are unchanged. The broad rule was discarded.
-- A narrower experiment splits only a reused register whose old value was stored and whose
-  memory location is subsequently read. This leaves raytrace unchanged and enables nbody's
-  cross-group velocity forwarding; see compiler.optimization.104. It does not establish a
-  general normalization policy for arbitrary arithmetic temporaries.
+- Evidence: a union-find reconstruction over SSA values, with live phi and read-modify-write
+  unions, worsens unrelated floating code under interval splitting (raytrace `intersect`
+  and `trace` gain instructions, memory operands and frame references) and was discarded.
+  Splitting only a reused register whose stored old value is later read leaves raytrace
+  unchanged and enables nbody's cross-group velocity forwarding (compiler.optimization.104);
+  it is not a general policy for arithmetic temporaries.
 - Next: attribute the extra floating interference and improve residency before expanding
   eligibility beyond a concrete store-to-load forwarding opportunity. Recheck the deblock
   consumer and raytrace alongside any broader rule; do not infer a win from renaming alone.
@@ -824,152 +792,92 @@ new language syntax.
 
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 
-- Area: compiler/backend, value numbering and register allocation
-- Evidence: the accepted raytrace winner is C++/MSVC. Its unrolled four-sphere `intersect` clears
-  XMM5 once and compares each discriminant against that retained zero. Swag's corresponding
-  205-instruction function clears XMM9 immediately before each of the four comparisons, adding
-  three executed zeroing instructions to this path. Both implementations fully unroll the sphere
-  loop, so loop rotation is not the missing mechanism.
-- A scratch source copy named the zero explicitly before the loop; Release `intersect` remained
-  205 instructions with four clears. A scratch value-numbering trial admitted `ClearReg` on virtual
-  floating registers to share dominating definitions, with a C++ dominance test. It also left
-  `intersect` at 205 instructions with four clears, and left `trace` and `main` at 172 and 136.
-  The trial was reverted because it made no generated-code improvement; no runtime timing was
-  taken. The full unroller renames private temporaries only when its body has no internal labels;
-  `intersect` has conditional branches and `continue`, so the copies reuse the original virtual
-  zero register. Value numbering requires the earlier result still held in its register, which
-  each copy has overwritten before the next clear.
-- A second scratch trial renamed private virtual values in a branched unrolled body only when
-  each had one definition dominating all in-body uses and no outside reader. On its own it made
-  `intersect` 209 instructions, up four, with all four clears intact. Combining it with the
-  `ClearReg` value-numbering change also produced 209 instructions and four clears. The wider
-  renaming perturbed XMM allocation and inserted extra copies; no executed path improved. Both
-  trial edits were reverted without timing or broad correctness tests.
-- Next: inspect a control-flow-aware way to split a private zero definition across cloned arms. A candidate should
-  retain a single zero only where that saves executed clears without adding copies, spills, or
-  saved registers. Compare an unrelated unrolled floating loop and a case with intervening calls
-  before changing general value numbering or allocation.
-- Done when the repeated clears disappear with no new spill traffic in `intersect`, an
+- Evidence: MSVC's unrolled four-sphere raytrace `intersect` clears XMM5 once and compares
+  each discriminant against it; Swag's clears XMM9 before each of the four comparisons,
+  three extra executed instructions. The full unroller renames private temporaries only in
+  bodies without internal labels, so `intersect`'s copies reuse one virtual zero register,
+  overwritten before the next clear. These attempts all kept the four clears: naming the
+  zero in source, sharing dominating `ClearReg` definitions in value numbering, and renaming
+  single-definition private values in branched unrolled bodies (which also added four
+  instructions).
+- Next: inspect a control-flow-aware way to split a private zero definition across cloned
+  arms. A candidate should retain a single zero only where that saves executed clears
+  without adding copies, spills, or saved registers. Compare an unrelated unrolled floating
+  loop and a case with intervening calls before changing general value numbering or
+  allocation.
+- Done when: the repeated clears disappear with no new spill traffic in `intersect`, an
   unrelated case improves under the same rule, and native/JIT behavior remains correct.
 
 ### compiler.optimization.083 — Retain the probe mask without increasing spills
 
-- Area: compiler/backend, LICM and register allocation
-- Evidence: LDC retains wordfreq's `ByteMap.mask` in a callee-saved register across `memcmp`, while Swag reads `[m+mask]` during each collision step. Running LICM before instruction combine and allowing every invariant structure-field load across a read-only call moved that read out of the loop, but `mapProbe` grew from 81 to 98 instructions. The frame grew from `0x28` to `0x98`, the length and mask values spilled and reloaded, and an extra return tail appeared. The broad trial was reverted. A retained mask is only a gain if allocation keeps the loop's other live values resident too; one fewer memory operand in the collision step is insufficient evidence on its own. No timing was used.
-- Repeating the early-LICM schedule after `mapProbe` was inlined into wordfreq's two token-finalization loops did not retain the mask: the resulting `main` still reads `[m+mask]` three times, stays at 451 instructions, and `qsort` grows from 132 to 133. The checksum remains 130489. This schedule trial was reverted without using timing.
-- With the subsequent caller-test threading, wordfreq `main` was 443 instructions. Its first inlined probe still read `[rbx+0xC8]` for the initial hash mask and again for each collision step; LDC held that mask in `r10` across `memcmp`, saving and restoring it around the call. The Swag collision step retained the extra memory operand, while the checksum remained 130489. This was a code comparison, not a new LICM trial.
-- Post-allocation loop rotation now recognizes the exit label after any run of adjacent labels following the back edge. It duplicates the `used[idx]` comparison at the collision tail and removes the unconditional jump: the first wordfreq collision path falls from seven to six runtime instructions, with three memory operands still versus LDC's two. The two inlined probes add two compares and two labels in total, so `main` rises from 443 to 447 static Micro instructions. The entry comparison remains on the cold entry path, and neither allocation nor spills change. All seven task checksums pass with `--validate-micro`; the other six selected function counts are unchanged. A C++ regression covers adjacent exit aliases and an intervening instruction. This closes .091; the mask load remains this entry's gap. No timing sample informed the decision.
-- The accepted campaign `20260928-051818` named C++/clang-cl as wordfreq's fastest other runtime; the newer `20260929-105508` campaign names it again. Its inlined probe uses `and esi, 3FFFh` at collision, followed by the `used` and length tests: six instructions and two memory operands. A scratch-only trial marked `mapInit` inline; it exposed the constant `0x3FFF` to Swag, but enlarged `main` from 447 to 516 Micro instructions and reintroduced stack reloads and a back-edge jump in the collision loop. The checksum was 130489; the trial was rejected on static code quality, without timing.
-- A post-allocation rule now moves a folded bitwise memory operand into an already saved, idle persistent register. It replaces the same address's straight-line entry read with a load and register operation, then rewrites every matching use in the loop. Eligibility requires a stable base, no loop memory writes, only direct calls annotated `ReadOnly`, and a register that is dead from the entry read through the loop. In wordfreq's first inlined probe, `r15` carries the mask across `memcmp`: the hot collision path remains six instructions and falls from three memory operands to two, matching the winner's counts. The entry still reads the mask once; it gains one encoded instruction but no memory access, while the frame and spill traffic stay unchanged. Thus `main` rises from 447 to 448 static Micro instructions. The final-token probe is unchanged because its entry read uses a different base expression. All seven task checksums pass under `--validate-micro`, and the other six selected function counts are unchanged. C++ tests cover an unrelated OR/XOR loop, a writable call, a memory write, a changing base, no prior read, a live scratch register, and no saved register. This is static evidence, not a measured runtime gain.
-- Csvagg's newly accepted winner is Zig, which encodes the 64-slot probe mask as an immediate.
-  A scratch-only `#[Swag.Inline]` on `mapInit` also exposes `0x3F` to Swag, but enlarges the
-  Release `main` from 1,003 to 1,015 Micro instructions. The collision path gains register
-  copies, two frame reloads, and unconditional jumps after key-length mismatch; it loses the
-  conditional back edge that the preceding rotation established. This repeats the earlier
-  wordfreq failure: exposing one constant by inlining the whole allocator-heavy initializer
-  worsens the hot loop. The trial was rejected on static code quality without timing.
-- A scratch-only post-RA refinement crossed the allocator spill stores at `[rsp+0x838]` and
-  `[rsp+0x840]` before csvagg's probe loop, identified `rbx` as the local base despite a
-  temporary `rcx = rsp` and the return-tail `pop rbx`, and kept the mask in the already saved
-  `r15`. The collision step fell from three to two memory operations, but the entry mask
-  operation grew from one instruction to two. The benchmark's eight region names hash to
-  distinct slots modulo 64 (`21, 36, 16, 32, 12, 31, 14, 5`), so its collision step never
-  executes; every lookup pays the extra entry instruction with no collision saving. The
-  csvagg checksum remained 24828641 and the six other task checksums passed. The refinement
-  was rejected on this executed-path evidence without a timing sample; no compiler rule was
-  retained from the trial.
-- The Release hash loop already reads four key bytes per iteration through the partial indexed-read
-  unroller. Manually grouping four reads in a scratch source copy preserves checksum 24828641 but
-  grows `main` from 1,003 to 1,007 Micro instructions, adding four address calculations before
-  the grouped loop. This does not close a hot-path gap. The quantity and integer-price scans
-  already reuse the delimiter-tested byte in the digit calculation. Their dynamic starting index,
-  delimiter branch, and accumulator updates do not fit the current indexed-read unroller's
-  zero-based, branch-free body; Zig's extra four-byte grouping applies to the two-digit fractional
-  scan and needs its own setup and scalar tail. No compiler edit was retained from these probes.
-- Next: compare wordfreq's complete probe paths and measure its retained mask at a clean paired
-  campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot update with
-  Zig's executed path; focus on register and frame traffic rather than its absent collisions.
-- Done when: a focused rule retains the mask without increasing spill traffic and improves paired wordfreq runs, or measurements show that retaining it is not profitable and this lead is retired.
+- Evidence: a post-allocation rule (`PostRALoopHoist`) moves a folded bitwise memory operand
+  into an idle, already saved register when the base is stable, the loop has no memory
+  writes and only `ReadOnly` direct calls. In wordfreq's first inlined probe `r15` now
+  carries the mask across `memcmp`, matching LDC's two memory operands on the collision
+  step. The final-token probe still reads `[m+mask]` because its entry read uses a
+  different base expression. Csvagg's eight region keys never collide modulo 64, so
+  retaining its mask would only add an entry instruction.
+- Rejected: hoisting every invariant field load across a read-only call, and inlining
+  `mapInit` to expose the mask constant. Both enlarged the probe or `main` with spills,
+  frame reloads and jumps.
+- Next: compare wordfreq's complete probe paths and measure its retained mask at a clean
+  paired campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot
+  update with Zig's executed path, focusing on register and frame traffic.
+- Done when: a focused rule retains the mask without increasing spill traffic and improves
+  paired wordfreq runs, or measurements show that retaining it is not profitable.
 
 ### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
 
 - Area: compiler/backend, constant-address relocation and indexed loads
-- Evidence: In the latest accepted full campaign (`20260928-051818`), raytrace's fastest other runtime is C++/MSVC (9.601 ms versus Swag's 10.742 ms; ratio 1.119). Its `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
+- Evidence: C++/MSVC's raytrace `trace` function materializes one image base with `lea rdi, [__ImageBase]` and reads eight distinct constant arrays through indexed memory operands. Swag's Release Micro for the same function uses eight `LoadRegPtrReloc` instructions followed by eight indexed loads, four for `SRAD`/`SCX`/`SCY`/`SCZ` and four for `SR`/`SG`/`SB`/`SRE`: 16 instructions for those reads versus MSVC's nine. This is an instruction and address-dependency gap, not a timing claim about an edit.
 - A post-allocation rewrite that keeps the first array pointer and adds source-address differences to later loads is invalid for native artifacts: `NativeRDataCollector` emits only reachable allocations and may compact the gaps between them. JIT constants are resolved from shard and offset at patch time. Each indexed consumer therefore needs a relocation relative to a reusable segment or image base, or an equivalent layout contract that survives both backends. The existing emitter binds only RIP-relative scalar accesses, not indexed displacements.
 - The native linker already understands `IMAGE_REL_AMD64_ADDR32NB` as an image-relative `Rva32` relocation, but code emission has no base-relative indexed relocation form, and the internal linker does not expose `__ImageBase` as a code symbol. The JIT's 2 GiB proximity arena can host code and constant shards together; its exhaustion fallback needs an explicit range or copy strategy for any base-relative displacement. In `trace`, the transient pointer register is clobbered by the intervening `intersect` call, so reusing that register alone yields at most two four-array groups. One base across both groups requires an allocation and callee-save decision.
 - Folding a scalar indexed load into each floating operation is not an independent instruction saving here. Swag's load plus AVX three-register `fsub`/`fmul` is two encoded instructions; MSVC's copy plus memory-form SSE operation is also two in the corresponding `SCX`/`SCY`/`SCZ` and colour paths. The existing post-RA fold requires the destination to hold the left operand because the memory-form SSE instruction overwrites it. Adding a copy to force that fold would leave the instruction count unchanged and add a copy dependency.
-- A separate check of `trace`'s missing `refl > 0` branch found no correctness defect: all four benchmark reflectivities are positive. A scratch function with a variable float retained both tests and produced `0,1,0` for negative, positive, and depth-limited inputs; changing one reflectivity to a negative value in an external source copy restored the floating compare in `trace`.
 - Next: design and validate a relocation-aware indexed displacement against one reusable base in JIT and native output. Compare eight-array code with MSVC; include unrelated arrays in different allocations and shards, a library artifact, and a negative case whose address cannot share the base. Account for register lifetime across the intervening call and JIT arena exhaustion before selecting the base.
 - Done when: indexed reads of separate immutable arrays reuse one base without relying on source allocation spacing, pass JIT/native relocation checks, and close the eight-materialization gap without extra spills.
 
 ### compiler.optimization.093 — Keep unsigned 64-bit float conversion branchless in hot loops
 
-- Area: compiler/codegen, integer-to-float conversion
-- Evidence: The latest accepted campaign names C++/MSVC as csvagg's fastest other runtime (17.340 ms versus Swag's 18.304 ms; ratio 1.056). MSVC lowers each `u64` to `f64` price conversion with a signed conversion on the common lower half and a shift/or/double fallback for values with the high bit set. Swag instead uses a branchless packed low/high-32-bit conversion with two vector constants. Both have five instructions on the common path, but the operations and register pressure differ.
-- A scratch compiler change used MSVC's general signed-fast-path formula. The 15 native boundary cases and a new JIT boundary case passed; 200,000 pseudo-random values and neighborhoods of powers of two agreed with the existing conversion. Csvagg's checksum stayed 24828641; all six other task checksums and selected function sizes were unchanged. The complete native Release suite passed 3,483 tests, JIT Release passed 1,501, and scripts passed.
-- The emitted csvagg `main` grew from 993 to 1,022 Micro instructions. Its XMM saves fell from five to three and the saved area from `0x50` to `0x30`, but the timed row loop still had 13 frame operands and gained eight static jumps (34 to 42). Each common conversion still executed five instructions, now including a conditional and an unconditional jump. The two saves are paid once; the extra branches run for every row. This is a concrete hot-loop code-quality loss, so the trial and its JIT-only test were reverted without timing.
-- Next: find a range proof that a conversion input stays below `2^63`, or a branchless lowering that uses fewer operations and less XMM pressure than the current packed conversion. Compare both sides of the range and an unrelated cast before revisiting the lowering.
-- Done when: a general rule improves the complete hot conversion path without extra branches or spills, and preserves full-range nearest-even results in native and JIT output; otherwise retain the current branchless algorithm.
+- Evidence: Swag lowers `u64` to `f64` branchlessly with a packed low/high-32-bit conversion
+  and two vector constants (`CodeGen.Cast.cpp`). MSVC uses a signed conversion on the
+  common lower half and a shift/or/double fallback for values with the high bit set. Both
+  execute five instructions on csvagg's common path. MSVC's formula, tried in Swag, stayed
+  exact but added eight static jumps to csvagg's timed row loop and a conditional plus an
+  unconditional jump to every conversion. It was reverted.
+- Next: find a range proof that a conversion input stays below `2^63`, or a branchless
+  lowering that uses fewer operations and less XMM pressure than the current packed
+  conversion. Compare both sides of the range and an unrelated cast before revisiting the
+  lowering.
+- Done when: a general rule improves the complete hot conversion path without extra
+  branches or spills, and preserves full-range nearest-even results in native and JIT
+  output; otherwise retain the current branchless algorithm.
 
 ### compiler.optimization.089 — Mixed scalar calls slow down with six independent argument lanes
 
-- Area: compiler/backend, Swag calling convention and register allocation
-- Evidence: with the independent six-integer/six-float Swag argument banks, a release
-  executable making 20 million no-inline calls with alternating six `u64` and six `f64`
-  parameters takes about 61–64 ms after warmup, versus 34–36 ms with the prior
-  positional convention on this machine. Both return the same value. Six-integer calls
-  improve from roughly 37–41 ms to 31–33 ms over 40 million calls; six-float calls stay
-  near 59–62 ms. These are process-wall microbenchmarks, not application measurements.
-  With the same twelve-parameter signature but an integer-only body, the candidate
-  improves to roughly 22–25 ms from 26–30 ms; with a floating-only body, it takes
-  56–60 ms against 26–30 ms. Full-width XMM copies, pruning unused XMM saves,
-  making XMM6/XMM7 volatile, and reducing Swag's float bank to three registers
-  did not close the mixed-case gap in local experiments. The last result suggests
-  that register count alone does not explain the slow floating body.
-- The post-RA Micro dump for the floating-only body has a 17-instruction leaf
-  callee under the old ABI, with three floating adds reading stack operands.
-  The candidate has 25 instructions after dead-code elimination: five register
-  floating adds plus a prologue and epilogue that save XMM6 and XMM7. Its first
-  floating register copy is removed after the save plan is made. A temporary
-  late save-pruning experiment still measured around 58 ms, so the saved-register
-  instructions alone do not explain the entire gap.
-- An experimental mapping that kept six independent integer lanes but assigned
-  floating arguments by their position in the full signature measured roughly
-  37–42 ms on the mixed sum, close to the old 39–42 ms in the same run. It gives
-  up independent floating lanes for mixed signatures, so it was not selected as
-  the new Swag convention.
-- The preceding candidate used the already persistent XMM6–XMM11 as floating argument
-  lanes. Pre-prologue dead-definition elimination avoids saving unused persistent
-  registers; a property-based loop pass hoists invariant persistent-argument copies.
-  In five alternating call-matrix pairs, six-integer calls are about 10% faster,
-  six-float calls about 16% faster, and alternating six/eight mixed calls remain
-  about 3% slower than the preceding ABI. These backend passes apply by convention
-  properties and remain useful even if the Swag ABI changes again.
-- The transient XMM0–XMM5 experiment removes two per-pixel row reloads from raytrace's
-  inner loop and reduces its `main` and `trace` from 155/201 to 136/173 optimized Micro
-  instructions. All seven benchmark checksums remain unchanged; the six other tasks
-  retain their instruction counts. C++ (1,147), native Release
-  and DevMode (3,483 each), JIT Release (1,500), and workspace Release pass with the
-  cache identity advanced to build 1173. The old persistent-argument copy hoist became
-  unreachable and was removed. No elapsed-time sample informed the choice.
+- Evidence: the Swag convention passes up to six integer and six floating arguments in
+  independent banks, the floats in transient XMM0-XMM5 (`CallConv.cpp`). A no-inline
+  microbenchmark measured on an earlier bank layout found alternating six-`u64`/six-`f64`
+  calls slower than under the former positional convention, while six-integer and
+  six-float calls got faster. Register count alone did not explain the floating-body cost.
+  Assigning floating arguments by signature position restored mixed-call speed but gave
+  up independent floating lanes. The move to transient XMM0-XMM5 has not been timed on
+  those signatures.
 - Next: compare the mixed-call signatures and the seven tasks in a paired campaign with
-  the new float bank; isolate any signature or task that regresses before closing this entry.
-- Done when: repeated paired runs put the mixed calls at parity or better and
-  the six-integer and six-float gains remain.
+  the current float bank; isolate any signature or task that regresses.
+- Done when: repeated paired runs put the mixed calls at parity or better and the
+  six-integer and six-float gains remain.
 
 ### compiler.optimization.085 — Measure short-key comparison cost against the current winner
 
-- Area: generated runtime code, wordfreq byte-map keys and comparators
-- Evidence: wordfreq and LDC both call `memcmp` for variable-length keys of 3–8 bytes. Swag's runtime fallback scanned the sub-eight-byte tail one byte per loop iteration; a matching three-byte key therefore repeated two byte loads, a comparison, an increment, and a loop branch three times. The fallback now compares four-, two-, and one-byte chunks without reading past `size`, and uses the lowest set bit of a nonzero XOR (or the first clear SIMD equality bit) to return the exact first unsigned byte difference. The whole `memcmp` body grows from 96 to 115 optimized Micro instructions, but the frequently used short equal-key path has no byte loop; a three-byte key needs one two-byte comparison and one byte comparison. `mapProbe`, `qsort`, and wordfreq main remain 81/72/328 instructions, and the checksum remains 130489 with `--validate-micro`. The new native test checks every mismatch position in sizes 1–64 with unaligned inputs and both operand orders. Its five focused tests pass in Release and DevMode; the 3,481-test native Release, 1,500-test JIT Release, and focused core memory suites pass. No elapsed-time sample informed the decision.
-- Rejected short dispatch: the CRT's `<8` byte-loop branch inspired a guard around Swag's vector and word loops, but `Swag.memcmp` grew from 102 to 106 Micro instructions in all twelve tasks. The latest recorded campaign ranks Go ahead of Swag on wordfreq (49.697 ms vs 54.258 ms), so the CRT is not the current winner.
-- Current winner check: Go's emitted `byteMap.probe` keeps the FNV loop scalar and inlines
-  `compareBytes`. Swag's emitted probe unrolls four FNV bytes and calls `Swag.memcmp` after
-  the length check; its generic comparator handles these 3–8-byte keys through 8/4/2/1-byte
-  chunks. Go calls `byteMap.probe` and saves live caller state; Swag inlines the probe into
-  its timed `__main_0`, so the standalone probe's callee-save prologue is not paid there.
-  Only the `memcmp` call remains as a possible difference, and the static listings do not
-  establish a net hot-path gain from inlining it.
-- Next: inspect whether a shared fast-path inlining rule can remove caller and callee work for
-  short comparisons without growing the other task hot paths; require a concrete Micro gain
-  before editing.
-- Done when: final short-key code and repeated paired wordfreq measurements establish competitive cost, or isolate a reproducible remaining gap whose implementation can be specified here.
+- Evidence: `Swag.memcmp`'s fallback compares 8/4/2/1-byte chunks, with no byte loop for
+  wordfreq's 3-8-byte keys. Go, the current wordfreq winner, inlines `compareBytes` into
+  `byteMap.probe`. Swag inlines the probe into its timed `__main_0` but still calls
+  `Swag.memcmp` after the length check. Static listings do not establish a net hot-path
+  gain from inlining it. A `<8`-byte dispatch guard in front of the vector and word loops
+  grew `Swag.memcmp` in all twelve tasks and was rejected.
+- Next: inspect whether a shared fast-path inlining rule can remove caller and callee work
+  for short comparisons without growing the other task hot paths; require a concrete Micro
+  gain before editing.
+- Done when: final short-key code and repeated paired wordfreq measurements establish
+  competitive cost, or isolate a reproducible remaining gap whose implementation can be
+  specified here.

@@ -7,15 +7,10 @@ integration around those engines.
 
 ### app.scope.document.001 — The Markdown outline has no filtering or current-section tracking
 
-- Evidence: `DocumentOutline` now presents Markdown headings with their hierarchy depth and
-  distinct source offsets. Opening the panel builds the heading list on a worker; pointer and
-  keyboard selection call `Markdown.View.revealHeading`, including headings outside the resident
-  window. `viewer.outline.test.swg` covers hierarchy depth, navigation and localized goldens;
-  distinct offsets for duplicate headings are covered by `Markdown.parseHeadings` in
-  `bin/std/modules/gui/src/tests/documentoutline.test.swg`.
-- Remaining: the panel has no heading filter, current-section tracking, breadcrumb path or
-  navigation history. It reads the complete source for its heading pass rather than maintaining
-  a bounded streaming index.
+- Evidence: `DocumentOutline` lists Markdown headings with depth and distinct source offsets
+  and reveals them through `Markdown.View.revealHeading`. It has no heading filter,
+  current-section tracking, breadcrumb path, or navigation history, and its worker reads the
+  complete source rather than maintaining a bounded streaming index.
 - Next: extend the existing outline with a bounded heading index, filtering and a current-heading
   signal from the document; retain source offsets as identity rather than deriving it from titles.
 - Done when: filtering and keyboard navigation preserve distinct duplicate headings, the
@@ -25,12 +20,9 @@ integration around those engines.
 
 ### app.scope.document.013 — The PDF bookmark panel has no filtering or navigation history
 
-- Evidence: `PdfDocument.Panel` loads `Pdf.Reader.loadOutline`, fills the shared `DocumentOutline`, and
-  selects page-space positions through `PdfView.showPosition`. `viewer.outline.test.swg` navigates
-  the four-bookmark fixture; its cropped and rotated destination coordinates are covered by
-  `bin/std/modules/gui/src/tests/documentoutline.test.swg`.
-- Remaining: the outline has no filtering or back/forward state. Page-link annotations are not
-  exposed by the engine (std.gui.pdf.017), and there is no viewer interaction for those targets.
+- Evidence: `PdfDocument.Panel` fills the shared `DocumentOutline` from `Pdf.Reader.loadOutline`
+  and navigates through `PdfView.showPosition`. The panel has no filtering or back/forward
+  state, and page-link annotations are not exposed by the engine (std.gui.pdf.017).
 - Next: add filtering and a bounded page/position/zoom history to the existing bookmark panel,
   then route supported page links through the same navigation contract when the engine exposes them.
 - Done when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
@@ -85,10 +77,9 @@ integration around those engines.
 
 ### app.scope.document.005 — HTML encoding decisions have no inspection or override controls
 
-- Evidence: `HtmlView.detectDocumentEncoding` already honors a BOM, scans early charset labels,
-  and falls back to `Text.detectEncoding`; `htmlview.test.swg` covers Windows-1252, UTF-16 with BOM,
-  and undeclared legacy bytes. The viewer still exposes no detected encoding, decision source,
-  manual override, or byte mapping for decoding failures. Its former fixed UTF-8 summary was false.
+- Evidence: `HtmlView.detectDocumentEncoding` honors a BOM, scans early charset labels, and falls
+  back to `Text.detectEncoding`, but the viewer exposes no detected encoding, decision source,
+  manual override, or byte mapping for decoding failures.
 - Next: expose the detected encoding and its provenance, then add an override using the text
   viewer's supported encoding choices and explicit restart behavior.
 - Done when: the reader can inspect the chosen encoding, late or conflicting declarations
@@ -118,14 +109,15 @@ integration around those engines.
 
 ### app.scope.document.011 — A PDF the module cannot fully decode is shown as a failure, not as a page
 
-- Intent: the module's own coverage gaps now live in [std.gui.pdf.md](std.gui.pdf.md), which is the
-  roadmap for the PDF engine inside `std/gui`. What stays here is the viewer's half: `PdfDocument.Panel` reports whatever
-  `loadPage` or painting failed with, so a document with one unsupported
-  construct anywhere reads as a broken file rather than as a page with a gap in it.
+- Evidence: `PdfDocument.Panel` forwards any load or render failure to `services.failed`, so one
+  unsupported construct reads as a broken file rather than as a page with a gap. Engine coverage
+  gaps live in [std.gui.pdf.md](std.gui.pdf.md).
+- Next: once std.gui.pdf.002 lets `loadPage` return a partial page with limitation records, draw
+  the decoded part and show each limitation as localized text beside the page instead of failing
+  the viewer; never execute an embedded action or offer form filling.
 - Done when: the viewer draws the part of a page that decoded, states the construct it could
   not represent in localized text beside it rather than as a raw module error, and keeps page
   navigation working across a page it could only partly decode.
-- Note: never execute an embedded action, and keep interactive form filling out of the viewer.
 - Related: std.gui.pdf.002
 
 ### app.scope.document.022 — Jupyter notebooks have no document reader
@@ -146,8 +138,9 @@ integration around those engines.
 
 ### app.scope.document.020 — Office Open XML files stop at the ZIP structure
 
-- Intent: `.docx`, `.xlsx`, and `.pptx` still show a list of parts. OpenDocument files now have
-  their own reader, but the Microsoft Office family needs the same readable-content boundary.
+- Evidence: `.docx`, `.xlsx`, and `.pptx` are selected only by the Archive and Binary viewers,
+  so they still show a list of parts. OpenDocument files have their own reader, but the
+  Microsoft Office family needs the same readable-content boundary.
 - Next: identify the shared document structure that can read paragraphs, headings, lists, tables,
   and spreadsheet cells without expanding the OpenDocument decoder into an Office compatibility
   layer.
@@ -157,7 +150,10 @@ integration around those engines.
 
 ### app.scope.document.021 — EPUB stops at the ZIP structure
 
-- Intent: an EPUB is a spine of HTML documents, and the HTML view already renders them.
+- Evidence: `.epub` opens only in the Archive and Binary viewers, although an EPUB is a spine
+  of XHTML documents that `HtmlView` already renders.
+- Next: read `META-INF/container.xml` and the OPF manifest and spine through the shared ZIP
+  reader, then feed the spine documents in order to the HTML view.
 - Done when: the spine order is read from the container manifest and its documents stream into
   the reading column in order.
 - Related: app.scope.binary.010

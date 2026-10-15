@@ -37,18 +37,16 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.038 — Flag side effects inside a disabled-by-configuration assertion
 
-- Evidence: `Swag.assert(re.match(l[]))` in `bin/examples/modules/aoc2017/src/8A.swg` and
-  `8B.swg` passed every DevMode run and the release build, then failed the release examples smoke:
-  release disables `.Assert` outside `swc test`, the argument is not evaluated, so the regex never
-  ran and every capture stayed empty. Nothing reported the dependence on the argument's effect;
-  the defect surfaced as an unrelated `SyntaxError` far from its cause (fixed in f995a79ae).
+- Evidence: release disables `.Assert` outside `swc test`, so an assertion's argument is not
+  evaluated there. `Swag.assert(re.match(l[]))` in `bin/examples/modules/aoc2017` silently
+  skipped its regex in release (fixed in f995a79ae), and nothing diagnosed the dependence on
+  the argument's effect.
 - Proposed contract: diagnose an assertion argument that calls a non-`const` method, assigns,
-  or otherwise writes observable state, since its effect exists only where assertions are on.
-  Decide whether it is a warning in the warning-policy layer or an error, and whether const
-  receivers are enough to mark the calls that are safe to elide.
-- Next: reduce the rule to the sema boundary (`errors/sema` case for a mutating call inside
-  `Swag.assert`), measure how many existing assertions in `bin/` it would flag, and pick the
-  severity from that count.
+  or otherwise writes observable state. Decide whether it is a warning in the warning-policy
+  layer or an error, and whether const receivers are enough to mark calls that are safe to
+  elide.
+- Next: add an `errors/sema` case for a mutating call inside `Swag.assert`, measure how many
+  existing assertions in `bin/` the rule would flag, and pick the severity from that count.
 - Done when: a mutating call inside an assertion argument is diagnosed and `bin/` is clean.
 
 ### language.design.032 — Produce values directly from a switch
@@ -111,9 +109,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.010 — `catch` without a capture substitutes the type default and says nothing
 
-- Area: language
-- Found while: the same pass
-- Observation: `catch f()` handles the error, drops it, and yields the default value for the result
+- Evidence: `catch f()` handles the error, drops it, and yields the default value for the result
   type
   ([013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)).
   It is a one-word conversion of a failure into a zero, with no `discard`-style ceremony — while the
@@ -214,13 +210,11 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.006 — Positional destructuring binds by position even when every name matches a field
 
-- Area: language
-- Found while: a reading pass over the whole language reference
-- Observation: `let {a, b} = tuple` is positional, and the reference says so
+- Evidence: `let {a, b} = tuple` is positional, and the reference says so
   ([004_003_tuple.swg](../bin/reference/modules/language/src/004_003_tuple.swg)).
   The reference explicitly states that binding names do not select source fields and tests
   a reordered `{y, x}` pattern. The named form (`{y: vertical}`) selects by field name. The
-  documentation gap is closed; the remaining design question is whether positional and named
+  remaining design question is whether positional and named
   patterns should share a form that lets a reordered field-looking pattern mean something else.
 - Evidence: with `let point = {x: 10, y: 20}`, `let {y, x} = point` gives `y == 10` and `x == 20`.
   Confirmed under both the JIT and the forged binary. The same indifference to names governs
@@ -273,10 +267,10 @@ in its module backlog; a general request for better names is not a missing langu
 - Evidence: `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
   one written has no active-member check
   ([004_006_union.swg](../bin/reference/modules/language/src/004_006_union.swg)). `any` covers the dynamic
-  case, and an interface hierarchy covers the open one — `case CreateEvent as ptr` is idiomatic; the 2026-09-04 census counted
-  135 sites, [wnd.swg](../bin/std/modules/gui/src/wnd/wnd.swg) among them. What is missing is only
+  case, and an interface hierarchy covers the open one — `case CreateEvent as ptr` is idiomatic (135 sites,
+  [wnd.swg](../bin/std/modules/gui/src/wnd/wnd.swg) among them). What is missing is only
   the **closed** choice: no discriminated union, no payload-carrying enum, no destructuring of a case.
-- Census (2026-09-04, `bin/` excluding `.output` and `.dep`): the shape to support is not "a standalone sum
+- Census (`bin/` excluding `.output` and `.dep`): the shape to support is not "a standalone sum
   type", it is "a closed choice next to shared fields". Eight anonymous unions exist. Two are sum types, and
   both already name their tag as an ordinary sibling field:
   [painter.swg](../bin/std/modules/pixel/src/painter/painter.swg) (`using params: union` selected by
@@ -371,9 +365,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.008 — Mixing a signed and an unsigned operand of the same width converts the signed one
 
-- Area: language
-- Found while: the same pass
-- Observation: when two integer operands have the same width and differ in signedness, "the
+- Evidence: when two integer operands have the same width and differ in signedness, "the
   unsigned type wins"
   ([003_006_operators.swg](../bin/reference/modules/language/src/003_006_operators.swg)).
   Because Swag deliberately does *not* promote 8- and 16-bit operands to 32 bits the way C does,
@@ -382,7 +374,7 @@ in its module backlog; a general request for better names is not a missing langu
   conversion, and the guard is a `release`-time no-op.
 - Evidence: a constant `-1's8 + 1'u8` is rejected at compile time ("cannot cast '-1' to 'u8' …
   value is negative, but the target type is unsigned"). The same expression through runtime
-  variables panics with "integer overflow" in the guarded configuration now named `devmode` — and in `release`, where the overflow
+  variables panics with "integer overflow" in `devmode` — and in `release`, where the overflow
   guard is off, it wraps.
 - Elsewhere: Go requires explicit conversions between distinct numeric types in expressions
   ([Go numeric types](https://go.dev/ref/spec#Numeric_types)). This is one alternative to Swag
@@ -417,9 +409,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.019 — `if let` combines binding with an implicit truthiness test
 
-- Area: language
-- Found while: the same pass
-- Observation: the declaration in an `if` is converted to a boolean — non-zero, non-null — and the
+- Evidence: the declaration in an `if` is converted to a boolean — non-zero, non-null — and the
   `where` clause runs only if that hidden test passed
   ([005_001_if.swg](../bin/reference/modules/language/src/005_001_if.swg)). So the
   line has two conditions, only one of which is written down, and the unwritten one is a truthiness
@@ -443,9 +433,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.023 — A contextual `cast(value)` performs whatever conversion the target turns out to need
 
-- Area: language
-- Found while: the same pass
-- Observation: `cast(value)` with no type "allows the compiler to infer the target type"
+- Evidence: `cast(value)` with no type "allows the compiler to infer the target type"
   ([003_007_cast.swg](../bin/reference/modules/language/src/003_007_cast.swg)), and
   the conversion it then performs is whichever one that target requires — including a float
   truncation and an integer narrowing, in a language that otherwise refuses both without a written
@@ -481,9 +469,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.011 — The apostrophe carries three unrelated roles
 
-- Area: language
-- Found while: the same pass
-- Observation: `'` opens a character literal, introduces a literal suffix, and introduces a generic
+- Evidence: `'` opens a character literal, introduces a literal suffix, and introduces a generic
   argument list. Which one applies depends on the token *before* it
   ([003_003_string.swg](../bin/reference/modules/language/src/003_003_string.swg)),
   so `5's32`, `genericTwice's64(12)`, `floatWindow.at'1()`, `Duration = 500'ms` and `'a'` all use
@@ -496,9 +482,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Elsewhere: Rust also overloads the apostrophe, distinguishing character literals from lifetime tokens
   ([Rust tokens](https://doc.rust-lang.org/reference/tokens.html)). This is a lexer comparison,
   not evidence that Swag must change its generic delimiter.
-- Current editor evidence: `vscode/tests/grammar.test.js` now exercises generic type arguments
-  beside a call, including whitespace before the apostrophe. It reproduced and protects the
-  corrected builtin-type scope; the broader comparison of lexical roles remains to be measured.
 - Proposed contract: Use one delimited generic-argument form distinguishable from character literals and
   numeric/unit suffixes. This is a readability/syntax proposal, not a missing generics feature or
   an unresolved coloring bug. Compare angle brackets with another dedicated delimiter rather
@@ -512,10 +495,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.021 — The base a number is written in decides its signedness
 
-- Area: language
-- Found while: a second reading pass over the reference, checking what the type of a literal depends
-  on
-- Observation: a decimal literal is an unsized constant of *unknown* sign, and a hexadecimal or
+- Evidence: a decimal literal is an unsized constant of *unknown* sign, and a hexadecimal or
   binary one is an unsized constant of *unsigned* sign. Both adapt to an imposed type, so the
   difference is invisible wherever the target is written down — and it becomes the constant's real
   type the moment nobody writes one. `const Mask = 0xF0` is a `u32`, `const Mask = 240` is an `s32`,
@@ -566,9 +546,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.014 — Choose a consistent half-open convention for collection APIs
 
-- Area: language
-- Found while: the same pass
-- Observation: `str[1 to 3]` is three elements, `str[1 until 3]` is two
+- Evidence: `str[1 to 3]` is three elements, `str[1 until 3]` is two
   ([004_002_slice.swg](../bin/reference/modules/language/src/004_002_slice.swg)).
   There is no implicit endpoint choice here: the author writes `to` or `until`. Half-open
   intervals compose at adjacent boundaries and have length `high - low`; choosing that form
@@ -594,9 +572,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.015 — `#[Swag.EnumFlags]` changes implicitly assigned member values
 
-- Area: language
-- Found while: the same pass
-- Observation: adding the attribute changes `A` from 0 to 1, `B` from 1 to 2, `C` from 2 to 4
+- Evidence: adding the attribute changes `A` from 0 to 1, `B` from 1 to 2, `C` from 2 to 4
   ([004_004_enum.swg](../bin/reference/modules/language/src/004_004_enum.swg)).
   The attribute reads as a statement about how the values are *used*; it is in fact a statement
   about what the values *are*. On a serialized, persisted, or ABI-visible enum, adding it is a
@@ -620,9 +596,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.017 — Mixins resolve their body in the caller's scope
 
-- Area: language
-- Found while: the same pass
-- Observation: a mixin body names variables that do not exist where it is written and are expected
+- Evidence: a mixin body names variables that do not exist where it is written and are expected
   to exist wherever it is called
   ([015_001_mixins.swg](../bin/reference/modules/language/src/015_001_mixins.swg)).
   That is expansion-time lookup in the caller, in a language whose macros went to the trouble of being hygienic
@@ -649,9 +623,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.018 — A macro can redefine `break` and `continue` inside the block the caller wrote
 
-- Area: language
-- Found while: the same pass
-- Observation: `#inject(what, break = break to Outer, continue = break)` rewrites the meaning of
+- Evidence: `#inject(what, break = break to Outer, continue = break)` rewrites the meaning of
   two keywords in code the caller wrote and can see
   ([015_002_macros.swg](../bin/reference/modules/language/src/015_002_macros.swg)).
   The caller's `break` is not shadowed or wrapped — it is replaced, with nothing at the call site
@@ -674,9 +646,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.020 — There are two metaprogramming systems and they do not meet
 
-- Area: language
-- Found while: the same pass
-- Observation: `#ast` generates code by returning a *string* of Swag source, built with `+` or a
+- Evidence: `#ast` generates code by returning a *string* of Swag source, built with `+` or a
   byte buffer
   ([015_003_generated_code_with_ast.swg](../bin/reference/modules/language/src/015_003_generated_code_with_ast.swg)),
   while macros and mixins generate code by injecting *parsed blocks* with declared, typed, hygienic
@@ -705,42 +675,30 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.024 — Make nontrivial copies explicit at owning call boundaries
 
-- Area: language
-- Found while: the same pass
-- Observation: `#move` in a parameter position is documented as part of the signature — "they select
-  how an argument reaches the callee"
-  ([002_008_sigils.swg](../bin/reference/modules/language/src/002_008_sigils.swg)).
-  The caller can still choose a copy: a `#move` parameter also accepts a plain copyable argument, and the
-  compiler materializes a call-site copy and moves *that*
+- Evidence: a `#move` parameter also accepts a plain copyable argument. The compiler copies it
+  into a call-site temporary (`opPostCopy`) and moves that temporary. With `Vector3`, the call
+  `assign(&b, a)` through a `#move` parameter yields `4, 5, 6` (one copy, then one move), and
+  `assign(&b, #move a)` yields `3, 4, 5`
   ([006_009_custom_copy_and_move.swg](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg)).
-  So a signature that reads "this callee consumes your value" is satisfied by a caller that keeps
-  it, and the difference between the two call styles is one hidden copy of the whole aggregate,
-  visible in the source as nothing at all. The capacity is deliberate and `#fwd` exists to avoid the
-  copy; what is not marked anywhere is *which* call paid for it.
-- Evidence: the reference measures the copy itself. With `Vector3.opPostCopy` adding 1 and
-  `opPostMove` adding 2, `assign(&b, a)` through a `#move` parameter yields `4, 5, 6` — one copy then
-  one move — while `assign(&b, #move a)` yields `3, 4, 5`
-  ([006_009_custom_copy_and_move.swg](../bin/reference/modules/language/src/006_009_custom_copy_and_move.swg)).
+  Nothing at the call site marks which call paid for the copy. `#copy value` now exists as
+  an explicit copy expression, and `#fwd` avoids the temporary.
 - Elsewhere: Rust copies values implementing `Copy` and otherwise moves them in value contexts
   ([Rust moved and copied values](https://doc.rust-lang.org/reference/expressions.html#moved-and-copied-types)).
-  Saying that every Rust by-value call moves would omit the copyable case.
-- Proposed contract: Make nontrivial duplication explicit at owning boundaries. An opDrop type already
-  denies copying without opPostCopy; ordinary by-value struct parameters already borrow a const
-  address, and named-local returns already transfer in the unobserved case. Preserve these gains.
-  The remaining question is the implicit opPostCopy performed for an unmarked argument to a
-  consuming parameter, not whether every function argument should consume its source.
-- Next: Compare mandatory explicit copy with default transfer specifically for owning assignment,
-  initialization and consuming parameters. Use String, Array and a copy-counting fixture; include
-  callbacks, interfaces and deferred observations. Choose one rule, measure migration, and never
-  auto-insert #move merely to silence a warning. Non-defaultable source reset is language.design.035.
-- Done when: the selected owning-call contract exposes every nontrivial duplication and intentional
-  transfer, without making ordinary borrowed struct calls consume or allocate.
+- Proposed contract: make nontrivial duplication explicit at owning boundaries. Preserve what
+  already holds: an opDrop type without opPostCopy is not copyable, by-value struct
+  parameters borrow a const address, and unobserved named-local returns transfer. The open
+  question is the implicit opPostCopy for an unmarked argument to a consuming parameter.
+- Next: decide whether an unmarked copyable argument to a `#move` parameter, an owning
+  assignment, or an initialization must be written `#copy`, against default transfer. Use
+  String, Array and a copy-counting fixture, and include callbacks, interfaces and deferred
+  observations. Measure the `bin/` migration, and never auto-insert `#move` to silence a
+  diagnostic. Non-defaultable source reset is language.design.035.
+- Done when: the selected owning-call contract exposes every nontrivial duplication and
+  intentional transfer, without making ordinary borrowed struct calls consume or allocate.
 
 ### language.design.025 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
 
-- Area: language
-- Found while: the same pass
-- Observation: `as err` "binds a fresh local ... visible in the enclosing scope, after the catch, so
+- Evidence: `as err` "binds a fresh local ... visible in the enclosing scope, after the catch, so
   each capture in a given scope needs its own name"
   ([013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)).
   The declaration is written inside an expression, in the middle of an initializer, and its effect
@@ -807,9 +765,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.007 — One default in a grouped declaration silently defaults every name in the group
 
-- Area: language
-- Found while: the same pass
-- Observation: `x, y: s32 = 0` declares two parameters and gives *both* the default `0`. The
+- Evidence: `x, y: s32 = 0` declares two parameters and gives *both* the default `0`. The
   grouped form was introduced to share a type
   ([003_005_variables.swg](../bin/reference/modules/language/src/003_005_variables.swg));
   sharing the initializer as well is the same rule applied one token further, and it means a
@@ -833,9 +789,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.013 — A `switch` accepts several `default` clauses
 
-- Area: language
-- Found while: the same pass
-- Observation: a `default` can carry a `where`, and once it can, a switch can hold several of them
+- Evidence: a `default` can carry a `where`, and once it can, a switch can hold several of them
   ([005_005_switch.swg](../bin/reference/modules/language/src/005_005_switch.swg)).
   A guarded `default` only runs when its condition succeeds, so several such arms can precede
   the final unconditional fallback. The open question is whether their spelling communicates that order.
@@ -857,9 +811,7 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.026 — `[2, 2] T` and `[2][2] T` are different types indexed the same way
 
-- Area: language
-- Found while: the same pass
-- Observation: the two spellings produce unrelated types that do not convert to each other, and the
+- Evidence: the two spellings produce unrelated types that do not convert to each other, and the
   reference warns about it
   ([004_001_array.swg](../bin/reference/modules/language/src/004_001_array.swg)).
   What makes it a trap rather than a choice is that `[i, j]` indexes both. The one place a reader
@@ -881,31 +833,21 @@ in its module backlog; a general request for better names is not a missing langu
 
 ### language.design.029 — '.buffer' answers a non-null pointer for a payload that can be absent
 
-- Area: language
-- Found while: widening the never-null condition rule. The `bin/` sweep it forced stopped
-  on `if (ptrAny[]).buffer` in `convertAny`, which reads as "does this value carry a payload" and
-  which the type system now calls a constant.
-- Observation: `.buffer` of a `string` or `cstring` now carries the source's `?`, but the `any`
-  and `interface` cases still answer a non-null block pointer whatever the payload is. The
-  container's own nullability is not the payload's: a non-null `any` built by `Swag.makeAny(null, type)`
-  and an interface whose `obj` was never set both hand back null, and `bin/std` already tests for
-  it — `encoder.swg` writes `if not itf.obj` on the raw field precisely because `.buffer` would not
-  let it ask.
-- Evidence: `semaIntrinsicDataOf` ([Sema.Intrinsic.cpp](../src/Compiler/Sema/Ast/Sema.Intrinsic.cpp))
-  builds the `any` and `interface` results with `TypeInfo::makeBlockPointer(typeVoid(), flags)`,
-  where `flags` comes from the container type. Probe — `convertAny` had to read its `any` through
-  `[as any?]` to keep asking the question at all. At the historical
-  2026-09-02 HEAD (0.1.315), a raw tracked-source inventory reports 3,972 `.buffer` occurrences
-  under `bin/**/*.swg` and `bin/**/*.swgs`; that is an upper bound, not the number requiring a
-  nullable assertion, because the receiver types have not yet been classified.
+- Evidence: `.buffer` of a `string` or `cstring` carries the source's `?`, but the `any` and
+  `interface` cases answer a non-null block pointer whatever the payload is.
+  `semaIntrinsicDataOf` ([Sema.Intrinsic.cpp](../src/Compiler/Sema/Ast/Sema.Intrinsic.cpp))
+  builds them with `TypeInfo::makeBlockPointer(typeVoid(), flags)`, where `flags` come from
+  the container. A non-null `any` built by `Swag.makeAny(null, type)`, or an interface whose
+  `obj` was never set, both hand back null. `encoder.swg` and `decoder.swg` test the raw
+  `itf.obj` field because `.buffer` cannot ask, and `convertAny` reads its `any` through
+  `[as any?]`. A raw inventory finds about 4,000 `.buffer` occurrences under `bin/`. That is
+  an upper bound, because receiver types are not yet classified.
 - Elsewhere: Rust represents an optional borrowed reference with `Option<&T>`
-  ([Rust Option](https://doc.rust-lang.org/std/option/)). The comparison concerns the payload's
-  absence; it does not by itself choose a contract for Swag's erased container.
-- Next: decide whether the `any` and `interface` payload pointers are always nullable-capable,
-  which is what the runtime says. Classify the inventory by receiver type before estimating the
-  migration; the eventual sweep may require `cast(*T, itf.buffer!)` at affected sites. Also consider
-  whether a non-null `any` should instead
-  be the type that promises a payload, making `Swag.makeAny(null, type)` the thing that needs `?`.
+  ([Rust Option](https://doc.rust-lang.org/std/option/)).
+- Next: decide whether the `any` and `interface` payload pointers are always
+  nullable-capable, as the runtime behaves, or whether a non-null `any` should promise a
+  payload, so that `Swag.makeAny(null, type)` needs `?`. Classify the inventory by receiver
+  type before estimating the migration.
 - Done when: `.buffer` uses are classified by receiver type, the payload-pointer nullability
   contract is documented, and the resulting migration plus compiler and module tests agree.
 

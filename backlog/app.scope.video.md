@@ -21,21 +21,11 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.016 — Audio-to-video synchronisation has never been observed against a real output device
 
-- Area: apps/swagscope
-- Found while: std.video.001, after the video viewer started presenting against the audio clock.
-- Observation: the viewer presents each picture at the time the sound has reached, and nothing has
-  yet confirmed that the time the sound reports is the time it is playing. In the originally reported environment, the
-  played-sample counter of a source voice stays at zero for a whole run even with buffers queued
-  and the voice started, so the position `Voice.playbackPositionSeconds` answers never moves and
-  the correction the player applies to its own clock never fires. Sound is audible on the user's
-  machine, but the archived probe did not establish whether its own process had a working audio
-  endpoint. That remains a hypothesis, not a current-device measurement.
-- Evidence: a temporary probe in the video viewer logging `activeDriverKind`, `buffersQueued`, and
-  the raw played-sample counter once per second. Driver 2 (XAudio2), `queued=2` from the first
-  second — so the source is primed and submission works — with `samplesPlayed` flat at zero
-  twenty seconds in, from the start of the file and after a seek. Presentation is unaffected
-  because playback keeps its own clock and only lets the sound correct it, which the stalled-output
-  test in `viewer.video.test.swg` pins down using the no-sound backend.
+- Evidence: the viewer presents pictures at the time the sound reports, correcting its own
+  clock with `followAudioClock`. A diagnostic run saw XAudio2's played-sample counter stay at
+  zero with buffers queued, so `Voice.playbackPositionSeconds` never moved and the correction
+  never fired; that run did not establish whether the process had a working audio endpoint.
+  Only the no-sound stalled-output case is tested (`viewer.video.test.swg`).
 - Next: play a video with sound on a machine whose output is audible and log
   `playbackSampleFrame` against the wall clock for a minute.
 - Done when: the sample cursor tracks real time, `followAudioClock` corrects a deliberately
@@ -184,10 +174,10 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.015 — An unsupported picture codec hides sound tracks the application can play
 
-- Intent: a container currently fails as a video document when its picture codec is unavailable,
-  even if one of its sound tracks has a registered decoder. The measured library exposes this with
-  its single RV40 film; future partial codec coverage must not turn supported audio into no output.
+- Evidence: a container fails as a video document when its picture codec is unavailable (for
+  example RealVideo RV40), even if one of its sound tracks has a registered decoder.
+- Next: when no picture track decodes, open the decodable sound tracks through the Sound
+  viewer path and state that the picture is unavailable.
 - Done when: Swag Scope offers a sound-only view for every decodable track when no picture
-  track can be decoded, states that the picture is unavailable, and keeps ordinary video playback
-  unchanged when both sides are supported.
-- Related: std.video.007 in [std.video.md](std.video.md)
+  track can be decoded, states that the picture is unavailable, and keeps ordinary video
+  playback unchanged when both sides are supported.

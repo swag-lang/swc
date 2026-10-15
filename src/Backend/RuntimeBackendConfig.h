@@ -58,7 +58,7 @@ namespace Runtime
         constexpr bool runsCostlyOptimizations() const { return optimLevel >= BuildCfgBackendOptimLevel::O2; }
 
         // Register allocation splits live intervals instead of assigning one register per
-        // value for its whole life (compiler.optimization.024). Measured neutral on compilation time, so the
+        // value for its whole life. Measured neutral on compilation time, so the
         // level it needs is the first one that optimizes at all.
         constexpr bool splitsLiveRanges() const { return optimLevel >= BuildCfgBackendOptimLevel::O1; }
     };

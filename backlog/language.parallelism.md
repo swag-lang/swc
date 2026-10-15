@@ -97,14 +97,9 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
 
-- Where it stands: `parallel for |captures| name in range` is a statement of the language, lowered
-  to a runtime range call, with fallible variants under `try`, `catch` and `expect`.
-  `bin/runtime` owns the worker pool, `Swag.Task`,
-  `Swag.TaskGroup`, `Swag.Mutex`, `Swag.RWLock`, `Swag.Condition`, `Swag.Semaphore`,
-  `Swag.Barrier`, `Swag.AtomicValue` and `Swag.AtomicFlag`. One process has one pool, resolved
-  through a process anchor so an executable and every shared library it loads share it. `Core.Jobs`
-  is gone and every consumer -- pixel, truetype, video, gui, the four applications, the examples
-  and the scripts -- goes through the runtime.
+- Evidence: `parallel for`, `Swag.Task`, `Swag.TaskGroup`, the runtime locks, conditions,
+  semaphores, barriers, atomics, `Swag.Executor` and the language reference's memory model
+  are shipped.
 - What the model does not yet promise: race freedom. The capture list is written, not proved
   (.005); a partition can fail but cannot state disjointness (.004); there is no UI or blocking
   executor and no affinity rule beyond submitting to a dedicated executor (.003); nothing suspends (.002). A program can
@@ -130,11 +125,6 @@ These hold for the shipped model and constrain every entry in this domain.
 | General channels, promises, actors, leases | Safe memory access does not prove the communication protocol terminates. |
 | Foreign waits and external systems | Require explicit backend contracts; no universal deadline or deadlock guarantee. |
 
-Concurrent conflicting non-atomic access is invalid. Atomics do not create multi-location
-transactions, and an atomic pointer algorithm still needs a valid reclamation protocol and a
-lifetime proof. Default atomics are sequentially consistent; acquire/release/relaxed orders remain
-expert operations that do not inherit that claim, and none are exposed yet.
-
 A joining thread can claim the queued task it is waiting for, and that task can join its own
 children in turn. It does not execute unrelated ready tasks: a guard held across a join must
 not be reentered by an unrelated callback. With no worker, submission executes synchronously.
@@ -156,34 +146,6 @@ The worker count is also atomic, while roster growth stays under the pool mutex;
 submit and inspect the pool while other callers increase its size. Runtime shutdown still assumes
 its users have quiesced: atomic publication is not an admission or cancellation protocol for late
 submissions during teardown.
-
-Native `parallel for` now keeps bounded atomic cost hints keyed by the generated body's entry
-address. An unknown body samples one actual iteration before starting workers; later calls use
-the estimated work per partition and periodically refresh it. Empty and single-iteration ranges
-need no pool. An already started pool with fewer than two workers skips profiling entirely;
-the observation starts no execution resource, and later calls see concurrent pool growth.
-Partition storage lives in a separate, non-inlined dispatch function, so serial and empty calls
-do not reserve the full worker array or probe its stack pages. The dispatch function keeps one
-runner per chosen worker and joins every accepted runner before releasing that storage.
-Runners claim disjoint blocks through an atomic
-cursor; the whole range uses at most eight times as many blocks as runners, and the measured
-grain still sets their minimum size. The caller reserves its first block before publication and
-participates in the remaining claims. Each successful claim clamps its end before addition, even
-when the exclusive range end is `U64.Max`. An unusually expensive individual iteration or block
-can still dominate completion; blocks are not preempted or split after a claim.
-Hints retain no captured storage, and concurrent observations only affect placement.
-The fixed table probes at most four slots and never replaces an owner. If none accepts the body,
-the current call still samples its own cost, without caching it. Variable costs,
-preemption and stale observations can still choose an inefficient schedule; this is not a time
-bound or a proof that parallel execution will help. Resize, Argon2 and ChaCha20 no longer carry
-separate small-work thresholds. The pixel-filter and Argon2 benchmarks measure both cheap ranges
-and expensive four-iteration ranges against one-worker controls.
-CPU rasterization now exposes sixteen-row blocks instead of one band per worker, so the runtime
-can distribute localized overdraw. Triangle order stays fixed within each pixel, with exclusive
-ownership of its color, stencil and overlap scratch rows until the join. The renderer retains its
-pixel-area threshold and whole-range serial path to amortize repeated triangle setup; its small
-draw path returns before querying or starting the pool. `bench/rasterbalance` compares complete
-one-worker and four-worker images, including uniform and localized-overdraw controls.
 
 #### Workloads still to be answered
 
@@ -313,43 +275,25 @@ of simplicity when every useful helper needs an unchecked contract.
 
 ### language.parallelism.006 — One locked ready stack, so fine-grained work does not scale
 
-  is the ready stack itself
-- Evidence: `bench/scheduler` prices one submission at six grains, concurrent submission with and
-  without a task group's own storage, a nested region against its flat equivalent, and one
-  completion beside parked observers, at 1, 2, 4, 8 and every worker. Its README states the
-  alternating-worktree protocol these numbers need on this machine, where two runs of one binary
-  differed by a factor of three while another agent was building.
-- Evidence: completion was the largest cost and is gone. A finished unit used to wake every parked
-  observer in the process, so 20,000 short tasks beside 22 parked observers took 646 ms against
-  3.6 ms unobserved. Each parked observer now publishes the node address it waits for, and a
-  completion wakes only for a node someone waits for: the same stream costs 4.1 ms and is flat in
-  the number of observers, with a measured ratio of 0.01 at 22 observers and 0.35 at one.
-  Fine-grained fork/join follows from the same cause, because a joining thread that parks is an
-  observer: 1.4 to 3 times faster below eight workers. A group also holds its first four children
-  itself and fills the page each further block already reserved, which is 27% off a group's spawn
-  at one worker while the plain-task control stays where it was.
-- Evidence: what remains is the ready stack. Every `submitWork` takes one process-wide mutex to
-  push and every `popWork` takes it to claim. Fork/join over 64-element leaves costs 115 ms on 22
-  workers against 13.7 ms on one, and spawn throughput falls from 2.1 to 0.5 children per
-  microsecond over the same range. Every candidate ratio returns to one at 22 workers. The
-  machine's three classes of core are part of that number, and nothing in the pool knows they
-  exist.
-- Settled here: the worker cap stays at 64, because a parallel range reserves one runner per worker
-  in its dispatch frame, so the cap is also the stack every parallel section touches; raising it
-  means moving that storage off the stack first. Nesting stays supported and unrestricted, because
-  one process has one pool and an inner region therefore cannot multiply execution resources; it
-  measured within a fifth of the flat range that does the same work.
-- Next: shard the ready list so that a submission and a claim do not serialize on one lock -- one
-  list per shard with its own lock, the shard chosen from the node's own address so a targeted
-  claim still finds it in constant time, and an idle worker scanning the other shards. Keep it only
-  against the benchmark's alternating protocol on a quiet machine, and settle in the same change
-  whether a worker should spin before parking and whether the pool should know which class of core
-  it was placed on.
+- Evidence: every `submitWork` takes one process-wide mutex to push, and every `popWork`
+  takes it to claim (`bin/runtime/scheduler.swg`). In `bench/scheduler`, fork/join over
+  64-element leaves costs 115 ms on 22 workers against 13.7 ms on one, and spawn throughput
+  falls from 2.1 to 0.5 children per microsecond over the same range. The pool does not know
+  which class of hybrid core a worker runs on. The benchmark README states the
+  alternating-worktree protocol these numbers need.
+- Constraints: the worker cap stays at 64, because a parallel range reserves one runner per
+  worker in its dispatch frame. Nesting stays unrestricted, because one process has one
+  pool.
+- Next: shard the ready list so that a submission and a claim do not serialize on one lock.
+  Give each shard its own list and lock, choose the shard from the node's address so that a
+  targeted claim still finds it in constant time, and let an idle worker scan the other
+  shards. Keep the change only if it wins under the benchmark's alternating protocol on a
+  quiet machine. Settle in the same change whether a worker spins before parking, and
+  whether the pool should know its core class.
 - Done when: fork/join over 64-element leaves stops getting slower as workers are added, and
   spawn throughput stops falling between one worker and every worker.
-- Elsewhere: Rayon, Intel TBB, Java's `ForkJoinPool`, .NET's thread pool and the Go runtime all
-  give each worker its own deque and steal from the others, which is what makes recursive fork/join
-  cheap.
+- Elsewhere: Rayon, Intel TBB, Java's `ForkJoinPool`, .NET's thread pool and the Go runtime
+  all give each worker its own deque and steal from the others.
 - Related: language.parallelism.001, language.parallelism.003, language.parallelism.005
 
 ### language.parallelism.004 — Partitions cannot prove disjointness
@@ -364,7 +308,7 @@ of simplicity when every useful helper needs an unchecked contract.
   need them. Preserve the fallible loop's join and partial-effect contract while adding views.
 - Done when: a partitioned image operation needs no manual indexing into a captured buffer,
   overlapping mutable views are rejected, and success still means every index ran exactly once.
-- Related: std.pixel.md, language.parallelism.001.
+- Related: language.parallelism.001.
 
 ### language.parallelism.003 — A dedicated executor, but no UI or blocking executor
 
@@ -373,8 +317,7 @@ of simplicity when every useful helper needs an unchecked contract.
   pool has not started, and the waiting participants occupy the workers that would start it.
   Under compile-time execution, where the count is zero, the first child blocks the only thread.
   The same reasoning applies to `Swag.Semaphore.acquire` and `Swag.Condition.wait`: a waiting
-  thread runs no ready work, so what it waits for must already be running. The three
-  documentation comments now say so, and the suite test uses one participant. This is the
+  thread runs no ready work, so what it waits for must already be running. This is the
   evidence that the pool is the wrong owner for anything that waits for another task.
 - Evidence: besides the pool, `Swag.Executor` gives work one thread of its own, and a task's
   notification can post a `Gui.TaskEvent` to a window. There is still no main/UI executor and no
@@ -389,4 +332,4 @@ of simplicity when every useful helper needs an unchecked contract.
 - Done when: a thread-affine resource is created, used and destroyed on its required executor
   under a shutdown that races its last callback, and the UI executor keeps servicing completion
   and destruction while it drains.
-- Related: platform.portability.035, std.audio.md, std.video.md.
+- Related: platform.portability.035.

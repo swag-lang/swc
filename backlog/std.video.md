@@ -29,11 +29,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.004 — An AVI larger than four gigabytes is refused
 
-- Intent: every size in the AVI container is a 32-bit field, so the encoder refuses a stream that
-  would run past four gigabytes (`encode/avi/avi.swg`), and the decoder reads `idx1` or, when it is
-  missing or rejected, walks the first RIFF's `movi` list (`walkFrames`), ignoring OpenDML. OpenDML answers both
-  with 64-bit `indx` chunks and a `RIFF AVIX` continuation, which is what any capture longer than a
-  few minutes at a usable bitrate produces.
+- Evidence: AVI sizes are 32-bit, so `encode/avi/avi.swg` refuses a stream past four
+  gigabytes, and the decoder reads `idx1` or walks the first RIFF's `movi` list
+  (`walkFrames`), ignoring OpenDML's 64-bit `indx` chunks and `RIFF AVIX` continuations, which
+  any capture longer than a few minutes at a usable bitrate produces.
+- Next: read the OpenDML `indx` hierarchy and follow `AVIX` continuations in the decoder,
+  then emit them from the encoder.
 - Done when: the decoder reads the `indx` hierarchy and follows `AVIX` continuations, and the
   encoder emits them instead of failing once the stream approaches the limit.
 
@@ -49,43 +50,30 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Measurement: use one VCL slice per picture, one AVC lane, warm references, decode forward, and
   interleave identical input against single-threaded FFmpeg. Measure the decoding thread and caller;
   whole-process cycles include unrelated workers. Multi-slice scheduling belongs to std.video.013.
-- Constraints: preserve truncated-input checks and clear residual blocks that intra reconstruction
-  can read without entropy parsing. Shipped packed deblocking is complete; the remaining strong
-  vertical chroma vector path belongs to cpu.simd.023.
+- Constraints: preserve truncated-input checks and clear residual blocks that intra
+  reconstruction can read without entropy parsing. The strong vertical chroma vector path
+  belongs to cpu.simd.023.
 - Done when: serial decode costs at most four-thirds of the selected single-threaded FFmpeg
   reference on the same fixture and machine, with unchanged decoded planes.
 - Related: std.video.013, compiler.optimization.011, cpu.simd.023.
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: the 2026-08-26 one-lane comparison on a 3840x2076 Main10 passage recorded 92 ms
-  of processor time per picture against FFmpeg's 28.6 ms. Later stage experiments changed the
-  decoder and the compiler; those numbers and old frame-access counts are historical attribution,
-  not the current performance ratio. Main/Main10 conformance and container fixtures remain the
-  correctness boundary. Range-extension coverage belongs to std.video.009.
-- Current source: `filterLumaEdge` already sends horizontal luma to packed `filterLumaQuad`;
-  vertical luma and `filterChromaEdge` remain scalar. Interpolation and inverse transforms use
-  paired 128-bit arithmetic, scan inversion and significance tables are implemented, and SAO
-  reuses/swaps retained planes. The old instruction to vectorize all deblocking repeats shipped
-  work. The backend also has split allocation and same-module, non-generic cross-file automatic
-  inlining; generic cross-Ast materialization remains deliberately excluded.
-- Remaining leads: threshold/context derivation and frame traffic, vertical/chroma filtering,
-  locality from processing both edge directions in bounded bands, and avoiding a separate
-  prediction-buffer combine for uni-predicted blocks. Attribute and choose one after measuring;
-  wider SIMD capability is owned by cpu.simd.002.
-- Next: rebaseline a redistributable Main10 clip with one decode lane and identical FFmpeg input,
-  then profile remaining stages. Count frame accesses in the current generated kernels before
-  treating compiler.optimization.011's old allocator measurements as a binding cause.
-- Measurement contract: warm and decode forward without seeking back inside a measured window.
-  Use paired runs and prove which threads carry decoding; for small stage changes, use alternating
-  implementations within one process on the same blocks. Timing stages by disabling them changes
-  downstream work and cannot attribute their costs. A fixture needing an occasionally mounted
-  personal film is not a reproducible acceptance input.
-- Boundary: the same-module, non-generic cross-file path now waits for semantic completion and
-  preserves resolved bindings. Generic cross-Ast bodies still need their own publication and
-  rebinding proof before the earlier `aoc2019` experiment can be retried.
-- Done when: serial decode costs at most four-thirds of FFmpeg on the same 3840x2076 Main10
-  fixture and machine, with exact conformance and reference planes and recorded measurement scope.
+- Evidence: the last one-lane comparison on a 3840x2076 Main10 passage cost about three times
+  FFmpeg's processor time per picture; the decoder and compiler have changed since, so it is
+  not a current ratio. `filterLumaEdge` sends only horizontal luma to packed
+  `filterLumaQuad`; vertical luma and `filterChromaEdge` remain scalar. Main/Main10 conformance
+  and container fixtures remain the correctness boundary; range-extension coverage belongs to
+  std.video.009, and wider SIMD capability to cpu.simd.002.
+- Next: rebaseline a redistributable Main10 clip with one decode lane against identical FFmpeg
+  input, profile the remaining stages, and pick one lead: threshold/context derivation and
+  frame traffic, vertical/chroma filtering, band-local edge processing, or the separate
+  prediction-buffer combine for uni-predicted blocks.
+- Measurement: warm and decode forward without seeking back inside a measured window; prove
+  which threads carry decoding; compare small stage changes by alternating implementations in
+  one process on the same blocks, not by disabling stages.
+- Done when: serial decode costs at most four-thirds of FFmpeg on the same Main10 fixture and
+  machine, with exact conformance and reference planes.
 - Related: std.video.001, std.video.009, compiler.optimization.011, cpu.simd.002
 
 ### std.video.009 — H.265 range-extension chroma formats are not decoded
@@ -104,21 +92,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.012 — 4:2:2 is the chroma format H.264 still refuses
 
-- Intent: the decoder reads 4:2:0 and, since this change, 4:4:4, which is what a screen recorder,
-  a colourist's intermediate, and x264 at `profile=high444` produce. `chroma_format_idc` equal to
-  2 is what remains, and a file carrying it is refused at the sequence set rather than decoded.
-- Evidence: `decode/h264/sets.swg` fails a sequence set whose `chroma_format_idc` is neither 1 nor
-  3, with "video decoder only supports 4:2:0 and 4:4:4 H.264 streams". `Sps.chromaShift` states one
-  halving or none, so it has no way to say "half the width and all of the height".
-- Why it is not the same work as 4:4:4: a 4:4:4 colour plane is coded exactly as luma, so the
-  4:4:4 path is the luma path with a plane index. 4:2:2 is a third geometry of its own — eight
-  chroma blocks per plane, a 2x4 chroma DC transform with its own scan, a chroma quantizer offset
-  of `+3`, and its own CABAC categories — and none of that is reached by the plane index.
-- Separate colour-plane coding is a distinct 4:4:4 feature, tracked in std.video.014.
-- Next: decide whether a real file is asking for it. If one is, start from `Sps` carrying a
-  horizontal and a vertical chroma shift rather than one, then the chroma DC transform.
+- Evidence: `decode/h264/sets.swg` fails a sequence set whose `chroma_format_idc` is neither 1
+  nor 3, and `Sps.chromaShift` states one halving or none, so it cannot express half width at
+  full height. 4:2:2 needs its own geometry: eight chroma blocks per plane, a 2x4 chroma DC
+  transform with its own scan, a chroma quantizer offset of `+3`, and its own CABAC categories.
+- Next: decide whether a real file needs it; if so, give `Sps` separate horizontal and
+  vertical chroma shifts, then implement the chroma DC transform.
 - Done when: a 4:2:2 fixture encoded by x264 decodes byte-exact against FFmpeg, beside the
   4:2:0 and 4:4:4 ones in `video/src/tests/datas`.
+- Related: std.video.014
 
 ### std.video.013 — H.264 multi-slice scheduling needs its own cost and progress contract
 
@@ -153,7 +135,6 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: redistributable VP9 fixtures decode and seek with reference plane comparisons,
   malformed input respects decoder limits, audio remains synchronized, and Scope discovers the
   supported format automatically while keeping its separate binary structure viewer.
-- Historical provenance: split from the retired `app.scope.video.014` playback capability entry.
 - Related: std.video.011, app.scope.binary.011
 
 ### std.video.011 — Decode AV1 pictures in Matroska and WebM
@@ -167,47 +148,36 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: redistributable AV1 fixtures decode and seek with reference plane comparisons,
   malformed input respects decoder limits, audio remains synchronized, and Scope discovers the
   supported format automatically while keeping its separate binary structure viewer.
-- Historical provenance: split from the retired `app.scope.video.014` playback capability entry.
 - Related: std.video.010, app.scope.binary.011
 
-### std.video.006 — Interlaced H.264 is the last picture feature a real library asks for
+### std.video.006 — Interlaced H.264 is not decoded
 
-- A recorded survey of 592 films of one personal library, twelve pictures each against FFmpeg:
-  590 decode, and one of the two that do not is refused with `video decoder does not support
-  interlaced H.264 streams`. It is a 1968 film telecined to fields.
-- What it needs is field coding: `field_pic_flag`, a picture built from two fields with their own
-  reference lists and their own picture order counts, and the deblocking and prediction rules that
-  follow from a field being half a picture. That is a real piece of the standard rather than a
-  corner of it, and nothing else in the library needs it.
-- Worth knowing before starting: the same library holds no interlaced H.265 and no interlaced
-  MPEG-4 Part 2, so this is one codec's feature rather than a shape the module lacks everywhere.
-
-### std.video.007 — RealVideo RV40 is one film, and a whole codec
-
-- The last film of the 592 that does not open is `V_REAL/RV40`, a 1999 encode. RealVideo 9/10 is an
-  H.264 relative with its own slice format, its own bitstream syntax, and no relationship to
-  anything this module reads.
-- It is recorded because the sweep found it, not because it is worth writing: one film against a
-  codec of that size is a poor trade. Transcoding that file to a supported codec is an
-  alternative; changing only its container does not make the RV40 pictures decodable.
-- Related: app.scope.video.015 in [app.scope.video.md](app.scope.video.md)
+- Evidence: `decode/h264/sets.swg` refuses a sequence set without `frame_mbs_only_flag`
+  ("video decoder does not support interlaced H.264 streams"). A survey of one personal
+  library found one such film (telecined to fields) and no interlaced H.265 or MPEG-4 Part 2.
+- Next: implement field coding — `field_pic_flag`, pictures built from two fields with their
+  own reference lists and picture order counts, and field deblocking and prediction rules —
+  starting from a redistributable interlaced fixture.
+- Done when: an interlaced fixture decodes byte-exact against FFmpeg and progressive fixtures
+  keep their output.
 
 ### std.video.002 — Refreshing a bounded sound window interrupts playback
 
-- Intent: the sixty-second Matroska sound window now rebuilds asynchronously and keeps the picture
-  queue full even when an SMB scan takes 1.3 to 2.2 seconds, but every rebuild publishes a new
-  `SoundFile`, so the player replaces its voice and the listener still hears the seam.
-- Done when: the packet window can grow or hand off without replacing the playing voice, and
-  a long network-share playback crosses several refresh boundaries without an audio interruption.
-- Constraint: `Audio.SoundFile.openPacketStream` currently takes its packet table by value and a
-  voice reads it without a lock. The ownership and synchronization contract must change before a
-  playing stream can observe appended packets safely.
+- Evidence: every Matroska sound-window rebuild publishes a new `SoundFile`
+  (`publishSeekSound`), so the player replaces its voice and the listener hears the seam.
+  `Audio.SoundFile.openPacketStream` copies its packet table and a voice reads it without a
+  lock.
+- Next: define an ownership and synchronization contract that lets a playing packet stream
+  observe appended packets, then grow or hand off the window without replacing the voice.
+- Done when: a long network-share playback crosses several refresh boundaries without an
+  audio interruption.
 - Related: std.video.003
 
 ### std.video.003 — Retired sound windows remain alive until the video closes
 
-- Intent: release superseded bounded `SoundFile` windows as soon as no player or decoder can still
-  hold a pointer into them; today every published window stays alive until the whole file closes.
-- Done when: window ownership makes the last consumer observable, several refreshes keep only
-  the active and genuinely referenced windows, and a seek cannot read freed packet storage.
+- Evidence: `FileIndex.seekSounds` keeps every published `PublishedSound` until `opDrop`.
+- Next: make the last consumer of a window observable (player voice and decoder) and release a
+  superseded window when it is gone.
+- Done when: several refreshes keep only the active and genuinely referenced windows, and a
+  seek cannot read freed packet storage.
 - Related: std.video.002

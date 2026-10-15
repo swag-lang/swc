@@ -8,6 +8,8 @@ owned by a viewer lives in the corresponding domain:
 - [app.scope.viewers.md](app.scope.viewers.md) — shared viewer contracts, coverage, and product scope
 - [app.scope.text.md](app.scope.text.md) — basic text, code, subtitle, table, diff, and log viewers
 - [app.scope.document.md](app.scope.document.md) — Markdown, HTML, PDF, office-document, and ebook viewers
+- [app.scope.indesign.md](app.scope.indesign.md) — InDesign viewer
+- [app.scope.opendocument.md](app.scope.opendocument.md) — OpenDocument viewer
 - [app.scope.binary.md](app.scope.binary.md) — structured binary and container viewer
 - [app.scope.hexa.md](app.scope.hexa.md) — hexadecimal viewer
 - [app.scope.image.md](app.scope.image.md) — image viewer
@@ -16,8 +18,7 @@ owned by a viewer lives in the corresponding domain:
 - [app.scope.font.md](app.scope.font.md) — font viewer
 - [app.scope.midi.md](app.scope.midi.md) — MIDI viewer
 
-Reusable engine work remains in the backlog of the standard module that owns it. Entries here are
-Entries stay in one flat list per domain.
+Reusable engine work remains in the backlog of the standard module that owns it.
 
 ### app.scope.001 — One document per window
 

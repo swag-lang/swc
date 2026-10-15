@@ -32,56 +32,35 @@ still-image editing and output work.
 
 ### app.capture.015 — Assembling complete captures has no layout command
 
-
-`Capture.paste` already inserts clipboard images or typed form groups into the active canvas,
-remaps group identities, and records undo. A user can therefore combine images manually. There is
-no command to choose several saved captures, retain each background and its editable annotations,
-and place the results on a canvas sized for the composition.
-
-Add complete-capture assembly with explicit ordering, spacing and canvas bounds, using the
-existing form model and one undoable operation. Named reusable layouts remain app.capture.016.
-
+- Evidence: `Capture.paste` inserts clipboard images or form groups into the active canvas with
+  remapped group identities and undo, but no command places several saved captures, each with
+  its background and editable annotations, on a canvas sized for the composition.
+- Next: add a complete-capture assembly command with explicit ordering, spacing and canvas
+  bounds, built on the existing form model as one undoable operation.
+- Done when: chosen captures land in order on a fitted canvas, their annotations stay editable,
+  and one undo restores the previous canvas. Named reusable layouts remain app.capture.016.
 - Related: app.capture.016
 
-### app.capture.019 — Swag Capture dies when its window is moved and resized in one call
+### app.capture.019 — A combined move-and-resize across monitors may kill Swag Capture
 
-- Area: apps/swagcapture, std/gui
-- Found while: driving the shipped window from a script to photograph its pages. The window opens
-  maximized across a two-monitor desktop, so a capture has to bring it back onto one screen first.
-- Observation: `SetWindowPos(hwnd, HWND_TOPMOST, 40, 40, 2400, 1500, 0)` — one call that moves,
-  resizes and raises — kills the process three times out of four. The same call with `SWP_NOSIZE`
-  (move only) has never killed it. Dragging the window by hand does not either, which is why the
-  application looks healthy in normal use.
-- Evidence: reproduced from a plain PowerShell driver against the packaged build, four attempts,
-  three deaths, no window left behind. `GetWindowRect` on the survivor returns the requested
-  rectangle, so the call itself succeeds before the process goes.
-- Did NOT reproduce on 2026-08-06: four fresh runs of the identical call, four survivals, the
-  window landing exactly on the requested 40,40 2400x1500 each time. The window opened at
-  268,73 2821x1563 — on one monitor and not maximized — so the DPI boundary this entry suspects
-  was never crossed. That is a negative result about the driver, not about the defect: the
-  reproduction has to start from the maximized two-monitor state the original run had, or the
-  call never does the thing that kills it.
-- Suspicion, not conclusion: the two monitors of this desktop are at different scales, so that one
-  call crosses a DPI boundary *and* changes the client size in the same message. The surface
-  rebuilds its render target on a size change and re-reads its scale on a DPI change; doing both
-  from one message is the path a hand-drag never takes.
-- Current source: `Surface` now distinguishes application placement from an interactive
-  `WM_DPICHANGED`, retains the requested physical rectangle during application placement, and
-  skips minimized `WM_SIZE` events. `surface.resize.test.swg` covers backing-allocation reuse;
-  it does not recreate the original maximized mixed-DPI native-window transition. The old crash
-  is an unconfirmed lead on this implementation, not a newly reproduced failure.
-- Next step: reproduce with a minimal `gui2`-sized example under the same two-monitor arrangement,
-  then bisect: move-only across the boundary, resize-only on one screen, then both. If it is the
-  DPI crossing, `Surface` is where the ordering of the two rebuilds is decided. Move this entry to
-  [std.gui.md](std.gui.md) once that bisection puts the defect in `Surface`.
+- Evidence: from a maximized window on a two-monitor desktop with different scales,
+  `SetWindowPos(hwnd, HWND_TOPMOST, 40, 40, 2400, 1500, 0)` killed the packaged process in
+  three of four attempts; move-only (`SWP_NOSIZE`) and hand-dragging never did. `Surface` now
+  separates application placement from interactive `WM_DPICHANGED` and skips minimized
+  `WM_SIZE`, but `surface.resize.test.swg` does not cover the maximized mixed-DPI transition and
+  the crash has not been reproduced on the current implementation.
+- Next: from the maximized two-monitor state, reproduce with the `gui2` example, then bisect
+  move-only across the DPI boundary, resize-only on one screen, and both. Move the entry to
+  [std.gui.md](std.gui.md) if the defect lands in `Surface`.
+- Done when: the combined call survives repeated runs from the maximized mixed-DPI state with a
+  regression test at the owning boundary, or the current `Surface` is shown not to reproduce it.
 
 ### app.capture.021 — Loading a capture blocks the interface during decode
 
 - Evidence: `RecentView.select` in `src/recentwnd.swg` flushes a pending save of the selected
-  file, then calls `Capture.load` synchronously. The recent strip already has its preview.
-  On the photographed 2341x1903 BGRA8 capture measured on 2026-08-15, the original load cost
-  431 ms; the subsequent inflate rewrite reduced it to about 210 ms. Both are historical
-  measurements of the same synchronous path, not current timing guarantees.
+  file, then calls `Capture.load` synchronously on the interface thread, although the recent
+  strip already has its preview. A 2341x1903 BGRA8 capture took a few hundred milliseconds on
+  that path.
 - Next: make selection an owned asynchronous load that leaves the preview visible, respects
   outstanding saves, and publishes only the result of the latest selection. Define cancellation,
   failure presentation and window-close cleanup before moving the decode off the interface thread.
@@ -102,10 +81,9 @@ existing form model and one undoable operation. Named reusable layouts remain ap
 
 ### app.capture.025 — Capture image chunks have no measured alternative to deflate
 
-- Evidence: capture persistence uses `Core.Scc` chunk codecs. The photographed payload measured
-  on 2026-08-15 compressed from 17.0 to 12.8 MB at BestSpeed and to 12.5 MB at the slower settings;
-  PNG decoded in 377–409 ms. Those measurements motivate a codec decision, not a format migration
-  without a representative corpus.
+- Evidence: capture persistence uses `Core.Scc` deflate chunks. On a large photographed capture,
+  BestSpeed stored 17.0 MB as 12.8 MB and slower levels gained only 0.3 MB more. This motivates a
+  codec decision, not a format migration without a representative corpus.
 - Next: compare stored and faster lossless chunk encodings on the same capture corpus, recording
   decode CPU, peak memory and file size. Keep existing files readable through their codec id.
 - Done when: a documented selection rule has measured benefits on representative captures,
@@ -114,115 +92,115 @@ existing form model and one undoable operation. Named reusable layouts remain ap
 
 ### app.capture.002 — No capture-level effect pipeline
 
-- `Capture` has geometry, a background image, and forms, but nowhere to store and order effects.
-  Add an effect list applied identically by preview, flatten, and export, with the property panel
-  generated through the existing reflective editor system.
-- Priority: shared capture effects would apply to preview, flatten, and export through one model.
+- Evidence: `Capture` has geometry, a background image and forms, but nowhere to store and
+  order capture-level effects; only individual forms carry a shadow.
+- Next: add an ordered effect list to `Capture`, applied by one routine shared by preview,
+  flatten and export, with its property panel generated through the reflective editor system.
+- Done when: a stored effect renders identically in preview, flatten and export, survives save
+  and reload, and is edited through the property panel.
 - Related: app.capture.003, app.capture.005, app.capture.007, app.capture.008, std.pixel.012
 
 ### app.capture.001 — Print the current capture
 
-
-Add actual-size, fit-to-page, and centered printing with a clear clipping warning. Consume the GUI
-pagination/preview contract and Pixel vector output rather than creating an application-only print
-path.
-
+- Next: once the GUI pagination/preview contract exists, add actual-size, fit-to-page and
+  centered printing through it and Pixel vector output, not an application-only print path.
+- Done when: each mode prints the capture with its annotations, and a page that would clip the
+  capture warns before printing.
 - Related: std.gui.030, std.pixel.005, std.gui.034
 
 ### app.capture.004 — No capture drop-shadow effect
 
-
-Add a drop shadow with offset, blur, spread, and color through Pixel's effect graph.
-
+- Next: add a drop shadow with offset, blur, spread and color through Pixel's effect graph, as
+  an app.capture.002 effect.
+- Done when: the shadow parameters are editable and render identically in preview and export.
 - Related: std.pixel.012, app.capture.002, app.capture.003
 
 ### app.capture.003 — No capture border effect
 
-
-Add border width, color, placement, and corner interaction as the first effect using app.capture.002.
-
+- Next: add border width, color, placement and corner interaction as the first app.capture.002
+  effect.
+- Done when: each placement renders correctly with rounded and square corners in preview and
+  export.
 - Related: app.capture.002, app.capture.004
 
 ### app.capture.005 — No torn-edge capture effect
 
-
-Add deterministic torn-edge mask generation with scale-independent parameters.
-
+- Next: add deterministic torn-edge mask generation with scale-independent parameters as an
+  app.capture.002 effect.
+- Done when: the same parameters give the same edge at every zoom and export scale.
 - Related: app.capture.002, app.capture.006
 
 ### app.capture.006 — No faded-edge capture effect
 
-
-Add a faded-edge mask independently of torn-edge generation.
-
+- Next: add a faded-edge mask as an app.capture.002 effect, independent of torn-edge generation.
+- Done when: the fade width and edges are configurable and render identically in preview and
+  export.
 - Related: app.capture.002, app.capture.005
 
 ### app.capture.007 — No capture perspective effect
 
-
-Add perspective transformation with explicit output bounds and resampling behavior.
-
+- Next: add a perspective transformation effect with explicit output bounds and resampling.
+- Done when: the transformed capture fits its declared bounds and resamples identically in
+  preview and export.
 - Related: app.capture.002
 
 ### app.capture.008 — No capture watermark effect
 
-
-Add reusable image/text watermarks with placement, opacity, scale, and export persistence.
-
+- Next: add reusable image and text watermarks with placement, opacity and scale as an
+  app.capture.002 effect.
+- Done when: a watermark persists with the capture and appears identically in export.
 - Related: app.capture.002
 
 ### app.capture.010 — No named capture presets
 
-
-Persist named combinations of capture mode, delay, cursor policy, and destination, then allow app.capture.009
-to bind a hotkey to a preset rather than a raw command.
-
+- Next: persist named combinations of capture mode, delay, cursor policy and destination in the
+  options.
+- Done when: a preset can be created, run, renamed and deleted, survives restart, and
+  app.capture.009 can bind a hotkey to it.
 - Related: app.capture.009
 
 ### app.capture.011 — No video recording
 
-- Add a timed frame-capture loop and hardware video encoder with bounded buffering and observable
-  dropped-frame behavior.
-- Recommendation: treat it as a deliberate decision rather than an assumed goal. A still-capture
-  tool with an outstanding editor is a coherent product. A half-finished recorder is not.
+- Next: decide whether recording is a product goal; if it is, design a timed frame-capture loop
+  and hardware encoder with bounded buffering and observable dropped-frame behavior.
+- Done when: the decision is recorded, and a chosen recorder produces a playable file with
+  bounded memory and reported dropped frames, or the entry and its dependants are dropped.
 - Related: app.capture.012, app.capture.013, app.capture.014
 
 ### app.capture.012 — No animated GIF recording
 
-
-Record and export an animated GIF independently of the video codec pipeline, with a stated frame
-rate, palette, dithering, and size contract.
-
+- Next: specify frame rate, palette, dithering and size limits, then record and export a GIF
+  independently of the video codec pipeline.
+- Done when: a recording exports a GIF that follows those stated limits and plays correctly.
 - Related: app.capture.011
 
 ### app.capture.013 — Recordings cannot include audio
 
-
-Capture microphone or loopback audio and mux it into video without making audio a prerequisite for
-silent recording.
-
+- Next: after app.capture.011 produces video, capture microphone or loopback audio and mux it in,
+  keeping silent recording independent of audio.
+- Done when: a recording with audio stays in sync, and recording without an audio device still
+  works.
 - Related: std.audio.011, std.audio.013, app.capture.011
 
 ### app.capture.014 — Recordings cannot be trimmed in the editor
 
-
-Add non-destructive in/out trimming and export for captured recordings after the base recorder can
-produce a playable artifact.
-
+- Next: once the recorder produces a playable file, add non-destructive in/out trimming and
+  trimmed export.
+- Done when: trimmed export contains exactly the chosen range and the original recording is
+  unchanged.
 - Related: app.capture.011, app.capture.012
 
 ### app.capture.016 — No reusable capture layout templates
 
-
-Persist and apply named layout descriptions independently of combining captures manually.
-
+- Next: persist named layout descriptions produced by app.capture.015 and apply them to a new
+  selection of captures.
+- Done when: a saved template survives restart and reproduces its ordering, spacing and bounds.
 - Related: app.capture.015
 
 ### app.capture.017 — Stamp library
 
-
-A reusable graphics set placed as `FormImage` instances. Small, and it fits the existing model
-exactly. Must follow the identity rules in `design-swag-identity` rather than shipping generic
-clip art.
+- Next: design a reusable stamp set following `design-swag-identity` and place stamps as
+  `FormImage` instances.
+- Done when: stamps can be browsed and placed from the editor and remain editable images.
 
 ---

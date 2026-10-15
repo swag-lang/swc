@@ -100,17 +100,12 @@ is the current scorecard.
 
 ### compiler.safety.023 — Opaque results lack pointer-field provenance
 
-- Area: compiler/sema, `SemaEscape`
-- Evidence: a fresh semantic-only helper on 2026-10-04 still accepts
-  `release(carrier.borrowed)` after a no-inline factory stores `&local` in that field and
-  an independent allocation in `carrier.owned`. The DevMode compiler at `ce515e405` in
-  `release` reports no errors; releases of the independent field and carrier also stay
-  silent. A companion direct `release(&local)` control reports `sanity_err_free_borrowed`,
-  confirming the check is active. Neither invalid free was executed.
-- Current boundary: copied-field lifetime routes and returned payload projections already
-  exist (`25b9598b6`, `e1b81113e`). They do not yet distinguish the borrowed pointee of this
-  opaque heap result when judging a release. Propagating the carrier's enclosing borrow
-  indiscriminately would also reject its independently allocated field.
+- Evidence: a no-inline factory can store `&local` in `carrier.borrowed` and an independent
+  allocation in `carrier.owned`. `release(carrier.borrowed)` is then accepted with no
+  diagnostic, while a direct `release(&local)` reports `sanity_err_free_borrowed`. Copied-field
+  lifetime routes and returned payload projections (`25b9598b6`, `e1b81113e`) do not
+  distinguish the borrowed pointee of this opaque heap result. Propagating the carrier's
+  enclosing borrow wholesale would also reject releasing the independently allocated field.
 - Next: trace this returned-field route through the existing projection and frees-summary
   machinery, then preserve each field's provenance. Cover both fields through generated
   module APIs; never execute an invalid free merely to probe its diagnostic.
@@ -120,54 +115,47 @@ is the current scorecard.
 
 ### compiler.safety.019 — Remeasure sanity cost after live-state pruning
 
-- Area: compiler/backend, `Sanitizer`
-- Historical evidence: six-worker Release-compiler profiles on 2026-09-23 attributed about
-  8-10% of a core devmode rebuild's busy CPU to `Sanitizer::run`, principally conditional-branch
-  narrowing and value transfer. The measured fixed point took about 1.19 propagation visits
-  and 0.99 checking visits per instruction. These figures precede the current state layout.
-- Current boundary: `Sanitizer::pruneDeadRegs` keeps only registers live at each stored chain
-  head, and rarely populated state maps allocate on first use. The live-state change is already
-  implemented and tested; compiler.core.005 records its memory reduction and a faster ChaCha
-  devmode compilation. Neither that workload nor the earlier profiles establish the current
-  sanitizer share of a core or full-std build. Subsequent register, stack-lane, and freed-parameter
-  lookups also changed without a separate attribution measurement.
-- Next: profile the current core devmode and full-std release rebuilds, reporting sanitizer CPU,
-  state memory, propagation/check visits, and wall time separately. Use those measurements to
-  choose between branch narrowing, value transfer, and state storage; do not exclude state
-  layout using a profile taken before live-state pruning.
+- Evidence: earlier profiles attributed about 8-10% of a core devmode rebuild's busy CPU to
+  `Sanitizer::run`, mostly conditional-branch narrowing and value transfer. They predate
+  `Sanitizer::pruneDeadRegs`, which keeps only registers live at each chain head, the
+  on-demand state maps, and later register, stack-lane and freed-parameter lookup changes.
+  The sanitizer's current share of a core or full-std build is unmeasured.
+- Next: profile the current core devmode and full-std release rebuilds, reporting sanitizer
+  CPU, state memory, propagation/check visits, and wall time separately. Use those
+  measurements to choose between branch narrowing, value transfer, and state storage.
 - Done when: the current sanity pass's cost is attributed and either accepted or reduced
   with a repeatable comparison and the safety/sanity behavior preserved.
 - Related: compiler.core.005.
 
-### compiler.safety.008 — Release bound guards still impose measurable hot-loop cost
+### compiler.safety.008 — Runtime bound guards still impose measurable hot-loop cost
 
-- Area: compiler/backend, optimization
-- Evidence: dynamic bounds guards now remain enabled in Release. Range and repeated-guard proofs,
-  plus cold-block layout, avoid checks when their conditions are established or move the failure
-  path off the common path. The remaining guards still cost about 1.24x across the twelve
-  `bench/` programs relative to the same build without runtime guards. Hot gaps include
-  loop-bounded indices, repeatedly loaded counts, and loop-invariant `late` checks.
-- Next: prove an index against the dominating loop bound and hoist a `late` check from a loop that
-  does not assign it. Measure the affected loops with guards enabled and disabled.
-- Done when: loop-bounded indices and invariant `late` values need no repeated guard, and the
-  residual cost of runtime guards is measured on the affected loops with behavior preserved.
+- Evidence: `release` builds without runtime guards; `devmode`, and any build enabling
+  `.BoundCheck`, pays them. Range and repeated-guard proofs plus cold-block layout already
+  remove settled checks and move failure paths off the common path. The guards still cost
+  `devmode` about 1.24x across the twelve `bench/` programs against the same build without
+  runtime guards. Hot gaps: loop-bounded indices, repeatedly loaded counts, and
+  loop-invariant `late` checks.
+- Next: prove an index against the dominating loop bound and hoist a `late` check from a
+  loop that does not assign it. Measure the affected loops with guards enabled and disabled.
+- Done when: loop-bounded indices and invariant `late` values need no repeated guard, and
+  the residual cost of runtime guards is measured on the affected loops with behavior
+  preserved.
 - Related: compiler.optimization.105.
 
 ### compiler.safety.024 — A mutable cast can write through an any that borrows a literal
 
-- Evidence: the DevMode compiler at the parent revision `e3e20baae` accepts
-  `var boxed: any = 42's32; if let number = cast #try (*s32) boxed do number[] += 1`
-  (spelled `try cast(*s32, boxed)` or `if boxed is s32 as number` since `102f0efb4`).
-  Its JIT test passes, but the generated native executable raises `0xC0000005` while writing
-  the literal in read-only storage. The same issue is observable through the new type patterns;
-  their casts preserve the existing conversion contract. A variable holding an `any` does not
-  itself own mutable storage for the borrowed value.
+- Evidence: `var boxed: any = 42's32` followed by a mutable `try cast(*s32, boxed)` (or the
+  `is ... as` type pattern) and a write through the result is accepted. The JIT test
+  passes, but the native executable raises `0xC0000005` writing the literal in read-only
+  storage. A variable holding an `any` does not itself own mutable storage for the borrowed
+  value.
 - Next: decide and enforce the constness of literal-backed and constant-backed `any` views.
   Inspect constant boxing, runtime type qualifiers, and dynamic cast destinations together;
   choose rejection of mutable views or deliberate writable materialization without turning
-  `any` into an owning variant. Audit existing casts of literal-backed views before migration.
-- Done when: JIT and native execution agree, a mutable cast cannot expose read-only
-  literal storage, and tests cover literal, constant, mutable-local, and const-local sources.
+  `any` into an owning variant. Audit existing casts of literal-backed views before
+  migration.
+- Done when: JIT and native execution agree, a mutable cast cannot expose read-only literal
+  storage, and tests cover literal, constant, mutable-local, and const-local sources.
 
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
@@ -221,10 +209,11 @@ is the current scorecard.
 - Next: this is a packaging gap, not a default to flip. A guarded release — optimized code with
   `safetyGuards` on — should be a configuration the compiler registers and the reference names, so
   "ship it with the checks" is one flag rather than a build file nobody writes. Then measure it
-  once, on an application, so the trade is a number and not a guess.
+  once, on an application, so the trade is a number and not a guess. Making it affordable
+  depends on compiler.safety.008.
 - Done when: a guarded release configuration exists and is documented, and its cost on one
   application workload is recorded.
-- Related: compiler.safety.008 is what makes that configuration affordable.
+- Related: compiler.safety.008.
 
 ### compiler.safety.017 — Allocation ownership has no static leak proof
 
@@ -287,7 +276,7 @@ is the current scorecard.
   returns an optional; C# permits it and is routinely criticized for it. A checked conversion is the
   majority position and the only one that composes with exhaustive matching.
 - Next: decide the spelling. `cast(Color, i)` becoming a guarded conversion under `.DynCast` costs a
-  compare in `devmode` and nothing in `release`; a fallible `Color.from(i)` returning `#null` puts
+  compare in `devmode` and nothing in `release`; a fallible `Color.from(i)` returning `null` puts
   the check in the type and needs no guard at all, which is the only form that also holds in a
   build with the dynamic guards off. `#[Swag.EnumFlags]` types accept combinations and must be
   excluded either way.

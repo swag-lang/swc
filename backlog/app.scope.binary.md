@@ -58,17 +58,19 @@ report into a professional inspection workflow.
 
 ### app.scope.binary.014 — A program database is only identified
 
-- Intent: this repository writes PDBs. Reading one back with the same tool that inspects the image
-  it belongs to would help inspect this compiler's own output.
+- Evidence: `.pdb` matches only the MSF 7.00 signature. The PE report already shows the CodeView
+  GUID and age a PDB must match, and this repository writes PDBs (`src/Backend/Linker/PdbWriter.cpp`).
+- Next: add an MSF reader that reports the superblock and stream directory, then decode the PDB
+  info stream for its GUID and age.
 - Done when: the MSF superblock, the stream directory, the named streams and the GUID/age that
   must match the image's CodeView record are reported by the `Binary` viewer.
 
 ### app.scope.binary.002 — Report navigation has no address spaces or landmarks
 
-- Evidence: the compact report menu now accepts absolute or selected-row-relative hexadecimal file
-  offsets and walks visited rows backward or forward. It cannot name an RVA or virtual address,
-  enumerate archive members, sections, or symbols as landmarks, resolve ambiguous mappings, or
-  restore a separate expansion and scroll snapshot for each history entry.
+- Evidence: the compact report menu jumps to a file offset through the shared
+  `parseFileOffset` grammar and walks visited rows backward or forward. It cannot name an RVA or
+  virtual address, enumerate archive members, sections, or symbols as landmarks, resolve
+  ambiguous mappings, or restore a separate expansion and scroll snapshot for each history entry.
 - Next: define format-provided address spaces and named landmarks, then extend the file-offset jump
   and row history with those mappings and view-state snapshots.
 - Done when: address parsing names its space, ambiguous mappings list choices, standard groups
@@ -131,22 +133,28 @@ report into a professional inspection workflow.
 
 ### app.scope.binary.011 — MP4 and Matroska containers are only identified
 
-- Intent: playback and structural inspection answer different questions. The `Video` viewer reads
-  the supported picture and sound tracks, while the `Binary` alternative should expose the
-  container itself like it already does for RIFF and the other structured formats.
+- Evidence: the `Binary` viewer matches only the Matroska and `ftyp` signatures
+  (`viewers/binary/document.swg`), while `std/video` already parses ISO-BMFF boxes and EBML
+  elements for playback.
+- Next: add bounded ISO-BMFF box and EBML element walkers as `Binary` format readers, reusing
+  the `std/video` mp4 and matroska parsing where it exposes structure, then derive track summaries.
 - Done when: the ISO-BMFF box tree, the Matroska EBML tree, and the track, codec, duration and
   resolution summaries are reported like any other structure.
 
 ### app.scope.binary.012 — SQLite databases are only identified
 
-- Intent: `.db` and `.sqlite` reach the entropy line. The schema and a bounded table read are what a
-  reader wants, and the file format is documented and stable.
+- Evidence: `.db` and `.sqlite` match only the `SQLite format 3` signature; the schema and table
+  pages are not read, although the file format is documented and stable.
+- Next: report the database header, then walk the page-1 `sqlite_schema` b-tree under page and
+  cell budgets to list tables and indexes.
 - Done when: the schema, the tables and their row counts are listed, and a table is browsable
   through a bounded window over its pages.
 
 ### app.scope.binary.013 — Certificates and keys are not decoded
 
-- Intent: `.pem`, `.der`, `.crt`, `.cer` and `.p12` show base64 or bytes. `Core.Crypto` and the
-  binary viewer's structure model already give the two halves of what is needed.
+- Evidence: `.pem`, `.der`, `.crt`, `.cer` and `.p12` show base64 or bytes; the `Binary`
+  viewer has no ASN.1 reader.
+- Next: add a bounded DER TLV walker (unwrapping PEM base64 first) that produces the report
+  tree, then an X.509 summary over it.
 - Done when: an ASN.1 tree and a decoded X.509 summary — subject, issuer, validity, key, and
   extensions — are shown, with no validation claim of any kind.

@@ -168,10 +168,11 @@ impl Library
     // Soft-delete: move the capture to the recycle bin rather than erasing it. The
     // observers (recent strip, library grid) still see it leave the library through
     // onDeleteFile; it can be brought back from the trash view.
-    mtd removeFile(name: String)
+    mtd removeFile(name: string)
     {
         // An observer can destroy the object that supplied `name` (the recent strip does
-        // exactly that). Keep an owned path alive until every observer has returned.
+        // exactly that). Take a view, whose borrow does not cover the text, and keep an owned
+        // path alive until every observer has returned.
         let stableName = String.from(name)
         if not Capture.isFile(stableName) do
             return

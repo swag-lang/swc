@@ -7,7 +7,7 @@ impl LibraryWnd
     mtd removeSelected()
     {
         for name in .selectedFiles() do
-            g_Library.removeFile(name)
+            g_Library.removeFile(name.toString())
     }
 
     // Returns owned copies of the selected, visible file names, so a caller can act on them

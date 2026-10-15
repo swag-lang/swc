@@ -68,6 +68,11 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
     host.pump()
 }
 
+// The release preset contracts multiply-add into FMA. At this DPI that rounds two edge samples of
+// the tool panel's rounded fields one or two steps away from the devmode rendering the goldens
+// hold; a layout or color change still moves far more than that.
+const MainMenuGoldenOptions = Pixel.Testing.ImageGoldenOptions{maxChannelDelta: #cfg == "release" ? 2 : 0}
+
 // Captures one popup from the caption menu bar at a desktop DPI. Each menu owns its fixture so a
 // regression in File cannot prevent Capture, Edit, Image, View, and Help from producing evidence.
 func testAssertMainMenuGolden(index: u32, golden: string)
@@ -112,7 +117,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     // bisect the right tool panel, which made the fixture itself look broken and hid regressions
     // in the menu bar's relationship with the whole application frame.
     var image = host.render(&host.surfaceWnd)
-    Pixel.Testing.assertImageGolden(&image, golden)
+    Pixel.Testing.assertImageGolden(&image, golden, MainMenuGoldenOptions)
 
     let menuDismissed = host.dismissPopupMenu()
     Swag.assert(menuDismissed)

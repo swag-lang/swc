@@ -137,13 +137,36 @@ def swag_files(task, flavour):
     return files
 
 
+SWAG_DEPENDENCY_API_FILES = ["kernel32.swg"]
+
+
 def swag_dependency_api_files(cfg):
-    folder = os.path.join(worktree(), "bin", "std", ".output", "win32", "export", cfg,
-                          "x86_64")
-    files = [os.path.join(folder, "kernel32.swg")]
+    """The campaign's private copy of the Win32 API, made once by `snapshot_swag_dependency_api_files`."""
+    folder = os.path.join(OUT, "dependencies", cfg)
+    files = [os.path.join(folder, name) for name in SWAG_DEPENDENCY_API_FILES]
     if not all(os.path.isfile(path) for path in files):
         raise RuntimeError("prepared Win32 kernel API is missing for %s under %s" % (cfg, folder))
     return files
+
+
+def snapshot_swag_dependency_api_files(cfg):
+    """Copy the freshly published Win32 API out of the shared standard-library output.
+
+    Any std build on the checkout, including the edit-build workloads of this very campaign,
+    republishes that export folder and removes it while doing so. Every timed build reads the
+    private copy instead, so a concurrent republish cannot fail a task halfway through a sweep.
+    """
+    published = os.path.join(worktree(), "bin", "std", ".output", "win32", "export", cfg,
+                             "x86_64")
+    folder = os.path.join(OUT, "dependencies", cfg)
+    shutil.rmtree(folder, ignore_errors=True)
+    os.makedirs(folder)
+    for name in SWAG_DEPENDENCY_API_FILES:
+        source = os.path.join(published, name)
+        if not os.path.isfile(source):
+            raise RuntimeError("published Win32 kernel API is missing for %s under %s" % (cfg, published))
+        shutil.copyfile(source, os.path.join(folder, name))
+    return swag_dependency_api_files(cfg)
 
 
 def systems_recipe(t, language, source, name, helpers=()):

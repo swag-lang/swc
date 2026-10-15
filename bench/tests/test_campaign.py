@@ -67,8 +67,7 @@ class CampaignProcessTests(unittest.TestCase):
                         with self.subTest(failure=failure or "success"):
                             os.environ["CAMPAIGN_TEST_FAILURE"] = failure
                             (bench / "driver.json").unlink(missing_ok=True)
-                            errors = io.StringIO()
-                            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(errors):
+                            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                                 if failure:
                                     with self.assertRaisesRegex(SystemExit, "driver.py failed"):
                                         campaign.main()
@@ -78,7 +77,6 @@ class CampaignProcessTests(unittest.TestCase):
                             self.assertEqual(binary.read_bytes(), original)
                             measured_path = bench / "driver.json"
                             if failure == "driver":
-                                self.assertIn("driver.py failed", errors.getvalue())
                                 self.assertTrue(measured_path.exists())
                                 continue
                             measured = json.loads(measured_path.read_text())

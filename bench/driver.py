@@ -125,8 +125,8 @@ def prepare_swag_dependencies(swc, env, cores=0):
         if r["exit"] != 0:
             return "win32/%s: %s" % (cfg, process_error(r))
         try:
-            api_files = tc.swag_dependency_api_files(cfg)
-        except RuntimeError as error:
+            api_files = tc.snapshot_swag_dependency_api_files(cfg)
+        except (RuntimeError, OSError) as error:
             return str(error)
         print("  win32/%-8s ready outside the clock (%d API files, %6.1f ms)" %
               (cfg, len(api_files), r["wall_ms"]))

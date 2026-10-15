@@ -64,7 +64,7 @@ class HarnessTests(unittest.TestCase):
     def test_swag_dependencies_are_prepared_before_timed_samples(self):
         completed = {"exit": 0, "stdout": "", "stderr": "", "wall_ms": 12.5}
         with (patch.object(driver.tc, "worktree", return_value="checkout"),
-              patch.object(driver.tc, "swag_dependency_api_files",
+              patch.object(driver.tc, "snapshot_swag_dependency_api_files",
                            side_effect=[["release-kernel32.swg"], ["devmode-kernel32.swg"]]),
               patch.object(driver.winproc, "run", return_value=completed) as run,
               contextlib.redirect_stdout(io.StringIO())):
@@ -77,6 +77,20 @@ class HarnessTests(unittest.TestCase):
                 "swc.exe", "build", "--workspace", os.path.join("checkout", "bin", "std"),
                 "--workspace-module", "win32", "--build-cfg", cfg])
             self.assertEqual(call.kwargs, {"cwd": "checkout", "env": {"BENCH": "1"}})
+
+    def test_swag_dependencies_survive_a_republished_std_output(self):
+        with tempfile.TemporaryDirectory() as folder:
+            published = Path(folder, "bin", "std", ".output", "win32", "export", "devmode", "x86_64")
+            published.mkdir(parents=True)
+            (published / "kernel32.swg").write_text("#foreignlib(\"kernel32\")\n", encoding="utf-8")
+            with (patch.object(tc, "worktree", return_value=folder),
+                  patch.object(tc, "OUT", os.path.join(folder, "out"))):
+                snapshot = tc.snapshot_swag_dependency_api_files("devmode")
+                (published / "kernel32.swg").unlink()
+                self.assertEqual(tc.swag_dependency_api_files("devmode"), snapshot)
+                self.assertEqual(Path(snapshot[0]).read_text(encoding="utf-8"), "#foreignlib(\"kernel32\")\n")
+                with self.assertRaisesRegex(RuntimeError, "published Win32 kernel API is missing"):
+                    tc.snapshot_swag_dependency_api_files("devmode")
 
     def test_installed_toolchains_are_found_without_path_or_overrides(self):
         with tempfile.TemporaryDirectory(prefix="bench programs ") as folder:

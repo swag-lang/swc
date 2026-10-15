@@ -1,4 +1,6 @@
 #global private
+// These fixtures exercise the guard itself, which the release preset leaves off.
+#global #[Swag.Safety(.ValueBorrow, true)]
 
 struct BorrowedValue
 {

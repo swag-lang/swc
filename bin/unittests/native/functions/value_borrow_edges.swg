@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.Safety(.ValueBorrow, true)]
 
 // Runtime versions of the constructor, publication, and callback cases from the static experiment.
 struct Value { first, second, third: u64 }

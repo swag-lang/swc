@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.Safety(.ValueBorrow, true)]
 
 // Reduced from the SVG parser: consuming a value needs a move parameter, not a value borrow.
 var copies, drops: u32

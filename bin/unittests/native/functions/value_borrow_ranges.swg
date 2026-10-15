@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.Safety(.ValueBorrow, true)]
 
 struct Small { bytes: [96] u8 }
 struct Large { bytes: [2048] u8 }

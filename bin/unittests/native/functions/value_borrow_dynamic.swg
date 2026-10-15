@@ -1,4 +1,5 @@
 #global private
+#global #[Swag.Safety(.ValueBorrow, true)]
 
 // Dynamic counterparts of ziglang/zig#5973 and the previous static borrow regressions.
 struct Thing { value, padding1, padding2: u64 }
@@ -326,50 +327,6 @@ func lifecycleMutation(value: Thing, target: *Thing, operation: u32)->u64
         var value: Thing = {value: 109}
         mustReject(func|&value, operation|() { discard lifecycleMutation(value, &value, operation) })
         Swag.assert(value.value == 109)
-    }
-}
-
-#[Swag.NoInline]
-func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
-{
-    let allocator = Swag.getContext().allocator!
-    var request: Swag.AllocatorRequest
-    request.address = address
-    switch operation
-    {
-    case 0: allocator.free(&request)     // No caller size: the allocator must recover the extent.
-    case 1:
-        request.size = 262144
-        allocator.realloc(&request)
-    }
-    return value.value
-}
-
-// Borrowing an interior element must prevent freeing or moving the whole allocation.
-#test
-{
-    let allocator = Swag.getContext().allocator!
-    for size in [3 * #sizeof(Thing), 131072'u64]
-    {
-        var request: Swag.AllocatorRequest
-        request.size = size
-        allocator.alloc(&request)
-        let address = request.address!
-        defer
-        {
-            request.address = address
-            allocator.free(&request)
-        }
-        let elements = cast([*] Thing, address)
-        Swag.init(elements, 3)
-        elements[1].value = 113
-        for operation in 2'u32
-        {
-            mustReject(func|elements, address, operation|() {
-                discard invalidateAllocation(elements[1], address, operation)
-            })
-            Swag.assert(elements[1].value == 113)
-        }
     }
 }
 

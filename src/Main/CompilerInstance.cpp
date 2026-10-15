@@ -269,12 +269,20 @@ namespace
         request->address       = alignment > sizeof(void*) ? mi_malloc_aligned(request->size, alignment) : mi_malloc(request->size);
     }
 
-    void checkRuntimeAllocatorBorrow(const CompilerInstance& compiler, const void* address, size_t size, const Runtime::SourceCodeLocation& location)
+    // The borrow registry belongs to the program running on this thread, which the interface
+    // object does not name: imported DLL globals keep the allocator interface of whichever JIT
+    // run first filled them, and that module's CompilerInstance can be destroyed by the time
+    // another module's code reaches them. A thread with no compiler task has no registry to check.
+    void checkRuntimeAllocatorBorrow(const void* address, size_t size, const Runtime::SourceCodeLocation& location)
     {
         if (!address || !size)
             return;
-        const auto  id       = compiler.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
-        const auto* function = compiler.runtimeFunctionSymbol(id);
+        const TaskContext* task = TaskContext::current();
+        if (!task || !task->hasCompiler())
+            return;
+        const CompilerInstance& compiler = task->compiler();
+        const auto              id       = compiler.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
+        const auto*             function = compiler.runtimeFunctionSymbol(id);
         if (!function || !function->jitEntryAddress())
             return;
         // The host allocator is outside generated code. Re-enter its compiled guard before
@@ -283,7 +291,7 @@ namespace
         reinterpret_cast<Guard>(function->jitEntryAddress())(address, size, &location);
     }
 
-    void runtimeAllocatorRealloc(const CompilerInstance* compiler, Runtime::AllocatorRequest* request)
+    void runtimeAllocatorRealloc(const CompilerInstance*, Runtime::AllocatorRequest* request)
     {
         if (!request)
             return;
@@ -291,7 +299,7 @@ namespace
         const size_t previousSize = mi_usable_size(request->address);
         if (request->size == 0)
         {
-            checkRuntimeAllocatorBorrow(*compiler, request->address, previousSize, request->callerLoc);
+            checkRuntimeAllocatorBorrow(request->address, previousSize, request->callerLoc);
             mi_free(request->address);
             request->address = nullptr;
             return;
@@ -301,20 +309,20 @@ namespace
         if (request->address)
         {
             if (request->size < previousSize)
-                checkRuntimeAllocatorBorrow(*compiler, static_cast<const std::byte*>(request->address) + request->size, previousSize - request->size, request->callerLoc);
+                checkRuntimeAllocatorBorrow(static_cast<const std::byte*>(request->address) + request->size, previousSize - request->size, request->callerLoc);
             if (reinterpret_cast<uintptr_t>(request->address) % alignment == 0 && (request->size == previousSize || mi_expand(request->address, request->size)))
                 return;
-            checkRuntimeAllocatorBorrow(*compiler, request->address, previousSize, request->callerLoc);
+            checkRuntimeAllocatorBorrow(request->address, previousSize, request->callerLoc);
         }
         request->address = alignment > sizeof(void*) ? mi_realloc_aligned(request->address, request->size, alignment) : mi_realloc(request->address, request->size);
     }
 
-    void runtimeAllocatorFree(const CompilerInstance* compiler, Runtime::AllocatorRequest* request)
+    void runtimeAllocatorFree(const CompilerInstance*, Runtime::AllocatorRequest* request)
     {
         if (!request)
             return;
 
-        checkRuntimeAllocatorBorrow(*compiler, request->address, mi_usable_size(request->address), request->callerLoc);
+        checkRuntimeAllocatorBorrow(request->address, mi_usable_size(request->address), request->callerLoc);
         mi_free(request->address);
         request->address = nullptr;
     }
@@ -676,7 +684,8 @@ void CompilerInstance::setupRuntimeCompiler()
     // build creates a fresh CompilerInstance per module. The JIT runtime context allocator can be
     // cached in process-persistent imported-DLL globals (e.g. core's reflection hash tables); a
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
-    // producing a null dispatch in a later module. A shared static itable never dangles.
+    // producing a null dispatch in a later module. A shared static itable never dangles, and the
+    // callbacks never read the interface object, which names the instance that set it up.
     // Slot order after the typeinfo entry = IAllocator method DECLARATION order
     // (bin/runtime/context.swg): alloc, realloc, free, freeAll, assertAllocated.
     static void* sRuntimeAllocatorITable[6] = {

@@ -776,18 +776,15 @@ private func verifyWorkspaceMappedDependencyRepublish(context: *Context, options
     options.appendExtra(&holder)
     var holderProcess = try context.startCompiler(holder)
 
-    var waited = 0
-    while not File.exists(marker.toString()) and waited < 600
-    {
-        Threading.Thread.sleep(100'ms)
-        waited += 1
-    }
+    // The holder maps its sibling only after building its own dependencies, which takes as long
+    // as the machine needs: follow the process rather than a clock.
+    while not File.exists(marker.toString()) and not (try holderProcess.tryWaitForExit(100'ms)) {}
 
     if not File.exists(marker.toString())
     {
         discard catch File.delete(request.toString())
         discard catch holderProcess.waitForExit()
-        Console.println("The holder compiler did not map its sibling library in time.")
+        Console.println("The holder compiler exited without mapping its sibling library.")
         return 1
     }
 
@@ -1130,6 +1127,68 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
         }
 
         iteration += 1
+    }
+
+    return 0
+}
+
+// A shared library's process-wide cache keeps the allocator interface of the first JIT run that
+// filled it, as the standard collections do. The tests of a later module in the same compiler
+// grow that storage after the earlier module's compiler instance is gone, so the host allocator
+// must not depend on the instance its interface names.
+private func verifyRetainedRuntimeAllocator(context: *Context, options: *Options, workspace, buildCfg: string)->s32 fail
+{
+    let scratch = Path.combine(workspace, ".tmp", "retained-allocator-probe")
+    if Directory.exists(scratch) do
+        try Directory.delete(scratch.toString(), recurse: true)
+    defer discard catch Directory.delete(scratch.toString(), recurse: true)
+
+    let modules = Path.combine(scratch.toString(), "modules")
+    for module in ["cache", "first", "second"] do
+        try Directory.create(Path.combine(modules.toString(), module, "src", "tests").toString(), recurse: true)
+
+    try File.writeAllText(Path.combine(modules.toString(), "cache", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Cache\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "cache", "src", "cache.swg").toString(), #raw """
+        var g_Allocator: Swag.IAllocator?
+        var g_Values:    [*] u64?
+        var g_Count:     u64
+
+        #[Swag.NoInline]
+        public func remember(value: u64)->u64
+        {
+            if not g_Allocator do
+                g_Allocator = Swag.getContext().allocator
+            var request: Swag.AllocatorRequest
+            request.address = g_Values
+            request.oldSize = g_Count * #sizeof(u64)
+            request.size    = (g_Count + 1) * #sizeof(u64)
+            g_Allocator!.realloc(&request)
+            g_Values = cast([*] u64, request.address!)
+            g_Values![g_Count] = value
+            g_Count += 1
+            return g_Count
+        }
+        """)
+
+    // 'second' imports 'first' only so that its tests run after those of 'first'.
+    let testGuard = "#global if #command == Swag.CompilerCommand.Test\n"
+    try File.writeAllText(Path.combine(modules.toString(), "first", "module.swg").toString(), "#import(\"cache\", link: \"shared-library\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"First\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "first", "src", "first.swg").toString(), "public func ready()->bool => true\n")
+    try File.writeAllText(Path.combine(modules.toString(), "first", "src", "tests", "first.test.swg").toString(), Format.toString("%#test { for i in 16 do discard Cache.remember(i) }\n", testGuard))
+    try File.writeAllText(Path.combine(modules.toString(), "second", "module.swg").toString(), "#import(\"cache\", link: \"shared-library\")\n#import(\"first\", link: \"shared-library\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Second\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "second", "src", "second.swg").toString(), "public func ready()->bool => First.ready()\n")
+    try File.writeAllText(Path.combine(modules.toString(), "second", "src", "tests", "second.test.swg").toString(), Format.toString("%#test { let before = Cache.remember(1000); for i in 64 do discard Cache.remember(i); Swag.assert(Cache.remember(0) == before + 65) }\n", testGuard))
+
+    var tested: Arguments
+    tested.add(["test", "--workspace", scratch.toString(), "--build-cfg", buildCfg, "--no-test-native"])
+    options.appendExtra(&tested)
+    var output: String
+    let exitCode = try context.captureCompilerReport(&output, tested)
+    Console.print(output.toString())
+    if exitCode != 0
+    {
+        Console.println("A module's tests could not grow a shared cache that an earlier module's tests filled.")
+        return 1
     }
 
     return 0
@@ -1622,6 +1681,10 @@ private func runWorkspaceSuite(context: *Context, options: *Options, buildCfg: s
     let privateDependencyCode = try verifyPrivateDependencyInvalidation(context, options, workspace.toString(), buildCfg)
     if privateDependencyCode != 0 do
         return privateDependencyCode
+
+    let retainedAllocatorCode = try verifyRetainedRuntimeAllocator(context, options, workspace.toString(), buildCfg)
+    if retainedAllocatorCode != 0 do
+        return retainedAllocatorCode
 
     let functionCacheCode = try verifyFunctionCache(context, options, workspace.toString(), buildCfg)
     if functionCacheCode != 0 do

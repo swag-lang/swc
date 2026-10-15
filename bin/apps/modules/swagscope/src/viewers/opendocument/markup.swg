@@ -1153,7 +1153,7 @@ private impl Reader
 func parseContent(source: string, kind: Kind)->Content fail
 {
     var images: Array'EmbeddedImage
-    let metadata = try parseMetadata(source)
+    var metadata = try parseMetadata(source)
     return try parseContentWithImages(source, "", kind, #move images, #move metadata)
 }
 
@@ -1202,7 +1202,7 @@ func appendXml(reader: *Reader, source: string) fail
 }
 
 // Parses ODF XML after package-resident images have been reduced to safe data URIs.
-func parseContentWithImages(source, styles: string, kind: Kind, images: Array'EmbeddedImage, metadata: Metadata)->Content fail
+func parseContentWithImages(source, styles: string, kind: Kind, images: #move Array'EmbeddedImage, metadata: #move Metadata)->Content fail
 {
     with var reader: Reader
     {

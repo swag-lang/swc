@@ -481,7 +481,7 @@ impl IWnd for ViewerWindow
             while .folderHistory.count > FolderHistoryCount do
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
             .folderHistoryButton.enable(not .folderHistory.isEmpty())
-            .searchBox.setValidator(.searchBox.validator)
+            discard .searchBox.revalidate()
             if cast(u32, .playMode) > cast(u32, Viewer.PlayMode.Shuffle) do
                 .playMode = .Once
             .slideSeconds = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
@@ -782,7 +782,7 @@ impl ViewerWindow
 
     // Builds the main window around the viewer registry `index`: appearance chrome, command bar,
     // information band, viewer bar, file panel and document panel.
-    func create(parent: *Wnd, index: ViewerPluginRegistry)->*ViewerWindow
+    func create(parent: *Wnd, index: #move ViewerPluginRegistry)->*ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "scope.main")
         result.surface!.setView(result)

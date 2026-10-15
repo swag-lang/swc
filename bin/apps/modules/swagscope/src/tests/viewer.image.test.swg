@@ -217,7 +217,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg")

@@ -109,7 +109,7 @@ impl ViewerWindow
             }
 
             let remember   = .pendingRemember
-            let classified = .choiceLoad.finish()
+            var classified = .choiceLoad.finish()
             .pendingFile.clear()
             if not classified.exists
             {
@@ -714,7 +714,7 @@ impl ViewerWindow
     // Opens a file whose classification has finished: watches it for changes, fills the viewer
     // selector, and activates the preferred viewer, or the one of the reloaded reading state, with
     // plain text as the fallback. `remember` records it in the recent files and folders.
-    private mtd openClassifiedFile(classified: ViewerClassifiedFile, remember: bool)
+    private mtd openClassifiedFile(classified: #move ViewerClassifiedFile, remember: bool)
     {
         .fileWatch.current       = #move classified.metadata
         .fileWatch.hasCandidate  = false

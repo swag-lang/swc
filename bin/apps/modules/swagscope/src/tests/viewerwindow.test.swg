@@ -326,7 +326,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(first, remember: false)
     completeQueuedViewerFile(&host, window)
@@ -471,7 +471,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -557,7 +557,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -600,7 +600,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -639,7 +639,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -671,7 +671,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -733,7 +733,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -806,7 +806,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -867,7 +867,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -1029,7 +1029,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     Swag.assert(window.appearanceButton.appearanceTheme == .SwagDark)
 
@@ -1060,7 +1060,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     Swag.assert(not window.appearanceButton.sigAboutRequested.isEmpty())
     let capabilities = window.aboutViewerList()
@@ -1087,7 +1087,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     let appIcon = expect Image.decode(".png", AppIcon)
     host.app.setAppIcon(appIcon)
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     let dialog = window.createAboutDialog({year: 2026, month: 9, day: 1}, version: "1.2.3")
     dialog.applyLayout()
@@ -1112,7 +1112,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     }
 
     registerAppStrings(&host.app.resources)
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.surface!.setTitle(appStrings().ui_WindowTitle)
     Swag.assert(window.openButton.toolTip == "Open (Ctrl+O)")
@@ -1275,7 +1275,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.searchRegexOption     = true
     window.searchMatchCaseOption = false
-    window.searchBox.setValidator(window.searchBox.validator)
+    discard window.searchBox.revalidate()
     window.searchBox.setText(#raw "c.t(a)?")
     completeViewerSearch(&host, window)
     Swag.assert(window.searchBox.isValid() and window.searchMatches.count == 3)
@@ -1285,7 +1285,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.searchCountLabel.text() == "0/0" and window.searchCountLabel.toolTip == appStrings().ui_SearchInvalidRegularExpression)
 
     window.searchRegexOption = false
-    window.searchBox.setValidator(window.searchBox.validator)
+    discard window.searchBox.revalidate()
 
     window.searchBox.setText("absent")
     completeViewerSearch(&host, window)
@@ -1325,7 +1325,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeQueuedViewerFile(&host, window)
@@ -1401,7 +1401,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.app.theme.setSwagDark()
     host.app.notifyThemeChanged()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -1507,7 +1507,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -1564,7 +1564,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -1633,7 +1633,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(viewerFixturePath(), remember: false)
     completeQueuedViewerFile(&host, window)
@@ -1699,7 +1699,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(640, 420)
     defer host.shutdown()
 
-    let index    = createViewerPluginRegistry()
+    var index    = createViewerPluginRegistry()
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
     let failed   = Wnd.create'Wnd(window)
     let commands = Wnd.create'Wnd(window.viewerBar)
@@ -1734,7 +1734,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let fileName = writeTempFile("html", "<p>ready</p>")
     defer discard catch File.delete(fileName)
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -1833,7 +1833,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     let old    = Wnd.create'Wnd(window)
     old.setPosition({19, 73, 617, 389})
@@ -1876,7 +1876,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.currentView     = Wnd.create'Wnd(window)
     window.currentCommands = Wnd.create'Wnd(window.viewerBar)
@@ -1906,7 +1906,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.surface!.setTitle(appStrings().ui_WindowTitle)
     window.openFile(fileName)
@@ -1955,7 +1955,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(800, 560)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(firstFile)
     host.fireTimer(window.startupTimer)
@@ -2048,7 +2048,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -2076,7 +2076,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     let file   = viewerFixturePath()
     window.resize(960, 680)
@@ -2129,7 +2129,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -2198,7 +2198,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -2269,7 +2269,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
 
@@ -2323,7 +2323,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -2374,7 +2374,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -2417,7 +2417,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -2462,7 +2462,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
@@ -2514,7 +2514,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
     Swag.assert(window.playMode == .Once)

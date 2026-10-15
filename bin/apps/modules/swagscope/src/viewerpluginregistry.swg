@@ -98,8 +98,8 @@ func createViewerPluginRegistry()->ViewerPluginRegistry
 
 impl ViewerPluginRegistry
 {
-    // Registers one plugin after validating the host-facing contract.
-    mtd register(plugin: Viewer.Plugin) fail
+    // Takes ownership of one plugin and registers it after validating the host-facing contract.
+    mtd register(plugin: #move Viewer.Plugin) fail
     {
         if plugin.apiVersion != Viewer.ApiVersion do
             fail InvalidFormatError{Errors.mkString(Format.toString("viewer plugin '%' uses API version %, host needs %", plugin.key, plugin.apiVersion, Viewer.ApiVersion))}

@@ -241,7 +241,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let index    = createViewerPluginRegistry()
+    var index    = createViewerPluginRegistry()
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
     let fileName = videoAvcFixturePath()
     window.openFile(fileName, remember: false)
@@ -599,7 +599,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(Path.combine(folder, "clip1.mp4"), remember: false)
     completeViewerWindowClassification(&host, window)
@@ -640,7 +640,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(videoAudioFixturePath(), remember: false)
     completeViewerWindowClassification(&host, window)
@@ -684,7 +684,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     defer host.shutdown()
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(videoAudioFixturePath(), remember: false)
     completeViewerWindowClassification(&host, window)

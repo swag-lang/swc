@@ -45,7 +45,7 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
 
 #main
 {
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     // Installers opt into registry work once. Normal viewing never pays for dozens of file-type
     // registrations, which keeps both cold and warm launches on the shortest path.

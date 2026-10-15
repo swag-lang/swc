@@ -545,7 +545,7 @@ impl Panel
     }
 
     // Hosts a table decoded by another reader without introducing a temporary CSV file.
-    func createDocument(parent: *Wnd, document: Document)->*Panel
+    func createDocument(parent: *Wnd, document: #move Document)->*Panel
     {
         with let result = Panel.createBase(parent)
         {

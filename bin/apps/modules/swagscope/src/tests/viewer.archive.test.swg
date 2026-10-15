@@ -249,7 +249,7 @@ func writeZipFixture()->String
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {

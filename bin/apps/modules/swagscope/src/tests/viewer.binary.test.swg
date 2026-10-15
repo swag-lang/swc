@@ -958,7 +958,7 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     host.setup(960, 680)
     defer host.shutdown()
 
-    let index = createViewerPluginRegistry()
+    var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {

@@ -68,7 +68,7 @@ impl ViewerWindow
 
         // A query that was literal may be incomplete regexp syntax, and vice versa. Re-run the
         // field validator before deciding whether there is work to schedule.
-        .searchBox.setValidator(.searchBox.validator)
+        discard .searchBox.revalidate()
         .refreshSearchPresentation()
         .restartSearch()
         catch .saveState()
@@ -143,7 +143,7 @@ impl ViewerWindow
         let hasMenu = presentation.useTextOptions or presentation.canFilter
         .searchGroup.spacing = hasMenu ? SearchGroupSpacing : 0
         .searchBox.resize(hasMenu ? SearchFieldWidth : SearchNoOptionsFieldWidth, 36)
-        .searchBox.setValidator(.searchBox.validator)
+        discard .searchBox.revalidate()
         .searchGroup.computeLayout()
         .commandBar.centerContent()
     }

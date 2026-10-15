@@ -276,7 +276,7 @@ impl DocumentView
 {
     // Creates the scrollable specimen of `face` under `parent`, taking ownership of `face` and of
     // the bytes it was loaded from; `sampleEdit` supplies the specimen text.
-    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: Array'u8, sampleEdit: *EditBox)->*DocumentView
+    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: #move Array'u8, sampleEdit: *EditBox)->*DocumentView
     {
         with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
         {

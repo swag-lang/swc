@@ -329,7 +329,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeHexViewerOpen(&host, window)
@@ -396,7 +396,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     // Use the shipped window rather than a viewer-only approximation: the integration contract
     // includes the information panel above, the viewer bar below, and the host-owned toggle at
     // the right edge of that information panel.
-    let index  = createViewerPluginRegistry()
+    var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
     completeHexViewerOpen(&host, window)

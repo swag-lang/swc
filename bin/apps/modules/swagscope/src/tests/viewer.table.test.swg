@@ -122,8 +122,8 @@ using Core, Pixel, Gui, Viewers
     }
 
     Table.registerTexts(&host.app)
-    let document = expect Table.parseDocument(";Column 2\nfirst;second;third\n", ';')
-    let view     = Table.Panel.createDocument(&host.root, document)
+    var document = expect Table.parseDocument(";Column 2\nfirst;second;third\n", ';')
+    let view     = Table.Panel.createDocument(&host.root, #move document)
     var details: String
     view.userData = &details
     view.services.reportDetails = func(wnd, value) { cast(*String, wnd.userData!)[] = value }

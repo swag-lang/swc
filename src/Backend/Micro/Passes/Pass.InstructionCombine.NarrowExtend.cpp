@@ -495,7 +495,7 @@ namespace InstructionCombine
             for (uint32_t step = 0; step < K_MAX_FLAG_WALK; ++step)
             {
                 --walker;
-                const MicroInstrRef at = walker.current;
+                const MicroInstrRef at   = walker.current;
                 const MicroInstr*   inst = at.isValid() ? &*walker : nullptr;
                 if (!inst)
                     return MicroInstrRef::invalid();

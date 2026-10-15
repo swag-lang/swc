@@ -69,9 +69,9 @@ namespace
         MicroOperandStorage* operands = nullptr;
         MicroReg             stackPointer;
 
-        FlatKeyMap<RegDefInfo>                   regDefs; // by packed register
-        std::vector<uint32_t>                    stackPointerDefs;
-        uint32_t                                 firstCallIndex = K_INVALID;
+        FlatKeyMap<RegDefInfo> regDefs; // by packed register
+        std::vector<uint32_t>  stackPointerDefs;
+        uint32_t               firstCallIndex = K_INVALID;
 
         RootKind classifyRoot(MicroReg reg, const RegDefInfo* def) const
         {

@@ -113,7 +113,7 @@ func notNullTwiceUnderConditional(flag: bool, node: *NotNullProvenNode?)->s32
 
 impl NotNullProvenNode
 {
-    mtd sameNode(other: *NotNullProvenNode)->bool => me == other
+    mtd sameNode(other: *NotNullProvenNode)->bool     => me == other
     mtd sameNodes(lhs, rhs: *NotNullProvenNode)->bool => lhs == rhs
 }
 

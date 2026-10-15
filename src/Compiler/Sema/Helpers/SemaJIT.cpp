@@ -408,7 +408,7 @@ namespace
         StampedKeySet                                 visitedAllocations;
         PointerSet<SymbolFunction>                    seenStrictTargets;
         PointerSet<SymbolFunction>                    seenOptionalTargets;
-        uint32_t                                       seenShardMask = 0;
+        uint32_t                                      seenShardMask = 0;
 
         void reset()
         {
@@ -639,8 +639,10 @@ namespace
 
     uint64_t jitOrderFingerprint(Sema& sema, const SymbolFunction& symFn, std::span<SymbolFunction* const> extraRoots, const uint64_t callGraphVersion, const uint64_t targetsVersion)
     {
-        uint64_t fingerprint = 1469598103934665603ULL;
-        const auto mix = [&fingerprint](const uint64_t value) { fingerprint = (fingerprint ^ value) * 1099511628211ULL; };
+        uint64_t   fingerprint = 1469598103934665603ULL;
+        const auto mix         = [&fingerprint](const uint64_t value) {
+            fingerprint = (fingerprint ^ value) * 1099511628211ULL;
+        };
         mix(reinterpret_cast<uintptr_t>(&symFn));
         mix(callGraphVersion);
         mix(targetsVersion);
@@ -785,7 +787,7 @@ namespace
                     // Stable: nothing the order is derived from moved while its functions were
                     // waited on, so this snapshot is the definitive order and every function in it
                     // has had waitCodeGenPreSolved called.
-                    stableJitOrder = std::move(jitOrder);
+                    stableJitOrder         = std::move(jitOrder);
                     stableCallGraphVersion = orderCallGraphVersion;
                     stableTargetsVersion   = orderTargetsVersion;
                     break;

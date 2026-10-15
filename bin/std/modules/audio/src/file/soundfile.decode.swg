@@ -123,8 +123,10 @@ private impl SoundFile
                 if producedBytes != decodedByteCount do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
             }
-            else do
+            else
+            {
                 Memory.clear(decodedBytes.storage(), decodedByteCount)
+            }
 
             // Omit encoder priming before borrowing the samples to the consumer.
             let skippedFrames = Math.min(discardFrames, cast(u64, packet.sampleFrameCount))

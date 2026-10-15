@@ -2432,8 +2432,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     if (candidates.empty())
         return false;
 
-    const auto liveInEntry = DenseBits::row(liveInVirtualBits_, 0, wordCount);
-    size_t       activeCandidates = 0;
+    const auto liveInEntry      = DenseBits::row(liveInVirtualBits_, 0, wordCount);
+    size_t     activeCandidates = 0;
     for (Candidate& c : candidates)
     {
         c.rejected |= DenseBits::contains(liveInEntry, c.dst) && DenseBits::contains(liveInEntry, c.src);
@@ -2462,8 +2462,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
             }
             return inst;
         };
-        bool       haveCopy = false;
-        bool       isCopy   = false;
+        bool       haveCopy   = false;
+        bool       isCopy     = false;
         const auto isFullCopy = [&]() {
             if (!haveCopy)
             {
@@ -2477,7 +2477,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         // A value an instruction names outside its register operands (an
         // encoder-implied use or definition) cannot be renamed there.
         regRefs.clear();
-        bool haveRegRefs = false;
+        bool       haveRegRefs    = false;
         const auto namedByOperand = [&](const uint32_t dense) {
             if (!haveRegRefs)
             {

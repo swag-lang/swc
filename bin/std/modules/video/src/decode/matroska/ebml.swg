@@ -227,7 +227,6 @@ impl Cursor
         fail InvalidFormatError{"Matroska floating-point value needs four or eight bytes"}
     }
 
-
     // Copies a string element into owned storage, without trailing zero padding.
     //
     // A string element states its length, and a writer that reserved room for a longer value fills

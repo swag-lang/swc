@@ -46,8 +46,8 @@ namespace
         std::optional<bool> forceSingleLine;
         std::optional<bool> sourceSelectsLayout;
         std::optional<bool> hugTrailingBlock;
-        FormatListLayout    layout  = FormatListLayout::Preserve;
-        FormatBinPackStyle  binPack = FormatBinPackStyle::Preserve;
+        FormatListLayout    layout                = FormatListLayout::Preserve;
+        FormatBinPackStyle  binPack               = FormatBinPackStyle::Preserve;
         uint32_t            singleLineColumnLimit = 0;
 
         bool active() const
@@ -66,15 +66,15 @@ namespace
         std::optional<bool>   forceSingleLine;
         std::optional<bool>   sourceSelectsLayout;
         std::optional<bool>   hugTrailingBlock;
-        FormatListLayout      layout     = FormatListLayout::Preserve;
-        FormatBinPackStyle    binPack    = FormatBinPackStyle::Preserve;
+        FormatListLayout      layout                = FormatListLayout::Preserve;
+        FormatBinPackStyle    binPack               = FormatBinPackStyle::Preserve;
         uint32_t              singleLineColumnLimit = 0;
-        ListLineMode          lineMode   = ListLineMode::Unchanged;
-        bool                  editable   = false;
-        bool                  hasComment = false;
-        bool                  canJoin    = false;
-        bool                  literal    = false;
-        bool                  hug        = false;
+        ListLineMode          lineMode              = ListLineMode::Unchanged;
+        bool                  editable              = false;
+        bool                  hasComment            = false;
+        bool                  canJoin               = false;
+        bool                  literal               = false;
+        bool                  hug                   = false;
     };
 
     struct LogicalPolicy
@@ -167,9 +167,9 @@ namespace
             if (piece.hasRole(FormatRoleE::CallOpenParen))
             {
                 return {
-                    .forceSingleLine     = options_->forceSingleLineArgumentLists,
-                    .sourceSelectsLayout = options_->sourceSelectsArgumentLayout,
-                    .hugTrailingBlock    = options_->hugTrailingBlockArgument,
+                    .forceSingleLine       = options_->forceSingleLineArgumentLists,
+                    .sourceSelectsLayout   = options_->sourceSelectsArgumentLayout,
+                    .hugTrailingBlock      = options_->hugTrailingBlockArgument,
                     .layout                = options_->argumentListLayout,
                     .binPack               = options_->binPackArguments,
                     .singleLineColumnLimit = options_->singleLineArgumentColumnLimit,
@@ -219,7 +219,7 @@ namespace
                 state.layout                = policy.layout;
                 state.binPack               = policy.binPack;
                 state.singleLineColumnLimit = policy.singleLineColumnLimit;
-                state.literal             = open.hasRole(FormatRoleE::LiteralOpen);
+                state.literal               = open.hasRole(FormatRoleE::LiteralOpen);
                 collectItems(state);
                 lists_.push_back(std::move(state));
             }

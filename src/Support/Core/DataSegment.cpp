@@ -263,13 +263,13 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
 
     const RelocationOffsetProjection projection{.relocations = &relocations_};
 
-    auto indexed = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
-    auto tail    = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
+    auto       indexed     = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    auto       tail        = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
     const auto appendRange = [&](const std::vector<uint32_t>& index, auto it) {
         for (; it != index.end() && relocations_[*it].offset - offset < size; ++it)
             outRelocations.push_back(relocations_[*it]);
     };
-    const bool tailRangeEmpty     = tail == relocationsTailByOffset_.end() || relocations_[*tail].offset - offset >= size;
+    const bool tailRangeEmpty       = tail == relocationsTailByOffset_.end() || relocations_[*tail].offset - offset >= size;
     const bool rangesAlreadyOrdered = indexed == relocationsByOffset_.end() || tailRangeEmpty ||
                                       relocations_[relocationsByOffset_.back()].offset <= relocations_[*tail].offset;
     if (rangesAlreadyOrdered)

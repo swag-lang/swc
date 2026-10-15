@@ -9,9 +9,9 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
-#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/ApsInt.h"
 

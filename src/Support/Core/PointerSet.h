@@ -576,7 +576,7 @@ private:
         }
     }
 
-    std::vector<Slot>                  slots_;
+    std::vector<Slot>                   slots_;
     [[no_unique_address]] OccupiedSlots occupiedSlots_;
     size_t                              count_ = 0;
     V                                   freeKeyValue_{};

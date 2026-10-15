@@ -104,7 +104,7 @@ Result NativeRDataCollector::collectCodeRoots(const Utf8& ownerName, const std::
         {
             SWC_ASSERT(ownerSymbol != nullptr);
             generatedOwnerName = ownerSymbol->getFullScopedName(builder_->ctx());
-            rootOwnerName       = &generatedOwnerName;
+            rootOwnerName      = &generatedOwnerName;
         }
 
         SWC_RESULT(enqueueConstantRelocation(*rootOwnerName, relocation));

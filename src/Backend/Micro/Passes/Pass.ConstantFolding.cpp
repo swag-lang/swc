@@ -152,11 +152,11 @@ namespace
     // materialization and the load: copies, `lea [base + K]`, `add/sub K`.
     struct ConstantMemoryContext
     {
-        const MicroSsaState*                   ssaState      = nullptr;
-        const MicroOperandStorage*             operands      = nullptr;
-        const TaskContext*                     taskContext   = nullptr;
-        const MicroBuilder*                    addressSource = nullptr;
-        FlatKeyMap<uint64_t>                   constantAddressByInstruction;
+        const MicroSsaState*       ssaState      = nullptr;
+        const MicroOperandStorage* operands      = nullptr;
+        const TaskContext*         taskContext   = nullptr;
+        const MicroBuilder*        addressSource = nullptr;
+        FlatKeyMap<uint64_t>       constantAddressByInstruction;
     };
 
     constexpr uint32_t K_MAX_ADDRESS_CHAIN_DEPTH = 8;

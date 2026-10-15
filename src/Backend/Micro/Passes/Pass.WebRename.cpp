@@ -281,7 +281,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         }
     }
 
-    uint32_t                               nextFloat = 0;
+    uint32_t nextFloat = 0;
     // Registers by packed form, and the name of each web by its root value; only looked up.
     FlatKeySet           namedRegs;
     FlatKeyMap<MicroReg> names;

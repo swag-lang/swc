@@ -412,6 +412,7 @@ impl IWnd for Wnd
             .itf.onTimerEvent(ptr)
 
         case TaskEvent as ptr:
+
             // The notification ran just before its task read as done; let that moment pass.
             let state = cast(const *Swag.TaskState, ptr.task)
             state.waitSubmission(ptr.submission)

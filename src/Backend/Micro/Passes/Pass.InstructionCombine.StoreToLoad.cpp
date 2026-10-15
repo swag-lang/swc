@@ -225,10 +225,10 @@ namespace InstructionCombine
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstr& inst = *it;
-            const bool isLoad = inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem;
-            const bool isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg;
-            const MicroInstrOperand* ops = isLoad || isStore ? inst.ops(*ctx.operands) : nullptr;
+            const MicroInstr&        inst    = *it;
+            const bool               isLoad  = inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem;
+            const bool               isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg;
+            const MicroInstrOperand* ops     = isLoad || isStore ? inst.ops(*ctx.operands) : nullptr;
 
             if (isLoad && ops)
             {
@@ -338,8 +338,8 @@ namespace InstructionCombine
                 continue;
             }
 
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
-            const Encoder*        encoder = ctx.passContext ? ctx.passContext->encoder : nullptr;
+            const MicroInstrDef& info    = MicroInstr::info(inst.op);
+            const Encoder*       encoder = ctx.passContext ? ctx.passContext->encoder : nullptr;
             if (!instructionMayDefineRegister(info, encoder))
                 continue;
 
@@ -374,10 +374,10 @@ namespace InstructionCombine
         const auto endIt = view.end();
         for (auto it = view.begin(); it != endIt; ++it)
         {
-            const MicroInstr& inst = *it;
-            const bool isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm;
-            const bool isLoad = inst.op == MicroInstrOpcode::LoadRegMem;
-            const MicroInstrOperand* ops = isStore ? inst.ops(*ctx.operands) : nullptr;
+            const MicroInstr&        inst    = *it;
+            const bool               isStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm;
+            const bool               isLoad  = inst.op == MicroInstrOpcode::LoadRegMem;
+            const MicroInstrOperand* ops     = isStore ? inst.ops(*ctx.operands) : nullptr;
 
             // A register and an immediate store alike: they differ only in
             // where the width and the offset sit.
@@ -436,8 +436,8 @@ namespace InstructionCombine
             }
 
             // A redefined base no longer names the address the store wrote.
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
-            const Encoder*        encoder = ctx.passContext ? ctx.passContext->encoder : nullptr;
+            const MicroInstrDef& info    = MicroInstr::info(inst.op);
+            const Encoder*       encoder = ctx.passContext ? ctx.passContext->encoder : nullptr;
             if (!instructionMayDefineRegister(info, encoder))
                 continue;
 
@@ -484,7 +484,7 @@ namespace InstructionCombine
         if (!ctx.ssa->sameValueAt(base, def.instRef, storeRef))
             return false;
 
-        constexpr uint32_t K_MAX_WINDOW = 32;
+        constexpr uint32_t     K_MAX_WINDOW = 32;
         MicroStorage::Iterator it{ctx.storage, storeRef};
         --it;
         for (uint32_t step = 0; it.current.isValid() && it.current != def.instRef; ++step, --it)

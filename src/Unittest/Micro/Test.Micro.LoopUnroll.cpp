@@ -195,9 +195,9 @@ SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesFullGroupsAndKeepsScalar
         builder.emitRet();
 
         SWC_RESULT(runLoopUnrollPass(builder));
-        const bool     vectorized = bound >= 64 && !escapedValue;
+        const bool     vectorized  = bound >= 64 && !escapedValue;
         const uint64_t vectorWidth = bound >= 128 ? 8 : 4;
-        const bool     hasTail = bound % vectorWidth != 0;
+        const bool     hasTail     = bound % vectorWidth != 0;
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVecRegMem) != (vectorized ? (vectorWidth == 8 ? 2u : 1u) : 0u) ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (vectorized && !hasTail ? 0u : 1u) ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != (vectorized && hasTail ? 3u : 1u))

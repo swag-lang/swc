@@ -423,7 +423,7 @@ namespace PostRaPeephole
         if (!MicroPassHelpers::invertCondition(inverted, ops[0].cpuCond))
             return false;
 
-        auto                     scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, ref};
         ++scanIt;
         const MicroInstrRef      skipRef = scanIt.current;
         const MicroInstr*        skip    = skipRef.isValid() ? &*scanIt : nullptr;
@@ -452,7 +452,7 @@ namespace PostRaPeephole
 
         bool collectSimpleReturnTail(const Context& ctx, MicroInstrRef ref, std::array<MicroInstrRef, K_MAX_RETURN_TAIL>& refs, uint32_t& count)
         {
-            count                  = 0;
+            count                    = 0;
             auto              scanIt = MicroStorage::Iterator{ctx.storage, ref};
             const MicroInstr* inst   = scanIt.current.isValid() ? &*scanIt : nullptr;
             if (inst && inst->op == MicroInstrOpcode::LoadRegReg)
@@ -604,7 +604,7 @@ namespace PostRaPeephole
             (loadOps[destBitsIndex].opBits != MicroOpBits::B32 && loadOps[destBitsIndex].opBits != MicroOpBits::B64) ||
             loadOps[sourceBitsIndex].opBits != MicroOpBits::B8)
             return false;
-        const MicroReg reg = loadOps[0].reg;
+        const MicroReg reg    = loadOps[0].reg;
         auto           scanIt = MicroStorage::Iterator{ctx.storage, ref};
         ++scanIt;
         if (!scanIt.current.isValid())
@@ -619,9 +619,9 @@ namespace PostRaPeephole
         ++scanIt;
         if (!scanIt.current.isValid())
             return false;
-        MicroInstrRef     subRef    = scanIt.current;
-        const MicroInstr* beforeSub = subRef.isValid() ? &*scanIt : nullptr;
-        MicroInstrRef       addressRef = MicroInstrRef::invalid();
+        MicroInstrRef     subRef     = scanIt.current;
+        const MicroInstr* beforeSub  = subRef.isValid() ? &*scanIt : nullptr;
+        MicroInstrRef     addressRef = MicroInstrRef::invalid();
         // The decimal accumulator may prepare its LEA between the delimiter
         // branch and the byte subtraction. It cannot change this byte value.
         if (beforeSub &&
@@ -679,7 +679,7 @@ namespace PostRaPeephole
         const MicroReg reg = load[0].reg;
         if (!reg.isInt())
             return false;
-        auto                scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, ref};
         ++scanIt;
         if (!scanIt.current.isValid())
             return false;
@@ -830,10 +830,10 @@ namespace PostRaPeephole
         if (!lastCopyInst)
             return false;
         ++scanIt;
-        const MicroInstrRef retRef  = scanIt.current;
-        const MicroInstr*   retInst = retRef.isValid() ? &*scanIt : nullptr;
-        const auto*         xorOps       = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
-        const auto*         lastCopy     = lastCopyInst ? lastCopyInst->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef retRef   = scanIt.current;
+        const MicroInstr*   retInst  = retRef.isValid() ? &*scanIt : nullptr;
+        const auto*         xorOps   = xorInst ? xorInst->ops(*ctx.operands) : nullptr;
+        const auto*         lastCopy = lastCopyInst ? lastCopyInst->ops(*ctx.operands) : nullptr;
         if (!xorInst || !lastCopyInst || !retInst || !xorOps || !lastCopy ||
             xorInst->op != MicroInstrOpcode::OpBinaryRegMem || xorOps[0].reg != firstCopy[0].reg ||
             xorOps[1].reg != MicroReg::instructionPointer() || xorOps[2].opBits != firstCopy[2].opBits ||

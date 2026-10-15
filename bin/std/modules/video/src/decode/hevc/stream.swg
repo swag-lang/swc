@@ -535,8 +535,8 @@ impl HevcStream
             .reachedEnd = true
 
         let frameThread = &.frameThreads[lane]
-        let codedUnits = try .codedUnitCount(payload.toSlice())
-        let rank       = cast(u64, .rankOfSample[sample])
+        let codedUnits  = try .codedUnitCount(payload.toSlice())
+        let rank        = cast(u64, .rankOfSample[sample])
         if rank < .skipBefore and not try .isReferenceAccessUnit(payload.toSlice())
         {
             try .readAuxiliaryUnits(decoder, payload.toSlice())

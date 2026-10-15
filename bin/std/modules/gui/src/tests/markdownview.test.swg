@@ -211,7 +211,7 @@ using Swag, Core
 #test
 {
     let imagePath = Testing.tempFilePath("markdown_streamed_chapter-", ".svg")
-    let fileName = Testing.tempFilePath("markdown_streamed_html_chapter-", ".md")
+    let fileName  = Testing.tempFilePath("markdown_streamed_html_chapter-", ".md")
     defer discard catch File.delete(imagePath)
     defer discard catch File.delete(fileName)
     discard expect File.writeAllBytes(imagePath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"60\"/>")
@@ -225,6 +225,7 @@ using Swag, Core
             source += "x"
         source += "-->\n\n"
     }
+
     source += "    \n\n---\n\n# 530 — Le premier chant\n\n"
     let imageName = Path.fileName(imagePath.toString())!
     source += Format.toString("<div align=\"center\">\n\n<img src=\"%\" width=\"49%%\"> <img src=\"%\" width=\"49%%\">\n\n", imageName, imageName)

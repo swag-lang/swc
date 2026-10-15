@@ -36,7 +36,7 @@ private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudi
     headingPrefix += stem
     headingPrefix += "."
 
-    var result:    retval
+    var result:      retval
     var lineNumber = 0'u64
     var entryCount = 0'u64
     var sectionLine: u64
@@ -323,7 +323,6 @@ private func auditBacklogIndex(fileName: string, readme: string, domains: const 
         }
 
         listed.add(String.from(name))
-
     }
 
     for domain in domains where not listed.contains(domain.name.toString())

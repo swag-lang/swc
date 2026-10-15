@@ -51,7 +51,7 @@ private enum AvcLaneState
 struct AvcFrameThread
 {
     decode:   Swag.Task'(*H264.Frame?)     // The picture this lane decodes, or its error.
-    executor: Swag.Executor                // The lane's own thread, so its decoder stays on it.
+    executor: Swag.Executor     // The lane's own thread, so its decoder stays on it.
 }
 
 // One decode-order frame thread waiting to be joined by the output owner.

@@ -155,9 +155,9 @@ impl MicrocodeViewer
         if index >= Pipeline.Stages.count do
             return
 
-        .job.request   = .pendingRequest
-        .job.queued    = false
-        .job.running   = true
+        .job.request = .pendingRequest
+        .job.queued  = false
+        .job.running = true
 
         // Options remain editable while this viewer compiles; another request replaces its pending
         // input.

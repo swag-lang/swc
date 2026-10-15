@@ -43,8 +43,8 @@ namespace InstructionCombine
             ++patternIt;
             if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::SetCondReg)
                 return;
-            const MicroInstr*   set    = &*patternIt;
-            const auto*         setOps = set->ops(*ctx.operands);
+            const MicroInstr* set    = &*patternIt;
+            const auto*       setOps = set->ops(*ctx.operands);
             if (!setOps || !setOps[0].reg.isVirtualInt())
                 return;
 
@@ -65,12 +65,12 @@ namespace InstructionCombine
             if (!extOps || extOps[1].reg != setOps[0].reg || extOps[2].opBits != MicroOpBits::B64 || extOps[3].opBits != MicroOpBits::B8)
                 return;
 
-            const CallConv&     conv    = CallConv::get(ctx.passContext->callConvKind);
+            const CallConv& conv = CallConv::get(ctx.passContext->callConvKind);
             ++patternIt;
             if (!patternIt.current.isValid())
                 return;
-            const MicroInstr*   copy    = &*patternIt;
-            const auto*         copyOps = copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
+            const MicroInstr* copy    = &*patternIt;
+            const auto*       copyOps = copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
             if (!copyOps || copyOps[0].reg != conv.intReturn || copyOps[1].reg != extOps[0].reg || copyOps[2].opBits != MicroOpBits::B64)
                 return;
 
@@ -1077,7 +1077,7 @@ namespace InstructionCombine
         {
             MicroSsaState::ReachingDef baseValue;
             MicroSsaState::ReachingDef indexValue;
-            MicroStorage::Iterator it{ctx.storage, fromRef};
+            MicroStorage::Iterator     it{ctx.storage, fromRef};
             ++it;
             for (uint32_t step = 0; step < K_MAX_REREAD_WINDOW && it.current.isValid(); ++step, ++it)
             {
@@ -1292,7 +1292,7 @@ namespace InstructionCombine
         if (!factorValue.valid() || ctx.ssa->reachingValueId(factor, ref) != factorValue.valueId)
             return false;
 
-        bool          reached = false;
+        bool                   reached = false;
         MicroStorage::Iterator scanIt{ctx.storage, initial.instRef};
         ++scanIt;
         for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)

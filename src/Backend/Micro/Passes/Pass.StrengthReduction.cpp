@@ -159,7 +159,7 @@ namespace
         // The compare may follow a few moves that leave the flags alone, as
         // the zero it reads being loaded.
         constexpr uint32_t K_MAX_MOVES = 3;
-        auto              cmpIt = instRef.isInvalid() ? storage.view().begin() : MicroStorage::Iterator{&storage, instRef};
+        auto               cmpIt       = instRef.isInvalid() ? storage.view().begin() : MicroStorage::Iterator{&storage, instRef};
         if (instRef.isValid())
             ++cmpIt;
         MicroInstrRef     cmpRef = cmpIt.current;
@@ -852,9 +852,9 @@ namespace
 
     bool isUsedOnlyThroughLowBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t firstValueId, const uint32_t maxObservedBits)
     {
-        std::vector<uint32_t> pending{firstValueId};
+        std::vector<uint32_t>        pending{firstValueId};
         std::unordered_set<uint32_t> visited;
-        bool hasNarrowUse = false;
+        bool                         hasNarrowUse = false;
         while (!pending.empty())
         {
             const uint32_t valueId = pending.back();
@@ -943,8 +943,8 @@ namespace
         bool changed = false;
         for (const MicroInstrRef ref : candidates)
         {
-            MicroInstr*        inst = storage.ptr(ref);
-            MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
+            MicroInstr*        inst    = storage.ptr(ref);
+            MicroInstrOperand* ops     = inst ? inst->ops(operands) : nullptr;
             uint32_t           valueId = MicroSsaState::K_INVALID_VALUE;
             if (!ops || !ssa->defValue(ops[0].reg, ref, valueId))
                 continue;

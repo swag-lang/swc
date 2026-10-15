@@ -426,8 +426,8 @@ struct SanitizerState
         return it == freedPtrLocations->end() ? nullptr : &it->second;
     }
 
-    MicroReg flagsSubject = MicroReg::invalid();
-    uint8_t  flagsBits    = 0;
+    MicroReg     flagsSubject = MicroReg::invalid();
+    uint8_t      flagsBits    = 0;
     MicroCompare comparison;
 };
 

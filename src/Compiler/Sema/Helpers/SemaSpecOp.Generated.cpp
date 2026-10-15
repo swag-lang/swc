@@ -87,8 +87,8 @@ namespace
 
         if (type.isArray())
         {
-            uint64_t totalCount = type.arrayTotalElementCount();
-            const bool result = totalCount && typeHasLifecycleRec(ctx, type.payloadArrayElemTypeRef(), kind, visiting);
+            uint64_t   totalCount = type.arrayTotalElementCount();
+            const bool result     = totalCount && typeHasLifecycleRec(ctx, type.payloadArrayElemTypeRef(), kind, visiting);
             visiting.erase(typeRef);
             return result;
         }

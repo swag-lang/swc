@@ -32,10 +32,10 @@ namespace
     // erasures during the fixed point only leave the counts too high.
     struct FloatDefCounts
     {
-        const MicroStorage*                    storage  = nullptr;
-        const MicroSsaState*                   ssaState = nullptr;
-        FlatKeyMap<uint32_t>                   counts; // by packed register
-        bool                                   ready = false;
+        const MicroStorage*  storage  = nullptr;
+        const MicroSsaState* ssaState = nullptr;
+        FlatKeyMap<uint32_t> counts; // by packed register
+        bool                 ready = false;
 
         uint32_t countFor(MicroReg reg)
         {
@@ -178,7 +178,7 @@ namespace
         {
             // Every seed is overwritten before the phi walk reads any of them.
             // Avoid clearing the retained array and then marking live entries.
-            const bool used = std::ranges::any_of(values[valueId].uses, [&](const auto& use) {
+            const bool used     = std::ranges::any_of(values[valueId].uses, [&](const auto& use) {
                 return use.kind == MicroSsaState::UseSite::Kind::Instruction && storage.ptr(use.instRef);
             });
             usedValues[valueId] = used;
@@ -304,7 +304,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     floatDefs.ssaState = ssaState;
     // A fresh table: clearing a kept one would cost its largest size ever, not this run's.
     floatDefs.counts = {};
-    floatDefs.ready = false;
+    floatDefs.ready  = false;
 
     // Erasing a dead definition cannot change the reaching value of a surviving
     // use. Keep this SSA graph for the entire fixed point and ignore erased

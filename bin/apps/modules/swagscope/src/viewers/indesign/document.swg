@@ -505,7 +505,8 @@ private impl PreviewLoad
         {
             operation.value = catch loadPreview(operation.fileName, &operation.preview) as loadError
             operation.error = Viewer.failureText(loadError)
-        }, owner)
+        },
+                owner)
     }
 
     mtd finish(value: *Image)->String

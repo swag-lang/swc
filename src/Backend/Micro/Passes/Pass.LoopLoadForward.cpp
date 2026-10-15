@@ -48,9 +48,9 @@ namespace
 
     struct FunctionInfo
     {
-        MicroPassContext*                      context  = nullptr;
-        MicroStorage*                          storage  = nullptr;
-        MicroOperandStorage*                   operands = nullptr;
+        MicroPassContext*    context  = nullptr;
+        MicroStorage*        storage  = nullptr;
+        MicroOperandStorage* operands = nullptr;
         // Keyed by packed register, by label id and by instruction slot; only looked up.
         FlatKeyMap<RegDefs>  defs;
         FlatKeyMap<uint32_t> labelReferences;
@@ -157,8 +157,8 @@ namespace
             case MicroInstrOpcode::LoadRegMem:
             case MicroInstrOpcode::LoadMemReg:
             {
-                const bool     isStore = inst.op == MicroInstrOpcode::LoadMemReg;
-                const MicroReg addr    = isStore ? ops[0].reg : ops[1].reg;
+                const bool      isStore = inst.op == MicroInstrOpcode::LoadMemReg;
+                const MicroReg  addr    = isStore ? ops[0].reg : ops[1].reg;
                 const uint32_t* addrPos = addrDefs.find(addr.packed);
                 if (!addrPos || *addrPos >= pos)
                     return false;

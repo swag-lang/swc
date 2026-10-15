@@ -1689,7 +1689,7 @@ std::vector<SourceFile*> CompilerInstance::beginEditorAnalysisRevision(const std
     if (!moduleNamespace_)
         return {inputFiles.begin(), inputFiles.end()};
 
-    std::unordered_set<FileRef>      changedFiles;
+    std::unordered_set<FileRef>       changedFiles;
     std::unordered_map<FileRef, Utf8> changedContents;
     for (SourceFile* sourceFile : inputFiles)
     {
@@ -1741,7 +1741,7 @@ std::vector<SourceFile*> CompilerInstance::beginEditorAnalysisRevision(const std
     }
 
     std::unordered_set<FileRef> affectedFiles = changedFiles;
-    std::vector<FileRef>         worklist(changedFiles.begin(), changedFiles.end());
+    std::vector<FileRef>        worklist(changedFiles.begin(), changedFiles.end());
     for (SourceFile* sourceFile : inputFiles)
     {
         if (sourceFile && sourceFile->isEditorActive() && (sourceFile->hasError() || sourceFile->hasWarning()) && affectedFiles.insert(sourceFile->ref()).second)
@@ -1761,7 +1761,7 @@ std::vector<SourceFile*> CompilerInstance::beginEditorAnalysisRevision(const std
     if (affectedFiles.empty())
         return {};
 
-    TaskContext ctx(*this);
+    TaskContext              ctx(*this);
     std::vector<SourceFile*> result;
     result.reserve(affectedFiles.size());
     for (SourceFile* sourceFile : inputFiles)
@@ -1810,9 +1810,9 @@ void CompilerInstance::updateEditorDependencies(SourceFile& sourceFile)
         return;
 
     std::unordered_set<FileRef> dependencies;
-    const NodePayload& payload = sourceFile.nodePayloadContext();
+    const NodePayload&          payload = sourceFile.nodePayloadContext();
     Ast::visit(sourceFile.ast(), sourceFile.ast().root(), [&](const AstNodeRef nodeRef, const AstNode&) {
-        const auto resolved = payload.resolveSymbols(nodeRef);
+        const auto resolved      = payload.resolveSymbols(nodeRef);
         const auto addDependency = [&](const Symbol* symbol) {
             if (!symbol || !symbol->decl() || symbol->isIgnored())
                 return;

@@ -411,7 +411,7 @@ namespace
                 for (const uint64_t& initDim : std::ranges::reverse_view(initDims))
                 {
                     const std::array<uint64_t, 1> oneDim = {initDim};
-                    elemTypeRef = sema.typeMgr().addArrayType(oneDim, elemTypeRef, nodes[0].flags);
+                    elemTypeRef                          = sema.typeMgr().addArrayType(oneDim, elemTypeRef, nodes[0].flags);
                 }
 
                 return elemTypeRef;

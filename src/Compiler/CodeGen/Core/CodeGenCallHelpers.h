@@ -16,19 +16,19 @@ struct ResolvedCallArgument;
 namespace CodeGenCallHelpers
 {
     SymbolFunction* selectedCallFunction(CodeGen& codeGen, AstNodeRef callRef);
-    Result codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction* selectedFunction = nullptr);
-    bool   materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef);
-    Result emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args);
-    Result emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg);
-    Result emitFallibleFailureJump(CodeGen& codeGen);
-    Result emitFallibleCastFailure(CodeGen& codeGen);
-    Result emitFallibleFailureJumpIfHasError(CodeGen& codeGen);
-    bool   canReadErrorFlagInline(const CodeGen& codeGen);
-    void   isolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args);
-    void   appendPreparedValueArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef);
-    void   appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg);
-    Result emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs);
-    Result emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg);
+    Result          codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction* selectedFunction = nullptr);
+    bool            materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef);
+    Result          emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args);
+    Result          emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg);
+    Result          emitFallibleFailureJump(CodeGen& codeGen);
+    Result          emitFallibleCastFailure(CodeGen& codeGen);
+    Result          emitFallibleFailureJumpIfHasError(CodeGen& codeGen);
+    bool            canReadErrorFlagInline(const CodeGen& codeGen);
+    void            isolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args);
+    void            appendPreparedValueArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef);
+    void            appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg);
+    Result          emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs);
+    Result          emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg);
 }
 
 SWC_END_NAMESPACE();

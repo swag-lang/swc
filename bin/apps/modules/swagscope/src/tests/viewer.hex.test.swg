@@ -288,9 +288,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     // A scan run by work that was asked to stop ends before reading anything.
     var stopper: Swag.Task'Hex.AnalysisResult
-    let self         = &stopper
-    let count        = payload.count
-    let path: string = fileName
+    let self  = &stopper
+    let count = payload.count
+    let path:    string = fileName
     stopper.submit(func|self, path, count|()->Hex.AnalysisResult
     {
         self.cancel()

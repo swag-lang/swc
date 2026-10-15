@@ -15,8 +15,8 @@ TaskContext::TaskContext(const Global& global, const CommandLine& cmdLine) :
 TaskContext::TaskContext(CompilerInstance& compInst) :
     compilerInstance_(&compInst)
 {
-    global_  = &compInst.global();
-    cmdLine_ = &compInst.cmdLine();
+    global_        = &compInst.global();
+    cmdLine_       = &compInst.cmdLine();
     editorService_ = isEditorServiceCommand(cmdLine_->command);
 }
 

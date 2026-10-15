@@ -406,12 +406,12 @@ namespace
             FlatKeySet   defsInLoop;
             FlatKeySet   dereferenceBasesInLoop;
             FlatKey64Set directStoreTargets;
-            bool loopHasCall         = false;
-            bool loopHasReadOnlyCall = false;
-            bool loopHasPointerStore = false;
-            bool loopHasFrameStore   = false;
-            bool loopHasNestedLoop   = false;
-            bool loopHasAtomic       = false;
+            bool         loopHasCall         = false;
+            bool         loopHasReadOnlyCall = false;
+            bool         loopHasPointerStore = false;
+            bool         loopHasFrameStore   = false;
+            bool         loopHasNestedLoop   = false;
+            bool         loopHasAtomic       = false;
             for (uint32_t i = loop->bodyBegin; i < loop->bodyEnd; ++i)
             {
                 if (!inBody[i])
@@ -693,8 +693,8 @@ namespace
                 return dc && dc->count == it->second.defSlots.size() ? &it->second : nullptr;
             };
 
-            FlatKeySet                               hoistSet;
-            std::vector<uint32_t>                    hoistOrder;
+            FlatKeySet              hoistSet;
+            std::vector<uint32_t>   hoistOrder;
             thread_local FlatKeySet banned; // registers by packed form
             banned.clear();
 
@@ -946,7 +946,7 @@ namespace
             // Both keyed by the register's packed form, and only looked up.
             FlatKeyMap<uint32_t> inLoopUse;
             FlatKeySet           nestedLoopUses;
-            bool countedLoopUses = false;
+            bool                 countedLoopUses = false;
             for (;;)
             {
                 runAcceptance();
@@ -980,7 +980,7 @@ namespace
                         countedLoopUses = true;
                     }
 
-                    FlatKeySet           keep;
+                    FlatKeySet            keep;
                     std::vector<uint32_t> worklist;
                     for (const uint32_t i : hoistOrder)
                     {

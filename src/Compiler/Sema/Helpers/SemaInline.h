@@ -23,15 +23,15 @@ struct SemaInlinePayload
 {
     bool returnsToCallerSite() const { return sourceFunction && sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn); }
 
-    const SymbolFunction*                            sourceFunction      = nullptr;
-    SemaInlinePayload*                               parentInlinePayload = nullptr;
-    SemaScope*                                       callerScope         = nullptr;
-    const SymbolImpl*                                callerImpl          = nullptr;
-    SemaScope*                                       upLookupScope       = nullptr;
-    bool                                             crossAstInline      = false;
-    uint16_t                                         runtimeSafetyMask   = 0;
+    const SymbolFunction*                            sourceFunction          = nullptr;
+    SemaInlinePayload*                               parentInlinePayload     = nullptr;
+    SemaScope*                                       callerScope             = nullptr;
+    const SymbolImpl*                                callerImpl              = nullptr;
+    SemaScope*                                       upLookupScope           = nullptr;
+    bool                                             crossAstInline          = false;
+    uint16_t                                         runtimeSafetyMask       = 0;
     uint16_t                                         callerRuntimeSafetyMask = 0;
-    SymbolVariable*                                  resultVar           = nullptr;
+    SymbolVariable*                                  resultVar               = nullptr;
     SmallVector<SemaClone::ParamBinding, 6>          argMappings;
     SmallVector2<SymbolVariable*>                    callerBindingVars;
     SmallVector2<TypeRef>                            callerBindingTypes;

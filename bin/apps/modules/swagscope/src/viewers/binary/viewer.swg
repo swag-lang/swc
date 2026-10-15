@@ -36,7 +36,6 @@ private
     const DetailMinWidth = 200.0
     const FillRows       = 128'u64
     const CommandWidth   = 80.0
-
 }
 
 // Commands shared by the context menu, keyboard, and command bar.
@@ -997,7 +996,9 @@ impl Panel
             setTextsOverride(&view.loadTexts)
             defer setTextsOverride(null)
             return view.pendingDoc.open(view.loadFileName)
-        }, .taskNotifier(&.loadTask), .Background)
+        },
+                         .taskNotifier(&.loadTask),
+                         .Background)
 
         if notify do
             .services.loadingChanged(me)

@@ -660,9 +660,9 @@ namespace
                     ++sumsPerInduction.getOrInsert(candidate.inductionIx);
                 for (const Candidate& candidate : sums)
                 {
-                    const Induction& induction = inductions[candidate.inductionIx];
-                    const RegOccurrences* useIt    = uses.find(induction.reg.packed);
-                    const uint32_t        useCount = useIt ? useIt->count : 0;
+                    const Induction&      induction = inductions[candidate.inductionIx];
+                    const RegOccurrences* useIt     = uses.find(induction.reg.packed);
+                    const uint32_t        useCount  = useIt ? useIt->count : 0;
                     // The step reads the induction once itself.
                     if (useCount == *sumsPerInduction.find(candidate.inductionIx) + 1)
                         chosenSums.push_back(candidate);

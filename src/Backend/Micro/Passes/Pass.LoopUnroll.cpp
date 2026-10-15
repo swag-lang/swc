@@ -434,44 +434,44 @@ namespace
         // Two independent packed accumulators shorten the XOR dependency chain
         // for larger reductions; the scalar loop below handles any remainder.
         const uint64_t bound       = cmpOps[2].valueU64;
-        const bool     twoVectors = bound >= 128;
+        const bool     twoVectors  = bound >= 128;
         const uint64_t vectorWidth = twoVectors ? 8 : 4;
         const bool     hasTail     = bound % vectorWidth != 0;
-        uint32_t   nextInt    = 0;
-        uint32_t   nextFloat  = 0;
+        uint32_t       nextInt     = 0;
+        uint32_t       nextFloat   = 0;
         MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
         if (nextInt > MicroReg::K_MAX_INDEX - 3 || nextFloat > MicroReg::K_MAX_INDEX - (twoVectors ? 6u : 4u))
             return false;
-        const MicroReg      scalar        = MicroReg::virtualIntReg(nextInt++);
-        const MicroReg      ptr           = MicroReg::virtualIntReg(nextInt++);
-        const MicroReg      lane          = MicroReg::virtualIntReg(nextInt);
-        const MicroReg      index         = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg      stride        = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg      packed        = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg      temp          = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg      upperIndex    = twoVectors ? MicroReg::virtualFloatReg(nextFloat++) : MicroReg::invalid();
-        const MicroReg      upperAccum    = twoVectors ? MicroReg::virtualFloatReg(nextFloat) : MicroReg::invalid();
-        const MicroInstrRef headerRef     = order[headerOrdinal];
-        const MicroInstrRef bodyRef       = order[headerOrdinal + 1];
-        const MicroInstrRef afterRef      = order[jumpOrdinal + 1];
-        const MicroInstrOperand scalarCmp[3] = {cmpOps[0], cmpOps[1], cmpOps[2]};
-        const MicroInstrOperand scalarStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
-        const MicroInstrOperand jumpBits = jumpOps[1];
+        const MicroReg                                                                 scalar        = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg                                                                 ptr           = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg                                                                 lane          = MicroReg::virtualIntReg(nextInt);
+        const MicroReg                                                                 index         = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg                                                                 stride        = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg                                                                 packed        = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg                                                                 temp          = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg                                                                 upperIndex    = twoVectors ? MicroReg::virtualFloatReg(nextFloat++) : MicroReg::invalid();
+        const MicroReg                                                                 upperAccum    = twoVectors ? MicroReg::virtualFloatReg(nextFloat) : MicroReg::invalid();
+        const MicroInstrRef                                                            headerRef     = order[headerOrdinal];
+        const MicroInstrRef                                                            bodyRef       = order[headerOrdinal + 1];
+        const MicroInstrRef                                                            afterRef      = order[jumpOrdinal + 1];
+        const MicroInstrOperand                                                        scalarCmp[3]  = {cmpOps[0], cmpOps[1], cmpOps[2]};
+        const MicroInstrOperand                                                        scalarStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
+        const MicroInstrOperand                                                        jumpBits      = jumpOps[1];
         SmallVector<std::pair<MicroInstrOpcode, SmallVector<MicroInstrOperand, 8>>, 6> scalarBody;
         if (hasTail)
         {
             for (uint32_t ordinal = headerOrdinal + 1; ordinal < headerOrdinal + 5; ++ordinal)
             {
-                const MicroInstr* inst = storage.ptr(order[ordinal]);
+                const MicroInstr*                 inst = storage.ptr(order[ordinal]);
                 SmallVector<MicroInstrOperand, 8> cloned;
                 cloned.append(inst->ops(operands), inst->numOperands);
                 scalarBody.emplace_back(inst->op, std::move(cloned));
             }
         }
-        const uint64_t groupId = builder.createLabel().get();
-        const uint64_t tailId = hasTail ? builder.createLabel().get() : 0;
-        const uint64_t doneId = hasTail ? builder.createLabel().get() : 0;
-        MicroInstrOperand   vectorStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
+        const uint64_t    groupId       = builder.createLabel().get();
+        const uint64_t    tailId        = hasTail ? builder.createLabel().get() : 0;
+        const uint64_t    doneId        = hasTail ? builder.createLabel().get() : 0;
+        MicroInstrOperand vectorStep[4] = {stepOps[0], stepOps[1], stepOps[2], stepOps[3]};
         vectorStep[3].setImmediateValue(ApInt(twoVectors ? 8 : 4, 64));
         const auto insert = [&](MicroInstrRef before, MicroInstrOpcode op, std::span<const MicroInstrOperand> args) {
             storage.insertDerivedBefore(operands, before, op, args);
@@ -508,7 +508,7 @@ namespace
         };
 
         MicroInstrOperand groupLabel[1] = {};
-        groupLabel[0].valueU64 = groupId;
+        groupLabel[0].valueU64          = groupId;
         insert(bodyRef, MicroInstrOpcode::Label, groupLabel);
 
         MicroInstrOperand clear[2] = {};
@@ -575,7 +575,7 @@ namespace
         MicroInstrOperand* groupCmpOps = storage.ptr(order[headerOrdinal + 6])->ops(operands);
         groupCmpOps[2].setImmediateValue(ApInt(bound - vectorWidth + 1, 64));
         MicroInstrOperand* groupJumpOps = storage.ptr(order[jumpOrdinal])->ops(operands);
-        groupJumpOps[2].valueU64 = groupId;
+        groupJumpOps[2].valueU64        = groupId;
         for (uint32_t o = headerOrdinal + 1; o <= headerOrdinal + 5; ++o)
             storage.erase(order[o]);
 
@@ -584,26 +584,26 @@ namespace
             // The vector loop stops before its first incomplete group. Keep the
             // original scalar loop for the remaining one to seven elements.
             MicroInstrOperand tailLabel[1] = {};
-            tailLabel[0].valueU64 = tailId;
+            tailLabel[0].valueU64          = tailId;
             insert(afterRef, MicroInstrOpcode::Label, tailLabel);
             MicroInstrOperand tailCmp[3] = {scalarCmp[0], scalarCmp[1], scalarCmp[2]};
             insert(afterRef, MicroInstrOpcode::CmpRegImm, tailCmp);
             MicroInstrOperand skipTail[3] = {};
-            skipTail[0].cpuCond = MicroCond::AboveOrEqual;
-            skipTail[1] = jumpBits;
-            skipTail[2].valueU64 = doneId;
+            skipTail[0].cpuCond           = MicroCond::AboveOrEqual;
+            skipTail[1]                   = jumpBits;
+            skipTail[2].valueU64          = doneId;
             insert(afterRef, MicroInstrOpcode::JumpCond, skipTail);
             for (const auto& [op, args] : scalarBody)
                 insert(afterRef, op, args);
             insert(afterRef, MicroInstrOpcode::OpBinaryRegImm, scalarStep);
             insert(afterRef, MicroInstrOpcode::CmpRegImm, scalarCmp);
             MicroInstrOperand tailJump[3] = {};
-            tailJump[0].cpuCond = MicroCond::Below;
-            tailJump[1] = jumpBits;
-            tailJump[2].valueU64 = tailId;
+            tailJump[0].cpuCond           = MicroCond::Below;
+            tailJump[1]                   = jumpBits;
+            tailJump[2].valueU64          = tailId;
             insert(afterRef, MicroInstrOpcode::JumpCond, tailJump);
             MicroInstrOperand doneLabel[1] = {};
-            doneLabel[0].valueU64 = doneId;
+            doneLabel[0].valueU64          = doneId;
             insert(afterRef, MicroInstrOpcode::Label, doneLabel);
         }
 
@@ -667,14 +667,14 @@ namespace
         const uint32_t bodyCount = bodyEnd - bodyBegin;
         if (!bodyCount || bodyCount > 12)
             return false;
-        bool                         indexedRead = false;
-        bool                         indexedWrite = false;
-        bool                         sawStore = false;
+        bool                         indexedRead            = false;
+        bool                         indexedWrite           = false;
+        bool                         sawStore               = false;
         bool                         allReadsHaveUnitStride = true;
         std::unordered_set<MicroReg> indexedBases;
         std::unordered_set<MicroReg> bodyDefs;
-        MicroReg                     loadedValue = MicroReg::invalid();
-        MicroOpBits                  loadedBits  = MicroOpBits::Zero;
+        MicroReg                     loadedValue   = MicroReg::invalid();
+        MicroOpBits                  loadedBits    = MicroOpBits::Zero;
         uint64_t                     elementStride = 0;
         for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
         {
@@ -683,7 +683,7 @@ namespace
             const MicroInstrOperand* ops  = inst ? inst->ops(operands) : nullptr;
             if (!inst || !ops || relocsBySlot.contains(ref.get()))
                 return false;
-            sawStore = sawStore || inst->op == MicroInstrOpcode::LoadAmcMemReg;
+            sawStore                  = sawStore || inst->op == MicroInstrOpcode::LoadAmcMemReg;
             const MicroInstrDef& info = MicroInstr::info(inst->op);
             if (inst->op == MicroInstrOpcode::Label ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
@@ -701,16 +701,16 @@ namespace
                 continue;
             if (inst->op == MicroInstrOpcode::LoadAmcRegMem || inst->op == MicroInstrOpcode::LoadZeroExtAmcRegMem)
             {
-                const uint64_t stride = ops[5].valueU64;
-                const MicroOpBits bits = inst->op == MicroInstrOpcode::LoadAmcRegMem ? ops[3].opBits : ops[4].opBits;
+                const uint64_t    stride = ops[5].valueU64;
+                const MicroOpBits bits   = inst->op == MicroInstrOpcode::LoadAmcRegMem ? ops[3].opBits : ops[4].opBits;
                 if (ops[1].reg == counter || ops[2].reg != counter || (stride != 1 && stride != 2 && stride != 4 && stride != 8) ||
                     ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - 3 * stride)
                     return false;
                 allReadsHaveUnitStride = allReadsHaveUnitStride && stride == 1;
-                indexedRead = true;
-                loadedValue = ops[0].reg;
-                loadedBits  = bits;
-                elementStride = stride;
+                indexedRead            = true;
+                loadedValue            = ops[0].reg;
+                loadedBits             = bits;
+                elementStride          = stride;
                 indexedBases.insert(ops[1].reg);
             }
             else if (inst->op == MicroInstrOpcode::LoadAmcMemReg)

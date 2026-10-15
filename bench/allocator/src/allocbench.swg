@@ -32,19 +32,19 @@ const LatencyBatch      = 64'u64
 
 enum Workload
 {
-    Pair        // One 32-byte block allocated and freed, over and over
-    Trees       // Binary trees of 16-byte nodes, built then freed
-    Churn       // 50 000 live blocks of mostly small, mixed sizes, replaced at random
-    Medium      // 256 live blocks of 4 KiB to 64 KiB, replaced at random
-    Large       // 32 live blocks of 64 KiB to 1 MiB, replaced at random, one byte touched per page
-    Realloc     // Buffers doubled from 16 bytes to 4 MiB through reallocation
-    Spread      // A few live blocks of twelve sizes, as a long-running application holds them
-    Grow        // Four million 32-byte blocks allocated before any is freed
-    Aligned     // Batches of 1024 mixed blocks aligned on 32 or 64 bytes
-    Huge        // 32 MiB blocks, one at a time, every page touched: above the block cache
-    SpreadRep   // The spread body repeated ten thousand times behind a start gate
-    Retain      // A live set freed, then the working set while idle, after the purge, after trim
-    Xfer        // Producer/consumer pairs: one thread allocates, the other frees
+    Pair          // One 32-byte block allocated and freed, over and over
+    Trees         // Binary trees of 16-byte nodes, built then freed
+    Churn         // 50 000 live blocks of mostly small, mixed sizes, replaced at random
+    Medium        // 256 live blocks of 4 KiB to 64 KiB, replaced at random
+    Large         // 32 live blocks of 64 KiB to 1 MiB, replaced at random, one byte touched per page
+    Realloc       // Buffers doubled from 16 bytes to 4 MiB through reallocation
+    Spread        // A few live blocks of twelve sizes, as a long-running application holds them
+    Grow          // Four million 32-byte blocks allocated before any is freed
+    Aligned       // Batches of 1024 mixed blocks aligned on 32 or 64 bytes
+    Huge          // 32 MiB blocks, one at a time, every page touched: above the block cache
+    SpreadRep     // The spread body repeated ten thousand times behind a start gate
+    Retain        // A live set freed, then the working set while idle, after the purge, after trim
+    Xfer          // Producer/consumer pairs: one thread allocates, the other frees
 }
 
 struct Xorshift
@@ -93,7 +93,7 @@ impl Latency
         if .count < LatencyMaxSamples
         {
             .samples![.count] = cast(u32, Math.min(ticks, cast(u64, Swag.U32.Max)))
-            .count           += 1
+            .count += 1
         }
     }
 
@@ -256,11 +256,11 @@ struct Retained
 func retain(random: *Xorshift)->Retained
 {
     const Small = 50_000'u64
-    let small     = cast([*] u64, Memory.alloc(Small * #sizeof(u64)))
+    let small      = cast([*] u64, Memory.alloc(Small * #sizeof(u64)))
     let smallSizes = cast([*] u64, Memory.alloc(Small * #sizeof(u64)))
-    var medium:     [MediumSlots] u64
+    var medium:      [MediumSlots] u64
     var mediumSizes: [MediumSlots] u64
-    var large:      [LargeSlots] u64
+    var large:       [LargeSlots] u64
     var largeSizes:  [LargeSlots] u64
     for i in Small
     {
@@ -301,7 +301,7 @@ func retain(random: *Xorshift)->Retained
     result.idle = workingSet()
     Threading.Thread.sleep(700'ms)
     Memory.free(Memory.alloc(1024 * 1024), 1024 * 1024)
-    result.purged  = workingSet()
+    result.purged = workingSet()
     Swag.defaultAllocator().trim()
     result.trimmed = workingSet()
     return result

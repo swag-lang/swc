@@ -90,7 +90,7 @@ namespace InstructionCombine
         bool skipsReport(Context& ctx, const MicroInstrRef jumpRef, const MicroInstrRef joinRef)
         {
             bool hasReport = false;
-            auto walker = MicroStorage::Iterator{ctx.storage, jumpRef};
+            auto walker    = MicroStorage::Iterator{ctx.storage, jumpRef};
             ++walker;
             for (; walker.current != joinRef; ++walker)
             {
@@ -128,7 +128,7 @@ namespace InstructionCombine
         const MicroControlFlowGraph& cfg      = ctx.builder->controlFlowGraph();
         bool                         repeated = false;
         uint32_t                     steps    = 0;
-        auto walker = MicroStorage::Iterator{ctx.storage, cmpRef};
+        auto                         walker   = MicroStorage::Iterator{ctx.storage, cmpRef};
         --walker;
         for (; walker.current.isValid() && !repeated && steps < K_MAX_SCAN; ++steps)
         {

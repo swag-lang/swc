@@ -377,7 +377,7 @@ namespace
             while (cur->isArray())
             {
                 totalCount = cur->arrayTotalElementCount(totalCount);
-                cur = &args.sema->typeMgr().get(cur->payloadArrayElemTypeRef());
+                cur        = &args.sema->typeMgr().get(cur->payloadArrayElemTypeRef());
             }
         }
 

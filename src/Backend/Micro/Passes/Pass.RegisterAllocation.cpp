@@ -115,13 +115,13 @@ namespace
         MicroInstrUseDef useDef;
         for (const MicroInstr& inst : instructions.view())
         {
-            const MicroInstrDef&     info = MicroInstr::info(inst.op);
-            const bool hasEncoderRegUseDef = encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
+            const MicroInstrDef& info                = MicroInstr::info(inst.op);
+            const bool           hasEncoderRegUseDef = encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
             if (info.regModes[0] == MicroInstrRegMode::None && info.regModes[1] == MicroInstrRegMode::None &&
                 info.regModes[2] == MicroInstrRegMode::None && !hasEncoderRegUseDef)
                 continue;
 
-            const MicroInstrOperand* ops  = inst.ops(operands);
+            const MicroInstrOperand* ops = inst.ops(operands);
             if (ops)
             {
                 const auto modes = info.resolvedRegModes(ops);
@@ -2212,8 +2212,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         const MicroInstr* inst = instructions_->ptr(instructionRefs[idx]);
         if (!inst)
             continue;
-        const MicroInstrDef& info = MicroInstr::info(inst->op);
-        const bool hasWideOperands = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ||
+        const MicroInstrDef& info            = MicroInstr::info(inst->op);
+        const bool           hasWideOperands = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ||
                                      (info.opBitsMask && inst->has128BitOperands(inst->ops(*operands_)));
         if (hasWideOperands)
             wideInstructionPositions.push_back(idx);
@@ -2422,10 +2422,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // Only calls contribute to these summaries; their concrete live-out set is unused.
     for (const uint32_t idx : callPositions_)
     {
-        const bool    hotCall    = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
-        const uint8_t weight     = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
-        const auto&   successors = controlFlowGraph.successors(idx);
-        const auto recordLiveOutWord = [&](const size_t wordIndex, uint64_t wordBits) {
+        const bool    hotCall           = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
+        const uint8_t weight            = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
+        const auto&   successors        = controlFlowGraph.successors(idx);
+        const auto    recordLiveOutWord = [&](const size_t wordIndex, uint64_t wordBits) {
             while (wordBits)
             {
                 const uint32_t bitInWord = std::countr_zero(wordBits);
@@ -3968,8 +3968,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         markCurrentVirtualLiveOut(idx, stamp);
         advanceCurrentPositionCursors(idx);
-        bool concreteLiveOutRegsReady = false;
-        const bool currentReachable = !hasControlFlow_ || isInstructionReachable(idx);
+        bool       concreteLiveOutRegsReady = false;
+        const bool currentReachable         = !hasControlFlow_ || isInstructionReachable(idx);
 
         if (it->op == MicroInstrOpcode::Label)
         {
@@ -4077,11 +4077,11 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             }
         }
 
-        const MicroInstrDef&     info               = MicroInstr::info(it->op);
-        const bool               hasRegisterEffects = hasExplicitRegisterOperands(info) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
-        MicroInstrOperand*       instOps            = hasRegisterEffects ? it->ops(*operands_) : nullptr;
-        const auto               modes              = instOps ? info.resolvedRegModes(instOps) : info.regModes;
-        SmallVector<MicroReg>    protectedKeys;
+        const MicroInstrDef&      info               = MicroInstr::info(it->op);
+        const bool                hasRegisterEffects = hasExplicitRegisterOperands(info) || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
+        MicroInstrOperand*        instOps            = hasRegisterEffects ? it->ops(*operands_) : nullptr;
+        const auto                modes              = instOps ? info.resolvedRegModes(instOps) : info.regModes;
+        SmallVector<MicroReg>     protectedKeys;
         SmallVector<AllocRequest> allocRequests;
         if (instOps)
         {
@@ -4551,9 +4551,9 @@ namespace
             refs.push_back(it.current);
 
         // The frame release before a return: stack-pointer additions and pops up to the return.
-        size_t cachedReleaseBegin = refs.size();
-        size_t cachedReturnIndex  = refs.size();
-        const auto releasesFrame = [&](size_t index) {
+        size_t     cachedReleaseBegin = refs.size();
+        size_t     cachedReturnIndex  = refs.size();
+        const auto releasesFrame      = [&](size_t index) {
             if (index >= cachedReleaseBegin && index < cachedReturnIndex)
                 return true;
 
@@ -4601,7 +4601,7 @@ namespace
             bool defsStack = false;
             for (const MicroReg reg : useDef.defs)
             {
-                defsBase  |= reg == base;
+                defsBase |= reg == base;
                 defsStack |= reg == stack;
             }
             if (defsBase)

@@ -279,7 +279,8 @@ impl AnalysisOperation
         .submit(func|operation = me|()
         {
             operation.result = analyzeRange(operation.fileName, operation.range, &operation.processed)
-        }, owner)
+        },
+                owner)
     }
 
     // Asks a running analysis to stop; the partial result is still collected by [[AnalysisOperation.finish]].

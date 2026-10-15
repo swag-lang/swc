@@ -102,10 +102,10 @@ struct CodeGenDeferredAction
         EndValueBorrow,
     };
 
-    Kind                  kind         = Kind::DeferStmt;
+    Kind                  kind               = Kind::DeferStmt;
     uint32_t              borrowRecordOffset = 0;
-    AstNodeRef            deferStmtRef = AstNodeRef::invalid();
-    AstNodeRef            bodyRef      = AstNodeRef::invalid();
+    AstNodeRef            deferStmtRef       = AstNodeRef::invalid();
+    AstNodeRef            bodyRef            = AstNodeRef::invalid();
     AstModifierFlags      modifierFlags;
     const SymbolVariable* variable         = nullptr;
     TypeRef               lifecycleTypeRef = TypeRef::invalid();
@@ -439,22 +439,22 @@ public:
     };
     SmallVector<ValueBorrowSite> valueBorrowSites;
     bool                         needsValueBorrowRuntime = false;
-    void                      registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo = nullptr);
-    void                      initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
-    void                      registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos);
-    bool                      hasDeferredStatements() const { return hasDeferredStatements_; }
-    Result                    emitDeferredActionsForReturn();
-    Result                    emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef, bool popErrorScope = true);
-    Result                    emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
-    Result                    emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
-    Result                    emitDeferredActionsUntilOwner(AstNodeRef CodeGenDeferScope::* ownerField, AstNodeRef ownerRef);
-    Result                    emitDeferredActionsDownTo(size_t stopScopeIndex);
-    Result                    emitNodeNow(AstNodeRef nodeRef);
-    void                      invalidateNodePayloadRegs(AstNodeRef nodeRef);
-    bool                      containsDeferredActions(AstNodeRef nodeRef);
+    void                         registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo = nullptr);
+    void                         initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
+    void                         registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos);
+    bool                         hasDeferredStatements() const { return hasDeferredStatements_; }
+    Result                       emitDeferredActionsForReturn();
+    Result                       emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef, bool popErrorScope = true);
+    Result                       emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
+    Result                       emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
+    Result                       emitDeferredActionsUntilOwner(AstNodeRef CodeGenDeferScope::* ownerField, AstNodeRef ownerRef);
+    Result                       emitDeferredActionsDownTo(size_t stopScopeIndex);
+    Result                       emitNodeNow(AstNodeRef nodeRef);
+    void                         invalidateNodePayloadRegs(AstNodeRef nodeRef);
+    bool                         containsDeferredActions(AstNodeRef nodeRef);
     CodeGenDeferScope&           lifetimeDeferScope();
-    bool                      currentInstructionBlocksFallthrough() const;
-    bool                      inDeferredEmission() const { return deferredEmitDepth_ != 0; }
+    bool                         currentInstructionBlocksFallthrough() const;
+    bool                         inDeferredEmission() const { return deferredEmitDepth_ != 0; }
 
     // Move elision (see CodeGenMoveElision): per-function analysis cache and the set of
     // locals whose scope-exit drop has been elided by a consuming '#move'.

@@ -66,7 +66,7 @@ Result AstLogicalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
         const TokenId op    = sema.token(codeRef()).id;
         const auto&   facts = op == TokenId::KwdAnd ? guards.whenTrue : guards.whenFalse;
-        SemaFrame frame = sema.frame();
+        SemaFrame     frame = sema.frame();
         frame.clearBindingScoped();
         SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
         sema.pushFramePopOnPostChild(std::move(frame), nodeRightRef);

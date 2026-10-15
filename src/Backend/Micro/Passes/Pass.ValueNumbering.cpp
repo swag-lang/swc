@@ -649,12 +649,12 @@ namespace
 
     struct NumberingScratch
     {
-        FlatKeySet                   frameDerivedRegs;
-        FlatKeySet                   immutableBases;
-        NumberingTable               table;
-        std::vector<PlannedRewrite>  rewrites;
-        ValueAliases                 valueAliases;
-        std::vector<uint32_t>        epochAt;
+        FlatKeySet                  frameDerivedRegs;
+        FlatKeySet                  immutableBases;
+        NumberingTable              table;
+        std::vector<PlannedRewrite> rewrites;
+        ValueAliases                valueAliases;
+        std::vector<uint32_t>       epochAt;
 
         void reset(const uint32_t instructionCount)
         {

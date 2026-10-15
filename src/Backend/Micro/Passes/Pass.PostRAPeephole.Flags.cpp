@@ -244,7 +244,7 @@ namespace PostRaPeephole
             load[2].hasWideImmediateValue() || load[2].valueU64 > 1)
             return false;
 
-        auto                scanIt = MicroStorage::Iterator{ctx.storage, loadRef};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, loadRef};
         ++scanIt;
         const MicroInstrRef cmpRef = scanIt.current;
         const MicroInstr*   cmp    = cmpRef.isValid() ? &*scanIt : nullptr;
@@ -1022,7 +1022,7 @@ namespace PostRaPeephole
         // overwritten. Anything that uses an unsafe condition, or any flags
         // user we don't recognize, aborts the rewrite.
         SmallVector<MicroInstrRef, 4> signReaders;
-        auto scanIt = MicroStorage::Iterator{ctx.storage, cmpRef};
+        auto                          scanIt = MicroStorage::Iterator{ctx.storage, cmpRef};
         ++scanIt;
         for (; scanIt.current.isValid(); ++scanIt)
         {

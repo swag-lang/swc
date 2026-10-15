@@ -515,9 +515,9 @@ namespace
                 --walker;
             }
 
-            const MicroInstrRef ref = walker.current;
-            const MicroInstr*    release = ref.isValid() ? &*walker : nullptr;
-            uint64_t          immediate = 0;
+            const MicroInstrRef ref       = walker.current;
+            const MicroInstr*   release   = ref.isValid() ? &*walker : nullptr;
+            uint64_t            immediate = 0;
             if (!release || !isStackAdjustWithOp(*release, release->ops(*context.operands), stackPointer, MicroOp::Add, immediate) || immediate != frameSize)
                 return false;
             releaseRefs.push_back(ref);
@@ -1255,11 +1255,11 @@ namespace
             // successor remain valid throughout the suffix rewrite.
             const MicroInstrRef retRef   = it.current;
             MicroInstrRef       firstRef = retRef;
-            auto walker = MicroStorage::Iterator{context.instructions, retRef};
+            auto                walker   = MicroStorage::Iterator{context.instructions, retRef};
             for (--walker; walker.current.isValid(); --walker)
             {
                 const MicroInstr*        inst = &*walker;
-                const MicroInstrOperand* ops = inst->ops(*context.operands);
+                const MicroInstrOperand* ops  = inst->ops(*context.operands);
                 if (!isEpilogueInstruction(*inst, ops, conv.stackPointer))
                     break;
                 firstRef = walker.current;
@@ -1299,7 +1299,7 @@ namespace
 
     bool collectReturnTail(const MicroPassContext& context, const MicroReg stackPointer, const MicroInstrRef retRef, ReturnTail& tail)
     {
-        auto                          walker = MicroStorage::Iterator{context.instructions, retRef};
+        auto walker = MicroStorage::Iterator{context.instructions, retRef};
         --walker;
         SmallVector<MicroInstrRef, 8> reversed;
         reversed.push_back(retRef);
@@ -1312,7 +1312,7 @@ namespace
             --walker;
         }
 
-        MicroInstrRef          ref = walker.current;
+        MicroInstrRef            ref           = walker.current;
         const MicroInstr*        release       = context.instructions->ptr(ref);
         const MicroInstrOperand* releaseOps    = release ? release->ops(*context.operands) : nullptr;
         uint64_t                 releaseAmount = 0;
@@ -1325,7 +1325,7 @@ namespace
         while (walker.current.isValid())
         {
             const MicroInstr*        inst = &*walker;
-            const MicroInstrOperand* ops = inst->ops(*context.operands);
+            const MicroInstrOperand* ops  = inst->ops(*context.operands);
             if (inst->op != MicroInstrOpcode::LoadRegMem || !ops || !ops[0].reg.isFloat() ||
                 ops[1].reg != stackPointer || ops[2].opBits != MicroOpBits::B128)
                 break;

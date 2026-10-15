@@ -226,7 +226,7 @@ namespace
         // Resolve them together, retaining the local probe's barrier-before-touch
         // and use-before-definition rules.
         uint64_t liveRegs = 0;
-        auto walker = MicroStorage::Iterator{context.instructions, instRef};
+        auto     walker   = MicroStorage::Iterator{context.instructions, instRef};
         for (++walker; pendingRegs && walker.current.isValid(); ++walker)
         {
             const MicroInstr&    scanInst = *walker;

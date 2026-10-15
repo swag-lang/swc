@@ -454,7 +454,7 @@ namespace
                                      defOps && defOps[2].opBits == MicroOpBits::B64;
             if (addressCopy)
             {
-                const MicroReg source       = defOps[1].reg;
+                const MicroReg    source       = defOps[1].reg;
                 const RegDefInfo* sourceDef    = fn.regDefs->find(source.packed);
                 const bool        stableSource = isStackPointer(fn, source) ||
                                           (source.isVirtual() && sourceDef && sourceDef->defCount == 1);
@@ -584,9 +584,9 @@ namespace
     {
         if (!fn.framePrivacy)
         {
-            std::vector<MicroInstrRef>                                           refs;
-            std::vector<MicroInstrUseDef>                                        useDefs;
-            FlatKeyMap<MicroPassHelpers::RegDefinitionSummary>                   definitions;
+            std::vector<MicroInstrRef>                         refs;
+            std::vector<MicroInstrUseDef>                      useDefs;
+            FlatKeyMap<MicroPassHelpers::RegDefinitionSummary> definitions;
             refs.reserve(fn.storage->count());
             useDefs.reserve(fn.storage->count());
             for (auto it = fn.storage->view().begin(); it != fn.storage->view().end(); ++it)
@@ -2629,9 +2629,9 @@ namespace
 
         // Walk the straight-line blocks.
         std::vector<BlockInstr> blockInstrs;
-        uint32_t                position = 0;
-        bool                    changed  = false;
-        uint32_t scalarStoresInBlock = 0;
+        uint32_t                position            = 0;
+        bool                    changed             = false;
+        uint32_t                scalarStoresInBlock = 0;
 
         const auto flushBlock = [&]() {
             // All lane writes must occur in the same straight-line block.

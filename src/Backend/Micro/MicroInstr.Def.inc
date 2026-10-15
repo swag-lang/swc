@@ -120,8 +120,8 @@ SWC_MICRO_INSTR_DEF(
 SWC_MICRO_INSTR_DEF(
     SanityIntDivision,
     MicroInstrDef{
-        .regModes = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
-        .flags = MicroInstrFlagsE::Zero,
+        .regModes   = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .flags      = MicroInstrFlagsE::Zero,
         .opBitsMask = (1 << 2),
     })
 SWC_MICRO_INSTR_DEF(

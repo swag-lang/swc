@@ -96,7 +96,8 @@ impl Read
                 request.failed = true
                 request.error  = Viewer.failureText(readError)
             }
-        }, owner)
+        },
+                owner)
     }
 
     // Asks the read in flight to stop; its result is then discarded.

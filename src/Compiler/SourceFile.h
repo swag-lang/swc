@@ -119,13 +119,13 @@ private:
     uint64_t                     revisionId_ = 0;
     // Old revisions stay alive while retained symbols or source views still refer to them.
     std::vector<PriorRevision> priorRevisions_;
-    std::unique_ptr<Verify>      unitTest_;
+    std::unique_ptr<Verify>    unitTest_;
 
     mutable std::mutex                                 errorLinesMutex_;
     mutable std::vector<std::pair<uint32_t, uint32_t>> errorLineRanges_;
 
-    bool hasError_   = false;
-    bool hasWarning_ = false;
+    bool hasError_     = false;
+    bool hasWarning_   = false;
     bool editorActive_ = true;
 };
 

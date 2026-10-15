@@ -132,8 +132,8 @@ namespace
         --it;
         for (; it.current.isValid(); --it)
         {
-            const MicroInstr* inst = &*it;
-            const MicroInstrOperand* ops = inst->ops(operands);
+            const MicroInstr*        inst = &*it;
+            const MicroInstrOperand* ops  = inst->ops(operands);
             if (!ops)
                 continue;
             const auto modes = MicroInstr::info(inst->op).resolvedRegModes(ops);
@@ -405,8 +405,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // Keyed by the packed register and only looked up: a fresh flat table costs what this run
     // records. The other two describe one function, but their capacity can serve later mem2reg
     // rounds and functions on the same worker.
-    FlatKeyMap<AddrRegInfo>                                addrRegOffset;
-    thread_local FlatKeySet                                addressAdjustments;
+    FlatKeyMap<AddrRegInfo> addrRegOffset;
+    thread_local FlatKeySet addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
     thread_local std::unordered_map<MicroReg, SmallVector<uint64_t, 2>> addrRegMoreOffsets;

@@ -18,8 +18,8 @@ namespace SemaClone
         // The binding was homed into a mutable 'var' copy for an ordinary inline: its
         // uses are the callee's own local, not the caller's expression, so they are NOT
         // const-assignment targets.
-        bool                  mutableHomeUse = false;
-        const SymbolVariable* sourceParam    = nullptr;
+        bool                  mutableHomeUse     = false;
+        const SymbolVariable* sourceParam        = nullptr;
         AstNodeRef            valueBorrowHomeRef = AstNodeRef::invalid();
     };
 }

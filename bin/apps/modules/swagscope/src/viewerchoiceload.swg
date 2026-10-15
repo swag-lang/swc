@@ -70,7 +70,8 @@ impl ViewerChoiceLoad
                 operation.result.folderFiles.add(file.fullName)
 
             operation.result.folderFiles.sort(func(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
-        }, owner)
+        },
+                owner)
     }
 
     // Hands the classification to the caller once the worker is done with it.

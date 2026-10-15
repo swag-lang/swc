@@ -101,8 +101,8 @@ namespace
     void buildCompilerFunctionStackLayout(CodeGen& codeGen, AstNodeRef bodyRef)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
-        const CallConv& callConv  = CallConv::get(codeGen.function().callConvKind());
-        uint64_t        frameSize = 0;
+        const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
+        uint64_t                            frameSize    = 0;
         // Sema already fixed the per-local offsets. Codegen only turns that sparse layout into one
         // contiguous stack frame and marks each symbol as stack-backed.
         for (SymbolVariable* symVar : localSymbols)

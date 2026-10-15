@@ -138,7 +138,7 @@ namespace SemaRuntime
         for (size_t index = 0; index < inSymbols.size(); ++index)
         {
             const T symbol = inSymbols[index];
-            bool keep = symbol && shouldKeep(symbol);
+            bool    keep   = symbol && shouldKeep(symbol);
             if (keep && runtimeContext)
             {
                 const auto* baseSymbol = static_cast<const Symbol*>(symbol);

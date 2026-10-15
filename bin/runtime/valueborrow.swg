@@ -44,6 +44,7 @@ private func valueBorrowLock(registry: *ValueBorrowRegistry)
     {
         if Swag.atomicCompareExchange(&registry.lock, 0, 1) == 0 do
             return
+
         // Poll with ordinary atomic loads while another thread owns the cache line.
         while Swag.atomicLoad(&registry.lock) != 0 {}
     }

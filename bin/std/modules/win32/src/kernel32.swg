@@ -266,7 +266,7 @@ struct PROCESS_MEMORY_COUNTERS
 {
     public
     {
-        cb:                         DWORD
+        cb: DWORD
         PageFaultCount:             DWORD
         PeakWorkingSetSize:         SIZE_T
         WorkingSetSize:             SIZE_T

@@ -90,9 +90,9 @@ SWC_TEST_BEGIN(FrameCompact_DeadObjectsRemoved)
     std::array<FrameLocal, 3> locals = {FrameLocal{.offset = 0x0, .size = 8}, FrameLocal{.offset = 0x10, .size = 16}, FrameLocal{.offset = 0x20, .size = 8}};
     declareLocals(ctx, function, locals, 0x30);
 
-    constexpr MicroReg address = MicroReg::virtualIntReg(2);
-    constexpr MicroReg value   = MicroReg::virtualIntReg(3);
-    MicroBuilder       builder(ctx);
+    constexpr MicroReg  address = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  value   = MicroReg::virtualIntReg(3);
+    MicroBuilder        builder(ctx);
     const MicroInstrRef entryRef = emitFrameEntry(builder, 0x30);
     builder.emitLoadAddressRegMem(address, K_FRAME, 0x0, MicroOpBits::B64);
     const MicroInstrRef addressRef = builder.instructions().lastInstructionRef();
@@ -121,8 +121,8 @@ SWC_TEST_BEGIN(FrameCompact_StraddlingAccessKeepsFrame)
     std::array<FrameLocal, 3> locals = {FrameLocal{.offset = 0x0, .size = 8}, FrameLocal{.offset = 0x8, .size = 8}, FrameLocal{.offset = 0x10, .size = 8}};
     declareLocals(ctx, function, locals, 0x20);
 
-    constexpr MicroReg vector = MicroReg::virtualFloatReg(1);
-    MicroBuilder       builder(ctx);
+    constexpr MicroReg  vector = MicroReg::virtualFloatReg(1);
+    MicroBuilder        builder(ctx);
     const MicroInstrRef entryRef = emitFrameEntry(builder, 0x20);
     builder.emitLoadMemReg(K_FRAME, 0x0, vector, MicroOpBits::B128);
     const MicroInstrRef releaseRef = emitFrameExit(builder, 0x20);
@@ -142,10 +142,10 @@ SWC_TEST_BEGIN(FrameCompact_CallAreaBelowFrameStays)
     std::array<FrameLocal, 2> locals = {FrameLocal{.offset = 0x0, .size = 8}, FrameLocal{.offset = 0x10, .size = 8}};
     declareLocals(ctx, function, locals, 0x20);
 
-    const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;
-    constexpr MicroReg value = MicroReg::virtualIntReg(2);
-    constexpr MicroReg other = MicroReg::virtualIntReg(3);
-    MicroBuilder       builder(ctx);
+    const MicroReg      sp    = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg  value = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  other = MicroReg::virtualIntReg(3);
+    MicroBuilder        builder(ctx);
     const MicroInstrRef entryRef = emitFrameEntry(builder, 0x20);
     builder.emitLoadRegImm(value, ApInt(1, 64), MicroOpBits::B64);
     builder.emitOpBinaryRegImm(sp, ApInt(0x20, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -175,9 +175,9 @@ SWC_TEST_BEGIN(FrameCompact_IncomingArgumentFollowsFrameSize)
     std::array<FrameLocal, 2> locals = {FrameLocal{.offset = 0x0, .size = 8}, FrameLocal{.offset = 0x10, .size = 8}};
     declareLocals(ctx, function, locals, 0x20);
 
-    constexpr MicroReg value    = MicroReg::virtualIntReg(2);
-    constexpr MicroReg argument = MicroReg::virtualIntReg(3);
-    MicroBuilder       builder(ctx);
+    constexpr MicroReg  value    = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  argument = MicroReg::virtualIntReg(3);
+    MicroBuilder        builder(ctx);
     const MicroInstrRef entryRef = emitFrameEntry(builder, 0x20);
     builder.emitLoadRegMem(argument, K_FRAME, 0x28, MicroOpBits::B64);
     const MicroInstrRef argumentRef = builder.instructions().lastInstructionRef();
@@ -204,10 +204,10 @@ SWC_TEST_BEGIN(FrameCompact_AddressArithmeticKeepsFrame)
     std::array<FrameLocal, 2> locals = {FrameLocal{.offset = 0x0, .size = 8}, FrameLocal{.offset = 0x10, .size = 8}};
     declareLocals(ctx, function, locals, 0x20);
 
-    constexpr MicroReg address = MicroReg::virtualIntReg(2);
-    constexpr MicroReg index   = MicroReg::virtualIntReg(3);
-    constexpr MicroReg value   = MicroReg::virtualIntReg(4);
-    MicroBuilder       builder(ctx);
+    constexpr MicroReg  address = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  index   = MicroReg::virtualIntReg(3);
+    constexpr MicroReg  value   = MicroReg::virtualIntReg(4);
+    MicroBuilder        builder(ctx);
     const MicroInstrRef entryRef = emitFrameEntry(builder, 0x20);
     builder.emitLoadAddressRegMem(address, K_FRAME, 0x10, MicroOpBits::B64);
     builder.emitLoadRegImm(index, ApInt(8, 64), MicroOpBits::B64);
@@ -230,9 +230,9 @@ SWC_TEST_BEGIN(FrameCompact_BaseCopyPinsFirstObject)
     std::array<FrameLocal, 3> locals = {FrameLocal{.offset = 0x0, .size = 8}, FrameLocal{.offset = 0x8, .size = 8}, FrameLocal{.offset = 0x10, .size = 8}};
     declareLocals(ctx, function, locals, 0x20);
 
-    constexpr MicroReg address = MicroReg::virtualIntReg(2);
-    constexpr MicroReg value   = MicroReg::virtualIntReg(3);
-    MicroBuilder       builder(ctx);
+    constexpr MicroReg  address = MicroReg::virtualIntReg(2);
+    constexpr MicroReg  value   = MicroReg::virtualIntReg(3);
+    MicroBuilder        builder(ctx);
     const MicroInstrRef entryRef = emitFrameEntry(builder, 0x20);
     builder.emitLoadRegReg(address, K_FRAME, MicroOpBits::B64);
     builder.emitCmpRegImm(address, ApInt(0, 64), MicroOpBits::B64);
@@ -260,9 +260,9 @@ SWC_TEST_BEGIN(FrameCompact_BoundaryAddressFollowsLivePredecessor)
         std::array<FrameLocal, 3> locals = {FrameLocal{.offset = 0x0, .size = 8}, FrameLocal{.offset = 0x8, .size = 8}, FrameLocal{.offset = 0x10, .size = 8}};
         declareLocals(ctx, function, locals, 0x20);
 
-        constexpr MicroReg address = MicroReg::virtualIntReg(2);
-        constexpr MicroReg value   = MicroReg::virtualIntReg(3);
-        MicroBuilder       builder(ctx);
+        constexpr MicroReg  address = MicroReg::virtualIntReg(2);
+        constexpr MicroReg  value   = MicroReg::virtualIntReg(3);
+        MicroBuilder        builder(ctx);
         const MicroInstrRef entryRef = emitFrameEntry(builder, 0x20);
         if (predecessorLive)
             builder.emitLoadMemImm(K_FRAME, 0x0, ApInt(1, 64), MicroOpBits::B64);

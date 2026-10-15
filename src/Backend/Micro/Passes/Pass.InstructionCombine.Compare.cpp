@@ -101,8 +101,8 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::Label)
             return false;
-        const MicroInstrRef labelRef = patternIt.current;
-        const MicroInstr*   label    = &*patternIt;
+        const MicroInstrRef      labelRef = patternIt.current;
+        const MicroInstr*        label    = &*patternIt;
         const MicroInstrOperand* initOps  = init->ops(*ctx.operands);
         const MicroInstrOperand* jumpOps  = jump->ops(*ctx.operands);
         const MicroInstrOperand* loadOps  = load->ops(*ctx.operands);
@@ -173,8 +173,8 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadAmcRegMem)
             return false;
-        const MicroInstrRef loadRef = patternIt.current;
-        const MicroInstr*   load    = &*patternIt;
+        const MicroInstrRef      loadRef = patternIt.current;
+        const MicroInstr*        load    = &*patternIt;
         const MicroInstrOperand* jumpOps = jump->ops(*ctx.operands);
         const MicroInstrOperand* loadOps = load->ops(*ctx.operands);
         if (!jumpOps || !loadOps || jumpOps[0].cpuCond == MicroCond::Unconditional ||
@@ -224,9 +224,9 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::JumpCond)
             return false;
-        const MicroInstrRef jumpRef  = patternIt.current;
-        const MicroInstr*   jumpInst = &*patternIt;
-        const MicroInstrOperand* cmp = cmpInst->ops(*ctx.operands);
+        const MicroInstrRef      jumpRef  = patternIt.current;
+        const MicroInstr*        jumpInst = &*patternIt;
+        const MicroInstrOperand* cmp      = cmpInst->ops(*ctx.operands);
         if (!cmp || cmp[2].opBits != MicroOpBits::B64 ||
             (cmp[0].reg != copy[1].reg && cmp[1].reg != copy[1].reg))
             return false;
@@ -304,8 +304,8 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::SetCondReg)
             return false;
-        const MicroInstrRef setRef = patternIt.current;
-        const MicroInstr*   set    = &*patternIt;
+        const MicroInstrRef      setRef = patternIt.current;
+        const MicroInstr*        set    = &*patternIt;
         const MicroInstrOperand* setOps = set->ops(*ctx.operands);
         if (!setOps || setOps[1].cpuCond != MicroCond::Less || !setOps[0].reg.isVirtualInt() ||
             !valueHasSingleUse(*ctx.ssa, setOps[0].reg, setRef))
@@ -314,8 +314,8 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadZeroExtRegReg)
             return false;
-        const MicroInstrRef extendRef = patternIt.current;
-        const MicroInstr*   extend    = &*patternIt;
+        const MicroInstrRef      extendRef = patternIt.current;
+        const MicroInstr*        extend    = &*patternIt;
         const MicroInstrOperand* extendOps = extend->ops(*ctx.operands);
         if (!extendOps || extendOps[1].reg != setOps[0].reg || extendOps[2].opBits != cmpOps[2].opBits ||
             extendOps[3].opBits != MicroOpBits::B8 || !extendOps[0].reg.isVirtualInt() ||
@@ -371,8 +371,8 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadCondRegReg)
             return false;
-        const MicroInstrRef selectRef = patternIt.current;
-        const MicroInstr*   select    = &*patternIt;
+        const MicroInstrRef      selectRef = patternIt.current;
+        const MicroInstr*        select    = &*patternIt;
         const MicroInstrOperand* selectOps = select->ops(*ctx.operands);
         if (!selectOps || selectOps[2].cpuCond != MicroCond::BelowOrEqual || selectOps[3].opBits != bits ||
             !selectOps[0].reg.isVirtualInt() || !selectOps[1].reg.isVirtualInt())
@@ -382,8 +382,8 @@ namespace InstructionCombine
         --previousIt;
         if (!previousIt.current.isValid())
             return false;
-        const MicroInstrRef previousRef = previousIt.current;
-        const MicroSsaState::ReachingDef sumDef = ctx.ssa->reachingDef(selectOps[1].reg, selectRef);
+        const MicroInstrRef              previousRef = previousIt.current;
+        const MicroSsaState::ReachingDef sumDef      = ctx.ssa->reachingDef(selectOps[1].reg, selectRef);
         if (!sumDef.valid() || sumDef.isPhi || !sumDef.inst || sumDef.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
             sumDef.instRef != previousRef)
             return false;
@@ -584,7 +584,7 @@ namespace InstructionCombine
 
         // Walk back to `sub T, right` whose T held `left`.
         SmallVector<MicroInstrRef, 8> between;
-        auto           scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        auto                          scanIt = MicroStorage::Iterator{ctx.storage, ref};
         --scanIt;
         MicroInstrRef subRef = MicroInstrRef::invalid();
         for (uint32_t step = 0; step < K_MAX_WINDOW && scanIt.current.isValid(); ++step)

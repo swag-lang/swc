@@ -40,21 +40,21 @@ ExitCode runEditorService(Global& global, CommandLine& cmdLine)
     (void) std::fflush(stdout);
     (void) std::fflush(stderr);
 
-    std::string request;
+    std::string                       request;
     std::unique_ptr<CompilerInstance> compiler;
-    std::optional<std::string> moduleConfiguration;
-    bool hasModuleConfigurationSnapshot = false;
+    std::optional<std::string>        moduleConfiguration;
+    bool                              hasModuleConfigurationSnapshot = false;
     while (std::getline(std::cin, request))
     {
         if (request == "shutdown")
             return ExitCode::Success;
 
         constexpr std::string_view ANALYZE_PREFIX = "analyze\t";
-        const std::string_view requestView(request);
-        const std::string_view idText = requestView.starts_with(ANALYZE_PREFIX) ? requestView.substr(ANALYZE_PREFIX.size()) : std::string_view{};
-        uint64_t                requestId = 0;
-        const auto              parsedId  = std::from_chars(idText.data(), idText.data() + idText.size(), requestId);
-        ExitCode                result    = ExitCode::ErrorCmdLine;
+        const std::string_view     requestView(request);
+        const std::string_view     idText    = requestView.starts_with(ANALYZE_PREFIX) ? requestView.substr(ANALYZE_PREFIX.size()) : std::string_view{};
+        uint64_t                   requestId = 0;
+        const auto                 parsedId  = std::from_chars(idText.data(), idText.data() + idText.size(), requestId);
+        ExitCode                   result    = ExitCode::ErrorCmdLine;
         if (!idText.empty() && parsedId.ec == std::errc{} && parsedId.ptr == idText.data() + idText.size())
         {
             result = ExitCode::ErrorCommand;
@@ -63,7 +63,7 @@ ExitCode runEditorService(Global& global, CommandLine& cmdLine)
                 std::optional<std::string> nextModuleConfiguration = editorModuleConfiguration(cmdLine);
                 if (hasModuleConfigurationSnapshot && moduleConfiguration != nextModuleConfiguration)
                     compiler.reset();
-                moduleConfiguration = std::move(nextModuleConfiguration);
+                moduleConfiguration            = std::move(nextModuleConfiguration);
                 hasModuleConfigurationSnapshot = true;
 
                 if (!compiler)

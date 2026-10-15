@@ -257,7 +257,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
 
         if (ownerSymMap)
         {
-            const SourceFile* sourceFile = sema.file();
+            const SourceFile*               sourceFile = sema.file();
             const SymbolMap::SourceRevision sourceRevision{
                 .fileRef  = sourceFile ? sourceFile->ref() : FileRef::invalid(),
                 .revision = sourceFile ? sourceFile->revisionId() : 0,

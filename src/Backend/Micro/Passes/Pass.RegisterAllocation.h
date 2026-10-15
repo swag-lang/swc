@@ -435,7 +435,7 @@ private:
     // instruction that defines such a value and flushed before the next one, so
     // the value's stable home slot always holds its latest value across the
     // back-edge regardless of when the register mapping is later dropped.
-    std::vector<PendingInsert>                 deferredLoopCarriedStores_;
+    std::vector<PendingInsert> deferredLoopCarriedStores_;
     // Snapshot of what each relocation-bearing address load points at, taken
     // before allocation so a rematerialized copy can be given its own.
     // The copies sit in a vector, found by defining instruction through a flat table of

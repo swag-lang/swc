@@ -432,7 +432,7 @@ namespace PostRaPeephole
         uint32_t                                                                  rewriteCount  = 0;
         bool                                                                      sourceChanged = false;
         window[0]                                                                               = ref;
-        auto walker = MicroStorage::Iterator{ctx.storage, ref};
+        auto walker                                                                             = MicroStorage::Iterator{ctx.storage, ref};
         ++walker;
         for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
         {
@@ -667,7 +667,7 @@ namespace PostRaPeephole
         window[1] = ref;
         MicroInstrRef     compareRef;
         MicroInstrOperand compareOps[Action::K_MAX_OPS] = {};
-        auto walker = MicroStorage::Iterator{ctx.storage, ref};
+        auto              walker                        = MicroStorage::Iterator{ctx.storage, ref};
         ++walker;
         for (uint32_t step = 0; step < maxWindow && walker.current.isValid(); ++step, ++walker)
         {
@@ -739,8 +739,8 @@ namespace PostRaPeephole
 
         constexpr uint32_t                       maxWindow = 16;
         std::array<MicroInstrRef, maxWindow + 2> window;
-        window[0]            = producerRef;
-        window[1]            = copyRef;
+        window[0]   = producerRef;
+        window[1]   = copyRef;
         auto walker = MicroStorage::Iterator{ctx.storage, copyRef};
         ++walker;
         for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
@@ -827,7 +827,7 @@ namespace PostRaPeephole
             return false;
         constexpr uint32_t                       maxWindow = 8;
         std::array<MicroInstrRef, maxWindow + 1> window;
-        window[0]            = ref;
+        window[0]   = ref;
         auto walker = MicroStorage::Iterator{ctx.storage, ref};
         ++walker;
         for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
@@ -1404,7 +1404,7 @@ namespace PostRaPeephole
             MicroInstrOpcode::LoadCondRegReg,
         };
         std::array<MicroInstrRef, expected.size()> refs;
-        auto walker = MicroStorage::Iterator{ctx.storage, extendRef};
+        auto                                       walker = MicroStorage::Iterator{ctx.storage, extendRef};
         for (size_t i = expected.size(); i > 0; --i)
         {
             --walker;

@@ -410,7 +410,7 @@ namespace PostRaPeephole
             for (; walker.current.isValid(); ++walker)
             {
                 const MicroInstrRef ref  = walker.current;
-                const auto*        inst = &*walker;
+                const auto*         inst = &*walker;
                 if (!inst || inst->op == MicroInstrOpcode::Label)
                     break;
                 suffix.push_back(ref);
@@ -864,10 +864,10 @@ namespace PostRaPeephole
             (load[2].opBits != MicroOpBits::B32 && load[2].opBits != MicroOpBits::B64))
             return false;
 
-        auto              scanIt = MicroStorage::Iterator{ctx.storage, ref};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, ref};
         ++scanIt;
-        MicroInstrRef     extRef = scanIt.current;
-        const MicroInstr* ext    = extRef.isValid() ? &*scanIt : nullptr;
+        MicroInstrRef     extRef    = scanIt.current;
+        const MicroInstr* ext       = extRef.isValid() ? &*scanIt : nullptr;
         MicroInstrRef     shiftRef  = MicroInstrRef::invalid();
         uint64_t          shiftBits = 0;
         uint32_t          extIndex  = ctx.instructionIndex + 1;
@@ -941,7 +941,7 @@ namespace PostRaPeephole
             (clear[1].opBits != MicroOpBits::B32 && clear[1].opBits != MicroOpBits::B64))
             return false;
 
-        auto                scanIt = MicroStorage::Iterator{ctx.storage, clearRef};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, clearRef};
         ++scanIt;
         const MicroInstrRef convertRef = scanIt.current;
         const MicroInstr*   convert    = convertRef.isValid() ? &*scanIt : nullptr;
@@ -1140,14 +1140,14 @@ namespace PostRaPeephole
 
         constexpr uint32_t kMaxScan = 12;
 
-        auto              scanIt = MicroStorage::Iterator{ctx.storage, loadRef};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, loadRef};
         ++scanIt;
         MicroInstrRef     opRef   = scanIt.current;
         const MicroInstr* opInst  = nullptr;
         uint32_t          opIndex = ctx.instructionIndex + 1;
         for (uint32_t step = 0; step < kMaxScan && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            opRef = scanIt.current;
+            opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;
             if (!candidate)
                 return false;
@@ -1423,8 +1423,8 @@ namespace PostRaPeephole
         // running out of budget before finding that write proves nothing.
         constexpr uint32_t kMaxScan = 12;
 
-        bool          loadFound = false;
-        auto          walker    = MicroStorage::Iterator{ctx.storage, opRef};
+        bool loadFound = false;
+        auto walker    = MicroStorage::Iterator{ctx.storage, opRef};
         --walker;
         for (uint32_t step = 0; step < kMaxScan && !loadFound; ++step)
         {
@@ -1503,13 +1503,13 @@ namespace PostRaPeephole
 
         // The multiply that consumes the copy, with nothing in between that
         // touches either register.
-        auto              scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
         ++scanIt;
         MicroInstrRef     opRef  = scanIt.current;
         const MicroInstr* opInst = nullptr;
         for (uint32_t step = 0; step < K_MAX_SCAN && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            opRef = scanIt.current;
+            opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;
             if (!candidate || candidate->op == MicroInstrOpcode::Label)
                 return false;
@@ -1540,7 +1540,6 @@ namespace PostRaPeephole
                 if (reg == dst)
                     return false;
             }
-
         }
 
         if (!opInst || ctx.isClaimed(opRef))
@@ -1597,7 +1596,7 @@ namespace PostRaPeephole
             return false;
 
         // The rotate that consumes the copy, with nothing in between that touches either register.
-        auto          scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
         ++scanIt;
         MicroInstrRef opRef = scanIt.current;
         for (uint32_t step = 0;; ++step)
@@ -2137,13 +2136,13 @@ namespace PostRaPeephole
 
         constexpr uint32_t kMaxScan = 12;
 
-        auto              scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
         ++scanIt;
         MicroInstrRef     opRef  = scanIt.current;
         const MicroInstr* opInst = nullptr;
         for (uint32_t step = 0; step < kMaxScan && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            opRef = scanIt.current;
+            opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;
             if (!candidate)
                 return false;
@@ -2178,7 +2177,6 @@ namespace PostRaPeephole
                 if (reg == dst)
                     return false;
             }
-
         }
 
         if (!opInst)
@@ -2235,13 +2233,13 @@ namespace PostRaPeephole
         // received src1.
         constexpr uint32_t kMaxScan = 12;
 
-        auto              scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
+        auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
         ++scanIt;
         MicroInstrRef     opRef  = scanIt.current;
         const MicroInstr* opInst = nullptr;
         for (uint32_t step = 0; step < kMaxScan && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            opRef = scanIt.current;
+            opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;
             if (!candidate)
                 return false;
@@ -2278,7 +2276,6 @@ namespace PostRaPeephole
                 if (reg == dst)
                     return false;
             }
-
         }
 
         if (!opInst || opInst->numOperands < 4)

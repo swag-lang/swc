@@ -229,16 +229,16 @@ namespace
             }
         }
 
-        AutoInlineNameMap<uint32_t>                    nameIndices_;
-        std::vector<SmallVector<uint32_t>>             edges_;
-        std::vector<uint32_t>                          indices_;
-        std::vector<uint32_t>                          lowLinks_;
-        std::vector<bool>                              onStack_;
-        std::vector<bool>                              cyclic_;
-        std::vector<uint8_t>                           blockedCalls_;
-        bool                                           constraintsPrepared_ = false;
-        SmallVector<uint32_t>                          stack_;
-        uint32_t                                       nextIndex_ = 0;
+        AutoInlineNameMap<uint32_t>        nameIndices_;
+        std::vector<SmallVector<uint32_t>> edges_;
+        std::vector<uint32_t>              indices_;
+        std::vector<uint32_t>              lowLinks_;
+        std::vector<bool>                  onStack_;
+        std::vector<bool>                  cyclic_;
+        std::vector<uint8_t>               blockedCalls_;
+        bool                               constraintsPrepared_ = false;
+        SmallVector<uint32_t>              stack_;
+        uint32_t                           nextIndex_ = 0;
     };
 
     // Generated snippets arrive after the module-wide parse barrier, while sema may already be
@@ -289,11 +289,11 @@ namespace
 
 void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts)
 {
-    AutoInlineNameSet                                     metaFunctionNames;
-    AutoInlineNameMap<AutoInlineCallInfo>                 callInfo;
-    AutoInlineNameMap<uint32_t>                           useCounts;
-    std::unordered_map<const Ast*, AutoInlineCallGraph>   callGraphs;
-    std::unordered_map<const Ast*, AutoInlineNameSet>     unsupportedFunctionNames;
+    AutoInlineNameSet                                   metaFunctionNames;
+    AutoInlineNameMap<AutoInlineCallInfo>               callInfo;
+    AutoInlineNameMap<uint32_t>                         useCounts;
+    std::unordered_map<const Ast*, AutoInlineCallGraph> callGraphs;
+    std::unordered_map<const Ast*, AutoInlineNameSet>   unsupportedFunctionNames;
     // Every function declaration this walk meets, per Ast. The decisions below are taken
     // declaration by declaration, so they read this list instead of walking each tree again.
     std::vector<std::vector<AstNodeRef>> functionDecls(moduleAsts.size());
@@ -764,11 +764,11 @@ void Parser::raiseError(DiagnosticId id, TokenRef tknRef)
 // inner brace shows itself by a '}' that does not line up with the line that opened it.
 TokenRef Parser::findMisalignedInnerOpening(TokenRef openRef) const
 {
-    const SourceView&             srcView = ast_->srcView();
-    const uint32_t                count   = static_cast<uint32_t>(srcView.tokens().size());
-    SmallVector<TokenRef>         opens;
-    SmallVector<uint32_t>         indents;
-    uint32_t                      indent  = 0;
+    const SourceView&     srcView = ast_->srcView();
+    const uint32_t        count   = static_cast<uint32_t>(srcView.tokens().size());
+    SmallVector<TokenRef> opens;
+    SmallVector<uint32_t> indents;
+    uint32_t              indent = 0;
     for (uint32_t i = openRef.get() + 1; i < count; ++i)
     {
         const TokenRef tokRef{i};

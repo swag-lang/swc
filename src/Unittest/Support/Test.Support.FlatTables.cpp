@@ -49,7 +49,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FlatTables_TrackedClearFlatKeyMapAfterLargeAndSmallFills)
 {
-    constexpr uint32_t           K_ALL_ONES = std::numeric_limits<uint32_t>::max();
+    constexpr uint32_t               K_ALL_ONES = std::numeric_limits<uint32_t>::max();
     TrackedClearFlatKeyMap<uint32_t> map;
     for (uint32_t key = 0; key < 4096; ++key)
         map.getOrInsert(key) = key + 1;

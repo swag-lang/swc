@@ -162,9 +162,9 @@ struct TaskEvent
 {
     public
     {
-        using base: Event              // Routing state shared by every GUI event.
-        late task:  const *void        // The task that finished, as given to [[Gui.Wnd.taskNotifier]].
-        submission: u64                // The submission that finished.
+        using base: Event           // Routing state shared by every GUI event.
+        late task:  const *void     // The task that finished, as given to [[Gui.Wnd.taskNotifier]].
+        submission: u64             // The submission that finished.
     }
 }
 

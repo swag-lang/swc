@@ -236,7 +236,7 @@ namespace
         auto&    instructions = *context.instructions;
         uint64_t total        = 0;
         outFirst              = MicroInstrRef::invalid();
-        auto walker = MicroStorage::Iterator{&instructions, retRef};
+        auto walker           = MicroStorage::Iterator{&instructions, retRef};
         for (--walker; walker.current.isValid(); --walker)
         {
             const MicroInstr* inst = &*walker;
@@ -784,7 +784,7 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         allocOps[3].valueU64 += savedRegsStackSubSize_;
 
         MicroInstrRef lastSub = insertBeforeRef;
-        auto walker = MicroStorage::Iterator{&instructions, insertBeforeRef};
+        auto          walker  = MicroStorage::Iterator{&instructions, insertBeforeRef};
         for (++walker; walker.current.isValid(); ++walker)
         {
             const MicroInstr* inst = &*walker;

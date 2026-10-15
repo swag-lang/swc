@@ -692,9 +692,9 @@ namespace
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
         SWC_ASSERT(exprRef.isValid());
 
-        const SymbolVariable& resultStorage = inlineResultStorageSymbol(codeGen, inlinePayload);
-        const MicroReg        resultAddr    = inlineResultAddressReg(codeGen, inlinePayload);
-        AstNodeRef payloadExprRef = codeGen.resolvedNodeRef(exprRef);
+        const SymbolVariable& resultStorage  = inlineResultStorageSymbol(codeGen, inlinePayload);
+        const MicroReg        resultAddr     = inlineResultAddressReg(codeGen, inlinePayload);
+        AstNodeRef            payloadExprRef = codeGen.resolvedNodeRef(exprRef);
         if (payloadExprRef.isInvalid())
             payloadExprRef = exprRef;
 

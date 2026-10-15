@@ -5670,7 +5670,7 @@ namespace SemaEscape
                     visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
                         if (const ReturnEntry* dependency = returns.find(function))
                         {
-                            const size_t dependencyIndex = static_cast<size_t>(dependency - returnEntries.data());
+                            const size_t dependencyIndex                              = static_cast<size_t>(dependency - returnEntries.data());
                             completionDependents[completionCursor[dependencyIndex]++] = callerIndex;
                         }
                     });
@@ -5692,11 +5692,11 @@ namespace SemaEscape
             while (incompleteCursor < incompleteWorklist.size())
             {
                 const size_t dependencyIndex = incompleteWorklist[incompleteCursor++];
-                queued[dependencyIndex] = 0;
+                queued[dependencyIndex]      = 0;
                 for (size_t dependentIndex = completionOffsets[dependencyIndex]; dependentIndex < completionOffsets[dependencyIndex + 1]; ++dependentIndex)
                 {
-                    const size_t callerIndex = completionDependents[dependentIndex];
-                    ReturnSummary& caller = returnEntries[callerIndex].summary;
+                    const size_t   callerIndex = completionDependents[dependentIndex];
+                    ReturnSummary& caller      = returnEntries[callerIndex].summary;
                     if (caller.complete)
                     {
                         caller.complete = false;
@@ -5776,7 +5776,7 @@ namespace SemaEscape
             size_t              worklistHead  = 0;
             size_t              worklistTail  = 0;
             size_t              worklistCount = 0;
-            const auto enqueue = [&](const size_t index) {
+            const auto          enqueue       = [&](const size_t index) {
                 SWC_ASSERT(worklistCount < worklist.size());
                 worklist[worklistTail] = index;
                 if (++worklistTail == worklist.size())
@@ -5799,15 +5799,15 @@ namespace SemaEscape
                 queued[dependencyIndex] = 0;
                 for (size_t dependentIndex = dependentOffsets[dependencyIndex]; dependentIndex < dependentOffsets[dependencyIndex + 1]; ++dependentIndex)
                 {
-                    const DependentReturnEdge& dependent = dependentEdges[dependentIndex];
-                    const SemaEscapeSummaryEdge& edge = *returnEdges[dependent.edgeIndex];
-                    ReturnSummary&              summary = returnEntries[dependent.callerIndex].summary;
-                    const ReturnEntry&          callee  = *returns.find(edge.callee);
-                    const uint64_t              calleeBit = 1ULL << edge.calleeParamIndex;
-                    const uint64_t              callerBit = 1ULL << edge.callerParamIndex;
-                    bool                        borrows   = true;
-                    bool                        storage   = true;
-                    bool                        payload   = edge.viaOwnedPayload;
+                    const DependentReturnEdge&   dependent = dependentEdges[dependentIndex];
+                    const SemaEscapeSummaryEdge& edge      = *returnEdges[dependent.edgeIndex];
+                    ReturnSummary&               summary   = returnEntries[dependent.callerIndex].summary;
+                    const ReturnEntry&           callee    = *returns.find(edge.callee);
+                    const uint64_t               calleeBit = 1ULL << edge.calleeParamIndex;
+                    const uint64_t               callerBit = 1ULL << edge.callerParamIndex;
+                    bool                         borrows   = true;
+                    bool                         storage   = true;
+                    bool                         payload   = edge.viaOwnedPayload;
                     for (const SemaEscapeDeferredGuard& guard : edge.returnGuards)
                     {
                         if (guard.indirect)

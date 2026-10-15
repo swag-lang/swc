@@ -859,13 +859,13 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(Sema_CompletedFreesSummariesResolveGuardedAliasRoutes)
 {
     CompletedFreesFixture fixture(ctx);
-    auto*                 outer           = fixture.addFunction();
-    auto*                 middle          = fixture.addFunction();
-    auto*                 leaf            = fixture.addFunction();
-    auto*                 aliasWrapper    = fixture.addFunction();
-    auto*                 aliasLeaf       = fixture.addFunction();
-    auto*                 payloadAlias    = fixture.addFunction();
-    auto*                 borrowOnly      = fixture.addFunction();
+    auto*                 outer             = fixture.addFunction();
+    auto*                 middle            = fixture.addFunction();
+    auto*                 leaf              = fixture.addFunction();
+    auto*                 aliasWrapper      = fixture.addFunction();
+    auto*                 aliasLeaf         = fixture.addFunction();
+    auto*                 payloadAlias      = fixture.addFunction();
+    auto*                 borrowOnly        = fixture.addFunction();
     auto*                 incompleteWrapper = fixture.addFunction();
     auto*                 incompleteAlias   = fixture.addFunction();
     auto*                 unresolved        = fixture.addFunction(false);

@@ -320,8 +320,8 @@ namespace
         if (!dstAddressReg.isValid())
             return Result::Continue;
 
-        uint32_t   constantCount    = 0;
-        const bool hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
+        uint32_t       constantCount    = 0;
+        const bool     hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
         const uint64_t elementSize      = codeGen.typeMgr().get(targetInfo.fillTypeRef).sizeOf(codeGen.ctx());
         if (hasConstantCount || node.nodeCountRef.isInvalid())
             SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, dstAddressReg, elementSize * (hasConstantCount ? constantCount : targetInfo.implicitCount)));

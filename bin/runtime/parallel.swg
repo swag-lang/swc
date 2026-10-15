@@ -216,7 +216,7 @@ private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(
     let count    = end - begin
     let balanced = (count - 1) / (chunks * 8) + 1
     var dispatch: ParallelDispatch
-    dispatch.end  = end
+    dispatch.end   = end
     dispatch.step  = balanced > grain ? balanced : grain
     dispatch.body  = body
     dispatch.scope = Swag.getContext().cancelScope

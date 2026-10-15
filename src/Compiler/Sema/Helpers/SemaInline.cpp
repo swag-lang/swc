@@ -1945,18 +1945,18 @@ namespace
             const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
             if (sourceTypeRef.isValid())
             {
-                const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
-                const bool sourceIsNullable = sourceType.isNullable();
-                const bool isConstant = sourceIsNullable && sema.viewConstant(binding.exprRef).hasConstant();
-                mat.forNullableType = !sourceIsNullable || isConstant;
+                const TypeInfo& sourceType       = sema.typeMgr().get(sourceTypeRef);
+                const bool      sourceIsNullable = sourceType.isNullable();
+                const bool      isConstant       = sourceIsNullable && sema.viewConstant(binding.exprRef).hasConstant();
+                mat.forNullableType              = !sourceIsNullable || isConstant;
 
                 const AstCastExpr* explicitCast = sema.node(binding.exprRef).safeCast<AstCastExpr>();
                 if (sourceIsNullable && explicitCast && explicitCast->hasFlag(AstCastExprFlagsE::Explicit))
                 {
                     SmallVector4<const Symbol*> sourcePath;
-                    const bool hasSourcePath = SemaHelpers::extractNarrowPath(sema, binding.exprRef, sourcePath);
-                    const bool hasNullableStorage = hasSourcePath && sourcePath.back()->typeRef().isValid() && sema.typeMgr().get(sourcePath.back()->typeRef()).isNullable();
-                    mat.forNullableType = !hasNullableStorage || isConstant;
+                    const bool                  hasSourcePath      = SemaHelpers::extractNarrowPath(sema, binding.exprRef, sourcePath);
+                    const bool                  hasNullableStorage = hasSourcePath && sourcePath.back()->typeRef().isValid() && sema.typeMgr().get(sourcePath.back()->typeRef()).isNullable();
+                    mat.forNullableType                            = !hasNullableStorage || isConstant;
                 }
             }
         }
@@ -2085,7 +2085,7 @@ namespace
 
         // The home is synthetic storage. Every cloned read names its use in the
         // callee body, regardless of why the argument needed a home.
-        ioBinding.exprRef            = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
+        ioBinding.exprRef = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
         if (mat.borrowedValue)
         {
             auto [loadRef, load]   = sema.ast().makeNode<AstNodeId::IndexExpr>(paramNameRef);

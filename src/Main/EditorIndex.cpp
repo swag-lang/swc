@@ -127,8 +127,8 @@ namespace
             const SourceView& target = compiler->srcView(symbol.srcViewRef());
             // Generated views can reuse a physical file with different offsets. Until they have a
             // canonical source mapping, omit navigation while keeping the resolved token kind.
-            const bool  hasDefinition = target.file() && target.ref() == target.file()->ast().srcView().ref();
-            const Token* targetToken  = symbol.tokRef().isInvalid() ? nullptr : &target.token(symbol.tokRef());
+            const bool   hasDefinition = target.file() && target.ref() == target.file()->ast().srcView().ref();
+            const Token* targetToken   = symbol.tokRef().isInvalid() ? nullptr : &target.token(symbol.tokRef());
             if (hasDefinition)
                 targetFiles->insert(target.file());
             const bool  declaration = hasDefinition && target.ref() == source.ref() && symbol.tokRef() == tokenRef;

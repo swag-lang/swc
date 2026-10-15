@@ -87,7 +87,8 @@ impl ZipEntryExtract
         {
             catch Zip.extractEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractError
             operation.error = Viewer.failureText(extractError)
-        }, owner)
+        },
+                owner)
     }
 
     mtd finish()->String

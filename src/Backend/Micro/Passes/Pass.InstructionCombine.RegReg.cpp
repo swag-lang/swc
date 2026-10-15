@@ -679,11 +679,11 @@ namespace InstructionCombine
                 return false;
             if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
                 return false;
-            bool          seenSecond = false;
-            auto          walker     = MicroStorage::Iterator{ctx.storage, defs[0].instRef};
+            bool seenSecond = false;
+            auto walker     = MicroStorage::Iterator{ctx.storage, defs[0].instRef};
             for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && walker.current.isValid() && walker.current != ref; ++step, ++walker)
             {
-                const auto*        current = &*walker;
+                const auto*         current = &*walker;
                 const MicroInstrRef cursor  = walker.current;
                 if (isBlockBoundary(*current))
                     return false;
@@ -1838,12 +1838,12 @@ namespace InstructionCombine
                 ctx.ssa->reachingValueId(common, ref) != commonValue)
                 return false;
 
-            bool          seenSecond = false;
-            auto          walker     = MicroStorage::Iterator{ctx.storage, defs[0].instRef};
+            bool seenSecond = false;
+            auto walker     = MicroStorage::Iterator{ctx.storage, defs[0].instRef};
             for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && walker.current.isValid() && walker.current != ref; ++step, ++walker)
             {
-                const MicroInstr* current = &*walker;
-                const MicroInstrRef cursor = walker.current;
+                const MicroInstr*   current = &*walker;
+                const MicroInstrRef cursor  = walker.current;
                 if (isBlockBoundary(*current))
                     return false;
                 seenSecond |= cursor == defs[1].instRef;
@@ -2050,9 +2050,9 @@ namespace InstructionCombine
             return false;
 
         --walker;
-        const MicroInstrRef      maskCopyRef   = walker.current;
-        const MicroInstr*        maskCopy      = maskCopyRef.isValid() ? &*walker : nullptr;
-        const MicroInstrOperand* maskCopyOps   = maskCopy && maskCopy->op == MicroInstrOpcode::LoadRegReg ? maskCopy->ops(*ctx.operands) : nullptr;
+        const MicroInstrRef      maskCopyRef = walker.current;
+        const MicroInstr*        maskCopy    = maskCopyRef.isValid() ? &*walker : nullptr;
+        const MicroInstrOperand* maskCopyOps = maskCopy && maskCopy->op == MicroInstrOpcode::LoadRegReg ? maskCopy->ops(*ctx.operands) : nullptr;
         --walker;
         const MicroInstrRef      resultCopyRef = walker.current;
         const MicroInstr*        resultCopy    = resultCopyRef.isValid() ? &*walker : nullptr;
@@ -2550,13 +2550,13 @@ namespace InstructionCombine
         }
         // Four references must occur on one straight line. Moving the read to
         // the root then preserves every byte observed by the original loads.
-        uint32_t seen = 0;
+        uint32_t seen   = 0;
         auto     scanIt = MicroStorage::Iterator{ctx.storage, ref};
         --scanIt;
         for (uint32_t step = 0; scanIt.current.isValid() && step < 64 && seen != 0xF; ++step, --scanIt)
         {
-            const auto*        between = &*scanIt;
-            const MicroInstrRef scan   = scanIt.current;
+            const auto*         between = &*scanIt;
+            const MicroInstrRef scan    = scanIt.current;
             if (ctx.isClaimed(scan) || isControlOrCall(*between) || writesMemory(*between) ||
                 between->op == MicroInstrOpcode::LoadVolatileRegMem)
                 return false;

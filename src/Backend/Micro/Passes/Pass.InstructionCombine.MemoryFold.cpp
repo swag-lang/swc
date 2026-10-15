@@ -294,8 +294,8 @@ namespace InstructionCombine
         if (isFrameDerivedAddress(ctx, base, loadRef) && ctx.isInsideLoop(loadRef))
             return false;
 
-        MicroReg          opValue        = value;
-        MicroInstrRef     preCopyRef     = MicroInstrRef::invalid();
+        MicroReg               opValue    = value;
+        MicroInstrRef          preCopyRef = MicroInstrRef::invalid();
         MicroStorage::Iterator patternIt{ctx.storage, loadRef};
         ++patternIt;
         if (!patternIt.current.isValid())
@@ -402,8 +402,8 @@ namespace InstructionCombine
             return false;
         }
 
-        MicroReg          storedValue = opValue;
-        MicroInstrRef     copyRef     = MicroInstrRef::invalid();
+        MicroReg      storedValue = opValue;
+        MicroInstrRef copyRef     = MicroInstrRef::invalid();
         ++patternIt;
         if (!patternIt.current.isValid())
             return false;
@@ -539,8 +539,8 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
-        const MicroInstrRef     decrementRef = patternIt.current;
-        const MicroInstr*       decrement    = &*patternIt;
+        const MicroInstrRef      decrementRef = patternIt.current;
+        const MicroInstr*        decrement    = &*patternIt;
         const MicroInstrOperand* decrementOps = decrement->ops(*ctx.operands);
         if (!decrementOps || decrementOps[0].reg != loadOps[0].reg || decrementOps[1].opBits != loadOps[3].opBits ||
             decrementOps[2].microOp != MicroOp::Subtract || decrementOps[3].hasWideImmediateValue() || decrementOps[3].valueU64 != 1)

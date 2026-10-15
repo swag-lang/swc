@@ -137,9 +137,9 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
     // so a block never sees another one's relocated half.
     SmallVector<ColdBlock> blocks;
     MicroInstrRef          previousRef = MicroInstrRef::invalid();
-    const auto view  = storage.view();
-    auto       it    = view.begin();
-    const auto endIt = view.end();
+    const auto             view        = storage.view();
+    auto                   it          = view.begin();
+    const auto             endIt       = view.end();
     while (it != endIt)
     {
         const MicroInstrRef      ref  = it.current;

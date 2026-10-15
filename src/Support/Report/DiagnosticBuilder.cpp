@@ -904,7 +904,7 @@ void DiagnosticBuilder::replaceArgsInString(Utf8& result, const DiagnosticArgume
         const TypeRef* typeRef   = std::get_if<TypeRef>(&arg.val);
         const bool     qualified = typeRef && std::ranges::find(qualifiedTypes, *typeRef) != qualifiedTypes.end();
         const Utf8     raw       = argumentToString(arg, qualified);
-        size_t     pos = 0;
+        size_t         pos       = 0;
         while ((pos = result.find(arg.name, pos)) != Utf8::npos)
         {
             const bool insideQuote = isInsideQuotedMessageSegment(result, pos);

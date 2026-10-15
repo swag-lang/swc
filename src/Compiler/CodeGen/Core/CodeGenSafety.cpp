@@ -396,6 +396,34 @@ bool CodeGenSafety::hasValueBorrowSafety(const CodeGen& codeGen)
     return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0;
 }
 
+// A direct write to a local that owns its stack slot, rather than referring to other storage,
+// cannot reach a live value borrow while the function has none of its own open: a caller's
+// borrow ranges over storage that existed before this frame, and a callee's borrow ends before
+// the callee returns. An inline expansion keeps the guard, because its body runs inside the
+// interval of the caller's call borrows. A local stored in the caller's return slot keeps it too,
+// because the caller can borrow that destination.
+bool CodeGenSafety::isUnborrowableLocalWrite(CodeGen& codeGen, AstNodeRef targetRef)
+{
+    while (codeGen.node(targetRef).is(AstNodeId::ParenExpr))
+        targetRef = codeGen.node(targetRef).cast<AstParenExpr>().nodeExprRef;
+    if (!codeGen.node(targetRef).is(AstNodeId::Identifier))
+        return false;
+    if (codeGen.frame().currentInlineContext().payload || codeGen.hasOpenValueBorrow())
+        return false;
+
+    const Symbol* symbol = codeGen.viewSymbol(targetRef).sym();
+    const auto*   symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+    if (!symVar || !symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar->hasGlobalStorage() || symVar->isClosureCapture())
+        return false;
+    if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        return false;
+    if (codeGen.typeMgr().get(symVar->typeRef()).isReference())
+        return false;
+    if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || !codeGen.localStackBaseReg().isValid())
+        return false;
+    return !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar);
+}
+
 Result CodeGenSafety::prepareValueBorrowSafety(CodeGen& codeGen)
 {
     if (!codeGen.needsValueBorrowRuntime)

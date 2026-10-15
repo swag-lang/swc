@@ -36,6 +36,7 @@ namespace CodeGenSafety
     Result emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef);
     bool   isBorrowedValueType(CodeGen& codeGen, TypeRef typeRef);
     bool   hasValueBorrowSafety(const CodeGen& codeGen);
+    bool   isUnborrowableLocalWrite(CodeGen& codeGen, AstNodeRef targetRef);
     Result prepareValueBorrowSafety(CodeGen& codeGen);
     Result emitValueBorrowBegin(CodeGen& codeGen, uint32_t recordOffset, MicroReg address, uint64_t size);
     Result emitValueBorrowEnd(CodeGen& codeGen, uint32_t recordOffset);

@@ -1532,6 +1532,17 @@ void CodeGen::registerValueBorrowEnd(uint32_t recordOffset)
     action.borrowRecordOffset = recordOffset;
 }
 
+bool CodeGen::hasOpenValueBorrow() const
+{
+    for (const CodeGenDeferScope& scope : deferScopes_)
+    {
+        if (std::ranges::any_of(scope.actions, [](const CodeGenDeferredAction& action) { return action.kind == CodeGenDeferredAction::Kind::EndValueBorrow; }))
+            return true;
+    }
+
+    return false;
+}
+
 void CodeGen::registerErrorScopePop()
 {
     SWC_ASSERT(!deferScopes_.empty());

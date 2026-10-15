@@ -428,6 +428,7 @@ public:
     void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
     void                      registerErrorScopePop();
     void                      registerValueBorrowEnd(uint32_t recordOffset);
+    bool                      hasOpenValueBorrow() const;
     struct ValueBorrowSite
     {
         AstNodeRef expressionRef;

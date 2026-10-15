@@ -347,6 +347,70 @@ func sumPointer(dst: [*] s64, view: const *View)->s64
 }
 SWC_TEST_END()
 
+// A function's own locals are not storage any value argument can borrow while the function writes
+// them, so a guarded build checks only the store that goes through a pointer.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroChecksOnlyBorrowableValueWrites)
+{
+    constexpr std::string_view SOURCE = R"(#global private
+struct Pair { first, second: u64 }
+
+#[Swag.NoInline]
+func writeLocals(value: u64)->u64
+{
+    var scalar = value
+    scalar = scalar * 3 + 1
+    var pair: Pair
+    pair = {scalar, value}
+    return pair.first + pair.second
+}
+
+#[Swag.NoInline]
+func writeThroughPointer(target: *u64, value: u64)
+{
+    target[] = value
+}
+
+#run
+{
+    Swag.assert(writeLocals(2) == 9)
+    var value: u64
+    writeThroughPointer(&value, 5)
+    Swag.assert(value == 5)
+}
+)";
+
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_value_borrow_writes" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    std::error_code ec;
+    fs::remove_all(directory, ec);
+
+    PrintMicroRun          run;
+    const std::string_view requests[] = {"writeLocals", "writeThroughPointer"};
+    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    fs::remove_all(directory, ec);
+
+    const auto checkedWrites = [&](std::string_view scopedName) {
+        const std::string_view output = run.output;
+        const size_t           header = output.find(std::format("function : {}", scopedName));
+        if (header == std::string_view::npos)
+            return SIZE_MAX;
+        const size_t           next    = output.find("[micro]", header);
+        const std::string_view listing = output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header);
+        size_t                 count   = 0;
+        for (size_t pos = listing.find("__valueBorrowWrite"); pos != std::string_view::npos; pos = listing.find("__valueBorrowWrite", pos + 1))
+            count++;
+        return count;
+    };
+
+    const size_t locals  = checkedWrites("writeLocals");
+    const size_t pointer = checkedWrites("writeThroughPointer");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || locals != 0 || pointer != 1)
+    {
+        std::println(stderr, "[print micro value borrow writes] locals {}, pointer {}\n{}", locals, pointer, run.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

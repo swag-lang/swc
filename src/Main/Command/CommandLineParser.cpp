@@ -204,12 +204,7 @@ namespace
         fs::path temp = path;
         Utf8     because;
         if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return FileSystem::reportInvalidFolder(ctx, temp, because);
 
         path = std::move(temp);
         if (storage)
@@ -439,12 +434,7 @@ Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path
     std::string             content;
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::readTextFile(canonical, content, ioError) != Result::Continue)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, canonical, FileSystem::describeIoFailure(ioError));
-        diag.report(ctx);
-        return Result::Error;
-    }
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_failed, canonical, FileSystem::describeIoFailure(ioError));
 
     std::vector<Utf8> tokens;
     if (!tokenizeResponseFile(content, tokens))
@@ -517,12 +507,7 @@ Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Ut
         fs::path path = value.c_str();
         Utf8     because;
         if (FileSystem::resolveExistingFile(path, because) != Result::Continue)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_invalid_file, path, because);
 
         configPath = std::move(path);
     }

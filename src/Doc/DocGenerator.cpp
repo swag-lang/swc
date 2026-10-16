@@ -74,10 +74,7 @@ namespace
 
     Result reportDocDirectoryError(TaskContext& ctx, const fs::path& path, const Utf8& because)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_doc_dir_create_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_doc_dir_create_failed, path, because);
     }
 
     Result ensureOutputDirectory(TaskContext& ctx, const fs::path& path)

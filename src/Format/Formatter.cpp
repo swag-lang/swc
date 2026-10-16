@@ -123,10 +123,7 @@ bool Formatter::skipped() const
 
 Result Formatter::reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because)
 {
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_format_failed);
-    FileSystem::setDiagnosticPathAndBecause(diag, &ctx, file.path(), because);
-    diag.report(ctx);
-    return Result::Error;
+    return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_format_failed, file.path(), because);
 }
 
 SWC_END_NAMESPACE();

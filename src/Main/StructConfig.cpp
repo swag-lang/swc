@@ -378,12 +378,7 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
     std::string             content;
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::readTextFile(normalizedPath, content, ioError) != Result::Continue)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_read_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, normalizedPath, FileSystem::describeIoFailure(ioError));
-        diag.report(ctx);
-        return Result::Error;
-    }
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_config_read_failed, normalizedPath, FileSystem::describeIoFailure(ioError));
 
     if (content.size() >= 3 &&
         static_cast<unsigned char>(content[0]) == 0xEF &&

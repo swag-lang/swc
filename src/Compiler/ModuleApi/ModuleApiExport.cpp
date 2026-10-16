@@ -105,22 +105,14 @@ namespace
         std::error_code ec;
         fs::create_directories(path, ec);
         if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_dir_create_failed);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_dir_create_failed, path, FileSystem::normalizeSystemMessage(ec));
 
         return Result::Continue;
     }
 
     Result reportModuleApiDirectoryClearError(TaskContext& ctx, const fs::path& path, const Utf8& because)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_dir_clear_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_dir_clear_failed, path, because);
     }
 
     Result removeStaleGeneratedModuleApiFiles(TaskContext& ctx, const fs::path& path, std::span<const fs::path> publishedPaths)
@@ -208,10 +200,7 @@ namespace ModuleApiExport
         if (FileSystem::writeBinaryFile(dstPath, content.data(), content.size(), ioError) == Result::Continue)
             return Result::Continue;
 
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, dstPath, FileSystem::describeIoFailure(ioError));
-        diag.report(ctx);
-        return Result::Error;
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_file_write_failed, dstPath, FileSystem::describeIoFailure(ioError));
     }
 }
 

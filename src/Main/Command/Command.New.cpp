@@ -28,14 +28,6 @@ namespace
 }
 )";
 
-    Result reportPathError(TaskContext& ctx, const DiagnosticId id, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = Diagnostic::get(id);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
     Result reportPathExists(TaskContext& ctx, const fs::path& path)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_new_target_exists);
@@ -50,7 +42,7 @@ namespace
         if (fs::exists(path, ec))
             return reportPathExists(ctx, path);
         if (ec)
-            return reportPathError(ctx, DiagnosticId::cmd_err_new_target_check_failed, path, FileSystem::normalizeSystemMessage(ec));
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_target_check_failed, path, FileSystem::normalizeSystemMessage(ec));
         return Result::Continue;
     }
 
@@ -59,7 +51,7 @@ namespace
         std::error_code ec;
         fs::create_directories(path, ec);
         if (ec)
-            return reportPathError(ctx, DiagnosticId::cmd_err_new_directory_create_failed, path, FileSystem::normalizeSystemMessage(ec));
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_directory_create_failed, path, FileSystem::normalizeSystemMessage(ec));
         return Result::Continue;
     }
 
@@ -67,7 +59,7 @@ namespace
     {
         FileSystem::IoErrorInfo error;
         if (FileSystem::writeBinaryFile(path, content.data(), content.size(), error) != Result::Continue)
-            return reportPathError(ctx, DiagnosticId::cmd_err_new_file_write_failed, path, FileSystem::describeIoFailure(error));
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_file_write_failed, path, FileSystem::describeIoFailure(error));
         return Result::Continue;
     }
 

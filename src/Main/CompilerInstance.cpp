@@ -73,14 +73,14 @@ namespace
     template<typename T>
     struct UniqueBucket
     {
-        std::vector<T*>*        values = nullptr;
-        std::unordered_set<T*>* seen   = nullptr;
+        std::vector<T*>* values = nullptr;
+        PointerSet<T>*   seen   = nullptr;
     };
 
     template<typename T>
-    bool appendUnique(std::vector<T*>& values, std::unordered_set<T*>& seen, T* value)
+    bool appendUnique(std::vector<T*>& values, PointerSet<T>& seen, T* value)
     {
-        if (!seen.insert(value).second)
+        if (!seen.insert(value))
             return false;
 
         values.push_back(value);
@@ -851,8 +851,8 @@ void CompilerInstance::registerNativeCompilerFunction(TokenId funcTokenId, Symbo
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    std::vector<SymbolFunction*>*        bucket    = nullptr;
-    std::unordered_set<SymbolFunction*>* bucketSet = nullptr;
+    std::vector<SymbolFunction*>* bucket    = nullptr;
+    PointerSet<SymbolFunction>*   bucketSet = nullptr;
     switch (funcTokenId)
     {
         case TokenId::CompilerFuncTest:

@@ -165,8 +165,6 @@ public:
 private:
     static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
 
-    void recordParsedNodeBoundary(AstNodeRef nodeRef);
-
     struct Shard
     {
         PagedStore                store;

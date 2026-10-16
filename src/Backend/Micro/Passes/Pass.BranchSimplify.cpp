@@ -1586,7 +1586,7 @@ namespace
 
     inline bool collectShortCircuitBoolChain(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef jumpRef,
                                              SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN>& outChain,
-                                             const MicroInstrOperand*& outSetOps, BoolBits& outBits)
+                                             bool requireCopy, const MicroInstrOperand*& outSetOps, BoolBits& outBits)
     {
         auto chainIt = MicroStorage::Iterator{&storage, jumpRef};
         --chainIt;
@@ -1598,6 +1598,8 @@ namespace
             --chainIt;
             setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
         }
+        if (requireCopy && outChain.empty())
+            return false;
         if (!setInst || setInst->op != MicroInstrOpcode::SetCondReg)
             return false;
 
@@ -2063,7 +2065,7 @@ namespace
             SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN> chain;
             BoolBits bits;
             const MicroInstrOperand* setOps = nullptr;
-            if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, setOps, bits) || chain.empty())
+            if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, true, setOps, bits))
                 continue;
             const MicroReg value = storage.ptr(chain[0])->ops(operands)[0].reg;
 
@@ -2425,7 +2427,7 @@ namespace
             SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN> chain;
             BoolBits bits;
             const MicroInstrOperand* setOps = nullptr;
-            if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, setOps, bits))
+            if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, false, setOps, bits))
                 continue;
 
             // The branch condition pins the boolean's value on the taken edge.

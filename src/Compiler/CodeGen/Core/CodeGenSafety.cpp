@@ -999,9 +999,8 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
 //
 // Both faults report through a CALL, and a panic is not guaranteed to end the program - a
 // '#test' installs a hook and '@panic' then returns to its caller. So neither report may fall
-// through into the divide: the operands would be read after the call clobbered them, and on
-// x86 the divide additionally wants its dividend in a fixed register pair. Every failing path
-// therefore produces the zero result and jumps past the operation, which is the shape the
+// through into the divide: the operands would be read after the call clobbered them. Every failing
+// path therefore produces the zero result and jumps past the operation, which is the shape the
 // signed-overflow arm already used and the reason it was written that way.
 Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg leftReg, const MicroReg rightReg, const MicroOp op, const MicroOpBits opBits, const bool isSigned, const bool zeroOnOverflow)
 {

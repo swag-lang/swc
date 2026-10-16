@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Generic/SemaGenericStoredType.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -687,23 +688,12 @@ namespace SemaGeneric
 
         const SymbolStruct* genericStructInstanceFromInlinePayload(const Sema& sema, const SymbolStruct& genericRoot)
         {
-            const SemaInlinePayload* previousPayload = nullptr;
-            for (size_t i = sema.frames().size(); i > 0; --i)
-            {
-                const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
-                if (inlinePayload == previousPayload)
-                    continue;
-                previousPayload = inlinePayload;
-                while (inlinePayload)
-                {
-                    if (const SymbolStruct* instance = genericStructInstanceFromFunctionOwner(genericRoot, inlinePayload->sourceFunction))
-                        return instance;
-
-                    inlinePayload = inlinePayload->parentInlinePayload;
-                }
-            }
-
-            return nullptr;
+            const SymbolStruct* instance = nullptr;
+            SemaHelpers::visitFrameInlinePayloads(sema, [&](const SemaInlinePayload& inlinePayload) {
+                instance = genericStructInstanceFromFunctionOwner(genericRoot, inlinePayload.sourceFunction);
+                return instance != nullptr;
+            });
+            return instance;
         }
 
         const SymbolStruct* genericStructInstanceFromCurrentFunction(const Sema& sema, const SymbolStruct& genericRoot)

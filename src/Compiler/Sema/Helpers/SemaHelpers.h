@@ -166,6 +166,29 @@ namespace SemaHelpers
     bool                     functionExposesReturnSlot(const SymbolFunction& function, const SymbolVariable* ignoreSym = nullptr);
     bool                     typeHasLifecycle(TaskContext& ctx, TypeRef typeRef);
     const SemaInlinePayload* effectiveInlinePayload(const Sema& sema);
+
+    // Visits every inline payload the frames hold, innermost frame first and each frame's chain
+    // once, until 'visit' returns true; tells whether it did.
+    template<typename F>
+    bool visitFrameInlinePayloads(const Sema& sema, F&& visit)
+    {
+        const SemaInlinePayload* previousPayload = nullptr;
+        for (size_t i = sema.frames().size(); i > 0; --i)
+        {
+            const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
+            if (inlinePayload == previousPayload)
+                continue;
+            previousPayload = inlinePayload;
+            for (; inlinePayload; inlinePayload = inlinePayload->parentInlinePayload)
+            {
+                if (visit(*inlinePayload))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     // Whether the node being analysed belongs to an ordinary inline expansion, whose body was
     // already judged as a standalone function before it was cloned here.
     //

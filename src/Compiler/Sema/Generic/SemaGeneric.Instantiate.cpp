@@ -142,21 +142,11 @@ namespace SemaGeneric
             // Inline expansion can nest generic instances inside other generic
             // instances. Walk from the innermost frame outward so value/type
             // bindings prefer the most local instantiation context.
-            const SemaInlinePayload* previousPayload = nullptr;
-            for (size_t i = sema.frames().size(); i > 0; --i)
-            {
-                const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
-                if (inlinePayload == previousPayload)
-                    continue;
-                previousPayload = inlinePayload;
-                while (inlinePayload)
-                {
-                    if (const SymbolFunction* function = genericFunctionInstanceOrNull(inlinePayload->sourceFunction))
-                        appendUnique(function);
-
-                    inlinePayload = inlinePayload->parentInlinePayload;
-                }
-            }
+            SemaHelpers::visitFrameInlinePayloads(sema, [&](const SemaInlinePayload& inlinePayload) {
+                if (const SymbolFunction* function = genericFunctionInstanceOrNull(inlinePayload.sourceFunction))
+                    appendUnique(function);
+                return false;
+            });
 
             if (const SymbolFunction* function = genericFunctionInstanceOrNull(sema.currentFunction()))
                 appendUnique(function);

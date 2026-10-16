@@ -1540,6 +1540,19 @@ void CodeGenCallHelpers::isolatePreparedRegisterArgSources(CodeGen& codeGen, con
     doIsolatePreparedRegisterArgSources(codeGen, callConv, args);
 }
 
+// Isolates the register arguments, lays them out, and calls 'function', foreign or not.
+void CodeGenCallHelpers::emitPreparedCall(CodeGen& codeGen, const SymbolFunction& function, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& preparedArgs)
+{
+    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
+    MicroBuilder&               builder      = codeGen.builder();
+    const CallConvKind          callConvKind = function.callConvKind();
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+    if (function.isForeign())
+        ABICall::callExtern(builder, callConvKind, &function, preparedCall);
+    else
+        ABICall::callLocal(builder, callConvKind, &function, preparedCall);
+}
+
 Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
 {
     codeGen.function().addCallDependency(&runtimeFunction);
@@ -1557,14 +1570,9 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, 
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
     }
 
-    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
-    MicroBuilder&               builder      = codeGen.builder();
-    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-    if (runtimeFunction.isForeign())
-        ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
-    else
-        ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
+    emitPreparedCall(codeGen, runtimeFunction, callConv, preparedArgs);
 
+    MicroBuilder&                          builder       = codeGen.builder();
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(runtimeFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
     SWC_ASSERT(!normalizedRet.isVoid);
     SWC_ASSERT(!normalizedRet.isIndirect);
@@ -1589,14 +1597,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
     }
 
-    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
-    MicroBuilder&               builder      = codeGen.builder();
-    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-    if (runtimeFunction.isForeign())
-        ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
-    else
-        ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
-
+    emitPreparedCall(codeGen, runtimeFunction, callConv, preparedArgs);
     return Result::Continue;
 }
 SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNodeRef callRef)

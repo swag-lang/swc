@@ -329,6 +329,14 @@ Result FileSystem::reportInvalidFolder(TaskContext& ctx, const fs::path& path, c
     return reportPathError(ctx, DiagnosticId::cmdline_err_invalid_folder, path, because);
 }
 
+Result FileSystem::reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path)
+{
+    Diagnostic diag = Diagnostic::get(id);
+    setDiagnosticPath(diag, &ctx, path);
+    diag.report(ctx);
+    return Result::Error;
+}
+
 Result FileSystem::reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path, const Utf8& because)
 {
     Diagnostic diag = Diagnostic::get(id);

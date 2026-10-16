@@ -414,22 +414,12 @@ Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path
 {
     const fs::path normalizedPath = FileSystem::normalizePath(path);
     if (depth >= RSP_MAX_DEPTH)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_depth);
-        FileSystem::setDiagnosticPath(diag, &ctx, normalizedPath);
-        diag.report(ctx);
-        return Result::Error;
-    }
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_depth, normalizedPath);
 
     const fs::path& canonical = normalizedPath;
 
     if (!visited.insert(canonical).second)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_cycle);
-        FileSystem::setDiagnosticPath(diag, &ctx, canonical);
-        diag.report(ctx);
-        return Result::Error;
-    }
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_cycle, canonical);
 
     std::string             content;
     FileSystem::IoErrorInfo ioError;
@@ -438,12 +428,7 @@ Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path
 
     std::vector<Utf8> tokens;
     if (!tokenizeResponseFile(content, tokens))
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_unterminated);
-        FileSystem::setDiagnosticPath(diag, &ctx, canonical);
-        diag.report(ctx);
-        return Result::Error;
-    }
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_unterminated, canonical);
 
     for (const Utf8& token : tokens)
     {

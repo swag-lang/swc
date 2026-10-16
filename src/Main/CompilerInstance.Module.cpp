@@ -3211,9 +3211,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
     if (FileSystem::resolveExistingFolder(modulesPath, because) != Result::Continue)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_modules_missing);
-        FileSystem::setDiagnosticPath(diag, &ctx, workspacePath);
-        diag.report(ctx);
+        FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_modules_missing, workspacePath);
         return ExitCode::CompileError;
     }
 
@@ -3241,17 +3239,13 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
         if (FileSystem::resolveExistingFile(moduleBuild.moduleFile, because) != Result::Continue)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_file_missing);
-            FileSystem::setDiagnosticPath(diag, &ctx, moduleBuild.moduleDir);
-            diag.report(ctx);
+            FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_module_file_missing, moduleBuild.moduleDir);
             return ExitCode::CompileError;
         }
 
         if (FileSystem::resolveExistingFolder(moduleBuild.sourceDir, because) != Result::Continue)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_src_missing);
-            FileSystem::setDiagnosticPath(diag, &ctx, moduleBuild.moduleDir);
-            diag.report(ctx);
+            FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_module_src_missing, moduleBuild.moduleDir);
             return ExitCode::CompileError;
         }
 

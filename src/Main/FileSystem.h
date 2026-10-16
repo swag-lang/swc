@@ -57,7 +57,8 @@ namespace FileSystem
     Result      resolveFile(TaskContext& ctx, fs::path& file);
     Result      resolveFolder(TaskContext& ctx, fs::path& folder);
     Result      reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because);
-    // Reports 'id' about 'path', with 'because' as the reason.
+    // Reports 'id' about 'path', with 'because' as the reason when there is one.
+    Result      reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path);
     Result      reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path, const Utf8& because);
     Result      readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error);
     Result      readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error);

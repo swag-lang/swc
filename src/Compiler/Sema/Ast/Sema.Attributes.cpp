@@ -207,11 +207,12 @@ namespace
         return Result::Continue;
     }
 
-    Result collectPrintMicroOptions(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
+    // The stage names a print attribute lists, or 'defaultOption' when it lists none.
+    Result collectPrintOptions(Sema& sema, std::span<const AstNodeRef> args, std::vector<Utf8>& outOptions, std::string_view defaultOption)
     {
         if (args.empty())
         {
-            outAttributes.printMicroPassOptions.push_back(Utf8{"pre-emit"});
+            outOptions.push_back(Utf8{defaultOption});
             return Result::Continue;
         }
 
@@ -219,25 +220,7 @@ namespace
         {
             SWC_RESULT(SemaCheck::isConstant(sema, argValueRef));
             const SemaNodeView argView = sema.viewConstant(argValueRef);
-            outAttributes.printMicroPassOptions.push_back(Utf8{argView.cst()->getString()});
-        }
-
-        return Result::Continue;
-    }
-
-    Result collectPrintAstOptions(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
-    {
-        if (args.empty())
-        {
-            outAttributes.printAstStageOptions.push_back(Utf8{"post-sema"});
-            return Result::Continue;
-        }
-
-        for (const auto argValueRef : args)
-        {
-            SWC_RESULT(SemaCheck::isConstant(sema, argValueRef));
-            const SemaNodeView argView = sema.viewConstant(argValueRef);
-            outAttributes.printAstStageOptions.push_back(Utf8{argView.cst()->getString()});
+            outOptions.push_back(Utf8{argView.cst()->getString()});
         }
 
         return Result::Continue;
@@ -303,7 +286,8 @@ namespace
         return Result::Continue;
     }
 
-    Result collectSafetyOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
+    // '#[Swag.Safety]' and '#[Swag.Sanity]' take the same (what, enabled) pair.
+    Result collectSafetyOverride(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes, void (AttributeList::*addOverride)(Runtime::SafetyWhat, bool))
     {
         SWC_ASSERT(args.size() >= 2);
 
@@ -312,20 +296,7 @@ namespace
         SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], whatValue));
         SWC_RESULT(collectResolvedBoolValue(sema, args[1], enabled));
 
-        outAttributes.addRuntimeSafetyOverride(static_cast<Runtime::SafetyWhat>(whatValue), enabled);
-        return Result::Continue;
-    }
-
-    Result collectSanityOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
-    {
-        SWC_ASSERT(args.size() >= 2);
-
-        uint64_t whatValue = 0;
-        bool     enabled   = false;
-        SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], whatValue));
-        SWC_RESULT(collectResolvedBoolValue(sema, args[1], enabled));
-
-        outAttributes.addSanityOverride(static_cast<Runtime::SafetyWhat>(whatValue), enabled);
+        (outAttributes.*addOverride)(static_cast<Runtime::SafetyWhat>(whatValue), enabled);
         return Result::Continue;
     }
 
@@ -533,13 +504,13 @@ namespace
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
-            return collectPrintMicroOptions(sema, args, outAttributes);
+            return collectPrintOptions(sema, args, outAttributes.printMicroPassOptions, "pre-emit");
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintAst))
-            return collectPrintAstOptions(sema, args, outAttributes);
+            return collectPrintOptions(sema, args, outAttributes.printAstStageOptions, "post-sema");
         if (idRef == safetyIdRef)
-            return collectSafetyOptions(sema, resolvedArgs, outAttributes);
+            return collectSafetyOverride(sema, resolvedArgs, outAttributes, &AttributeList::addRuntimeSafetyOverride);
         if (idRef == sanityIdRef)
-            return collectSanityOptions(sema, resolvedArgs, outAttributes);
+            return collectSafetyOverride(sema, resolvedArgs, outAttributes, &AttributeList::addSanityOverride);
         if (idRef == borrowSummaryIdRef)
             return collectBorrowSummaryOptions(sema, resolvedArgs, outAttributes);
         if (idRef == callingConventionIdRef)

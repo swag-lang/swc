@@ -553,7 +553,11 @@ namespace
         bool            forceConstEval = false;
     };
 
-    bool structOpCastBindsReferenceToValue(Sema& sema, const SymbolFunction& calledFn, AstNodeRef sourceArgRef)
+    // Whether a value source meets a receiver of the given kind. A reference receiver binds the
+    // value itself. The pointer-world receiver, a non-null value-pointer parameter, takes the
+    // value's ADDRESS exactly like a castless UFCS receiver; without it the call would load the
+    // value's first bytes as the receiver pointer.
+    bool structOpCastReceiverBindsValue(Sema& sema, const SymbolFunction& calledFn, AstNodeRef sourceArgRef, bool (TypeInfo::*receiverKind)() const noexcept)
     {
         if (sourceArgRef.isInvalid() || calledFn.parameters().empty())
             return false;
@@ -563,30 +567,7 @@ namespace
             return false;
 
         const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
-        if (!receiverType.isReference())
-            return false;
-
-        const SemaNodeView sourceView = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type);
-        if (!sourceView.typeRef().isValid())
-            return true;
-
-        return !SemaHelpers::aliasEnumType(sema, sourceView).isPointerOrReference();
-    }
-
-    // The pointer-world receiver: a non-null value-pointer parameter binding a value
-    // source takes the value's ADDRESS, exactly like a castless UFCS receiver. Without
-    // it the call would load the value's first bytes as the receiver pointer.
-    bool structOpCastPassesAddressAsPointer(Sema& sema, const SymbolFunction& calledFn, AstNodeRef sourceArgRef)
-    {
-        if (sourceArgRef.isInvalid() || calledFn.parameters().empty())
-            return false;
-
-        const TypeRef receiverTypeRef = calledFn.parameters().front()->typeRef();
-        if (!receiverTypeRef.isValid())
-            return false;
-
-        const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
-        if (!receiverType.isNonNullValuePointer())
+        if (!(receiverType.*receiverKind)())
             return false;
 
         const SemaNodeView sourceView = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type);
@@ -600,8 +581,8 @@ namespace
     {
         ResolvedCallArgument resolvedArg;
         resolvedArg.argRef                   = sourceArgRef;
-        resolvedArg.bindsReferenceToValue    = structOpCastBindsReferenceToValue(sema, calledFn, sourceArgRef);
-        resolvedArg.passUfcsAddressAsPointer = structOpCastPassesAddressAsPointer(sema, calledFn, sourceArgRef);
+        resolvedArg.bindsReferenceToValue    = structOpCastReceiverBindsValue(sema, calledFn, sourceArgRef, &TypeInfo::isReference);
+        resolvedArg.passUfcsAddressAsPointer = structOpCastReceiverBindsValue(sema, calledFn, sourceArgRef, &TypeInfo::isNonNullValuePointer);
         if (!calledFn.parameters().empty())
             SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters().front()->typeRef(), sourceArgRef));
         if (resolvedArg.passUfcsAddressAsPointer)
@@ -722,7 +703,7 @@ namespace
         const AstNodeRef receiverRef = makeStructSetReceiverRef(sema, dstTypeRef, sourceArgRef, storageSym, receiverInitCstRef);
         outResolvedArgs.push_back({.argRef                   = receiverRef,
                                    .bindsReferenceToValue    = true,
-                                   .passUfcsAddressAsPointer = structOpCastPassesAddressAsPointer(sema, calledFn, receiverRef)});
+                                   .passUfcsAddressAsPointer = structOpCastReceiverBindsValue(sema, calledFn, receiverRef, &TypeInfo::isNonNullValuePointer)});
         outResolvedArgs.push_back({.argRef = sourceArgRef});
         if (calledFn.parameters().size() > 1)
             SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters()[1]->typeRef(), sourceArgRef));

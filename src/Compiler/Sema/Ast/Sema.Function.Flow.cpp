@@ -345,18 +345,9 @@ namespace
         diag.last().addSpan(codeRange);
     }
 
-    Result reportTryOutsideFallibleContext(Sema& sema, AstNodeRef errorRef)
+    Result reportOutsideFallibleContext(Sema& sema, AstNodeRef errorRef, DiagnosticId id)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_try_outside_fallible_context, errorRef);
-        if (const auto* currentFn = sema.currentFunction())
-            addFunctionDeclaredHereNote(sema, diag, *currentFn);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    Result reportFailOutsideFallibleContext(Sema& sema, AstNodeRef errorRef)
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_fail_outside_fallible_context, errorRef);
+        auto diag = SemaError::report(sema, id, errorRef);
         if (const auto* currentFn = sema.currentFunction())
             addFunctionDeclaredHereNote(sema, diag, *currentFn);
         diag.report(sema.ctx());
@@ -610,7 +601,7 @@ namespace
         const TokenId tokenId = effectiveErrorManagementTokenId(sema, tok.id);
 
         if (tokenId == TokenId::KwdTry && !canPropagateFallibleResult(sema))
-            return reportTryOutsideFallibleContext(sema, sema.curNodeRef());
+            return reportOutsideFallibleContext(sema, sema.curNodeRef(), DiagnosticId::sema_err_try_outside_fallible_context);
         if (tok.id == TokenId::KwdTry)
             reportRedundantTry(sema);
 
@@ -1814,7 +1805,7 @@ Result AstFailExpr::semaPostNode(Sema& sema) const
     SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
 
     if (!canPropagateFallibleResult(sema))
-        return reportFailOutsideFallibleContext(sema, sema.curNodeRef());
+        return reportOutsideFallibleContext(sema, sema.curNodeRef(), DiagnosticId::sema_err_fail_outside_fallible_context);
 
     // A failed value needs concrete storage and runtime type information, just
     // like a constant boxed into 'any'; unsized literals have no runtime size.

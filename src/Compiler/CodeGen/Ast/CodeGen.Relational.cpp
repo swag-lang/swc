@@ -345,26 +345,15 @@ namespace
         return resultPayload;
     }
 
-    Result emitSpecialEqualsNotEqual(CodeGen& codeGen, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
+    // 'opEquals' answers a bool byte: '==' keeps it with NotEqual against zero, '!=' inverts it with Equal.
+    Result emitSpecialEquals(CodeGen& codeGen, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload, MicroCond resultCond)
     {
         SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
 
         const CodeGenNodePayload& resultPayload = materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B8);
         MicroBuilder&             builder       = codeGen.builder();
         builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
-        builder.emitSetCondReg(resultPayload.reg, MicroCond::Equal);
-        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
-        return Result::Continue;
-    }
-
-    Result emitSpecialEqualsEqual(CodeGen& codeGen, TypeRef resultTypeRef, const RelationalSpecOpPayload& relationalPayload)
-    {
-        SWC_RESULT(emitSpecialCallResult(codeGen, relationalPayload));
-
-        const CodeGenNodePayload& resultPayload = materializeSpecialResultPayload(codeGen, resultTypeRef, MicroOpBits::B8);
-        MicroBuilder&             builder       = codeGen.builder();
-        builder.emitCmpRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B8);
-        builder.emitSetCondReg(resultPayload.reg, MicroCond::NotEqual);
+        builder.emitSetCondReg(resultPayload.reg, resultCond);
         builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
         return Result::Continue;
     }
@@ -413,9 +402,9 @@ namespace
         {
             case SpecOpKind::OpEquals:
                 if (tokId == TokenId::SymEqualEqual)
-                    return emitSpecialEqualsEqual(codeGen, resultTypeRef, relationalPayload);
+                    return emitSpecialEquals(codeGen, resultTypeRef, relationalPayload, MicroCond::NotEqual);
                 if (tokId == TokenId::SymBangEqual)
-                    return emitSpecialEqualsNotEqual(codeGen, resultTypeRef, relationalPayload);
+                    return emitSpecialEquals(codeGen, resultTypeRef, relationalPayload, MicroCond::Equal);
                 break;
 
             case SpecOpKind::OpCompare:

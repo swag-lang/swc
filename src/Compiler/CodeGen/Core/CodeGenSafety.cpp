@@ -1223,7 +1223,7 @@ Result CodeGenSafety::emitUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntr
 
     const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
     const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
-    const TypeRef             valueTypeRef  = valuePayload.typeRef.isValid() ? valuePayload.typeRef : codeGen.viewType(valueRef).typeRef();
+    const TypeRef             valueTypeRef  = CodeGenExprView::payloadTypeRef(codeGen, valuePayload, valueRef);
     const TypeRef             resultTypeRef = codeGen.curViewType().typeRef();
     MicroReg                  valueReg      = MicroReg::invalid();
     MicroBuilder&             builder       = codeGen.builder();

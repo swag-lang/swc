@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenLoopFrame.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -142,7 +143,7 @@ namespace
         }
 
         CodeGenNodePayload exprPayload  = codeGen.payload(exprRef);
-        TypeRef            exprTypeRef  = exprPayload.typeRef.isValid() ? exprPayload.typeRef : codeGen.viewType(exprRef).typeRef();
+        TypeRef            exprTypeRef  = CodeGenExprView::payloadTypeRef(codeGen, exprPayload, exprRef);
         const TypeInfo*    exprTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
         SWC_ASSERT(exprTypeInfo);
         const TypeInfo& exprType = *exprTypeInfo;

@@ -7,6 +7,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace CodeGenExprView
 {
+    // The type 'payload' carries, or the sema type of 'nodeRef' when it carries none.
+    inline TypeRef payloadTypeRef(CodeGen& codeGen, const CodeGenNodePayload& payload, AstNodeRef nodeRef)
+    {
+        return payload.typeRef.isValid() ? payload.typeRef : codeGen.viewType(nodeRef).typeRef();
+    }
+
     inline SemaNodeView storedOrType(CodeGen& codeGen, AstNodeRef exprRef)
     {
         const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);

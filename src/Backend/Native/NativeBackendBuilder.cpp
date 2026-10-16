@@ -769,9 +769,9 @@ namespace
     }
 
     // What a library publishes under its API name, and what an importer can therefore call.
-    bool isExportedLibraryFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    bool isExportedLibraryFunction(NativeBackendBuilder& builder, const SymbolFunction& symbol, const bool supportsExportedFunctions)
     {
-        if (!supportsExportedPublicFunctionSymbols(builder))
+        if (!supportsExportedFunctions)
             return false;
         if (isExportedOpaqueLifecycleFunction(builder, symbol))
             return true;
@@ -792,19 +792,26 @@ namespace
         return !stages.empty();
     }
 
-    NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal, SymbolSort::LocationKeyCache* sortKeys = nullptr)
+    struct NativeFunctionInfoOptions
+    {
+        bool                                supportsExportedFunctions = false;
+        bool                                includeDebugNames         = false;
+        SymbolSort::LocationKeyCache*       sortKeys                  = nullptr;
+    };
+
+    NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal, const NativeFunctionInfoOptions& options)
     {
         NativeFunctionInfo info;
         info.symbol                   = &symbol;
         info.machineCode              = &symbol.loweredCode();
-        info.sortKey                  = sortKeys ? sortKeys->key(symbol) : SymbolSort::locationKey(builder.compiler(), symbol);
+        info.sortKey                  = options.sortKeys ? options.sortKeys->key(symbol) : SymbolSort::locationKey(builder.compiler(), symbol);
         info.compilerFn               = isCompilerFunction(symbol);
-        const bool exportPublicSymbol = isExportedLibraryFunction(builder, symbol);
+        const bool exportPublicSymbol = isExportedLibraryFunction(builder, symbol, options.supportsExportedFunctions);
         if (exportPublicSymbol)
             info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
         else
             info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
-        if (builder.compiler().buildCfg().backend.debugInfo)
+        if (options.includeDebugNames)
             info.debugName = symbol.getFullScopedName(builder.ctx());
         info.exported = exportPublicSymbol;
         return info;
@@ -816,11 +823,16 @@ namespace
         builder.functionBySymbol.clear();
         builder.functionInfos.reserve(functions.size());
         builder.functionBySymbol.reserve(functions.size());
+        const NativeFunctionInfoOptions infoOptions{
+            .supportsExportedFunctions = supportsExportedPublicFunctionSymbols(builder),
+            .includeDebugNames         = builder.compiler().buildCfg().backend.debugInfo,
+            .sortKeys                  = &sortKeys,
+        };
 
         for (SymbolFunction* symbol : functions)
         {
             SWC_ASSERT(symbol != nullptr);
-            NativeFunctionInfo info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(builder.functionInfos.size()), &sortKeys);
+            NativeFunctionInfo info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(builder.functionInfos.size()), infoOptions);
             SWC_RESULT(builder.finalizeFunctionCacheHit(info.cacheHit, *symbol, info.symbolName));
             if (info.cacheHit)
                 info.machineCode = nullptr;
@@ -877,6 +889,11 @@ namespace
         if (!firstFile)
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
 
+        const NativeFunctionInfoOptions infoOptions{
+            .supportsExportedFunctions = supportsExportedPublicFunctionSymbols(builder),
+            .includeDebugNames         = builder.compiler().buildCfg().backend.debugInfo,
+        };
+
         // Start the largest functions first. Jobs leave the queue in the order they enter it, and a
         // large function started late is the tail every other worker waits on at the end of the
         // round. The order changes when each function is generated, never what is generated.
@@ -928,7 +945,7 @@ namespace
                 const AstNodeRef root = symbol->declNodeRef();
                 if (root.isInvalid())
                 {
-                    const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
+                    const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index), infoOptions);
                     return builder.reportError(DiagnosticId::cmd_err_native_codegen_decl_missing, Diagnostic::ARG_SYM, info.symbolName);
                 }
 
@@ -955,7 +972,7 @@ namespace
                 if (file && file->hasError())
                     continue;
 
-                const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index));
+                const auto info = makeFunctionInfo(builder, *symbol, static_cast<uint32_t>(index), infoOptions);
                 if (!info.debugName.empty())
                     return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, info.debugName);
                 return builder.reportError(
@@ -1581,7 +1598,7 @@ Result NativeBackendBuilder::prepare()
     {
         for (SymbolFunction* function : compiler_->nativeCodeSegment())
         {
-            if (function && ((library && isExportedLibraryFunction(*this, *function)) || requestsMicroListing(*this, *function)))
+            if (function && ((library && isExportedLibraryFunction(*this, *function, library)) || requestsMicroListing(*this, *function)))
                 functions.push_back(function);
         }
     }

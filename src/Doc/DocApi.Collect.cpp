@@ -288,6 +288,28 @@ namespace
         return result;
     }
 
+    // Appends the comment that follows 'offset' on its line in 'source', if any.
+    void appendSameLineComment(std::vector<Utf8>& result, std::string_view source, size_t offset)
+    {
+        const size_t start = std::min<size_t>(offset, source.size());
+        size_t       end   = source.find_first_of("\r\n", start);
+        if (end == std::string_view::npos)
+            end = source.size();
+
+        const std::string_view suffix = source.substr(start, end - start);
+        const size_t           line   = suffix.find("//");
+        const size_t           block  = suffix.find("/*");
+        size_t                 commentPos;
+        if (line == std::string_view::npos)
+            commentPos = block;
+        else if (block == std::string_view::npos)
+            commentPos = line;
+        else
+            commentPos = std::min(line, block);
+        if (commentPos != std::string_view::npos)
+            DocApi::appendNormalizedComment(result, suffix.substr(commentPos));
+    }
+
     std::vector<Utf8> trailingCommentLines(TaskContext& ctx, const SourceFile& file, const AstNodeRef declRef)
     {
         std::vector<Utf8> result;
@@ -304,27 +326,8 @@ namespace
         if (endTokRef.get() >= srcView.numTokens())
             return result;
 
-        const Token&           token  = srcView.token(endTokRef);
-        const std::string_view source = srcView.stringView();
-        const size_t           start  = std::min<size_t>(srcView.tokenByteEnd(token), source.size());
-        size_t                 end    = source.find_first_of("\r\n", start);
-        if (end == std::string_view::npos)
-            end = source.size();
-
-        const std::string_view suffix = source.substr(start, end - start);
-        const size_t           line   = suffix.find("//");
-        const size_t           block  = suffix.find("/*");
-        size_t                 commentPos;
-        if (line == std::string_view::npos)
-            commentPos = block;
-        else if (block == std::string_view::npos)
-            commentPos = line;
-        else
-            commentPos = std::min(line, block);
-        if (commentPos == std::string_view::npos)
-            return result;
-
-        DocApi::appendNormalizedComment(result, suffix.substr(commentPos));
+        const Token& token = srcView.token(endTokRef);
+        appendSameLineComment(result, srcView.stringView(), srcView.tokenByteEnd(token));
         return result;
     }
 }
@@ -451,24 +454,7 @@ namespace
         if (!range.srcView)
             return result;
 
-        const std::string_view source = range.srcView->stringView();
-        const size_t           start  = std::min<size_t>(range.offset + range.len, source.size());
-        size_t                 end    = source.find_first_of("\r\n", start);
-        if (end == std::string_view::npos)
-            end = source.size();
-
-        const std::string_view suffix = source.substr(start, end - start);
-        const size_t           line   = suffix.find("//");
-        const size_t           block  = suffix.find("/*");
-        size_t                 commentPos;
-        if (line == std::string_view::npos)
-            commentPos = block;
-        else if (block == std::string_view::npos)
-            commentPos = line;
-        else
-            commentPos = std::min(line, block);
-        if (commentPos != std::string_view::npos)
-            DocApi::appendNormalizedComment(result, suffix.substr(commentPos));
+        appendSameLineComment(result, range.srcView->stringView(), range.offset + range.len);
         return result;
     }
 

@@ -170,7 +170,7 @@ namespace
 
     TypeRef resolveUntypedVariadicArgTypeRef(CodeGen& codeGen, const CodeGenNodePayload& argPayload, AstNodeRef argRef)
     {
-        const TypeRef argTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
+        const TypeRef argTypeRef = CodeGenExprView::payloadTypeRef(codeGen, argPayload, argRef);
         if (argTypeRef.isValid() && !codeGen.ctx().typeMgr().get(argTypeRef).isAnyVariadic())
             return argTypeRef;
 
@@ -224,8 +224,7 @@ namespace
     void dereferenceConstUntypedVariadicArgument(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef, AstNodeRef argRef)
     {
         const TypeInfo& argType       = codeGen.typeMgr().get(ioTypeRef);
-        const TypeInfo* unaliasedType = argType.unwrapAliasType(codeGen.ctx());
-        const TypeInfo& referenceType = unaliasedType ? *unaliasedType : argType;
+        const TypeInfo& referenceType = argType.unwrapAliasTypeOrSelf(codeGen.ctx());
 
         // The implicit receiver keeps its address identity for variadic APIs. Other const
         // references and const non-null value pointers represent borrowed values and are
@@ -346,14 +345,12 @@ namespace
         if (normalizedType.isReference())
             return;
 
-        const TypeInfo* normalizedTypeUnwrapped = normalizedType.unwrapAliasType(ctx);
-        const TypeInfo& dstType                 = normalizedTypeUnwrapped ? *normalizedTypeUnwrapped : normalizedType;
+        const TypeInfo& dstType = normalizedType.unwrapAliasTypeOrSelf(ctx);
 
         if (argPayload.typeRef.isValid() && dstType.isFloat())
         {
             const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
-            const TypeInfo* srcTypeUnwrapped = srcTypeInfo.unwrapAliasType(ctx);
-            const TypeInfo& srcType          = srcTypeUnwrapped ? *srcTypeUnwrapped : srcTypeInfo;
+            const TypeInfo& srcType          = srcTypeInfo.unwrapAliasTypeOrSelf(ctx);
             const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
             const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 
@@ -442,7 +439,7 @@ namespace
         if (argPayload.isAddress())
             return;
 
-        const TypeRef sourceTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
+        const TypeRef sourceTypeRef = CodeGenExprView::payloadTypeRef(codeGen, argPayload, argRef);
         SWC_ASSERT(sourceTypeRef.isValid());
         const TypeInfo& sourceType = ctx.typeMgr().get(sourceTypeRef);
         if ((sourceType.isPointerOrReference() && !resolvedArg.bindsReferenceToValue) || argPayload.hasMaterializedPointerLikeValue())
@@ -1687,7 +1684,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     {
         const ScopedDebugSource debugSource(builder, calleePayload->sourceCodeRef);
         CodeGenNodePayload      callablePayload = *calleePayload;
-        TypeRef                 callableTypeRef = callablePayload.typeRef.isValid() ? callablePayload.typeRef : codeGen.viewType(calleeRef).typeRef();
+        TypeRef                 callableTypeRef = CodeGenExprView::payloadTypeRef(codeGen, callablePayload, calleeRef);
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, callablePayload, callableTypeRef);
         SWC_ASSERT(callableTypeRef.isValid() && codeGen.typeMgr().get(callableTypeRef).isFunction());
         callTargetReg = materializeCallTargetReg(codeGen, callablePayload, *calledFunction, callConv, closureContextReg);

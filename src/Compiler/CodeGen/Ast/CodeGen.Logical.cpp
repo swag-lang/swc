@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -45,7 +46,7 @@ namespace
             return false;
 
         const CodeGenNodePayload& rightPayload = codeGen.payload(nodeRightRef);
-        const TypeRef             rightType    = rightPayload.typeRef.isValid() ? rightPayload.typeRef : codeGen.viewType(nodeRightRef).typeRef();
+        const TypeRef             rightType    = CodeGenExprView::payloadTypeRef(codeGen, rightPayload, nodeRightRef);
 
         MicroReg rightReg;
         materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
@@ -70,7 +71,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     if ((resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef) || logicalState == nullptr)
     {
         const CodeGenNodePayload& leftPayload = codeGen.payload(nodeLeftRef);
-        const TypeRef             leftType    = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(nodeLeftRef).typeRef();
+        const TypeRef             leftType    = CodeGenExprView::payloadTypeRef(codeGen, leftPayload, nodeLeftRef);
 
         MicroReg leftReg;
         materializeLogicalOperand(leftReg, codeGen, leftPayload, leftType);

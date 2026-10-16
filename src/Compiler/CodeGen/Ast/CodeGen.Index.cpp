@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
@@ -164,7 +165,7 @@ namespace
     MicroReg materializeIndexReg(CodeGen& codeGen, AstNodeRef indexRef, MicroOpBits& outIndexBits)
     {
         CodeGenNodePayload indexPayload = codeGen.payload(indexRef);
-        TypeRef            indexTypeRef = indexPayload.typeRef.isValid() ? indexPayload.typeRef : codeGen.viewType(indexRef).typeRef();
+        TypeRef            indexTypeRef = CodeGenExprView::payloadTypeRef(codeGen, indexPayload, indexRef);
         SWC_ASSERT(indexTypeRef.isValid());
         normalizeIndexReferenceOperand(codeGen, indexPayload, indexTypeRef);
 
@@ -429,7 +430,7 @@ namespace
         SWC_ASSERT(slicePayload != nullptr);
 
         CodeGenNodePayload indexedPayload  = codeGen.payload(node.nodeExprRef);
-        TypeRef            indexedTypeRef  = indexedPayload.typeRef.isValid() ? indexedPayload.typeRef : codeGen.viewType(node.nodeExprRef).typeRef();
+        TypeRef            indexedTypeRef  = CodeGenExprView::payloadTypeRef(codeGen, indexedPayload, node.nodeExprRef);
         indexedTypeRef                     = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
         const TypeInfo*    indexedTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
         const SemaNodeView resultView      = codeGen.curViewType();
@@ -684,7 +685,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
         return emitIndexSpecOpCall(codeGen, *calledFn);
 
     CodeGenNodePayload indexedPayload = codeGen.payload(nodeExprRef);
-    TypeRef            indexedTypeRef = indexedPayload.typeRef.isValid() ? indexedPayload.typeRef : codeGen.viewType(nodeExprRef).typeRef();
+    TypeRef            indexedTypeRef = CodeGenExprView::payloadTypeRef(codeGen, indexedPayload, nodeExprRef);
     indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, nodeExprRef, indexedTypeRef);
     const TypeInfo* indexedTypeInfo   = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
     SWC_ASSERT(indexedTypeInfo);

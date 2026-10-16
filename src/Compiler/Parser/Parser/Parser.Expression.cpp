@@ -389,14 +389,7 @@ AstNodeRef Parser::parseCast()
     if (expressionTarget)
     {
         // A dynamic target can be a type name or an expression yielding typeinfo.
-        nodePtr->nodeTypeRef = parsePostFixExpression();
-        if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
-        {
-            auto [qualifiedRef, qualified] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
-            qualified->nodeTypeRef         = nodePtr->nodeTypeRef;
-            qualified->addFlag(AstQualifiedTypeFlagsE::Nullable);
-            nodePtr->nodeTypeRef = qualifiedRef;
-        }
+        nodePtr->nodeTypeRef = parseDynamicTypeTarget();
     }
     else
         nodePtr->nodeTypeRef = parseType();
@@ -469,6 +462,42 @@ AstNodeRef Parser::parseIdentifierSuffixValue()
     return parseExpression();
 }
 
+// Parses the quote suffix that follows 'nodeRef': `X'(A, B)` or `X'A`.
+AstNodeRef Parser::parseQuoteSuffix(AstNodeRef nodeRef)
+{
+    const TokenRef tokQuote = consume();
+    markCallCalleeNode(nodeRef);
+
+    if (is(TokenId::SymLeftParen))
+    {
+        auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
+        nodePtr->nodeExprRef       = nodeRef;
+        nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
+        return nodeParent;
+    }
+
+    auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
+    nodePtr->nodeExprRef       = nodeRef;
+    nodePtr->nodeSuffixRef     = parseQuotedSingleSuffixValue();
+    return nodeParent;
+}
+
+// A dynamic type target, a type name or an expression yielding typeinfo, made nullable by a
+// following '?'.
+AstNodeRef Parser::parseDynamicTypeTarget()
+{
+    AstNodeRef typeRef = parsePostFixExpression();
+    if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
+    {
+        auto [qualifiedRef, qualified] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
+        qualified->nodeTypeRef         = typeRef;
+        qualified->addFlag(AstQualifiedTypeFlagsE::Nullable);
+        typeRef = qualifiedRef;
+    }
+
+    return typeRef;
+}
+
 AstNodeRef Parser::parseQuotedSingleSuffixValue()
 {
     // `Type'Arg` must recognize the same leading type syntax as `Type'(Arg, ...)`.
@@ -501,22 +530,7 @@ AstNodeRef Parser::parseQuotedSingleSuffixValue()
 
         if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
-            const TokenRef tokQuote = consume();
-            markCallCalleeNode(nodeRef);
-
-            if (is(TokenId::SymLeftParen))
-            {
-                auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
-                nodePtr->nodeExprRef       = nodeRef;
-                nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
-                nodeRef                    = nodeParent;
-                continue;
-            }
-
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
-            nodePtr->nodeExprRef       = nodeRef;
-            nodePtr->nodeSuffixRef     = parseQuotedSingleSuffixValue();
-            nodeRef                    = nodeParent;
+            nodeRef = parseQuoteSuffix(nodeRef);
             continue;
         }
 
@@ -737,22 +751,7 @@ AstNodeRef Parser::parsePostFixExpression()
         // Quote
         if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
-            const TokenRef tokQuote = consume();
-            markCallCalleeNode(nodeRef);
-
-            if (is(TokenId::SymLeftParen))
-            {
-                auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
-                nodePtr->nodeExprRef       = nodeRef;
-                nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
-                nodeRef                    = nodeParent;
-                continue;
-            }
-
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
-            nodePtr->nodeExprRef       = nodeRef;
-            nodePtr->nodeSuffixRef     = parseQuotedSingleSuffixValue();
-            nodeRef                    = nodeParent;
+            nodeRef = parseQuoteSuffix(nodeRef);
             continue;
         }
 
@@ -1097,14 +1096,7 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
             // Match dynamic casts: the target can be a type or a typeinfo expression.
             if (is(TokenId::Identifier) || is(TokenId::SymLeftParen))
             {
-                nodePtr->nodeTypeRef = parsePostFixExpression();
-                if (is(TokenId::SymQuestion) && !tok().flags.has(TokenFlagsE::BlankBefore))
-                {
-                    auto [qualifiedRef, qualified] = ast_->makeNode<AstNodeId::QualifiedType>(consume());
-                    qualified->nodeTypeRef         = nodePtr->nodeTypeRef;
-                    qualified->addFlag(AstQualifiedTypeFlagsE::Nullable);
-                    nodePtr->nodeTypeRef = qualifiedRef;
-                }
+                nodePtr->nodeTypeRef = parseDynamicTypeTarget();
             }
             else
                 nodePtr->nodeTypeRef = parseType();

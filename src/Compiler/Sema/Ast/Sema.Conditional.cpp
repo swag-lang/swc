@@ -93,12 +93,10 @@ namespace
     TypeRef resolveConditionalNullabilityJoin(Sema& sema, const TypeRef trueTypeRef, const TypeRef falseTypeRef)
     {
         const TypeInfo& rawTrueType          = sema.typeMgr().get(trueTypeRef);
-        const TypeInfo* unaliasedTrueType    = rawTrueType.unwrapAliasType(sema.ctx());
-        const TypeInfo& trueType             = unaliasedTrueType ? *unaliasedTrueType : rawTrueType;
+        const TypeInfo& trueType             = rawTrueType.unwrapAliasTypeOrSelf(sema.ctx());
         const TypeRef   concreteTrueTypeRef  = trueType.typeRef();
         const TypeInfo& rawFalseType         = sema.typeMgr().get(falseTypeRef);
-        const TypeInfo* unaliasedFalseType   = rawFalseType.unwrapAliasType(sema.ctx());
-        const TypeInfo& falseType            = unaliasedFalseType ? *unaliasedFalseType : rawFalseType;
+        const TypeInfo& falseType            = rawFalseType.unwrapAliasTypeOrSelf(sema.ctx());
         const TypeRef   concreteFalseTypeRef = falseType.typeRef();
 
         if (trueType.isNull() || falseType.isNull())
@@ -189,8 +187,7 @@ namespace
     TypeRef resolveNullCoalescingResultType(Sema& sema, const TypeRef leftTypeRef, const TypeRef rightTypeRef)
     {
         const TypeInfo& rawLeftType         = sema.typeMgr().get(leftTypeRef);
-        const TypeInfo* unaliasedLeftType   = rawLeftType.unwrapAliasType(sema.ctx());
-        const TypeInfo& leftType            = unaliasedLeftType ? *unaliasedLeftType : rawLeftType;
+        const TypeInfo& leftType            = rawLeftType.unwrapAliasTypeOrSelf(sema.ctx());
         const TypeRef   concreteLeftTypeRef = leftType.typeRef();
         if (!leftType.isSupportsNullableQualifier() || leftType.isNonNullable())
             return leftTypeRef;
@@ -198,8 +195,7 @@ namespace
         // The left branch is selected only when it is present, so the fallback
         // determines the result contract. An explicit non-null lhs remains non-null.
         const TypeInfo& rawRightType         = sema.typeMgr().get(rightTypeRef);
-        const TypeInfo* unaliasedRightType   = rawRightType.unwrapAliasType(sema.ctx());
-        const TypeInfo& rightType            = unaliasedRightType ? *unaliasedRightType : rawRightType;
+        const TypeInfo& rightType            = rawRightType.unwrapAliasTypeOrSelf(sema.ctx());
         const TypeRef   concreteRightTypeRef = rightType.typeRef();
         if (rightType.isNull() || rightType.isNullable())
             return leftTypeRef;
@@ -242,8 +238,7 @@ namespace
             return Result::Continue;
 
         const TypeInfo& rawLeftType  = *nodeLeftView.type();
-        const TypeInfo* aliasType    = rawLeftType.unwrapAliasType(sema.ctx());
-        const TypeInfo& concreteType = aliasType ? *aliasType : rawLeftType;
+        const TypeInfo& concreteType = rawLeftType.unwrapAliasTypeOrSelf(sema.ctx());
         if (concreteType.isSupportsNullableQualifier())
             return Result::Continue;
 

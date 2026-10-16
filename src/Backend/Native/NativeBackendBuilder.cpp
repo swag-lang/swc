@@ -968,6 +968,26 @@ namespace
 
         return Result::Continue;
     }
+
+    // Writes the in-place addend of a data relocation. COFF REL32 measures from the end of the
+    // displacement while RIP refers to the end of the instruction: a folded memory comparison or a
+    // memory-immediate operation can have up to four bytes after the displacement, so they come off
+    // the addend instead of changing the relocation type. The JIT uses relativeEndOffset directly.
+    void patchDataRelocationAddend(NativeSectionRelocation& record, ByteArray& bytes, uint32_t patchOffset, const MicroRelocation& relocation)
+    {
+        if (relocation.form == MicroRelocation::Form::Relative32)
+        {
+            SWC_ASSERT(relocation.relativeEndOffset >= relocation.codeOffset + sizeof(uint32_t));
+            const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
+            SWC_ASSERT(trailingBytes <= 4);
+            record.addend -= trailingBytes;
+            record.type = IMAGE_REL_AMD64_REL32;
+            BinaryPatch::write<uint32_t>(bytes, patchOffset, static_cast<uint32_t>(record.addend));
+            return;
+        }
+
+        BinaryPatch::write<uint64_t>(bytes, patchOffset, record.addend);
+    }
 }
 
 NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const bool runArtifact) :
@@ -1296,20 +1316,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
                 record.addend     = allocation->emittedOffset + (sourceRef.offset - allocation->sourceOffset);
             }
 
-            if (relocation.form == MicroRelocation::Form::Relative32)
-            {
-                // RIP refers to the whole instruction's end. A folded memory
-                // comparison can place its immediate after the displacement.
-                SWC_ASSERT(relocation.relativeEndOffset >= relocation.codeOffset + sizeof(uint32_t));
-                const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
-                SWC_ASSERT(trailingBytes <= 4);
-                record.addend -= trailingBytes;
-                record.type = IMAGE_REL_AMD64_REL32;
-                BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
-                break;
-            }
-
-            BinaryPatch::write<uint64_t>(*target.bytes, patchOffset, record.addend);
+            patchDataRelocationAddend(record, *target.bytes, patchOffset, relocation);
             break;
         }
 
@@ -1320,22 +1327,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
             record.symbolName = isInit ? scopedSymbolNames().dataBase : scopedSymbolNames().bssBase;
             record.addend     = relocation.targetAddress;
 
-            if (relocation.form == MicroRelocation::Form::Relative32)
-            {
-                // COFF REL32 measures from the end of the displacement. A
-                // memory-immediate operation can have up to four bytes after it,
-                // so include those bytes in the in-place addend instead of its relocation
-                // type. The JIT uses relativeEndOffset directly.
-                SWC_ASSERT(relocation.relativeEndOffset >= relocation.codeOffset + sizeof(uint32_t));
-                const uint32_t trailingBytes = relocation.relativeEndOffset - relocation.codeOffset - sizeof(uint32_t);
-                SWC_ASSERT(trailingBytes <= 4);
-                record.addend -= trailingBytes;
-                record.type = IMAGE_REL_AMD64_REL32;
-                BinaryPatch::write<uint32_t>(*target.bytes, patchOffset, static_cast<uint32_t>(record.addend));
-                break;
-            }
-
-            BinaryPatch::write<uint64_t>(*target.bytes, patchOffset, record.addend);
+            patchDataRelocationAddend(record, *target.bytes, patchOffset, relocation);
             break;
         }
 

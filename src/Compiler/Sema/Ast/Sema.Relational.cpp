@@ -40,6 +40,17 @@ namespace
         return false;
     }
 
+    // Both operands are constant pointers; returns their addresses.
+    std::pair<uint64_t, uint64_t> constantPointerAddresses(const SemaNodeView& leftView, const SemaNodeView& rightView)
+    {
+        uint64_t   leftAddress     = 0;
+        uint64_t   rightAddress    = 0;
+        const bool hasLeftAddress  = constantPointerAddress(leftAddress, *leftView.cst());
+        const bool hasRightAddress = constantPointerAddress(rightAddress, *rightView.cst());
+        SWC_ASSERT(hasLeftAddress && hasRightAddress);
+        return {leftAddress, rightAddress};
+    }
+
     // Two 'typeinfo' values name the same type when their runtime hashes match. That hash is what
     // the generated code compares — reflection exports it as 'TypeInfo.crc', and both
     // 'CodeGenCompareHelpers::emitTypeInfoEqualJump' and 'Swag.typeCmp' answer from it — so folding the
@@ -249,11 +260,7 @@ namespace
 
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
-            uint64_t   leftAddress     = 0;
-            uint64_t   rightAddress    = 0;
-            const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
-            const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
-            SWC_ASSERT(hasLeftAddress && hasRightAddress);
+            const auto [leftAddress, rightAddress] = constantPointerAddresses(compareLeftView, compareRightView);
             result = sema.cstMgr().cstBool(leftAddress == rightAddress);
             return Result::Continue;
         }
@@ -301,11 +308,7 @@ namespace
         const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
-            uint64_t   leftAddress     = 0;
-            uint64_t   rightAddress    = 0;
-            const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
-            const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
-            SWC_ASSERT(hasLeftAddress && hasRightAddress);
+            const auto [leftAddress, rightAddress] = constantPointerAddresses(compareLeftView, compareRightView);
 
             bool cmpResult = false;
             switch (op)
@@ -377,11 +380,7 @@ namespace
         const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
-            uint64_t   leftAddress     = 0;
-            uint64_t   rightAddress    = 0;
-            const bool hasLeftAddress  = constantPointerAddress(leftAddress, *compareLeftView.cst());
-            const bool hasRightAddress = constantPointerAddress(rightAddress, *compareRightView.cst());
-            SWC_ASSERT(hasLeftAddress && hasRightAddress);
+            const auto [leftAddress, rightAddress] = constantPointerAddresses(compareLeftView, compareRightView);
             const int compareResult = leftAddress < rightAddress ? -1 : leftAddress > rightAddress ? 1
                                                                                                    : 0;
             result                  = sema.cstMgr().cstS32(compareResult);

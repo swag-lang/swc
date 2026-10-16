@@ -816,6 +816,22 @@ namespace
         return Result::Continue;
     }
 
+    // Without a snapshot handed over, captures the API sources of 'sourceDir' into 'outCaptured'
+    // and points 'ioSnapshot' at them.
+    Result captureMissingApiSnapshot(TaskContext& ctx, const std::vector<ModuleApi::SourceSnapshot>*& ioSnapshot, std::vector<ModuleApi::SourceSnapshot>& outCaptured, const fs::path& sourceDir)
+    {
+        if (ioSnapshot)
+            return Result::Continue;
+
+        ModuleApi::DirectoryAccess access;
+        Utf8                       because;
+        if (access.openRead(because, sourceDir) != Result::Continue)
+            return reportWorkspaceDependencySyncFailure(ctx, sourceDir, because);
+        SWC_RESULT(captureModuleApiSources(ctx, outCaptured, sourceDir));
+        ioSnapshot = &outCaptured;
+        return Result::Continue;
+    }
+
     fs::path dependencyImportMetadataPath(const fs::path& apiDir)
     {
         return (apiDir / ".swc-deps").lexically_normal();
@@ -2558,15 +2574,7 @@ Result DependencyPlanBuilder::mirrorWorkspaceDependencyDir(fs::path& ioDir, cons
     if (mirroredDependencyDirs.insert(mirrorKey).second)
     {
         std::vector<ModuleApi::SourceSnapshot> capturedApi;
-        if (!apiSnapshot)
-        {
-            ModuleApi::DirectoryAccess access;
-            Utf8                       because;
-            if (access.openRead(because, normalizedSourceDir) != Result::Continue)
-                return reportWorkspaceDependencySyncFailure(taskCtx(), normalizedSourceDir, because);
-            SWC_RESULT(captureModuleApiSources(taskCtx(), capturedApi, normalizedSourceDir));
-            apiSnapshot = &capturedApi;
-        }
+        SWC_RESULT(captureMissingApiSnapshot(taskCtx(), apiSnapshot, capturedApi, normalizedSourceDir));
 
         ModuleApi::DirectoryAccess publication;
         Utf8                       because;
@@ -2615,15 +2623,7 @@ Result DependencyPlanBuilder::mirrorScriptDependencyDir(fs::path& ioDir, const f
     SWC_RESULT(resolveDependencyMirrorRelativePath(relativePath, taskCtx(), normalizedSourceDir, FileSystem::normalizePath(sourceDependencyRoot)));
 
     std::vector<ModuleApi::SourceSnapshot> capturedApi;
-    if (!apiSnapshot)
-    {
-        ModuleApi::DirectoryAccess access;
-        Utf8                       because;
-        if (access.openRead(because, normalizedSourceDir) != Result::Continue)
-            return reportWorkspaceDependencySyncFailure(taskCtx(), normalizedSourceDir, because);
-        SWC_RESULT(captureModuleApiSources(taskCtx(), capturedApi, normalizedSourceDir));
-        apiSnapshot = &capturedApi;
-    }
+    SWC_RESULT(captureMissingApiSnapshot(taskCtx(), apiSnapshot, capturedApi, normalizedSourceDir));
 
     fs::path mirroredDir;
     SWC_RESULT(resolveDependencyCacheEntry(mirroredDir, taskCtx(), normalizedSourceDir, relativePath, apiSnapshot));
@@ -4155,13 +4155,18 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         files.push_back(file);
     }
 
-    if (files.empty())
-    {
+    // What the setup leaves behind: the build configuration, owning its strings, and what it imported and read.
+    const auto captureSnapshot = [&] {
         outSnapshot.buildCfg           = setupCompiler.buildCfg();
         outSnapshot.imports            = setupCompiler.moduleSetupImports();
         outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
         outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+    };
+
+    if (files.empty())
+    {
+        captureSnapshot();
         return Result::Continue;
     }
 
@@ -4216,11 +4221,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         SWC_RESULT(setupCompiler.collectModuleSetupLoadedFiles(setupCtx, semaDone, files));
     }
 
-    outSnapshot.buildCfg           = setupCompiler.buildCfg();
-    outSnapshot.imports            = setupCompiler.moduleSetupImports();
-    outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
-    outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
-    ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+    captureSnapshot();
     return Result::Continue;
 }
 

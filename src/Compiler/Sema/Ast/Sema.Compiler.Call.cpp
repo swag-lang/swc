@@ -1460,17 +1460,26 @@ namespace
         return Result::Continue;
     }
 
+    // Reads the string constant 'nodeRef' holds; raises when its constant has another type.
+    Result stringConstant(Sema& sema, AstNodeRef nodeRef, std::string_view& outStr)
+    {
+        const SemaNodeView view = sema.viewConstant(nodeRef);
+        SWC_ASSERT(view.cst());
+        if (!view.cst()->isString())
+            return SemaError::raiseInvalidType(sema, nodeRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+
+        outStr = view.cst()->getString();
+        return Result::Continue;
+    }
+
     Result semaCompilerForeignLib(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
         SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 
-        const SemaNodeView view = sema.viewConstant(childRef);
-        SWC_ASSERT(view.cst());
-        if (!view.cst()->isString())
-            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
-
-        sema.compiler().registerForeignLib(view.cst()->getString());
+        std::string_view libName;
+        SWC_RESULT(stringConstant(sema, childRef, libName));
+        sema.compiler().registerForeignLib(libName);
         return Result::Continue;
     }
 
@@ -1481,13 +1490,7 @@ namespace
         SWC_RESULT(SemaCheck::isConstant(sema, nodeRef));
         SWC_RESULT(requireCompilerTagConstExpr(sema, nodeRef));
 
-        const SemaNodeView view = sema.viewConstant(nodeRef);
-        SWC_ASSERT(view.cst());
-        if (!view.cst()->isString())
-            return SemaError::raiseInvalidType(sema, nodeRef, view.cst()->typeRef(), sema.typeMgr().typeString());
-
-        outName = view.cst()->getString();
-        return Result::Continue;
+        return stringConstant(sema, nodeRef, outName);
     }
 
     Result resolveCompilerTagRequestedType(Sema& sema, AstNodeRef nodeRef, TypeRef& outTypeRef)
@@ -1565,14 +1568,12 @@ namespace
         const AstNodeRef   childRef = node.nodeArgRef;
         SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 
-        const SemaNodeView view = sema.viewConstant(childRef);
-        SWC_ASSERT(view.cst());
-        if (!view.cst()->isString())
-            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+        std::string_view includePath;
+        SWC_RESULT(stringConstant(sema, childRef, includePath));
 
         fs::path  resolvedPath;
         ByteArray bytes;
-        SWC_RESULT(resolveCompilerIncludePath(sema, childRef, view.cst()->getString(), resolvedPath));
+        SWC_RESULT(resolveCompilerIncludePath(sema, childRef, includePath, resolvedPath));
         SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
         sema.compiler().registerCompilerInputFile(resolvedPath);
 
@@ -1590,13 +1591,11 @@ namespace
         const AstNodeRef childRef = node.nodeArgRef;
         SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 
-        const SemaNodeView view = sema.viewConstant(childRef);
-        SWC_ASSERT(view.cst());
-        if (!view.cst()->isString())
-            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+        std::string_view loadPath;
+        SWC_RESULT(stringConstant(sema, childRef, loadPath));
 
         fs::path resolvedPath;
-        SWC_RESULT(resolveCompilerIncludePath(sema, childRef, view.cst()->getString(), resolvedPath));
+        SWC_RESULT(resolveCompilerIncludePath(sema, childRef, loadPath, resolvedPath));
         return sema.compiler().registerModuleSetupLoad(resolvedPath);
     }
 
@@ -1606,13 +1605,10 @@ namespace
         const AstNodeRef childRef = node.nodeArgRef;
         SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 
-        const SemaNodeView view = sema.viewConstant(childRef);
-        SWC_ASSERT(view.cst());
-        if (!view.cst()->isString())
-            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+        std::string_view str;
+        SWC_RESULT(stringConstant(sema, childRef, str));
 
-        const std::string_view str = view.cst()->getString();
-        std::vector<char32_t>  runes;
+        std::vector<char32_t> runes;
         runes.reserve(str.size());
 
         const auto* cur = reinterpret_cast<const char8_t*>(str.data());

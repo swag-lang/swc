@@ -131,6 +131,7 @@ private:
     void          enqueueWorker();
     void          executePendingWorker();
     void          publishExecutionResult(Item& item, Result result);
+    void          runClaimedItem(Item& item);
     void          notifyCompletion(const TaskContext* owner);
     Item*         popPendingLocked();
 

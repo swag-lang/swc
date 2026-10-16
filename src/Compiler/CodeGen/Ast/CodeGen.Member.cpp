@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
@@ -196,7 +197,7 @@ namespace
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         const CodeGenNodePayload& leftPayload        = codeGen.payload(node.nodeLeftRef);
-        const TypeRef             preOverrideTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(node.nodeLeftRef).typeRef();
+        const TypeRef             preOverrideTypeRef = CodeGenExprView::payloadTypeRef(codeGen, leftPayload, node.nodeLeftRef);
         const SemaNodeView        rightView          = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*             rightSym           = rightView.sym();
         if (!rightSym)
@@ -296,7 +297,7 @@ namespace
     Result codeGenAggregateStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
-        const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(node.nodeLeftRef).typeRef();
+        const TypeRef             leftTypeRef = CodeGenExprView::payloadTypeRef(codeGen, leftPayload, node.nodeLeftRef);
         SWC_ASSERT(leftTypeRef.isValid());
         const TypeInfo& leftType      = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), leftTypeRef);
         const TypeInfo* aggregateType = resolveAggregateMemberOwnerType(codeGen, leftType);
@@ -448,7 +449,7 @@ Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     SWC_ASSERT(chainState != nullptr && chainState->falseLabel.isValid());
 
     const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedLeftRef);
-    const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(resolvedLeftRef).typeRef();
+    const TypeRef             leftTypeRef = CodeGenExprView::payloadTypeRef(codeGen, leftPayload, resolvedLeftRef);
     const ScopedDebugSource   debugSource(codeGen.builder(), leftPayload.sourceCodeRef);
     CodeGenCompareHelpers::emitConditionFalseJump(codeGen, leftPayload, leftTypeRef, chainState->falseLabel);
     return Result::Continue;

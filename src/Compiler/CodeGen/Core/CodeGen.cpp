@@ -330,8 +330,7 @@ namespace
             return false;
 
         const TypeInfo& originalType  = codeGen.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = originalType.unwrapAliasType(codeGen.ctx());
-        const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : originalType;
+        const TypeInfo& typeInfo      = originalType.unwrapAliasTypeOrSelf(codeGen.ctx());
         if (typeInfo.isArray())
         {
             const uint64_t multiplier = typeInfo.arrayTotalElementCount();

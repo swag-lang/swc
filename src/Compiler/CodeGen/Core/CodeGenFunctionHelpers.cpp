@@ -1063,8 +1063,7 @@ Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeR
 
 Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg)
 {
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasType(codeGen.ctx());
-    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& typeInfo = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
     if (!typeInfo.isStruct())
         return Result::Continue;
 
@@ -1117,8 +1116,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
     if (count == 1)
         return emitStructDefaultValue(codeGen, declaredType, dstAddressReg);
 
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasType(codeGen.ctx());
-    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& typeInfo = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
     if (!typeInfo.isStruct())
         return Result::Continue;
 
@@ -1157,8 +1155,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
 
 Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg, MicroReg countReg)
 {
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasType(codeGen.ctx());
-    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& typeInfo = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
     if (!typeInfo.isStruct())
         return Result::Continue;
 
@@ -1180,8 +1177,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
         return Result::Continue;
 
     const TypeInfo& declaredType  = codeGen.typeMgr().get(typeRef);
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasType(codeGen.ctx());
-    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& typeInfo      = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
     if (typeInfo.isStruct())
         return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, count);
     if (count == 1)
@@ -1217,8 +1213,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
 Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, const MicroReg dstAddressReg, const MicroReg countReg)
 {
     const TypeInfo& declaredType  = codeGen.typeMgr().get(typeRef);
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasType(codeGen.ctx());
-    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& typeInfo      = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
     if (typeInfo.isStruct())
         return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, countReg);
 

@@ -539,9 +539,10 @@ namespace
         return prefixCount;
     }
 
-    bool tryGetSwagLayoutAttributeValue(uint32_t& outValue, TaskContext& ctx, std::span<const AttributeInstance> attributes, const std::string_view attrName)
+    // The first constant parameter of a 'Swag' attribute named 'attrName' that 'accepts' takes.
+    template<typename F>
+    const ConstantValue* findSwagAttributeParam(TaskContext& ctx, std::span<const AttributeInstance> attributes, const std::string_view attrName, F&& accepts)
     {
-        outValue = 0;
         for (const AttributeInstance& attribute : attributes)
         {
             if (!isSwagAttribute(ctx, attribute, attrName))
@@ -553,40 +554,26 @@ namespace
                     continue;
 
                 const ConstantValue& cst = ctx.cstMgr().get(param.valueCstRef);
-                if (!cst.isInt())
-                    continue;
-
-                outValue = static_cast<uint32_t>(cst.getInt().as64());
-                return true;
+                if (accepts(cst))
+                    return &cst;
             }
         }
 
-        return false;
+        return nullptr;
+    }
+
+    bool tryGetSwagLayoutAttributeValue(uint32_t& outValue, TaskContext& ctx, std::span<const AttributeInstance> attributes, const std::string_view attrName)
+    {
+        const ConstantValue* cst = findSwagAttributeParam(ctx, attributes, attrName, [](const ConstantValue& value) { return value.isInt(); });
+        outValue                 = cst ? static_cast<uint32_t>(cst->getInt().as64()) : 0;
+        return cst != nullptr;
     }
 
     bool tryGetFieldOffsetAttributeValue(std::string_view& outValue, TaskContext& ctx, std::span<const AttributeInstance> attributes)
     {
-        outValue = {};
-        for (const AttributeInstance& attribute : attributes)
-        {
-            if (!isSwagAttribute(ctx, attribute, "Offset"))
-                continue;
-
-            for (const AttributeParamInstance& param : attribute.params)
-            {
-                if (!param.valueCstRef.isValid())
-                    continue;
-
-                const ConstantValue& cst = ctx.cstMgr().get(param.valueCstRef);
-                if (!cst.isString())
-                    continue;
-
-                outValue = cst.getString();
-                return true;
-            }
-        }
-
-        return false;
+        const ConstantValue* cst = findSwagAttributeParam(ctx, attributes, "Offset", [](const ConstantValue& value) { return value.isString(); });
+        outValue                 = cst ? cst->getString() : std::string_view{};
+        return cst != nullptr;
     }
 
     const SymbolVariable* findOffsetTargetField(const TaskContext& ctx, const SymbolStruct& owner, const SymbolVariable& field, std::string_view targetName)

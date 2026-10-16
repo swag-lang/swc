@@ -173,32 +173,30 @@ AstNodeRef Parser::parseVarDecl()
         if (tokAssign.isValid())
             nodeInit = parseInitializerExpression(tokAssign);
 
-        if (tokNames.size() == 1)
-        {
-            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SingleVarDecl>(tokStart);
-            nodePtr->flags()        = flags;
-            nodePtr->storageFlags   = storageFlags;
+        // What a single and a multiple declaration share, everything but their names.
+        const auto setDeclCommon = [&](auto* nodePtr) {
+            nodePtr->flags()      = flags;
+            nodePtr->storageFlags = storageFlags;
             if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
                 nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
-            nodePtr->tokNameRef  = tokNames[0];
             nodePtr->nodeTypeRef = nodeType;
             nodePtr->nodeInitRef = nodeInit;
+        };
+
+        if (tokNames.size() == 1)
+        {
+            auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SingleVarDecl>(tokStart);
+            setDeclCommon(nodePtr);
+            nodePtr->tokNameRef = tokNames[0];
             vars.push_back(nodeRef);
         }
         else
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::MultiVarDecl>(tokStart);
-            nodePtr->flags()        = flags;
-            nodePtr->storageFlags   = storageFlags;
-            if (hasContextFlag(ParserContextFlagsE::InFunctionParam))
-                nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
-            if (fwdCopyParam)
-                nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
+            setDeclCommon(nodePtr);
             nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
-            nodePtr->nodeTypeRef  = nodeType;
-            nodePtr->nodeInitRef  = nodeInit;
             vars.push_back(nodeRef);
         }
 

@@ -89,7 +89,8 @@ namespace
         }
     }
 
-    void appendDigitsRegrouped(Utf8& out, const std::string_view digits, const uint32_t groupSize, const FormatLiteralCase digitCase)
+    // The digits without their '_' separators, in the requested case.
+    std::string cleanedDigits(const std::string_view digits, const FormatLiteralCase digitCase)
     {
         std::string cleaned;
         cleaned.reserve(digits.size());
@@ -98,18 +99,17 @@ namespace
             if (c != '_')
                 cleaned += applyLiteralCase(c, digitCase);
         }
-        appendRegrouped(out, cleaned, groupSize);
+        return cleaned;
+    }
+
+    void appendDigitsRegrouped(Utf8& out, const std::string_view digits, const uint32_t groupSize, const FormatLiteralCase digitCase)
+    {
+        appendRegrouped(out, cleanedDigits(digits, digitCase), groupSize);
     }
 
     void appendDigitsRegroupedFromStart(Utf8& out, const std::string_view digits, const uint32_t groupSize, const FormatLiteralCase digitCase)
     {
-        std::string cleaned;
-        cleaned.reserve(digits.size());
-        for (const char c : digits)
-        {
-            if (c != '_')
-                cleaned += applyLiteralCase(c, digitCase);
-        }
+        const std::string cleaned = cleanedDigits(digits, digitCase);
 
         if (groupSize == 0 || cleaned.size() <= groupSize)
         {

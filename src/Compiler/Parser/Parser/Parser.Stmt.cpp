@@ -253,6 +253,15 @@ AstNodeRef Parser::parseDefer()
 
 AstNodeRef Parser::parseIf()
 {
+    // What fills the else slot: a block, another if node for 'else if', or nothing.
+    const auto parseElseBranch = [&]() -> AstNodeRef {
+        if (is(TokenId::KwdElseIf))
+            return parseIf();
+        if (consumeIf(TokenId::KwdElse).isValid())
+            return parseDoCurlyBlock();
+        return AstNodeRef::invalid();
+    };
+
     if (nextIsAny(TokenId::KwdVar, TokenId::KwdLet, TokenId::KwdConst))
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IfVarDecl>(consume());
@@ -268,12 +277,7 @@ AstNodeRef Parser::parseIf()
         // Later passes can therefore treat chained and manually nested conditionals
         // with the same traversal code.
         nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
-        if (is(TokenId::KwdElseIf))
-            nodePtr->nodeElseBlockRef = parseIf();
-        else if (consumeIf(TokenId::KwdElse).isValid())
-            nodePtr->nodeElseBlockRef = parseDoCurlyBlock();
-        else
-            nodePtr->nodeElseBlockRef.setInvalid();
+        nodePtr->nodeElseBlockRef = parseElseBranch();
 
         return nodeRef;
     }
@@ -299,24 +303,14 @@ AstNodeRef Parser::parseIf()
         binding->nodeVarRef        = declRef;
         binding->nodeWhereRef      = consumeIf(TokenId::KwdWhere).isValid() ? parseExpression() : AstNodeRef::invalid();
         binding->nodeIfBlockRef    = parseDoCurlyBlock();
-        if (is(TokenId::KwdElseIf))
-            binding->nodeElseBlockRef = parseIf();
-        else if (consumeIf(TokenId::KwdElse).isValid())
-            binding->nodeElseBlockRef = parseDoCurlyBlock();
-        else
-            binding->nodeElseBlockRef.setInvalid();
+        binding->nodeElseBlockRef  = parseElseBranch();
         return bindingRef;
     }
 
     nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
     // Same chained-conditional shape as 'if var': the else branch either owns a
     // block or another IfStmt node.
-    if (is(TokenId::KwdElseIf))
-        nodePtr->nodeElseBlockRef = parseIf();
-    else if (consumeIf(TokenId::KwdElse).isValid())
-        nodePtr->nodeElseBlockRef = parseDoCurlyBlock();
-    else
-        nodePtr->nodeElseBlockRef.setInvalid();
+    nodePtr->nodeElseBlockRef = parseElseBranch();
 
     return nodeRef;
 }

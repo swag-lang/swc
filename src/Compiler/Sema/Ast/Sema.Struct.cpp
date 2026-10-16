@@ -57,6 +57,15 @@ namespace
         return Result::Continue;
     }
 
+    // Drops the ignored fields of an aggregate, then lays out the remaining ones.
+    Result layoutAggregateFields(Sema& sema, SymbolStruct& sym)
+    {
+        sym.removeIgnoredFields();
+        SWC_RESULT(sym.canBeCompleted(sema));
+        SWC_RESULT(sym.computeLayout(sema.ctx()));
+        return checkDynamicFieldLayout(sema, sym);
+    }
+
     void bindSpecializedStructInitializerTarget(Sema& sema, AstNodeRef nodeWhatRef, SymbolStruct& instance, TypeRef specializedTypeRef)
     {
         sema.setSymbol(nodeWhatRef, &instance);
@@ -161,10 +170,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         return SemaSpecOp::ensureGeneratedOperators(sema, sym);
     }
 
-    sym.removeIgnoredFields();
-    SWC_RESULT(sym.canBeCompleted(sema));
-    SWC_RESULT(sym.computeLayout(sema.ctx()));
-    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
+    SWC_RESULT(layoutAggregateFields(sema, sym));
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -213,10 +219,7 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
     if (sym.isGenericRoot() && !sym.isGenericInstance())
         return Result::Continue;
 
-    sym.removeIgnoredFields();
-    SWC_RESULT(sym.canBeCompleted(sema));
-    SWC_RESULT(sym.computeLayout(sema.ctx()));
-    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
+    SWC_RESULT(layoutAggregateFields(sema, sym));
 
     if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
@@ -253,10 +256,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
 
-    sym.removeIgnoredFields();
-    SWC_RESULT(sym.canBeCompleted(sema));
-    SWC_RESULT(sym.computeLayout(sema.ctx()));
-    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
+    SWC_RESULT(layoutAggregateFields(sema, sym));
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -290,10 +290,7 @@ Result AstAnonymousUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& chi
 Result AstAnonymousUnionDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
-    sym.removeIgnoredFields();
-    SWC_RESULT(sym.canBeCompleted(sema));
-    SWC_RESULT(sym.computeLayout(sema.ctx()));
-    SWC_RESULT(checkDynamicFieldLayout(sema, sym));
+    SWC_RESULT(layoutAggregateFields(sema, sym));
     sym.setSemaCompleted(sema.ctx());
     // As with anonymous structs, replay must reuse the owner of the field symbols.
     return Result::Continue;

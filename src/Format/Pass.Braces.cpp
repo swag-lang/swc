@@ -877,15 +877,15 @@ namespace
         }
     }
 
-    // Storage modifiers govern the declaration that follows them. Keep that relationship
-    // visible on one line (`late field: T`, `tls private var value`) while preserving a
-    // braced group as its own section.
-    void normalizeStorageModifiers(FormatModel& model)
+    // Pulls the declaration that follows each modifier 'isModifier' accepts up onto the modifier's
+    // line, unless it opens a braced group.
+    template<typename F>
+    void joinModifiersToNextLine(FormatModel& model, F&& isModifier)
     {
         for (uint32_t i = 0; i < model.numPieces(); ++i)
         {
             const FormatPiece& modifier = model.piece(i);
-            if (modifier.removed || modifier.frozen || !Token::isStorageModifier(modifier.id))
+            if (modifier.removed || modifier.frozen || !isModifier(modifier))
                 continue;
 
             const uint32_t next = model.nextPiece(i);
@@ -897,6 +897,14 @@ namespace
         }
     }
 
+    // Storage modifiers govern the declaration that follows them. Keep that relationship
+    // visible on one line (`late field: T`, `tls private var value`) while preserving a
+    // braced group as its own section.
+    void normalizeStorageModifiers(FormatModel& model)
+    {
+        joinModifiersToNextLine(model, [](const FormatPiece& modifier) { return Token::isStorageModifier(modifier.id); });
+    }
+
     // An unbraced access modifier governs exactly one declaration. Keeping the
     // two on one line makes that scope visible and leaves braced access groups
     // as the only section-shaped form.
@@ -905,19 +913,7 @@ namespace
         if (!model.options().inlineAccessModifiers.value_or(false))
             return;
 
-        for (uint32_t i = 0; i < model.numPieces(); ++i)
-        {
-            const FormatPiece& modifier = model.piece(i);
-            if (modifier.removed || modifier.frozen || !modifier.hasRole(FormatRoleE::AccessModifier))
-                continue;
-
-            const uint32_t next = model.nextPiece(i);
-            if (next == INVALID_PIECE || model.piece(next).isComment || model.piece(next).is(TokenId::SymLeftCurly) ||
-                !model.gapHasNewline(next) || !FormatPassUtil::canEditGap(model, next))
-                continue;
-
-            model.setGapSpaces(next, 1);
-        }
+        joinModifiersToNextLine(model, [](const FormatPiece& modifier) { return modifier.hasRole(FormatRoleE::AccessModifier); });
     }
 
     // `;` before an end of line is redundant. Same-line separators stay.

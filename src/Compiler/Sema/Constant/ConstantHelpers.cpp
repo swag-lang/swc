@@ -118,7 +118,7 @@ namespace
 
         if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure()))
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
-        else if (storageType.isArray() || storageType.isSimd())
+        else if (storageType.isArrayOrSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
         else
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
@@ -498,7 +498,7 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     // Mirror makeMaterializedConstantValue's kind decision. Only the array/struct branches build a
     // borrowed span constant; the scalar branch takes a different code path.
     ConstantKind kind;
-    if (storageType.isArray() || storageType.isSimd())
+    if (storageType.isArrayOrSimd())
         kind = ConstantKind::Array;
     else if (storageType.isNumericIntLike() || storageType.isFloat() || storageType.isPointerOrReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
         return 0;

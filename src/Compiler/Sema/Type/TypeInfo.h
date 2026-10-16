@@ -177,6 +177,7 @@ public:
     bool isStructOrArray() const noexcept { return isStruct() || isArray(); }
     bool hasDirectPayloadTypeRef() const noexcept { return isTypeValue() || isPointerOrReference() || isSlice() || isTypedVariadic() || isCodeBlock(); }
     bool isArrayOrSlice() const noexcept { return isArray() || isSlice(); }
+    bool isArrayOrSimd() const noexcept { return isArray() || isSimd(); }
     bool isIndirectIndexable() const noexcept { return isPointerOrReference() || isSlice() || isTypedVariadic(); }
     bool isIndexable() const noexcept { return isArrayOrSlice() || isString() || isCString() || isAnyVariadic(); }
     bool isSimd() const noexcept { return kind_ == TypeInfoKind::Simd; }

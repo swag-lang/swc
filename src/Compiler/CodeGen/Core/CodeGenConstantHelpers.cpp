@@ -24,7 +24,7 @@ namespace
         const TypeRef storageTypeRef = storageType.typeRef();
         ConstantValue result;
 
-        if (storageType.isArray() || storageType.isSimd())
+        if (storageType.isArrayOrSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
         else if (storageType.isNumericIntLike() || storageType.isFloat() || storageType.isPointerOrReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);

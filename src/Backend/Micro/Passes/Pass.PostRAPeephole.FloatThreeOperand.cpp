@@ -901,7 +901,7 @@ namespace PostRaPeephole
         {
             const auto* shift = ctx.operandsFor(shiftRef);
             if (shiftBits + getNumBits(narrow[3].opBits) > getNumBits(shift[1].opBits) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, extRef, ctx.builder))
+                !ctx.areCpuFlagsDeadAfter(extRef))
                 return false;
         }
         if (narrow[0].reg != load[0].reg && !ctx.isRegDeadAfter(load[0].reg, extIndex))
@@ -1652,7 +1652,7 @@ namespace PostRaPeephole
         if (!rotOps || (rotOps[2].microOp != MicroOp::RotateRight && rotOps[2].microOp != MicroOp::RotateLeft) ||
             rotOps[1].opBits != copyBits || rotOps[3].hasWideImmediateValue())
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(opRef))
             return false;
         if (!ctx.claimAll({copyRef, opRef}))
             return false;
@@ -1724,7 +1724,7 @@ namespace PostRaPeephole
             return false;
         if (narrow && !zextRef.isValid() && andBits != MicroOpBits::B32)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, nextRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(nextRef))
             return false;
 
         // The copy that put the complemented value in place, when its source survives it.

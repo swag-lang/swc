@@ -378,6 +378,8 @@ namespace
         thread_local std::vector<MicroReg>  slotDefReg;
         thread_local std::vector<uint8_t>   slotIsFullDef;
         thread_local std::vector<uint8_t>   slotIsCompute;
+        // Whether a flag reader follows the slot: 0 not asked yet, 1 none, 2 one.
+        thread_local std::vector<uint8_t> slotFlagsDead;
         claimed.clear();
         plans.clear();
 
@@ -624,11 +626,31 @@ namespace
                 std::vector<uint32_t> defSlots; // ascending
                 bool                  chainOk = true;
             };
-            thread_local std::unordered_map<MicroReg, RegWeb> websByReg;
-            websByReg.clear();
+            // The webs of every loop on this worker share one table: a register finds its web
+            // through a flat index, and a web's slot list keeps its capacity for the next loop.
+            thread_local std::vector<RegWeb>  webs;
+            thread_local FlatKeyMap<uint32_t> webIndexByReg;
+            uint32_t                          webCount = 0;
+            webIndexByReg.clear();
+            const auto webFor = [&](const MicroReg reg) -> RegWeb& {
+                if (const uint32_t* index = webIndexByReg.find(reg.packed))
+                    return webs[*index];
+                webIndexByReg.emplace(reg.packed, webCount);
+                if (webCount == webs.size())
+                    webs.emplace_back();
+                RegWeb& web = webs[webCount++];
+                web.defSlots.clear();
+                web.chainOk = true;
+                return web;
+            };
+            const auto findWeb = [&](const MicroReg reg) -> const RegWeb* {
+                const uint32_t* index = webIndexByReg.find(reg.packed);
+                return index ? &webs[*index] : nullptr;
+            };
             slotDefReg.resize(n);
             slotIsFullDef.resize(n);
             slotIsCompute.resize(n);
+            slotFlagsDead.resize(n);
             // Only body slots are read below; the other entries can keep their
             // values from an earlier loop or function.
             for (const uint32_t i : bodyIndices)
@@ -636,6 +658,7 @@ namespace
                 slotDefReg[i]    = MicroReg::invalid();
                 slotIsFullDef[i] = 0;
                 slotIsCompute[i] = 0;
+                slotFlagsDead[i] = 0;
                 if (i == header)
                     continue;
                 const MicroInstr*       inst   = storage.ptr(instrRefs[i]);
@@ -647,12 +670,12 @@ namespace
                 {
                     for (const MicroReg def : useDef->defs)
                         if (def.isVirtual())
-                            websByReg[def].chainOk = false;
+                            webFor(def).chainOk = false;
                     continue;
                 }
 
                 const MicroReg destReg = useDef->defs[0];
-                RegWeb&        web     = websByReg[destReg];
+                RegWeb&        web     = webFor(destReg);
 
                 // A definition that reads its own destination continues the
                 // web whatever its opcode: a two-address arithmetic op, or an
@@ -684,13 +707,13 @@ namespace
             constexpr size_t K_MAX_WEB_DEFS = 32;
 
             const auto eligibleWeb = [&](const MicroReg reg) -> const RegWeb* {
-                const auto it = websByReg.find(reg);
-                if (it == websByReg.end() || !it->second.chainOk)
+                const RegWeb* web = findWeb(reg);
+                if (!web || !web->chainOk)
                     return nullptr;
-                if (it->second.defSlots.size() > K_MAX_WEB_DEFS)
+                if (web->defSlots.size() > K_MAX_WEB_DEFS)
                     return nullptr;
                 const RegDefinitionSummary* dc = definitions.find(reg.packed);
-                return dc && dc->count == it->second.defSlots.size() ? &it->second : nullptr;
+                return dc && dc->count == web->defSlots.size() ? web : nullptr;
             };
 
             FlatKeySet              hoistSet;
@@ -710,6 +733,15 @@ namespace
                         return false;
                 }
                 return true;
+            };
+
+            // The acceptance below reruns until it stops growing, and again after each ban,
+            // asking every flag-writing candidate whether a reader follows it. Nothing is
+            // rewritten before the hoist, so each slot scans its suffix once.
+            const auto flagsDeadAfterSlot = [&](const uint32_t slot) {
+                if (!slotFlagsDead[slot])
+                    slotFlagsDead[slot] = MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instrRefs[slot], context.builder) ? 1 : 2;
+                return slotFlagsDead[slot] == 1;
             };
 
             const auto runAcceptance = [&]() {
@@ -761,7 +793,7 @@ namespace
                         if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::DefinesCpuFlags) &&
                             MicroPassHelpers::instructionActuallyDefinesCpuFlags(
                                 *inst, MicroPassHelpers::instructionCpuFlagsDependOnOperands(*inst) ? inst->ops(operands) : nullptr) &&
-                            (!preheaderFlagsDead || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref, context.builder)))
+                            (!preheaderFlagsDead || !flagsDeadAfterSlot(i)))
                             continue;
 
                         // A multi-def web is only the value sequence its listing
@@ -1039,10 +1071,10 @@ namespace
                         const MicroInstrUseDef* ud = &useDefs[i];
 
                         const auto pullWeb = [&](const MicroReg reg) {
-                            const auto webIt = websByReg.find(reg);
-                            if (webIt == websByReg.end())
+                            const RegWeb* web = findWeb(reg);
+                            if (!web)
                                 return;
-                            for (const uint32_t defSlot : webIt->second.defSlots)
+                            for (const uint32_t defSlot : web->defSlots)
                             {
                                 if (hoistSet.contains(defSlot) && keep.insert(defSlot))
                                     worklist.push_back(defSlot);
@@ -1058,14 +1090,22 @@ namespace
                     hoistSet = std::move(keep);
                 }
 
-                SmallVector<MicroReg>                  violations;
-                std::unordered_map<MicroReg, uint32_t> keptDefsOf;
+                // Violations only feed the banned set, so the registers are read in the order
+                // their first definition was hoisted.
+                SmallVector<MicroReg>             violations;
+                SmallVector<MicroReg>             keptRegs;
+                thread_local FlatKeyMap<uint32_t> keptDefsOf;
+                keptDefsOf.clear();
                 for (const uint32_t i : hoistOrder)
-                    ++keptDefsOf[slotDefReg[i]];
-                for (const auto& [reg, count] : keptDefsOf)
                 {
-                    const auto webIt = websByReg.find(reg);
-                    if (webIt == websByReg.end() || count != webIt->second.defSlots.size())
+                    if (keptDefsOf.getOrInsert(slotDefReg[i].packed)++ == 0)
+                        keptRegs.push_back(slotDefReg[i]);
+                }
+                for (const MicroReg reg : keptRegs)
+                {
+                    const uint32_t count = *keptDefsOf.find(reg.packed);
+                    const RegWeb*  web   = findWeb(reg);
+                    if (!web || count != web->defSlots.size())
                     {
                         violations.push_back(reg);
                         continue;
@@ -1075,7 +1115,7 @@ namespace
                     // between defs would see an intermediate, and a read before
                     // the first def saw the previous iteration's value on entry
                     // paths this transform cannot audit. Both kinds ban the web.
-                    const auto& defSlots = webIt->second.defSlots;
+                    const auto& defSlots = web->defSlots;
                     if (defSlots.size() <= 1)
                         continue;
                     const uint32_t firstDef = defSlots.front();

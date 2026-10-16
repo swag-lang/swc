@@ -34,25 +34,17 @@ bool Ast::hasSpan(SpanRef spanRef) const
     return shards_[shard].store.containsRef(localRef);
 }
 
-void Ast::recordParsedNodeBoundary(AstNodeRef nodeRef)
-{
-    const uint32_t globalRef = nodeRef.get();
-    const uint32_t shard     = refShard(globalRef);
-    const uint32_t local     = refLocal(globalRef);
-    SWC_ASSERT(shard < SHARD_COUNT);
-    parsedNodeBoundaryByShard_[shard] = std::max(parsedNodeBoundaryByShard_[shard], local + 1);
-}
-
 void Ast::captureParsedNodeBoundary()
 {
-    std::fill_n(parsedNodeBoundaryByShard_, SHARD_COUNT, 0u);
-    if (root_.isInvalid())
+    // The parser fills a fresh Ast, and each shard's store only ever grows at its end: every
+    // node of the tree lies below the shard's extent here, and every node made afterwards (a
+    // generated parse, a clone, a sema expansion) lands at or above it. The extents draw that
+    // line without walking the tree.
+    for (uint32_t i = 0; i < SHARD_COUNT; i++)
     {
-        hasParsedNodeBoundary_ = true;
-        return;
+        std::shared_lock lock(shards_[i].mutex);
+        parsedNodeBoundaryByShard_[i] = shards_[i].store.extentSize();
     }
-
-    visit(*this, root_, [this](AstNodeRef nodeRef, const AstNode&) { recordParsedNodeBoundary(nodeRef); return VisitResult::Continue; });
 
     hasParsedNodeBoundary_ = true;
 }

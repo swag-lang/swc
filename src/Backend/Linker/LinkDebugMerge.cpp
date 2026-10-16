@@ -2,6 +2,7 @@
 #include "Backend/Linker/LinkDebugMerge.h"
 #include "Backend/BinaryPatch.h"
 #include "Backend/Debug/CodeViewLeaf.h"
+#include "Backend/Debug/CodeViewRecords.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -9,38 +10,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_CV_SIGNATURE_C13    = 4;
-    constexpr uint32_t K_DEBUG_S_SYMBOLS     = 0xF1;
-    constexpr uint32_t K_DEBUG_S_LINES       = 0xF2;
-    constexpr uint32_t K_DEBUG_S_STRINGTABLE = 0xF3;
-    constexpr uint32_t K_DEBUG_S_FILECHKSMS  = 0xF4;
-
-    constexpr uint16_t K_S_END         = 0x0006;
-    constexpr uint16_t K_S_FRAMEPROC   = 0x1012;
-    constexpr uint16_t K_S_UDT         = 0x1108;
-    constexpr uint16_t K_S_LDATA32     = 0x110C;
-    constexpr uint16_t K_S_GDATA32     = 0x110D;
-    constexpr uint16_t K_S_REGREL32    = 0x1111;
     constexpr uint16_t K_S_LPROC32_ID  = 0x1146;
-    constexpr uint16_t K_S_GPROC32_ID  = 0x1147;
-    constexpr uint16_t K_S_PROC_ID_END = 0x114F;
-
-    constexpr uint16_t K_LF_MODIFIER  = 0x1001;
-    constexpr uint16_t K_LF_POINTER   = 0x1002;
-    constexpr uint16_t K_LF_PROCEDURE = 0x1008;
-    constexpr uint16_t K_LF_ARGLIST   = 0x1201;
-    constexpr uint16_t K_LF_FIELDLIST = 0x1203;
-    constexpr uint16_t K_LF_INDEX     = 0x1404;
-    constexpr uint16_t K_LF_ARRAY     = 0x1503;
-    constexpr uint16_t K_LF_STRUCTURE = 0x1505;
-    constexpr uint16_t K_LF_MEMBER    = 0x150D;
-    constexpr uint16_t K_LF_FUNC_ID   = 0x1601;
-    constexpr uint16_t K_LF_BUILDINFO = 0x1603;
-    constexpr uint16_t K_LF_STRING_ID = 0x1605;
 
     constexpr uint8_t K_LF_PAD0 = 0xF0;
 
-    constexpr uint32_t K_CV_TYPE_SIGNATURE = 4;
     constexpr uint32_t K_FIRST_TYPE_INDEX  = 0x1000;
     constexpr uint32_t K_CV_LINE_MASK      = 0x00FFFFFF;
     constexpr uint16_t K_REL_AMD64_SECREL  = 0x000B;
@@ -91,7 +64,7 @@ namespace
 
     bool isIdRecord(const uint16_t kind)
     {
-        return kind == K_LF_FUNC_ID || kind == K_LF_BUILDINFO || kind == K_LF_STRING_ID;
+        return kind == CodeViewRecords::K_LF_FUNC_ID || kind == CodeViewRecords::K_LF_BUILDINFO || kind == CodeViewRecords::K_LF_STRING_ID;
     }
 
     // Rewrites the member type index stored at offset with the image index it became. A record only
@@ -144,13 +117,13 @@ namespace
             if (!remapTypeField(ioRecord, pos + 4, imageIndices))
                 return false;
 
-            if (leaf == K_LF_INDEX)
+            if (leaf == CodeViewRecords::K_LF_INDEX)
             {
                 pos += K_FIELD_INDEX_SIZE;
                 continue;
             }
 
-            if (leaf != K_LF_MEMBER)
+            if (leaf != CodeViewRecords::K_LF_MEMBER)
                 return false;
 
             const size_t offsetSize = CodeViewLeaf::numericSize(bytes, pos + K_FIELD_MEMBER_OFFSET);
@@ -168,24 +141,24 @@ namespace
     {
         switch (kind)
         {
-            case K_LF_MODIFIER:
-            case K_LF_POINTER:
+            case CodeViewRecords::K_LF_MODIFIER:
+            case CodeViewRecords::K_LF_POINTER:
                 return remapTypeField(ioRecord, K_RECORD_HEADER, imageIndices);
 
-            case K_LF_PROCEDURE:
+            case CodeViewRecords::K_LF_PROCEDURE:
                 return remapTypeField(ioRecord, K_RECORD_HEADER, imageIndices) &&
                        remapTypeField(ioRecord, K_TYPE_PROCEDURE_ARGS, imageIndices);
 
-            case K_LF_ARRAY:
+            case CodeViewRecords::K_LF_ARRAY:
                 return remapTypeField(ioRecord, K_RECORD_HEADER, imageIndices) &&
                        remapTypeField(ioRecord, K_TYPE_ARRAY_INDEX, imageIndices);
 
-            case K_LF_STRUCTURE:
+            case CodeViewRecords::K_LF_STRUCTURE:
                 return remapTypeField(ioRecord, K_TYPE_STRUCTURE_FIELDS, imageIndices) &&
                        remapTypeField(ioRecord, K_TYPE_STRUCTURE_DERIVE, imageIndices) &&
                        remapTypeField(ioRecord, K_TYPE_STRUCTURE_VSHAPE, imageIndices);
 
-            case K_LF_ARGLIST:
+            case CodeViewRecords::K_LF_ARGLIST:
             {
                 if (ioRecord.size() < K_TYPE_ARGLIST_ARGS)
                     return false;
@@ -198,7 +171,7 @@ namespace
                 return true;
             }
 
-            case K_LF_FIELDLIST:
+            case CodeViewRecords::K_LF_FIELDLIST:
                 return remapFieldList(ioRecord, imageIndices);
 
             default:
@@ -217,7 +190,7 @@ namespace
     std::vector<Subsection> readSubsections(const std::span<const std::byte> section)
     {
         std::vector<Subsection> result;
-        if (section.size() < sizeof(uint32_t) || BinaryPatch::readU32(section, 0) != K_CV_SIGNATURE_C13)
+        if (section.size() < sizeof(uint32_t) || BinaryPatch::readU32(section, 0) != CodeViewRecords::K_CV_SIGNATURE_C13)
             return result;
 
         size_t pos = sizeof(uint32_t);
@@ -313,7 +286,7 @@ bool LinkDebugMerger::appendObject(const CoffObject& object, const Utf8& compila
 
 bool LinkDebugMerger::mergeTypes(ObjectTypes& outTypes, const std::span<const std::byte> section)
 {
-    if (section.size() < sizeof(uint32_t) || BinaryPatch::readU32(section, 0) != K_CV_TYPE_SIGNATURE)
+    if (section.size() < sizeof(uint32_t) || BinaryPatch::readU32(section, 0) != CodeViewRecords::K_CV_TYPE_SIGNATURE)
         return false;
 
     uint32_t nextIndex = debugInfo_->tpiIndexEnd;
@@ -334,7 +307,7 @@ bool LinkDebugMerger::mergeTypes(ObjectTypes& outTypes, const std::span<const st
         const auto memberIndex = static_cast<uint32_t>(K_FIRST_TYPE_INDEX + outTypes.imageIndices.size());
         if (isIdRecord(kind))
         {
-            if (kind == K_LF_FUNC_ID)
+            if (kind == CodeViewRecords::K_LF_FUNC_ID)
             {
                 if (!remapTypeField(record, K_TYPE_FUNC_ID_TYPE, outTypes.imageIndices))
                     return false;
@@ -381,17 +354,17 @@ void LinkDebugMerger::mergeSymbols(ObjectSymbols& symbols, const ObjectTypes& ty
     const std::vector<Subsection> subsections = readSubsections(symbols.section->bytes.span());
     for (const Subsection& subsection : subsections)
     {
-        if (subsection.kind == K_DEBUG_S_FILECHKSMS)
+        if (subsection.kind == CodeViewRecords::K_DEBUG_S_FILECHKSMS)
             symbols.checksums = subsection.payload;
-        else if (subsection.kind == K_DEBUG_S_STRINGTABLE)
+        else if (subsection.kind == CodeViewRecords::K_DEBUG_S_STRINGTABLE)
             symbols.strings = subsection.payload;
     }
 
     for (const Subsection& subsection : subsections)
     {
-        if (subsection.kind == K_DEBUG_S_SYMBOLS)
+        if (subsection.kind == CodeViewRecords::K_DEBUG_S_SYMBOLS)
             mergeSymbolRecords(symbols, types, subsection.payload, subsection.offset);
-        else if (subsection.kind == K_DEBUG_S_LINES)
+        else if (subsection.kind == CodeViewRecords::K_DEBUG_S_LINES)
             mergeLines(symbols, subsection.payload, subsection.offset);
     }
 }
@@ -413,7 +386,7 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
 
         switch (kind)
         {
-            case K_S_GPROC32_ID:
+            case CodeViewRecords::K_S_GPROC32_ID:
             case K_S_LPROC32_ID:
             {
                 const auto target = symbols.targets.find(offset + K_PROC_OFFSET);
@@ -431,7 +404,7 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
                 break;
             }
 
-            case K_S_FRAMEPROC:
+            case CodeViewRecords::K_S_FRAMEPROC:
                 if (!function || record.size() < K_FRAMEPROC_SIZE)
                     break;
                 function->frameSize      = BinaryPatch::readU32(record, K_RECORD_HEADER);
@@ -439,7 +412,7 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
                 function->frameProcFlags = BinaryPatch::readU32(record, K_FRAMEPROC_FLAGS);
                 break;
 
-            case K_S_REGREL32:
+            case CodeViewRecords::K_S_REGREL32:
                 if (!function || record.size() < K_REGREL_NAME)
                     break;
                 function->locals.push_back({.name        = Utf8(readName(record, K_REGREL_NAME)),
@@ -448,8 +421,8 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
                                             .cvRegister  = BinaryPatch::readU16(record, K_REGREL_REGISTER)});
                 break;
 
-            case K_S_PROC_ID_END:
-            case K_S_END:
+            case CodeViewRecords::K_S_PROC_ID_END:
+            case CodeViewRecords::K_S_END:
                 if (!function)
                     break;
                 symbols.functions.emplace(functionSymbol, debugInfo_->functions.size());
@@ -457,8 +430,8 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
                 function.reset();
                 break;
 
-            case K_S_GDATA32:
-            case K_S_LDATA32:
+            case CodeViewRecords::K_S_GDATA32:
+            case CodeViewRecords::K_S_LDATA32:
             {
                 const auto target = symbols.targets.find(offset + K_DATA_OFFSET);
                 if (record.size() < K_DATA_NAME || target == symbols.targets.end())
@@ -469,12 +442,12 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
                 global.sectionOffset = BinaryPatch::readU32(record, K_DATA_OFFSET);
                 global.displayName   = Utf8(readName(record, K_DATA_NAME));
                 global.typeIndex     = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_RECORD_HEADER));
-                global.isPublic      = kind == K_S_GDATA32;
+                global.isPublic      = kind == CodeViewRecords::K_S_GDATA32;
                 debugInfo_->globals.push_back(std::move(global));
                 break;
             }
 
-            case K_S_UDT:
+            case CodeViewRecords::K_S_UDT:
             {
                 if (record.size() < K_UDT_NAME)
                     break;

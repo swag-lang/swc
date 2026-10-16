@@ -182,18 +182,8 @@ namespace InstructionCombine
             case MicroInstrOpcode::OpBinaryRegReg:
                 if (useOps[1].reg == reg && useOps[0].reg != reg && reg.isAnyInt())
                 {
-                    switch (useOps[3].microOp)
-                    {
-                        case MicroOp::ShiftLeft:
-                        case MicroOp::ShiftArithmeticLeft:
-                        case MicroOp::ShiftRight:
-                        case MicroOp::ShiftArithmeticRight:
-                        case MicroOp::RotateLeft:
-                        case MicroOp::RotateRight:
-                            return MicroOpBits::B8;
-                        default:
-                            break;
-                    }
+                    if (MicroPassHelpers::isVariableScalarShiftOp(useOps[3].microOp))
+                        return MicroOpBits::B8;
                 }
                 return partialDestination(useOps[2].opBits);
 

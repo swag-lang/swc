@@ -59,6 +59,14 @@ enum class SyntaxColorMode
 namespace SyntaxColorHelper
 {
     Utf8 toAnsi(const TaskContext& ctx, SyntaxColor color, SyntaxColorMode mode = SyntaxColorMode::ForLog);
+
+    inline void append(Utf8& out, const TaskContext& ctx, SyntaxColor color, std::string_view value)
+    {
+        out += toAnsi(ctx, color);
+        out += value;
+        out += toAnsi(ctx, SyntaxColor::Default);
+    }
+
     Utf8 colorize(const TaskContext& ctx, SyntaxColorMode mode, const std::string_view& line, bool force = false);
 }
 

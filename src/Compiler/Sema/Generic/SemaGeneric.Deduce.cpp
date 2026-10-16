@@ -26,18 +26,6 @@ namespace
 
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
 
-    void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
-    {
-        if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
-        {
-            SemaGeneric::appendQuotedGenericArgs(*quotedExpr, outArgs);
-            return;
-        }
-
-        if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
-            SemaGeneric::appendQuotedGenericArgs(ast, *quotedList, outArgs);
-    }
-
     SpanRef genericStructParamSpan(const AstNode& declNode)
     {
         if (const auto* structDecl = declNode.safeCast<AstStructDecl>())
@@ -90,11 +78,6 @@ namespace
             outFailure.noteNodeRef = previousArg.diagRef;
         }
         outFailure.nodeRef = currentArgRef;
-    }
-
-    uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg, bool prependUfcsArg)
-    {
-        return prependUfcsArg && ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
     }
 
     AstNodeRef applyImplicitAddressBindingPattern(Sema& sema, AstNodeRef patternRef, TypeRef argTypeRef)
@@ -1247,7 +1230,7 @@ namespace
                     return false;
 
                 outMapping.paramArgs[found].argRef       = argRef;
-                outMapping.paramArgs[found].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);
+                outMapping.paramArgs[found].callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);
                 continue;
             }
 
@@ -1261,12 +1244,12 @@ namespace
             {
                 if (numParams == 0 || !params[numParams - 1].isVariadic)
                     return false;
-                outMapping.variadicArgs.push_back({argRef, callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg)});
+                outMapping.variadicArgs.push_back({argRef, SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg)});
                 continue;
             }
 
             outMapping.paramArgs[nextPos].argRef       = argRef;
-            outMapping.paramArgs[nextPos].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);
+            outMapping.paramArgs[nextPos].callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);
             ++nextPos;
         }
 
@@ -1536,7 +1519,7 @@ namespace SemaGeneric
 
         SmallVector<GenericResolvedArg> resolvedArgs(genericParams.size());
         SmallVector<AstNodeRef>         explicitGenericArgNodes;
-        collectExplicitGenericArgNodes(sema.node(calleeRef), sema.ast(), explicitGenericArgNodes);
+        SemaGeneric::appendQuotedGenericArgs(sema.node(calleeRef), sema.ast(), explicitGenericArgNodes);
         if (explicitGenericArgNodes.size() > genericParams.size())
             return Result::Continue;
 

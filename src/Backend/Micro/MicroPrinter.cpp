@@ -1113,9 +1113,7 @@ namespace
         if (color == SyntaxColor::Register && hasVirtualRegisterToken(langSpec, value))
             effectiveColor = SyntaxColor::RegisterVirtual;
 
-        out += SyntaxColorHelper::toAnsi(ctx, effectiveColor);
-        out += value;
-        out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
+        SyntaxColorHelper::append(out, ctx, effectiveColor, value);
     }
 
     struct NaturalTokenContext

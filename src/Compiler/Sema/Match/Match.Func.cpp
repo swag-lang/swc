@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Generic/SemaGeneric.ArgNodes.h"
 #include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaDeclHelpers.h"
@@ -34,22 +35,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
-
-    // Every call site supplies a newly constructed output vector.
-    void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
-    {
-        if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
-        {
-            if (quotedExpr->nodeSuffixRef.isValid())
-                outArgs.push_back(quotedExpr->nodeSuffixRef);
-            return;
-        }
-
-        if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
-        {
-            ast.appendNodes(outArgs, quotedList->spanChildrenRef);
-        }
-    }
 
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
     {
@@ -398,12 +383,7 @@ namespace
         return n;
     }
 
-    uint32_t callArgIndexFromUserIndex(uint32_t userArgIndex, AstNodeRef ufcsArg)
-    {
-        return ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
-    }
-
-    // The inverse of 'callArgIndexFromUserIndex', counted from 1: the number a diagnostic shows.
+    // The inverse of 'SemaGeneric::callArgIndexFromUserIndex', counted from 1: the number a diagnostic shows.
     // The receiver written before the dot is not an argument between the parentheses; it has
     // no number, and zero says so.
     uint32_t writtenArgNumber(uint32_t callArgIndex, AstNodeRef ufcsArg)
@@ -575,7 +555,7 @@ namespace
         if (!noteValues.empty())
             cf.addArgument(Diagnostic::ARG_VALUES, std::move(noteValues));
         cf.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
-        const uint32_t callArgIndex = callArgIndexFromUserIndex(userArgIndex, ufcsArg);
+        const uint32_t callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userArgIndex, ufcsArg);
         failBadType(outFail, callArgIndex, paramIndex == UINT32_MAX ? callArgIndex : paramIndex, cf);
     }
 
@@ -655,7 +635,7 @@ namespace
                 }
 
                 outMapping.paramArgs[found].argRef       = argRef;
-                outMapping.paramArgs[found].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                outMapping.paramArgs[found].callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg);
                 outMapping.paramArgs[found].argNumber    = userIndex + 1;
                 continue;
             }
@@ -666,7 +646,7 @@ namespace
                 !outMapping.paramArgs.back().argRef.isValid())
             {
                 outMapping.paramArgs.back().argRef       = argRef;
-                outMapping.paramArgs.back().callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                outMapping.paramArgs.back().callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg);
                 outMapping.paramArgs.back().argNumber    = userIndex + 1;
                 continue;
             }
@@ -683,7 +663,7 @@ namespace
             if (nextPos < numParams)
             {
                 outMapping.paramArgs[nextPos].argRef       = argRef;
-                outMapping.paramArgs[nextPos].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+                outMapping.paramArgs[nextPos].callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg);
                 outMapping.paramArgs[nextPos].argNumber    = userIndex + 1;
                 ++nextPos;
                 continue;
@@ -691,7 +671,7 @@ namespace
 
             CallArgEntry entry;
             entry.argRef       = argRef;
-            entry.callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg);
+            entry.callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg);
             entry.argNumber    = userIndex + 1;
             outMapping.variadicArgs.push_back(entry);
         }
@@ -3263,7 +3243,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
 
     CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
-    collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
+    SemaGeneric::appendQuotedGenericArgs(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
     SWC_RESULT(collectCandidateAttempts(sema, candidates, runtimeSymbols, args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
@@ -3297,7 +3277,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // Collect all function candidates and evaluate their match quality
     CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
-    collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
+    SemaGeneric::appendQuotedGenericArgs(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
     SWC_RESULT(collectCandidateAttempts(sema, candidates, runtimeSymbols, args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 

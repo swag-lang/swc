@@ -174,8 +174,6 @@ namespace PostRaPeephole
     // in this same pass erases them.
     bool regIsDeadAfter(const Context& ctx, const MicroInstrRef fromRef, const MicroReg reg, const MicroOpBits materializedBits)
     {
-        constexpr int K_MAX_LIVENESS_WINDOW = 32;
-
         auto scanIt = MicroStorage::Iterator{ctx.storage, fromRef};
         ++scanIt;
         for (int step = 0; step < K_MAX_LIVENESS_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)

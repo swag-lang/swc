@@ -850,6 +850,7 @@
         <ClInclude Include="src\Backend\Linker\LinkDebugInfo.h"/>
         <ClInclude Include="src\Backend\Linker\LinkDebugMerge.h"/>
         <ClInclude Include="src\Backend\Debug\CodeViewLeaf.h"/>
+        <ClInclude Include="src\Backend\Debug\CodeViewRecords.h"/>
         <ClInclude Include="src\Backend\Debug\SymbolTable.h"/>
         <ClInclude Include="src\Backend\Linker\PdbWriter.h"/>
         <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>

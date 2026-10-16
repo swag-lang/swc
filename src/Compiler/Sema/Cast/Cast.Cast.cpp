@@ -76,9 +76,7 @@ namespace
         if (cst.isString())
             return !cst.getString().data();
 
-        const TypeInfo& rawSrcType    = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo* resolvedType  = rawSrcType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& unwrappedType = resolvedType ? *resolvedType : rawSrcType;
+        const TypeInfo& unwrappedType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
         if (unwrappedType.isAny())
             return isProvablyNullRuntimeAnyConstant(cst);
 
@@ -345,12 +343,8 @@ namespace
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
 
-        const TypeInfo& declaredSrcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo* unwrappedSrc    = declaredSrcType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& srcType         = unwrappedSrc ? *unwrappedSrc : declaredSrcType;
-        const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
-        const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
+        const TypeInfo& srcType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
+        const TypeInfo& dstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
         if (srcType.typeRef() == dstType.typeRef())
             return false;
 
@@ -445,15 +439,11 @@ namespace
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo& declaredSrcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo* unwrappedSrc    = declaredSrcType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& srcType         = unwrappedSrc ? *unwrappedSrc : declaredSrcType;
+        const TypeInfo& srcType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
         if (!srcType.isAny())
             return Result::Continue;
 
-        const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
-        const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
+        const TypeInfo& dstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
         if (dstType.isAny())
             return Result::Continue;
 
@@ -519,24 +509,18 @@ namespace
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo& declaredSrcType = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo* unwrappedSrc    = declaredSrcType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& srcType         = unwrappedSrc ? *unwrappedSrc : declaredSrcType;
+        const TypeInfo& srcType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
         if (!srcType.isInterface())
             return Result::Continue;
 
-        const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
-        const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
+        const TypeInfo& dstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
         if (!dstType.isAnyPointer())
             return Result::Continue;
 
         const TypeRef dstPointeeTypeRef = dstType.payloadTypeRef();
         if (!dstPointeeTypeRef.isValid())
             return Result::Continue;
-        const TypeInfo& declaredPointee  = sema.typeMgr().get(dstPointeeTypeRef);
-        const TypeInfo* unwrappedPointee = declaredPointee.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& dstPointee       = unwrappedPointee ? *unwrappedPointee : declaredPointee;
+        const TypeInfo& dstPointee = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstPointeeTypeRef);
         if (!dstPointee.isStruct())
             return Result::Continue;
 
@@ -1415,8 +1399,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (!castRequest.flags.has(CastFlagsE::AllowCopyToMoveRef))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-        const TypeInfo* resolvedSrcType     = srcType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& srcCheckType        = resolvedSrcType ? *resolvedSrcType : srcType;
+        const TypeInfo& srcCheckType        = srcType.unwrapAliasEnumTypeOrSelf(sema.ctx());
         const TypeInfo* resolvedPointeeType = dstPointeeType.unwrapAliasEnumType(sema.ctx());
         const TypeRef   srcToCheck          = srcCheckType.typeRef();
         const TypeRef   pointeeToCheck      = resolvedPointeeType ? resolvedPointeeType->typeRef() : dstPointeeTypeRef;
@@ -1559,9 +1542,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const bool                   hasUserDefinedLiteralSuffix = dstTypeRef.isValid() && resolveUserDefinedLiteralSuffix(sema, castRequest.errorNodeRef, suffixInfo);
     if (hasUserDefinedLiteralSuffix && !castRequest.flags.has(CastFlagsE::LiteralSuffixConsume))
     {
-        const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
-        const TypeInfo* unwrappedType   = declaredDstType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& literalDstType  = unwrappedType ? *unwrappedType : declaredDstType;
+        const TypeInfo& literalDstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
         if (!literalDstType.isStruct())
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
@@ -1596,10 +1577,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     if (srcType.isAlias() || dstType.isAlias())
     {
-        const TypeInfo* unwrappedSrc    = srcType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo* unwrappedDst    = dstType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& resolvedSrcType = unwrappedSrc ? *unwrappedSrc : srcType;
-        const TypeInfo& resolvedDstType = unwrappedDst ? *unwrappedDst : dstType;
+        const TypeInfo& resolvedSrcType = srcType.unwrapAliasEnumTypeOrSelf(sema.ctx());
+        const TypeInfo& resolvedDstType = dstType.unwrapAliasEnumTypeOrSelf(sema.ctx());
 
         const bool allowAliasBoolCast               = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
         const bool allowAliasNullCast               = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
@@ -1811,9 +1790,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             const TypeInfo& sourceType = SemaHelpers::aliasEnumType(sema, view);
             if (sourceType.isAny())
             {
-                const TypeInfo& declaredTarget = sema.typeMgr().get(dstTypeRef);
-                const TypeInfo* unwrappedType  = declaredTarget.unwrapAliasEnumType(sema.ctx());
-                const TypeInfo& targetType     = unwrappedType ? *unwrappedType : declaredTarget;
+                const TypeInfo& targetType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
                 assumedValueCast |= !targetType.isValuePointer() && !targetType.isInterface() && !targetType.isTypeInfo();
             }
         }

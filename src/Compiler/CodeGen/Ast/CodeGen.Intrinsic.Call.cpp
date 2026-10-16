@@ -115,14 +115,6 @@ namespace
         }
     }
 
-    const TypeInfo& intrinsicNumericStorageType(CodeGen& codeGen, TypeRef typeRef)
-    {
-        SWC_ASSERT(typeRef.isValid());
-        const TypeInfo& typeInfo    = codeGen.typeMgr().get(typeRef);
-        const TypeInfo* storageType = typeInfo.unwrapAliasEnumType(codeGen.ctx());
-        return storageType ? *storageType : typeInfo;
-    }
-
     MicroOpBits loadIntrinsicNumericOperand(CodeGen& codeGen, MicroReg& outReg, const CodeGenNodePayload& operandPayload, const TypeInfo& operandType)
     {
         outReg                   = codeGen.nextVirtualRegisterForType(operandType.typeRef(), operandType);
@@ -139,17 +131,13 @@ namespace
 
     void loadIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        const TypeInfo& declaredType  = codeGen.typeMgr().get(operandTypeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& operandType   = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& operandType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandTypeRef);
         loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
     }
 
     void convertIntrinsicNumericOperand(CodeGen& codeGen, MicroReg& outReg, const TypeInfo& srcType, MicroOpBits srcBits, TypeRef dstTypeRef)
     {
-        const TypeInfo& declaredDstType   = codeGen.typeMgr().get(dstTypeRef);
-        const TypeInfo* unwrappedDstType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& dstType           = unwrappedDstType ? *unwrappedDstType : declaredDstType;
+        const TypeInfo& dstType           = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         const TypeRef   dstStorageTypeRef = dstType.typeRef();
         if (srcType.typeRef() == dstStorageTypeRef)
             return;
@@ -191,9 +179,7 @@ namespace
 
     void materializeIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef)
     {
-        const TypeInfo&   declaredType  = codeGen.typeMgr().get(operandTypeRef);
-        const TypeInfo*   unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&   operandType   = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo&   operandType   = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandTypeRef);
         const MicroOpBits operandBits   = loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
         if (operandTypeRef != resultTypeRef)
             convertIntrinsicNumericOperand(codeGen, outReg, operandType, operandBits, resultTypeRef);
@@ -1411,7 +1397,7 @@ namespace
         const TypeRef             resultTypeRef = resultView.typeRef();
         const TypeInfo*           storageType   = resultView.type()->unwrapAliasEnumType(codeGen.ctx());
         const TypeInfo&           resultType    = storageType ? *storageType : *resultView.type();
-        const TypeInfo&           countType     = intrinsicNumericStorageType(codeGen, countTypeRef);
+        const TypeInfo&           countType     = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), countTypeRef);
         const MicroOpBits         resultBits    = CodeGenTypeHelpers::numericBits(resultType);
         CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         MicroBuilder&             builder       = codeGen.builder();
@@ -2074,8 +2060,7 @@ namespace
 
         const CodeGenNodePayload& firstPayload  = codeGen.payload(children[0]);
         const TypeInfo&           declaredType  = firstPayload.typeRef.isValid() ? codeGen.typeMgr().get(firstPayload.typeRef) : *codeGen.viewType(children[0]).type();
-        const TypeInfo*           unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&           firstType     = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo&           firstType     = declaredType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         if (!firstType.isSimd())
             return Result::Continue;
 

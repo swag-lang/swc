@@ -846,8 +846,7 @@ namespace
             return Result::Continue;
 
         const TypeInfo& finalType      = sema.typeMgr().get(finalTypeRef);
-        const TypeInfo* unwrappedType  = finalType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& storageType    = unwrappedType ? *unwrappedType : finalType;
+        const TypeInfo& storageType    = finalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
         const TypeRef   storageTypeRef = storageType.typeRef();
 
         if (storageTypeRef == sema.typeMgr().typeVoid())

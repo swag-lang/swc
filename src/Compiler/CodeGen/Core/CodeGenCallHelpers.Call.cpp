@@ -504,9 +504,7 @@ namespace
             return Result::Continue;
 
         const TypeRef   pointeeTypeRef = normalizedType.payloadTypeRef();
-        const TypeInfo& pointeeType    = ctx.typeMgr().get(pointeeTypeRef);
-        const TypeInfo* unwrappedType  = pointeeType.unwrapAliasEnumType(ctx);
-        const TypeInfo& storageType    = unwrappedType ? *unwrappedType : pointeeType;
+        const TypeInfo& storageType    = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, pointeeTypeRef);
         const TypeRef   storageTypeRef = storageType.typeRef();
         if (!storageType.isStruct())
             return Result::Continue;
@@ -664,8 +662,7 @@ namespace
 
     TypeRef borrowedAggregateStorageTypeRef(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        const TypeInfo* unwrappedType       = typeInfo.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& storageType         = unwrappedType ? *unwrappedType : typeInfo;
+        const TypeInfo& storageType         = typeInfo.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const bool      isBorrowedAggregate = SemaHelpers::isByValueAggregateType(storageType) || (storageType.isFunction() && storageType.isLambdaClosure());
         return isBorrowedAggregate ? storageType.typeRef() : TypeRef::invalid();
     }
@@ -865,8 +862,7 @@ namespace
 
         TaskContext&    ctx               = codeGen.ctx();
         const TypeRef   normalizedTypeRef = normalizedType.typeRef();
-        const TypeInfo* unwrappedType     = normalizedType.unwrapAliasEnumType(ctx);
-        const TypeInfo& storageType       = unwrappedType ? *unwrappedType : normalizedType;
+        const TypeInfo& storageType       = normalizedType.unwrapAliasEnumTypeOrSelf(ctx);
         const TypeRef   storageTypeRef    = storageType.typeRef();
         if (!storageType.isStruct() && !storageType.isArray())
             return Result::Continue;
@@ -1293,8 +1289,7 @@ namespace
             argTypeRef = concretizeUntypedVariadicRuntimeTypeRef(codeGen, argTypeRef);
             SWC_ASSERT(argTypeRef.isValid());
             const TypeInfo& argType         = ctx.typeMgr().get(argTypeRef);
-            const TypeInfo* unwrappedType   = argType.unwrapAliasEnumType(ctx);
-            const TypeInfo& resolvedArgType = unwrappedType ? *unwrappedType : argType;
+            const TypeInfo& resolvedArgType = argType.unwrapAliasEnumTypeOrSelf(ctx);
             const uint64_t  rawArgSize      = argType.sizeOf(ctx);
             SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
 

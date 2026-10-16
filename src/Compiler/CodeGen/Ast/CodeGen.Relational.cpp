@@ -50,9 +50,7 @@ namespace
         if (!ioTypeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeInfo& declaredType      = codeGen.typeMgr().get(ioTypeRef);
-        const TypeInfo* unwrappedType     = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& normalizedType    = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& normalizedType    = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), ioTypeRef);
         const TypeRef   normalizedTypeRef = normalizedType.typeRef();
         if (!normalizedType.isReference())
         {
@@ -193,9 +191,7 @@ namespace
 
     void loadTypeInfoComparePtr(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef operandTypeRef, TypeRef compareTypeRef)
     {
-        const TypeInfo& declaredType  = codeGen.typeMgr().get(operandTypeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& operandType   = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& operandType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandTypeRef);
         if (operandType.isAny())
         {
             outReg                          = codeGen.nextVirtualIntRegister();
@@ -489,8 +485,7 @@ namespace
     void appendCompareParts(CodeGen& codeGen, SmallVector<ComparePart>& out, const TypeInfo& declaredType, uint64_t base)
     {
         TaskContext&    ctx           = codeGen.ctx();
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type          = declaredType.unwrapAliasEnumTypeOrSelf(ctx);
         const uint64_t  size          = type.sizeOf(ctx);
 
         if (type.isString())

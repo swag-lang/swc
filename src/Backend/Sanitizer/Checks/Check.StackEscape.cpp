@@ -26,9 +26,7 @@ void StackEscapeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, co
     const TypeRef returnTypeRef = fn->returnTypeRef();
     if (!returnTypeRef.isValid())
         return;
-    const TypeInfo& declaredType  = sanitizer.ctx().typeMgr().get(returnTypeRef);
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sanitizer.ctx());
-    const TypeInfo& returnType    = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& returnType = sanitizer.ctx().typeMgr().unwrapAliasEnumTypeOrSelf(sanitizer.ctx(), returnTypeRef);
     if (!returnType.isAnyPointer() && !returnType.isReference())
         return;
 

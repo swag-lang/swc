@@ -1808,9 +1808,7 @@ namespace
     {
         if (typeRef.isInvalid())
             return false;
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         if (type.isArray())
             return isPlainInlineValue(sema, type.payloadArrayElemTypeRef());
         return type.isScalarNumeric() || type.isBool() || type.isSimd() || type.isAnyPointer();

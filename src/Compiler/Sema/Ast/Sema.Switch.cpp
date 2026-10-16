@@ -88,9 +88,7 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& originalType   = sema.typeMgr().get(typeRef);
-        const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& ultimateType   = underlyingType ? *underlyingType : originalType;
+        const TypeInfo& ultimateType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         return ultimateType.isAnyPointer() && !ultimateType.isAnyTypeInfo(sema.ctx());
     }
 
@@ -99,8 +97,7 @@ namespace
         const TypeInfo& originalType = sema.typeMgr().get(exprTypeRef);
         SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, originalType, sema.curNodeRef()));
 
-        const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& finalType      = underlyingType ? *underlyingType : originalType;
+        const TypeInfo& finalType = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
         if (finalType.isString())
             SWC_RESULT(SemaHelpers::requireRuntimeStringCmpDependency(sema, codeRef));
 
@@ -430,8 +427,7 @@ Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef expr
     const TypeInfo& originalType = sema.typeMgr().get(exprTypeRef);
     SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, originalType, exprRef));
 
-    const TypeInfo* underlyingType = originalType.unwrapAliasEnumType(sema.ctx());
-    const TypeInfo& finalType      = underlyingType ? *underlyingType : originalType;
+    const TypeInfo& finalType = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
     if (finalType.isValuePointer())
     {
         const TypeInfo& originalPointee  = sema.typeMgr().get(finalType.payloadTypeRef());
@@ -688,9 +684,7 @@ namespace
 
         const TypeInfo* sourceUnderlyingType = sourceView.type()->unwrapAliasEnumType(sema.ctx());
         const TypeInfo& sourceType           = sourceUnderlyingType ? *sourceUnderlyingType : *sourceView.type();
-        const TypeInfo& switchOriginalType   = sema.typeMgr().get(switchTypeRef);
-        const TypeInfo* switchUnderlyingType = switchOriginalType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& switchType           = switchUnderlyingType ? *switchUnderlyingType : switchOriginalType;
+        const TypeInfo& switchType           = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), switchTypeRef);
 
         if (sourceType.isNull())
             return Result::Continue;

@@ -1518,8 +1518,7 @@ namespace
             // only types without lifecycle operations can be captured by value.
             if (!captureByRef && !typeInfo.isAnyVariadic())
             {
-                const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(ctx);
-                const TypeInfo& checkType     = unwrappedType ? *unwrappedType : typeInfo;
+                const TypeInfo& checkType     = typeInfo.unwrapAliasEnumTypeOrSelf(ctx);
                 const TypeRef   checkTypeRef  = checkType.typeRef();
                 SWC_RESULT(sema.waitSemaCompleted(&checkType, captureArg.nodeIdentifierRef));
 

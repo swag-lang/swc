@@ -770,9 +770,7 @@ namespace
         if (typeRef.isInvalid())
             return Result::Continue;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type          = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         typeRef                       = type.typeRef();
         if (!visiting.insert(typeRef))
             return Result::Continue;

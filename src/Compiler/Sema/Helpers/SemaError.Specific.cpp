@@ -25,9 +25,7 @@ namespace
 
         while (typeRef.isValid())
         {
-            const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
-            const TypeInfo* storageType  = declaredType.unwrapAliasEnumType(sema.ctx());
-            const TypeInfo& type         = storageType ? *storageType : declaredType;
+            const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
             if (type.isArray())
             {
                 typeRef = type.payloadArrayElemTypeRef();

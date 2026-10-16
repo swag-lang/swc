@@ -36,13 +36,6 @@ namespace
     constexpr uint32_t K_TYPE_BUDGET = 128;
     constexpr uint32_t K_EXPR_BUDGET = 128;
 
-    const TypeInfo& unwrapAliasEnumType(Sema& sema, TypeRef typeRef)
-    {
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        return unwrappedType ? *unwrappedType : declaredType;
-    }
-
     TypeRef unwrapAliasEnum(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -76,7 +69,7 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        return isDirectBorrowCarrier(unwrapAliasEnumType(sema, typeRef));
+        return isDirectBorrowCarrier(sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef));
     }
 
     bool localProjectionRootCanReceiveLocalStore(Sema& sema, const SymbolVariable& root)
@@ -102,7 +95,7 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& type = unwrapAliasEnumType(sema, typeRef);
+        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         typeRef              = type.typeRef();
         if (type.isPointerOrReference())
             typeRef = unwrapAliasEnum(sema, type.payloadTypeRef());
@@ -115,9 +108,7 @@ namespace
             return false;
         budget--;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type          = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         typeRef                       = type.typeRef();
         if (isDirectBorrowCarrier(type))
             return true;
@@ -190,9 +181,7 @@ namespace
         if (!paramTypeRef.isValid())
             return false;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(paramTypeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& paramType     = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& paramType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramTypeRef);
         return !paramType.isPointerOrReference() && !paramType.isAnyVariadic();
     }
 
@@ -409,8 +398,8 @@ namespace
                 const TypeRef    resultTypeRef   = expressionTypeRef(sema, resolvedRef);
                 // Decoding an integer address designates its pointee, not the
                 // integer's local slot. It cannot preserve a storage projection.
-                if (resultTypeRef.isValid() && unwrapAliasEnumType(sema, resultTypeRef).isAnyPointer() &&
-                    (!operandTypeRef.isValid() || !unwrapAliasEnumType(sema, operandTypeRef).isAnyPointer()))
+                if (resultTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef).isAnyPointer() &&
+                    (!operandTypeRef.isValid() || !sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), operandTypeRef).isAnyPointer()))
                     return false;
                 if (selfSubstituted)
                     return storageProjectionAt(sema, operandRef, outProjection, depth + 1);
@@ -460,9 +449,7 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        return (unwrappedType ? *unwrappedType : declaredType).isBlockPointer();
+        return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isBlockPointer();
     }
 
     // The variable owning the storage a carrier EXPRESSION addresses, when that carrier
@@ -539,9 +526,7 @@ namespace
         bool             leftIsCarrier = false;
         if (leftTypeRef.isValid())
         {
-            const TypeInfo& declaredType  = sema.typeMgr().get(leftTypeRef);
-            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-            const TypeInfo& leftType      = unwrappedType ? *unwrappedType : declaredType;
+            const TypeInfo& leftType      = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), leftTypeRef);
             leftIsCarrier                 = isDirectBorrowCarrier(leftType);
             leftTypeRef                   = leftType.typeRef();
             if (leftType.isAnyPointer())
@@ -715,7 +700,7 @@ namespace
             // that binding's borrow. Decided on the declared type - a self-substituted
             // cast operand (implicit receiver conversion) reports the cast's result
             // type, not the variable's.
-            if (wholeVariable && sourceVar->typeRef().isValid() && unwrapAliasEnumType(sema, sourceVar->typeRef()).isReference())
+            if (wholeVariable && sourceVar->typeRef().isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceVar->typeRef()).isReference())
             {
                 if (const SemaEscapeInfo* existing = sema.variableEscapeInfo(*sourceVar))
                 {
@@ -777,7 +762,7 @@ namespace
 
         if (!candidateTypeRef.isValid())
             return {};
-        const TypeInfo& candidateType = unwrapAliasEnumType(sema, candidateTypeRef);
+        const TypeInfo& candidateType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), candidateTypeRef);
         if (isDirectBorrowCarrier(candidateType) || !SemaHelpers::isByValueAggregateType(candidateType))
             return {};
 
@@ -912,7 +897,7 @@ namespace
         const TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, exprRef));
         if (typeRef.isInvalid())
             return false;
-        const TypeInfo& type = unwrapAliasEnumType(sema, typeRef);
+        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         return !isDirectBorrowCarrier(type) && SemaHelpers::isByValueAggregateType(type);
     }
 
@@ -920,9 +905,7 @@ namespace
     {
         if (typeRef.isInvalid())
             return nullptr;
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         return type.isStructOrArray() && typeCanCarryBorrowImpl(sema, type.typeRef()) ? &type : nullptr;
     }
 
@@ -996,7 +979,7 @@ namespace
             const TypeRef pointerTypeRef = expressionTypeRef(sema, pointerRef);
             if (pointerTypeRef.isValid())
             {
-                const TypeInfo& pointerType = unwrapAliasEnumType(sema, pointerTypeRef);
+                const TypeInfo& pointerType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), pointerTypeRef);
                 if (pointerType.isPointerOrReference() &&
                     pointer.sourceVar && sourceTypeRef == pointerType.typeRef() &&
                     unwrapAliasEnum(sema, pointerType.payloadTypeRef()) == normalizedValueTypeRef)
@@ -1103,7 +1086,7 @@ namespace
             // `any.buffer` opens the same erased payload as a dynamic cast. A raw
             // pointer cast after this projection must not erase that lifetime.
             const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, storageRef));
-            if (operandTypeRef.isValid() && unwrapAliasEnumType(sema, operandTypeRef).isAny())
+            if (operandTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), operandTypeRef).isAny())
                 info.viaErasedPayload = true;
         }
         return info;
@@ -1121,7 +1104,7 @@ namespace
         {
             const TypeRef operandTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef());
             if (!operandTypeRef.isValid() || isDirectBorrowCarrier(sema, operandTypeRef) ||
-                !SemaHelpers::isByValueAggregateType(unwrapAliasEnumType(sema, operandTypeRef)))
+                !SemaHelpers::isByValueAggregateType(sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), operandTypeRef)))
                 return {};
 
             return storageBorrowInfo(sema, operandRef, resultTypeRef, true);
@@ -1159,7 +1142,7 @@ namespace
             const TypeRef sourceTypeRef = castOperandTypeRef(sema, castRef, sourceRef);
             if (sourceTypeRef.isValid())
             {
-                const TypeInfo& sourceType = unwrapAliasEnumType(sema, sourceTypeRef);
+                const TypeInfo& sourceType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef);
                 valueBackedParameter       = sourceType.isPointerOrReference();
             }
         }
@@ -1200,15 +1183,15 @@ namespace
         const TypeRef sourceTypeRef  = SemaHelpers::unwrapAliasRefType(sema.ctx(), operandTypeRef);
         if (resultTypeRef.isValid() &&
             sourceTypeRef.isValid() &&
-            unwrapAliasEnumType(sema, resultTypeRef).isAny() &&
-            !unwrapAliasEnumType(sema, sourceTypeRef).isAny())
+            sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef).isAny() &&
+            !sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef).isAny())
             return anyBoxEscapeInfo(sema, castRef, operandRef, resultTypeRef);
 
         SemaEscapeInfo info = operandSelfSubst ? expressionEscapeInfoAt(sema, operandRef, budget) : expressionEscapeInfoRec(sema, operandRef, budget);
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
-            if (sourceTypeRef.isValid() && unwrapAliasEnumType(sema, sourceTypeRef).isAny())
+            if (sourceTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef).isAny())
                 info.viaErasedPayload = true;
             return info;
         }
@@ -1225,7 +1208,7 @@ namespace
         if (sourceTypeRef.isValid() &&
             isDirectBorrowCarrier(sema, resultTypeRef) &&
             !isDirectBorrowCarrier(sema, sourceTypeRef) &&
-            SemaHelpers::isByValueAggregateType(unwrapAliasEnumType(sema, sourceTypeRef)))
+            SemaHelpers::isByValueAggregateType(sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef)))
         {
             info = storageBorrowInfo(sema, operandRef, resultTypeRef, operandSelfSubst);
             if (info.hasBorrow())
@@ -1294,7 +1277,7 @@ namespace
     {
         if (!resultTypeRef.isValid())
             return false;
-        const TypeInfo& resultType = unwrapAliasEnumType(sema, resultTypeRef);
+        const TypeInfo& resultType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef);
         if (!isDirectBorrowCarrier(resultType) || resultType.isReference())
             return false;
 
@@ -1364,7 +1347,7 @@ namespace
         const SymbolVariable* pointerVar  = identifierVariable(sema, sema.resolvedNodeRef(pointerRef));
         const TypeRef         valueType   = expressionTypeRef(sema, derefRef);
         if (freshDirect && pointerVar && pointerVar == ioInfo.sourceVar && pointerVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
-            valueType.isValid() && unwrapAliasEnumType(sema, valueType).isAnyPointer())
+            valueType.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), valueType).isAnyPointer())
         {
             ioInfo.parameterIndirectOriginsMask = ioInfo.parameterOriginsMask;
             ioInfo.viaParameterPointee          = true;
@@ -2081,7 +2064,7 @@ namespace
             // Without this, the pointer spelling of a call errors and the by-value one
             // right next to it is silent.
             const bool paramIsByValueOwner = paramTypeRef.isValid() &&
-                                             SemaHelpers::isByValueAggregateType(unwrapAliasEnumType(sema, paramTypeRef)) &&
+                                             SemaHelpers::isByValueAggregateType(sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramTypeRef)) &&
                                              hasOwningLifecycle(sema, paramTypeRef);
             if (paramTypeRef.isValid() && !typeCanCarryBorrowImpl(sema, paramTypeRef) && !paramIsByValueOwner)
                 continue;
@@ -2097,7 +2080,7 @@ namespace
                 else if (directInfo.kind == SemaEscapeKind::Parameter && !directInfo.viaStoredField &&
                          !directInfo.viaOwnedPayload && !directInfo.parameterIndirectOriginsMask &&
                          paramType.isPointerOrReference() &&
-                         unwrapAliasEnumType(sema, paramType.payloadTypeRef()).isAnyPointer() &&
+                         sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramType.payloadTypeRef()).isAnyPointer() &&
                          identifierVariable(sema, sema.resolvedNodeRef(arg.argRef)) == directInfo.sourceVar)
                 {
                     // Passing the box parameter itself also forwards the identity of its
@@ -2933,7 +2916,7 @@ namespace
                     if (isDirectBorrowCarrier(sema, targetTypeRef) &&
                         operandTypeRef.isValid() &&
                         !isDirectBorrowCarrier(sema, operandTypeRef) &&
-                        SemaHelpers::isByValueAggregateType(unwrapAliasEnumType(sema, operandTypeRef)))
+                        SemaHelpers::isByValueAggregateType(sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), operandTypeRef)))
                         return storageBorrowInfo(sema, castNode.nodeExprRef, targetTypeRef, true);
 
                     const AstNode& rawOperand = sema.node(castNode.nodeExprRef);
@@ -3518,7 +3501,7 @@ namespace
         if (!viewTypeRef.isValid())
             return false;
 
-        const TypeInfo& viewType = unwrapAliasEnumType(sema, viewTypeRef);
+        const TypeInfo& viewType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), viewTypeRef);
         if (viewType.isInterface() || viewType.isAny())
             return true;
 
@@ -4141,7 +4124,7 @@ namespace
         if (!rootTypeRef.isValid())
             return false;
 
-        const TypeInfo& rootType = unwrapAliasEnumType(sema, rootTypeRef);
+        const TypeInfo& rootType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), rootTypeRef);
         return !rootType.isPointerOrReference();
     }
 
@@ -4990,7 +4973,7 @@ namespace SemaEscape
             bool                  sourceWhole = false;
             const SymbolVariable* sourceVar   = storageRootVariable(sema, rightRef, false, sourceWhole);
             if (sourceVar && sourceWhole && isLocalVariableStorage(sema, *sourceVar) && sourceVar->typeRef().isValid() &&
-                SemaHelpers::isByValueAggregateType(unwrapAliasEnumType(sema, sourceVar->typeRef())))
+                SemaHelpers::isByValueAggregateType(sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceVar->typeRef())))
             {
                 SemaEscapeInfo info;
                 info.kind      = SemaEscapeKind::Local;
@@ -5368,7 +5351,7 @@ namespace SemaEscape
                 const TypeRef sourceTypeRef = expressionTypeRef(sema, borrow.sourceRef);
                 if (sourceTypeRef.isValid())
                 {
-                    const TypeInfo& sourceType = unwrapAliasEnumType(sema, sourceTypeRef);
+                    const TypeInfo& sourceType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef);
                     // A fixed array has no method-owned structure to invalidate. A method
                     // reached through its element binding can only change that element.
                     if (sourceType.isArray())

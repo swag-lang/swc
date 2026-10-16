@@ -39,9 +39,7 @@ namespace
         if (!paramType.isReference())
             return TypeRef::invalid();
 
-        const TypeInfo& storageType          = sema.typeMgr().get(paramType.payloadTypeRef());
-        const TypeInfo* unwrappedStorageType = storageType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& resolvedStorageType  = unwrappedStorageType ? *unwrappedStorageType : storageType;
+        const TypeInfo& resolvedStorageType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramType.payloadTypeRef());
         if (SemaHelpers::isByValueAggregateType(resolvedStorageType) || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
             return resolvedStorageType.typeRef();
 
@@ -102,9 +100,7 @@ TypeRef SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(Sema& sema, AstNodeR
     if (sema.isLValue(exprRef))
         return TypeRef::invalid();
 
-    const TypeInfo& exprType      = sema.typeMgr().get(exprTypeRef);
-    const TypeInfo* unwrappedType = exprType.unwrapAliasEnumType(sema.ctx());
-    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : exprType;
+    const TypeInfo& storageType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), exprTypeRef);
     if (!storageType.isArray())
         return TypeRef::invalid();
 
@@ -120,9 +116,7 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     if (sema.isGlobalScope() || !paramTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeInfo& paramType     = sema.typeMgr().get(paramTypeRef);
-    const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(sema.ctx());
-    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
+    const TypeInfo& storageType   = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramTypeRef);
     const bool      isAggregate   = isByValueAggregateType(storageType) || (storageType.isFunction() && storageType.isLambdaClosure());
     if (!isAggregate)
         return TypeRef::invalid();
@@ -699,9 +693,7 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeR
     if (!typeRef.isValid())
         return false;
 
-    const TypeInfo& declaredType  = ctx.typeMgr().get(typeRef);
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
-    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& typeInfo = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef);
 
     if (typeInfo.isAnyString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface())
         return true;

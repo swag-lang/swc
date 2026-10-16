@@ -231,9 +231,7 @@ namespace
         loopState.indexTypeRef = semaPayload->indexTypeRef;
         loopState.inclusive    = semaPayload->inclusive;
 
-        const TypeInfo&   indexType     = codeGen.typeMgr().get(loopState.indexTypeRef);
-        const TypeInfo*   unwrappedType = indexType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&   compareType   = unwrappedType ? *unwrappedType : indexType;
+        const TypeInfo&   compareType   = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), loopState.indexTypeRef);
         const MicroOpBits opBits        = loopOperationBits(codeGen, compareType);
         MicroReg          lowerReg      = MicroReg::invalid();
         MicroReg          upperReg      = MicroReg::invalid();
@@ -464,9 +462,7 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
             return Result::Continue;
         }
 
-        const TypeInfo&   indexType     = codeGen.typeMgr().get(loopState->indexTypeRef);
-        const TypeInfo*   unwrappedType = indexType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&   compareType   = unwrappedType ? *unwrappedType : indexType;
+        const TypeInfo&   compareType   = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), loopState->indexTypeRef);
         const MicroOpBits opBits        = loopOperationBits(codeGen, compareType);
         MicroBuilder&     builder       = codeGen.builder();
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());

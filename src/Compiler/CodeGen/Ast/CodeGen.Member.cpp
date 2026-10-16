@@ -89,14 +89,6 @@ namespace
         TypeRef  memberTypeRef = TypeRef::invalid();
     };
 
-    const TypeInfo& aliasEnumType(CodeGen& codeGen, TypeRef typeRef)
-    {
-        SWC_ASSERT(typeRef.isValid());
-        const TypeInfo& declaredType  = codeGen.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        return unwrappedType ? *unwrappedType : declaredType;
-    }
-
     // How many indirections separate the left VALUE from the object its members live in.
     // Mirrors what member resolution peels in sema: every reference layer is transparent,
     // and a pointer is dereferenced exactly once. A plain '*T' or '&T' is one; a binding
@@ -108,7 +100,7 @@ namespace
         while (walk->isReference())
         {
             ++depth;
-            walk = &aliasEnumType(codeGen, walk->payloadTypeRef());
+            walk = &codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), walk->payloadTypeRef());
         }
 
         if (walk->isAnyPointer())
@@ -156,7 +148,7 @@ namespace
     {
         const TypeInfo* leftTypeInfo = &leftType;
         if (leftTypeInfo->isPointerOrReference())
-            leftTypeInfo = &aliasEnumType(codeGen, leftTypeInfo->payloadTypeRef());
+            leftTypeInfo = &codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), leftTypeInfo->payloadTypeRef());
 
         return leftTypeInfo->isAggregateStruct() ? leftTypeInfo : nullptr;
     }
@@ -215,10 +207,10 @@ namespace
         const auto& semaSymVar  = rightSym->cast<SymbolVariable>();
         TypeRef     leftTypeRef = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, preOverrideTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
-        const TypeInfo& leftTypeInfo = aliasEnumType(codeGen, leftTypeRef);
+        const TypeInfo& leftTypeInfo = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), leftTypeRef);
         // The receiver override above resolves the concrete struct for FIELD lookup, but the
         // payload still carries the receiver's indirection: a pointer receiver dereferences.
-        const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : aliasEnumType(codeGen, preOverrideTypeRef);
+        const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), preOverrideTypeRef);
 
         // Runtime member accesses inside generic instances must use the field symbol of the active
         // specialization. Reusing the root generic field leaks stale offsets and field types into
@@ -306,7 +298,7 @@ namespace
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
         const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(node.nodeLeftRef).typeRef();
         SWC_ASSERT(leftTypeRef.isValid());
-        const TypeInfo& leftType      = aliasEnumType(codeGen, leftTypeRef);
+        const TypeInfo& leftType      = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), leftTypeRef);
         const TypeInfo* aggregateType = resolveAggregateMemberOwnerType(codeGen, leftType);
         SWC_ASSERT(aggregateType != nullptr);
 

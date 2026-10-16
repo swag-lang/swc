@@ -478,6 +478,13 @@ public:
         return isAliasOrEnum() ? resolveAliasType<true>(ctx) : nullptr;
     }
 
+    // The type an alias or enum stores, or this type itself when it is neither.
+    const TypeInfo& unwrapAliasEnumTypeOrSelf(const TaskContext& ctx) const noexcept
+    {
+        const TypeInfo* unwrappedType = unwrapAliasEnumType(ctx);
+        return unwrappedType ? *unwrappedType : *this;
+    }
+
     static TypeInfo makeBool();
     static TypeInfo makeChar();
     static TypeInfo makeString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);

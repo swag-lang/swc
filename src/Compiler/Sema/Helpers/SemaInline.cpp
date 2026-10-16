@@ -1406,7 +1406,7 @@ namespace
         if (binding.sourceParam)
         {
             const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
-            if ((paramType.isStruct() || paramType.isArray() || paramType.isAggregate()) &&
+            if (SemaHelpers::isByValueAggregateType(paramType) &&
                 inlineBindingExprIsStableVariableRef(sema, binding.exprRef))
                 return false;
         }

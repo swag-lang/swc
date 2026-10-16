@@ -666,7 +666,7 @@ namespace
     {
         const TypeInfo* unwrappedType       = typeInfo.unwrapAliasEnumType(codeGen.ctx());
         const TypeInfo& storageType         = unwrappedType ? *unwrappedType : typeInfo;
-        const bool      isBorrowedAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
+        const bool      isBorrowedAggregate = SemaHelpers::isByValueAggregateType(storageType) || (storageType.isFunction() && storageType.isLambdaClosure());
         return isBorrowedAggregate ? storageType.typeRef() : TypeRef::invalid();
     }
 

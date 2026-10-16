@@ -171,7 +171,7 @@ namespace
     // function before lowering can call it.
     Result attachAggregateContentCompareHelper(Sema& sema, const TypeInfo& compareType, const SourceCodeRef& codeRef)
     {
-        if (!compareType.isStruct() && !compareType.isArray() && !compareType.isAggregate())
+        if (!SemaHelpers::isByValueAggregateType(compareType))
             return Result::Continue;
 
         bool needsContentHelper = false;

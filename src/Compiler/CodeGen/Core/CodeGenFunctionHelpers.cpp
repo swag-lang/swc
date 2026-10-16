@@ -523,7 +523,7 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
     const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
     const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
-    if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregate())
+    if (!SemaHelpers::isByValueAggregateType(storageType))
         return false;
     if (paramInfo)
         return !paramInfo->isIndirect;

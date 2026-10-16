@@ -42,7 +42,7 @@ namespace
         const TypeInfo& storageType          = sema.typeMgr().get(paramType.payloadTypeRef());
         const TypeInfo* unwrappedStorageType = storageType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& resolvedStorageType  = unwrappedStorageType ? *unwrappedStorageType : storageType;
-        if (resolvedStorageType.isStruct() || resolvedStorageType.isArray() || resolvedStorageType.isAggregate() || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
+        if (SemaHelpers::isByValueAggregateType(resolvedStorageType) || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
             return resolvedStorageType.typeRef();
 
         return TypeRef::invalid();
@@ -123,7 +123,7 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     const TypeInfo& paramType     = sema.typeMgr().get(paramTypeRef);
     const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(sema.ctx());
     const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
-    const bool      isAggregate   = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
+    const bool      isAggregate   = isByValueAggregateType(storageType) || (storageType.isFunction() && storageType.isLambdaClosure());
     if (!isAggregate)
         return TypeRef::invalid();
 

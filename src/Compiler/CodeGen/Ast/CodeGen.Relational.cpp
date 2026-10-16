@@ -873,7 +873,7 @@ namespace
         // load, which would ignore every field beyond the first machine word and every answer but
         // the storage.
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
-            (compareType.isStruct() || compareType.isArray() || compareType.isAggregate() || compareType.isInterface()))
+            (SemaHelpers::isByValueAggregateType(compareType) || compareType.isInterface()))
         {
             SmallVector<ComparePart> parts;
             appendCompareParts(codeGen, parts, compareType, 0);

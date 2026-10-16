@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Parser/Parser/Parser.h"
+#include "Support/Core/StringMap.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
@@ -20,11 +21,6 @@ namespace
         bool operator==(const AutoInlineName& other) const noexcept { return text == other.text; }
     };
 
-    struct AutoInlineNameHash
-    {
-        size_t operator()(const AutoInlineName& name) const noexcept { return name.hash; }
-    };
-
     struct AutoInlineCallInfo
     {
         uint32_t count       = 0;
@@ -32,9 +28,29 @@ namespace
         bool     inRecursion = false;
     };
 
-    using AutoInlineNameSet = std::unordered_set<AutoInlineName, AutoInlineNameHash>;
+    // The module walk counts every identifier it meets. Names view source buffers that outlive
+    // the walk, so these flat tables key them as they are, with the hash they already carry.
+    class AutoInlineNameSet
+    {
+    public:
+        void insert(const AutoInlineName& name) { names_.try_emplace(name.text, name.hash, true); }
+        bool contains(const AutoInlineName& name) const { return names_.contains(name.text, name.hash); }
+        bool empty() const noexcept { return names_.empty(); }
+
+    private:
+        StringMap<bool> names_;
+    };
+
     template<typename V>
-    using AutoInlineNameMap = std::unordered_map<AutoInlineName, V, AutoInlineNameHash>;
+    class AutoInlineNameMap
+    {
+    public:
+        V&       operator[](const AutoInlineName& name) { return values_.get_or_insert(name.text, name.hash); }
+        const V* find(const AutoInlineName& name) const { return values_.find(name.text, name.hash); }
+
+    private:
+        StringMap<V> values_;
+    };
 
     AutoInlineName autoInlineName(const SourceView& srcView, const TokenRef tokRef)
     {
@@ -122,8 +138,9 @@ namespace
                 return;
 
             blockedCalls_.resize(edges_.size(), 0);
-            for (const auto& [name, index] : nameIndices_)
+            for (size_t index = 0; index < names_.size(); ++index)
             {
+                const AutoInlineName& name = names_[index];
                 if (metaNames.contains(name) || (unsupportedNames && unsupportedNames->contains(name)))
                     blockedCalls_[index] = BLOCKED_TARGET;
             }
@@ -155,13 +172,13 @@ namespace
 
         InlineConstraint inlineConstraint(const AutoInlineName& name) const
         {
-            const auto it = nameIndices_.find(name);
-            if (it == nameIndices_.end())
+            const uint32_t* index = nameIndices_.find(name.text, name.hash);
+            if (!index)
                 return InlineConstraint::None;
             // A blocked call leaves the existing flags alone, even when its caller is cyclic.
-            if (!blockedCalls_.empty() && (blockedCalls_[it->second] & BLOCKED_CALLER))
+            if (!blockedCalls_.empty() && (blockedCalls_[*index] & BLOCKED_CALLER))
                 return InlineConstraint::BlockedCall;
-            return cyclic_[it->second] ? InlineConstraint::Cycle : InlineConstraint::None;
+            return cyclic_[*index] ? InlineConstraint::Cycle : InlineConstraint::None;
         }
 
         // A call directly inside a recursive component is repeated like a loop
@@ -176,9 +193,9 @@ namespace
                 if (cyclic_[source])
                     for (const uint32_t target : edges_[source])
                         repeated[target] = true;
-            for (const auto& [name, index] : nameIndices_)
+            for (size_t index = 0; index < names_.size(); ++index)
                 if (repeated[index])
-                    callInfo[name].inRecursion = true;
+                    callInfo[names_[index]].inRecursion = true;
         }
 
     private:
@@ -187,10 +204,13 @@ namespace
 
         uint32_t indexOf(const AutoInlineName& name)
         {
-            const auto [it, inserted] = nameIndices_.try_emplace(name, static_cast<uint32_t>(edges_.size()));
+            const auto [index, inserted] = nameIndices_.try_emplace(name.text, name.hash, static_cast<uint32_t>(edges_.size()));
             if (inserted)
+            {
                 edges_.emplace_back();
-            return it->second;
+                names_.push_back(name);
+            }
+            return *index;
         }
 
         void connect(const uint32_t nodeIndex)
@@ -229,7 +249,8 @@ namespace
             }
         }
 
-        AutoInlineNameMap<uint32_t>        nameIndices_;
+        StringMap<uint32_t>                nameIndices_;
+        std::vector<AutoInlineName>        names_;
         std::vector<SmallVector<uint32_t>> edges_;
         std::vector<uint32_t>              indices_;
         std::vector<uint32_t>              lowLinks_;
@@ -415,14 +436,14 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 }
             }
 
-            const auto it               = callInfo.find(name);
-            bool       hasLastCallBonus = false;
-            if (it != callInfo.end() && it->second.count == 1)
+            const AutoInlineCallInfo* info             = callInfo.find(name);
+            bool                      hasLastCallBonus = false;
+            if (info && info->count == 1)
             {
-                const auto useIt = useCounts.find(name);
-                hasLastCallBonus = useIt != useCounts.end() && useIt->second == 1;
+                const uint32_t* useCount = useCounts.find(name);
+                hasLastCallBonus         = useCount && *useCount == 1;
             }
-            const bool repeatedLastCall = hasLastCallBonus && (it->second.inLoop || it->second.inRecursion);
+            const bool repeatedLastCall = hasLastCallBonus && (info->inLoop || info->inRecursion);
             if (repeatedLastCall)
                 mutableDecl->autoInlineRepeatedCall = true;
             if (decl.autoInlineHasNotNull && !repeatedLastCall)
@@ -431,9 +452,9 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
             // Volunteer a small wrapper with calls when at least one site is in a loop.
             // Bound total duplication, including its cold call sites.
             const bool hotCallBody = bodyHasCall && decl.autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS &&
-                                     it != callInfo.end() &&
-                                     uint64_t{decl.autoInlineCost} * it->second.count <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
-                                     it->second.inLoop;
+                                     info &&
+                                     uint64_t{decl.autoInlineCost} * info->count <= 2 * K_AUTO_INLINE_MAX_BODY_TOKENS &&
+                                     info->inLoop;
             if ((!bodyHasCall && decl.autoInlineCost <= K_AUTO_INLINE_MAX_BODY_TOKENS) || hotCallBody || hasLastCallBonus)
                 mutableDecl->addFlag(AstFunctionFlagsE::AutoInlineBody);
         }

@@ -2,7 +2,6 @@
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/RefTypes.h"
-#include "Support/Core/StringMap.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -222,11 +221,10 @@ private:
     };
 
     // Each stripe owns its cache line: neighbours locked by other workers must not share it.
-    // 'map' is the writers' authority; 'table' answers lookups without a lock. Every table
-    // generation stays alive with the stripe, for readers still probing an older one.
+    // 'table' answers every lookup, without a lock for readers and under the mutex for writers.
+    // Every table generation stays alive with the stripe, for readers still probing an older one.
     struct alignas(64) InternStripe
     {
-        StringMap<IdentifierRef>                  map;
         std::atomic<InternTable*>                 table = nullptr;
         std::vector<std::unique_ptr<InternTable>> tables;
         std::mutex                                mutex; // writers only

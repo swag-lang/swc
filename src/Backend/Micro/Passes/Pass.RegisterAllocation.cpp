@@ -3718,13 +3718,13 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
                 }
                 if (fallThroughStateValid_ && pred + 1 == instructionIndex)
                     continue; // fall-through edge: the current state
-                const auto snapshotIt = boundarySnapshots_.find(pred);
-                if (snapshotIt == boundarySnapshots_.end())
+                const uint32_t* snapshotSlot = boundarySnapshotSlots_.find(pred);
+                if (!snapshotSlot)
                 {
                     dropAll = true; // edge with no recorded state
                     break;
                 }
-                edgeSnapshots.push_back(&snapshotIt->second);
+                edgeSnapshots.push_back(&boundarySnapshots_[*snapshotSlot]);
             }
         }
         else
@@ -3770,7 +3770,18 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
         // Record this edge's state for the target label's join. The store
         // phase ran, so every recorded mapping has a coherent home on this
         // edge as well.
-        BoundarySnapshot& snapshot = boundarySnapshots_[instructionIndex];
+        uint32_t slot;
+        if (const uint32_t* recordedSlot = boundarySnapshotSlots_.find(instructionIndex))
+            slot = *recordedSlot;
+        else
+        {
+            slot = boundarySnapshotCount_++;
+            if (slot == boundarySnapshots_.size())
+                boundarySnapshots_.emplace_back();
+            boundarySnapshotSlots_.emplace(instructionIndex, slot);
+        }
+
+        BoundarySnapshot& snapshot = boundarySnapshots_[slot];
         snapshot.clear();
         for (const uint32_t denseIndex : mappedVirtualIndices_)
         {
@@ -3931,7 +3942,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // the CFG cannot see (computed jump, unresolvable target) would make a
     // kept register silently wrong. When the gate is off, every boundary
     // falls back to the full flush.
-    boundarySnapshots_.clear();
+    boundarySnapshotSlots_.clear();
+    boundarySnapshotCount_ = 0;
     fallThroughStateValid_ = true;
     keepAcrossBoundaries_  = hasControlFlow_ && controlFlowGraph_ != nullptr && !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() && controlFlowGraph_->supportsDeadCodeLiveness();
     // Only boundary snapshots produce these hints. Linear and unsupported

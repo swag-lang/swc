@@ -53,7 +53,7 @@ filter, wide ranges, panic cleanup, and cross-module registry sharing remain act
 
 Command: `build --workspace bin/std --workspace-module core --build-cfg devmode
 --rebuild --num-cores 6`. Each invocation has fresh rebuild semantics and independent
-machine-load admission. Peak job memory includes the process tree; CPU is process-tree
+machine-load admission. Peak job memory includes the process tree; CPU is compiler-process
 CPU time from `bench/winproc.py`. Order alternates A/B then B/A.
 
 | Panel | Pair | Compiler | Wall ms | CPU ms | Peak job bytes | Peak working set bytes |

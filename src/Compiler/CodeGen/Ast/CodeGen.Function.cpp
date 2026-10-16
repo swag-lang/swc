@@ -334,37 +334,6 @@ namespace
         CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, hasIndirectReturnArg, symbolFunc.isClosure());
     }
 
-    void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
-    {
-        const CallConv&                     callConv = CallConv::get(symbolFunc.callConvKind());
-        const std::vector<SymbolVariable*>& params   = symbolFunc.parameters();
-        MicroBuilder&                       builder  = codeGen.builder();
-        SWC_ASSERT(paramInfos.size() == params.size());
-
-        SmallVector<uint32_t> registerParamIndices;
-        CodeGenParameterReg::appendRegisterParameterIndices(registerParamIndices, params, paramInfos);
-        SmallVector<CodeGenParameterReg::RegisterParameterPayload> registerPayloads;
-        registerPayloads.reserve(registerParamIndices.size());
-
-        for (size_t i = 0; i < registerParamIndices.size(); ++i)
-        {
-            const uint32_t paramIndex = registerParamIndices[i];
-            const auto*    symVar     = params[paramIndex];
-            SWC_ASSERT(symVar != nullptr);
-            const auto& paramInfo = paramInfos[paramIndex];
-
-            SmallVector<MicroReg> futureSourceRegs;
-            CodeGenParameterReg::collectFutureSourceRegs(futureSourceRegs, callConv, paramInfos, registerParamIndices.span(), i, paramInfo.isFloat);
-
-            CodeGenNodePayload symbolPayload;
-            symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-            symbolPayload.typeRef = symVar->typeRef();
-            CodeGenParameterReg::bindRegisterParameter(codeGen, builder, symbolFunc, *symVar, paramInfo, symbolPayload, futureSourceRegs, registerPayloads);
-        }
-
-        CodeGenParameterReg::rebindRegisterParameters(codeGen, builder, registerPayloads.span());
-    }
-
     // A parameter that needs addressable storage owns a local slot, which
     // 'spillAddressableParametersToLocalSlots' fills from the payload registered for it here.
     // 'materializeFunctionParameter' would instead hand back that slot's address right away,
@@ -528,7 +497,7 @@ namespace
         {
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
-            materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
+            CodeGenParameterReg::materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
             materializeStackParameters(codeGen, symbolFunc, paramInfos);
             spillAddressableParametersToLocalSlots(codeGen, symbolFunc, paramInfos);
             spillParametersToDebugSlots(codeGen, symbolFunc);

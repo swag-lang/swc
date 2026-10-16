@@ -682,13 +682,13 @@ ConstantRef ConstantManager::publishTypeInfoCache(Shard& shard, const TypeRef ty
     SWC_ASSERT(cstRef.isValid());
 
     const std::unique_lock lk(shard.typeInfoMutex);
-    auto [it, inserted] = shard.typeInfoMap.try_emplace(typeRef, cstRef);
-    if (!inserted)
+    if (const ConstantRef* existing = shard.typeInfoMap.find(typeRef.get()))
     {
-        SWC_ASSERT(it->second == cstRef);
-        return it->second;
+        SWC_ASSERT(*existing == cstRef);
+        return *existing;
     }
 
+    shard.typeInfoMap.emplace(typeRef.get(), cstRef);
     return cstRef;
 }
 
@@ -728,10 +728,8 @@ ConstantRef ConstantManager::tryGetTypeInfoCache(const Shard& shard, const TypeR
     SWC_ASSERT(typeRef.isValid());
 
     const std::shared_lock lk(shard.typeInfoMutex);
-    const auto             it = shard.typeInfoMap.find(typeRef);
-    if (it == shard.typeInfoMap.end())
-        return ConstantRef::invalid();
-    return it->second;
+    const ConstantRef*     found = shard.typeInfoMap.find(typeRef.get());
+    return found ? *found : ConstantRef::invalid();
 }
 
 uint32_t ConstantManager::zeroPayloadConstantCacheShard(const TypeRef typeRef)
@@ -747,10 +745,8 @@ ConstantRef ConstantManager::findZeroPayloadConstant(const uint32_t shardIndex, 
 
     const Shard&           shard = shards_[shardIndex];
     const std::shared_lock lock(shard.zeroPayloadMutex);
-    const auto             it = shard.zeroPayloadMap.find(typeRef);
-    if (it == shard.zeroPayloadMap.end())
-        return ConstantRef::invalid();
-    return it->second;
+    const ConstantRef*     found = shard.zeroPayloadMap.find(typeRef.get());
+    return found ? *found : ConstantRef::invalid();
 }
 
 ConstantRef ConstantManager::publishZeroPayloadConstant(const uint32_t shardIndex, const TypeRef typeRef, const ConstantRef cstRef)
@@ -761,13 +757,13 @@ ConstantRef ConstantManager::publishZeroPayloadConstant(const uint32_t shardInde
 
     Shard&                 shard = shards_[shardIndex];
     const std::unique_lock lock(shard.zeroPayloadMutex);
-    auto [it, inserted] = shard.zeroPayloadMap.try_emplace(typeRef, cstRef);
-    if (!inserted)
+    if (const ConstantRef* existing = shard.zeroPayloadMap.find(typeRef.get()))
     {
-        SWC_ASSERT(it->second == cstRef);
-        return it->second;
+        SWC_ASSERT(*existing == cstRef);
+        return *existing;
     }
 
+    shard.zeroPayloadMap.emplace(typeRef.get(), cstRef);
     return cstRef;
 }
 
@@ -1166,8 +1162,8 @@ DataSegmentRef ConstantManager::findConstantStorage(const ConstantRef cstRef, co
     const uint64_t         key   = (static_cast<uint64_t>(cstRef.get()) << 32) | storageTypeRef.get();
     const Shard&           shard = shards_[cstRef.get() >> LOCAL_BITS];
     const std::shared_lock lock(shard.constantStorageMutex);
-    const auto             it = shard.constantStorageMap.find(key);
-    return it == shard.constantStorageMap.end() ? DataSegmentRef{} : it->second;
+    const DataSegmentRef*  found = shard.constantStorageMap.find(key);
+    return found ? *found : DataSegmentRef{};
 }
 
 DataSegmentRef ConstantManager::publishConstantStorage(const ConstantRef cstRef, const TypeRef storageTypeRef, const DataSegmentRef dataRef)
@@ -1176,10 +1172,12 @@ DataSegmentRef ConstantManager::publishConstantStorage(const ConstantRef cstRef,
     const uint64_t         key   = (static_cast<uint64_t>(cstRef.get()) << 32) | storageTypeRef.get();
     Shard&                 shard = shards_[cstRef.get() >> LOCAL_BITS];
     const std::unique_lock lock(shard.constantStorageMutex);
-    const auto [it, inserted] = shard.constantStorageMap.try_emplace(key, dataRef);
     // Materialization happens outside the cache lock. Concurrent callers all use
     // the first fully materialized allocation, preserving constant address identity.
-    return it->second;
+    if (const DataSegmentRef* existing = shard.constantStorageMap.find(key))
+        return *existing;
+    shard.constantStorageMap.emplace(key, dataRef);
+    return dataRef;
 }
 
 uint32_t ConstantManager::runtimeBufferConstantCacheShard(const TypeRef typeRef, const void* targetPtr, const uint64_t count)

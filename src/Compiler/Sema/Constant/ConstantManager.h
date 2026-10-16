@@ -1,6 +1,7 @@
 #pragma once
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
@@ -199,9 +200,9 @@ public:
         // Keep storage alive until the intern tables have destroyed their canonical values.
         DataSegment                                                                                                                           dataSegment;
         std::array<InternStripe, INTERN_STRIPE_COUNT>                                                                                         internStripes;
-        std::unordered_map<TypeRef, ConstantRef>                                                                                              typeInfoMap;
-        std::unordered_map<TypeRef, ConstantRef>                                                                                              zeroPayloadMap;
-        std::unordered_map<uint64_t, DataSegmentRef>                                                                                          constantStorageMap;
+        FlatKeyMap<ConstantRef>                                                                                                               typeInfoMap;
+        FlatKeyMap<ConstantRef>                                                                                                               zeroPayloadMap;
+        FlatKeyMap<DataSegmentRef, uint64_t>                                                                                                  constantStorageMap;
         std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash>                                     runtimeBufferMap;
         std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash, RuntimeStringConstantCacheKeyEqual> runtimeStringMap;
         std::unordered_map<SourceLocationKey, ConstantRef, SourceLocationKeyHash>                                                             sourceLocationMap;

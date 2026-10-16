@@ -413,7 +413,7 @@ namespace
             if (runtimeStorageTypeRef.isValid())
             {
                 const TypeInfo& runtimeStorageType = codeGen.typeMgr().get(runtimeStorageTypeRef);
-                if (runtimeStorageType.isArray() || runtimeStorageType.isStruct())
+                if (runtimeStorageType.isStructOrArray())
                     return runtimeStorageTypeRef;
             }
         }
@@ -423,7 +423,7 @@ namespace
         if (storedTypeRef.isValid())
         {
             const TypeInfo& storedType = *storedView.type();
-            if (storedType.isArray() || storedType.isStruct())
+            if (storedType.isStructOrArray())
                 return storedTypeRef;
         }
 
@@ -787,7 +787,7 @@ namespace
 
         // Concrete arrays/structs start from their default storage so omitted literal elements keep the
         // correct zeroed or default-initialized bytes.
-        if (storageType.isArray() || storageType.isStruct())
+        if (storageType.isStructOrArray())
             SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
 
         const bool canDropFields = codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop);

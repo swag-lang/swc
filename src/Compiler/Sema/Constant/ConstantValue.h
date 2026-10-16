@@ -85,7 +85,8 @@ public:
     bool           isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
     bool           isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
     bool           isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
-    bool           isSpanPayload() const { return isStruct() || isArray() || isSlice(); }
+    bool           isStructOrArray() const { return isStruct() || isArray(); }
+    bool           isSpanPayload() const { return isStructOrArray() || isSlice(); }
 
     // Tests absence in both literal nulls and compound runtime representations.
     bool isNullValue(const TaskContext& ctx) const noexcept;

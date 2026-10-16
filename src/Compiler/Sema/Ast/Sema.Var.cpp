@@ -156,7 +156,7 @@ namespace
         {
             loweredBytes.resize(size);
             const ConstantValue& initializer = sema.cstMgr().get(symVar.cstRef());
-            if ((initializer.isStruct() || initializer.isArray()) && initializer.isPayloadBorrowed() && initializer.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(ctx, storageTypeInfo))
+            if (initializer.isStructOrArray() && initializer.isPayloadBorrowed() && initializer.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(ctx, storageTypeInfo))
             {
                 // A union's bytes do not identify its pointer-bearing alternative.
                 // Preserve the relocation inventory established by its actual writes.
@@ -1120,7 +1120,7 @@ namespace
         ConstantRef implicitStructCstRef   = ConstantRef::invalid();
         ConstantRef implicitGlobalStoreRef = ConstantRef::invalid();
         bool        implicitStructZeroInit = false;
-        if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && (explicitType->isStruct() || explicitType->isArray()))
+        if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStructOrArray())
         {
             if (!directSelfStructField && !requiresExplicitInit)
             {
@@ -1176,7 +1176,7 @@ namespace
                                               !isParameter &&
                                               explicitTypeRef.isValid() &&
                                               explicitType &&
-                                              (explicitType->isStruct() || explicitType->isArray()) &&
+                                              explicitType->isStructOrArray() &&
                                               !directSelfStructField;
         const bool hasImplicitAggregateVarInit = hasImplicitStructConstInit || implicitAggregateVarInit;
 

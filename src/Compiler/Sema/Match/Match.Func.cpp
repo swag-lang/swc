@@ -2984,7 +2984,7 @@ namespace
         const TypeInfo& declaredType  = sema.typeMgr().get(paramTypeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& paramType     = unwrappedType ? *unwrappedType : declaredType;
-        return !paramType.isMoveReference() && (paramType.isStruct() || paramType.isArray());
+        return !paramType.isMoveReference() && paramType.isStructOrArray();
     }
 
     Result attachMovedValueRuntimeStorageIfNeeded(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)

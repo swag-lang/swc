@@ -222,7 +222,7 @@ namespace
                 return Result::Continue;
             std::span<const std::byte> source;
             DataSegmentRef             sourceRef;
-            if ((value.isStruct() || value.isArray()) && value.isPayloadBorrowed())
+            if (value.isStructOrArray() && value.isPayloadBorrowed())
             {
                 source = value.isStruct() ? value.getStruct() : value.getArray();
                 if (source.size() != size || !sema.cstMgr().resolveConstantDataSegmentRef(sourceRef, valueRef, source.data()))

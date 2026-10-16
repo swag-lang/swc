@@ -602,6 +602,21 @@ namespace
         emitMemoryOperand(store, memOffset, encodeReg(reg), memReg);
     }
 
+    // The mandatory prefix of a scalar float move: F2 for a double, F3 for a float, none otherwise.
+    uint8_t scalarFloatMovePrefix(MicroOpBits opBits)
+    {
+        return opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+    }
+
+    // The mandatory prefix of a float operation: the packed-double prefix for a bitwise one on
+    // doubles, otherwise the scalar double or float prefix.
+    uint8_t floatArithmeticPrefix(MicroOpBits opBits, bool isBitwise)
+    {
+        if (isBitwise)
+            return opBits == MicroOpBits::B64 ? 0x66 : 0;
+        return opBits == MicroOpBits::B64 ? 0xF2 : 0xF3;
+    }
+
     void emitSpecB8(PagedStore& store, uint8_t value, MicroOpBits opBits)
     {
         if (opBits == MicroOpBits::B8)
@@ -1638,7 +1653,7 @@ void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits 
     if (regDst.isFloat() && regSrc.isFloat())
     {
         // Scalar register moves preserve the destination's other XMM lanes.
-        const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+        const uint8_t prefix = scalarFloatMovePrefix(opBits);
         const X64Reg  merge  = opBits == MicroOpBits::B128 ? X64Reg::Rax : microRegToX64Reg(regDst);
         emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), merge, microRegToX64Reg(regSrc));
         emitCpuOp(store_, 0x10);
@@ -1740,7 +1755,7 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
         SWC_ASSERT(memOffset == 0);
         if (reg.isFloat())
         {
-            const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+            const uint8_t prefix = scalarFloatMovePrefix(opBits);
             emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
             emitCpuOp(store_, 0x10);
         }
@@ -1756,7 +1771,7 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
 
     if (reg.isFloat())
     {
-        const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+        const uint8_t prefix = scalarFloatMovePrefix(opBits);
         emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
         emitCpuOp(store_, 0x10);
         emitModRm(store_, memOffset, reg, memReg);
@@ -2561,7 +2576,7 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
         SWC_ASSERT(memOffset == 0);
         if (reg.isFloat())
         {
-            const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+            const uint8_t prefix = scalarFloatMovePrefix(opBits);
             emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
             emitCpuOp(store_, 0x11);
         }
@@ -2577,7 +2592,7 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
 
     if (reg.isFloat())
     {
-        const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : (opBits == MicroOpBits::B32 ? 0xF3 : 0);
+        const uint8_t prefix = scalarFloatMovePrefix(opBits);
         emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
         emitCpuOp(store_, 0x11);
         emitModRm(store_, memOffset, reg, memReg);
@@ -3083,7 +3098,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
         if (op == MicroOp::FloatSqrt)
             encodeClearReg(regDst, MicroOpBits::B128);
         const bool    isBitwise = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
-        const uint8_t prefix    = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0) : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+        const uint8_t prefix    = floatArithmeticPrefix(opBits, isBitwise);
         emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regDst), microRegToX64Reg(memReg));
         emitCpuOp(store_, op);
         emitMemoryOperand(store_, memOffset, encodeReg(regDst), memReg);
@@ -3237,7 +3252,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
         // a dependency on the old destination without evaluating another lane.
         const MicroReg merge     = op == MicroOp::FloatSqrt ? regSrc : regDst;
         const bool     isBitwise = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
-        const uint8_t  prefix    = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0) : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+        const uint8_t  prefix    = floatArithmeticPrefix(opBits, isBitwise);
         emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(merge), microRegToX64Reg(regSrc));
         emitCpuOp(store_, op);
         emitModRm(store_, regDst, regSrc);
@@ -4222,7 +4237,7 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
     // Same mandatory prefix the two-operand form would carry: F2/F3 select the
     // scalar arithmetic shapes, 66/none the bitwise ones.
     const bool    isBitwise       = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
-    const uint8_t mandatoryPrefix = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0x00) : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+    const uint8_t mandatoryPrefix = floatArithmeticPrefix(opBits, isBitwise);
 
     // No 0F byte: the VEX prefix already carries the escape.
     emitVex(store_, mandatoryPrefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));

@@ -17,6 +17,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Version.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
 #include "Support/Math/Hash.h"
@@ -814,10 +815,10 @@ namespace
 
         uint32_t appendModifierType(const uint32_t baseTypeIndex, const uint16_t modifiers)
         {
-            const uint64_t cacheKey = (static_cast<uint64_t>(baseTypeIndex) << 16) | modifiers;
-            const auto     cacheIt  = modifierTypes.find(cacheKey);
-            if (cacheIt != modifierTypes.end())
-                return cacheIt->second;
+            const uint64_t  cacheKey = (static_cast<uint64_t>(baseTypeIndex) << 16) | modifiers;
+            const uint32_t* cached   = modifierTypes.find(cacheKey);
+            if (cached)
+                return *cached;
 
             const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_MODIFIER);
             bytes.appendLe32(baseTypeIndex);
@@ -829,9 +830,9 @@ namespace
 
         uint32_t appendPointerType(const uint32_t pointeeTypeIndex)
         {
-            const auto cacheIt = pointerTypes.find(pointeeTypeIndex);
-            if (cacheIt != pointerTypes.end())
-                return cacheIt->second;
+            const uint32_t* cached = pointerTypes.find(pointeeTypeIndex);
+            if (cached)
+                return *cached;
 
             const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_POINTER);
             bytes.appendLe32(pointeeTypeIndex);
@@ -843,10 +844,10 @@ namespace
 
         uint32_t appendArrayType(const uint32_t elementTypeIndex, const uint64_t sizeOf)
         {
-            const uint64_t cacheKey = (static_cast<uint64_t>(elementTypeIndex) << 32) ^ sizeOf;
-            const auto     cacheIt  = arrayTypes.find(cacheKey);
-            if (cacheIt != arrayTypes.end())
-                return cacheIt->second;
+            const uint64_t  cacheKey = (static_cast<uint64_t>(elementTypeIndex) << 32) ^ sizeOf;
+            const uint32_t* cached   = arrayTypes.find(cacheKey);
+            if (cached)
+                return *cached;
 
             const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_ARRAY);
             bytes.appendLe32(elementTypeIndex);
@@ -985,10 +986,10 @@ namespace
 
         uint32_t appendSyntheticStructType(const TypeRef typeRef, const Utf8& typeName, const std::span<const FieldDesc> fields, const uint64_t sizeOf, const bool isConst)
         {
-            const uint64_t cacheKey = (static_cast<uint64_t>(typeRef.get()) << 1) | static_cast<uint64_t>(isConst);
-            const auto     cacheIt  = builtTypes.find(cacheKey);
-            if (cacheIt != builtTypes.end())
-                return cacheIt->second;
+            const uint64_t  cacheKey = (static_cast<uint64_t>(typeRef.get()) << 1) | static_cast<uint64_t>(isConst);
+            const uint32_t* cached   = builtTypes.find(cacheKey);
+            if (cached)
+                return *cached;
 
             const uint32_t fieldListType = fields.empty() ? 0 : appendFieldList(fields);
             const uint32_t baseTypeIndex = appendStructRecord(typeName, fieldListType, static_cast<uint16_t>(fields.size()), sizeOf, 0);
@@ -1002,12 +1003,12 @@ namespace
         // declaration, which the debugger resolves through the definition emitted alongside it.
         uint32_t pointeeTypeIndexFor(const TypeRef pointeeTypeRef)
         {
-            const uint32_t pointeeType = typeIndexFor(pointeeTypeRef);
-            const auto     forward     = forwardStructTypes.find(pointeeTypeRef.get());
-            if (forward == forwardStructTypes.end())
+            const uint32_t  pointeeType = typeIndexFor(pointeeTypeRef);
+            const uint32_t* forward     = forwardStructTypes.find(pointeeTypeRef.get());
+            if (!forward)
                 return pointeeType;
             const TypeInfo& pointee = ctx->typeMgr().get(pointeeTypeRef);
-            return pointee.isConst() ? appendModifierType(forward->second, K_CV_TYPE_MOD_CONST) : forward->second;
+            return pointee.isConst() ? appendModifierType(*forward, K_CV_TYPE_MOD_CONST) : *forward;
         }
 
         // The index a field or an array element names for its type. A structure is named by its
@@ -1016,11 +1017,11 @@ namespace
         // only declares it, and the linker keeps one copy of it.
         uint32_t memberTypeIndexFor(const TypeRef memberTypeRef, const bool isConst = false)
         {
-            const uint32_t memberType = typeIndexFor(memberTypeRef, isConst);
-            const auto     forward    = forwardStructTypes.find(memberTypeRef.get());
-            if (forward == forwardStructTypes.end())
+            const uint32_t  memberType = typeIndexFor(memberTypeRef, isConst);
+            const uint32_t* forward    = forwardStructTypes.find(memberTypeRef.get());
+            if (!forward)
                 return memberType;
-            return isConst ? appendModifierType(forward->second, K_CV_TYPE_MOD_CONST) : forward->second;
+            return isConst ? appendModifierType(*forward, K_CV_TYPE_MOD_CONST) : *forward;
         }
 
         uint32_t typeIndexFor(TypeRef typeRef, bool isConst = false)
@@ -1041,10 +1042,10 @@ namespace
             if (originalType.isEnum())
                 return typeIndexFor(originalType.payloadSymEnum().underlyingTypeRef(), isConst);
 
-            const uint64_t cacheKey = (static_cast<uint64_t>(typeRef.get()) << 1) | static_cast<uint64_t>(isConst);
-            const auto     cacheIt  = builtTypes.find(cacheKey);
-            if (cacheIt != builtTypes.end())
-                return cacheIt->second;
+            const uint64_t  cacheKey = (static_cast<uint64_t>(typeRef.get()) << 1) | static_cast<uint64_t>(isConst);
+            const uint32_t* cached   = builtTypes.find(cacheKey);
+            if (cached)
+                return *cached;
 
             if (const uint32_t primitive = primitiveTypeIndex(originalType))
                 return isConst ? appendModifierType(primitive, K_CV_TYPE_MOD_CONST) : primitive;
@@ -1152,9 +1153,9 @@ namespace
                 const uint32_t typeKey = typeRef.get();
                 if (buildingStructs.contains(typeKey))
                 {
-                    const auto itForward = forwardStructTypes.find(typeKey);
-                    SWC_ASSERT(itForward != forwardStructTypes.end());
-                    return itForward->second;
+                    const uint32_t* forward = forwardStructTypes.find(typeKey);
+                    SWC_ASSERT(forward != nullptr);
+                    return *forward;
                 }
 
                 const Utf8     typeName    = originalType.toName(*ctx);
@@ -1199,17 +1200,17 @@ namespace
             return finishRecord(recordOffset);
         }
 
-        TaskContext*                           ctx = nullptr;
-        ByteArray                              bytes;
-        uint32_t                               nextTypeIndex = K_CV_FIRST_NONPRIM;
-        std::unordered_map<uint64_t, uint32_t> builtTypes;
-        std::unordered_map<uint64_t, uint32_t> modifierTypes;
-        std::unordered_map<uint32_t, uint32_t> pointerTypes;
-        std::unordered_map<uint64_t, uint32_t> arrayTypes;
-        std::unordered_map<uint32_t, uint32_t> forwardStructTypes;
-        std::unordered_set<uint32_t>           buildingStructs;
-        std::map<uint32_t, Utf8>               udtNames;
-        RecordIndexMap                         recordIndices;
+        TaskContext*                   ctx = nullptr;
+        ByteArray                      bytes;
+        uint32_t                       nextTypeIndex = K_CV_FIRST_NONPRIM;
+        FlatKeyMap<uint32_t, uint64_t> builtTypes;
+        FlatKeyMap<uint32_t, uint64_t> modifierTypes;
+        FlatKeyMap<uint32_t>           pointerTypes;
+        FlatKeyMap<uint32_t, uint64_t> arrayTypes;
+        FlatKeyMap<uint32_t>           forwardStructTypes;
+        std::unordered_set<uint32_t>   buildingStructs;
+        std::map<uint32_t, Utf8>       udtNames;
+        RecordIndexMap                 recordIndices;
     };
 
     void appendLinesSubsection(ByteArray& bytes, NativeSectionData& debugSection, const DebugInfoFunctionRecord& function, const FunctionLines& functionLines, const FileChecksumBuilder& checksums)

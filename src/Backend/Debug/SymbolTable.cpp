@@ -5,6 +5,8 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
+#include "Support/Core/StringMap.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -24,16 +26,16 @@ namespace
         {
             if (value.empty())
                 return 0;
-            const auto [it, inserted] = offsets.try_emplace(value, base + static_cast<uint32_t>(bytes.size()));
+            const auto [offset, inserted] = offsets.try_emplace(value, Math::hash(value), base + static_cast<uint32_t>(bytes.size()));
             if (inserted)
                 bytes.appendCString(value);
-            return it->second;
+            return *offset;
         }
 
         uint32_t  base = 0;
         ByteArray bytes;
         // build keeps the source entries alive and unchanged until this map is destroyed.
-        std::unordered_map<std::string_view, uint32_t> offsets;
+        StringMap<uint32_t> offsets;
     };
 
     Utf8 readString(const std::span<const std::byte> bytes, const uint32_t offset)

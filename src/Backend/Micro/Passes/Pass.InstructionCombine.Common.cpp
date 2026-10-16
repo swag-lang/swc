@@ -51,6 +51,8 @@ namespace InstructionCombine
         switch (op)
         {
             case MicroOp::And:
+            case MicroOp::MultiplySigned:
+            case MicroOp::MultiplyUnsigned:
                 if ((imm & mask) == 0)
                 {
                     outResult = 0;
@@ -62,15 +64,6 @@ namespace InstructionCombine
                 if ((imm & mask) == mask)
                 {
                     outResult = mask;
-                    return true;
-                }
-                break;
-
-            case MicroOp::MultiplySigned:
-            case MicroOp::MultiplyUnsigned:
-                if ((imm & mask) == 0)
-                {
-                    outResult = 0;
                     return true;
                 }
                 break;

@@ -206,7 +206,14 @@ namespace
                 outShape.keyedByRelocationToo = true;
                 return true;
 
+            // ops: [0] dst, [1] src, [2] dstBits, [3] srcBits
+            // ops: [0] dst, [1] src, [2] opBits, [3] microOp
+            // ops: [0] dst, [1] src, [2] opBits, [3] control
             case MicroInstrOpcode::LoadAddrRegMem:
+            case MicroInstrOpcode::LoadSignedExtRegReg:
+            case MicroInstrOpcode::LoadZeroExtRegReg:
+            case MicroInstrOpcode::VecUnaryRegReg:
+            case MicroInstrOpcode::VecShuffleRegRegImm:
                 // ops: [0] dst, [1] base, [2] opBits, [3] offset
                 outShape.useSlots    = {1};
                 outShape.rawSlots    = {2, 3};
@@ -218,14 +225,6 @@ namespace
                 outShape.useSlots    = {1, 2};
                 outShape.rawSlots    = {3, 4, 5, 6};
                 outShape.movBitsSlot = 3;
-                return true;
-
-            case MicroInstrOpcode::LoadSignedExtRegReg:
-            case MicroInstrOpcode::LoadZeroExtRegReg:
-                // ops: [0] dst, [1] src, [2] dstBits, [3] srcBits
-                outShape.useSlots    = {1};
-                outShape.rawSlots    = {2, 3};
-                outShape.movBitsSlot = 2;
                 return true;
 
             case MicroInstrOpcode::LoadRegPtrReloc:
@@ -315,20 +314,6 @@ namespace
                 outShape.rawSlots    = {3, 4, 5};
                 outShape.movBitsSlot = 3;
                 outShape.packedOnly  = true;
-                return true;
-
-            case MicroInstrOpcode::VecUnaryRegReg:
-                // ops: [0] dst, [1] src, [2] opBits, [3] microOp
-                outShape.useSlots    = {1};
-                outShape.rawSlots    = {2, 3};
-                outShape.movBitsSlot = 2;
-                return true;
-
-            case MicroInstrOpcode::VecShuffleRegRegImm:
-                // ops: [0] dst, [1] src, [2] opBits, [3] control
-                outShape.useSlots    = {1};
-                outShape.rawSlots    = {2, 3};
-                outShape.movBitsSlot = 2;
                 return true;
 
             case MicroInstrOpcode::LoadVecRegMem:

@@ -252,12 +252,6 @@ namespace
                 isWrite = true;
                 break;
             case MicroInstrOpcode::OpBinaryMemImm:
-                baseReg = ops[0].reg;
-                size    = getNumBytes(ops[1].opBits);
-                offset  = ops[3].valueU64;
-                isRead  = true;
-                isWrite = true;
-                break;
             case MicroInstrOpcode::OpUnaryMem:
                 baseReg = ops[0].reg;
                 size    = getNumBytes(ops[1].opBits);
@@ -265,7 +259,6 @@ namespace
                 isRead  = true;
                 isWrite = true;
                 break;
-
             default:
             {
                 // Anything else touching memory - push/pop, the variable-index

@@ -163,6 +163,7 @@ namespace PreRaPeephole
                 case MicroInstrOpcode::LoadRegMem:
                 case MicroInstrOpcode::LoadVecRegMem:
                 case MicroInstrOpcode::VecUnaryRegMem:
+                case MicroInstrOpcode::LoadAddrRegMem:
                     if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
@@ -173,6 +174,10 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::StoreVecMemReg:
+                case MicroInstrOpcode::LoadMemReg:
+                case MicroInstrOpcode::CmpMemReg:
+                case MicroInstrOpcode::OpUnaryMem:
+                case MicroInstrOpcode::OpBinaryMemImm:
                     if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
@@ -184,71 +189,23 @@ namespace PreRaPeephole
 
                 case MicroInstrOpcode::LoadSignedExtRegMem:
                 case MicroInstrOpcode::LoadZeroExtRegMem:
-                    if (ops[1].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[1].reg      = baseReg;
-                        out.ops[4].valueU64 = ops[4].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
-                case MicroInstrOpcode::LoadMemReg:
-                    if (ops[0].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[0].reg      = baseReg;
-                        out.ops[3].valueU64 = ops[3].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
-                case MicroInstrOpcode::LoadMemImm:
-                    if (ops[0].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[0].reg      = baseReg;
-                        out.ops[2].valueU64 = ops[2].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
-                case MicroInstrOpcode::CmpMemReg:
-                    if (ops[0].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[0].reg      = baseReg;
-                        out.ops[3].valueU64 = ops[3].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
-                case MicroInstrOpcode::CmpMemImm:
-                    if (ops[0].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[0].reg      = baseReg;
-                        out.ops[2].valueU64 = ops[2].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
-                case MicroInstrOpcode::OpUnaryMem:
-                    if (ops[0].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[0].reg      = baseReg;
-                        out.ops[3].valueU64 = ops[3].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
                 case MicroInstrOpcode::OpBinaryRegMem:
                     if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[1].reg      = baseReg;
                         out.ops[4].valueU64 = ops[4].valueU64 + addrOff;
+                        return true;
+                    }
+                    return false;
+
+                case MicroInstrOpcode::LoadMemImm:
+                case MicroInstrOpcode::CmpMemImm:
+                    if (ops[0].reg == addrReg)
+                    {
+                        copyOperands(out, consumer, ops);
+                        out.ops[0].reg      = baseReg;
+                        out.ops[2].valueU64 = ops[2].valueU64 + addrOff;
                         return true;
                     }
                     return false;
@@ -263,27 +220,8 @@ namespace PreRaPeephole
                     }
                     return false;
 
-                case MicroInstrOpcode::OpBinaryMemImm:
-                    if (ops[0].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[0].reg      = baseReg;
-                        out.ops[3].valueU64 = ops[3].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
-                case MicroInstrOpcode::LoadAddrRegMem:
-                    if (ops[1].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[1].reg      = baseReg;
-                        out.ops[3].valueU64 = ops[3].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
                 case MicroInstrOpcode::LoadAmcRegMem:
+                case MicroInstrOpcode::LoadAddrAmcRegMem:
                     if (ops[1].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
@@ -294,30 +232,11 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::LoadAmcMemReg:
-                    if (ops[0].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[0].reg      = baseReg;
-                        out.ops[6].valueU64 = ops[6].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
                 case MicroInstrOpcode::LoadAmcMemImm:
                     if (ops[0].reg == addrReg)
                     {
                         copyOperands(out, consumer, ops);
                         out.ops[0].reg      = baseReg;
-                        out.ops[6].valueU64 = ops[6].valueU64 + addrOff;
-                        return true;
-                    }
-                    return false;
-
-                case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    if (ops[1].reg == addrReg)
-                    {
-                        copyOperands(out, consumer, ops);
-                        out.ops[1].reg      = baseReg;
                         out.ops[6].valueU64 = ops[6].valueU64 + addrOff;
                         return true;
                     }
@@ -354,28 +273,10 @@ namespace PreRaPeephole
                     }
                     return false;
 
+                // The vector load takes the same indexed form as the
+                // scalar one; the encoder writes the 128-bit move.
                 case MicroInstrOpcode::LoadRegMem:
-                    if (ops[1].reg == addrReg)
-                    {
-                        if (!isEncodableAmcScale(scale))
-                            return false;
-                        out.newOp           = MicroInstrOpcode::LoadAmcRegMem;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = ops[0].reg;
-                        out.ops[1].reg      = baseReg;
-                        out.ops[2].reg      = indexReg;
-                        out.ops[3].opBits   = ops[2].opBits;
-                        out.ops[4].opBits   = addrBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add + ops[3].valueU64;
-                        return true;
-                    }
-                    return false;
-
                 case MicroInstrOpcode::LoadVecRegMem:
-                    // The vector load takes the same indexed form as the
-                    // scalar one; the encoder writes the 128-bit move.
                     if (ops[1].reg == addrReg)
                     {
                         if (!isEncodableAmcScale(scale))
@@ -416,24 +317,6 @@ namespace PreRaPeephole
                     return false;
 
                 case MicroInstrOpcode::StoreVecMemReg:
-                    if (ops[0].reg == addrReg)
-                    {
-                        if (!isEncodableAmcScale(scale))
-                            return false;
-                        out.newOp           = MicroInstrOpcode::LoadAmcMemReg;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = baseReg;
-                        out.ops[1].reg      = indexReg;
-                        out.ops[2].reg      = ops[1].reg;
-                        out.ops[3].opBits   = addrBits;
-                        out.ops[4].opBits   = ops[2].opBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add + ops[3].valueU64;
-                        return true;
-                    }
-                    return false;
-
                 case MicroInstrOpcode::LoadMemReg:
                     if (ops[0].reg == addrReg)
                     {

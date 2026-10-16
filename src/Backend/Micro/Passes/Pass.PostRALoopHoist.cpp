@@ -68,9 +68,6 @@ namespace
                 offset = ops[4].valueU64;
                 break;
             case MicroInstrOpcode::OpBinaryMemImm:
-                bits   = ops[1].opBits;
-                offset = ops[3].valueU64;
-                break;
             case MicroInstrOpcode::OpUnaryMem:
                 bits   = ops[1].opBits;
                 offset = ops[3].valueU64;

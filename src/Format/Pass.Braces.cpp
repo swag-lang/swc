@@ -201,10 +201,6 @@ namespace
                         break;
 
                     case FormatShortBlockStyle::Never:
-                        if (singleLine && !empty)
-                            splitBlock(block);
-                        break;
-
                     case FormatShortBlockStyle::Empty:
                         if (singleLine && !empty)
                             splitBlock(block);

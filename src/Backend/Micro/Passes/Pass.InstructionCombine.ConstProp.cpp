@@ -606,11 +606,6 @@ namespace InstructionCombine
                 indexIdx = 1;
                 break;
             case MicroInstrOpcode::OpBinaryAmcMemImm:
-                baseIdx  = 0;
-                indexIdx = 1;
-                mulIdx   = 4;
-                addIdx   = 5;
-                break;
             case MicroInstrOpcode::CmpAmcImm:
                 baseIdx  = 0;
                 indexIdx = 1;

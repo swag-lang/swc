@@ -30,6 +30,7 @@ namespace InstructionCombine
             switch (op)
             {
                 case MicroInstrOpcode::LoadMemReg:
+                case MicroInstrOpcode::StoreVecMemReg:
                     out.baseIdx = 0;
                     out.offIdx  = 3;
                     return true;
@@ -40,10 +41,6 @@ namespace InstructionCombine
                 case MicroInstrOpcode::LoadVecRegMem:
                 case MicroInstrOpcode::VecUnaryRegMem:
                     out.baseIdx = 1;
-                    out.offIdx  = 3;
-                    return true;
-                case MicroInstrOpcode::StoreVecMemReg:
-                    out.baseIdx = 0;
                     out.offIdx  = 3;
                     return true;
                 default:

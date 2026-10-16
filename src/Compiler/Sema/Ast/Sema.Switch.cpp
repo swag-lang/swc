@@ -392,8 +392,7 @@ TypeRef SemaSwitch::caseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
 
 Result SemaSwitch::normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView)
 {
-    const TypeInfo* underlyingType   = exprView.type()->unwrapAliasEnumType(sema.ctx());
-    const TypeInfo& initialFinalType = underlyingType ? *underlyingType : *exprView.type();
+    const TypeInfo& initialFinalType = exprView.type()->unwrapAliasEnumTypeOrSelf(sema.ctx());
     if (!initialFinalType.isTypeValue())
         return Result::Continue;
 
@@ -662,8 +661,7 @@ namespace
         if (!sourceTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo* sourceUnderlyingType = sourceView.type()->unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& sourceType           = sourceUnderlyingType ? *sourceUnderlyingType : *sourceView.type();
+        const TypeInfo& sourceType           = sourceView.type()->unwrapAliasEnumTypeOrSelf(sema.ctx());
         const TypeInfo& switchType           = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), switchTypeRef);
 
         if (sourceType.isNull())

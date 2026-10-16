@@ -55,7 +55,7 @@ namespace
             ok = canReflectTypeRef(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);
         else if (type.isEnum())
             ok = canReflectTypeRef(ctx, type.payloadSymEnum().underlyingTypeRef(), visiting);
-        else if (type.isAggregateStruct() || type.isAggregateArray())
+        else if (type.isAggregate())
         {
             for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
             {

@@ -733,7 +733,7 @@ namespace
         if (typeInfo.isArray())
             return canEmitDefaultPayloadBytesInline(codeGen, codeGen.typeMgr().get(typeInfo.payloadArrayElemTypeRef()));
 
-        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        if (typeInfo.isAggregate())
         {
             for (const TypeRef childTypeRef : typeInfo.payloadAggregate().types)
             {

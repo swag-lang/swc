@@ -193,7 +193,7 @@ namespace
             return false;
 
         const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
-        if (storageType.isAggregateStruct() || storageType.isAggregateArray())
+        if (storageType.isAggregate())
         {
             const auto& elementTypes = storageType.payloadAggregate().types;
             if (elementTypes.size() != elementRefs.size())
@@ -364,7 +364,7 @@ namespace
             if (valueView.cstRef().isValid() && existingPayload->typeRef.isValid() && targetTypeRef.isValid() && existingPayload->typeRef != targetTypeRef)
             {
                 const TypeInfo& existingType = codeGen.typeMgr().get(existingPayload->typeRef);
-                if (existingType.isAggregateStruct() || existingType.isAggregateArray())
+                if (existingType.isAggregate())
                     return false;
             }
 

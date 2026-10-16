@@ -2668,7 +2668,7 @@ namespace
     // slice parameters; owning aggregate values still need stronger materialization support.
     bool isInlineAggregateType(const TypeInfo& ti)
     {
-        return ti.isStruct() || ti.isArray() || ti.isAggregateStruct() || ti.isAggregateArray() ||
+        return ti.isStruct() || ti.isArray() || ti.isAggregate() ||
                ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice() || ti.isFunction();
     }
 

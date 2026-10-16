@@ -74,7 +74,7 @@ namespace
             return Result::Continue;
         }
 
-        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        if (typeInfo.isAggregate())
         {
             for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
                 SWC_RESULT(waitStaticPayloadTypeReadyRec(sema, fieldTypeRef, waitNodeRef, visited));
@@ -116,7 +116,7 @@ namespace
         const TypeRef storageTypeRef = storageType.typeRef();
         ConstantValue result;
 
-        if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregateStruct() || storageType.isAggregateArray() || (storageType.isFunction() && storageType.isLambdaClosure()))
+        if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure()))
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
         else if (storageType.isArray() || storageType.isSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
@@ -640,7 +640,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
         return true;
     }
 
-    if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+    if (typeInfo.isAggregate())
     {
         uint64_t offset = 0;
         for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)

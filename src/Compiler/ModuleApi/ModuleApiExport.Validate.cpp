@@ -154,7 +154,7 @@ namespace
             return Result::Continue;
         }
 
-        if (type.isAggregateStruct() || type.isAggregateArray())
+        if (type.isAggregate())
         {
             for (const TypeRef childTypeRef : type.payloadAggregate().types)
                 SWC_RESULT(validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, childTypeRef, stack));

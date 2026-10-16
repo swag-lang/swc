@@ -2942,7 +2942,7 @@ namespace
         // A contextual aggregate literal keeps its provisional aggregate type on the
         // source node even after the UFCS cast has concretized it to the receiver type.
         // The literal owns runtime storage, so its address is the pointer argument.
-        if (sourceType.isAggregateStruct() || sourceType.isAggregateArray())
+        if (sourceType.isAggregate())
             return true;
 
         return pointeeTypeToCheck == sourceTypeToCheck;

@@ -157,7 +157,7 @@ namespace
             return;
         }
 
-        if (type.isAggregateStruct() || type.isAggregateArray())
+        if (type.isAggregate())
         {
             for (const TypeRef childTypeRef : type.payloadAggregate().types)
                 collectModuleApiTypeRefDependencies(collector, childTypeRef);

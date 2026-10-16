@@ -388,7 +388,7 @@ namespace
             return codeGen.emitLifecycle(typeInfo.payloadArrayElemTypeRef(), lifecycleKind, addressReg, static_cast<uint32_t>(totalCount));
         }
 
-        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        if (typeInfo.isAggregate())
         {
             const size_t fieldCount = typeInfo.payloadAggregate().types.size();
             if (!fieldCount)

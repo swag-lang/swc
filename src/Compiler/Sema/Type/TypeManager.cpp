@@ -517,7 +517,7 @@ bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, 
             continue;
         }
 
-        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        if (typeInfo.isAggregate())
         {
             for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
             {

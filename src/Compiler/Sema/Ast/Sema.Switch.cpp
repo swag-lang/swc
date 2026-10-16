@@ -418,7 +418,7 @@ Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef expr
         if (pointee.isStruct())
             SWC_RESULT(sema.waitSemaCompleted(&pointee, exprRef));
     }
-    if (SemaSwitch::isDynamicType(sema, originalType) || finalType.isIntLike() || finalType.isFloat() || finalType.isBool() || finalType.isString() || finalType.isAnyPointer() || finalType.isAnyTypeInfo(sema.ctx()))
+    if (SemaSwitch::isDynamicType(sema, originalType) || finalType.isScalarNumeric() || finalType.isBool() || finalType.isString() || finalType.isAnyPointer() || finalType.isAnyTypeInfo(sema.ctx()))
         return Result::Continue;
 
     return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, exprRef);

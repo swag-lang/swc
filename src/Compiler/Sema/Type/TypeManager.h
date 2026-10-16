@@ -135,7 +135,7 @@ public:
             return TypeRef::invalid();
 
         const TypeInfo& typeInfo = get(typeRef);
-        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+        if (!typeInfo.isAliasOrEnum())
             return typeRef;
 
         const TypeRef unwrappedTypeRef = typeInfo.unwrapAliasEnum(ctx, typeRef);

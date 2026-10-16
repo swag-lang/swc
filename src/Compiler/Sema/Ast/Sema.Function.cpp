@@ -1878,13 +1878,13 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         if (sym.isForeign() && sym.callConvKind() != CallConvKind::Swag)
         {
             TypeRef foreignSimdTypeRef = TypeRef::invalid();
-            if (sym.returnTypeRef().isValid() && sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), sym.returnTypeRef())).isSimd())
+            if (sym.returnTypeRef().isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sym.returnTypeRef()).isSimd())
                 foreignSimdTypeRef = sym.returnTypeRef();
             for (const SymbolVariable* param : sym.parameters())
             {
                 if (foreignSimdTypeRef.isValid())
                     break;
-                if (param && param->typeRef().isValid() && sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), param->typeRef())).isSimd())
+                if (param && param->typeRef().isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), param->typeRef()).isSimd())
                     foreignSimdTypeRef = param->typeRef();
             }
 

@@ -386,7 +386,7 @@ Result CodeGenSafety::emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef)
 
 bool CodeGenSafety::isBorrowedValueType(CodeGen& codeGen, TypeRef typeRef)
 {
-    const TypeInfo& type = codeGen.typeMgr().get(codeGen.typeMgr().unwrapAliasEnumOrSelf(codeGen.ctx(), typeRef));
+    const TypeInfo& type = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), typeRef);
     return type.isStructOrAggregateStruct() || type.isStringOrSlice() || type.isInterface() || type.isAny() || type.isLambdaClosure();
 }
 

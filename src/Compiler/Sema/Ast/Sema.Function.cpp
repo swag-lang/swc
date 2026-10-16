@@ -1102,7 +1102,7 @@ namespace
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
             if (const auto* currentFn = sema.currentFunction())
             {
-                const auto* decl = currentFn->decl() ? currentFn->decl()->safeCast<AstFunctionDecl>() : nullptr;
+                const auto* decl = currentFn->declAs<AstFunctionDecl>();
                 if (decl && decl->nodeReturnTypeRef.isValid())
                 {
                     diag.addNote(DiagnosticId::sema_note_function_return_type_declared_here);

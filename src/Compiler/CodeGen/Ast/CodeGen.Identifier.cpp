@@ -624,6 +624,20 @@ namespace
         return Result::Continue;
     }
 
+    // Stores the initializer of 'symVar' at its address, or its default value without one, unless
+    // the initializer already lives in the variable's storage.
+    Result storeVarInitToAddress(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef, const CodeGenNodePayload& symbolPayload, uint32_t localSize)
+    {
+        if (initRef.isInvalid())
+            return emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize);
+
+        const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
+        if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
+            return Result::Continue;
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, localSize);
+        return emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload);
+    }
+
     Result materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         MicroBuilder& builder  = codeGen.builder();
@@ -644,18 +658,7 @@ namespace
             if (initNodePayload && initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload))
                 return Result::Continue;
 
-            if (initRef.isValid())
-            {
-                const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
-                if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
-                    return Result::Continue;
-                CodeGenMemoryHelpers::storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, localSize);
-                SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-            }
-            else
-            {
-                SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
-            }
+            SWC_RESULT(storeVarInitToAddress(codeGen, symVar, initRef, symbolPayload, localSize));
 
             return Result::Continue;
         }
@@ -673,18 +676,7 @@ namespace
 
             if (!skipInit)
             {
-                if (initRef.isValid())
-                {
-                    const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
-                    if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
-                        return Result::Continue;
-                    CodeGenMemoryHelpers::storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, localSize);
-                    SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
-                }
-                else
-                {
-                    SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
-                }
+                SWC_RESULT(storeVarInitToAddress(codeGen, symVar, initRef, symbolPayload, localSize));
             }
             else
                 SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), symbolPayload.reg));

@@ -33,7 +33,7 @@ namespace SemaGeneric
     {
         const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
         {
-            return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
+            return root.declAs<AstFunctionDecl>();
         }
 
         const AstNode* genericStructDeclNode(const SymbolStruct& root)

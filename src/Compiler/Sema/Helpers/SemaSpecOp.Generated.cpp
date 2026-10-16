@@ -588,7 +588,7 @@ namespace
     // neither stands in for a generated overload nor stops the struct from receiving one.
     bool declaredEqualityTargetsOwner(Sema& sema, const SymbolFunction& function, const SymbolStruct& ownerStruct)
     {
-        const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* decl = function.declAs<AstFunctionDecl>();
         if (!decl || decl->nodeParamsRef.isInvalid())
             return false;
 

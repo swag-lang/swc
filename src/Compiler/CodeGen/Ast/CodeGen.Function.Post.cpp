@@ -801,7 +801,7 @@ namespace
     void emitClosureCaptureStore(CodeGen& codeGen, const SymbolVariable& captureVar, MicroReg closureValueReg)
     {
         const CodeGenNodePayload* sourcePayload = nullptr;
-        if (const auto* captureArg = captureVar.decl() ? captureVar.decl()->safeCast<AstClosureArgument>() : nullptr)
+        if (const auto* captureArg = captureVar.declAs<AstClosureArgument>())
         {
             const CodeGenNodePayload* capturePayload = codeGen.safePayload(captureArg->nodeIdentifierRef);
             if (capturePayload && capturePayload->reg.isValid())

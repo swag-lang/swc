@@ -2052,7 +2052,7 @@ namespace
         {
             AstNodeRef materializedTypeRef = AstNodeRef::invalid();
             // A synthesized receiver has no declaration to clone a type node from.
-            if (const auto* paramDecl = param.decl() ? param.decl()->safeCast<AstSingleVarDecl>() : nullptr;
+            if (const auto* paramDecl = param.declAs<AstSingleVarDecl>();
                 paramDecl && paramDecl->nodeTypeRef.isValid())
             {
                 const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, context.sourceAst};

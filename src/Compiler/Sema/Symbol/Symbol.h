@@ -133,6 +133,13 @@ public:
     TokenRef        tokRef() const noexcept { return tokRef_; }
     Utf8            toFamily() const;
 
+    // The declaration node as a 'T', or null when it is missing or of another kind.
+    template<typename T>
+    const T* declAs() const noexcept
+    {
+        return decl_ ? decl_->safeCast<T>() : nullptr;
+    }
+
     SymbolFlags flags() const noexcept { return flags_; }
     bool        hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }
     void        addFlag(SymbolFlagsE fl) { flags_.add(fl); }

@@ -256,7 +256,7 @@ Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure
             SWC_RESULT(sema.waitTyped(method, method->codeRef()));
             if (!implMethodMatchesInterfaceMethod(sema.ctx(), *method, *interfaceMethod))
                 continue;
-            const auto* decl = method->decl() ? method->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto* decl = method->declAs<AstFunctionDecl>();
             if (decl && decl->spanConstraintsRef.isValid() && !method->isEmpty())
                 SWC_RESULT(sema.waitConstraintsResolved(method, method->codeRef()));
         }
@@ -265,7 +265,7 @@ Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure
         if (!method)
             return Result::Continue;
         SWC_RESULT(sema.waitTyped(method, method->codeRef()));
-        const auto* decl = method->decl() ? method->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* decl = method->declAs<AstFunctionDecl>();
         if (!decl || decl->spanConstraintsRef.isInvalid() || method->isEmpty())
             continue;
 

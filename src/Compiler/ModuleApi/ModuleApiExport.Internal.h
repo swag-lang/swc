@@ -91,6 +91,7 @@ namespace ModuleApiExport
     Result           writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content);
 
     // ModuleApiExport.Validate.cpp
+    Utf8   symbolKindName(const Symbol& symbol);
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiValidationStack& stack);
     Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, ModuleApiValidationStack& stack);
 

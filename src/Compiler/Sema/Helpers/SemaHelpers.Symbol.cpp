@@ -78,13 +78,9 @@ namespace
         if (leftPayloadTypeRef == rightPayloadTypeRef)
             return true;
 
-        const TypeRef leftUnwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), leftPayloadTypeRef);
-        if (leftUnwrappedTypeRef.isValid())
-            leftPayloadTypeRef = leftUnwrappedTypeRef;
+        leftPayloadTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), leftPayloadTypeRef);
 
-        const TypeRef rightUnwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), rightPayloadTypeRef);
-        if (rightUnwrappedTypeRef.isValid())
-            rightPayloadTypeRef = rightUnwrappedTypeRef;
+        rightPayloadTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), rightPayloadTypeRef);
 
         return leftPayloadTypeRef == rightPayloadTypeRef;
     }

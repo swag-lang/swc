@@ -143,9 +143,7 @@ Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view             = sema.viewType(nodeTypeRef);
     TypeRef            elementTypeRef   = view.typeRef();
-    const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
-    if (unwrappedTypeRef.isValid())
-        elementTypeRef = unwrappedTypeRef;
+    elementTypeRef                      = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
 
     if (elementTypeRef == sema.typeMgr().typeVoid())
     {
@@ -227,9 +225,7 @@ Result AstSliceType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view             = sema.viewType(nodePointeeTypeRef);
     TypeRef            elementTypeRef   = view.typeRef();
-    const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
-    if (unwrappedTypeRef.isValid())
-        elementTypeRef = unwrappedTypeRef;
+    elementTypeRef                      = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
 
     if (elementTypeRef == sema.typeMgr().typeVoid())
     {
@@ -451,9 +447,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     TaskContext&       ctx              = sema.ctx();
     const SemaNodeView view             = sema.viewType(nodePointeeTypeRef);
     TypeRef            elementTypeRef   = view.typeRef();
-    const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
-    if (unwrappedTypeRef.isValid())
-        elementTypeRef = unwrappedTypeRef;
+    elementTypeRef                      = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
 
     if (elementTypeRef == sema.typeMgr().typeVoid())
     {

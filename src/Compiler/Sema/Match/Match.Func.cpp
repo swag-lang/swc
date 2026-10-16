@@ -1738,7 +1738,7 @@ namespace
             Sema*                 declSema = SemaDeclHelpers::tryCreateForSymbol(sema, fn, declSemaHolder);
             if (!declSema)
                 declSema = &sema;
-            const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto* decl = fn.declAs<AstFunctionDecl>();
             if (!decl || decl->nodeParamsRef.isInvalid())
                 return Result::Continue;
 

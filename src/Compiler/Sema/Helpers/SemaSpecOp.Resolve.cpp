@@ -266,7 +266,7 @@ namespace
             return true;
         }
 
-        const auto* implDecl = symImpl.decl() ? symImpl.decl()->safeCast<AstImpl>() : nullptr;
+        const auto* implDecl = symImpl.declAs<AstImpl>();
         if (!implDecl)
             return false;
 
@@ -381,7 +381,7 @@ namespace
         if (!symFunc.isGenericRoot() || genericArgNodes.empty())
             return false;
 
-        const auto* decl = symFunc.decl() ? symFunc.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* decl = symFunc.declAs<AstFunctionDecl>();
         if (!decl || !decl->spanGenericParamsRef.isValid())
             return false;
 

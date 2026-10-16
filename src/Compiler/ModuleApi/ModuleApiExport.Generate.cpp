@@ -117,7 +117,7 @@ namespace
 
     Result validateExportedFunctionBody(TaskContext& ctx, const SourceFile& file, const SymbolFunction& function, DiagnosticId diagnosticId)
     {
-        const auto* functionDecl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* functionDecl = function.declAs<AstFunctionDecl>();
         if (!functionDecl || functionDecl->nodeBodyRef.isInvalid())
             return reportFunctionBodyExportError(ctx, function, function.codeRange(ctx), "the function has no body", diagnosticId);
 

@@ -152,7 +152,7 @@ namespace
     const AstFunctionDecl* specOpDeclForGenericSignature(const SymbolFunction& sym)
     {
         const SymbolFunction* root = sym.genericRootOrSelf();
-        return root->decl() ? root->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        return root->declAs<AstFunctionDecl>();
     }
 
     // 'Swag.Operator' is a named type, so it cannot be recognized by a token like the builtin

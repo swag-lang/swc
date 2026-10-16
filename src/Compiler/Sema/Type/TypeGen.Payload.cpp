@@ -490,7 +490,7 @@ namespace
     {
         if (symFunc.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
             return false;
-        const auto* decl = symFunc.decl() ? symFunc.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* decl = symFunc.declAs<AstFunctionDecl>();
         if (decl && decl->spanConstraintsRef.isValid())
             return interfaceTable && symFunc.areConstraintsResolved();
         return true;

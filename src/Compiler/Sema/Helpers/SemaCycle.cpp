@@ -295,7 +295,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     // function is typed. Say so, since an explicit return type is the whole repair.
     for (const Symbol* sym : cycle)
     {
-        const auto* functionDecl = sym->isFunction() && sym->decl() ? sym->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* functionDecl = sym->isFunction() ? sym->declAs<AstFunctionDecl>() : nullptr;
         if (!functionDecl || !functionDecl->hasFlag(AstFunctionFlagsE::Short) || functionDecl->nodeReturnTypeRef.isValid())
             continue;
 

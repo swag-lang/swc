@@ -899,7 +899,7 @@ namespace
                 estimates.resize(functions.size());
             }
 
-            const auto* decl     = symbol->decl() ? symbol->decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto* decl     = symbol->declAs<AstFunctionDecl>();
             const auto  own      = decl && decl->autoInlineCost != UINT32_MAX ? decl->autoInlineCost : 0;
             const auto  estimate = uint64_t{own} + symbol->inlinedCost();
             if (!orderCount)

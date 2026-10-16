@@ -1317,7 +1317,7 @@ namespace SemaGeneric
 {
     void collectFunctionParamDescs(Sema& sema, const SymbolFunction& function, SmallVector<GenericFunctionParamDesc>& outParams)
     {
-        const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* decl = function.declAs<AstFunctionDecl>();
         if (!decl)
             return;
 
@@ -1336,7 +1336,7 @@ namespace SemaGeneric
         if (outFailureArgIndex)
             *outFailureArgIndex = UINT32_MAX;
 
-        const auto* decl = root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* decl = root.declAs<AstFunctionDecl>();
         if (!decl)
             return Result::Continue;
 
@@ -1453,7 +1453,7 @@ namespace SemaGeneric
     Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef, bool requireCompleteGenericArgs)
     {
         outTypeRef       = TypeRef::invalid();
-        const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        const auto* decl = function.declAs<AstFunctionDecl>();
         if (!decl)
             return Result::Continue;
 

@@ -227,7 +227,7 @@ namespace
         }
 
         const TypeInfo& typeInfo = sema.typeMgr().get(normalizedTypeRef);
-        if (typeInfo.isStruct() || typeInfo.isAggregateStruct() || typeInfo.isEnum())
+        if (typeInfo.isStructOrAggregateStruct() || typeInfo.isEnum())
         {
             if (typeInfo.isEnum())
                 bodyScope.addUsingSymMap(typeInfo.payloadSymEnum().asSymMap());

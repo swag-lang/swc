@@ -49,6 +49,8 @@ enum class TypeInfoKindFlagsE : uint16_t
     AnyString           = 1 << 11,
     StructOrArray       = 1 << 12,
     ArrayOrSlice        = 1 << 13,
+    StructOrAggregateStruct = 1 << 14,
+    ArrayOrAggregateArray   = 1 << 15,
 };
 using TypeInfoKindFlags = EnumFlags<TypeInfoKindFlagsE>;
 
@@ -143,12 +145,17 @@ namespace TypeInfoKindFlagsDetail
                 flags.add(TypeInfoKindFlagsE::ArrayOrSlice);
                 break;
             case TypeInfoKind::AggregateStruct:
+                flags.add(TypeInfoKindFlagsE::StructOrAggregateStruct);
+                flags.add(TypeInfoKindFlagsE::Aggregate);
+                break;
             case TypeInfoKind::AggregateArray:
+                flags.add(TypeInfoKindFlagsE::ArrayOrAggregateArray);
                 flags.add(TypeInfoKindFlagsE::Aggregate);
                 break;
             case TypeInfoKind::Struct:
                 flags.add(TypeInfoKindFlagsE::Type);
                 flags.add(TypeInfoKindFlagsE::StructOrArray);
+                flags.add(TypeInfoKindFlagsE::StructOrAggregateStruct);
                 break;
             case TypeInfoKind::Interface:
                 flags.add(TypeInfoKindFlagsE::Type);
@@ -178,6 +185,7 @@ namespace TypeInfoKindFlagsDetail
             case TypeInfoKind::Array:
                 flags.add(TypeInfoKindFlagsE::StructOrArray);
                 flags.add(TypeInfoKindFlagsE::ArrayOrSlice);
+                flags.add(TypeInfoKindFlagsE::ArrayOrAggregateArray);
                 break;
         }
         return flags;
@@ -245,6 +253,8 @@ public:
     bool isNonNullable() const noexcept { return isSupportsNullableQualifier() && !flags_.has(TypeInfoFlagsE::Nullable); }
     bool isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
     bool isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }
+    bool isStructOrAggregateStruct() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::StructOrAggregateStruct); }
+    bool isArrayOrAggregateArray() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::ArrayOrAggregateArray); }
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
     bool isString() const noexcept { return kind_ == TypeInfoKind::String; }

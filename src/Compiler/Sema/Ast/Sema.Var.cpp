@@ -296,7 +296,7 @@ namespace
 
             const TypeRef   elemTypeRef = type.payloadArrayElemTypeRef();
             const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
-            if (elemType.isArray() || elemType.isAggregateArray())
+            if (elemType.isArrayOrAggregateArray())
                 return deduceArrayDimsFromType(sema, elemTypeRef, outDims);
             return true;
         }

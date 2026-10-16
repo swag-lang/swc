@@ -852,7 +852,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             const TypeInfo& typeInfo = sema.typeMgr().get(candidate.typeRef);
 
             auto diagId = DiagnosticId::sema_err_auto_scope_missing_enum_value;
-            if (typeInfo.isStruct() || typeInfo.isAggregateStruct())
+            if (typeInfo.isStructOrAggregateStruct())
                 diagId = DiagnosticId::sema_err_auto_scope_missing_struct_member;
 
             auto diag = SemaError::report(sema, diagId, sema.curNodeRef());

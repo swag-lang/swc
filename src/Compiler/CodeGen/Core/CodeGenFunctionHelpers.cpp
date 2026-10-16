@@ -554,7 +554,7 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
     const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
     const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
-    if (storageType.isStruct() || storageType.isAggregateStruct())
+    if (storageType.isStructOrAggregateStruct())
         return true;
     return storageType.isStringOrSlice() || storageType.isInterface() || storageType.isAny();
 }

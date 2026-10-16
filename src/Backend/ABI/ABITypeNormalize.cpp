@@ -90,7 +90,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         // An array parameter is a view of the caller's storage: writes through it are the
         // language contract, and C decays an array parameter to a pointer rather than pass it
         // by value. So only value-semantic aggregates ride the by-value rule for arguments.
-        const bool hasValueSemantics = ty.isStruct() || ty.isAggregateStruct();
+        const bool hasValueSemantics = ty.isStructOrAggregateStruct();
 
         auto passingKind = StructArgPassingKind::ByReference;
         if (usage == Usage::Return)

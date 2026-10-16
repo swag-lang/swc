@@ -675,7 +675,7 @@ namespace
 
         SWC_ASSERT(assignOp == TokenId::SymEqual);
         const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);
-        SWC_ASSERT(rightType.isStruct() || rightType.isAggregateStruct());
+        SWC_ASSERT(rightType.isStructOrAggregateStruct());
 
         SmallVector<TokenRef> fieldNames;
         if (assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring))

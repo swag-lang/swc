@@ -1582,9 +1582,9 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         // so that type-specific fields (e.g. TypeInfoArray.count) are accessible.
         const TypeInfo& underlying = sema.typeMgr().get(typeInfo->payloadTypeRef());
         TypeRef         structRef  = sema.typeMgr().structTypeInfo();
-        if (underlying.isArray() || underlying.isAggregateArray())
+        if (underlying.isArrayOrAggregateArray())
             structRef = sema.typeMgr().structTypeInfoArray();
-        else if (underlying.isStruct() || underlying.isAggregateStruct())
+        else if (underlying.isStructOrAggregateStruct())
             structRef = sema.typeMgr().structTypeInfoStruct();
         else if (underlying.isEnum())
             structRef = sema.typeMgr().structTypeInfoEnum();

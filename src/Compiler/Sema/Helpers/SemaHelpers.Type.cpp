@@ -185,9 +185,9 @@ namespace
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfo);
 
         const TypeInfo& representedType = typeMgr.get(representedTypeRef);
-        if (representedType.isArray() || representedType.isAggregateArray())
+        if (representedType.isArrayOrAggregateArray())
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoArray);
-        if (representedType.isStruct() || representedType.isAggregateStruct())
+        if (representedType.isStructOrAggregateStruct())
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoStruct);
         if (representedType.isEnum())
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoEnum);
@@ -994,7 +994,7 @@ Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<siz
     outIndices.reserve(fieldNameRefs.size());
 
     const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
-    SWC_ASSERT(sourceType.isStruct() || sourceType.isAggregateStruct());
+    SWC_ASSERT(sourceType.isStructOrAggregateStruct());
 
     for (const TokenRef fieldNameRef : fieldNameRefs)
     {

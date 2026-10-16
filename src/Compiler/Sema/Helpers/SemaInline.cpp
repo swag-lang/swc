@@ -1987,7 +1987,7 @@ namespace
                             (!isCaptured && bindsPointeeByAddress && use.pointerLevel);
 
         const TypeInfo& valueType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), param.typeRef()));
-        const bool      valueAggregate = valueType.isStruct() || valueType.isAggregateStruct() || valueType.isStringOrSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
+        const bool      valueAggregate = valueType.isStructOrAggregateStruct() || valueType.isStringOrSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
         if (context.isOrdinaryInline && valueAggregate)
         {
             const auto abi    = ABITypeNormalize::normalize(sema.ctx(), CallConv::get(context.fn->callConvKind()), paramType, ABITypeNormalize::Usage::Argument);

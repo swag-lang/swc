@@ -911,7 +911,7 @@ Result Cast::resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& code
 
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-    if (srcType.isStruct() || srcType.isAggregateStruct() || !dstType.isStruct())
+    if (srcType.isStructOrAggregateStruct() || !dstType.isStruct())
         return Result::Continue;
 
     SWC_RESULT(sema.waitSemaCompleted(&dstType.payloadSymStruct(), codeRef));

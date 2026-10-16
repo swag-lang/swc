@@ -23,6 +23,9 @@ struct NativeArtifactPaths
     // unless the build was asked for one through CommandLine::staticLibraryOutDir.
     fs::path              staticLibraryPath;
     std::vector<fs::path> objectPaths;
+
+    // How the stage reports name the artifact: its file name, or the whole path when it has none.
+    Utf8 artifactLabel() const { return artifactPath.filename().empty() ? Utf8(artifactPath) : Utf8(artifactPath.filename()); }
 };
 
 class NativeArtifactBuilder

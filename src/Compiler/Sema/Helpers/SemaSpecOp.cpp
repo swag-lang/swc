@@ -297,8 +297,10 @@ namespace
         {
             case SpecOpKind::None:
                 return Result::Continue;
+
             case SpecOpKind::Invalid:
                 return reportSpecOpError(sema, sym, kind);
+
             case SpecOpKind::OpDrop:
             case SpecOpKind::OpPostCopy:
             case SpecOpKind::OpPostMove:
@@ -343,6 +345,7 @@ namespace
                 break;
 
             case SpecOpKind::OpAssign:
+            case SpecOpKind::OpVisit:
                 if (params.size() != 2 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
@@ -380,11 +383,6 @@ namespace
             case SpecOpKind::OpIndexAssign:
             case SpecOpKind::OpIndexSet:
                 if (params.size() < 3 || !returnIsVoid || !indexParametersHaveSameType(ctx, params, 1, params.size() - 1))
-                    return reportSpecOpError(sema, sym, kind);
-                break;
-
-            case SpecOpKind::OpVisit:
-                if (params.size() != 2 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
         }

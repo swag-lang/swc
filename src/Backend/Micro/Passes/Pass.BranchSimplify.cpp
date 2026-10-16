@@ -5460,12 +5460,14 @@ namespace
                     ops = inst.ops(operands);
                 return ops != nullptr;
             case MicroInstrOpcode::OpBinaryRegReg:
+            case MicroInstrOpcode::OpBinaryRegRegImm:
             {
                 if (!ops)
                     ops = inst.ops(operands);
                 return ops && isSpeculatableMicroOp(ops[3].microOp);
             }
             case MicroInstrOpcode::OpBinaryRegImm:
+            case MicroInstrOpcode::OpUnaryReg:
             {
                 if (!ops)
                     ops = inst.ops(operands);
@@ -5476,18 +5478,6 @@ namespace
                 if (!ops)
                     ops = inst.ops(operands);
                 return ops && isSpeculatableMicroOp(ops[4].microOp);
-            }
-            case MicroInstrOpcode::OpBinaryRegRegImm:
-            {
-                if (!ops)
-                    ops = inst.ops(operands);
-                return ops && isSpeculatableMicroOp(ops[3].microOp);
-            }
-            case MicroInstrOpcode::OpUnaryReg:
-            {
-                if (!ops)
-                    ops = inst.ops(operands);
-                return ops && isSpeculatableMicroOp(ops[2].microOp);
             }
             default:
                 return false;

@@ -1398,37 +1398,55 @@ bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const ui
     return true;
 }
 
+// Resolves the artifact paths, names the artifact, and builds everything the link consumes. The
+// Build stage opens in 'outStage' so the caller decides whether the link belongs to it.
+Result NativeBackendBuilder::buildArtifactObjects(std::optional<ScopedTimedLog>& outStage)
+{
+    const NativeArtifactBuilder artifactBuilder(*this);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    compiler_->setLastArtifactLabel(paths.artifactLabel());
+    if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Build))
+        outStage.emplace(ctx_, ScopedTimedLog::Stage::Build);
+
+    SWC_RESULT(prepare());
+    if (outStage)
+    {
+        Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
+        if (!compiler_->lastArtifactLabel().empty())
+            buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
+        outStage->setStat(std::move(buildStat));
+    }
+    {
+        SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native artifact");
+        SWC_RESULT(artifactBuilder.build());
+    }
+
+    SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native objects");
+    return buildObjects();
+}
+
+// Takes over the build directory, artifact and PDB paths the artifact builder resolves.
+void NativeBackendBuilder::adoptArtifactPaths()
+{
+    const NativeArtifactBuilder artifactBuilder(*this);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    buildDir     = paths.buildDir;
+    artifactPath = paths.artifactPath;
+    pdbPath      = paths.pdbPath;
+    compiler_->setLastArtifactLabel(paths.artifactLabel());
+}
+
 Result NativeBackendBuilder::run()
 {
     SWC_ASSERT(compiler_ != nullptr);
     SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
     SWC_RESULT(validateTarget());
 
-    const NativeArtifactBuilder artifactBuilder(*this);
-    NativeArtifactPaths         paths;
-    artifactBuilder.queryPaths(paths);
-    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
     {
         std::optional<ScopedTimedLog> stage;
-        if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Build))
-            stage.emplace(ctx_, ScopedTimedLog::Stage::Build);
-
-        SWC_RESULT(prepare());
-        if (stage)
-        {
-            Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
-            if (!compiler_->lastArtifactLabel().empty())
-                buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
-            stage->setStat(std::move(buildStat));
-        }
-        {
-            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native artifact");
-            SWC_RESULT(artifactBuilder.build());
-        }
-        {
-            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native objects");
-            SWC_RESULT(buildObjects());
-        }
+        SWC_RESULT(buildArtifactObjects(stage));
 
         const auto linker = Linker::create(*this);
         SWC_ASSERT(linker != nullptr);
@@ -1455,30 +1473,9 @@ Result NativeBackendBuilder::prepareForLink()
     }
     SWC_RESULT(validateTarget());
 
-    const NativeArtifactBuilder artifactBuilder(*this);
-    NativeArtifactPaths         paths;
-    artifactBuilder.queryPaths(paths);
-    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
     {
         std::optional<ScopedTimedLog> stage;
-        if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Build))
-            stage.emplace(ctx_, ScopedTimedLog::Stage::Build);
-        SWC_RESULT(prepare());
-        if (stage)
-        {
-            Utf8 buildStat = ScopedTimedLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
-            if (!compiler_->lastArtifactLabel().empty())
-                buildStat = ScopedTimedLog::joinStatItems(ctx_, {buildStat, ScopedTimedLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
-            stage->setStat(std::move(buildStat));
-        }
-        {
-            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native artifact");
-            SWC_RESULT(artifactBuilder.build());
-        }
-        {
-            SWC_SCHED_PHASE(ctx_.global().jobMgr(), "native objects");
-            SWC_RESULT(buildObjects());
-        }
+        SWC_RESULT(buildArtifactObjects(stage));
     }
 
     deferredLinker_ = Linker::create(*this);
@@ -1494,13 +1491,7 @@ Result NativeBackendBuilder::tryPrepareIncrementalLink(bool& outPrepared, const 
     SWC_ASSERT(compiler_ != nullptr);
     SWC_RESULT(validateTarget());
 
-    const NativeArtifactBuilder artifactBuilder(*this);
-    NativeArtifactPaths         paths;
-    artifactBuilder.queryPaths(paths);
-    buildDir     = paths.buildDir;
-    artifactPath = paths.artifactPath;
-    pdbPath      = paths.pdbPath;
-    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+    adoptArtifactPaths();
 
     deferredLinker_ = Linker::create(*this);
     SWC_ASSERT(deferredLinker_ != nullptr);
@@ -1536,13 +1527,7 @@ Result NativeBackendBuilder::runExistingArtifact(ArtifactRunReport* report)
 
     SWC_RESULT(validateTarget());
 
-    const NativeArtifactBuilder artifactBuilder(*this);
-    NativeArtifactPaths         paths;
-    artifactBuilder.queryPaths(paths);
-    buildDir     = paths.buildDir;
-    artifactPath = paths.artifactPath;
-    pdbPath      = paths.pdbPath;
-    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+    adoptArtifactPaths();
     return runGeneratedArtifact(report);
 }
 
@@ -1763,13 +1748,7 @@ Result NativeBackendBuilder::publishExistingArtifact()
 
     SWC_RESULT(validateTarget());
 
-    const NativeArtifactBuilder artifactBuilder(*this);
-    NativeArtifactPaths         paths;
-    artifactBuilder.queryPaths(paths);
-    buildDir     = paths.buildDir;
-    artifactPath = paths.artifactPath;
-    pdbPath      = paths.pdbPath;
-    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+    adoptArtifactPaths();
 
     if (!fs::exists(artifactPath))
         return reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(artifactPath));

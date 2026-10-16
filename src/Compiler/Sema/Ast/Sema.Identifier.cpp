@@ -161,12 +161,7 @@ namespace
         if (symVar.isFunctionLocalVariable(*currentFn))
             return false;
 
-        if (!(symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-              symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
-              symVar.isClosureCapture()))
-            return false;
-
-        return true;
+        return symVar.isFrameVariable();
     }
 
     bool inlinePayloadOwnsVariable(const SemaInlinePayload* inlinePayload, const SymbolFunction& function, const SymbolVariable& symVar)
@@ -224,9 +219,7 @@ namespace
         if (symVar.hasGlobalStorage())
             return nullptr;
 
-        if (!(symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-              symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
-              symVar.isClosureCapture()))
+        if (!symVar.isFrameVariable())
             return nullptr;
 
         const SymbolFunction*    fn                 = &currentFn;

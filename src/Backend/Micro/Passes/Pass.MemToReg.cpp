@@ -801,7 +801,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     hasPending = true;
                 }
                 break;
-
             // `reg op= [slot]` — one read of the slot at the operation width.
             case MicroInstrOpcode::OpBinaryRegMem:
                 resolveBase(ops[1].reg, ops[4].valueU64);
@@ -812,7 +811,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     hasPending = true;
                 }
                 break;
-
             // `[slot] op= reg` and `[slot] op= imm` — read-modify-write.
             case MicroInstrOpcode::OpBinaryMemReg:
                 resolveBase(ops[0].reg, ops[4].valueU64);
@@ -824,13 +822,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 }
                 break;
             case MicroInstrOpcode::OpBinaryMemImm:
-                resolveBase(ops[0].reg, ops[3].valueU64);
-                if (baseValid)
-                {
-                    pending    = {ref, baseSlot, ops[1].opBits, true};
-                    hasPending = true;
-                }
-                break;
             case MicroInstrOpcode::OpUnaryMem:
                 resolveBase(ops[0].reg, ops[3].valueU64);
                 if (baseValid)
@@ -839,7 +830,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     hasPending = true;
                 }
                 break;
-
             // `cmp [slot], reg` and `cmp [slot], imm` — one read.
             case MicroInstrOpcode::CmpMemReg:
                 resolveBase(ops[0].reg, ops[3].valueU64);
@@ -858,7 +848,6 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     hasPending = true;
                 }
                 break;
-
             default:
                 break;
         }

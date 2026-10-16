@@ -11,7 +11,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"

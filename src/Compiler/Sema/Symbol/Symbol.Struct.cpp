@@ -19,7 +19,6 @@
 #include "Compiler/Sema/Symbol/SymbolOrder.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Core/PointerSet.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

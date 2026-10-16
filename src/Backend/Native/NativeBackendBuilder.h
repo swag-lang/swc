@@ -247,6 +247,8 @@ private:
     Result      validateTarget();
     void        prepareFunctionCache();
     Result      buildObjects();
+    Result      buildArtifactObjects(std::optional<ScopedTimedLog>& outStage);
+    void        adoptArtifactPaths();
     Result      runGeneratedArtifact(ArtifactRunReport* report = nullptr);
     Result      runAfterLink();
 

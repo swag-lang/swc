@@ -18,7 +18,6 @@
 #include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

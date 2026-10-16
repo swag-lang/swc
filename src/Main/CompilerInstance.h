@@ -391,6 +391,7 @@ public:
     const SourceFile*                       ownerSourceFile(const SourceView& srcView) const;
     const SourceFile*                       sourceViewFile(SourceViewRef ref) const;
     const SourceFile*                       sourceViewFile(const Symbol& symbol) const;
+    const SourceFile*                       declaringSourceFile(const Symbol& symbol) const;
     void                                    registerEditorSymbol(const Symbol& symbol, FileRef fileRef, uint64_t revision) const;
     std::vector<const Symbol*>              editorSymbols(FileRef fileRef, uint64_t revision) const;
     bool                                    isImportedApiSource(const Symbol& symbol) const;

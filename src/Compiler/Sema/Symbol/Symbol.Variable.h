@@ -56,6 +56,8 @@ public:
     uint32_t        debugStackSlotSize() const { return debugStackSlotSize_; }
     void            setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
     bool            isClosureCapture() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::ClosureCapture); }
+    // A parameter, a function local or a closure capture: storage a function frame owns.
+    bool            isFrameVariable() const noexcept { return hasExtraFlag(SymbolVariableFlagsE::Parameter) || hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || isClosureCapture(); }
     SymbolVariable* closureCapturedSource() const noexcept { return closureCapturedSource_; }
     void            setClosureCapturedSource(SymbolVariable* source) noexcept;
     uint32_t        closureCaptureOffset() const noexcept { return closureCaptureOffset_; }

@@ -364,6 +364,7 @@ std::optional<WaitKey> JobManager::computeWaitKey(const TaskState& st)
         case TaskStateKind::SemaWaitSymJitPrepared:
         case TaskStateKind::SemaWaitSymJitPatched:
         case TaskStateKind::SemaWaitSymJitCompleted:
+        case TaskStateKind::SemaWaitTypeCompleted:
             if (st.symbol)
                 return WaitKey{st.symbol, st.kind};
             return std::nullopt;
@@ -379,11 +380,6 @@ std::optional<WaitKey> JobManager::computeWaitKey(const TaskState& st)
         case TaskStateKind::SemaWaitImplRegistrations:
             if (st.idRef.isValid())
                 return WaitKey::name(st.idRef, st.kind);
-            return std::nullopt;
-
-        case TaskStateKind::SemaWaitTypeCompleted:
-            if (st.symbol)
-                return WaitKey{st.symbol, st.kind};
             return std::nullopt;
 
         // JIT completion has a separate owner alias, independent of the dependency

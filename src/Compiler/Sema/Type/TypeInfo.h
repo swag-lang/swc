@@ -101,9 +101,6 @@ namespace TypeInfoKindFlagsDetail
                 flags.add(TypeInfoKindFlagsE::NumericIntLike);
                 break;
             case TypeInfoKind::Int:
-                flags.add(TypeInfoKindFlagsE::IntLike);
-                flags.add(TypeInfoKindFlagsE::NumericIntLike);
-                break;
             case TypeInfoKind::Char:
             case TypeInfoKind::Rune:
                 flags.add(TypeInfoKindFlagsE::IntLike);
@@ -118,6 +115,7 @@ namespace TypeInfoKindFlagsDetail
                 flags.add(TypeInfoKindFlagsE::Type);
                 break;
             case TypeInfoKind::Any:
+            case TypeInfoKind::Function:
                 flags.add(TypeInfoKindFlagsE::PointerLike);
                 break;
             case TypeInfoKind::CString:
@@ -158,18 +156,12 @@ namespace TypeInfoKindFlagsDetail
                 flags.add(TypeInfoKindFlagsE::StructOrAggregateStruct);
                 break;
             case TypeInfoKind::Interface:
+            case TypeInfoKind::TypeInfo:
                 flags.add(TypeInfoKindFlagsE::Type);
                 flags.add(TypeInfoKindFlagsE::PointerLike);
                 break;
             case TypeInfoKind::Alias:
                 flags.add(TypeInfoKindFlagsE::AliasOrEnum);
-                break;
-            case TypeInfoKind::Function:
-                flags.add(TypeInfoKindFlagsE::PointerLike);
-                break;
-            case TypeInfoKind::TypeInfo:
-                flags.add(TypeInfoKindFlagsE::Type);
-                flags.add(TypeInfoKindFlagsE::PointerLike);
                 break;
             case TypeInfoKind::Variadic:
             case TypeInfoKind::TypedVariadic:

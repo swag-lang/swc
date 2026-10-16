@@ -601,6 +601,17 @@ namespace
             return branch;
         }
 
+        // The keyword of an 'if', an 'if var' or a '#if', its body, and its 'else'.
+        void classifyIfHead(const NodeSpan& span, const AstNodeRef nodeRef, const AstNodeRef ifBlockRef, const AstNodeRef elseBlockRef)
+        {
+            addRole(span.minPiece, FormatRoleE::ControlKeyword);
+            if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
+                addRole(span.minPiece, FormatRoleE::ElseKeyword);
+
+            markControlBody(ifBlockRef, span.minPiece, nodeRef, elseBlockRef);
+            classifyElseBody(elseBlockRef, span.minPiece, nodeRef);
+        }
+
         // Records the branches of an `if` statement. An `elif` is the `else`
         // of the statement before it and is classified after it, so its
         // branches join the chain that statement started.
@@ -1128,12 +1139,7 @@ namespace
                 case AstNodeId::IfStmt:
                 {
                     const auto& stmt = node.cast<AstIfStmt>();
-                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
-                        addRole(span.minPiece, FormatRoleE::ElseKeyword);
-
-                    markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
-                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
+                    classifyIfHead(span, nodeRef, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     if (span.valid())
                         recordBranches(nodeRef, span.minPiece, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
@@ -1142,12 +1148,7 @@ namespace
                 case AstNodeId::IfVarDecl:
                 {
                     const auto& stmt = node.cast<AstIfVarDecl>();
-                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
-                        addRole(span.minPiece, FormatRoleE::ElseKeyword);
-
-                    markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
-                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
+                    classifyIfHead(span, nodeRef, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     if (span.valid())
                         recordBranches(nodeRef, span.minPiece, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
@@ -1156,12 +1157,7 @@ namespace
                 case AstNodeId::CompilerIf:
                 {
                     const auto& stmt = node.cast<AstCompilerIf>();
-                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
-                        addRole(span.minPiece, FormatRoleE::ElseKeyword);
-
-                    markControlBody(stmt.nodeIfBlockRef, span.minPiece, nodeRef, stmt.nodeElseBlockRef);
-                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece, nodeRef);
+                    classifyIfHead(span, nodeRef, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
                 }
 

@@ -173,9 +173,7 @@ namespace
 
         // Inlining a local function body must not smuggle captures from an outer lexical
         // function that the original local function could not legally access.
-        if (!(symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-              symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
-              symVar.isClosureCapture()))
+        if (!symVar.isFrameVariable())
             return nullptr;
 
         const SymbolFunction* fn = &currentFn;

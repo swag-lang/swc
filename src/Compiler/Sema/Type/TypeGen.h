@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
@@ -157,7 +158,8 @@ private:
     mutable std::shared_mutex                                             cachesMutex_;
     std::unordered_map<const DataSegment*, std::unique_ptr<TypeGenCache>> caches_;
     mutable std::shared_mutex                                             ptrToTypeMutex_;
-    std::unordered_map<const void*, TypeRef>                              ptrToType_;
+    // Published type info address to its type. Only looked up, one flat slot per entry.
+    FlatKeyMap<TypeRef, uintptr_t> ptrToType_;
 };
 
 SWC_END_NAMESPACE();

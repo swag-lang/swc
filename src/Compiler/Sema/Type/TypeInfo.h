@@ -173,6 +173,7 @@ public:
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
     bool isArrayOrSlice() const noexcept { return isArray() || isSlice(); }
+    bool isIndirectIndexable() const noexcept { return isPointerOrReference() || isSlice() || isTypedVariadic(); }
     bool isIndexable() const noexcept { return isArrayOrSlice() || isString() || isCString() || isAnyVariadic(); }
     bool isSimd() const noexcept { return kind_ == TypeInfoKind::Simd; }
 

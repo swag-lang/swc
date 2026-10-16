@@ -290,7 +290,7 @@ namespace
         if (indexedType.isArray())
             return typeMgr.get(typeMgr.arrayElementTypeRef(indexedType)).sizeOf(codeGen.ctx());
 
-        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
+        if (indexedType.isIndirectIndexable())
             return typeMgr.get(indexedType.payloadTypeRef()).sizeOf(codeGen.ctx());
         if (indexedType.isAnyString())
             return typeMgr.get(typeMgr.typeU8()).sizeOf(codeGen.ctx());
@@ -308,7 +308,7 @@ namespace
         if (indexedType.isArray())
             return typeMgr.arrayElementTypeRef(indexedType);
 
-        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
+        if (indexedType.isIndirectIndexable())
             return indexedType.payloadTypeRef();
         if (indexedType.isAnyString())
             return typeMgr.typeU8();

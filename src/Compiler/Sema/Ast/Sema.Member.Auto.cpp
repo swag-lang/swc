@@ -36,7 +36,7 @@ namespace
                 continue;
             }
 
-            if (typeInfo.isPointerOrReference() || typeInfo.isSlice() || typeInfo.isTypedVariadic())
+            if (typeInfo.isIndirectIndexable())
             {
                 typeRef = typeInfo.payloadTypeRef();
                 continue;

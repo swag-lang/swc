@@ -474,7 +474,7 @@ namespace InstructionCombine
         // missing store or a claimed instruction needs no such analysis.
         const bool unaryUpdate = immediateUpdate && opOps[3].valueU64 == 1 &&
                                  (opOps[2].microOp == MicroOp::Add || opOps[2].microOp == MicroOp::Subtract) &&
-                                 MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, opRef, ctx.builder);
+                                 ctx.areCpuFlagsDeadAfter(opRef);
         MicroInstrOperand update[8] = {};
         update[0]                   = loadOps[1];
         update[1]                   = loadOps[2];

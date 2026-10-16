@@ -90,7 +90,7 @@ namespace InstructionCombine
         bool tryFoldPowerOfTwoBoolean(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
         {
             if (!ctx.ssa || ops[3].microOp != MicroOp::And || ops[2].opBits != MicroOpBits::B8 ||
-                !ops[1].reg.isVirtualInt() || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                !ops[1].reg.isVirtualInt() || !ctx.areCpuFlagsDeadAfter(ref))
                 return false;
 
             ZeroComparisonBoolean left;
@@ -208,7 +208,7 @@ namespace InstructionCombine
                     return false;
                 copyRef = def.instRef;
             }
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            if (!ctx.areCpuFlagsDeadAfter(ref) ||
                 !ctx.claimAll({ref, copyRef.isValid() ? copyRef : ref}))
                 return false;
             MicroInstrOperand address[8] = {};
@@ -261,7 +261,7 @@ namespace InstructionCombine
                 if (scanIt.current != ref)
                     return false;
             }
-            if (defs[0].instRef == defs[1].instRef || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            if (defs[0].instRef == defs[1].instRef || !ctx.areCpuFlagsDeadAfter(ref))
                 return false;
 
             if (addresses[0][5].valueU64 != addresses[1][5].valueU64 && addresses[0][1].reg == addresses[1][1].reg)
@@ -360,7 +360,7 @@ namespace InstructionCombine
                 if (shift != MicroOp::ShiftLeft && shift != MicroOp::ShiftArithmeticLeft &&
                     (leftOnly || (shift != MicroOp::ShiftRight && shift != MicroOp::ShiftArithmeticRight)))
                     return false;
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
+                if (!ctx.areCpuFlagsDeadAfter(defs[i].instRef))
                     return false;
                 auto scanIt = MicroStorage::Iterator{ctx.storage, defs[i].instRef};
                 for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && scanIt.current.isValid() && scanIt.current != ref; ++step, ++scanIt)
@@ -409,7 +409,7 @@ namespace InstructionCombine
                 }
                 if ((factor != 2 && factor != 3 && factor != 5 && factor != 9) ||
                     ctx.ssa->reachingValueId(regs[lowSide], ref) != defs[lowSide].valueId ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                    !ctx.areCpuFlagsDeadAfter(ref) ||
                     !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
                                    copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
                     return false;
@@ -432,7 +432,7 @@ namespace InstructionCombine
 
             if (defs[0].instRef == defs[1].instRef || shifts[0][2].microOp != shifts[1][2].microOp ||
                 shifts[0][3].valueU64 != shifts[1][3].valueU64 ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.areCpuFlagsDeadAfter(ref) ||
                 !ctx.claimAll({ref, defs[0].instRef, defs[1].instRef,
                                copies[0].isValid() ? copies[0] : ref, copies[1].isValid() ? copies[1] : ref}))
                 return false;
@@ -496,7 +496,7 @@ namespace InstructionCombine
         {
             if (!ctx.ssa || ops[3].microOp != MicroOp::Or || !ops[1].reg.isVirtualInt() ||
                 (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                !ctx.areCpuFlagsDeadAfter(ref))
                 return false;
             const MicroOpBits                       bits = ops[2].opBits;
             std::array                              defs{ctx.ssa->reachingDef(ops[0].reg, ref), ctx.ssa->reachingDef(ops[1].reg, ref)};
@@ -662,7 +662,7 @@ namespace InstructionCombine
                     return false;
                 inputOps[i] = inputs[i].inst->ops(*ctx.operands);
                 if (!inputOps[i] || getNumBits(inputOps[i][2].opBits) < getNumBits(shifts[i][1].opBits) || !inputOps[i][1].reg.isVirtualInt() ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
+                    !ctx.areCpuFlagsDeadAfter(defs[i].instRef))
                     return false;
             }
             if (regs[0] == regs[1] || shifts[0][1].opBits != shifts[1][1].opBits ||
@@ -676,7 +676,7 @@ namespace InstructionCombine
             if (shifts[0][1].opBits != bits &&
                 (bits != MicroOpBits::B32 || shifts[0][1].opBits != MicroOpBits::B64 || !isValueZeroExtended32(ctx, source)))
                 return false;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            if (!ctx.areCpuFlagsDeadAfter(ref))
                 return false;
             bool seenSecond = false;
             auto walker     = MicroStorage::Iterator{ctx.storage, defs[0].instRef};
@@ -743,7 +743,7 @@ namespace InstructionCombine
                 if (ops[1].opBits != bits || ops[2].microOp != MicroOp::And || ops[3].hasWideImmediateValue())
                     return false;
                 out.mask = ops[3].valueU64 & getBitsMask(bits);
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                if (!ctx.areCpuFlagsDeadAfter(def.instRef))
                     return false;
             }
             else if (def.inst->op == MicroInstrOpcode::LoadZeroExtRegReg)
@@ -878,8 +878,8 @@ namespace InstructionCombine
                 return false;
             const auto* unary = def.inst->ops(*ctx.operands);
             if (!unary || unary[1].opBits != bits || unary[2].microOp != MicroOp::Negate ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.areCpuFlagsDeadAfter(def.instRef) ||
+                !ctx.areCpuFlagsDeadAfter(ref) ||
                 !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
                 return false;
             MicroInstrOperand binary[4];
@@ -909,8 +909,8 @@ namespace InstructionCombine
                 return false;
             const auto* unary = def.inst->ops(*ctx.operands);
             if (!unary || unary[1].opBits != bits || unary[2].microOp != MicroOp::Negate ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.areCpuFlagsDeadAfter(def.instRef) ||
+                !ctx.areCpuFlagsDeadAfter(ref) ||
                 !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
                 return false;
             MicroInstrOperand binary[4];
@@ -953,7 +953,7 @@ namespace InstructionCombine
                     continue;
                 const auto* unary = def.inst->ops(*ctx.operands);
                 if (!unary || unary[1].opBits != bits || unary[2].microOp != MicroOp::BitwiseNot ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                    !ctx.areCpuFlagsDeadAfter(ref) ||
                     !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
                     continue;
                 ctx.emitErase(def.instRef);
@@ -1009,7 +1009,7 @@ namespace InstructionCombine
                     return false;
                 const auto* copy = start.inst->ops(*ctx.operands);
                 if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) < getNumBits(bits) ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                    !ctx.areCpuFlagsDeadAfter(def.instRef))
                     return false;
                 inputs[side]    = {copy[1].reg, binary[1].reg};
                 inputRefs[side] = {start.instRef, def.instRef};
@@ -1094,7 +1094,7 @@ namespace InstructionCombine
         {
             if (!ctx.ssa || ops[3].microOp != MicroOp::Subtract || !ops[1].reg.isVirtualInt() ||
                 (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                !ctx.areCpuFlagsDeadAfter(ref))
                 return false;
             const MicroOpBits                           bits = ops[2].opBits;
             std::array                                  regs{ops[0].reg, ops[1].reg};
@@ -1122,7 +1122,7 @@ namespace InstructionCombine
                 const auto* binary = def.inst->ops(*ctx.operands);
                 if (!binary || binary[2].opBits != bits || binary[3].microOp != (side == 0 ? MicroOp::Or : MicroOp::And) ||
                     !binary[1].reg.isVirtualInt() ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                    !ctx.areCpuFlagsDeadAfter(def.instRef))
                     return false;
                 initial[side] = ctx.ssa->reachingDef(regs[side], def.instRef);
                 if (!initial[side].valid() || initial[side].isPhi || !initial[side].inst || initial[side].inst->op != MicroInstrOpcode::LoadRegReg)
@@ -1170,7 +1170,7 @@ namespace InstructionCombine
         {
             if (!ctx.ssa || ops[3].microOp != MicroOp::Subtract || !ops[1].reg.isVirtualInt() ||
                 (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                !ctx.areCpuFlagsDeadAfter(ref))
                 return false;
             const MicroOpBits bits = ops[2].opBits;
             for (uint32_t side = 0; side < 2; ++side)
@@ -1288,7 +1288,7 @@ namespace InstructionCombine
                     const MicroReg normal       = inputs[1 - negatedIndex];
                     if (!ctx.ssa->sameValueAt(negated, inputRefs[negatedIndex], ref) ||
                         !ctx.ssa->sameValueAt(normal, inputRefs[1 - negatedIndex], ref) ||
-                        !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                        !ctx.areCpuFlagsDeadAfter(ref))
                         continue;
                     ctx.ensureVirtualIndices();
                     if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
@@ -1395,8 +1395,8 @@ namespace InstructionCombine
                     const MicroReg result      = inputs[resultIndex];
                     if (!ctx.ssa->sameValueAt(result, inputRefs[resultIndex], ref))
                         continue;
-                    if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
-                        !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+                    if (!ctx.areCpuFlagsDeadAfter(ref) ||
+                        !ctx.areCpuFlagsDeadAfter(def.instRef))
                         continue;
                     if (!ctx.claimAll({ref, def.instRef, initial.instRef, resultCopy.isValid() ? resultCopy : ref, otherCopy.isValid() ? otherCopy : ref}))
                         continue;
@@ -1488,10 +1488,10 @@ namespace InstructionCombine
                         foldLogicalHalf &= use.kind == MicroSsaState::UseSite::Kind::Instruction &&
                                            (use.instRef == productDef.instRef || use.instRef == quotientCopy);
                     }
-                    foldLogicalHalf &= MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, quotientDef.instRef, ctx.builder);
+                    foldLogicalHalf &= ctx.areCpuFlagsDeadAfter(quotientDef.instRef);
                 }
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, remainderDef.instRef, ctx.builder) ||
+                if (!ctx.areCpuFlagsDeadAfter(ref) ||
+                    !ctx.areCpuFlagsDeadAfter(remainderDef.instRef) ||
                     !ctx.claimAll({ref, remainderDef.instRef, productDef.instRef, quotientCopy.isValid() ? quotientCopy : ref,
                                    foldLogicalHalf ? quotientDef.instRef : ref}))
                     continue;
@@ -1555,7 +1555,7 @@ namespace InstructionCombine
             if (!copy || !copy[1].reg.isVirtualInt() || getNumBits(copy[2].opBits) <= index)
                 return;
             if (!ctx.ssa->sameValueAt(copy[1].reg, initial.instRef, productRef) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, shifted.instRef, ctx.builder))
+                !ctx.areCpuFlagsDeadAfter(shifted.instRef))
                 return;
             bit.reg      = copy[1].reg;
             bit.index    = index;
@@ -1621,8 +1621,8 @@ namespace InstructionCombine
                     continue;
                 const MicroReg input = copied[1].reg;
                 if (!ctx.ssa->sameValueAt(input, initial.instRef, ref) ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, mask.instRef, ctx.builder) ||
-                    !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+                    !ctx.areCpuFlagsDeadAfter(mask.instRef) ||
+                    !ctx.areCpuFlagsDeadAfter(ref))
                     continue;
                 ProductBit bit{.reg = input, .index = topShift ? topBit : 0};
                 if (!topShift)
@@ -1741,8 +1741,8 @@ namespace InstructionCombine
                         ctx.ssa->reachingValueId(other, ref) != commonValue ||
                         ctx.ssa->reachingValueId(factor, ref) != factorValue)
                         continue;
-                    if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
-                        !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
+                    if (!ctx.areCpuFlagsDeadAfter(ref) ||
+                        !ctx.areCpuFlagsDeadAfter(product.instRef))
                         continue;
                     ctx.ensureVirtualIndices();
                     if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||
@@ -1789,7 +1789,7 @@ namespace InstructionCombine
             const MicroOpBits bits  = ops[2].opBits;
             if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
                 return false;
-            if (arithmetic && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            if (arithmetic && !ctx.areCpuFlagsDeadAfter(ref))
                 return false;
 
             std::array    regs{ops[0].reg, ops[1].reg};
@@ -1825,7 +1825,7 @@ namespace InstructionCombine
                 if (!copyOps[i] || copyOps[i][2].opBits != bits || !copyOps[i][1].reg.isVirtualInt() ||
                     binaryOps[i][1].reg == regs[0] || binaryOps[i][1].reg == regs[1] || binaryOps[i][1].reg == ops[0].reg)
                     return false;
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defs[i].instRef, ctx.builder))
+                if (!ctx.areCpuFlagsDeadAfter(defs[i].instRef))
                     return false;
             }
 
@@ -2065,7 +2065,7 @@ namespace InstructionCombine
             return false;
         const MicroSsaState::ReachingDef maskAtXor = ctx.ssa->reachingDef(mask, xorRef);
         if (!maskAtXor.valid() || maskAtXor.valueId != ctx.ssa->reachingValueId(mask, subRef) ||
-            maskAtXor.instRef != shiftRef || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subRef, ctx.builder) ||
+            maskAtXor.instRef != shiftRef || !ctx.areCpuFlagsDeadAfter(subRef) ||
             !ctx.claimAll({resultCopyRef, maskCopyRef, shiftRef, xorRef, subRef}))
             return false;
 
@@ -2186,7 +2186,7 @@ namespace InstructionCombine
             return false;
 
         // The legacy shift writes the flags and this form does not.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
         if (!ctx.claimAll({ref, reaching.instRef}))
@@ -2382,7 +2382,7 @@ namespace InstructionCombine
         const uint32_t leafAtRoot = ctx.ssa->reachingValueId(sources.leafReg, ref);
         if (leafAtRoot == MicroSsaState::K_INVALID_VALUE || leafAtRoot != sources.leafValue || sources.leafReg == dst)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
         if (!ctx.claimAll({ref}))
             return false;
@@ -2563,7 +2563,7 @@ namespace InstructionCombine
                 if (scan == loads[i].ref)
                     seen |= 1u << i;
         }
-        if (seen != 0xF || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+        if (seen != 0xF || !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({ref}))
             return false;
 

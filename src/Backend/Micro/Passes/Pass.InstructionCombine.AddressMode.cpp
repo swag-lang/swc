@@ -504,8 +504,6 @@ namespace InstructionCombine
         const MicroReg src = ops[1].reg;
         if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
-            return false;
 
         for (uint32_t attempt = 0; attempt < 2; ++attempt)
         {
@@ -547,7 +545,11 @@ namespace InstructionCombine
             // Its register must still hold that definition at the add.
             if (copyRef.isValid() && !ctx.ssa->sameValueAt(product, copyRef, ref))
                 continue;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+            // Asked only once an operand is a product the address absorbs: the answer
+            // scans past the add, and does not depend on which operand that is.
+            if (!ctx.areCpuFlagsDeadAfter(ref))
+                return false;
+            if (!ctx.areCpuFlagsDeadAfter(def.instRef))
                 continue;
             if (copyRef.isValid() ? !ctx.claimAll({ref, def.instRef, copyRef}) : !ctx.claimAll({ref, def.instRef}))
                 continue;
@@ -682,7 +684,7 @@ namespace InstructionCombine
 
         // The shift writes the flags, which the address computation it lands in front of
         // does not; they must hold nothing a later instruction reads.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
         ctx.ensureVirtualIndices();
@@ -1244,7 +1246,7 @@ namespace InstructionCombine
         }
 
         // The add wrote the flags; the lea does not.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
         if (!ctx.claimAll({ref, copy.instRef}))

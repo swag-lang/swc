@@ -175,7 +175,7 @@ namespace InstructionCombine
                     return false;
             }
         }
-        else if (mask != 1 && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        else if (mask != 1 && !ctx.areCpuFlagsDeadAfter(ref))
             return false;
         if (!valueHasSingleUse(*ctx.ssa, src, sourceRef))
             return false;

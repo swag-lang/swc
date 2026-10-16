@@ -1282,8 +1282,8 @@ namespace InstructionCombine
             if (isControlOrCall(between) || writesMemory(between) || between.op == MicroInstrOpcode::LoadVolatileRegMem)
                 return false;
         }
-        if (!reached || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, product.instRef, ctx.builder))
+        if (!reached || !ctx.areCpuFlagsDeadAfter(ref) ||
+            !ctx.areCpuFlagsDeadAfter(product.instRef))
             return false;
         ctx.ensureVirtualIndices();
         if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX ||

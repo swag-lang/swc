@@ -639,7 +639,7 @@ namespace InstructionCombine
         if (!shift)
             return false;
 
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
         if (remainder)
         {
@@ -748,7 +748,7 @@ namespace InstructionCombine
             return false;
 
         // The narrower operation sets the flags at 32 bits.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reaching.instRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(reaching.instRef))
             return false;
 
         if (!ctx.claimAll({reaching.instRef, ref}))
@@ -798,7 +798,7 @@ namespace InstructionCombine
             return false;
 
         // The wider mask sets the sign flag from another bit.
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reaching.instRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(reaching.instRef))
             return false;
 
         if (!ctx.claimAll({reaching.instRef, ref}))

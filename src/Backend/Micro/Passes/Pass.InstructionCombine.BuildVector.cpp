@@ -959,7 +959,7 @@ namespace InstructionCombine
         }
         if (slotHasOtherReaders(ctx, base, slotOffset, slotBytes, loadRef, storeRefs))
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, loadRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(loadRef))
             return false;
 
         uint64_t                    immBits = 0;

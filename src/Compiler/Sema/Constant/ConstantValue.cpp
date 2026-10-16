@@ -545,13 +545,8 @@ ConstantValue ConstantValue::makeStruct(const TaskContext& ctx, TypeRef typeRef,
 
 ConstantValue ConstantValue::makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes)
 {
-    SWC_UNUSED(ctx);
-    ConstantValue cv;
-    cv.typeRef_           = typeRef;
-    cv.kind_              = ConstantKind::Struct;
-    cv.payloadStruct_.val = normalizePayloadBytes(bytes);
-    cv.payloadBorrowed_   = true;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    ConstantValue cv    = makeStruct(ctx, typeRef, bytes);
+    cv.payloadBorrowed_ = true;
     return cv;
 }
 
@@ -569,13 +564,8 @@ ConstantValue ConstantValue::makeArray(const TaskContext& ctx, TypeRef typeRef, 
 
 ConstantValue ConstantValue::makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes)
 {
-    SWC_UNUSED(ctx);
-    ConstantValue cv;
-    cv.typeRef_          = typeRef;
-    cv.kind_             = ConstantKind::Array;
-    cv.payloadArray_.val = normalizePayloadBytes(bytes);
-    cv.payloadBorrowed_  = true;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    ConstantValue cv    = makeArray(ctx, typeRef, bytes);
+    cv.payloadBorrowed_ = true;
     return cv;
 }
 
@@ -663,16 +653,8 @@ ConstantValue ConstantValue::makeSliceCounted(TaskContext& ctx, TypeRef typeRef,
 
 ConstantValue ConstantValue::makeSliceBorrowedCounted(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t count, TypeInfoFlags flags)
 {
-    validateSlicePayload(ctx, typeRef, bytes, count);
-
-    ConstantValue  cv;
-    const TypeInfo ty      = TypeInfo::makeSlice(typeRef, flags);
-    cv.typeRef_            = ctx.typeMgr().addType(ty);
-    cv.kind_               = ConstantKind::Slice;
-    cv.payloadSlice_.val   = bytes;
-    cv.payloadSlice_.count = count;
-    cv.payloadBorrowed_    = true;
-    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
+    ConstantValue cv    = makeSliceCounted(ctx, typeRef, bytes, count, flags);
+    cv.payloadBorrowed_ = true;
     return cv;
 }
 

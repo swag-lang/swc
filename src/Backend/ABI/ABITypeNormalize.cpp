@@ -52,18 +52,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     if (ty.isTypedVariadic())
         return makeNormalizedType(false, false, false, 64);
 
-    if (ty.isFunction() && ty.isLambdaClosure())
-    {
-        const uint64_t rawSize = ty.sizeOf(ctx);
-        SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
-        const auto size = static_cast<uint32_t>(rawSize);
-
-        const uint32_t align     = std::max(ty.alignOf(ctx), uint32_t{1});
-        const bool     needsCopy = usage == Usage::Argument && conv.structArgPassing.passByReferenceNeedsCopy;
-        return makeIndirectStructType(size, align, needsCopy);
-    }
-
-    if (ty.isStringOrSlice() || ty.isInterface() || ty.isAny())
+    if ((ty.isFunction() && ty.isLambdaClosure()) || ty.isStringOrSlice() || ty.isInterface() || ty.isAny())
     {
         const uint64_t rawSize = ty.sizeOf(ctx);
         SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());

@@ -325,8 +325,7 @@ namespace
         SWC_ASSERT(readTypeInfo && !readTypeInfo->isReference());
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeInfo*   resolvedReadType = readTypeInfo->unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&   readType         = resolvedReadType ? *resolvedReadType : *readTypeInfo;
+        const TypeInfo&   readType         = readTypeInfo->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const MicroOpBits directBits       = CodeGenTypeHelpers::scalarStoreBits(readType, codeGen.ctx());
         MicroBuilder&     builder          = codeGen.builder();
         if (directBits != MicroOpBits::Zero)
@@ -385,8 +384,7 @@ namespace
         SWC_ASSERT(readTypeInfo);
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeInfo*   resolvedReadType = readTypeInfo->unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&   readType         = resolvedReadType ? *resolvedReadType : *readTypeInfo;
+        const TypeInfo&   readType         = readTypeInfo->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const MicroOpBits srcOpBits        = CodeGenTypeHelpers::numericOrBoolBits(readType);
         const MicroOpBits dstOpBits        = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
@@ -1194,8 +1192,7 @@ namespace
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
         SWC_ASSERT(srcView.type());
-        const TypeInfo* srcStorageType  = srcView.type()->unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& resolvedSrcType = srcStorageType ? *srcStorageType : *srcView.type();
+        const TypeInfo& resolvedSrcType = srcView.type()->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         if (!resolvedSrcType.isAny())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);

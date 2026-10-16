@@ -756,36 +756,7 @@ bool SymbolFunction::sameTypeSignature(const SymbolFunction& otherFunc) const no
 {
     if (this == &otherFunc)
         return true;
-
-    if (returnTypeRef() != otherFunc.returnTypeRef())
-        return false;
-    if (callConvKind() != otherFunc.callConvKind())
-        return false;
-    if (isClosure() != otherFunc.isClosure())
-        return false;
-    if (isMethod() != otherFunc.isMethod())
-        return false;
-    if (isFallible() != otherFunc.isFallible())
-        return false;
-    if (isConst() != otherFunc.isConst())
-        return false;
-    if (hasVariadicParam() != otherFunc.hasVariadicParam())
-        return false;
-
-    const auto& params1 = parameters();
-    const auto& params2 = otherFunc.parameters();
-    if (params1.size() != params2.size())
-        return false;
-
-    for (uint32_t i = 0; i < params1.size(); ++i)
-    {
-        SWC_ASSERT(params1[i] != nullptr);
-        SWC_ASSERT(params2[i] != nullptr);
-        if (params1[i]->typeRef() != params2[i]->typeRef())
-            return false;
-    }
-
-    return true;
+    return isClosure() == otherFunc.isClosure() && sameTypeSignatureIgnoringClosure(otherFunc);
 }
 
 bool SymbolFunction::sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept

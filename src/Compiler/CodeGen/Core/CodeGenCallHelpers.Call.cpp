@@ -224,8 +224,7 @@ namespace
     void dereferenceConstUntypedVariadicArgument(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef, AstNodeRef argRef)
     {
         const TypeInfo& argType       = codeGen.typeMgr().get(ioTypeRef);
-        const TypeInfo* unaliasedType = argType.unwrapAliasType(codeGen.ctx());
-        const TypeInfo& referenceType = unaliasedType ? *unaliasedType : argType;
+        const TypeInfo& referenceType = argType.unwrapAliasTypeOrSelf(codeGen.ctx());
 
         // The implicit receiver keeps its address identity for variadic APIs. Other const
         // references and const non-null value pointers represent borrowed values and are
@@ -346,14 +345,12 @@ namespace
         if (normalizedType.isReference())
             return;
 
-        const TypeInfo* normalizedTypeUnwrapped = normalizedType.unwrapAliasType(ctx);
-        const TypeInfo& dstType                 = normalizedTypeUnwrapped ? *normalizedTypeUnwrapped : normalizedType;
+        const TypeInfo& dstType = normalizedType.unwrapAliasTypeOrSelf(ctx);
 
         if (argPayload.typeRef.isValid() && dstType.isFloat())
         {
             const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
-            const TypeInfo* srcTypeUnwrapped = srcTypeInfo.unwrapAliasType(ctx);
-            const TypeInfo& srcType          = srcTypeUnwrapped ? *srcTypeUnwrapped : srcTypeInfo;
+            const TypeInfo& srcType          = srcTypeInfo.unwrapAliasTypeOrSelf(ctx);
             const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
             const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 

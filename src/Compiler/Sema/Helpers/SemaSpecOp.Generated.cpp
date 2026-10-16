@@ -73,8 +73,7 @@ namespace
             return false;
 
         const TypeInfo& declaredType  = ctx.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasType(ctx);
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type          = declaredType.unwrapAliasTypeOrSelf(ctx);
         typeRef                       = type.typeRef();
         if (!visiting.insert(typeRef))
             return false;
@@ -726,8 +725,7 @@ namespace
             return Result::Continue;
 
         const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasType(sema.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type          = declaredType.unwrapAliasTypeOrSelf(sema.ctx());
         typeRef                       = type.typeRef();
         if (!visiting.insert(typeRef))
             return Result::Continue;

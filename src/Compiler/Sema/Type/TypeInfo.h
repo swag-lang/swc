@@ -470,6 +470,13 @@ public:
         return isAliasOrEnum() ? resolveAliasType<true>(ctx) : nullptr;
     }
 
+    // The type an alias names, or this type itself when it is not an alias.
+    const TypeInfo& unwrapAliasTypeOrSelf(const TaskContext& ctx) const noexcept
+    {
+        const TypeInfo* unwrappedType = unwrapAliasType(ctx);
+        return unwrappedType ? *unwrappedType : *this;
+    }
+
     // The type an alias or enum stores, or this type itself when it is neither.
     const TypeInfo& unwrapAliasEnumTypeOrSelf(const TaskContext& ctx) const noexcept
     {

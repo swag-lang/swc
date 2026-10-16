@@ -70,26 +70,13 @@ struct AstNode
         return *this;
     }
 
+    // A move is a copy: the source keeps its payload pointer.
     AstNode(AstNode&& other) noexcept :
-        id_(other.id_),
-        parserFlags_(other.parserFlags_),
-        codeRef_(other.codeRef_)
+        AstNode(other)
     {
-        payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
 
-    AstNode& operator=(AstNode&& other) noexcept
-    {
-        if (this != &other)
-        {
-            payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
-            id_          = other.id_;
-            parserFlags_ = other.parserFlags_;
-            codeRef_     = other.codeRef_;
-        }
-
-        return *this;
-    }
+    AstNode& operator=(AstNode&& other) noexcept { return *this = other; }
 
     // ReSharper disable once CppPossiblyUninitializedMember
     explicit AstNode(AstNodeId nodeId, const SourceCodeRef& codeRef) :

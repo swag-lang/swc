@@ -831,8 +831,7 @@ namespace
             var.typeHasDrop                         = lifecycle.hasDrop;
 
             const TypeInfo& type          = sema_->typeMgr().get(typeRef);
-            const TypeInfo* unwrappedType = type.unwrapAliasType(sema_->ctx());
-            const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
+            const TypeInfo& storageType   = type.unwrapAliasTypeOrSelf(sema_->ctx());
 
             // Element-wise coverage needs a dedicated range analysis. A static array
             // with no safe default is nevertheless a useful single construction unit:

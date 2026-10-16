@@ -161,8 +161,7 @@ namespace
             return nullptr;
 
         const TypeInfo& type          = codeGen.typeMgr().get(typeRef);
-        const TypeInfo* aliasType     = type.unwrapAliasType(codeGen.ctx());
-        const TypeInfo& unwrappedType = aliasType ? *aliasType : type;
+        const TypeInfo& unwrappedType = type.unwrapAliasTypeOrSelf(codeGen.ctx());
         if (!unwrappedType.isEnum())
             return nullptr;
 

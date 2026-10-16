@@ -199,8 +199,7 @@ namespace
 
         TaskContext&    ctx            = codeGen.ctx();
         const TypeInfo& targetType     = ctx.typeMgr().get(targetTypeRef);
-        const TypeInfo* unaliasedType  = targetType.unwrapAliasType(ctx);
-        const TypeInfo& storageType    = unaliasedType ? *unaliasedType : targetType;
+        const TypeInfo& storageType    = targetType.unwrapAliasTypeOrSelf(ctx);
         const TypeRef   storageTypeRef = storageType.typeRef();
 
         if (prefersAddressBackedCallConstantPayload(storageType))

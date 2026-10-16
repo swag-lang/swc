@@ -109,20 +109,20 @@ namespace
         };
         struct LoadCandidate
         {
-            LoadLocation location;
             MicroInstrRef ref;
+            bool          repeatedLocation;
         };
 
         std::optional<FlatKeySet>                                               frameDerived;
-        std::unordered_map<LoadLocation, uint32_t, LoadLocationHash>             loadCounts;
+        std::unordered_map<LoadLocation, size_t, LoadLocationHash>               firstLoadByLocation;
         std::vector<LoadCandidate>                                                loads;
         std::vector<MicroInstrRef>                                                preserve;
         const auto                                                                flush = [&] {
             for (const LoadCandidate& load : loads)
-                if (loadCounts.at(load.location) >= 2)
+                if (load.repeatedLocation)
                     preserve.push_back(load.ref);
             loads.clear();
-            loadCounts.clear();
+            firstLoadByLocation.clear();
         };
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -153,8 +153,11 @@ namespace
                 if (!frameDerived->contains(ops[1].reg.packed))
                 {
                     const LoadLocation location{.base = ops[1].reg, .offset = ops[3].valueU64};
-                    ++loadCounts[location];
-                    loads.push_back(LoadCandidate{.location = location, .ref = it.current});
+                    const auto [first, inserted] = firstLoadByLocation.try_emplace(location, loads.size());
+                    const bool repeated           = !inserted;
+                    if (repeated)
+                        loads[first->second].repeatedLocation = true;
+                    loads.push_back(LoadCandidate{.ref = it.current, .repeatedLocation = repeated});
                 }
             }
         }

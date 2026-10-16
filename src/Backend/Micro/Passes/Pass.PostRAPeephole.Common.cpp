@@ -162,39 +162,11 @@ namespace PostRaPeephole
         return false;
     }
 
-    struct RegTouch
-    {
-        bool use = false;
-        bool def = false;
-    };
+    using MicroPassHelpers::RegTouch;
 
     RegTouch regTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg, MicroReg alsoDef = MicroReg::invalid())
     {
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-            (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
-        {
-            const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
-            return {std::ranges::find(useDef.uses, reg) != useDef.uses.end(),
-                    std::ranges::find(useDef.defs, reg) != useDef.defs.end() ||
-                        (alsoDef.isValid() && std::ranges::find(useDef.defs, alsoDef) != useDef.defs.end())};
-        }
-
-        RegTouch touch;
-        if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
-        {
-            const auto modes = info.resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
-            {
-                if (modes[i] == MicroInstrRegMode::None)
-                    continue;
-                if (ops[i].reg == reg)
-                    touch.use |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
-                if (ops[i].reg == reg || (alsoDef.isValid() && ops[i].reg == alsoDef))
-                    touch.def |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
-            }
-        }
-        return touch;
+        return MicroPassHelpers::regTouch(inst, *ctx.operands, reg, ctx.encoder, alsoDef);
     }
 
     // Linear "dead after consumer" scan shared by the forwarding rules.

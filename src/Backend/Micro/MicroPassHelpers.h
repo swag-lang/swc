@@ -16,6 +16,60 @@ class MicroSsaState;
 
 namespace MicroPassHelpers
 {
+    struct RegTouch
+    {
+        bool use = false;
+        bool def = false;
+
+        bool any() const { return use || def; }
+    };
+
+    template<bool IncludeAlsoDef>
+    inline RegTouch regTouchImpl(const MicroInstr& inst, const MicroOperandStorage& operands, MicroReg reg, const Encoder* encoder, MicroReg alsoDef)
+    {
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            (encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
+        {
+            const MicroInstrUseDef useDef = inst.collectUseDef(operands, encoder);
+            return {microRegSpanContains(useDef.uses.span(), reg),
+                    microRegSpanContains(useDef.defs.span(), reg) ||
+                        (IncludeAlsoDef && alsoDef.isValid() && microRegSpanContains(useDef.defs.span(), alsoDef))};
+        }
+
+        RegTouch touch;
+        if (const MicroInstrOperand* ops = inst.ops(operands))
+        {
+            const auto modes = info.resolvedRegModes(ops);
+            for (size_t i = 0; i < modes.size(); ++i)
+            {
+                if (modes[i] == MicroInstrRegMode::None)
+                    continue;
+                if (ops[i].reg == reg)
+                {
+                    touch.use |= modes[i] == MicroInstrRegMode::Use || modes[i] == MicroInstrRegMode::UseDef;
+                    touch.def |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                }
+                if constexpr (IncludeAlsoDef)
+                {
+                    if (alsoDef.isValid() && ops[i].reg == alsoDef)
+                        touch.def |= modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
+                }
+            }
+        }
+        return touch;
+    }
+
+    inline RegTouch regTouch(const MicroInstr& inst, const MicroOperandStorage& operands, MicroReg reg, const Encoder* encoder)
+    {
+        return regTouchImpl<false>(inst, operands, reg, encoder, MicroReg::invalid());
+    }
+
+    inline RegTouch regTouch(const MicroInstr& inst, const MicroOperandStorage& operands, MicroReg reg, const Encoder* encoder, MicroReg alsoDef)
+    {
+        return regTouchImpl<true>(inst, operands, reg, encoder, alsoDef);
+    }
+
     struct RegDefinitionSummary
     {
         uint32_t count    = 0;

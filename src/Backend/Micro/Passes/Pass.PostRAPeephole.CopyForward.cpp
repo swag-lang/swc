@@ -67,7 +67,7 @@ namespace PostRaPeephole
                 const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
                 for (const MicroReg reg : regs)
                 {
-                    if (regInList(useDef.uses.span(), reg) || regInList(useDef.defs.span(), reg))
+                    if (microRegSpanContains(useDef.uses.span(), reg) || microRegSpanContains(useDef.defs.span(), reg))
                         return true;
                 }
                 return false;

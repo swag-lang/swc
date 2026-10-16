@@ -38,10 +38,7 @@ Result DocFile::read(TaskContext& ctx, const fs::path& path, std::string& outTex
 
 Result DocFile::reportError(TaskContext& ctx, const fs::path& path, const Utf8& because)
 {
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_doc_file_write_failed);
-    FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-    diag.report(ctx);
-    return Result::Error;
+    return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_doc_file_write_failed, path, because);
 }
 
 Result DocFile::write(TaskContext& ctx, const fs::path& path, const std::string_view content)

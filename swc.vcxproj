@@ -722,6 +722,7 @@
         <ClInclude Include="src\Support\Core\ByteArray.h"/>
         <ClInclude Include="src\Support\Core\DenseBits.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
+        <ClInclude Include="src\Support\Core\FlatTable.h"/>
         <ClInclude Include="src\Support\Core\Flags.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
         <ClInclude Include="src\Support\Core\PagedStore.h"/>

@@ -285,20 +285,22 @@ namespace
             return FormatPassUtil::prevCode(*model_, pieceIndex);
         }
 
-        uint32_t nextCodeIf(const uint32_t after, const TokenId id) const
+        // The piece itself when it holds 'id', INVALID_PIECE otherwise.
+        uint32_t pieceIf(const uint32_t i, const TokenId id) const
         {
-            const uint32_t i = nextCode(after);
             if (i == INVALID_PIECE || model_->piece(i).isNot(id))
                 return INVALID_PIECE;
             return i;
         }
 
+        uint32_t nextCodeIf(const uint32_t after, const TokenId id) const
+        {
+            return pieceIf(nextCode(after), id);
+        }
+
         uint32_t prevCodeIf(const uint32_t before, const TokenId id) const
         {
-            const uint32_t i = prevCode(before);
-            if (i == INVALID_PIECE || model_->piece(i).isNot(id))
-                return INVALID_PIECE;
-            return i;
+            return pieceIf(prevCode(before), id);
         }
 
         // Node spans do not include every bracket of their expression. For an
@@ -330,10 +332,7 @@ namespace
 
         uint32_t nextCodeAfterOperandIf(const uint32_t operandEnd, const TokenId id) const
         {
-            const uint32_t i = nextCodeAfterOperand(operandEnd);
-            if (i == INVALID_PIECE || model_->piece(i).isNot(id))
-                return INVALID_PIECE;
-            return i;
+            return pieceIf(nextCodeAfterOperand(operandEnd), id);
         }
 
         // Symmetric of nextCodeAfterOperand: a span may start INSIDE its own
@@ -349,9 +348,7 @@ namespace
                     break;
                 i = prevCode(i);
             }
-            if (i == INVALID_PIECE || model_->piece(i).isNot(id))
-                return INVALID_PIECE;
-            return i;
+            return pieceIf(i, id);
         }
 
         uint32_t destructuringPatternOpenBefore(const uint32_t assignPiece) const

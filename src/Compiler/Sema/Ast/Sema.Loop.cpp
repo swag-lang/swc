@@ -27,25 +27,13 @@ namespace
     template<typename T>
     T& registerLoopScopeSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
     {
-        const auto savedFrame = sema.frame();
-        auto&      frame      = sema.frame();
-        frame.setLookupScope(nullptr);
-        frame.setLookupScopeOverrideNodes(nullptr);
-        auto& sym    = SemaHelpers::registerSymbol<T>(sema, node, tokNameRef);
-        sema.frame() = savedFrame;
-        return sym;
+        return SemaHelpers::withoutLookupOverride(sema, [&]() -> T& { return SemaHelpers::registerSymbol<T>(sema, node, tokNameRef); });
     }
 
     template<typename T>
     T& registerUniqueLoopScopeSymbol(Sema& sema, const AstNode& node, std::string_view name)
     {
-        const auto savedFrame = sema.frame();
-        auto&      frame      = sema.frame();
-        frame.setLookupScope(nullptr);
-        frame.setLookupScopeOverrideNodes(nullptr);
-        auto& sym    = SemaHelpers::registerUniqueSymbol<T>(sema, node, name);
-        sema.frame() = savedFrame;
-        return sym;
+        return SemaHelpers::withoutLookupOverride(sema, [&]() -> T& { return SemaHelpers::registerUniqueSymbol<T>(sema, node, name); });
     }
 
     // A bare 'break' and a 'continue' both stop at the enclosing '#scope' instead of reaching

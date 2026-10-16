@@ -606,7 +606,6 @@ namespace
         StampedKeySet               visitedAllocations;
         bool                        globalInitScanned = false;
         std::vector<SymbolFunction*> pendingFunctions;
-        std::vector<SymbolFunction*> workFunctions;
         RejectedConstantFunctions  rejected;
     };
 
@@ -631,8 +630,6 @@ namespace
         }
         scan.rejected.functions.resize(rejectedCount);
 
-        scan.workFunctions.clear();
-        scan.workFunctions.swap(scan.pendingFunctions);
         const auto scanFunction = [&](const SymbolFunction* function)
         {
             const MachineCode& code = function->loweredCode();
@@ -645,17 +642,20 @@ namespace
                 if (!builder.tryResolveConstantSourceRef(sourceRef, relocation))
                     continue;
 
-                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, scan.visitedAllocations, sourceRef.shardIndex, sourceRef.offset, &scan.rejected, &scan.workFunctions) || changed;
+                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, scan.visitedAllocations, sourceRef.shardIndex, sourceRef.offset, &scan.rejected, &scan.pendingFunctions) || changed;
             }
         };
 
-        for (size_t index = 0; index < scan.workFunctions.size(); ++index)
+        size_t pendingRead  = 0;
+        size_t pendingWrite = 0;
+        while (pendingRead < scan.pendingFunctions.size())
         {
-            SymbolFunction* function = scan.workFunctions[index];
+            SymbolFunction* function = scan.pendingFunctions[pendingRead++];
             scanFunction(function);
             if (!function->isCodeGenPreSolved() && !function->isCodeGenCompleted())
-                scan.pendingFunctions.push_back(function);
+                scan.pendingFunctions[pendingWrite++] = function;
         }
+        scan.pendingFunctions.resize(pendingWrite);
 
         return changed;
     }

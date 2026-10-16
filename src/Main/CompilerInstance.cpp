@@ -198,11 +198,7 @@ namespace
 
     Utf8 generatedSourceDumpBaseName(const CompilerInstance& compiler)
     {
-        Utf8 baseName = CompilerInstance::buildCfgString(compiler.buildCfg().name);
-        if (baseName.empty())
-            baseName = defaultArtifactName(compiler.cmdLine());
-
-        baseName = FileSystem::sanitizeFileName(baseName);
+        Utf8 baseName = FileSystem::sanitizeFileName(compiler.artifactName());
         if (baseName.empty())
             baseName = "module";
         return baseName;
@@ -1926,6 +1922,22 @@ bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
 {
     const std::shared_lock lock(sourceStorageMutex_);
     return resolvedFilePaths_.contains(Utf8Helper::normalizePathForCompare(path));
+}
+
+Utf8 CompilerInstance::artifactName() const
+{
+    Utf8 result = buildCfgString(buildCfg_.name);
+    if (result.empty())
+        result = defaultArtifactName(cmdLine());
+    return result;
+}
+
+Utf8 CompilerInstance::moduleNamespaceName() const
+{
+    Utf8 result = buildCfgString(buildCfg_.moduleNamespace);
+    if (!result.empty())
+        return result;
+    return defaultModuleNamespace(artifactName());
 }
 
 SWC_END_NAMESPACE();

@@ -22,7 +22,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using ModuleApiExport::appendGeneratedRootUnique;
-    using ModuleApiExport::buildModuleNamespaceName;
     using ModuleApiExport::buildSanitizedModuleApiSnippet;
     using ModuleApiExport::extractPublicNamespacePath;
     using ModuleApiExport::findExportDeclRoot;
@@ -903,7 +902,7 @@ namespace
 
     Utf8 buildGeneratedModuleApiTypeName(TaskContext& ctx, const TypeRef typeRef)
     {
-        const Utf8 moduleNamespace = buildModuleNamespaceName(ctx.compiler());
+        const Utf8 moduleNamespace = ctx.compiler().moduleNamespaceName();
         Utf8       typeName        = ctx.typeMgr().get(typeRef).toFullName(ctx);
         return stripCurrentModuleTypeQualifiers(std::move(typeName), moduleNamespace.view());
     }

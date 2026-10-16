@@ -146,24 +146,6 @@ namespace
         ownedStrings.swap(newOwnedStrings);
     }
 
-    Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
-    {
-        Utf8                   moduleNamespaceName;
-        const Runtime::String& moduleNamespace = compiler.buildCfg().moduleNamespace;
-        if (moduleNamespace.ptr && moduleNamespace.length)
-            moduleNamespaceName = Utf8{moduleNamespace};
-        if (!moduleNamespaceName.empty())
-            return moduleNamespaceName;
-
-        Utf8                   artifactName;
-        const Runtime::String& artifact = compiler.buildCfg().name;
-        if (artifact.ptr && artifact.length)
-            artifactName = Utf8{artifact};
-        if (artifactName.empty())
-            artifactName = defaultArtifactName(compiler.cmdLine());
-        return defaultModuleNamespace(artifactName);
-    }
-
     fs::path workspaceModulesDirectory(const fs::path& workspacePath)
     {
         return (workspacePath / "modules").lexically_normal();
@@ -4248,7 +4230,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     SWC_RESULT(setupCompiler.setupSema(setupCtx));
 
     auto*      symModule           = Symbol::make<SymbolModule>(setupCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-    const Utf8 moduleNamespaceName = buildModuleNamespaceName(setupCompiler);
+    const Utf8 moduleNamespaceName = setupCompiler.moduleNamespaceName();
 
     constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
     const IdentifierRef   idRef           = setupCtx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));

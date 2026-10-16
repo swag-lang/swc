@@ -686,8 +686,8 @@ void CompilerInstance::setupRuntimeCompiler()
     // per-instance member itable would dangle once that module's CompilerInstance is freed,
     // producing a null dispatch in a later module. A shared static itable never dangles, and the
     // callbacks never read the interface object, which names the instance that set it up.
-    // Slot order after the typeinfo entry = IAllocator method DECLARATION order
-    // (bin/runtime/context.swg): alloc, realloc, free, freeAll, assertAllocated.
+    // Slot order after the typeinfo entry follows IAllocator's declaration order:
+    // alloc, realloc, free, freeAll, assertAllocated.
     static void* sRuntimeAllocatorITable[6] = {
         nullptr,
         JIT::getNativeInterfaceAdapter(ctx, reinterpret_cast<void*>(&runtimeAllocatorAlloc), 2),

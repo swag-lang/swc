@@ -254,6 +254,15 @@ Utf8 Utf8Helper::formatFixedDecimal(const double value, const uint32_t precision
     return result;
 }
 
+Utf8 Utf8Helper::toLowerHex(std::span<const uint8_t> bytes)
+{
+    Utf8 result;
+    result.reserve(bytes.size() * 2);
+    for (const uint8_t value : bytes)
+        result += std::format("{:02x}", value);
+    return result;
+}
+
 Utf8 Utf8Helper::toLowerSnake(std::string_view s)
 {
     Utf8 out;

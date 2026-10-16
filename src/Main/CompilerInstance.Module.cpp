@@ -937,15 +937,6 @@ namespace
         Utf8                                   tagsFingerprint;
     };
 
-    Utf8 bytesToLowerHex(const std::span<const uint8_t> bytes)
-    {
-        Utf8 result;
-        result.reserve(bytes.size() * 2);
-        for (const uint8_t b : bytes)
-            result += std::format("{:02x}", b);
-        return result;
-    }
-
     Utf8 workspaceTagsFingerprint(const std::span<const Utf8> tags)
     {
         // Tags can contain typed values and delimiters. Encode lengths and retain command-line
@@ -957,7 +948,7 @@ namespace
             identity += tag;
         }
         const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()});
-        return bytesToLowerHex(digest);
+        return Utf8Helper::toLowerHex(digest);
     }
 
     // What a command line changes in a module's code without changing where its artifacts go.
@@ -2064,7 +2055,7 @@ namespace
             for (const ModuleApi::SourceSnapshot& file : *apiSnapshot)
             {
                 const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(file.content.data()), file.content.size()});
-                entries.emplace_back(std::format("{}\t{}\t{}\t{}", Utf8(file.path.lexically_relative(srcDir)).c_str(), file.content.size(), file.writeTime.time_since_epoch().count(), bytesToLowerHex(digest).c_str()));
+                entries.emplace_back(std::format("{}\t{}\t{}\t{}", Utf8(file.path.lexically_relative(srcDir)).c_str(), file.content.size(), file.writeTime.time_since_epoch().count(), Utf8Helper::toLowerHex(digest).c_str()));
             }
         }
 
@@ -2086,7 +2077,7 @@ namespace
 
         const std::string_view identityView = identity.view();
         const auto             digest       = sha256(std::span{reinterpret_cast<const std::byte*>(identityView.data()), identityView.size()});
-        return (WorkspaceLayout::dependencyCacheRoot() / fs::path(bytesToLowerHex(digest).c_str())).lexically_normal();
+        return (WorkspaceLayout::dependencyCacheRoot() / fs::path(Utf8Helper::toLowerHex(digest).c_str())).lexically_normal();
     }
 
     // Re-dates the entry, so that a trim can tell what is still in use from what nothing has asked

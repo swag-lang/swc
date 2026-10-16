@@ -195,8 +195,7 @@ namespace PostRaPeephole
                 const MicroInstrRef reloadRef       = candidateIndex + 3 < refs.size() ? refs[candidateIndex + 3] : MicroInstrRef::invalid();
                 const MicroInstr*   reloadInst      = ctx.instruction(reloadRef);
                 const auto*         reload          = reloadInst && reloadInst->op == MicroInstrOpcode::LoadRegMem ? reloadInst->ops(*ctx.operands) : nullptr;
-                const bool          redundantReload = reload && reload[0].reg == load[0].reg && reload[1].reg == load[1].reg &&
-                                             reload[2].opBits == load[2].opBits && reload[3].valueU64 == load[3].valueU64;
+                const bool          redundantReload = reload && reload[0].reg == load[0].reg && reload[1].reg == load[1].reg && reload[2].opBits == load[2].opBits && reload[3].valueU64 == load[3].valueU64;
                 if (!redundantReload && ctx.isRegDeadAfter(load[0].reg, candidateIndex + 2) &&
                     ctx.claimAll({refs[sourceIndex], candidateRef, refs[candidateIndex + 1]}))
                 {
@@ -221,8 +220,7 @@ namespace PostRaPeephole
                         MicroPassHelpers::computePhysicalLiveness(ctx.physicalLiveness, *ctx.passContext);
                     }
                     const uint32_t bit         = MicroPassHelpers::MicroPhysLiveness::bitOf(load[0].reg);
-                    bool           deadOnTaken = ctx.physicalLiveness.valid && bit < 64 &&
-                                       cfg.successors(candidateIndex + 2).size() == 2;
+                    bool           deadOnTaken = ctx.physicalLiveness.valid && bit < 64 && cfg.successors(candidateIndex + 2).size() == 2;
                     for (const uint32_t successor : cfg.successors(candidateIndex + 2))
                     {
                         if (successor == candidateIndex + 3)

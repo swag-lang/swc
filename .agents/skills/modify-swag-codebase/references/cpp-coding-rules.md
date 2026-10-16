@@ -37,6 +37,12 @@
 - Keep function calls on one line.
 - Refactor declarations with excessive parameters instead of wrapping them across lines.
 - Keep lines reasonably short and readable even though the project has no theoretical line-length limit.
+- Start an assignment's initializer on the same line as `=`, except for multiline string data.
+- Keep short initializers on one line. For a long expression, align continuation operands with
+  the first operand after `=`. Give a long multiline initializer its own paragraph when
+  consecutive declaration alignment would shift its first operand away from the continuations.
+- Review continuation alignment after running clang-format. With `ColumnLimit: 0`, it preserves
+  manual expression breaks, and consecutive declaration alignment can leave continuations behind.
 
 ## Reuse At The Right Level
 

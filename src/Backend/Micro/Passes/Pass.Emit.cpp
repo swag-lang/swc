@@ -525,13 +525,10 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             encoder.encodeCmpMemImm(ops[0].reg, ops[2].valueU64, ops[3].immediateValue(getNumBits(ops[1].opBits)), ops[1].opBits);
             if (ops[0].reg.isInstructionPointer())
             {
-                const uint64_t    value = ops[3].valueU64;
-                const MicroOpBits bits  = ops[1].opBits;
-                const bool        fits8 = value <= 0x7F ||
-                                   (bits == MicroOpBits::B16 && value >= 0xFF80) ||
-                                   (bits == MicroOpBits::B32 && value >= 0xFFFFFF80) ||
-                                   (bits == MicroOpBits::B64 && value >= 0xFFFFFFFFFFFFFF80);
-                const uint32_t trailingBytes = bits == MicroOpBits::B8 || fits8 ? 1 : getNumBytes(std::min(bits, MicroOpBits::B32));
+                const uint64_t    value         = ops[3].valueU64;
+                const MicroOpBits bits          = ops[1].opBits;
+                const bool        fits8         = value <= 0x7F || (bits == MicroOpBits::B16 && value >= 0xFF80) || (bits == MicroOpBits::B32 && value >= 0xFFFFFF80) || (bits == MicroOpBits::B64 && value >= 0xFFFFFFFFFFFFFF80);
+                const uint32_t    trailingBytes = bits == MicroOpBits::B8 || fits8 ? 1 : getNumBytes(std::min(bits, MicroOpBits::B32));
                 bindRel32RelocationOffset(context, instructionRef, cmpStart, encoder.size(), trailingBytes);
             }
             break;
@@ -590,14 +587,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             {
                 const uint64_t    value = ops[4].valueU64;
                 const MicroOpBits bits  = ops[1].opBits;
-                const bool        fits8 = value <= 0x7F ||
-                                   (bits == MicroOpBits::B16 && value >= 0xFF80) ||
-                                   (bits == MicroOpBits::B32 && value >= 0xFFFFFF80) ||
-                                   (bits == MicroOpBits::B64 && value >= 0xFFFFFFFFFFFFFF80);
-                const MicroOp op              = ops[2].microOp;
-                const bool    isShiftOrRotate = op == MicroOp::ShiftLeft || op == MicroOp::ShiftRight ||
+                const bool        fits8 = value <= 0x7F || (bits == MicroOpBits::B16 && value >= 0xFF80) || (bits == MicroOpBits::B32 && value >= 0xFFFFFF80) || (bits == MicroOpBits::B64 && value >= 0xFFFFFFFFFFFFFF80);
+                const MicroOp     op    = ops[2].microOp;
+
+                const bool isShiftOrRotate = op == MicroOp::ShiftLeft || op == MicroOp::ShiftRight ||
                                              op == MicroOp::ShiftArithmeticLeft || op == MicroOp::ShiftArithmeticRight ||
                                              op == MicroOp::RotateLeft || op == MicroOp::RotateRight;
+
                 const uint32_t trailingBytes = isShiftOrRotate ? (value == 1 ? 0 : 1) : (bits == MicroOpBits::B8 || fits8 ? 1 : getNumBytes(std::min(bits, MicroOpBits::B32)));
                 bindRel32RelocationOffset(context, instructionRef, opStart, encoder.size(), trailingBytes);
             }

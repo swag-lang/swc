@@ -267,8 +267,7 @@ namespace
 
             const MicroInstr* afterBranch = storage.ptr(order[at + 2]);
             uint32_t          fallthrough = 0;
-            const bool        needsLabel  = afterBranch->op != MicroInstrOpcode::Label ||
-                                    !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
+            const bool        needsLabel  = afterBranch->op != MicroInstrOpcode::Label || !tryGetLabelId(fallthrough, *afterBranch, afterBranch->ops(operands));
             if (needsLabel)
                 fallthrough = context.builder->createLabel().get();
             const uint32_t          zeroTarget    = branchOps[0].cpuCond == MicroCond::Equal ? branchTarget : fallthrough;

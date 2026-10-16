@@ -1245,8 +1245,7 @@ namespace
         // out-of-bounds access, so only consult the source token when its location is in range;
         // otherwise the node's resolved symbol below is the authoritative identifier.
         const SourceCodeRef nodeCodeRef    = node.codeRef();
-        const bool          nodeTokInRange = nodeCodeRef.isValid() &&
-                                    nodeCodeRef.tokRef.get() < sema.ctx().compiler().srcView(nodeCodeRef.srcViewRef).tokens().size();
+        const bool          nodeTokInRange = nodeCodeRef.isValid() && nodeCodeRef.tokRef.get() < sema.ctx().compiler().srcView(nodeCodeRef.srcViewRef).tokens().size();
 
         IdentifierRef idRef = IdentifierRef::invalid();
         if (nodeTokInRange && sema.token(nodeCodeRef).id == TokenId::Identifier)
@@ -1370,13 +1369,10 @@ namespace
         // to override the pin with (an auto-inlined `v + Swag.vecSplat(1'u32)` came back as sixteen
         // bytes). Leave the name to re-resolve; the call pins its selected function afterwards
         // whenever the source kept one.
-        const auto* intrinsicFunction           = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;
-        const bool  intrinsicName               = intrinsicFunction && intrinsicFunction->intrinsicId() != TokenId::Invalid;
-        const bool  sourceSymbolOwnedByFunction = storedView &&
-                                                 storedView->sym &&
-                                                 storedView->sym->ownerSymMap() &&
-                                                 storedView->sym->ownerSymMap()->isFunction();
-        const bool sourceFunctionLocalIdentifier = storedView &&
+        const auto* intrinsicFunction             = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;
+        const bool  intrinsicName                 = intrinsicFunction && intrinsicFunction->intrinsicId() != TokenId::Invalid;
+        const bool  sourceSymbolOwnedByFunction   = storedView && storedView->sym && storedView->sym->ownerSymMap() && storedView->sym->ownerSymMap()->isFunction();
+        const bool  sourceFunctionLocalIdentifier = storedView &&
                                                    storedView->sym &&
                                                    storedView->sym->isFunctionLocalVariable() &&
                                                    nodeTokInRange &&
@@ -1392,7 +1388,8 @@ namespace
                                                      sourceFunctionLocalIdentifier ||
                                                      sourceLexicalLocalIdentifier;
         const bool sourceLocalIdentifierPinned = pinResolvedSymbol && (sourceSymbolOwnedByFunction || sourceFunctionLocalIdentifier || sourceLexicalLocalIdentifier);
-        const bool preserveSyntheticSymbol     = storedView && storedView->sym && !intrinsicName &&
+
+        const bool preserveSyntheticSymbol = storedView && storedView->sym && !intrinsicName &&
                                              ((node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) && !sourceLocalIdentifierPinned && !sourceRebindableLocalIdentifier) ||
                                               (!sourceLocalIdentifierPinned &&
                                                !sourceRebindableLocalIdentifier &&

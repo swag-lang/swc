@@ -102,10 +102,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         const SemaNodeView sourceView    = sema.viewTypeConstant(nodeExprRef);
         if (targetTypeRef.isInvalid() || !sourceView.type())
             return Result::Continue;
-        const TypeInfo& targetType = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), targetTypeRef));
-        const bool      needsElementCasts =
-            (sourceView.type()->isAggregateArray() && targetType.isArrayOrSlice()) ||
-            (sourceView.type()->isAggregateStruct() && targetType.isStruct());
+        const TypeInfo& targetType        = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), targetTypeRef));
+        const bool      needsElementCasts = (sourceView.type()->isAggregateArray() && targetType.isArrayOrSlice()) || (sourceView.type()->isAggregateStruct() && targetType.isStruct());
         if (needsElementCasts)
         {
             CastRequest request(CastKind::Implicit);
@@ -138,8 +136,9 @@ Result AstCastExpr::semaPostNode(Sema& sema)
     CastFlags castFlags = Cast::modifierCastFlags(modifierFlags);
     castFlags.add(CastFlagsE::FromExplicitNode);
 
-    const bool runtimeTarget     = sema.isValue(nodeTypeRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), nodeTypeView.typeRef());
-    bool       runtimeTypeSource = !modifierFlags.hasAny({AstModifierFlagsE::Bit, AstModifierFlagsE::Wrap, AstModifierFlagsE::UnConst}) &&
+    const bool runtimeTarget = sema.isValue(nodeTypeRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), nodeTypeView.typeRef());
+
+    bool runtimeTypeSource = !modifierFlags.hasAny({AstModifierFlagsE::Bit, AstModifierFlagsE::Wrap, AstModifierFlagsE::UnConst}) &&
                              sema.isValue(nodeExprRef) && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), srcTypeView.typeRef()) &&
                              !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), nodeTypeView.typeRef()) && !nodeTypeView.type()->isTypeInfo();
     if (runtimeTypeSource && !modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
@@ -352,8 +351,7 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
     const TypeRef      targetRef         = sema.typeMgr().unwrapAlias(sema.ctx(), target.typeRef());
     const TypeInfo&    targetType        = sema.typeMgr().get(targetRef);
     const TypeRef      borrowedTargetRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(target.typeRef(), TypeInfoFlagsE::Const));
-    const bool         typeQuery         = !sema.isValue(nodeExprRef) ||
-                           (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), source.typeRef()) && !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), borrowedTargetRef));
+    const bool         typeQuery         = !sema.isValue(nodeExprRef) || (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), source.typeRef()) && !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), borrowedTargetRef));
 
     // A pattern names the object type. Reuse the explicit dynamic cast after deriving
     // its borrowed destination, so checks, pointer adjustment, and lifetime rules agree.

@@ -289,10 +289,9 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
 
         for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
         {
-            const uint64_t newCarry = words_[static_cast<uint32_t>(i)] << (WORD_BITS - bitShift);
-            words_[static_cast<uint32_t>(i)] =
-                (words_[static_cast<uint32_t>(i)] >> bitShift) | carry;
-            carry = newCarry;
+            const uint64_t newCarry          = words_[static_cast<uint32_t>(i)] << (WORD_BITS - bitShift);
+            words_[static_cast<uint32_t>(i)] = (words_[static_cast<uint32_t>(i)] >> bitShift) | carry;
+            carry                            = newCarry;
         }
     }
 

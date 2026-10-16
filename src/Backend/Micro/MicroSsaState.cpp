@@ -59,11 +59,10 @@ uint8_t MicroSsaState::nextBlockMarkEpoch()
 
 void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
 {
-    const MicroControlFlowGraph& controlFlowGraph = builder.controlFlowGraph();
-    const auto                   instructionRefs  = controlFlowGraph.instructionRefs();
-    const bool                   reuseBlocks      = blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() &&
-                             instructionRefs_.size() == instructionRefs.size();
-    uint32_t updatedUseDefCount = 0;
+    const MicroControlFlowGraph& controlFlowGraph   = builder.controlFlowGraph();
+    const auto                   instructionRefs    = controlFlowGraph.instructionRefs();
+    const bool                   reuseBlocks        = blocksCfg_ == &controlFlowGraph && blocksCfgBuildId_ == controlFlowGraph.buildId() && instructionRefs_.size() == instructionRefs.size();
+    uint32_t                     updatedUseDefCount = 0;
     // SSA depends on instruction order, control flow and register use/def, not on
     // the operation or immediate that computes a value. An operand-only rewrite
     // can invalidate the analysis without changing any of those inputs.

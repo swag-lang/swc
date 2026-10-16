@@ -719,9 +719,8 @@ namespace
             const bool isConst     = (flags & static_cast<AstNode::ParserFlags>(AstVarDeclFlagsE::Const)) != 0;
             const bool inAggregate = parentCompound == AstNodeId::AggregateBody;
 
-            const FormatRoleE startRole  = inAggregate ? FormatRoleE::FieldDeclStart
-                                           : isConst   ? FormatRoleE::ConstDeclStart
-                                                       : FormatRoleE::VarDeclStart;
+            const FormatRoleE startRole  = inAggregate ? FormatRoleE::FieldDeclStart : isConst ? FormatRoleE::ConstDeclStart
+                                                                                               : FormatRoleE::VarDeclStart;
             uint32_t          startPiece = span.minPiece;
 
             // The AST span of `using wnd: Wnd` starts on `wnd`, but the
@@ -1052,9 +1051,7 @@ namespace
                 case AstNodeId::AnonymousStructDecl:
                 case AstNodeId::AnonymousUnionDecl:
                 {
-                    const AstNodeRef bodyRef  = node.is(AstNodeId::AnonymousStructDecl)
-                                                    ? node.cast<AstAnonymousStructDecl>().nodeBodyRef
-                                                    : node.cast<AstAnonymousUnionDecl>().nodeBodyRef;
+                    const AstNodeRef bodyRef  = node.is(AstNodeId::AnonymousStructDecl) ? node.cast<AstAnonymousStructDecl>().nodeBodyRef : node.cast<AstAnonymousUnionDecl>().nodeBodyRef;
                     const NodeSpan   bodySpan = spanOf(bodyRef);
                     uint32_t         open     = bodyOpenBrace(bodySpan);
                     if (open == INVALID_PIECE && span.valid())
@@ -1445,9 +1442,7 @@ namespace
                 case AstNodeId::CallExpr:
                 case AstNodeId::IntrinsicCallExpr:
                 {
-                    const AstNodeRef calleeRef  = node.is(AstNodeId::CallExpr)
-                                                      ? node.cast<AstCallExpr>().nodeExprRef
-                                                      : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
+                    const AstNodeRef calleeRef  = node.is(AstNodeId::CallExpr) ? node.cast<AstCallExpr>().nodeExprRef : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
                     const NodeSpan   calleeSpan = spanOf(calleeRef);
                     const uint32_t   from       = calleeSpan.valid() ? calleeSpan.maxPiece : span.minPiece;
                     addRole(nextCodeIf(from, TokenId::SymLeftParen), FormatRoleE::CallOpenParen);

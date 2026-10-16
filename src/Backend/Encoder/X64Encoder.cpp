@@ -1121,9 +1121,7 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         {
             // B8 signed multiply uses one-operand IMUL (no two-operand 8-bit form exists),
             // which requires RAX and clobbers RDX, like MultiplyUnsigned.
-            const MicroOpBits opBits = (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm)
-                                           ? ops[1].opBits
-                                           : ops[2].opBits;
+            const MicroOpBits opBits = (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryMemImm) ? ops[1].opBits : ops[2].opBits;
             if (opBits == MicroOpBits::B8)
             {
                 info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
@@ -1359,8 +1357,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
 
         const bool     immediateIsWide = ops[2].hasWideImmediateValue();
         const bool     immediateFits64 = !immediateIsWide || ops[2].wideImmediateValue().fit64();
-        const uint64_t immediateU64 =
-            immediateIsWide && immediateFits64 ? ops[2].wideImmediateValue().as64() : ops[2].valueU64;
+        const uint64_t immediateU64    = immediateIsWide && immediateFits64 ? ops[2].wideImmediateValue().as64() : ops[2].valueU64;
 
         if (ops[1].opBits == MicroOpBits::B8 &&
             ((!immediateFits64 && immediateIsWide) || immediateU64 > 0xFF))
@@ -3028,9 +3025,7 @@ void X64Encoder::encodeOpUnaryAmcMem(MicroReg regBase, MicroReg regMul, uint64_t
         emitSpecCpuOp(store_, MicroOp::BitwiseNot, opBits);
 
     const bool    forcedDisplacement = baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp;
-    const auto    mod                = forcedDisplacement || addValue != 0
-                                           ? (canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32)
-                                           : ModRmMode::Memory;
+    const auto    mod                = forcedDisplacement || addValue != 0 ? (canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32) : ModRmMode::Memory;
     const uint8_t group              = op == MicroOp::Add ? MODRM_REG_0 : op == MicroOp::Subtract ? MODRM_REG_1
                                                                       : op == MicroOp::BitwiseNot ? MODRM_REG_2
                                                                                                   : MODRM_REG_3;
@@ -4300,8 +4295,7 @@ void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, Micr
     // Same mandatory prefix the two-operand form would carry: F2/F3 select the
     // scalar arithmetic shapes, 66/none the bitwise ones.
     const bool    isBitwise       = op == MicroOp::FloatAnd || op == MicroOp::FloatXor;
-    const uint8_t mandatoryPrefix = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0x00)
-                                              : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
+    const uint8_t mandatoryPrefix = isBitwise ? (opBits == MicroOpBits::B64 ? 0x66 : 0x00) : (opBits == MicroOpBits::B64 ? 0xF2 : 0xF3);
 
     // No 0F byte: the VEX prefix already carries the escape.
     emitVex(store_, mandatoryPrefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regSrc1), microRegToX64Reg(regSrc2));

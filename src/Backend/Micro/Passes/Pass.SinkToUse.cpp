@@ -221,8 +221,7 @@ namespace
                 {
                     const auto* consumerOps = consumer->ops(operands);
                     displacement            = consumerOps[layout.addIdx].valueU64 + ops[3].valueU64;
-                    foldAddress             = consumerOps[layout.baseIdx].reg == value &&
-                                  static_cast<int64_t>(displacement) == static_cast<int64_t>(static_cast<int32_t>(displacement));
+                    foldAddress             = consumerOps[layout.baseIdx].reg == value && static_cast<int64_t>(displacement) == static_cast<int64_t>(static_cast<int32_t>(displacement));
                 }
             }
             const bool crossesBlocks = scratch.blockIds[useIdx] != scratch.blockIds[i];
@@ -299,12 +298,14 @@ namespace
 
                 if (!meaningfulGap)
                 {
-                    const MicroReg betweenDef        = betweenUseDef->defs.size() == 1 ? betweenUseDef->defs[0] : MicroReg::invalid();
-                    const uint32_t betweenDenseIdx   = scratch.virtualRegs.find(betweenDef);
-                    const bool     feedsSameConsumer = betweenDenseIdx != MicroDenseRegIndex::K_INVALID_INDEX &&
+                    const MicroReg betweenDef      = betweenUseDef->defs.size() == 1 ? betweenUseDef->defs[0] : MicroReg::invalid();
+                    const uint32_t betweenDenseIdx = scratch.virtualRegs.find(betweenDef);
+
+                    const bool feedsSameConsumer = betweenDenseIdx != MicroDenseRegIndex::K_INVALID_INDEX &&
                                                    scratch.regCounts[betweenDenseIdx].definitions == 1 &&
                                                    scratch.regCounts[betweenDenseIdx].uses == 1 &&
                                                    scratch.regCounts[betweenDenseIdx].onlyUseIndex == useIdx;
+
                     meaningfulGap = !feedsSameConsumer;
                 }
             }

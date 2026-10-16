@@ -37,11 +37,8 @@ namespace
 
     Result checkAssignModifiers(Sema& sema, const AstAssignStmt& node)
     {
-        const TokenId tokId = sema.token(node.codeRef()).id;
-        auto          allowed =
-            AstModifierFlagsE::NoDrop |
-            AstModifierFlagsE::Move |
-            AstModifierFlagsE::Relocate;
+        const TokenId tokId   = sema.token(node.codeRef()).id;
+        auto          allowed = AstModifierFlagsE::NoDrop | AstModifierFlagsE::Move | AstModifierFlagsE::Relocate;
 
         switch (tokId)
         {

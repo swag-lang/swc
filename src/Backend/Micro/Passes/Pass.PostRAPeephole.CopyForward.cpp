@@ -203,8 +203,7 @@ namespace PostRaPeephole
 
             const MicroInstrOperand* ops          = inst->ops(*ctx.operands);
             const bool               sameCopy     = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == dst && ops[1].reg == src && ops[2].opBits == opBits;
-            const bool               reversedCopy = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == src && ops[1].reg == dst &&
-                                      ops[2].opBits == MicroOpBits::B64 && opBits == MicroOpBits::B64;
+            const bool               reversedCopy = inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == src && ops[1].reg == dst && ops[2].opBits == MicroOpBits::B64 && opBits == MicroOpBits::B64;
             if (sameCopy || reversedCopy)
             {
                 if (!ctx.claimAll({copyRef}))
@@ -294,8 +293,7 @@ namespace PostRaPeephole
                 return false;
             observed.push_back(cursor);
             const auto* ops      = current.ops(*ctx.operands);
-            const bool  fullCopy = current.op == MicroInstrOpcode::LoadRegReg && ops && ops[2].opBits == MicroOpBits::B128 &&
-                                  ops[0].reg.isFloat() && ops[1].reg.isFloat();
+            const bool  fullCopy = current.op == MicroInstrOpcode::LoadRegReg && ops && ops[2].opBits == MicroOpBits::B128 && ops[0].reg.isFloat() && ops[1].reg.isFloat();
             if (fullCopy)
             {
                 bool matched = false;
@@ -1482,27 +1480,27 @@ namespace PostRaPeephole
         const MicroReg bounded      = rewritten[9][0].reg;
         const MicroReg final        = rewritten[12][0].reg;
         MicroCond      invertedLast = MicroCond::Unconditional;
-        const bool     isMedianGraph =
-            rewritten[3][1].reg == second &&
-            rewritten[4][1].reg == first &&
-            rewritten[5][0].reg == first &&
-            (rewritten[5][1].reg == second || rewritten[5][1].reg == secondCopy) &&
-            rewritten[6][0].reg == minimum &&
-            (rewritten[6][1].reg == second || rewritten[6][1].reg == secondCopy) &&
-            (rewritten[6][2].cpuCond == MicroCond::Above || rewritten[6][2].cpuCond == MicroCond::AboveOrEqual) &&
-            rewritten[7][1].reg == first && maximum == secondCopy &&
-            rewritten[8][0].reg == maximum && rewritten[8][1].reg == second &&
-            (rewritten[8][2].cpuCond == MicroCond::Below || rewritten[8][2].cpuCond == MicroCond::BelowOrEqual) &&
-            rewritten[9][1].reg == maximum && bounded == first &&
-            rewritten[10][0].reg == maximum && rewritten[10][1].reg == third &&
-            rewritten[11][0].reg == bounded && rewritten[11][1].reg == third &&
-            (rewritten[11][2].cpuCond == MicroCond::Above || rewritten[11][2].cpuCond == MicroCond::AboveOrEqual) &&
-            rewritten[12][1].reg == minimum && final == third &&
-            rewritten[13][0].reg == minimum && rewritten[13][1].reg == bounded &&
-            rewritten[14][0].reg == final && rewritten[14][1].reg == bounded &&
-            (rewritten[14][2].cpuCond == MicroCond::Below || rewritten[14][2].cpuCond == MicroCond::BelowOrEqual) &&
-            extend[0].reg == first && extend[1].reg == final &&
-            MicroPassHelpers::invertCondition(invertedLast, rewritten[14][2].cpuCond);
+
+        const bool isMedianGraph = rewritten[3][1].reg == second &&
+                                   rewritten[4][1].reg == first &&
+                                   rewritten[5][0].reg == first &&
+                                   (rewritten[5][1].reg == second || rewritten[5][1].reg == secondCopy) &&
+                                   rewritten[6][0].reg == minimum &&
+                                   (rewritten[6][1].reg == second || rewritten[6][1].reg == secondCopy) &&
+                                   (rewritten[6][2].cpuCond == MicroCond::Above || rewritten[6][2].cpuCond == MicroCond::AboveOrEqual) &&
+                                   rewritten[7][1].reg == first && maximum == secondCopy &&
+                                   rewritten[8][0].reg == maximum && rewritten[8][1].reg == second &&
+                                   (rewritten[8][2].cpuCond == MicroCond::Below || rewritten[8][2].cpuCond == MicroCond::BelowOrEqual) &&
+                                   rewritten[9][1].reg == maximum && bounded == first &&
+                                   rewritten[10][0].reg == maximum && rewritten[10][1].reg == third &&
+                                   rewritten[11][0].reg == bounded && rewritten[11][1].reg == third &&
+                                   (rewritten[11][2].cpuCond == MicroCond::Above || rewritten[11][2].cpuCond == MicroCond::AboveOrEqual) &&
+                                   rewritten[12][1].reg == minimum && final == third &&
+                                   rewritten[13][0].reg == minimum && rewritten[13][1].reg == bounded &&
+                                   rewritten[14][0].reg == final && rewritten[14][1].reg == bounded &&
+                                   (rewritten[14][2].cpuCond == MicroCond::Below || rewritten[14][2].cpuCond == MicroCond::BelowOrEqual) &&
+                                   extend[0].reg == first && extend[1].reg == final &&
+                                   MicroPassHelpers::invertCondition(invertedLast, rewritten[14][2].cpuCond);
 
         if (isMedianGraph)
         {

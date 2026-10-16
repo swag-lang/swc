@@ -240,9 +240,7 @@ namespace
             // base in ops[1] is replaced by the slot register and the offset
             // operand (ops[4]) is dropped.
             ops[1].reg        = vreg;
-            inst->op          = (inst->op == MicroInstrOpcode::LoadSignedExtRegMem)
-                                    ? MicroInstrOpcode::LoadSignedExtRegReg
-                                    : MicroInstrOpcode::LoadZeroExtRegReg;
+            inst->op          = (inst->op == MicroInstrOpcode::LoadSignedExtRegMem) ? MicroInstrOpcode::LoadSignedExtRegReg : MicroInstrOpcode::LoadZeroExtRegReg;
             inst->numOperands = 4;
         }
         // The memory-operand ALU and compare forms lose their memory
@@ -913,8 +911,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (hasTrackedValue)
         {
             uint64_t   escapedOffset = 0;
-            const bool resolved      = storesTrackedValue ? escapedObjectOffset(valueReg, escapedOffset)
-                                                          : trackedEscapeOffset(valueReg, escapedOffset);
+            const bool resolved      = storesTrackedValue ? escapedObjectOffset(valueReg, escapedOffset) : trackedEscapeOffset(valueReg, escapedOffset);
             if (!resolved || !poisonTrackedEscape(valueReg, escapedOffset, 0))
             {
                 bail = true;
@@ -1138,9 +1135,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     const SlotAccess& acc       = **found;
                     const uint64_t    accessLo  = acc.offset;
                     const uint64_t    accessHi  = acc.offset + getNumBytes(acc.bits);
-                    const bool        pureStore = inst.op == MicroInstrOpcode::LoadMemReg ||
-                                           inst.op == MicroInstrOpcode::LoadMemImm ||
-                                           inst.op == MicroInstrOpcode::StoreVecMemReg;
+                    const bool        pureStore = inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm || inst.op == MicroInstrOpcode::StoreVecMemReg;
                     for (size_t i = 0; i < pendingStores.size();)
                     {
                         PendingStore&  pendingStore = pendingStores[i];
@@ -1557,7 +1552,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 if (!laneReads)
                     break;
                 const MicroInstr* read = storage.ptr(acc.ref);
-                laneReads              = !acc.isWrite && (acc.bits == MicroOpBits::B32 || acc.bits == MicroOpBits::B64) &&
+
+                laneReads = !acc.isWrite && (acc.bits == MicroOpBits::B32 || acc.bits == MicroOpBits::B64) &&
                             (acc.offset - pStart) % getNumBytes(acc.bits) == 0 && read &&
                             read->op == MicroInstrOpcode::LoadRegMem && read->ops(operands)[0].reg.isAnyInt();
             }
@@ -2106,8 +2102,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // ---- Rewrite all accesses of the promoted slots to register ops. ----
     for (const Promotion& p : promotions)
     {
-        const MicroReg vreg = p.isFloat ? MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++)
-                                        : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+        const MicroReg vreg = p.isFloat ? MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++) : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
 
         for (const SlotAccess& acc : slots[p.offset].accesses)
             rewriteSlotAccess(storage, operands, acc, vreg);

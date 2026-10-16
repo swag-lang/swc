@@ -1176,8 +1176,9 @@ namespace InstructionCombine
                     if (needsUnsignedConds || !rhs.isVirtualInt() || rhs == vt || rhs == base || rhs == index)
                         return false;
 
-                    const MicroSsaState::ReachingDef rhsDef                   = ctx.ssa->reachingDef(rhs, walker.current);
-                    const bool                       rhsIsSingleUseMemoryLoad = rhsDef.valid() && !rhsDef.isPhi && rhsDef.inst &&
+                    const MicroSsaState::ReachingDef rhsDef = ctx.ssa->reachingDef(rhs, walker.current);
+
+                    const bool rhsIsSingleUseMemoryLoad = rhsDef.valid() && !rhsDef.isPhi && rhsDef.inst &&
                                                           (rhsDef.inst->op == MicroInstrOpcode::LoadRegMem ||
                                                            rhsDef.inst->op == MicroInstrOpcode::LoadAmcRegMem) &&
                                                           ctx.ssa->transitiveInstructionUseCount(rhsDef.valueId, 2) == 1;

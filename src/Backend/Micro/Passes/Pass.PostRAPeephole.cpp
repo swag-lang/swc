@@ -111,12 +111,14 @@ namespace
         constexpr uint32_t K_MAX_BACKTRACK = 256;
         for (uint32_t labelIndex = 1; labelIndex + 1 < refs.size(); ++labelIndex)
         {
-            const MicroInstr* label    = storage.ptr(refs[labelIndex]);
-            const MicroInstr* middle   = storage.ptr(refs[labelIndex + 1]);
-            const bool        delayed  = middle && middle->op == MicroInstrOpcode::OpUnaryReg && labelIndex + 2 < refs.size();
-            const bool        compared = middle && labelIndex + 2 < refs.size() &&
+            const MicroInstr* label   = storage.ptr(refs[labelIndex]);
+            const MicroInstr* middle  = storage.ptr(refs[labelIndex + 1]);
+            const bool        delayed = middle && middle->op == MicroInstrOpcode::OpUnaryReg && labelIndex + 2 < refs.size();
+
+            const bool compared = middle && labelIndex + 2 < refs.size() &&
                                   (middle->op == MicroInstrOpcode::CmpRegImm || middle->op == MicroInstrOpcode::CmpRegReg ||
                                    middle->op == MicroInstrOpcode::TestRegImm || middle->op == MicroInstrOpcode::TestRegReg);
+
             const uint32_t    loadIndex = labelIndex + (delayed || compared ? 2 : 1);
             const MicroInstr* load      = storage.ptr(refs[loadIndex]);
             const auto*       at        = load && load->op == MicroInstrOpcode::LoadRegMem ? load->ops(operands) : nullptr;
@@ -441,9 +443,10 @@ namespace
                     anySlotOpaque = true;
                     return;
                 }
-                const auto* ops           = inst->ops(operands);
-                const auto& info          = MicroInstr::info(inst->op);
-                const bool  indexedMemory = inst->op == MicroInstrOpcode::LoadAmcRegMem ||
+                const auto* ops  = inst->ops(operands);
+                const auto& info = MicroInstr::info(inst->op);
+
+                const bool indexedMemory = inst->op == MicroInstrOpcode::LoadAmcRegMem ||
                                            inst->op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
                                            inst->op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
                                            inst->op == MicroInstrOpcode::LoadAmcMemReg ||

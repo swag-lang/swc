@@ -2033,10 +2033,8 @@ void Sanitizer::propagateConditionalBranch(SanitizerState state, const MicroInst
 
     const bool              hasSubject   = state.flagsSubject.isValid();
     const SanitizerRegInfo* subject      = hasSubject ? findReg(state, state.flagsSubject) : nullptr;
-    const SanitizerValue    subjectValue = stackBaseReg_.isValid() && state.flagsSubject == stackBaseReg_
-                                               ? SanitizerValue::makeStackAddr(0)
-                                           : subject ? subject->value
-                                                     : SanitizerValue{};
+    const SanitizerValue    subjectValue = stackBaseReg_.isValid() && state.flagsSubject == stackBaseReg_ ? SanitizerValue::makeStackAddr(0) : subject ? subject->value
+                                                                                                                                                       : SanitizerValue{};
 
     bool       condTrueIfSubjectZero = false;
     const bool isZeroTest            = hasSubject && condIsZeroTest(ops[0].cpuCond, condTrueIfSubjectZero);
@@ -2137,7 +2135,9 @@ void Sanitizer::dropZeros(SanitizerState& state)
 
 void Sanitizer::markMovedBorrows(SanitizerState& state, const int64_t slot, const uint64_t size)
 {
-    const auto contains = [slot, size](const int64_t offset) { return offset >= slot && static_cast<uint64_t>(offset - slot) < size; };
+    const auto contains = [slot, size](const int64_t offset) {
+        return offset >= slot && static_cast<uint64_t>(offset - slot) < size;
+    };
     const auto mark = [&](SanitizerValue& value) {
         if (value.isStackAddr() && (contains(value.stackOffset) || (value.hasStackOrigin() && contains(value.stackOrigin))))
             value.movedBorrow = true;

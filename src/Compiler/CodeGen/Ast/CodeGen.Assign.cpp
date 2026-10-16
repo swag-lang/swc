@@ -504,8 +504,7 @@ namespace
         // to reset or drop. Lifecycle safety can still poison its abandoned storage.
         AstNodeRef            resolvedRightRef = AstNodeRef::invalid();
         const SymbolVariable* rightVar         = CodeGenMoveElision::directStructVariable(codeGen, rightRef, &resolvedRightRef);
-        const bool            elideSource      = (shouldResetSource || (canTouchSource && isRelocate)) && rightVar &&
-                                 CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
+        const bool            elideSource      = (shouldResetSource || (canTouchSource && isRelocate)) && rightVar && CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
         if (elideSource)
             codeGen.markImplicitDropElided(*rightVar);
 
@@ -543,13 +542,15 @@ namespace
 
         // Different frame slots cannot self-assign. Keep the guard for references,
         // incoming arguments and return storage, whose addresses may alias.
-        const SymbolVariable* leftVar         = CodeGenMoveElision::directStructVariable(codeGen, leftRef);
-        const bool            distinctStorage = leftVar && rightVar && leftVar != rightVar &&
+        const SymbolVariable* leftVar = CodeGenMoveElision::directStructVariable(codeGen, leftRef);
+
+        const bool distinctStorage = leftVar && rightVar && leftVar != rightVar &&
                                      leftVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && rightVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
                                      !leftVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) && !rightVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
                                      leftVar->offset() != rightVar->offset() &&
                                      !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *leftVar) && !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *rightVar);
-        MicroLabelRef         doneLabel       = MicroLabelRef::invalid();
+
+        MicroLabelRef doneLabel = MicroLabelRef::invalid();
         if (stableRight.isAddress() && lifecycleCtx.target.payload.isAddress() && !distinctStorage)
         {
             doneLabel = builder.createLabel();

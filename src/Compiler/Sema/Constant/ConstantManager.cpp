@@ -373,7 +373,7 @@ namespace
 
     ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
-        const bool                   borrowedPayload = (value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed();
+        const bool                   borrowedPayload = value.isSpanPayload() && value.isPayloadBorrowed();
         std::optional<ConstantValue> enriched;
         bool                         canDeduplicateByValue = true;
         // Only these fixed-size payloads need mutable preparation. Aggregate vectors can be
@@ -535,7 +535,7 @@ ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const Const
 {
     const uint32_t routingHash = Math::hash(value.hash());
     const uint32_t shardIndex  = routingHash & (SHARD_COUNT - 1);
-    const bool     isSpanValue = value.isStruct() || value.isArray() || value.isSlice();
+    const bool     isSpanValue = value.isSpanPayload();
     if (isSpanValue && value.isPayloadBorrowed())
     {
         DataSegmentRef payloadRef;
@@ -562,7 +562,7 @@ ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const Const
 
 ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue& value)
 {
-    SWC_ASSERT(value.isStruct() || value.isArray() || value.isSlice());
+    SWC_ASSERT(value.isSpanPayload());
     SWC_ASSERT(value.isPayloadBorrowed());
 
     const DataSegmentRef dataRef = value.dataSegmentRef();
@@ -575,7 +575,7 @@ ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue&
 
 ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const ConstantValue& value)
 {
-    SWC_ASSERT(value.isStruct() || value.isArray() || value.isSlice());
+    SWC_ASSERT(value.isSpanPayload());
     SWC_ASSERT(value.isPayloadBorrowed());
 
     const DataSegmentRef dataRef = value.dataSegmentRef();

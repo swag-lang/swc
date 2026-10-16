@@ -1645,7 +1645,8 @@ namespace PostRaPeephole
                 flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return false;
             const auto* currentOps = current->ops(*ctx.operands);
-            const bool  isLoad     = current->op == MicroInstrOpcode::LoadRegImm && currentOps && !currentOps[2].hasWideImmediateValue() &&
+
+            const bool isLoad = current->op == MicroInstrOpcode::LoadRegImm && currentOps && !currentOps[2].hasWideImmediateValue() &&
                                 (currentOps[1].opBits == MicroOpBits::B32 || currentOps[1].opBits == MicroOpBits::B64);
             if (isLoad && !resultLoad.isValid() && currentOps[0].reg == result)
             {
@@ -2867,10 +2868,7 @@ namespace PostRaPeephole
         // A small mask with bit 7 clear can still use the shorter byte TEST.
         MicroInstrOperand test[3] = {};
         test[0]                   = ops[0];
-        test[1].opBits            = (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64) &&
-                                 ops[3].valueU64 <= 0x7F
-                                        ? MicroOpBits::B8
-                                        : ops[1].opBits;
+        test[1].opBits            = (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64) && ops[3].valueU64 <= 0x7F ? MicroOpBits::B8 : ops[1].opBits;
         test[2]                   = ops[3];
         MicroInstr probe          = inst;
         probe.op                  = MicroInstrOpcode::TestRegImm;

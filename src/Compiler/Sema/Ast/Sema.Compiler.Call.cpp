@@ -580,10 +580,8 @@ namespace
 
         std::span<const SemaClone::ParamBinding> bindings;
         const auto*                              inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
-        const bool                               isMixinInject = inlinePayload &&
-                                   inlinePayload->sourceFunction &&
-                                   inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-        bool isMacroInject = inlinePayload &&
+        const bool                               isMixinInject = inlinePayload && inlinePayload->sourceFunction && inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+        bool                                     isMacroInject = inlinePayload &&
                              inlinePayload->sourceFunction &&
                              inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
 
@@ -1422,9 +1420,7 @@ namespace
 
         const auto          requested  = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
         const auto&         attributes = sema.frame().currentAttributes();
-        const bool          enabled    = wantSanity
-                                             ? attributes.hasSanity(sema.buildCfg().sanityGuards, requested)
-                                             : attributes.hasRuntimeSafety(sema.runtimeSafetyGuards(), requested);
+        const bool          enabled    = wantSanity ? attributes.hasSanity(sema.buildCfg().sanityGuards, requested) : attributes.hasRuntimeSafety(sema.runtimeSafetyGuards(), requested);
         const ConstantValue value      = ConstantValue::makeBool(ctx, enabled);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;

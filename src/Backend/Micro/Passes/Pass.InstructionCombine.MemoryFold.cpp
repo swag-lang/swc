@@ -344,8 +344,7 @@ namespace InstructionCombine
                 return false;
 
             const uint64_t immediate  = opOps[3].valueU64;
-            const bool     widenedAnd = loadOps[3].opBits == MicroOpBits::B64 && opOps[1].opBits == MicroOpBits::B32 &&
-                                    opOps[2].microOp == MicroOp::And && immediate <= 0x7FFFFFFF;
+            const bool     widenedAnd = loadOps[3].opBits == MicroOpBits::B64 && opOps[1].opBits == MicroOpBits::B32 && opOps[2].microOp == MicroOp::And && immediate <= 0x7FFFFFFF;
             if (opOps[1].opBits != loadOps[3].opBits && !widenedAnd)
                 return false;
 

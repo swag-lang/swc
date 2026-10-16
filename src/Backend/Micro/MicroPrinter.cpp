@@ -1805,10 +1805,12 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         appendInstructionDebugInfo(out, ctx, inst, indexWidth, seenDebugLines);
         const auto             relocIt               = relocationByInstructionRef.find(instRef);
         const MicroRelocation* instructionRelocation = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
-        const bool             hasInlineRelocation   = instructionRelocation != nullptr &&
+
+        const bool hasInlineRelocation = instructionRelocation != nullptr &&
                                          (inst.op == MicroInstrOpcode::LoadRegPtrReloc ||
                                           inst.op == MicroInstrOpcode::CallLocal ||
                                           inst.op == MicroInstrOpcode::CallExtern);
+
         const bool hasInlineCallRelocation = instructionRelocation != nullptr &&
                                              (inst.op == MicroInstrOpcode::CallLocal ||
                                               inst.op == MicroInstrOpcode::CallExtern);

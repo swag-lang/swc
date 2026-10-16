@@ -131,7 +131,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (!value.isValid())
         return ConstantRef::invalid();
 
-    if (dataRef.isValid() && (value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed())
+    if (dataRef.isValid() && value.isSpanPayload() && value.isPayloadBorrowed())
         return codeGen.cstMgr().addMaterializedPayloadConstant(value);
 
     return codeGen.cstMgr().addConstant(ctx, value);

@@ -820,8 +820,7 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     opt.SizeOfImage                 = sizeOfImage;
     opt.SizeOfHeaders               = headersSize;
     opt.Subsystem                   = image_->win32.subsystem == LinkWin32Subsystem::Windows ? IMAGE_SUBSYSTEM_WINDOWS_GUI : IMAGE_SUBSYSTEM_WINDOWS_CUI;
-    opt.DllCharacteristics          = IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_NX_COMPAT |
-                             IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
+    opt.DllCharacteristics          = IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_NX_COMPAT | IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
     if (!baseRelocSites_.empty())
         opt.DllCharacteristics |= IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
     opt.SizeOfStackReserve  = image_->stackReserve ? image_->stackReserve : 0x100000;

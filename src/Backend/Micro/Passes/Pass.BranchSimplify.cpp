@@ -1208,8 +1208,7 @@ namespace
                 return MicroInstrRef::invalid();
 
             const MicroInstrDef& info                = MicroInstr::info(scanInst.op);
-            bool                 mayDefineTrackedReg = trackedReg.isValid() &&
-                                       (info.special != MicroInstrRegSpecial::None || flags.has(MicroInstrFlagsE::EncoderRegUseDef));
+            bool                 mayDefineTrackedReg = trackedReg.isValid() && (info.special != MicroInstrRegSpecial::None || flags.has(MicroInstrFlagsE::EncoderRegUseDef));
             if (trackedReg.isValid() && !mayDefineTrackedReg)
             {
                 for (const MicroInstrRegMode mode : info.regModes)
@@ -1584,9 +1583,7 @@ namespace
 
     constexpr uint32_t K_MAX_SHORT_CIRCUIT_BOOL_CHAIN = 6;
 
-    inline bool collectShortCircuitBoolChain(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef jumpRef,
-                                             SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN>& outChain,
-                                             bool requireCopy, const MicroInstrOperand*& outSetOps, BoolBits& outBits)
+    inline bool collectShortCircuitBoolChain(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef jumpRef, SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN>& outChain, bool requireCopy, const MicroInstrOperand*& outSetOps, BoolBits& outBits)
     {
         auto chainIt = MicroStorage::Iterator{&storage, jumpRef};
         --chainIt;
@@ -2075,8 +2072,8 @@ namespace
             // The copies right before the jump back to their setcc; the last
             // copy's destination is the value the join receives.
             SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN> chain;
-            BoolBits bits;
-            const MicroInstrOperand* setOps = nullptr;
+            BoolBits                                                   bits;
+            const MicroInstrOperand*                                   setOps = nullptr;
             if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, true, setOps, bits))
                 continue;
             const MicroReg value = storage.ptr(chain[0])->ops(operands)[0].reg;
@@ -2433,8 +2430,8 @@ namespace
             // the setcc that consumed the flags the jump reads. Copies and
             // self-extensions do not touch the flags.
             SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN> chain;
-            BoolBits bits;
-            const MicroInstrOperand* setOps = nullptr;
+            BoolBits                                                   bits;
+            const MicroInstrOperand*                                   setOps = nullptr;
             if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, false, setOps, bits))
                 continue;
 
@@ -2948,7 +2945,8 @@ namespace
             if (!reader || lookupCount(mentions, result.index()) != links.size() + 1)
                 continue;
             const MicroInstrOperand* readerOps = reader->ops(operands);
-            const bool               byteRead  = (reader->op == MicroInstrOpcode::LoadZeroExtRegReg && readerOps[3].opBits == MicroOpBits::B8) ||
+
+            const bool byteRead = (reader->op == MicroInstrOpcode::LoadZeroExtRegReg && readerOps[3].opBits == MicroOpBits::B8) ||
                                   (reader->op == MicroInstrOpcode::LoadRegReg && readerOps[2].opBits == MicroOpBits::B8);
             if (!byteRead || readerOps[1].reg != result || readerOps[0].reg == result)
                 continue;
@@ -3556,8 +3554,7 @@ namespace
             const uint32_t entryBytes  = width <= 8 ? 1 : width <= 16 ? 2
                                                       : width <= 32   ? 4
                                                                       : 8;
-            const bool     memoryTable = width > 1 && entryBytes * 8 <= resultWidth && table.size() <= 256 && context.taskContext &&
-                                     context.taskContext->hasCompiler();
+            const bool     memoryTable = width > 1 && entryBytes * 8 <= resultWidth && table.size() <= 256 && context.taskContext && context.taskContext->hasCompiler();
             if (!memoryTable && (width >= resultWidth || static_cast<uint64_t>(width) * table.size() > 64))
                 continue;
 
@@ -6901,10 +6898,9 @@ namespace
             const MicroInstr*   fallthrough    = fallthroughIt.current.isValid() ? &*fallthroughIt : nullptr;
             if (!fallthrough)
                 continue;
-            const auto* fallthroughOps  = fallthrough->ops(operands);
-            const bool  hasFallbackCopy = fallthrough->op == MicroInstrOpcode::LoadRegReg && fallthroughOps &&
-                                         !scan.relocated->contains(fallthroughRef.get());
-            const bool hasFallbackImmediate = fallthrough->op == MicroInstrOpcode::LoadRegImm && fallthroughOps &&
+            const auto* fallthroughOps       = fallthrough->ops(operands);
+            const bool  hasFallbackCopy      = fallthrough->op == MicroInstrOpcode::LoadRegReg && fallthroughOps && !scan.relocated->contains(fallthroughRef.get());
+            const bool  hasFallbackImmediate = fallthrough->op == MicroInstrOpcode::LoadRegImm && fallthroughOps &&
                                               !scan.relocated->contains(fallthroughRef.get());
             if (!hasFallbackCopy && !hasFallbackImmediate)
                 continue;

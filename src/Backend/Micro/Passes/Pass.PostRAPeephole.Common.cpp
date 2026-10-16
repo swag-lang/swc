@@ -310,8 +310,7 @@ namespace PostRaPeephole
             }
 
             const MicroInstrDef& info               = MicroInstr::info(scanInst->op);
-            const bool           disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
-                                            writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
+            const bool           disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) && writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
@@ -375,10 +374,9 @@ namespace PostRaPeephole
                 return true;
             }
 
-            const MicroInstrDef& info            = MicroInstr::info(scanInst->op);
-            const bool           conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
-                                         info.flags.has(MicroInstrFlagsE::ConditionalJump);
-            const bool disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+            const MicroInstrDef& info               = MicroInstr::info(scanInst->op);
+            const bool           conditionalJump    = info.flags.has(MicroInstrFlagsE::JumpInstruction) && info.flags.has(MicroInstrFlagsE::ConditionalJump);
+            const bool           disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
                                             writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalJump) ||
@@ -501,10 +499,9 @@ namespace PostRaPeephole
                 return true;
             }
 
-            const MicroInstrDef& info            = MicroInstr::info(scanInst->op);
-            const bool           conditionalJump = info.flags.has(MicroInstrFlagsE::JumpInstruction) &&
-                                         info.flags.has(MicroInstrFlagsE::ConditionalJump);
-            const bool disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+            const MicroInstrDef& info               = MicroInstr::info(scanInst->op);
+            const bool           conditionalJump    = info.flags.has(MicroInstrFlagsE::JumpInstruction) && info.flags.has(MicroInstrFlagsE::ConditionalJump);
+            const bool           disjointFrameWrite = info.flags.has(MicroInstrFlagsE::WritesMemory) &&
                                             writesDisjointFrameSlot(*scanInst, scanOps, baseReg, storeOps);
             if (scanInst->op == MicroInstrOpcode::Label ||
                 (info.flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalJump) ||

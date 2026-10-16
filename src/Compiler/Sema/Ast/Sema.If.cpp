@@ -242,8 +242,9 @@ namespace
             // and carries the rank that says how deeply it is nested. A binding var cannot answer
             // that question: they are one flat list, shared with the receiver and with the frames a
             // closure inherits, so a nested 'with' would not be ranked against an enclosing one.
-            SymbolVariable* symVar   = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
-            const bool      namedVar = symVar &&
+            SymbolVariable* symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+
+            const bool namedVar = symVar &&
                                   (symVar->hasGlobalStorage() ||
                                    symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                                    symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||

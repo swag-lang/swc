@@ -517,9 +517,11 @@ namespace
             if (submitted_)
             {
                 const auto completion = manager.consumeCompletion(ctx(), request_.nodeRef, request_.codeRef);
-                completed             = completion.hasValue && completion.result == Result::Continue &&
+
+                completed = completion.hasValue && completion.result == Result::Continue &&
                             completion.completionPayload == request_.completionPayload &&
                             *std::static_pointer_cast<uint64_t>(completion.completionPayload) == 42;
+
                 ctx().state().setNone();
                 return JobResult::Done;
             }

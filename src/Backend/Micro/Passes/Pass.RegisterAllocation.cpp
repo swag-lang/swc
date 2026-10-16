@@ -870,7 +870,8 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                             continue;
                         const MicroInstr*        entry    = instructions_->ptr(controlFlowGraph_->instructionRefs()[pred]);
                         const MicroInstrOperand* entryOps = entry->ops(*operands_);
-                        regionIsGuard                     = pred < idx && entryOps &&
+
+                        regionIsGuard = pred < idx && entryOps &&
                                         (entry->op == MicroInstrOpcode::JumpCond || entry->op == MicroInstrOpcode::JumpCondImm) &&
                                         !MicroInstrInfo::isUnconditionalJumpInstruction(*entry, entryOps);
                     }
@@ -1289,8 +1290,7 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
         const MicroReg virtKey = vregs[candidate.denseIndex];
         const bool     isFloat = virtKey.isVirtualFloat();
 
-        const size_t freeInClass = isFloat ? freeFloatTransient_.size() + freeFloatPersistent_.size()
-                                           : freeIntTransient_.size() + freeIntPersistent_.size();
+        const size_t freeInClass = isFloat ? freeFloatTransient_.size() + freeFloatPersistent_.size() : freeIntTransient_.size() + freeIntPersistent_.size();
         if (freeInClass <= (isFloat ? K_RESIDENT_MIN_FREE_FLOAT : K_RESIDENT_MIN_FREE_INT))
             continue;
 
@@ -1651,8 +1651,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         // dedicated register instead of consuming one of the general global
         // carriers while the dedicated register sits idle.
         const MicroReg localStackBaseReg = conv_->preferredLocalStackBaseReg();
-        const bool     isLocalStackBase  = context_->debugStackBaseVirtualReg.isValid() &&
-                                      vreg == context_->debugStackBaseVirtualReg;
+        const bool     isLocalStackBase  = context_->debugStackBaseVirtualReg.isValid() && vreg == context_->debugStackBaseVirtualReg;
         if (isLocalStackBase &&
             localStackBaseReg.isValid() &&
             !isPhysRegForbiddenForVirtual(vreg, localStackBaseReg) &&
@@ -1820,8 +1819,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     // easily; a three-hundred-instruction body does not, and
                     // should not.
                     const bool persistentPick  = poolIsPersistent;
-                    const bool benefitClears   = persistentPick ? cand.rawBenefit >= K_PERSISTENT_MIN_RAW_BENEFIT
-                                                                : cand.density >= spanScopedMinDensity;
+                    const bool benefitClears   = persistentPick ? cand.rawBenefit >= K_PERSISTENT_MIN_RAW_BENEFIT : cand.density >= spanScopedMinDensity;
                     const bool spanScopedGrant = benefitClears &&
                                                  (!crossesCall || persistentPick) &&
                                                  context_->encoder &&
@@ -2213,8 +2211,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         if (!inst)
             continue;
         const MicroInstrDef& info            = MicroInstr::info(inst->op);
-        const bool           hasWideOperands = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ||
-                                     (info.opBitsMask && inst->has128BitOperands(inst->ops(*operands_)));
+        const bool           hasWideOperands = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) || (info.opBitsMask && inst->has128BitOperands(inst->ops(*operands_)));
         if (hasWideOperands)
             wideInstructionPositions.push_back(idx);
     }
@@ -3936,10 +3933,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     // falls back to the full flush.
     boundarySnapshots_.clear();
     fallThroughStateValid_ = true;
-    keepAcrossBoundaries_  = hasControlFlow_ &&
-                            controlFlowGraph_ != nullptr &&
-                            !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
-                            controlFlowGraph_->supportsDeadCodeLiveness();
+    keepAcrossBoundaries_  = hasControlFlow_ && controlFlowGraph_ != nullptr && !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() && controlFlowGraph_->supportsDeadCodeLiveness();
     // Only boundary snapshots produce these hints. Linear and unsupported
     // functions need no per-virtual-register initialization.
     if (keepAcrossBoundaries_)
@@ -4216,14 +4210,14 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         for (const auto& requestInfo : allocRequests)
         {
             AllocRequest request = requestInfo;
-            const bool   defOnlyCopyFromConcrete =
-                request.isDef &&
-                !request.isUse &&
-                instOps &&
-                instOps[0].reg == request.virtKey &&
-                ((it->op == MicroInstrOpcode::LoadRegReg && !instOps[1].reg.isVirtual()) ||
-                 (it->op == MicroInstrOpcode::LoadSignedExtRegReg && !instOps[1].reg.isVirtual()) ||
-                 (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
+
+            const bool defOnlyCopyFromConcrete = request.isDef &&
+                                                 !request.isUse &&
+                                                 instOps &&
+                                                 instOps[0].reg == request.virtKey &&
+                                                 ((it->op == MicroInstrOpcode::LoadRegReg && !instOps[1].reg.isVirtual()) ||
+                                                  (it->op == MicroInstrOpcode::LoadSignedExtRegReg && !instOps[1].reg.isVirtual()) ||
+                                                  (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
             if (defOnlyCopyFromConcrete && !concreteLiveOutRegsReady)
             {
                 computeCurrentConcreteLiveOutBits(idx);

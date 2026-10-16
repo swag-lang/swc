@@ -1025,8 +1025,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
             case MicroInstrOpcode::OpBinaryRegReg:
             {
                 MicroInstrOperand* ops = inst.ops(operands);
-                changed                = tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) ||
-                          tryFoldFloatBinaryRegReg(floatContext, toErase, instRef, inst, ops);
+                changed                = tryFoldBinaryRegReg(*ssaState, context, knownValues, knownFlags, instRef, inst, ops) || tryFoldFloatBinaryRegReg(floatContext, toErase, instRef, inst, ops);
                 break;
             }
             case MicroInstrOpcode::LoadSignedExtRegReg:

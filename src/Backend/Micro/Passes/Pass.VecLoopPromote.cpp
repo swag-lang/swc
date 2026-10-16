@@ -338,11 +338,9 @@ namespace
         const MicroInstr* prevInst = storage.ptr(prevRef);
         if (!prevInst)
             return false;
-        const MicroInstrFlags prevFlags = MicroInstr::info(prevInst->op).flags;
-        const bool            prevIsUncondJump =
-            prevFlags.has(MicroInstrFlagsE::JumpInstruction) && !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
-        const bool prevIsUncondTerm =
-            prevFlags.has(MicroInstrFlagsE::TerminatorInstruction) && !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
+        const MicroInstrFlags prevFlags        = MicroInstr::info(prevInst->op).flags;
+        const bool            prevIsUncondJump = prevFlags.has(MicroInstrFlagsE::JumpInstruction) && !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
+        const bool            prevIsUncondTerm = prevFlags.has(MicroInstrFlagsE::TerminatorInstruction) && !prevFlags.has(MicroInstrFlagsE::ConditionalJump);
         if (prevIsUncondJump || prevIsUncondTerm)
             return false;
 

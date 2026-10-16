@@ -972,8 +972,7 @@ namespace
                 inst->op == MicroInstrOpcode::Push || inst->op == MicroInstrOpcode::Pop)
                 return false;
             const MicroInstrDef& def    = MicroInstr::info(inst->op);
-            const bool           direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) &&
-                                ops[def.memBaseOperandIndex].reg == conv.stackPointer;
+            const bool           direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops[def.memBaseOperandIndex].reg == conv.stackPointer;
             if (direct)
             {
                 if ((inst->op != MicroInstrOpcode::LoadRegMem && inst->op != MicroInstrOpcode::LoadMemReg) ||

@@ -448,14 +448,12 @@ namespace
                 return false;
 
             const MicroInstrOperand* defOps      = defInst->ops(*fn.operands);
-            const bool               addressCopy = (defInst->op == MicroInstrOpcode::LoadAddrRegMem || defInst->op == MicroInstrOpcode::LoadRegReg) &&
-                                     defOps && defOps[2].opBits == MicroOpBits::B64;
+            const bool               addressCopy = (defInst->op == MicroInstrOpcode::LoadAddrRegMem || defInst->op == MicroInstrOpcode::LoadRegReg) && defOps && defOps[2].opBits == MicroOpBits::B64;
             if (addressCopy)
             {
                 const MicroReg    source       = defOps[1].reg;
                 const RegDefInfo* sourceDef    = fn.regDefs->find(source.packed);
-                const bool        stableSource = isStackPointer(fn, source) ||
-                                          (source.isVirtual() && sourceDef && sourceDef->defCount == 1);
+                const bool        stableSource = isStackPointer(fn, source) || (source.isVirtual() && sourceDef && sourceDef->defCount == 1);
                 if (stableSource)
                 {
                     if (defInst->op == MicroInstrOpcode::LoadAddrRegMem)
@@ -1771,8 +1769,7 @@ namespace
                 const bool    regSource       = opcode == MicroInstrOpcode::OpBinaryMemReg;
                 const bool    immediateSource = opcode == MicroInstrOpcode::OpBinaryMemImm;
                 const MicroOp operation       = regSource ? ops[3].microOp : ops[2].microOp;
-                const bool    laneStore       = (regSource || immediateSource) && sizeBits == scan.shape.bits() &&
-                                       offset % scan.shape.bytes == 0 && laneOpForBinaryRegReg(operation, sizeBits, laneOp, scan.shape);
+                const bool    laneStore       = (regSource || immediateSource) && sizeBits == scan.shape.bits() && offset % scan.shape.bytes == 0 && laneOpForBinaryRegReg(operation, sizeBits, laneOp, scan.shape);
                 scan.stores.push_back(StoreRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .plainLane = laneStore});
                 if (!laneStore)
                 {
@@ -1863,8 +1860,7 @@ namespace
     // Reads a read-only sixteen-byte constant into `dst`. The allocation owns
     // all sixteen bytes and is aligned on them, so a packed operation may
     // also take it as its memory operand once the load is folded.
-    void emitVectorConstantLoad(const SlpFunctionContext& fn, const MicroInstrRef beforeRef, const MicroReg dst,
-                                const std::array<char, K_MICRO_128_BIT_BYTES>& bytes)
+    void emitVectorConstantLoad(const SlpFunctionContext& fn, const MicroInstrRef beforeRef, const MicroReg dst, const std::array<char, K_MICRO_128_BIT_BYTES>& bytes)
     {
         DataSegmentRef         segmentRef;
         const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{bytes.data(), bytes.size()}, &segmentRef,
@@ -2377,7 +2373,7 @@ namespace
                         // immediate, a move across register classes and a
                         // shuffle: the four lanes already exist in memory.
                         std::array<char, K_MICRO_128_BIT_BYTES> lanes;
-                        const uint64_t       lane = planInstr.imm;
+                        const uint64_t                          lane = planInstr.imm;
                         for (uint32_t index = 0; index < fn.shape.count(); ++index)
                             std::memcpy(lanes.data() + index * fn.shape.bytes, &lane, fn.shape.bytes);
                         emitVectorConstantLoad(fn, firstDeletedRef, planRegs[planInstr.dst], lanes);

@@ -711,15 +711,14 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 }
                 case 64:
                 {
-                    result =
-                        ((val >> 56) & 0x00000000000000FFULL) |
-                        ((val >> 40) & 0x000000000000FF00ULL) |
-                        ((val >> 24) & 0x0000000000FF0000ULL) |
-                        ((val >> 8) & 0x00000000FF000000ULL) |
-                        ((val << 8) & 0x000000FF00000000ULL) |
-                        ((val << 24) & 0x0000FF0000000000ULL) |
-                        ((val << 40) & 0x00FF000000000000ULL) |
-                        ((val << 56) & 0xFF00000000000000ULL);
+                    result = ((val >> 56) & 0x00000000000000FFULL) |
+                             ((val >> 40) & 0x000000000000FF00ULL) |
+                             ((val >> 24) & 0x0000000000FF0000ULL) |
+                             ((val >> 8) & 0x00000000FF000000ULL) |
+                             ((val << 8) & 0x000000FF00000000ULL) |
+                             ((val << 24) & 0x0000FF0000000000ULL) |
+                             ((val << 40) & 0x00FF000000000000ULL) |
+                             ((val << 56) & 0xFF00000000000000ULL);
                     break;
                 }
                 default:

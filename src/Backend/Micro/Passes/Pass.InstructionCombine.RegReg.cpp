@@ -268,9 +268,8 @@ namespace InstructionCombine
             {
                 const uint64_t leftFactor  = addresses[0][5].valueU64 + 1;
                 const uint64_t rightFactor = addresses[1][5].valueU64 + 1;
-                const uint64_t factor      = ops[3].microOp == MicroOp::Add ? leftFactor + rightFactor
-                                             : leftFactor > rightFactor     ? leftFactor - rightFactor
-                                                                            : 0;
+                const uint64_t factor      = ops[3].microOp == MicroOp::Add ? leftFactor + rightFactor : leftFactor > rightFactor ? leftFactor - rightFactor
+                                                                                                                                  : 0;
                 const bool     encodable   = factor == 1 || factor == 2 || factor == 3 || factor == 5 || factor == 9;
                 const MicroReg source      = addresses[0][1].reg;
                 const uint32_t sourceValue = ctx.ssa->reachingValueId(source, defs[0].instRef);

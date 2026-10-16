@@ -796,9 +796,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
     }
 
     const bool   isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
-    SemaNodeView constView         = isConstantBinding
-                                         ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant)
-                                         : codeGen.curViewTypeConstant();
+    SemaNodeView constView         = isConstantBinding ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant) : codeGen.curViewTypeConstant();
 
     // A conversion that runs an operator keeps no constant form, so the cast substituted for
     // this identifier carries none and the resolved view describes that cast instead of what
@@ -1040,9 +1038,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             continue;
 
         SWC_ASSERT(symbolIndex < symbols.size());
-        const size_t          fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring)
-                                                ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initType, SourceCodeRef{srcViewRef(), fieldNames[i]})
-                                                : i;
+        const size_t          fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring) ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initType, SourceCodeRef{srcViewRef(), fieldNames[i]}) : i;
         const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, initType, fieldIndex);
         const SymbolVariable& symVar      = symbols[symbolIndex++]->cast<SymbolVariable>();
 

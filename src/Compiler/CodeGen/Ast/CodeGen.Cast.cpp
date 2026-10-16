@@ -1239,8 +1239,9 @@ namespace
             return Result::Continue;
         }
 
-        const AstNode& castNode                        = codeGen.node(codeGen.curNodeRef());
-        const bool     isImplicitNullableAnyStringCast = castNode.is(AstNodeId::CastExpr) &&
+        const AstNode& castNode = codeGen.node(codeGen.curNodeRef());
+
+        const bool isImplicitNullableAnyStringCast = castNode.is(AstNodeId::CastExpr) &&
                                                      !castNode.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit) &&
                                                      resolvedSrcType.isNullable() &&
                                                      dstType.isString() &&

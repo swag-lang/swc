@@ -1316,9 +1316,7 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
             return false;
 
         const AstNode& parent              = codeGen.node(parentRef);
-        const bool     isTransparentParent = (SemaHelpers::isTransparentExprNode(parent) && parent.isNot(AstNodeId::AsCastExpr)) ||
-                                         parent.is(AstNodeId::InitializerExpr) ||
-                                         parent.is(AstNodeId::ErrorManagementExpr);
+        const bool     isTransparentParent = (SemaHelpers::isTransparentExprNode(parent) && parent.isNot(AstNodeId::AsCastExpr)) || parent.is(AstNodeId::InitializerExpr) || parent.is(AstNodeId::ErrorManagementExpr);
         if (isTransparentParent)
             continue;
 

@@ -169,9 +169,7 @@ size_t CodeGenStructHelpers::structLikeFieldIndex(CodeGen& codeGen, const TypeIn
     const IdentifierRef idRef = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), fieldNameRef);
 
     size_t     fieldIndex = 0;
-    const bool found      = typeInfo.isStruct()
-                                ? typeInfo.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, idRef)
-                                : typeInfo.tryGetAggregateMemberIndexByName(fieldIndex, codeGen.ctx(), idRef);
+    const bool found      = typeInfo.isStruct() ? typeInfo.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, idRef) : typeInfo.tryGetAggregateMemberIndexByName(fieldIndex, codeGen.ctx(), idRef);
     SWC_ASSERT(found);
     return fieldIndex;
 }

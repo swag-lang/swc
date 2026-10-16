@@ -580,9 +580,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     // no destination, and overload resolution would then let any integer bind a pointer
     // parameter — displacing the receiver of a method call whose arguments are written that
     // way — so a deduced destination keeps the narrow rule it always had.
-    const bool integerFitsAddress = castRequest.flags.has(CastFlagsE::DeducedDestination)
-                                        ? srcTypeRef == sema.typeMgr().typeU64()
-                                        : srcType.isIntLike() && srcType.sizeOf(sema.ctx()) <= sizeof(void*);
+    const bool integerFitsAddress = castRequest.flags.has(CastFlagsE::DeducedDestination) ? srcTypeRef == sema.typeMgr().typeU64() : srcType.isIntLike() && srcType.sizeOf(sema.ctx()) <= sizeof(void*);
     if (integerFitsAddress)
     {
         if (castRequest.kind == CastKind::Explicit)

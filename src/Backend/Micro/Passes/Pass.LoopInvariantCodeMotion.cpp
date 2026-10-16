@@ -856,8 +856,7 @@ namespace
                                     if (firstIndex)
                                     {
                                         const auto kind = relocations[*firstIndex].kind;
-                                        directGlobal    = kind == MicroRelocation::Kind::GlobalInitAddress ||
-                                                       kind == MicroRelocation::Kind::GlobalZeroAddress;
+                                        directGlobal    = kind == MicroRelocation::Kind::GlobalInitAddress || kind == MicroRelocation::Kind::GlobalZeroAddress;
                                     }
                                 }
                                 const bool structureField = inst->op == MicroInstrOpcode::LoadRegMem &&
@@ -1134,7 +1133,8 @@ namespace
                             break;
                         }
                         const MicroInstrFlags spanFlags = MicroInstr::info(spanInst->op).flags;
-                        violated                        = spanInst->op == MicroInstrOpcode::Label ||
+
+                        violated = spanInst->op == MicroInstrOpcode::Label ||
                                    spanFlags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                                    spanFlags.has(MicroInstrFlagsE::JumpInstruction) ||
                                    spanFlags.has(MicroInstrFlagsE::IsCallInstruction);

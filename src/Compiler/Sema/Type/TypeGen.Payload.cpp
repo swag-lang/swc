@@ -904,13 +904,12 @@ namespace
                 SWC_ASSERT(usingFieldsPtr != nullptr);
                 SWC_ASSERT(usingIndex < usingCount);
 
-                Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
-                const uint32_t      usingElemOffset =
-                    usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
-                usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
-                usingTv.crc         = Math::crc32(fieldName);
-                usingTv.offset      = symField->offset();
-                usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
+                Runtime::TypeValue& usingTv         = usingFieldsPtr[usingIndex];
+                const uint32_t      usingElemOffset = usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
+                usingTv.name.length                 = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
+                usingTv.crc                         = Math::crc32(fieldName);
+                usingTv.offset                      = symField->offset();
+                usingTv.flags                       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
                 entry.usingFieldTypes.push_back(symField->typeRef());
                 ++usingIndex;
             }

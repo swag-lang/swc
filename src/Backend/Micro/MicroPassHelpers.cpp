@@ -1613,10 +1613,8 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
 
         const MicroInstrDef& info      = MicroInstr::info(inst.op);
         uint8_t              baseIndex = 0;
-        const bool           readsBase = !info.flags.has(MicroInstrFlagsE::WritesMemory) &&
-                               !info.flags.has(MicroInstrFlagsE::IsCallInstruction) &&
-                               dereferenceBaseOperandIndex(baseIndex, inst.op, info);
-        const auto modes = info.resolvedRegModes(ops);
+        const bool           readsBase = !info.flags.has(MicroInstrFlagsE::WritesMemory) && !info.flags.has(MicroInstrFlagsE::IsCallInstruction) && dereferenceBaseOperandIndex(baseIndex, inst.op, info);
+        const auto           modes     = info.resolvedRegModes(ops);
         for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
         {
             const MicroInstrRegMode mode = modes[operandIndex];

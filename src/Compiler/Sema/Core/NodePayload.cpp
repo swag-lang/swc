@@ -38,9 +38,7 @@ namespace
         if (!typeRef.isValid())
             return typeRef;
 
-        const bool shouldUnwrap =
-            isCallLikeNode(node) ||
-            payloadContext.hasResolvedCallArguments(nodeRef);
+        const bool shouldUnwrap = isCallLikeNode(node) || payloadContext.hasResolvedCallArguments(nodeRef);
         if (!shouldUnwrap)
             return typeRef;
 
@@ -513,9 +511,8 @@ void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 
     const Ref      value       = shard->store.pushBack(symbol);
     const uint16_t symbolFlags = applySymbolPayloadFlags(0, std::span{&symbol, 1});
-    const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK |
-                               static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
-    const uint16_t setBits = static_cast<uint16_t>(NodePayloadKind::SymbolRef) |
+    const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK | static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
+    const uint16_t setBits     = static_cast<uint16_t>(NodePayloadKind::SymbolRef) |
                              static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT) | symbolFlags;
     node.updatePayloadState(clearMask, setBits, value);
 }
@@ -572,9 +569,8 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol* 
     AstNode&       node        = ast().node(nodeRef);
     const Ref      value       = shard->store.pushSpanContiguous(symbols).get();
     const uint16_t symbolFlags = applySymbolPayloadFlags(0, symbols);
-    const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK |
-                               static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
-    const uint16_t setBits = static_cast<uint16_t>(NodePayloadKind::SymbolList) |
+    const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK | static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
+    const uint16_t setBits     = static_cast<uint16_t>(NodePayloadKind::SymbolList) |
                              static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT) | symbolFlags;
     node.updatePayloadState(clearMask, setBits, value);
 }

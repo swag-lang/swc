@@ -1204,9 +1204,7 @@ namespace
             !unwrapAliasEnumType(sema, sourceTypeRef).isAny())
             return anyBoxEscapeInfo(sema, castRef, operandRef, resultTypeRef);
 
-        SemaEscapeInfo info = operandSelfSubst
-                                  ? expressionEscapeInfoAt(sema, operandRef, budget)
-                                  : expressionEscapeInfoRec(sema, operandRef, budget);
+        SemaEscapeInfo info = operandSelfSubst ? expressionEscapeInfoAt(sema, operandRef, budget) : expressionEscapeInfoRec(sema, operandRef, budget);
         if (info.hasBorrow())
         {
             info.typeRef = resultTypeRef;
@@ -5998,7 +5996,8 @@ namespace SemaEscape
                         if (returnPhase || !edge.caller || !edge.callee)
                             continue;
                         const bool observes = edge.kind != SemaEscapeSummaryEdgeKind::RetentionToPair && edge.callee->observesExternalBorrows();
-                        const bool retains  = edge.kind != SemaEscapeSummaryEdgeKind::ExternalToExternal &&
+
+                        const bool retains = edge.kind != SemaEscapeSummaryEdgeKind::ExternalToExternal &&
                                              (edge.callee->returnBorrowsParamsMask() || edge.callee->storesParamsMask() || edge.callee->storesIntoParamPairs() ||
                                               edge.callee->returnsIndirectParamsMask() || edge.callee->storesIndirectParamsMask() || edge.callee->storesIndirectIntoParamPairs());
                         if (!observes && !retains)

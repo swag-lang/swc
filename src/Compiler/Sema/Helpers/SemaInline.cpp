@@ -1964,7 +1964,8 @@ namespace
         // A reference or proven stable plain array can survive indexed/foreach
         // reads directly; other by-value uses retain their snapshot home.
         const bool canBindReferenceDirectly = mat.bindsByAddress && inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
-        const bool canShareArrayDirectly    = paramType.isArray() && context.stableArrayArguments.value_or(false) &&
+
+        const bool canShareArrayDirectly = paramType.isArray() && context.stableArrayArguments.value_or(false) &&
                                            !use.mutableUse && !use.address && !use.buffer && !isCaptured &&
                                            inlineBindingExprIsDirectStableLValue(sema, binding.exprRef);
 
@@ -1972,7 +1973,8 @@ namespace
         // in the template AST. Give ordinary inline parameters real local homes so
         // these later name lookups never reach the callee's original ABI parameters.
         const bool forGeneratedCode = context.isOrdinaryInline && context.identifiers.hasGeneratedCode;
-        const bool forced           = forGeneratedCode || needsStandaloneHome ||
+
+        const bool forced = forGeneratedCode || needsStandaloneHome ||
                             forReceiverHome ||
                             mat.forRuntimeSafety ||
                             mat.forVariadic ||

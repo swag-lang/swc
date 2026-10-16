@@ -1455,8 +1455,7 @@ namespace
             TypeRef                   typeRef          = TypeRef::invalid();
             const bool                hasExplicitAlias = captureArg.tokAliasNameRef.isValid();
             const auto*               identifier       = sema.node(captureArg.nodeIdentifierRef).safeCast<AstIdentifier>();
-            const bool                hasBoundConstant = identifier && identifier->hasFlag(AstIdentifierFlagsE::ConstantBinding) &&
-                                          sema.viewConstant(captureArg.nodeIdentifierRef).hasConstant();
+            const bool                hasBoundConstant = identifier && identifier->hasFlag(AstIdentifierFlagsE::ConstantBinding) && sema.viewConstant(captureArg.nodeIdentifierRef).hasConstant();
 
             // Expansion parameters can already be bound to a constant, including an omitted
             // argument's default. Capture that value: looking its name up again would replace
@@ -1530,8 +1529,7 @@ namespace
                     // A lifecycle operation is the more precise reason, and it is the one that
                     // also denies the copy of an owning type: report it before non-copyability.
                     const bool         hasLifecycle = lifecycle.hasDrop || lifecycle.hasPostCopy || lifecycle.hasPostMove;
-                    const DiagnosticId diagId       = hasLifecycle ? DiagnosticId::sema_err_closure_capture_lifecycle
-                                                                   : DiagnosticId::sema_err_closure_capture_nocopy;
+                    const DiagnosticId diagId       = hasLifecycle ? DiagnosticId::sema_err_closure_capture_lifecycle : DiagnosticId::sema_err_closure_capture_nocopy;
 
                     auto diag = SemaError::report(sema, diagId, captureArg.nodeIdentifierRef);
                     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);

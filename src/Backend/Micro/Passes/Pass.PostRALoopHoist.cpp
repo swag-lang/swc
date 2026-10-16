@@ -651,8 +651,7 @@ namespace
             if (ops && accessInfo.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
             {
                 const MicroReg accessBase = ops[accessInfo.memBaseOperandIndex].reg;
-                const bool     tracked    = isFrameBaseRegister(accessBase, conv) ||
-                                     (reach.localBaseReg.isValid() && accessBase == reach.localBaseReg);
+                const bool     tracked    = isFrameBaseRegister(accessBase, conv) || (reach.localBaseReg.isValid() && accessBase == reach.localBaseReg);
                 if (tracked)
                 {
                     const auto accessOffset = static_cast<int64_t>(ops[accessInfo.memOffsetOperandIndex].valueU64);
@@ -794,8 +793,7 @@ namespace
                 if (!inBody[k])
                     continue;
                 const MicroInstrUseDef& useDef = liveness.useDefs[k];
-                usable                         = std::ranges::find(useDef.defs, use.reg) == useDef.defs.end() &&
-                         std::ranges::find(useDef.uses, use.reg) == useDef.uses.end();
+                usable                         = std::ranges::find(useDef.defs, use.reg) == useDef.defs.end() && std::ranges::find(useDef.uses, use.reg) == useDef.uses.end();
             }
             if (!usable)
                 continue;
@@ -1729,16 +1727,14 @@ namespace
                     for (uint32_t j = entryReadIndex; j < header && unused; ++j)
                     {
                         const auto& useDef = liveness.useDefs[j];
-                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
-                                 std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
+                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() && std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
                     }
                     for (uint32_t j = loop.bodyBegin; j < loop.bodyEnd && unused; ++j)
                     {
                         if (!loop.inBody[j])
                             continue;
                         const auto& useDef = liveness.useDefs[j];
-                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() &&
-                                 std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
+                        unused             = std::ranges::find(useDef.uses, scratch) == useDef.uses.end() && std::ranges::find(useDef.defs, scratch) == useDef.defs.end();
                     }
                     if (!unused)
                         continue;

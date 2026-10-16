@@ -306,8 +306,7 @@ namespace
                         // Blank when the previous arm or the current one spans
                         // several lines.
                         const bool     prevMulti = model.lineStartOf(prev) != model.lineStartOf(labels[i - 1]);
-                        const uint32_t currEnd   = i + 1 < labels.size() ? model.prevPiece(declGroupStart(model, labels[i + 1]))
-                                                                         : model.prevPiece(block.closePiece);
+                        const uint32_t currEnd   = i + 1 < labels.size() ? model.prevPiece(declGroupStart(model, labels[i + 1])) : model.prevPiece(block.closePiece);
                         const bool     currMulti = currEnd != INVALID_PIECE && model.lineStartOf(currEnd) != model.lineStartOf(labels[i]);
 
                         // Keep the paragraph gap already chosen for a case-family

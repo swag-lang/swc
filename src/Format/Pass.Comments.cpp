@@ -67,8 +67,7 @@ namespace
     void normalizePrefixes(FormatModel& model)
     {
         const FormatOptions& options   = model.options();
-        const bool           normalize = options.spaceAfterLineCommentPrefix.value_or(false) ||
-                               options.commentReflow != FormatCommentReflow::Preserve;
+        const bool           normalize = options.spaceAfterLineCommentPrefix.value_or(false) || options.commentReflow != FormatCommentReflow::Preserve;
         if (!normalize)
             return;
 

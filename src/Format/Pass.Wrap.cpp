@@ -525,8 +525,7 @@ namespace
 
         bool joinedListFits(const ListState& state) const
         {
-            const uint32_t columnLimit =
-                state.singleLineColumnLimit != 0 ? state.singleLineColumnLimit : options_->columnLimit;
+            const uint32_t columnLimit = state.singleLineColumnLimit != 0 ? state.singleLineColumnLimit : options_->columnLimit;
             if (columnLimit == 0)
                 return true;
             const uint32_t lineStart = model_->lineStartOf(state.openPiece);
@@ -1210,8 +1209,7 @@ namespace
                     // A long call prefix or trailing comment must not explode a
                     // compact flag argument. Measure the chain at the line's indent.
                     const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
-                    const uint32_t width    = columns.front().column + end->column - anchor->column +
-                                           FormatModel::textColumns(model_->piece(end->piece).text, tabWidth, end->column);
+                    const uint32_t width    = columns.front().column + end->column - anchor->column + FormatModel::textColumns(model_->piece(end->piece).text, tabWidth, end->column);
                     if (width <= columnLimit)
                         continue;
                     const Utf8 indent = FormatPassUtil::indentForColumns(*model_, anchor->column);
@@ -1422,9 +1420,7 @@ namespace
                 // What has to fit is the line the break leaves behind. Breaking
                 // *after* a token puts that token on it, so its end column is
                 // what the limit applies to, not where it starts.
-                const uint32_t end = candidate == columns[c].piece
-                                         ? columns[c].column
-                                         : columns[c].column + FormatModel::textColumns(piece.text, tabWidth, columns[c].column);
+                const uint32_t end = candidate == columns[c].piece ? columns[c].column : columns[c].column + FormatModel::textColumns(piece.text, tabWidth, columns[c].column);
                 if (end <= limit)
                     best = candidate;
             }
@@ -1564,8 +1560,7 @@ namespace
             if (!hugged && !model_->gapHasNewline(item))
                 return;
 
-            const uint32_t rangeEnd = itemIndex + 1 < state.items.size() ? model_->prevPiece(state.items[itemIndex + 1])
-                                                                         : model_->prevPiece(state.closePiece);
+            const uint32_t rangeEnd = itemIndex + 1 < state.items.size() ? model_->prevPiece(state.items[itemIndex + 1]) : model_->prevPiece(state.closePiece);
             if (rangeEnd == INVALID_PIECE || rangeEnd <= item)
                 return;
 

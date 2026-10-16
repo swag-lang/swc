@@ -409,9 +409,7 @@ namespace
             if (!defsRegister(*inst, operands, context.encoder, counter))
                 continue;
             const auto* ops = inst->ops(operands);
-            haveZeroInit    = inst->op == MicroInstrOpcode::ClearReg ||
-                           (inst->op == MicroInstrOpcode::LoadRegImm && ops && ops[1].opBits == MicroOpBits::B64 &&
-                            !ops[2].hasWideImmediateValue() && ops[2].valueU64 == 0);
+            haveZeroInit    = inst->op == MicroInstrOpcode::ClearReg || (inst->op == MicroInstrOpcode::LoadRegImm && ops && ops[1].opBits == MicroOpBits::B64 && !ops[2].hasWideImmediateValue() && ops[2].valueU64 == 0);
             break;
         }
         if (!haveZeroInit)
@@ -654,7 +652,8 @@ namespace
             if (!defsRegister(*inst, operands, context.encoder, counter))
                 continue;
             const MicroInstrOperand* ops = inst->ops(operands);
-            haveZeroInit                 = inst->op == MicroInstrOpcode::ClearReg ||
+
+            haveZeroInit = inst->op == MicroInstrOpcode::ClearReg ||
                            (inst->op == MicroInstrOpcode::LoadRegImm && ops && ops[1].opBits == MicroOpBits::B64 &&
                             !ops[2].hasWideImmediateValue() && ops[2].valueU64 == 0);
             break;

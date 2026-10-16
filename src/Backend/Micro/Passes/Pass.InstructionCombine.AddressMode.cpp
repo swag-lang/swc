@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
@@ -1298,11 +1298,13 @@ namespace InstructionCombine
         if (!useOps || useOps[0].reg != loadOps[0].reg)
             return false;
 
-        const MicroOp regOp     = useInst->op == MicroInstrOpcode::OpBinaryMemReg ? useOps[3].microOp : MicroOp::Compare;
-        const bool    regUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemReg &&
+        const MicroOp regOp = useInst->op == MicroInstrOpcode::OpBinaryMemReg ? useOps[3].microOp : MicroOp::Compare;
+
+        const bool regUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemReg &&
                                useOps[4].valueU64 == 0 && useOps[1].reg.isAnyInt() &&
                                (regOp == MicroOp::Add || regOp == MicroOp::Subtract ||
                                 regOp == MicroOp::And || regOp == MicroOp::Or || regOp == MicroOp::Xor);
+
         const bool regCompare = useInst->op == MicroInstrOpcode::CmpMemReg &&
                                 useOps[3].valueU64 == 0 && useOps[1].reg.isAnyInt();
         if (useInst->op == MicroInstrOpcode::OpBinaryMemReg && !regUpdate)
@@ -1327,10 +1329,12 @@ namespace InstructionCombine
                     return false;
             }
         };
-        const MicroOp updateOp        = useInst->op == MicroInstrOpcode::OpBinaryMemImm ? useOps[2].microOp : MicroOp::Compare;
-        const bool    isShiftOrRotate = updateOp == MicroOp::ShiftLeft || updateOp == MicroOp::ShiftRight ||
+        const MicroOp updateOp = useInst->op == MicroInstrOpcode::OpBinaryMemImm ? useOps[2].microOp : MicroOp::Compare;
+
+        const bool isShiftOrRotate = updateOp == MicroOp::ShiftLeft || updateOp == MicroOp::ShiftRight ||
                                      updateOp == MicroOp::ShiftArithmeticLeft || updateOp == MicroOp::ShiftArithmeticRight ||
                                      updateOp == MicroOp::RotateLeft || updateOp == MicroOp::RotateRight;
+
         const bool isArithmeticOrBitwise = updateOp == MicroOp::Add || updateOp == MicroOp::Subtract ||
                                            updateOp == MicroOp::And || updateOp == MicroOp::Or || updateOp == MicroOp::Xor;
         const bool immediateUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&

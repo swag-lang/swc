@@ -374,9 +374,7 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     const TypeInfo& declaredDstType = sema.typeMgr().get(dstTypeRef);
     const TypeInfo* unwrappedDst    = declaredDstType.unwrapAliasEnumType(sema.ctx());
     const TypeInfo& dstType         = unwrappedDst ? *unwrappedDst : declaredDstType;
-    const bool      needsRetarget =
-        (srcType.isAggregateArray() && dstType.isArrayOrSlice()) ||
-        (srcType.isAggregateStruct() && dstType.isStruct());
+    const bool      needsRetarget   = (srcType.isAggregateArray() && dstType.isArrayOrSlice()) || (srcType.isAggregateStruct() && dstType.isStruct());
     if (!needsRetarget)
         return Result::Continue;
 

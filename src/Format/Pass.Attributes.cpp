@@ -111,9 +111,8 @@ namespace
             const SegmentSnapshot& snapshot = snapshots[order[position]];
             for (size_t pieceIndex = 0; pieceIndex < snapshot.pieces.size(); ++pieceIndex)
             {
-                model.piece(writeIndex) = snapshot.pieces[pieceIndex];
-                model.gapBefore(writeIndex) =
-                    pieceIndex == 0 ? leadingGaps[position] : snapshot.innerGaps[pieceIndex - 1];
+                model.piece(writeIndex)     = snapshot.pieces[pieceIndex];
+                model.gapBefore(writeIndex) = pieceIndex == 0 ? leadingGaps[position] : snapshot.innerGaps[pieceIndex - 1];
                 writeIndex++;
             }
 

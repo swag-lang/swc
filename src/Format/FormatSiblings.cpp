@@ -332,7 +332,8 @@ namespace FormatSiblings
             // `{ return e }` becomes `=> e` only when the signature spells
             // the type `e` gives back.
             const uint32_t value = model.nextPiece(shape.first);
-            shape.unbraceable    = scan.compact && body.hasReturnType && model.piece(shape.first).is(TokenId::KwdReturn) &&
+
+            shape.unbraceable = scan.compact && body.hasReturnType && model.piece(shape.first).is(TokenId::KwdReturn) &&
                                 value != INVALID_PIECE && value <= shape.last && !hasWhereClause(model, body.headPiece, body.openPiece) &&
                                 !hasExpansionAttribute(model, body.headPiece);
         }

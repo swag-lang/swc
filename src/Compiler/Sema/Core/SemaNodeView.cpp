@@ -160,9 +160,7 @@ bool SemaNodeView::loadResolvedSymbols(const Sema& sema, AstNodeRef targetRef, S
     // Read the symbol payload from a single snapshot. Splitting this into hasSymbol()/getSymbol()
     // (two separate atomic payload reads) races with a concurrent kind transition on shared
     // generic eval nodes and can reinterpret a non-symbol payload as a store offset.
-    const NodePayload::ResolvedSymbols resolved = resolveMode == SemaNodeViewResolveE::Stored
-                                                      ? sema.resolveSymbolsStored(targetRef)
-                                                      : sema.resolveSymbols(targetRef);
+    const NodePayload::ResolvedSymbols resolved = resolveMode == SemaNodeViewResolveE::Stored ? sema.resolveSymbolsStored(targetRef) : sema.resolveSymbols(targetRef);
 
     if (resolved.isSymbolList)
     {

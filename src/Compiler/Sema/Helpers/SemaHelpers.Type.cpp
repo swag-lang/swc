@@ -1003,9 +1003,7 @@ Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<siz
         const IdentifierRef fieldIdRef = sema.idMgr().addIdentifier(sema.ctx(), fieldCodeRef);
 
         size_t     fieldIndex = 0;
-        const bool found      = sourceType.isStruct()
-                                    ? sourceType.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, fieldIdRef)
-                                    : sourceType.tryGetAggregateMemberIndexByName(fieldIndex, sema.ctx(), fieldIdRef);
+        const bool found      = sourceType.isStruct() ? sourceType.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, fieldIdRef) : sourceType.tryGetAggregateMemberIndexByName(fieldIndex, sema.ctx(), fieldIdRef);
         if (!found)
         {
             Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_unknown_field, fieldCodeRef);

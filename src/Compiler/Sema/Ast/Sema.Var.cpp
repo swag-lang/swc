@@ -873,8 +873,7 @@ namespace
         if (finalType.isCodeBlock())
         {
             const auto* currentFn        = sema.currentFunction();
-            const bool  allowedCodeParam = isParameter && currentFn &&
-                                          currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
+            const bool  allowedCodeParam = isParameter && currentFn && currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
             if (!allowedCodeParam)
             {
                 const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();
@@ -1365,13 +1364,10 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
             SemaFrame          frame        = sema.frame();
             const TypeRef      initTypeRef  = nodeTypeView.typeRef();
             frame.pushBindingType(initTypeRef);
-            const TypeInfo* initType = initTypeRef.isValid() ? &sema.typeMgr().get(initTypeRef) : nullptr;
-            const bool      bindArrayRuntimeStorage =
-                !hasFlag(AstVarDeclFlagsE::Const) &&
-                sema.curScope().isLocal() &&
-                initType && initType->isArray();
-            const bool bindClosureRuntimeStorage = initType && initType->isLambdaClosure();
-            bool       bindRetValRuntimeStorage  = false;
+            const TypeInfo* initType                  = initTypeRef.isValid() ? &sema.typeMgr().get(initTypeRef) : nullptr;
+            const bool      bindArrayRuntimeStorage   = !hasFlag(AstVarDeclFlagsE::Const) && sema.curScope().isLocal() && initType && initType->isArray();
+            const bool      bindClosureRuntimeStorage = initType && initType->isLambdaClosure();
+            bool            bindRetValRuntimeStorage  = false;
             if (isRetVal)
             {
                 SWC_RESULT(SemaHelpers::currentFunctionUsesIndirectReturnStorage(bindRetValRuntimeStorage, sema));

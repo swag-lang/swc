@@ -447,8 +447,7 @@ namespace
 
         // The child prefers the register its parent holds (or was itself
         // hinted to): winning it back erases the connector at the cut.
-        child.hintPhys = nodes[nodeIndex].assignedReg.isValid() ? nodes[nodeIndex].assignedReg
-                                                                : nodes[nodeIndex].hintPhys;
+        child.hintPhys = nodes[nodeIndex].assignedReg.isValid() ? nodes[nodeIndex].assignedReg : nodes[nodeIndex].hintPhys;
 
         const auto childIndex = static_cast<uint32_t>(nodes.size());
         nodes.push_back(std::move(child));
@@ -885,8 +884,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
         {
             const uint32_t    blockIndex = bestFreeUntil / 2;
             const MicroInstr* blockInst  = instructions_->ptr(controlFlowGraph_->instructionRefs()[blockIndex]);
-            freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) &&
-                             bestFreeFixedClash == bestFreeUntil;
+            freeEndsAtCall               = blockInst && MicroInstr::info(blockInst->op).flags.has(MicroInstrFlagsE::IsCallInstruction) && bestFreeFixedClash == bestFreeUntil;
         }
         const auto allocateFree = [&] {
             out.nodes[currentIndex].assignedReg = poolRegs[bestFree];
@@ -1421,8 +1419,7 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
             // unconditional jump is a JumpCond carrying Unconditional, and it
             // has no fall-through side to protect.
             const MicroInstrOperand* predOpsEarly  = predInst->ops(*operands_);
-            const bool               isConditional = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::ConditionalJump) &&
-                                       predOpsEarly && predOpsEarly[0].cpuCond != MicroCond::Unconditional;
+            const bool               isConditional = MicroInstr::info(predInst->op).flags.has(MicroInstrFlagsE::ConditionalJump) && predOpsEarly && predOpsEarly[0].cpuCond != MicroCond::Unconditional;
 
             // A conditional jump falls through to the label right after it:
             // that edge is its not-taken side, and its moves belong before the

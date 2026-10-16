@@ -1119,9 +1119,7 @@ namespace
                 {
                     // Walk the initializer first (it reads with the pre-decl state),
                     // then register the declared symbols.
-                    const auto* varBase = node.is(AstNodeId::SingleVarDecl)
-                                              ? static_cast<const AstVarDeclBase*>(&node.cast<AstSingleVarDecl>())
-                                              : static_cast<const AstVarDeclBase*>(&node.cast<AstMultiVarDecl>());
+                    const auto* varBase = node.is(AstNodeId::SingleVarDecl) ? static_cast<const AstVarDeclBase*>(&node.cast<AstSingleVarDecl>()) : static_cast<const AstVarDeclBase*>(&node.cast<AstMultiVarDecl>());
                     if (varBase->nodeInitRef.isValid())
                         walk(varBase->nodeInitRef, state);
                     trackDeclNode(state, ref, varBase->nodeInitRef.isValid());
@@ -1284,9 +1282,7 @@ namespace
                 case AstNodeId::ErrorManagementExpr:
                 case AstNodeId::ErrorManagementStmt:
                 {
-                    const AstNodeRef innerRef = node.is(AstNodeId::ErrorManagementExpr)
-                                                    ? node.cast<AstErrorManagementExpr>().nodeExprRef
-                                                    : node.cast<AstErrorManagementStmt>().nodeBodyRef;
+                    const AstNodeRef innerRef = node.is(AstNodeId::ErrorManagementExpr) ? node.cast<AstErrorManagementExpr>().nodeExprRef : node.cast<AstErrorManagementStmt>().nodeBodyRef;
                     const TokenId    tokenId  = tokenIdOf(node, TokenId::KwdCatch);
                     if (tokenId == TokenId::KwdTry)
                     {
@@ -1813,9 +1809,7 @@ namespace
                     calledFn = &sym->cast<SymbolFunction>();
                 if (!calledFn)
                 {
-                    const AstNodeRef   calleeRef  = node.is(AstNodeId::CallExpr)
-                                                        ? node.cast<AstCallExpr>().nodeExprRef
-                                                        : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
+                    const AstNodeRef   calleeRef  = node.is(AstNodeId::CallExpr) ? node.cast<AstCallExpr>().nodeExprRef : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
                     const SemaNodeView calleeView = sema_->viewSymbol(resolve(calleeRef));
                     Symbol*            calleeSym  = calleeView.hasSymbol() ? calleeView.singleSymbol() : nullptr;
                     if (calleeSym && calleeSym->isFunction())
@@ -1871,9 +1865,7 @@ namespace
 
                 // A method callee reached through a tracked receiver ('v.method()'):
                 // 'me' is passed by address.
-                const AstNodeRef calleeRef         = node.is(AstNodeId::CallExpr)
-                                                         ? node.cast<AstCallExpr>().nodeExprRef
-                                                         : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
+                const AstNodeRef calleeRef         = node.is(AstNodeId::CallExpr) ? node.cast<AstCallExpr>().nodeExprRef : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
                 const AstNodeRef resolvedCalleeRef = resolve(calleeRef);
                 if (resolvedCalleeRef.isValid())
                 {

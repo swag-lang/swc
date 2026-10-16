@@ -254,21 +254,40 @@ namespace PreRaPeephole
             if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, baseReg) || hasVirtualForbiddenPhysRegs(ctx, indexReg))
                 return false;
 
+            // The indexed form of a consumer whose register destination stays ops[0].
+            const auto setRegDestination = [&](MicroInstrOpcode newOp, uint64_t displacement) {
+                out.newOp           = newOp;
+                out.numOps          = 8;
+                out.allocOps        = true;
+                out.ops[0].reg      = ops[0].reg;
+                out.ops[1].reg      = baseReg;
+                out.ops[2].reg      = indexReg;
+                out.ops[3].opBits   = ops[2].opBits;
+                out.ops[4].opBits   = addrBits;
+                out.ops[5].valueU64 = scale;
+                out.ops[6].valueU64 = displacement;
+            };
+
+            // The indexed form of a consumer that writes memory from the register in ops[1].
+            const auto setMemDestination = [&](MicroInstrOpcode newOp, uint64_t displacement) {
+                out.newOp           = newOp;
+                out.numOps          = 8;
+                out.allocOps        = true;
+                out.ops[0].reg      = baseReg;
+                out.ops[1].reg      = indexReg;
+                out.ops[2].reg      = ops[1].reg;
+                out.ops[3].opBits   = addrBits;
+                out.ops[4].opBits   = ops[2].opBits;
+                out.ops[5].valueU64 = scale;
+                out.ops[6].valueU64 = displacement;
+            };
+
             switch (consumer.op)
             {
                 case MicroInstrOpcode::LoadRegReg:
                     if (ops[1].reg == addrReg)
                     {
-                        out.newOp           = MicroInstrOpcode::LoadAddrAmcRegMem;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = ops[0].reg;
-                        out.ops[1].reg      = baseReg;
-                        out.ops[2].reg      = indexReg;
-                        out.ops[3].opBits   = ops[2].opBits;
-                        out.ops[4].opBits   = addrBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add;
+                        setRegDestination(MicroInstrOpcode::LoadAddrAmcRegMem, add);
                         return true;
                     }
                     return false;
@@ -281,16 +300,7 @@ namespace PreRaPeephole
                     {
                         if (!isEncodableAmcScale(scale))
                             return false;
-                        out.newOp           = MicroInstrOpcode::LoadAmcRegMem;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = ops[0].reg;
-                        out.ops[1].reg      = baseReg;
-                        out.ops[2].reg      = indexReg;
-                        out.ops[3].opBits   = ops[2].opBits;
-                        out.ops[4].opBits   = addrBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add + ops[3].valueU64;
+                        setRegDestination(MicroInstrOpcode::LoadAmcRegMem, add + ops[3].valueU64);
                         return true;
                     }
                     return false;
@@ -301,16 +311,7 @@ namespace PreRaPeephole
                     {
                         if (!isEncodableAmcScale(scale))
                             return false;
-                        out.newOp           = MicroInstrOpcode::VecUnaryAmcRegMem;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = ops[0].reg;
-                        out.ops[1].reg      = baseReg;
-                        out.ops[2].reg      = indexReg;
-                        out.ops[3].opBits   = ops[2].opBits;
-                        out.ops[4].opBits   = addrBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add + ops[3].valueU64;
+                        setRegDestination(MicroInstrOpcode::VecUnaryAmcRegMem, add + ops[3].valueU64);
                         out.ops[7].microOp  = ops[4].microOp;
                         return true;
                     }
@@ -322,16 +323,7 @@ namespace PreRaPeephole
                     {
                         if (!isEncodableAmcScale(scale))
                             return false;
-                        out.newOp           = MicroInstrOpcode::LoadAmcMemReg;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = baseReg;
-                        out.ops[1].reg      = indexReg;
-                        out.ops[2].reg      = ops[1].reg;
-                        out.ops[3].opBits   = addrBits;
-                        out.ops[4].opBits   = ops[2].opBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add + ops[3].valueU64;
+                        setMemDestination(MicroInstrOpcode::LoadAmcMemReg, add + ops[3].valueU64);
                         return true;
                     }
                     return false;
@@ -367,16 +359,7 @@ namespace PreRaPeephole
                         if (op != MicroOp::Add && op != MicroOp::Subtract && op != MicroOp::And &&
                             op != MicroOp::Or && op != MicroOp::Xor)
                             return false;
-                        out.newOp           = MicroInstrOpcode::OpBinaryAmcMemReg;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = baseReg;
-                        out.ops[1].reg      = indexReg;
-                        out.ops[2].reg      = ops[1].reg;
-                        out.ops[3].opBits   = addrBits;
-                        out.ops[4].opBits   = ops[2].opBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add + ops[4].valueU64;
+                        setMemDestination(MicroInstrOpcode::OpBinaryAmcMemReg, add + ops[4].valueU64);
                         out.ops[7].microOp  = ops[3].microOp;
                         return true;
                     }
@@ -385,16 +368,7 @@ namespace PreRaPeephole
                 case MicroInstrOpcode::LoadAddrRegMem:
                     if (ops[1].reg == addrReg)
                     {
-                        out.newOp           = MicroInstrOpcode::LoadAddrAmcRegMem;
-                        out.numOps          = 8;
-                        out.allocOps        = true;
-                        out.ops[0].reg      = ops[0].reg;
-                        out.ops[1].reg      = baseReg;
-                        out.ops[2].reg      = indexReg;
-                        out.ops[3].opBits   = ops[2].opBits;
-                        out.ops[4].opBits   = addrBits;
-                        out.ops[5].valueU64 = scale;
-                        out.ops[6].valueU64 = add + ops[3].valueU64;
+                        setRegDestination(MicroInstrOpcode::LoadAddrAmcRegMem, add + ops[3].valueU64);
                         return true;
                     }
                     return false;

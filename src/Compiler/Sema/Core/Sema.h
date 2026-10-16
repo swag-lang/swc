@@ -485,6 +485,18 @@ public:
         return static_cast<T*>(payload);
     }
 
+    // The node's payload of type T, allocated from the compiler on first request.
+    template<typename T>
+    T& ensureSemaPayload(AstNodeRef n)
+    {
+        if (T* payload = semaPayload<T>(n))
+            return *payload;
+
+        T* payload = compiler().allocate<T>();
+        setSemaPayload(n, payload);
+        return *payload;
+    }
+
     void                                setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }
     void                                appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
     ResolvedCallArgument                getResolvedCallArgument(AstNodeRef n, uint32_t index) const { return nodePayloadContext().getResolvedCallArgument(n, index); }

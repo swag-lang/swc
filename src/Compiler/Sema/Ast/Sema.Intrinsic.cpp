@@ -197,14 +197,8 @@ namespace
         {
             if (calledFn != nullptr)
             {
-                auto* payload = sema.semaPayload<DataOfSpecOpPayload>(sema.curNodeRef());
-                if (!payload)
-                {
-                    payload = sema.compiler().allocate<DataOfSpecOpPayload>();
-                    sema.setSemaPayload(sema.curNodeRef(), payload);
-                }
-
-                payload->calledFn = calledFn;
+                auto& payload    = sema.ensureSemaPayload<DataOfSpecOpPayload>(sema.curNodeRef());
+                payload.calledFn = calledFn;
             }
 
             sema.setIsValue(node);

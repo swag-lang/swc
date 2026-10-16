@@ -57,36 +57,6 @@ namespace
         bool                                    selectionResolved = false;
     };
 
-    ScopedBreakSemaPayload& ensureScopedBreakSemaPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (auto* payload = sema.semaPayload<ScopedBreakSemaPayload>(nodeRef))
-            return *payload;
-
-        auto* payload = sema.compiler().allocate<ScopedBreakSemaPayload>();
-        sema.setSemaPayload(nodeRef, payload);
-        return *payload;
-    }
-
-    CompilerIfSemaPayload& ensureCompilerIfSemaPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (auto* payload = sema.semaPayload<CompilerIfSemaPayload>(nodeRef))
-            return *payload;
-
-        auto* payload = sema.compiler().allocate<CompilerIfSemaPayload>();
-        sema.setSemaPayload(nodeRef, payload);
-        return *payload;
-    }
-
-    CompilerSwitchSemaPayload& ensureCompilerSwitchSemaPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (auto* payload = sema.semaPayload<CompilerSwitchSemaPayload>(nodeRef))
-            return *payload;
-
-        auto* payload = sema.compiler().allocate<CompilerSwitchSemaPayload>();
-        sema.setSemaPayload(nodeRef, payload);
-        return *payload;
-    }
-
     CompilerSwitchCaseSemaData& ensureCompilerSwitchCaseSemaData(CompilerSwitchSemaPayload& payload, AstNodeRef bodyRef)
     {
         for (auto& caseData : payload.cases)
@@ -412,7 +382,7 @@ Result AstScopedBreakStmt::semaPreNode(Sema& sema)
     const IdentifierRef scopeIdRef = sema.idMgr().addIdentifier(sema.ctx(), nameCodeRef);
     if (const auto* scope = findNamedCompilerScope(sema, scopeIdRef))
     {
-        ensureScopedBreakSemaPayload(sema, sema.curNodeRef()).targetScopeRef = scope->scopeRef;
+        sema.ensureSemaPayload<ScopedBreakSemaPayload>(sema.curNodeRef()).targetScopeRef = scope->scopeRef;
         return Result::Continue;
     }
 
@@ -477,7 +447,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeIfBlockRef)
     {
         SemaFrame              frame   = sema.frame();
-        CompilerIfSemaPayload& payload = ensureCompilerIfSemaPayload(sema, sema.curNodeRef());
+        CompilerIfSemaPayload& payload = sema.ensureSemaPayload<CompilerIfSemaPayload>(sema.curNodeRef());
         if (!payload.ifData)
         {
             payload.ifData         = sema.compiler().allocate<SemaCompilerIf>();
@@ -493,7 +463,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     if (nodeElseBlockRef.isValid())
     {
         SemaFrame              frame   = sema.frame();
-        CompilerIfSemaPayload& payload = ensureCompilerIfSemaPayload(sema, sema.curNodeRef());
+        CompilerIfSemaPayload& payload = sema.ensureSemaPayload<CompilerIfSemaPayload>(sema.curNodeRef());
         if (!payload.elseData)
         {
             payload.elseData         = sema.compiler().allocate<SemaCompilerIf>();
@@ -528,7 +498,7 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
     {
         SemaFrame              frame   = sema.frame();
-        CompilerIfSemaPayload& payload = ensureCompilerIfSemaPayload(sema, sema.curNodeRef());
+        CompilerIfSemaPayload& payload = sema.ensureSemaPayload<CompilerIfSemaPayload>(sema.curNodeRef());
         SemaCompilerIf*&       branch  = childRef == nodeIfBlockRef ? payload.ifData : payload.elseData;
         if (!branch)
         {
@@ -581,7 +551,7 @@ Result AstCompilerSwitch::semaPreDeclChild(Sema& sema, const AstNodeRef& childRe
         return Result::Continue;
 
     SemaFrame                   frame    = sema.frame();
-    CompilerSwitchSemaPayload&  payload  = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    CompilerSwitchSemaPayload&  payload  = sema.ensureSemaPayload<CompilerSwitchSemaPayload>(sema.curNodeRef());
     CompilerSwitchCaseSemaData& caseData = ensureCompilerSwitchCaseSemaData(payload, childRef);
     if (!caseData.branch)
     {
@@ -600,7 +570,7 @@ Result AstCompilerSwitch::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     if (caseRef.isInvalid())
         return Result::Continue;
 
-    CompilerSwitchSemaPayload& payload = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    CompilerSwitchSemaPayload& payload = sema.ensureSemaPayload<CompilerSwitchSemaPayload>(sema.curNodeRef());
     SWC_RESULT(resolveCompilerSwitchSelection(sema, *this, payload));
     if (childRef != payload.selectedBodyRef)
         return Result::SkipChildren;
@@ -645,7 +615,7 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     SWC_RESULT(Cast::cast(sema, caseView, SemaSwitch::caseCastTypeRef(sema, switchTypeRef), CastKind::Implicit));
     SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 
-    CompilerSwitchSemaPayload& payload    = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    CompilerSwitchSemaPayload& payload    = sema.ensureSemaPayload<CompilerSwitchSemaPayload>(sema.curNodeRef());
     const ConstantRef          caseCstRef = sema.viewConstant(childRef).cstRef();
     const AstNodeRef*          previous   = payload.seen.tryAdd(caseCstRef, childRef);
     if (!previous)
@@ -664,7 +634,7 @@ Result AstCompilerSwitch::semaPostNode(Sema& sema) const
     constexpr AstModifierFlags allowed = AstModifierFlagsE::Complete;
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
 
-    CompilerSwitchSemaPayload& payload = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    CompilerSwitchSemaPayload& payload = sema.ensureSemaPayload<CompilerSwitchSemaPayload>(sema.curNodeRef());
     SWC_RESULT(resolveCompilerSwitchSelection(sema, *this, payload));
 
     // '#complete' means the declared enum values are the whole domain, so a 'default' has

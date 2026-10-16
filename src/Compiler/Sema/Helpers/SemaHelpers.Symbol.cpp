@@ -692,14 +692,8 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     SWC_RESULT(resolveCountOfResult(sema, result, exprRef));
     if (result.calledFn != nullptr)
     {
-        auto* payload = sema.semaPayload<CountOfSpecOpPayload>(targetRef);
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CountOfSpecOpPayload>();
-            sema.setSemaPayload(targetRef, payload);
-        }
-
-        payload->calledFn = result.calledFn;
+        auto& payload    = sema.ensureSemaPayload<CountOfSpecOpPayload>(targetRef);
+        payload.calledFn = result.calledFn;
     }
 
     if (result.cstRef.isValid())

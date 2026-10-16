@@ -662,15 +662,9 @@ namespace
         sema.setIsValue(castNodeRef);
         sema.unsetIsLValue(castNodeRef);
 
-        auto* payload = sema.semaPayload<CastSpecOpPayload>(castNodeRef);
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CastSpecOpPayload>();
-            sema.setSemaPayload(castNodeRef, payload);
-        }
-
-        payload->kind     = CastSpecialOpPayloadKind::OpCast;
-        payload->calledFn = castData.calledFn;
+        auto& payload    = sema.ensureSemaPayload<CastSpecOpPayload>(castNodeRef);
+        payload.kind     = CastSpecialOpPayloadKind::OpCast;
+        payload.calledFn = castData.calledFn;
         SemaHelpers::addCurrentFunctionCallDependency(sema, castData.calledFn);
         return SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, castNodeRef, sema.node(castNodeRef), *castData.calledFn, "__cast_runtime_storage");
     }
@@ -801,16 +795,10 @@ namespace
         sema.setIsValue(castNodeRef);
         sema.unsetIsLValue(castNodeRef);
 
-        auto* payload = sema.semaPayload<CastSetPayload>(castNodeRef);
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<CastSetPayload>();
-            sema.setSemaPayload(castNodeRef, payload);
-        }
-
-        payload->kind               = CastSpecialOpPayloadKind::Set;
-        payload->calledFn           = castData.calledFn;
-        payload->receiverInitCstRef = castData.receiverInitCstRef;
+        auto& payload              = sema.ensureSemaPayload<CastSetPayload>(castNodeRef);
+        payload.kind               = CastSpecialOpPayloadKind::Set;
+        payload.calledFn           = castData.calledFn;
+        payload.receiverInitCstRef = castData.receiverInitCstRef;
         SWC_ASSERT(castData.calledFn != nullptr);
         SemaHelpers::addCurrentFunctionCallDependency(sema, castData.calledFn);
         return Result::Continue;

@@ -51,13 +51,7 @@ namespace
         if (!sema.curScope().isLocal())
             return SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef, forcedIdentRef);
 
-        const auto savedFrame = sema.frame();
-        auto&      frame      = sema.frame();
-        frame.setLookupScope(nullptr);
-        frame.setLookupScopeOverrideNodes(nullptr);
-        auto& sym    = SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef, forcedIdentRef);
-        sema.frame() = savedFrame;
-        return sym;
+        return SemaHelpers::withoutLookupOverride(sema, [&]() -> SymbolFunction& { return SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef, forcedIdentRef); });
     }
 
     SymbolMap* lazyFunctionStartSymMap(const SymbolFunction& function)

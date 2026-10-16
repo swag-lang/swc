@@ -352,6 +352,20 @@ namespace SemaHelpers
         return *(sym);
     }
 
+    // Runs 'declare' with the caller's lookup override cleared, as a lexical declaration needs,
+    // then puts the frame back and hands over what 'declare' returned.
+    template<typename F>
+    decltype(auto) withoutLookupOverride(Sema& sema, F&& declare)
+    {
+        const auto savedFrame = sema.frame();
+        auto&      frame      = sema.frame();
+        frame.setLookupScope(nullptr);
+        frame.setLookupScopeOverrideNodes(nullptr);
+        decltype(auto) result = declare();
+        sema.frame()          = savedFrame;
+        return result;
+    }
+
     template<typename T>
     T& registerUniqueSymbol(Sema& sema, const AstNode& node, const std::string_view& name)
     {

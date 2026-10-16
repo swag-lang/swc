@@ -22,6 +22,8 @@ namespace PostRaPeephole
 {
     namespace
     {
+        constexpr uint32_t K_MAX_COPY_FOLD_SCAN = 8;
+
         bool hasThreeOperandForm(const MicroOp op)
         {
             switch (op)
@@ -1484,8 +1486,6 @@ namespace PostRaPeephole
     // 16843010` shows in every magic-number division.
     bool tryFoldCopyIntoIntegerMultiply(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        constexpr uint32_t K_MAX_SCAN = 8;
-
         if (copyInst.numOperands < 3)
             return false;
 
@@ -1507,7 +1507,7 @@ namespace PostRaPeephole
         ++scanIt;
         MicroInstrRef     opRef  = scanIt.current;
         const MicroInstr* opInst = nullptr;
-        for (uint32_t step = 0; step < K_MAX_SCAN && scanIt.current.isValid(); ++step, ++scanIt)
+        for (uint32_t step = 0; step < K_MAX_COPY_FOLD_SCAN && scanIt.current.isValid(); ++step, ++scanIt)
         {
             opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;
@@ -1578,8 +1578,6 @@ namespace PostRaPeephole
     // flags must be dead.
     bool tryFoldCopyIntoRotateImm(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        constexpr uint32_t K_MAX_SCAN = 8;
-
         if (copyInst.numOperands < 3)
             return false;
 
@@ -1601,7 +1599,7 @@ namespace PostRaPeephole
         MicroInstrRef opRef = scanIt.current;
         for (uint32_t step = 0;; ++step)
         {
-            if (step == K_MAX_SCAN || !scanIt.current.isValid())
+            if (step == K_MAX_COPY_FOLD_SCAN || !scanIt.current.isValid())
                 return false;
             const MicroInstr* candidate = &*scanIt;
             if (!candidate || candidate->op == MicroInstrOpcode::Label)
@@ -1761,8 +1759,6 @@ namespace PostRaPeephole
     // the product afterwards.
     bool tryFoldMultiplyIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        constexpr uint32_t K_MAX_SCAN = 8;
-
         if (copyInst.numOperands < 3)
             return false;
 
@@ -1786,7 +1782,7 @@ namespace PostRaPeephole
         // touches either register.
         MicroInstrRef     mulRef  = ctx.previousRef(copyRef);
         const MicroInstr* mulInst = nullptr;
-        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        for (uint32_t step = 0; step < K_MAX_COPY_FOLD_SCAN; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(mulRef);
             if (!candidate || candidate->op == MicroInstrOpcode::Label)
@@ -1859,8 +1855,6 @@ namespace PostRaPeephole
     // destination is written, so the destination may be one of them.
     bool tryFoldFloatBinaryIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        constexpr uint32_t K_MAX_SCAN = 8;
-
         if (copyInst.numOperands < 3)
             return false;
 
@@ -1877,7 +1871,7 @@ namespace PostRaPeephole
         // touches either register.
         MicroInstrRef     opRef  = ctx.previousRef(copyRef);
         const MicroInstr* opInst = nullptr;
-        for (uint32_t step = 0; step < K_MAX_SCAN; ++step)
+        for (uint32_t step = 0; step < K_MAX_COPY_FOLD_SCAN; ++step)
         {
             const MicroInstr* candidate = ctx.instruction(opRef);
             if (!candidate || candidate->op == MicroInstrOpcode::Label)

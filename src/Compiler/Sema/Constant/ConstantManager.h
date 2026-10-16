@@ -35,8 +35,7 @@ public:
     ConstantRef      addUniqueMaterializedPayloadConstant(const ConstantValue& value);
     ConstantRef      addSourceCodeLocation(const TaskContext& ctx, TypeRef typeRef, const Runtime::SourceCodeLocation& location);
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
-    // A payload a packed instruction reads straight from memory, which the
-    // legacy SSE forms require aligned to its full width.
+    // Use this overload when the payload consumer requires a specific alignment.
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef, uint32_t align);
     const std::byte* floatSignMask(bool is64, DataSegmentRef& outRef) const;
 

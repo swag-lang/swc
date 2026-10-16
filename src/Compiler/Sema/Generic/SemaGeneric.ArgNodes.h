@@ -7,6 +7,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
+    inline constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
+
     inline void appendQuotedGenericArgs(const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
     {
         if (node.nodeSuffixRef.isValid())

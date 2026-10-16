@@ -34,8 +34,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
-
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)
     {
         if (rawArgRef.isInvalid() || valueNodeRef.isInvalid())
@@ -923,7 +921,7 @@ namespace
         const CastFailure& failure       = fail.castFailure;
         const Utf8*        param         = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUE);
         const Utf8         paramName     = param ? *param : Utf8{"<unknown>"};
-        const uint32_t*    previousIndex = castFailureUIntArgument(failure, K_ARG_PREV_INDEX);
+        const uint32_t*    previousIndex = castFailureUIntArgument(failure, SemaGeneric::K_ARG_PREV_INDEX);
 
         if (failure.diagId == DiagnosticId::sema_err_generic_type_deduction_conflict &&
             failure.srcTypeRef.isValid() &&

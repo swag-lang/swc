@@ -1,5 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassManager.h"
 #include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -19,6 +21,20 @@ namespace Backend::Unittest
     };
 
     Result parseExpected(const char* text, std::vector<ExpectedByte>& result);
+
+    // Runs one pass over what the builder holds, in a default Swag-convention context.
+    template<typename PASS>
+    Result runMicroPass(MicroBuilder& builder)
+    {
+        PASS             pass;
+        MicroPassManager passManager;
+        passManager.addStartPass(pass);
+
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Swag;
+        return builder.runPasses(passManager, nullptr, passContext);
+    }
+
     Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn);
 
     bool   isPersistentReg(MicroRegSpan regs, MicroReg reg);

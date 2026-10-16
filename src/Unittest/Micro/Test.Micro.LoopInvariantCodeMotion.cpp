@@ -7,7 +7,6 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.LoopInvariantCodeMotion.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
@@ -40,17 +39,6 @@ namespace
             }
         }
         return reachable;
-    }
-
-    Result runLicmPass(MicroBuilder& builder)
-    {
-        MicroLoopInvariantCodeMotionPass pass;
-        MicroPassManager                 passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     // A counted loop reading one word through a pointer parameter. The load
@@ -117,7 +105,7 @@ SWC_TEST_BEGIN(LICM_HoistsGlobalLoadAcrossReadOnlyCall)
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitLoadRegReg(MicroReg::intReg(0), sum, MicroOpBits::B64);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
@@ -165,7 +153,7 @@ SWC_TEST_BEGIN(LICM_HoistsVectorConstantAcrossCallAndPointerStore)
         builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
@@ -204,7 +192,7 @@ SWC_TEST_BEGIN(LICM_HoistsImmutableParameterReadAcrossStoreAndCall)
         builder.emitCmpRegReg(count, length, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
@@ -242,7 +230,7 @@ SWC_TEST_BEGIN(LICM_KeepsZeroingClearInLoopThatCalls)
         builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t clear     = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::ClearReg);
@@ -291,7 +279,7 @@ SWC_TEST_BEGIN(LICM_HoistsVectorConstantOutOfConditionalArm)
         builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
@@ -336,7 +324,7 @@ SWC_TEST_BEGIN(LICM_HoistsIndexedLoadOnlyAcrossReadOnlyCallWithoutAlias)
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitLoadRegReg(MicroReg::intReg(0), sum, MicroOpBits::B64);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadAmcRegMem);
@@ -381,7 +369,7 @@ SWC_TEST_BEGIN(LICM_HoistsInvariantStructureFieldAcrossReadOnlyCall)
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitLoadRegReg(MicroReg::intReg(0), sum, MicroOpBits::B64);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
@@ -567,7 +555,7 @@ SWC_TEST_BEGIN(LICM_FramePrivacyResolvesBackwardLayoutChainsBeforeEscapeChecks)
         builder.emitLoadRegReg(CallConv::get(CallConvKind::Swag).intReturn, acc, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
         if ((builder.instructions().ptr(loadRef) != nullptr) != escape)
             return Result::Error;
         bool     insideLoop = false;
@@ -632,7 +620,7 @@ SWC_TEST_BEGIN(LICM_KeepsPrivateGlobalReadInLoopWithAtomic)
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitLoadRegReg(CallConv::get(CallConvKind::Swag).intReturn, acc, MicroOpBits::B64);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
@@ -651,7 +639,7 @@ SWC_TEST_BEGIN(LICM_HoistsInvariantLoad)
         b.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
     });
 
-    SWC_RESULT(runLicmPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
     if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem) > Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
         return Result::Error;
@@ -691,7 +679,7 @@ SWC_TEST_BEGIN(LICM_HoistsSingleUseLaneBroadcast)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loopLabel);
     builder.emitRet();
 
-    SWC_RESULT(runLicmPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
     const uint32_t labelPosition = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::VecShuffleRegRegImm) > labelPosition)
@@ -712,7 +700,7 @@ SWC_TEST_BEGIN(LICM_KeepsVolatileLoadInLoop)
         b.emitLoadVolatileRegMem(value, base, 8, MicroOpBits::B64);
     });
 
-    SWC_RESULT(runLicmPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadVolatileRegMem) != 1)
         return Result::Error;
@@ -749,7 +737,7 @@ SWC_TEST_BEGIN(LICM_HoistsFloatConversionAcrossCallWithLiveIntegerFlags)
         builder.emitCmpRegImm(count, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
         const uint32_t label = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::ClearReg) >= label ||
             Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::OpBinaryRegReg) >= label ||
@@ -786,7 +774,7 @@ SWC_TEST_BEGIN(LICM_KeepsIntegerClearWhenFlagsAreLiveAtEitherSite)
         builder.emitCmpRegImm(count, ApInt(uint64_t{4}, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
         builder.emitRet();
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
         if (Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::ClearReg) <= Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label))
             return Result::Error;
     }
@@ -835,7 +823,7 @@ SWC_TEST_BEGIN(LICM_HoistsScalarFloatLiteralsWithFoldableAndNonfoldableReaders)
             builder.emitCmpRegImm(count, ApInt(4, 64), MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
             builder.emitRet();
-            SWC_RESULT(runLicmPass(builder));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
             const uint32_t header   = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
             uint32_t       position = 0;
@@ -934,7 +922,7 @@ SWC_TEST_BEGIN(LICM_ReassociatesThreeRegisterAddressInCurrentLoopPreheader)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
     builder.emitRet();
 
-    SWC_RESULT(runLicmPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
     const uint32_t labelPosition = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     uint32_t       position      = 0;
@@ -977,7 +965,7 @@ SWC_TEST_BEGIN(LICM_ReassociatesCopyAddAddressInCurrentLoopPreheader)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
     builder.emitRet();
 
-    SWC_RESULT(runLicmPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
     const uint32_t labelPosition = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
     uint32_t       position      = 0;
@@ -1021,7 +1009,7 @@ SWC_TEST_BEGIN(LICM_LeavesCopyAddAddressWhenBothInputsVary)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
     builder.emitRet();
 
-    SWC_RESULT(runLicmPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
     for (const MicroInstr& inst : builder.instructions().view())
     {
@@ -1071,7 +1059,7 @@ SWC_TEST_BEGIN(LICM_HoistsMultiplyUsedAddressOnlyWhenEveryIterationComputesIt)
         builder.emitLoadRegReg(MicroReg::intReg(0), acc, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runLicmPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
 
         const bool hoisted = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadAddrRegMem) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
         if (hoisted == conditional)
@@ -1128,7 +1116,7 @@ SWC_TEST_BEGIN(LICM_HoistsAddressWithOneReaderInNestedLoop)
             builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, outerLoop);
             builder.emitRet();
 
-            SWC_RESULT(runLicmPass(builder));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
             const auto opcode  = indexed ? MicroInstrOpcode::LoadAddrAmcRegMem : MicroInstrOpcode::LoadAddrRegMem;
             const bool hoisted = Backend::Unittest::firstOpcodePosition(builder, opcode) < Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
             if (hoisted != (variant == 0))

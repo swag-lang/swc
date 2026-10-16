@@ -13,17 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runStrengthReductionPass(MicroBuilder& builder)
-    {
-        MicroStrengthReductionPass pass;
-        MicroPassManager           passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
-    }
-
     MicroOp getFirstBinaryOp(const MicroBuilder& builder)
     {
         const MicroOperandStorage& operands = builder.operands();
@@ -110,7 +99,7 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyPowerOfTwo)
     builder.emitOpBinaryRegImm(r8, ApInt(8, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (getFirstBinaryOp(builder) != MicroOp::ShiftLeft)
         return Result::Error;
@@ -134,7 +123,7 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyPowerOfTwoKeepsLiveFlags)
     builder.placeLabel(done);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (getFirstBinaryOp(builder) != MicroOp::MultiplyUnsigned)
         return Result::Error;
@@ -154,7 +143,7 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyByZero)
     builder.emitOpBinaryRegImm(r8, ApInt(uint64_t{0}, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (getFirstBinaryOp(builder) != MicroOp::And)
         return Result::Error;
@@ -174,7 +163,7 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyByOne)
     builder.emitOpBinaryRegImm(r8, ApInt(1, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (getFirstBinaryOp(builder) != MicroOp::Add)
         return Result::Error;
@@ -194,7 +183,7 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyNonPowerOfTwoUsesSignedForm)
     builder.emitOpBinaryRegImm(r8, ApInt(7, 64), MicroOp::MultiplyUnsigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (getFirstBinaryOp(builder) != MicroOp::MultiplySigned)
         return Result::Error;
@@ -214,7 +203,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedDivideMagicNoFixup)
     builder.emitOpBinaryRegImm(v1, ApInt(10, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 0)
         return Result::Error;
@@ -239,7 +228,7 @@ SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideUsesWideProduct)
     builder.emitOpBinaryRegImm(v1, ApInt(10, 64), MicroOp::DivideUnsigned, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 0)
         return Result::Error;
@@ -262,7 +251,7 @@ SWC_TEST_BEGIN(StrengthReduction_DwordUnsignedDivideFixupUsesWideProduct)
     builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::DivideUnsigned, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1 ||
         Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Subtract) != 1 || !hasBinaryRegImm(builder, MicroOp::ShiftRight, 32))
@@ -281,7 +270,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedDivideMagicFixup)
     builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 0)
         return Result::Error;
@@ -305,7 +294,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDividePow2)
     builder.emitOpBinaryRegImm(v1, ApInt(8, 64), MicroOp::DivideSigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 0)
         return Result::Error;
@@ -331,7 +320,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivideByTwo)
     builder.emitOpBinaryRegImm(v1, ApInt(2, 64), MicroOp::DivideSigned, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 0)
         return Result::Error;
@@ -353,7 +342,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivideMagic)
     builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::DivideSigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 0)
         return Result::Error;
@@ -373,7 +362,7 @@ SWC_TEST_BEGIN(StrengthReduction_DwordSignedDivideUsesWideProduct)
     builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::DivideSigned, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighSigned) != 0 || Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplySigned) != 1)
         return Result::Error;
@@ -399,7 +388,7 @@ SWC_TEST_BEGIN(StrengthReduction_DwordRemainderEqualityBecomesDivisibilityTest)
     builder.emitLoadMemReg(base, 8, v2, MicroOpBits::B8);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::MultiplyHighUnsigned) != 0 || !hasBinaryRegImm(builder, MicroOp::RotateRight, 2))
         return Result::Error;
@@ -445,7 +434,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivisionOfTestedDividendIsUnsigned)
             builder.placeLabel(skip);
         builder.emitRet();
 
-        SWC_RESULT(runStrengthReductionPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
         // The signed expansions correct the sign with an arithmetic shift.
         const bool proven = mode == 0;
@@ -480,7 +469,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivisionOfMaskedDividendIsUnsigned)
         builder.emitLoadMemReg(value, 0, work, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runStrengthReductionPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
         if ((Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) == 0) != (mode != 2) || countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0)
             return Result::Error;
     }
@@ -503,7 +492,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedModuloSelectUsesEncodableBias)
             builder.emitLoadMemReg(MicroReg::intReg(3), 0, value, bits);
             builder.emitRet();
 
-            SWC_RESULT(runStrengthReductionPass(builder));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
             const bool select = shift > 1 && shift < 32;
             if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != (select ? 1u : 0u))
                 return Result::Error;
@@ -554,7 +543,7 @@ SWC_TEST_BEGIN(StrengthReduction_NarrowSignedRemainderKeepsLowBits)
             builder.emitLoadMemReg(sink, 0, result, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runStrengthReductionPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
         const bool     narrowed       = mode == 0 || mode == 4 || mode == 5 || mode == 6;
         const bool     hasMask        = hasBinaryRegImm(builder, MicroOp::And, divisor - 1);
@@ -584,7 +573,7 @@ SWC_TEST_BEGIN(StrengthReduction_NarrowSignedRemainderKeepsLowBits)
     builder.emitLoadMemReg(sink, 0, result, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
     if (!hasBinaryRegImm(builder, MicroOp::And, 255) || countBinaryRegImmOp(builder, MicroOp::ShiftArithmeticRight) != 0 ||
         countBinaryRegImmOp(builder, MicroOp::ModuloSigned) != 0)
         return Result::Error;
@@ -668,7 +657,7 @@ SWC_TEST_BEGIN(StrengthReduction_RemainderReadAfterCompareKept)
     builder.emitLoadMemReg(base, 8, v1, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     for (const MicroInstr& inst : builder.instructions().view())
     {
@@ -689,7 +678,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedModuloMagic)
     builder.emitOpBinaryRegImm(v1, ApInt(10, 64), MicroOp::ModuloUnsigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::ModuloUnsigned) != 0)
         return Result::Error;
@@ -711,7 +700,7 @@ SWC_TEST_BEGIN(StrengthReduction_SignedDivideNegativeConstantUnchanged)
     builder.emitOpBinaryRegImm(v1, ApInt(static_cast<uint64_t>(-3), 64), MicroOp::DivideSigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideSigned) != 1)
         return Result::Error;
@@ -729,7 +718,7 @@ SWC_TEST_BEGIN(StrengthReduction_DivideByZeroUnchanged)
     builder.emitOpBinaryRegImm(v1, ApInt(uint64_t{0}, 64), MicroOp::DivideUnsigned, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 1)
         return Result::Error;
@@ -747,7 +736,7 @@ SWC_TEST_BEGIN(StrengthReduction_NarrowDivideUnchanged)
     builder.emitOpBinaryRegImm(v1, ApInt(10, 16), MicroOp::DivideUnsigned, MicroOpBits::B16);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (countBinaryRegImmOp(builder, MicroOp::DivideUnsigned) != 1)
         return Result::Error;
@@ -774,7 +763,7 @@ SWC_TEST_BEGIN(StrengthReduction_RemoveAddZeroDeadAcrossJoin)
     builder.placeLabel(labelJoin);
     builder.emitRet();
 
-    SWC_RESULT(runStrengthReductionPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
@@ -803,7 +792,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedMultiplyRequiresDeadFlags)
                 builder.emitCmpRegImm(MicroReg::intReg(10), ApInt(0, 64), MicroOpBits::B64);
             builder.emitRet();
 
-            SWC_RESULT(runStrengthReductionPass(builder));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
             const auto* inst = builder.instructions().ptr(multiply);
             if (!inst || inst->ops(builder.operands())[regOperand ? 3 : 2].microOp !=
                              (boundary == 2 ? MicroOp::MultiplyUnsigned : MicroOp::MultiplySigned))
@@ -829,7 +818,7 @@ SWC_TEST_BEGIN(StrengthReduction_UnsignedPowerOfTwoKeepsBothFlagPolicies)
             builder.emitCmpRegImm(MicroReg::intReg(10), ApInt(0, 64), MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runStrengthReductionPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
         const MicroInstr* inst = builder.instructions().ptr(multiply);
         if (!inst)
             return Result::Error;
@@ -861,7 +850,7 @@ SWC_TEST_BEGIN(StrengthReduction_AddSubZeroPreservesLiveResultsAndFlags)
                     builder.emitLoadMemReg(MicroReg::intReg(8), 0, value, MicroOpBits::B64);
                 builder.emitRet();
 
-                SWC_RESULT(runStrengthReductionPass(builder));
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
                 if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != (liveResult || liveFlags ? 1 : 0))
                     return Result::Error;
             }

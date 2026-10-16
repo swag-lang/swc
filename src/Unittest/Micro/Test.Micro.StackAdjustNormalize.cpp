@@ -3,8 +3,6 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
@@ -16,17 +14,6 @@ namespace
     bool sameSourceCodeRef(const SourceCodeRef& left, const SourceCodeRef& right)
     {
         return left.srcViewRef == right.srcViewRef && left.tokRef == right.tokRef;
-    }
-
-    Result runStackAdjustNormalizePass(MicroBuilder& builder)
-    {
-        MicroStackAdjustNormalizePass pass;
-        MicroPassManager              passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
     }
 
     bool findStoreOffsetForSourceReg(const MicroBuilder& builder, MicroReg srcReg, uint64_t& outOffset)
@@ -71,7 +58,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RemovesBodyAdjustsAndRebasesOffsets)
 
     builder.emitRet();
 
-    SWC_RESULT(runStackAdjustNormalizePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStackAdjustNormalizePass>(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     if (builder.instructions().count() != 7)
@@ -159,7 +146,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesBranchingDepths)
     builder.placeLabel(doneLabel);
     builder.emitRet();
 
-    SWC_RESULT(runStackAdjustNormalizePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStackAdjustNormalizePass>(builder));
 
     const MicroOperandStorage& operands = builder.operands();
 
@@ -288,7 +275,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_SkipsCallsBelowMaxDepth)
 
     builder.emitRet();
 
-    SWC_RESULT(runStackAdjustNormalizePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStackAdjustNormalizePass>(builder));
 
     const MicroOperandStorage& operands = builder.operands();
     if (builder.instructions().count() != 9)
@@ -352,7 +339,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RebasesAdjacentCopiesWithRecycledRefs)
     builder.emitOpBinaryRegImm(rsp, ApInt(32, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runStackAdjustNormalizePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStackAdjustNormalizePass>(builder));
     if (builder.instructions().count() != 7)
         return Result::Error;
 
@@ -387,7 +374,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesMaximumDepthWithAndWithoutCalls)
         builder.emitOpBinaryRegImm(rsp, ApInt(maxDepth, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runStackAdjustNormalizePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroStackAdjustNormalizePass>(builder));
         if (builder.instructions().ptr(originalAdjust))
             return Result::Error;
         const auto first = builder.instructions().view().begin();
@@ -418,7 +405,7 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_RestoresEveryReturnInOriginalOrder)
     builder.emitRet();
     const auto secondRet = builder.instructions().lastInstructionRef();
 
-    SWC_RESULT(runStackAdjustNormalizePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroStackAdjustNormalizePass>(builder));
     if (builder.instructions().count() != 8)
         return Result::Error;
 

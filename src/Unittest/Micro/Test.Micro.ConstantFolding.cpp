@@ -4,7 +4,6 @@
 
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -14,21 +13,6 @@
 #include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    Result runConstantFoldingPass(MicroBuilder& builder)
-    {
-        MicroConstantFoldingPass pass;
-        MicroPassManager         passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
-    }
-
-}
 
 // A partial constant must not define bits its write preserved from an
 // unknown input. Dword writes, in contrast, define a zero upper half.
@@ -62,7 +46,7 @@ SWC_TEST_BEGIN(ConstantFolding_PartialDefinitionsKeepUnknownBits)
                 const auto use      = builder.instructions().lastInstructionRef();
                 const auto original = builder.instructions().ptr(use)->op;
                 builder.emitRet();
-                SWC_RESULT(runConstantFoldingPass(builder));
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
                 const auto* folded = builder.instructions().ptr(use);
                 if (!folded || folded->op != (getNumBits(bits) >= 32 ? MicroInstrOpcode::LoadRegImm : original))
                     return Result::Error;
@@ -85,7 +69,7 @@ SWC_TEST_BEGIN(ConstantFolding_PartialDefinitionsStillFoldNarrowReads)
         builder.emitLoadZeroExtendRegReg(result, value, MicroOpBits::B64, bits);
         const auto extend = builder.instructions().lastInstructionRef();
         builder.emitRet();
-        SWC_RESULT(runConstantFoldingPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
         const auto* inst = builder.instructions().ptr(extend);
         if (!inst || inst->op != MicroInstrOpcode::LoadRegImm || inst->ops(builder.operands())[2].valueU64 != 10)
             return Result::Error;
@@ -96,7 +80,7 @@ SWC_TEST_BEGIN(ConstantFolding_PartialDefinitionsStillFoldNarrowReads)
     builder.emitOpBinaryRegReg(result, value, MicroOp::ShiftLeft, MicroOpBits::B64);
     const auto shift = builder.instructions().lastInstructionRef();
     builder.emitRet();
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
     const auto* inst = builder.instructions().ptr(shift);
     return inst && inst->op == MicroInstrOpcode::LoadRegImm && inst->ops(builder.operands())[2].valueU64 == 0x200 ? Result::Continue : Result::Error;
 }
@@ -115,7 +99,7 @@ SWC_TEST_BEGIN(ConstantFolding_ScalarFloatCopyDoesNotDefineUpperBits)
     builder.emitOpBinaryRegImm(result, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     const auto add = builder.instructions().lastInstructionRef();
     builder.emitRet();
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
     const auto* inst = builder.instructions().ptr(add);
     return inst && inst->op == MicroInstrOpcode::OpBinaryRegImm ? Result::Continue : Result::Error;
 }
@@ -131,7 +115,7 @@ SWC_TEST_BEGIN(ConstantFolding_FoldBinaryRegImm)
     builder.emitOpBinaryRegImm(v1, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
 
     // The add is folded into a LoadRegImm. The original load is now dead
     // (removed by DCE later). We expect: load v1,5; load v1,8; ret.
@@ -155,7 +139,7 @@ SWC_TEST_BEGIN(ConstantFolding_FoldCopyFromKnown)
     builder.emitLoadRegReg(v2, v1, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegImm) != 2)
         return Result::Error;
@@ -177,7 +161,7 @@ SWC_TEST_BEGIN(ConstantFolding_ChainedFold)
     builder.emitOpBinaryRegImm(v1, ApInt(2, 64), MicroOp::ShiftLeft, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
 
     // Each binary op is folded into a LoadRegImm. Dead loads removed by DCE later.
     // Result: load v1,5; load v1,8; load v1,32; ret.
@@ -200,7 +184,7 @@ SWC_TEST_BEGIN(ConstantFolding_FoldFromClearReg)
     builder.emitOpBinaryRegImm(v1, ApInt(7, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
@@ -229,7 +213,7 @@ SWC_TEST_BEGIN(ConstantFolding_FoldAcrossJoinSameConstant)
     builder.emitOpBinaryRegImm(v1, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
         return Result::Error;
@@ -266,7 +250,7 @@ SWC_TEST_BEGIN(ConstantFolding_BinaryRequiresKnownInputsAndDeadFlags)
                     builder.emitSetCondReg(MicroReg::virtualIntReg(3), MicroCond::Zero);
                 builder.emitRet();
 
-                SWC_RESULT(runConstantFoldingPass(builder));
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
                 const auto opcode = regOperand ? MicroInstrOpcode::OpBinaryRegReg : MicroInstrOpcode::OpBinaryRegImm;
                 if (Backend::Unittest::countOpcode(builder, opcode) != (known && !liveFlags ? 0 : 1))
                     return Result::Error;
@@ -300,7 +284,7 @@ SWC_TEST_BEGIN(ConstantFolding_RegImmResultsKeepWidthsFailuresAndFlags)
             const auto unknown = builder.instructions().lastInstructionRef();
             builder.emitRet();
 
-            SWC_RESULT(runConstantFoldingPass(builder));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
             const auto* addInst      = builder.instructions().ptr(add);
             const auto* multiplyInst = builder.instructions().ptr(multiply);
             const auto* divideInst   = builder.instructions().ptr(divide);
@@ -359,7 +343,7 @@ SWC_TEST_BEGIN(ConstantFolding_RegRegResultsKeepAliasesWidthsAndUnknownInputs)
             const auto result = builder.instructions().lastInstructionRef();
             builder.emitRet();
 
-            SWC_RESULT(runConstantFoldingPass(builder));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
             const auto* inst = builder.instructions().ptr(result);
             if (!inst)
                 return Result::Error;
@@ -428,7 +412,7 @@ SWC_TEST_BEGIN(ConstantFolding_ExtendResultsKeepSignWidthAndAliases)
                 builder.emitSetCondReg(MicroReg::virtualIntReg(3), MicroCond::Zero);
                 builder.emitRet();
 
-                SWC_RESULT(runConstantFoldingPass(builder));
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
                 const auto* inst = builder.instructions().ptr(result);
                 if (!inst)
                     return Result::Error;
@@ -475,7 +459,7 @@ SWC_TEST_BEGIN(ConstantFolding_PropagatesInDominatorOrderWithoutPhis)
     builder.emitLoadMemReg(MicroReg::intReg(2), 8, orphan, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
     for (const auto ref : {firstCopy, secondCopy})
     {
         const auto* inst = builder.instructions().ptr(ref);
@@ -620,7 +604,7 @@ SWC_TEST_BEGIN(ConstantFolding_AddressChainFromConstantFolds)
     builder.emitLoadMemReg(base, 0, count, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runConstantFoldingPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroConstantFoldingPass>(builder));
 
     uint32_t steps = 0;
     bool     last  = false;

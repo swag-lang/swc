@@ -3,28 +3,12 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    Result runPostRaLoopRotatePass(MicroBuilder& builder)
-    {
-        MicroPostRaLoopRotatePass pass;
-        MicroPassManager          passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
-    }
-}
 
 SWC_TEST_BEGIN(PostRALoopRotate_IndependentHeadersRotate)
 {
@@ -47,7 +31,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_IndependentHeadersRotate)
     }
     builder.emitRet();
 
-    SWC_RESULT(runPostRaLoopRotatePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 4)
         return Result::Error;
     for (uint32_t i = 0; i < backEdges.size(); ++i)
@@ -85,7 +69,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_HeaderRunStopsAtEightInstructions)
         builder.placeLabel(done);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const bool        rotates = connectors == 7;
         const MicroInstr* back    = builder.instructions().ptr(backRef);
         if (!back || back->op != MicroInstrOpcode::JumpCond ||
@@ -132,7 +116,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_ClonesRelocatedAddressTest)
         builder.placeLabel(done);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const MicroInstr* back = builder.instructions().ptr(backRef);
         if (!back || back->op != MicroInstrOpcode::JumpCond ||
             back->ops(builder.operands())[0].cpuCond != (addressConnector ? MicroCond::Below : MicroCond::Unconditional))
@@ -172,7 +156,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_RotatesAcrossAdjacentExitLabelsOnly)
         builder.placeLabel(done);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const MicroInstr* back = builder.instructions().ptr(backRef);
         if (!back || back->op != MicroInstrOpcode::JumpCond)
             return Result::Error;
@@ -212,7 +196,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_RotatesThroughExitTrampoline)
         builder.placeLabel(done);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const MicroInstr* back = builder.instructions().ptr(backRef);
         if (!back || back->op != MicroInstrOpcode::JumpCond)
             return Result::Error;
@@ -267,7 +251,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_RotatesLatchConnectors)
             builder.emitLoadRegReg(MicroReg::intReg(0), value, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const bool backErased = builder.instructions().ptr(backRef) == nullptr;
         if (backErased != (kind != 3))
             return Result::Error;
@@ -353,7 +337,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_ThreadsRepeatedIndexedZeroTestOnlyOnProvenPaths)
         builder.placeLabel(done);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         if ((builder.instructions().ptr(repeated) == nullptr) != (mode == 0 || mode == 5))
             return Result::Error;
     }
@@ -413,7 +397,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_FlagOnlyTestsRotateWithUniqueBackEdge)
             builder.placeLabel(done);
             builder.emitRet();
 
-            SWC_RESULT(runPostRaLoopRotatePass(builder));
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
             if (Backend::Unittest::countOpcode(builder, testOp) != (secondEntry ? 1u : 2u))
                 return Result::Error;
             const MicroInstr* back = builder.instructions().ptr(backRef);
@@ -442,7 +426,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_SecondIncomingJumpBlocks)
     builder.placeLabel(done);
     builder.emitRet();
 
-    SWC_RESULT(runPostRaLoopRotatePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
         return Result::Error;
     const auto* ops = builder.instructions().ptr(backEdge)->ops(builder.operands());
@@ -467,7 +451,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_ConditionalBackEdgeBlocks)
     builder.placeLabel(done);
     builder.emitRet();
 
-    SWC_RESULT(runPostRaLoopRotatePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 1)
         return Result::Error;
     const auto* ops = builder.instructions().ptr(backEdge)->ops(builder.operands());
@@ -511,7 +495,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_PlacesShortComparisonStepOnFallthrough)
         builder.placeLabel(stop);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const MicroInstr* second = builder.instructions().ptr(secondRef);
         if (!second || second->op != MicroInstrOpcode::JumpCond)
             return Result::Error;
@@ -561,7 +545,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_CountMismatchFallsThroughToNextIteration)
         builder.placeLabel(stop);
         builder.emitRet();
 
-        SWC_RESULT(runPostRaLoopRotatePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const MicroInstr*        equal    = builder.instructions().ptr(equalRef);
         const MicroInstrOperand* equalOps = equal ? equal->ops(builder.operands()) : nullptr;
         if (!equal || !equalOps || equalOps[0].cpuCond != MicroCond::NotEqual ||
@@ -604,7 +588,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_CountMismatchFallsThroughToNextIteration)
     nonUnit.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, step);
     nonUnit.placeLabel(stop);
     nonUnit.emitRet();
-    SWC_RESULT(runPostRaLoopRotatePass(nonUnit));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(nonUnit));
     if (!nonUnit.instructions().ptr(backRef))
         return Result::Error;
     return Result::Continue;

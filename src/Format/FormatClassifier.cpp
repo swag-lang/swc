@@ -3,6 +3,7 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Format/FormatModel.h"
+#include "Format/FormatPassUtil.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -276,24 +277,12 @@ namespace
 
         uint32_t nextCode(const uint32_t pieceIndex) const
         {
-            uint32_t i = pieceIndex;
-            for (;;)
-            {
-                i = model_->nextPiece(i);
-                if (i == INVALID_PIECE || !model_->piece(i).isComment)
-                    return i;
-            }
+            return FormatPassUtil::nextCode(*model_, pieceIndex);
         }
 
         uint32_t prevCode(const uint32_t pieceIndex) const
         {
-            uint32_t i = pieceIndex;
-            for (;;)
-            {
-                i = model_->prevPiece(i);
-                if (i == INVALID_PIECE || !model_->piece(i).isComment)
-                    return i;
-            }
+            return FormatPassUtil::prevCode(*model_, pieceIndex);
         }
 
         uint32_t nextCodeIf(const uint32_t after, const TokenId id) const

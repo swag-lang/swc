@@ -7,22 +7,8 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using FormatPassUtil::INVALID_PIECE;
-
-    uint32_t nextCode(const FormatModel& model, const uint32_t pieceIndex)
-    {
-        uint32_t i = model.nextPiece(pieceIndex);
-        while (i != INVALID_PIECE && model.piece(i).isComment)
-            i = model.nextPiece(i);
-        return i;
-    }
-
-    uint32_t prevCode(const FormatModel& model, const uint32_t pieceIndex)
-    {
-        uint32_t i = model.prevPiece(pieceIndex);
-        while (i != INVALID_PIECE && model.piece(i).isComment)
-            i = model.prevPiece(i);
-        return i;
-    }
+    using FormatPassUtil::nextCode;
+    using FormatPassUtil::prevCode;
 
     bool opensList(const FormatPiece& piece)
     {

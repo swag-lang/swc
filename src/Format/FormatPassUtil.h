@@ -8,6 +8,22 @@ namespace FormatPassUtil
 {
     constexpr uint32_t INVALID_PIECE = FormatPiece::INVALID_INDEX;
 
+    inline uint32_t nextCode(const FormatModel& model, const uint32_t pieceIndex)
+    {
+        uint32_t i = model.nextPiece(pieceIndex);
+        while (i != INVALID_PIECE && model.piece(i).isComment)
+            i = model.nextPiece(i);
+        return i;
+    }
+
+    inline uint32_t prevCode(const FormatModel& model, const uint32_t pieceIndex)
+    {
+        uint32_t i = model.prevPiece(pieceIndex);
+        while (i != INVALID_PIECE && model.piece(i).isComment)
+            i = model.prevPiece(i);
+        return i;
+    }
+
     inline bool canEditGap(const FormatModel& model, const uint32_t pieceIndex)
     {
         if (model.gapBefore(pieceIndex).frozen)

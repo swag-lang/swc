@@ -264,26 +264,6 @@ namespace PostRaPeephole
         return true;
     }
 
-    bool isComparisonOpcode(MicroInstrOpcode op)
-    {
-        switch (op)
-        {
-            case MicroInstrOpcode::CmpRegReg:
-            case MicroInstrOpcode::CmpRegImm:
-            case MicroInstrOpcode::CmpMemReg:
-            case MicroInstrOpcode::CmpMemImm:
-            case MicroInstrOpcode::CmpAmcReg:
-            case MicroInstrOpcode::CmpAmcImm:
-            case MicroInstrOpcode::TestRegReg:
-            case MicroInstrOpcode::TestRegImm:
-            case MicroInstrOpcode::TestMemReg:
-            case MicroInstrOpcode::TestMemImm:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     // An unsigned three-way compare subtracts the `a < b` byte from the
     // `a > b` byte. `a < b` is the carry the comparison left, so the
     // subtraction can read it from the flags, as LLVM lowers `ucmp`:
@@ -356,7 +336,7 @@ namespace PostRaPeephole
     // flags the loop's own compare left.
     bool tryEraseCompareAfterBranch(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (ctx.isClaimed(ref) || !isComparisonOpcode(inst.op))
+        if (ctx.isClaimed(ref) || !MicroInstr::isCompareOrTest(inst.op))
             return false;
 
         const MicroInstrRef jumpRef = ctx.previousRef(ref);
@@ -576,30 +556,9 @@ namespace PostRaPeephole
 
     namespace
     {
-        bool isCompareInstruction(MicroInstrOpcode op)
-        {
-            switch (op)
-            {
-                case MicroInstrOpcode::TestRegReg:
-                case MicroInstrOpcode::TestRegImm:
-                case MicroInstrOpcode::TestMemReg:
-                case MicroInstrOpcode::TestMemImm:
-                case MicroInstrOpcode::CmpRegReg:
-                case MicroInstrOpcode::CmpRegImm:
-                case MicroInstrOpcode::CmpMemReg:
-                case MicroInstrOpcode::CmpMemImm:
-                case MicroInstrOpcode::CmpAmcImm:
-                case MicroInstrOpcode::CmpAmcReg:
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
-
         bool canMoveComparisonForSelect(const MicroInstr& inst, const MicroInstrOperand* ops)
         {
-            if (!isCompareInstruction(inst.op) || !ops)
+            if (!MicroInstr::isCompareOrTest(inst.op) || !ops)
                 return false;
             // A RIP-relative memory comparison can own a relocation tied to
             // its instruction reference. Keep such comparisons in place.
@@ -2804,7 +2763,7 @@ namespace PostRaPeephole
             }
         }
 
-        if (isCompareInstruction(cmp->op))
+        if (MicroInstr::isCompareOrTest(cmp->op))
         {
             if (!canMoveComparisonForSelect(*cmp, cmpOps))
                 return false;
@@ -2882,7 +2841,7 @@ namespace PostRaPeephole
 
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        if (!isCompareInstruction(inst.op))
+        if (!MicroInstr::isCompareOrTest(inst.op))
             return false;
 
         auto scanIt = MicroStorage::Iterator{ctx.storage, ref};

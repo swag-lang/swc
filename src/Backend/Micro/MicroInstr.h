@@ -46,6 +46,8 @@ enum class MicroInstrFlagsE : uint16_t
     Fixed128BitOperands = 1 << 9,
     // A definition-only physical register claim can start at the output slot.
     RegisterDefsAtOutput = 1 << 10,
+    // A compare or test that defines the flags and nothing else. CmpRegAmc is not marked.
+    CompareOrTest = 1 << 11,
 };
 using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 
@@ -224,6 +226,7 @@ struct MicroInstr
     void collectRegOperands(MicroOperandStorage& operands, MicroInstrRegOperandRefs& out, const Encoder* encoder) const;
 
     static constexpr const MicroInstrDef& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
+    static bool                           isCompareOrTest(MicroInstrOpcode op) { return info(op).flags.has(MicroInstrFlagsE::CompareOrTest); }
 };
 
 SWC_END_NAMESPACE();

@@ -411,21 +411,13 @@ namespace
         }
     }
 
-    void appendFunctionGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
+    using GenericArgsLoader = bool (*)(Sema&, const SymbolFunction&, SmallVector<SemaGeneric::GenericParamDesc>&, SmallVector<GenericInstanceKey>&);
+
+    void appendLoadedGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings, GenericArgsLoader loadGenericArgs)
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
         SmallVector<GenericInstanceKey>            args;
-        if (!SemaGeneric::Internal::loadFunctionInstanceGenericArgs(sema, fn, params, args))
-            return;
-
-        appendGenericBindingsFromKeys(sema, params.span(), args.span(), outBindings);
-    }
-
-    void appendOwnerStructGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
-    {
-        SmallVector<SemaGeneric::GenericParamDesc> params;
-        SmallVector<GenericInstanceKey>            args;
-        if (!SemaGeneric::Internal::loadOwnerStructGenericArgs(sema, fn, params, args))
+        if (!loadGenericArgs(sema, fn, params, args))
             return;
 
         appendGenericBindingsFromKeys(sema, params.span(), args.span(), outBindings);
@@ -433,8 +425,8 @@ namespace
 
     void appendGenericInstanceBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        appendFunctionGenericBindings(sema, fn, outBindings);
-        appendOwnerStructGenericBindings(sema, fn, outBindings);
+        appendLoadedGenericBindings(sema, fn, outBindings, SemaGeneric::Internal::loadFunctionInstanceGenericArgs);
+        appendLoadedGenericBindings(sema, fn, outBindings, SemaGeneric::Internal::loadOwnerStructGenericArgs);
     }
 
     bool directInlineContextOverrideTarget(const Sema& sema, const SemaInlinePayload*& outTarget, AstNodeRef nodeRef)

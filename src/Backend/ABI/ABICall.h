@@ -2,6 +2,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Backend/RuntimeBase.h"
 #include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -12,6 +13,15 @@ class Symbol;
 
 namespace ABICall
 {
+    // Windows commits the stack one guard page at a time, so a frame larger than a page must
+    // touch each page on its way down.
+    constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
+
+    inline bool needsWindowsStackProbe(Runtime::TargetOs targetOs, uint64_t stackAdjust)
+    {
+        return stackAdjust > K_WINDOWS_STACK_PROBE_PAGE_SIZE && targetOs == Runtime::TargetOs::Windows;
+    }
+
     struct ArgLayout
     {
         uint8_t numBits   = 64;

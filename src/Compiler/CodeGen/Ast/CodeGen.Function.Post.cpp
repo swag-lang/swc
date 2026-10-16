@@ -994,7 +994,7 @@ namespace
         return codeGen.emitLifecycle(returnTypeRef, *lifecycleKind, outputStorageReg);
     }
 
-    bool isCompilerFunctionDecl(CodeGen& codeGen);
+    bool isFunctionDeclOf(CodeGen& codeGen, AstNodeId declId);
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef returnExprRef)
     {
@@ -1004,7 +1004,7 @@ namespace
         const CallConv&                        callConv                      = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef                 = symbolFunc.returnTypeRef();
         const ABITypeNormalize::NormalizedType normalizedRet                 = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
-        const bool                             needsPersistentCompilerReturn = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
+        const bool                             needsPersistentCompilerReturn = isFunctionDeclOf(codeGen, AstNodeId::CompilerFunc) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
         if (normalizedRet.isVoid)
         {
@@ -1153,10 +1153,11 @@ namespace
         return Result::Continue;
     }
 
-    bool isCompilerFunctionDecl(CodeGen& codeGen)
+    // Whether the function being generated was declared by a node of kind 'declId'.
+    bool isFunctionDeclOf(CodeGen& codeGen, AstNodeId declId)
     {
         const AstNodeRef declRef = codeGen.function().declNodeRef();
-        return declRef.isValid() && codeGen.node(declRef).is(AstNodeId::CompilerFunc);
+        return declRef.isValid() && codeGen.node(declRef).is(declId);
     }
 
     Result emitCompilerRunBlockReturn(CodeGen& codeGen, AstNodeRef exprRef)
@@ -1205,12 +1206,6 @@ namespace
             builder.emitRet();
         }
         return Result::Continue;
-    }
-
-    bool isCompilerRunBlockFunction(CodeGen& codeGen)
-    {
-        const AstNodeRef declRef = codeGen.function().declNodeRef();
-        return declRef.isValid() && codeGen.node(declRef).is(AstNodeId::CompilerRunBlock);
     }
 
     bool isActiveFunctionRoot(CodeGen& codeGen, AstNodeRef declRef)
@@ -1662,7 +1657,7 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
             return emitInlineReturn(codeGen, *inlineCtx.payload, nodeExprRef);
     }
 
-    if (isCompilerRunBlockFunction(codeGen))
+    if (isFunctionDeclOf(codeGen, AstNodeId::CompilerRunBlock))
         return emitCompilerRunBlockReturn(codeGen, nodeExprRef);
 
     return emitFunctionReturn(codeGen, codeGen.function(), nodeExprRef);

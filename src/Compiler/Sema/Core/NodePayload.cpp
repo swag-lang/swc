@@ -77,6 +77,17 @@ namespace
             return false;
         return symVar.typeRef().isValid();
     }
+
+    // A node payload table is a map, the lock that guards it, and a count readers test before
+    // taking the lock, so an empty table costs them a single load.
+    void* findSharedPayload(const RefPointerMap<AstNodeRef>& map, std::shared_mutex& mutex, const std::atomic<uint32_t>& count, AstNodeRef nodeRef)
+    {
+        if (!count.load(std::memory_order_acquire))
+            return nullptr;
+
+        const std::shared_lock lock(mutex);
+        return map.find(nodeRef);
+    }
 }
 
 NodePayload::~NodePayload()
@@ -692,18 +703,7 @@ std::optional<ResolvedCallArgument> NodePayload::tryGetResolvedCallArgument(AstN
 
 bool NodePayload::hasLoweringPayload(AstNodeRef nodeRef) const
 {
-    if (nodeRef.isInvalid())
-        return false;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return false;
-
-    if (!shard->loweringPayloadsCount.load(std::memory_order_acquire))
-        return false;
-
-    const std::shared_lock lock(shard->loweringPayloadsMutex);
-    return shard->loweringPayloads.find(nodeRef) != nullptr;
+    return getLoweringPayload(nodeRef) != nullptr;
 }
 
 void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
@@ -721,48 +721,18 @@ void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return nullptr;
-
-    if (!shard->loweringPayloadsCount.load(std::memory_order_acquire))
-        return nullptr;
-
-    const std::shared_lock lock(shard->loweringPayloadsMutex);
-    return shard->loweringPayloads.find(nodeRef);
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    return shard ? findSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef) : nullptr;
 }
 
 bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
 {
-    if (nodeRef.isInvalid())
-        return false;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return false;
-
-    if (!shard->semaPayloadsCount.load(std::memory_order_acquire))
-        return false;
-
-    const std::shared_lock lock(shard->semaPayloadsMutex);
-    return shard->semaPayloads.find(nodeRef) != nullptr;
+    return getSemaPayload(nodeRef) != nullptr;
 }
 
 bool NodePayload::hasInlinePayload(AstNodeRef nodeRef) const
 {
-    if (nodeRef.isInvalid())
-        return false;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return false;
-
-    if (!shard->inlinePayloadsCount.load(std::memory_order_acquire))
-        return false;
-
-    const std::shared_lock lock(shard->inlinePayloadsMutex);
-    return shard->inlinePayloads.find(nodeRef) != nullptr;
+    return getInlinePayload(nodeRef) != nullptr;
 }
 
 void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
@@ -781,32 +751,13 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return nullptr;
-
-    if (!shard->inlinePayloadsCount.load(std::memory_order_acquire))
-        return nullptr;
-
-    const std::shared_lock lock(shard->inlinePayloadsMutex);
-    return shard->inlinePayloads.find(nodeRef);
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    return shard ? findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef) : nullptr;
 }
 
 bool NodePayload::hasInlineContextOverride(AstNodeRef nodeRef) const
 {
-    if (nodeRef.isInvalid())
-        return false;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return false;
-
-    if (!shard->inlineContextOverridesCount.load(std::memory_order_acquire))
-        return false;
-
-    const std::shared_lock lock(shard->inlineContextOverridesMutex);
-    return shard->inlineContextOverrides.find(nodeRef) != nullptr;
+    return getInlineContextOverride(nodeRef) != nullptr;
 }
 
 void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
@@ -825,16 +776,8 @@ void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return nullptr;
-
-    if (!shard->inlineContextOverridesCount.load(std::memory_order_acquire))
-        return nullptr;
-
-    const std::shared_lock lock(shard->inlineContextOverridesMutex);
-    return shard->inlineContextOverrides.find(nodeRef);
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    return shard ? findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef) : nullptr;
 }
 
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
@@ -853,16 +796,8 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
-    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    if (!shard)
-        return nullptr;
-
-    if (!shard->semaPayloadsCount.load(std::memory_order_acquire))
-        return nullptr;
-
-    const std::shared_lock lock(shard->semaPayloadsMutex);
-    return shard->semaPayloads.find(nodeRef);
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    return shard ? findSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef) : nullptr;
 }
 
 void NodePayload::clearSemaPayload(AstNodeRef nodeRef)

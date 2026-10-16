@@ -58,8 +58,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
-
     bool hasStackPointerOperand(const MicroInstrDef& def, const MicroInstrOperand* ops, MicroReg stackPointer, bool allowMemoryBase)
     {
         SWC_ASSERT(stackPointer.isValid() && !stackPointer.isNoBase());
@@ -1171,15 +1169,6 @@ namespace
         return false;
     }
 
-    bool needsWindowsStackProbe(const MicroPassContext& context, const uint64_t stackAdjust)
-    {
-        if (stackAdjust <= K_WINDOWS_STACK_PROBE_PAGE_SIZE)
-            return false;
-        if (!context.taskContext)
-            return false;
-        return context.taskContext->cmdLine().targetOs == Runtime::TargetOs::Windows;
-    }
-
     bool expandLargePrologueStackAdjustments(const MicroPassContext& context, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
@@ -1197,7 +1186,7 @@ namespace
             uint64_t stackAdjust = 0;
             if (!isStackAdjustWithOp(*it, ops, conv.stackPointer, MicroOp::Subtract, stackAdjust))
                 continue;
-            if (!needsWindowsStackProbe(context, stackAdjust))
+            if (!context.taskContext || !ABICall::needsWindowsStackProbe(context.taskContext->cmdLine().targetOs, stackAdjust))
                 continue;
 
             auto nextIt = it;
@@ -1224,9 +1213,9 @@ namespace
             probeOps[1].reg    = conv.stackPointer;
             probeOps[2].opBits = MicroOpBits::B64;
 
-            while (remaining > K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+            while (remaining > ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
             {
-                remaining -= K_WINDOWS_STACK_PROBE_PAGE_SIZE;
+                remaining -= ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE;
                 probeOps[3].valueU64 = remaining;
                 context.instructions->insertSyntheticBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps);
             }

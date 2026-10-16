@@ -98,26 +98,7 @@ namespace
 
     const char* itemKindName(const DocItemKind kind)
     {
-        switch (kind)
-        {
-            case DocItemKind::Namespace:
-                return "namespace";
-            case DocItemKind::Struct:
-                return "struct";
-            case DocItemKind::Interface:
-                return "interface";
-            case DocItemKind::Enum:
-                return "enum";
-            case DocItemKind::Constant:
-                return "const";
-            case DocItemKind::Alias:
-                return "type alias";
-            case DocItemKind::Attribute:
-                return "attr";
-            case DocItemKind::Function:
-                return "func";
-        }
-        SWC_UNREACHABLE();
+        return kind == DocItemKind::Alias ? "type alias" : itemKindClass(kind);
     }
 
     // A documentation link may spell a symbol by its short name, so the same spelling can

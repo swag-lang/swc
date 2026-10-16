@@ -282,6 +282,18 @@ namespace InstructionCombine
             return false;
         }
 
+        // Repeats the last answer when the same register is asked about at the same point.
+        template<bool (*Trace)(const Context&, MicroReg, MicroInstrRef)>
+        bool cachedAddressAnswer(Context::AddressAnswer& last, const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+        {
+            if (last.atRef.isValid() && last.atRef == atRef && last.reg == reg)
+                return last.value;
+            last.reg   = reg;
+            last.atRef = atRef;
+            last.value = Trace(ctx, reg, atRef);
+            return last.value;
+        }
+
         bool traceRelocatedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
         {
             for (uint32_t depth = 0; depth < K_MAX_COPY_CHAIN; ++depth)
@@ -310,24 +322,12 @@ namespace InstructionCombine
 
     bool isFrameDerivedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
     {
-        Context::AddressAnswer& last = ctx.lastFrameDerivedAddress;
-        if (last.atRef.isValid() && last.atRef == atRef && last.reg == reg)
-            return last.value;
-        last.reg   = reg;
-        last.atRef = atRef;
-        last.value = traceFrameDerivedAddress(ctx, reg, atRef);
-        return last.value;
+        return cachedAddressAnswer<traceFrameDerivedAddress>(ctx.lastFrameDerivedAddress, ctx, reg, atRef);
     }
 
     bool isRelocatedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
     {
-        Context::AddressAnswer& last = ctx.lastRelocatedAddress;
-        if (last.atRef.isValid() && last.atRef == atRef && last.reg == reg)
-            return last.value;
-        last.reg   = reg;
-        last.atRef = atRef;
-        last.value = traceRelocatedAddress(ctx, reg, atRef);
-        return last.value;
+        return cachedAddressAnswer<traceRelocatedAddress>(ctx.lastRelocatedAddress, ctx, reg, atRef);
     }
 
     bool keepAccessScalar(Context& ctx, MicroInstrRef ref, MicroReg base)

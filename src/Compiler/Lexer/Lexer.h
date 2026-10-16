@@ -75,7 +75,9 @@ private:
     void lexSingleLineStringLiteral();
     void lexMultiLineStringLiteral();
     void lexCharacterLiteral();
-    void lexHexNumber();
+    template<bool (LangSpec::*IsDigit)(uint32_t) const>
+    uint32_t lexDigitRun(bool& ioLastWasSep);
+    void     lexHexNumber();
     void lexBinNumber();
     void lexDecimalNumber();
     void lexNumber();

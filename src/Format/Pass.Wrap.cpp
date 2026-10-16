@@ -456,20 +456,21 @@ namespace
             return true;
         }
 
-        std::vector<FormatGap> snapshotGaps(const ListState& state) const
+        // The gaps after 'firstPiece' up to and including the one before 'lastPiece'.
+        std::vector<FormatGap> snapshotGaps(uint32_t firstPiece, uint32_t lastPiece) const
         {
             std::vector<FormatGap> result;
-            result.reserve(state.closePiece - state.openPiece);
-            for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
+            result.reserve(lastPiece - firstPiece);
+            for (uint32_t i = firstPiece + 1; i <= lastPiece; ++i)
                 result.push_back(model_->gapBefore(i));
             return result;
         }
 
-        void restoreGaps(const ListState& state, const std::vector<FormatGap>& gaps) const
+        void restoreGaps(uint32_t firstPiece, uint32_t lastPiece, const std::vector<FormatGap>& gaps) const
         {
-            SWC_ASSERT(gaps.size() == state.closePiece - state.openPiece);
-            for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
-                model_->gapBefore(i) = gaps[i - state.openPiece - 1];
+            SWC_ASSERT(gaps.size() == lastPiece - firstPiece);
+            for (uint32_t i = firstPiece + 1; i <= lastPiece; ++i)
+                model_->gapBefore(i) = gaps[i - firstPiece - 1];
         }
 
         uint32_t spacesAfterOpen(const ListState& state) const
@@ -570,7 +571,7 @@ namespace
                 return;
             }
 
-            const std::vector<FormatGap> originalGaps = snapshotGaps(state);
+            const std::vector<FormatGap> originalGaps = snapshotGaps(state.openPiece, state.closePiece);
             const bool                   joined       = joinList(state);
             SWC_ASSERT(joined);
             if (joinedListFits(state))
@@ -579,7 +580,7 @@ namespace
                 return;
             }
 
-            restoreGaps(state, originalGaps);
+            restoreGaps(state.openPiece, state.closePiece, originalGaps);
             state.lineMode = ListLineMode::MultiLine;
         }
 
@@ -625,22 +626,6 @@ namespace
                     return false;
             }
             return true;
-        }
-
-        std::vector<FormatGap> snapshotLogicalGaps(const LogicalState& state) const
-        {
-            std::vector<FormatGap> result;
-            result.reserve(state.lastPiece - state.firstPiece);
-            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
-                result.push_back(model_->gapBefore(i));
-            return result;
-        }
-
-        void restoreLogicalGaps(const LogicalState& state, const std::vector<FormatGap>& gaps) const
-        {
-            SWC_ASSERT(gaps.size() == state.lastPiece - state.firstPiece);
-            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
-                model_->gapBefore(i) = gaps[i - state.firstPiece - 1];
         }
 
         void joinLogicalBoundaries(const LogicalState& state) const
@@ -708,7 +693,7 @@ namespace
                 return;
             }
 
-            const std::vector<FormatGap> originalGaps = snapshotLogicalGaps(state);
+            const std::vector<FormatGap> originalGaps = snapshotGaps(state.firstPiece, state.lastPiece);
             const bool                   joined       = joinLogicalExpression(state);
             SWC_ASSERT(joined);
             if (joinedLogicalExpressionFits(state))
@@ -717,13 +702,14 @@ namespace
                 return;
             }
 
-            restoreLogicalGaps(state, originalGaps);
+            restoreGaps(state.firstPiece, state.lastPiece, originalGaps);
             state.lineMode = ListLineMode::MultiLine;
         }
 
-        bool listIsMultiline(const ListState& state) const
+        // Whether a newline separates any two kept pieces of [firstPiece, lastPiece].
+        bool piecesSpanLines(uint32_t firstPiece, uint32_t lastPiece) const
         {
-            for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
+            for (uint32_t i = firstPiece + 1; i <= lastPiece; ++i)
             {
                 if (!model_->piece(i).removed && model_->gapHasNewline(i))
                     return true;
@@ -731,20 +717,21 @@ namespace
             return false;
         }
 
-        Utf8 fixedContinuationIndent(const ListState& state) const
+        // One continuation step past the indentation of the line holding 'piece'.
+        Utf8 fixedContinuationIndent(uint32_t piece) const
         {
             const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
-            const uint32_t baseCols = FormatModel::textColumns(model_->lineIndentOf(state.openPiece), tabWidth);
+            const uint32_t baseCols = FormatModel::textColumns(model_->lineIndentOf(piece), tabWidth);
             return FormatPassUtil::indentForColumns(*model_, baseCols + std::max(options_->continuationIndentWidth, 1u));
         }
 
-        uint32_t openColumn(const ListState& state) const
+        uint32_t pieceColumn(uint32_t piece) const
         {
             std::vector<PieceColumn> columns;
-            FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(state.openPiece), &columns);
+            FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(piece), &columns);
             for (const PieceColumn& column : columns)
             {
-                if (column.piece == state.openPiece)
+                if (column.piece == piece)
                     return column.column;
             }
             return UINT32_MAX;
@@ -779,7 +766,7 @@ namespace
                 if (item != UINT32_MAX)
                     return FormatPassUtil::indentForColumns(*model_, item);
 
-                const uint32_t column = openColumn(state);
+                const uint32_t column = pieceColumn(state.openPiece);
                 if (column != UINT32_MAX)
                     return FormatPassUtil::indentForColumns(*model_, column + 1);
             }
@@ -793,7 +780,7 @@ namespace
                 }
             }
 
-            return fixedContinuationIndent(state);
+            return fixedContinuationIndent(state.openPiece);
         }
 
         void attachFirstItem(const ListState& state) const
@@ -811,7 +798,7 @@ namespace
                 return;
             const uint32_t first = state.items.front();
             if (FormatPassUtil::canEditGap(*model_, first))
-                model_->setGapBreak(first, 1, fixedContinuationIndent(state).view());
+                model_->setGapBreak(first, 1, fixedContinuationIndent(state.openPiece).view());
         }
 
         void applyListShape(const ListState& state) const
@@ -859,7 +846,7 @@ namespace
 
         void packExistingLines(const ListState& state) const
         {
-            if (state.hug || state.binPack != FormatBinPackStyle::Pack || state.hasComment || !listIsMultiline(state))
+            if (state.hug || state.binPack != FormatBinPackStyle::Pack || state.hasComment || !piecesSpanLines(state.openPiece, state.closePiece))
                 return;
 
             const uint32_t requiredBreak = requiredPackedBreak(state);
@@ -878,20 +865,10 @@ namespace
             {
                 if (state.lineMode == ListLineMode::SingleLine)
                     continue;
-                if (state.lineMode == ListLineMode::MultiLine || listIsMultiline(state))
+                if (state.lineMode == ListLineMode::MultiLine || piecesSpanLines(state.openPiece, state.closePiece))
                     applyListShape(state);
                 packExistingLines(state);
             }
-        }
-
-        bool logicalExpressionIsMultiline(const LogicalState& state) const
-        {
-            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
-            {
-                if (!model_->piece(i).removed && model_->gapHasNewline(i))
-                    return true;
-            }
-            return false;
         }
 
         bool logicalBoundaryIsBroken(const LogicalState& state, const size_t index) const
@@ -913,30 +890,11 @@ namespace
             return FormatOperatorWrapStyle::After;
         }
 
-        Utf8 fixedLogicalIndent(const LogicalState& state) const
-        {
-            const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
-            const uint32_t baseCols = FormatModel::textColumns(model_->lineIndentOf(state.firstPiece), tabWidth);
-            return FormatPassUtil::indentForColumns(*model_, baseCols + std::max(options_->continuationIndentWidth, 1u));
-        }
-
-        uint32_t logicalFirstOperandColumn(const LogicalState& state) const
-        {
-            std::vector<PieceColumn> columns;
-            FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(state.firstPiece), &columns);
-            for (const PieceColumn& column : columns)
-            {
-                if (column.piece == state.firstPiece)
-                    return column.column;
-            }
-            return UINT32_MAX;
-        }
-
         Utf8 logicalIndent(const LogicalState& state) const
         {
             if (state.layout == FormatLogicalLayout::HangingAlign)
             {
-                const uint32_t column = logicalFirstOperandColumn(state);
+                const uint32_t column = pieceColumn(state.firstPiece);
                 if (column != UINT32_MAX)
                     return FormatPassUtil::indentForColumns(*model_, column);
             }
@@ -952,7 +910,7 @@ namespace
                 }
             }
 
-            return fixedLogicalIndent(state);
+            return fixedContinuationIndent(state.firstPiece);
         }
 
         uint32_t firstBrokenLogicalOperator(const LogicalState& state) const
@@ -1036,7 +994,7 @@ namespace
             {
                 if (state.lineMode == ListLineMode::SingleLine)
                     continue;
-                if (state.lineMode != ListLineMode::MultiLine && !logicalExpressionIsMultiline(state))
+                if (state.lineMode != ListLineMode::MultiLine && !piecesSpanLines(state.firstPiece, state.lastPiece))
                     continue;
 
                 const Utf8 indent = logicalIndent(state);
@@ -1609,7 +1567,7 @@ namespace
         {
             for (const ListState& state : lists_)
             {
-                if (state.lineMode == ListLineMode::SingleLine || !listIsMultiline(state))
+                if (state.lineMode == ListLineMode::SingleLine || !piecesSpanLines(state.openPiece, state.closePiece))
                     continue;
 
                 applyListShape(state);
@@ -1633,7 +1591,7 @@ namespace
             if (state.hug || state.layout != FormatListLayout::HangingAlign || literalStartsOnNextSourceLine(state))
                 return;
 
-            const uint32_t open = openColumn(state);
+            const uint32_t open = pieceColumn(state.openPiece);
             if (open == UINT32_MAX)
                 return;
             const uint32_t item   = firstItemColumn(state);
@@ -1672,7 +1630,7 @@ namespace
         {
             for (const LogicalState& state : logicalExpressions_)
             {
-                if (state.lineMode == ListLineMode::SingleLine || !logicalExpressionIsMultiline(state))
+                if (state.lineMode == ListLineMode::SingleLine || !piecesSpanLines(state.firstPiece, state.lastPiece))
                     continue;
                 const Utf8 indent = logicalIndent(state);
                 addRequiredLogicalBreaks(state, indent);
@@ -1686,7 +1644,7 @@ namespace
         // shifts the line it sits on.
         void recordHangingOperands(const LogicalState& state) const
         {
-            if (state.layout != FormatLogicalLayout::HangingAlign || logicalFirstOperandColumn(state) == UINT32_MAX)
+            if (state.layout != FormatLogicalLayout::HangingAlign || pieceColumn(state.firstPiece) == UINT32_MAX)
                 return;
 
             for (size_t i = 0; i < state.operators.size(); ++i)

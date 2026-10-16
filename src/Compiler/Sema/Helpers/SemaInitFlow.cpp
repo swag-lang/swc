@@ -45,6 +45,20 @@ namespace
         return calledFn->hasFullInitialization();
     }
 
+    // Position of the entry naming 'sym' in a list of tracked variables, or -1.
+    template<typename Entries>
+    int32_t indexOfVariable(const Entries& entries, const SymbolVariable* sym)
+    {
+        if (!sym)
+            return -1;
+        for (uint32_t i = 0; i < entries.size(); i++)
+        {
+            if (entries[i].sym == sym)
+                return static_cast<int32_t>(i);
+        }
+        return -1;
+    }
+
     // One local participating in initialization flow. It either has a safe default
     // that may be elided, or requires a proof before it can be observed. Fields of a
     // struct local are tracked individually (one bit each, capped at 63); every other
@@ -234,18 +248,6 @@ namespace
         };
         SmallVector<NullableLocal, 8> nullableLocals_;
 
-        int32_t nullableLocalIndex(const SymbolVariable* sym) const
-        {
-            if (!sym)
-                return -1;
-            for (uint32_t i = 0; i < nullableLocals_.size32(); i++)
-            {
-                if (nullableLocals_[i].sym == sym)
-                    return static_cast<int32_t>(i);
-            }
-            return -1;
-        }
-
         // Shape-based proof that an expression's value cannot be null (the nodes are
         // retyped in place by implicit widening, so declared types are consulted).
         bool valueShapeIsNonNull(AstNodeRef exprRef) const
@@ -382,18 +384,6 @@ namespace
             return &sym->cast<SymbolVariable>();
         }
 
-        int32_t trackedIndex(const SymbolVariable* sym) const
-        {
-            if (!sym)
-                return -1;
-            for (uint32_t i = 0; i < vars_.size(); i++)
-            {
-                if (vars_[i].sym == sym)
-                    return static_cast<int32_t>(i);
-            }
-            return -1;
-        }
-
         // Resolved access path: a tracked root plus at most one first-level field.
         struct AccessPath
         {
@@ -420,7 +410,7 @@ namespace
                 {
                     case AstNodeId::Identifier:
                     {
-                        const int32_t idx = trackedIndex(identifierVariable(ref));
+                        const int32_t idx = indexOfVariable(vars_, identifierVariable(ref));
                         if (idx < 0)
                             return false;
                         out.varIndex = idx;
@@ -974,7 +964,7 @@ namespace
             const AstNodeRef identRef = unwrap(targetRef);
             if (identRef.isInvalid() || sema_->node(identRef).isNot(AstNodeId::Identifier))
                 return;
-            const int32_t index = nullableLocalIndex(identifierVariable(identRef));
+            const int32_t index = indexOfVariable(nullableLocals_, identifierVariable(identRef));
             if (index < 0)
                 return;
             NullableLocal& local = nullableLocals_[index];
@@ -1014,7 +1004,7 @@ namespace
             if (node.is(AstNodeId::Identifier))
             {
                 const SymbolVariable* symVar = identifierVariable(ref);
-                const int32_t         idx    = trackedIndex(symVar);
+                const int32_t         idx    = indexOfVariable(vars_, symVar);
                 if (idx >= 0)
                 {
                     if (vars_[idx].defaultInitCandidate)
@@ -1022,7 +1012,7 @@ namespace
                     else
                         state.set(idx, state.getMust(idx) | (vars_[idx].fullMask & ~vars_[idx].lateMask), vars_[idx].fullMask);
                 }
-                const int32_t localIdx = nullableLocalIndex(symVar);
+                const int32_t localIdx = indexOfVariable(nullableLocals_, symVar);
                 if (localIdx >= 0)
                     nullableLocals_[localIdx].keepNull = true;
                 return;

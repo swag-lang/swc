@@ -56,14 +56,6 @@ Result CodeGenFunctionHelpers::emitMoveValue(CodeGen& codeGen, TypeRef typeRef, 
 
 namespace
 {
-    constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
-
-    bool needsWindowsStackProbe(CodeGen& codeGen, uint64_t sizeInBytes)
-    {
-        return sizeInBytes > K_WINDOWS_STACK_PROBE_PAGE_SIZE &&
-               codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows;
-    }
-
     bool stackContainsRange(const std::byte* localStackBase, uint64_t localStackSize, const void* ptr, uint64_t size)
     {
         if (!localStackBase || !localStackSize || !ptr || !size)
@@ -1261,7 +1253,7 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
         return;
 
     MicroBuilder& builder = codeGen.builder();
-    if (!needsWindowsStackProbe(codeGen, sizeInBytes))
+    if (!ABICall::needsWindowsStackProbe(codeGen.ctx().cmdLine().targetOs, sizeInBytes))
     {
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(sizeInBytes, 64), MicroOp::Subtract, MicroOpBits::B64);
         return;
@@ -1275,11 +1267,11 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
     }
 
     uint64_t remaining = sizeInBytes;
-    while (remaining > K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+    while (remaining > ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
     {
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(K_WINDOWS_STACK_PROBE_PAGE_SIZE, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitLoadRegMem(scratchReg, callConv.stackPointer, 0, MicroOpBits::B64);
-        remaining -= K_WINDOWS_STACK_PROBE_PAGE_SIZE;
+        remaining -= ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE;
     }
 
     if (remaining)

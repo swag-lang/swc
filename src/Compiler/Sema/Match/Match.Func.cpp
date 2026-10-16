@@ -499,7 +499,8 @@ namespace
             failure.nodeRef = nodeRef;
     }
 
-    void setCastFailureLocation(CastFailure& failure, Sema& sema, AstNodeRef nodeRef)
+    // A named argument is reported at its own token; any other argument at its node.
+    void setCastFailureLocation(Sema& sema, SourceCodeRef& outCodeRef, AstNodeRef& outNodeRef, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
             return;
@@ -507,26 +508,11 @@ namespace
         const AstNode& node = sema.node(nodeRef);
         if (node.is(AstNodeId::NamedArgument))
         {
-            failure.codeRef = node.codeRef();
+            outCodeRef = node.codeRef();
             return;
         }
 
-        failure.nodeRef = nodeRef;
-    }
-
-    void setCastFailureNoteLocation(CastFailure& failure, Sema& sema, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return;
-
-        const AstNode& node = sema.node(nodeRef);
-        if (node.is(AstNodeId::NamedArgument))
-        {
-            failure.noteCodeRef = node.codeRef();
-            return;
-        }
-
-        failure.noteNodeRef = nodeRef;
+        outNodeRef = nodeRef;
     }
 
     void recordCallArgFailure(Sema& sema, const SymbolFunction& fn, MatchFailure& outFail, AstNodeRef ufcsArg, uint32_t userArgIndex, AstNodeRef argRef, DiagnosticId diagId, IdentifierRef idRef = IdentifierRef::invalid(), uint32_t paramIndex = UINT32_MAX, DiagnosticId noteId = DiagnosticId::None, AstNodeRef noteNodeRef = AstNodeRef::invalid(), Utf8 noteValues = {})
@@ -536,8 +522,8 @@ namespace
         if (idRef.isValid())
             cf.valueStr = Utf8{sema.idMgr().get(idRef).name};
         cf.noteId = noteId;
-        setCastFailureLocation(cf, sema, argRef);
-        setCastFailureNoteLocation(cf, sema, noteNodeRef);
+        setCastFailureLocation(sema, cf.codeRef, cf.nodeRef, argRef);
+        setCastFailureLocation(sema, cf.noteCodeRef, cf.noteNodeRef, noteNodeRef);
         if (!noteValues.empty())
             cf.addArgument(Diagnostic::ARG_VALUES, std::move(noteValues));
         cf.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
@@ -761,28 +747,15 @@ namespace
                isFunctionWhereFailure(diagId);
     }
 
-    const Utf8* castFailureUtf8Argument(const CastFailure& failure, std::string_view name)
+    template<typename T>
+    const T* castFailureArgument(const CastFailure& failure, std::string_view name)
     {
         for (const auto& arg : failure.arguments)
         {
             if (arg.name != name)
                 continue;
 
-            if (const auto* value = std::get_if<Utf8>(&arg.val))
-                return value;
-        }
-
-        return nullptr;
-    }
-
-    const uint32_t* castFailureUIntArgument(const CastFailure& failure, std::string_view name)
-    {
-        for (const auto& arg : failure.arguments)
-        {
-            if (arg.name != name)
-                continue;
-
-            if (const auto* value = std::get_if<uint32_t>(&arg.val))
+            if (const auto* value = std::get_if<T>(&arg.val))
                 return value;
         }
 
@@ -791,7 +764,7 @@ namespace
 
     Utf8 formatFunctionWhereFailureBindings(const CastFailure& failure)
     {
-        const Utf8* values = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUES);
+        const Utf8* values = castFailureArgument<Utf8>(failure, Diagnostic::ARG_VALUES);
         if (!values || values->empty())
             return {};
 
@@ -806,7 +779,7 @@ namespace
         if (!isFunctionWhereFailure(failure.diagId))
             return;
 
-        if (const Utf8* values = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUES))
+        if (const Utf8* values = castFailureArgument<Utf8>(failure, Diagnostic::ARG_VALUES))
         {
             if (!values->empty())
             {
@@ -907,9 +880,9 @@ namespace
     Utf8 makeGenericInstantiationFailureText(const SymbolFunction& fn, const MatchFailure& fail, AstNodeRef ufcsArg, const TaskContext& ctx)
     {
         const CastFailure& failure       = fail.castFailure;
-        const Utf8*        param         = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUE);
+        const Utf8*        param         = castFailureArgument<Utf8>(failure, Diagnostic::ARG_VALUE);
         const Utf8         paramName     = param ? *param : Utf8{"<unknown>"};
-        const uint32_t*    previousIndex = castFailureUIntArgument(failure, SemaGeneric::K_ARG_PREV_INDEX);
+        const uint32_t*    previousIndex = castFailureArgument<uint32_t>(failure, SemaGeneric::K_ARG_PREV_INDEX);
 
         if (failure.diagId == DiagnosticId::sema_err_generic_type_deduction_conflict &&
             failure.srcTypeRef.isValid() &&
@@ -924,8 +897,8 @@ namespace
 
         if (failure.diagId == DiagnosticId::sema_err_generic_value_deduction_conflict)
         {
-            const Utf8* previousValue = castFailureUtf8Argument(failure, Diagnostic::ARG_LEFT);
-            const Utf8* currentValue  = castFailureUtf8Argument(failure, Diagnostic::ARG_RIGHT);
+            const Utf8* previousValue = castFailureArgument<Utf8>(failure, Diagnostic::ARG_LEFT);
+            const Utf8* currentValue  = castFailureArgument<Utf8>(failure, Diagnostic::ARG_RIGHT);
             if (previousValue && currentValue && previousIndex)
                 return std::format("generic parameter '{}' is deduced as {} by argument {}, but as {} by argument {}", paramName, *previousValue, *previousIndex, *currentValue, fail.argIndex + 1);
             if (previousValue && currentValue)

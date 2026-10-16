@@ -480,7 +480,8 @@ namespace
 
         // -------------------------------------------------------------------------
 
-        void reportLateRead(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
+        // Reports 'id' about 'var' once, up to the error cap, naming its field when 'fieldIndex' is one.
+        void reportTrackedVar(DiagnosticId id, AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
         {
             if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
                 return;
@@ -488,46 +489,29 @@ namespace
             errorCount_++;
             hadError_ = true;
 
-            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_late_read_never_set, atRef);
+            auto diag = SemaError::report(*sema_, id, atRef);
             SemaError::setReportArguments(*sema_, diag, var.sym);
             if (fieldIndex >= 0 && var.fieldStruct)
                 diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_->ctx())});
             if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
                 diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared here");
             diag.report(sema_->ctx());
+        }
+
+        void reportLateRead(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
+        {
+            reportTrackedVar(DiagnosticId::sema_err_late_read_never_set, atRef, var, fieldIndex);
         }
 
         void reportDefiniteInitUse(AstNodeRef atRef, TrackedVar& var, int32_t fieldIndex)
         {
-            if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
-                return;
-            var.errored = true;
-            errorCount_++;
-            hadError_ = true;
-
-            const DiagnosticId id   = fieldIndex >= 0 ? DiagnosticId::sema_err_definite_init_field_use : DiagnosticId::sema_err_definite_init_use;
-            auto               diag = SemaError::report(*sema_, id, atRef);
-            SemaError::setReportArguments(*sema_, diag, var.sym);
-            if (fieldIndex >= 0 && var.fieldStruct)
-                diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_->ctx())});
-            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
-                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared here");
-            diag.report(sema_->ctx());
+            const DiagnosticId id = fieldIndex >= 0 ? DiagnosticId::sema_err_definite_init_field_use : DiagnosticId::sema_err_definite_init_use;
+            reportTrackedVar(id, atRef, var, fieldIndex);
         }
 
         void reportDefiniteInitDrop(AstNodeRef atRef, TrackedVar& var)
         {
-            if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
-                return;
-            var.errored = true;
-            errorCount_++;
-            hadError_ = true;
-
-            auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_definite_init_drop, atRef);
-            SemaError::setReportArguments(*sema_, diag, var.sym);
-            if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
-                diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared here");
-            diag.report(sema_->ctx());
+            reportTrackedVar(DiagnosticId::sema_err_definite_init_drop, atRef, var, -1);
         }
 
         // -------------------------------------------------------------------------

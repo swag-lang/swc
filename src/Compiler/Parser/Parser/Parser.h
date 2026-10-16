@@ -268,6 +268,8 @@ private:
     AstNodeRef                     parsePostFixExpression();
     AstNodeRef                     parseIdentifierSuffixValue();
     AstNodeRef                     parseQuotedSingleSuffixValue();
+    AstNodeRef                     parseQuoteSuffix(AstNodeRef nodeRef);
+    AstNodeRef                     parseDynamicTypeTarget();
     AstNodeRef                     parseIdentifier();
     AstNodeRef                     parseAutoMemberAccessExpr();
     AstNodeRef                     parsePrefixExpr();

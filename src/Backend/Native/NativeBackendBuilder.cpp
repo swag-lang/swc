@@ -1658,16 +1658,23 @@ Result NativeBackendBuilder::prepare()
     constantScan.pendingFunctions = functions;
     // The functions before this index had their calls walked since the last code generation, and
     // nothing has been lowered since: only the constant dependencies appended after them are new.
-    size_t      callsWalked          = 0;
-    bool        functionsNeedSort    = true;
-    SourceFile* codeGenSource        = nullptr;
-    bool        codeGenSourceChecked = false;
+    size_t      callsWalked             = 0;
+    bool        functionsNeedSort       = true;
+    bool        functionsHaveBeenSorted = false;
+    SourceFile* codeGenSource           = nullptr;
+    bool        codeGenSourceChecked    = false;
     while (true)
     {
         functionsNeedSort |= appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, callsWalked, &constantScan.pendingFunctions);
         if (functionsNeedSort)
         {
-            SymbolSort::sortAndUniqueByLocation(functions, *compiler_, sortKeys);
+            if (functionsHaveBeenSorted)
+                SymbolSort::sortByLocation(functions, *compiler_, sortKeys);
+            else
+            {
+                SymbolSort::sortAndUniqueByLocation(functions, *compiler_, sortKeys);
+                functionsHaveBeenSorted = true;
+            }
             functionsNeedSort = false;
         }
         if (!functions.empty() && !codeGenSourceChecked)
@@ -1735,7 +1742,7 @@ Result NativeBackendBuilder::prepare()
                     if (!addedCallDeps && !addedConstantDeps)
                         break;
                 }
-                SymbolSort::sortAndUniqueByLocation(executableFunctions, *compiler_, sortKeys);
+                SymbolSort::sortByLocation(executableFunctions, *compiler_, sortKeys);
                 functions = std::move(executableFunctions);
             }
 

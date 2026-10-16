@@ -71,7 +71,6 @@ namespace
     constexpr uint32_t K_CHUNK_BYTES     = 16;
     constexpr uint32_t K_MAX_PLAN_INSTRS = 4096;
     constexpr uint32_t K_MAX_TREE_DEPTH  = 512;
-    constexpr uint32_t K_MAX_ROOT_CHAIN  = 32;
 
     // Lane operations the value graph models. Wider scalar forms map onto
     // these when their low 32 bits behave like the 32-bit operation.
@@ -423,7 +422,7 @@ namespace
     bool resolveRoot(SlpFunctionContext& fn, MicroReg baseReg, uint64_t& inOutOffset, uint32_t& outRootKey)
     {
         MicroReg reg = baseReg;
-        for (uint32_t depth = 0; depth < K_MAX_ROOT_CHAIN; ++depth)
+        for (uint32_t depth = 0; depth < MicroPassHelpers::K_MAX_ROOT_CHAIN; ++depth)
         {
             if (isStackPointer(fn, reg))
             {

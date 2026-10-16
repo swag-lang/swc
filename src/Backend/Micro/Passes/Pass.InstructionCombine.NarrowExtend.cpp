@@ -137,7 +137,6 @@ namespace InstructionCombine
         // a setcc byte zero-extended to at least 32 bits, possibly copied.
         bool isExtendedBooleanByte(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
         {
-            constexpr uint32_t K_MAX_COPY_CHAIN = 4;
             for (uint32_t depth = 0; depth < K_MAX_COPY_CHAIN; ++depth)
             {
                 const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);

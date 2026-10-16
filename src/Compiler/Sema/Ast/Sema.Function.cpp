@@ -497,6 +497,53 @@ namespace
         }
     }
 
+    // Pushes 'frame' as the frame of the body of 'sym': the body starts outside any inline
+    // expansion and error context.
+    void pushFunctionBodyFrame(Sema& sema, SemaFrame frame, SymbolFunction& sym)
+    {
+        frame.setEnclosingFunction(sema.currentFunction());
+        frame.setCurrentFunction(&sym);
+        frame.setCurrentInlinePayload(nullptr);
+        frame.setInlineContextRootRef(AstNodeRef::invalid());
+        frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+        // A nested function body must not inherit the enclosing body's flow-narrowing facts.
+        frame.clearNarrowFacts();
+        sema.pushFramePopOnPostNode(std::move(frame));
+    }
+
+    // Enters a function literal: declares its function, named after 'namePrefix', on first entry,
+    // and pushes the frame of its body. Returns the completed function a detached copy inherits,
+    // if any.
+    template<typename T>
+    const SymbolFunction* enterFunctionExpr(Sema& sema, const T& node, std::string_view namePrefix)
+    {
+        const SymbolFunction* inherited = sema.enteringState() ? inheritedFunctionExprSymbol(sema) : nullptr;
+        if (inherited)
+        {
+            SemaHelpers::addCurrentFunctionCallDependency(sema, inherited);
+        }
+        else if (sema.enteringState())
+        {
+            TaskContext& ctx = sema.ctx();
+            auto*        sym = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), SemaHelpers::getUniqueIdentifier(sema, namePrefix), sema.frame().flagsForCurrentAccess());
+            SymbolMap*   map = SemaFrame::currentSymMap(sema);
+            SWC_ASSERT(map != nullptr);
+            map->addSymbol(ctx, sym, true);
+
+            sym->setExtraFlags(node.flags());
+            sym->setDeclNodeRef(sema.curNodeRef());
+            sym->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
+            sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
+            sym->setDeclared(ctx);
+            sema.setSymbol(sema.curNodeRef(), sym);
+
+            SemaHelpers::addCurrentFunctionCallDependency(sema, sym);
+        }
+
+        auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        pushFunctionBodyFrame(sema, sema.frame(), sym);
+        return inherited;
+    }
 }
 
 Result Sema::completeLazyFunction(SymbolFunction& calledFn)
@@ -634,90 +681,19 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     keepPropagateOutOfNestedDeclarations(frame.currentAttributes());
     frame.setCurrentImpl(declImpl);
     frame.setCurrentInterface(declItf);
-    frame.setEnclosingFunction(sema.currentFunction());
-    frame.setCurrentFunction(&sym);
-    frame.setCurrentInlinePayload(nullptr);
-    frame.setInlineContextRootRef(AstNodeRef::invalid());
-    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
-    // A nested function body must not inherit the enclosing body's flow-narrowing facts.
-    frame.clearNarrowFacts();
-    sema.pushFramePopOnPostNode(std::move(frame));
+    pushFunctionBodyFrame(sema, std::move(frame), sym);
     return Result::Continue;
 }
 
 Result AstFunctionExpr::semaPreNode(Sema& sema) const
 {
-    const SymbolFunction* inherited = sema.enteringState() ? inheritedFunctionExprSymbol(sema) : nullptr;
-    if (inherited)
-    {
-        SemaHelpers::addCurrentFunctionCallDependency(sema, inherited);
-    }
-    else if (sema.enteringState())
-    {
-        TaskContext& ctx = sema.ctx();
-        auto*        sym = Symbol::make<SymbolFunction>(ctx, this, tokRef(), SemaHelpers::getUniqueIdentifier(sema, "__lambda"), sema.frame().flagsForCurrentAccess());
-        SymbolMap*   map = SemaFrame::currentSymMap(sema);
-        SWC_ASSERT(map != nullptr);
-        map->addSymbol(ctx, sym, true);
-
-        sym->setExtraFlags(flags());
-        sym->setDeclNodeRef(sema.curNodeRef());
-        sym->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
-        sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
-        sym->setDeclared(ctx);
-        sema.setSymbol(sema.curNodeRef(), sym);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, sym);
-    }
-
-    auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-    SemaFrame frame = sema.frame();
-    frame.setEnclosingFunction(sema.currentFunction());
-    frame.setCurrentFunction(&sym);
-    frame.setCurrentInlinePayload(nullptr);
-    frame.setInlineContextRootRef(AstNodeRef::invalid());
-    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
-    // A nested function body must not inherit the enclosing body's flow-narrowing facts.
-    frame.clearNarrowFacts();
-    sema.pushFramePopOnPostNode(std::move(frame));
+    const SymbolFunction* inherited = enterFunctionExpr(sema, *this, "__lambda");
     return inherited ? Result::SkipChildren : Result::Continue;
 }
 
 Result AstClosureExpr::semaPreNode(Sema& sema) const
 {
-    const SymbolFunction* inherited = sema.enteringState() ? inheritedFunctionExprSymbol(sema) : nullptr;
-    if (inherited)
-    {
-        SemaHelpers::addCurrentFunctionCallDependency(sema, inherited);
-    }
-    else if (sema.enteringState())
-    {
-        TaskContext& ctx = sema.ctx();
-        auto*        sym = Symbol::make<SymbolFunction>(ctx, this, tokRef(), SemaHelpers::getUniqueIdentifier(sema, "__closure"), sema.frame().flagsForCurrentAccess());
-        SymbolMap*   map = SemaFrame::currentSymMap(sema);
-        SWC_ASSERT(map != nullptr);
-        map->addSymbol(ctx, sym, true);
-
-        sym->setExtraFlags(flags());
-        sym->setDeclNodeRef(sema.curNodeRef());
-        sym->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
-        sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
-        sym->setDeclared(ctx);
-        sema.setSymbol(sema.curNodeRef(), sym);
-
-        SemaHelpers::addCurrentFunctionCallDependency(sema, sym);
-    }
-
-    auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-    SemaFrame frame = sema.frame();
-    frame.setEnclosingFunction(sema.currentFunction());
-    frame.setCurrentFunction(&sym);
-    frame.setCurrentInlinePayload(nullptr);
-    frame.setInlineContextRootRef(AstNodeRef::invalid());
-    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
-    // A nested function body must not inherit the enclosing body's flow-narrowing facts.
-    frame.clearNarrowFacts();
-    sema.pushFramePopOnPostNode(std::move(frame));
+    enterFunctionExpr(sema, *this, "__closure");
     return Result::Continue;
 }
 

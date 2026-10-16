@@ -56,15 +56,6 @@ namespace
         return indexTypeRef;
     }
 
-    ConstantRef resolveIndexOperandConstantRef(const SemaNodeView& argView)
-    {
-        if (argView.cstRef().isInvalid())
-            return ConstantRef::invalid();
-        if (!argView.cst() || !argView.cst()->isEnumValue())
-            return argView.cstRef();
-        return argView.cst()->getEnumValue();
-    }
-
     Result checkSliceSpecOpBound(Sema& sema, AstNodeRef argRef, const SemaNodeView& argView, int64_t& constIndex, bool& hasConstIndex)
     {
         if (argRef.isInvalid())
@@ -86,7 +77,7 @@ namespace
         if (!argView.cst())
             return Result::Continue;
 
-        const ConstantRef resolvedCstRef = resolveIndexOperandConstantRef(argView);
+        const ConstantRef resolvedCstRef = SemaHelpers::indexOperandConstantRef(argView);
         SWC_ASSERT(resolvedCstRef.isValid());
         const auto& idxInt = sema.cstMgr().get(resolvedCstRef).getInt();
         if (!idxInt.fits64())

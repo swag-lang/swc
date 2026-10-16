@@ -132,13 +132,14 @@ Result MicroFrameCompactPass::run(MicroPassContext& context)
     if (cursor < localRegion)
         regions.push_back({.offset = cursor, .size = localRegion - cursor, .alignment = alignmentOfOffset(cursor)});
 
+    // The regions tile the local area in offset order, none of them empty: the one holding an
+    // offset is the last that starts at or before it.
     const auto regionAt = [&](const uint64_t offset) -> uint32_t {
-        for (uint32_t i = 0; i < regions.size(); ++i)
-        {
-            if (offset >= regions[i].offset && offset < regions[i].offset + regions[i].size)
-                return i;
-        }
-        SWC_UNREACHABLE();
+        const auto after = std::ranges::upper_bound(regions, offset, {}, &FrameRegion::offset);
+        SWC_ASSERT(after != regions.begin());
+        const auto index = static_cast<uint32_t>(after - regions.begin() - 1);
+        SWC_ASSERT(offset < regions[index].offset + regions[index].size);
+        return index;
     };
 
     // The entry subtract sits right before the base definition and covers the locals

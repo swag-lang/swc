@@ -1536,10 +1536,11 @@ Result Sema::postNode(AstNode& node)
     {
         if (const auto* function = frame().currentFunction())
         {
-            const auto*    expansion   = frame().currentInlinePayload();
-            const uint16_t baseMask    = expansion ? expansion->runtimeSafetyMask : function->attributes().effectiveRuntimeSafetyMask(runtimeSafetyGuards());
-            const bool     baseEnabled = (baseMask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0;
-            const bool     enabled     = frame().currentAttributes().hasRuntimeSafety(runtimeSafetyGuards(), Runtime::SafetyWhat::ValueBorrow);
+            const Runtime::SafetyWhat guards      = runtimeSafetyGuards();
+            const auto*               expansion   = frame().currentInlinePayload();
+            const uint16_t            baseMask    = expansion ? expansion->runtimeSafetyMask : function->attributes().effectiveRuntimeSafetyMask(guards);
+            const bool                baseEnabled = (baseMask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0;
+            const bool                enabled     = frame().currentAttributes().hasRuntimeSafety(guards, Runtime::SafetyWhat::ValueBorrow);
             if (enabled != baseEnabled)
                 SemaHelpers::ensureCodeGenLoweringPayload(*this, nodeRef).valueBorrowSafetyOverride = enabled;
         }

@@ -107,7 +107,7 @@ namespace PostRaPeephole
             !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
             selected[0].reg != fallbackOps[0].reg || selected[1].reg != sum ||
             selected[2].cpuCond != MicroCond::AboveOrEqual || selected[3].opBits != (narrow ? MicroOpBits::B32 : bits) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(selectRef))
             return false;
 
         MicroInstrRef extendRef;
@@ -234,7 +234,7 @@ namespace PostRaPeephole
         const MicroInstr*   set    = setRef.isValid() ? &*scanIt : nullptr;
         const auto*         setOps = set ? set->ops(*ctx.operands) : nullptr;
         if (!set || set->op != MicroInstrOpcode::SetCondReg || !setOps || setOps[0].reg != load[0].reg ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, setRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(setRef))
             return false;
 
         uint64_t result;
@@ -407,7 +407,7 @@ namespace PostRaPeephole
             !add[0].reg.isInt() || !add[1].reg.isInt() || add[0].reg == add[1].reg ||
             ctx.isPrivateFrameBase(add[0].reg) || ctx.isPrivateFrameBase(add[1].reg) ||
             !ctx.isRegDeadAfterCurrent(add[1].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
 
         const MicroReg      result   = add[0].reg;
@@ -502,7 +502,7 @@ namespace PostRaPeephole
             mergeOps[1].reg != xorOps[1].reg || mergeOps[2].opBits != bits ||
             !copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps || copyOps[0].reg != merged ||
             copyOps[1].reg != result || copyOps[2].opBits != MicroOpBits::B64 ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, combineRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(combineRef))
             return false;
         const bool floor = mergeOps[3].microOp == MicroOp::And && combined[3].microOp == MicroOp::Add;
         const bool ceil  = mergeOps[3].microOp == MicroOp::Or && combined[3].microOp == MicroOp::Subtract;
@@ -605,7 +605,7 @@ namespace PostRaPeephole
             !select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
             selected[0].reg != result || selected[1].reg != value || selected[2].cpuCond != MicroCond::Equal ||
             selected[3].opBits != bits || !ctx.isRegDeadAfter(flag, ctx.instructionIndex + 3) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(selectRef))
             return false;
 
         MicroInstrOperand clear[2] = {};
@@ -705,7 +705,7 @@ namespace PostRaPeephole
             selected[2].cpuCond != MicroCond::Equal || selected[3].opBits != bits ||
             !ctx.isRegDeadAfter(left, ctx.instructionIndex + 4) ||
             !ctx.isRegDeadAfter(flag, ctx.instructionIndex + 4) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(selectRef))
             return false;
 
         MicroInstrOperand copy[3] = {};
@@ -1073,7 +1073,7 @@ namespace PostRaPeephole
             product[2].opBits != firstExt[2].opBits ||
             firstExt[0].reg == firstCmp[0].reg || firstExt[0].reg == secondCmp[0].reg ||
             !ctx.isRegDeadAfterCurrent(firstCmp[0].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, multiplyRef, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(multiplyRef) ||
             !ctx.claimAll({cmpFirstRef, setFirstRef, cmpSecondRef, setSecondRef, extFirstRef, extSecondRef, multiplyRef}))
             return false;
 
@@ -1180,7 +1180,7 @@ namespace PostRaPeephole
 
         bool claimCarryBoolean(Context& ctx, MicroInstrRef ref, const CarryBoolean& value)
         {
-            return MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) &&
+            return ctx.areCpuFlagsDeadAfter(ref) &&
                    ctx.claimAll({value.clearRef, value.compareRef, value.setRef, ref});
         }
     }
@@ -1239,7 +1239,7 @@ namespace PostRaPeephole
         const auto* cleared = clear->ops(*ctx.operands);
         if (!cleared || cleared[0].reg != ops[0].reg ||
             (cleared[1].opBits != MicroOpBits::B32 && cleared[1].opBits != MicroOpBits::B64) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({clearRef, compareRef, setRef, ref}))
             return false;
         MicroInstrOperand producer[3];
@@ -1426,7 +1426,7 @@ namespace PostRaPeephole
             firstCmp[0].reg == add[0].reg || secondCmp[0].reg == add[0].reg ||
             firstCmp[2].hasWideImmediateValue() || secondCmp[2].hasWideImmediateValue() ||
             firstCmp[2].valueU64 != 0 || secondCmp[2].valueU64 != 0 ||
-            (secondNonzero && !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder)) ||
+            (secondNonzero && !ctx.areCpuFlagsDeadAfter(ref)) ||
             !ctx.claimAll({cmpFirstRef, setFirstRef, cmpSecondRef, setSecondRef, extFirstRef, extSecondRef, ref}))
             return false;
 
@@ -1477,7 +1477,7 @@ namespace PostRaPeephole
             first[2].opBits != binary[2].opBits || second[2].opBits != binary[2].opBits ||
             first[3].opBits != MicroOpBits::B8 || second[3].opBits != MicroOpBits::B8 ||
             !ctx.isRegDeadAfterCurrent(second[0].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({extFirstRef, extSecondRef, ref}))
             return false;
 
@@ -1645,7 +1645,7 @@ namespace PostRaPeephole
         else if (onCarry != ((base + 1) & mask))
             return false;
 
-        if (!ctx.isRegDeadAfterCurrent(other) || !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+        if (!ctx.isRegDeadAfterCurrent(other) || !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({ref, resultLoad, otherLoad}))
             return false;
 
@@ -1675,7 +1675,7 @@ namespace PostRaPeephole
         if (!shift || !shift[0].reg.isInt() || ctx.isPrivateFrameBase(shift[0].reg) ||
             shift[1].opBits != MicroOpBits::B64 || shift[2].microOp != MicroOp::ShiftLeft ||
             shift[3].hasWideImmediateValue() || shift[3].valueU64 == 0 || shift[3].valueU64 > 31 ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
         const MicroInstrRef setRef   = ctx.previousRef(ref);
@@ -1708,7 +1708,7 @@ namespace PostRaPeephole
         if (!ops || !ops[0].reg.isInt() || ops[0].reg != ops[1].reg ||
             (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
             (ops[3].valueU64 != 1 && ops[3].valueU64 != UINT64_MAX) || ctx.isPrivateFrameBase(ops[0].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) || !ctx.claimAll({ref}))
+            !ctx.areCpuFlagsDeadAfter(ref) || !ctx.claimAll({ref}))
             return false;
 
         MicroInstrOperand unary[3];
@@ -1731,7 +1731,7 @@ namespace PostRaPeephole
             return false;
         const MicroReg other = ops[0].reg == ops[1].reg ? ops[2].reg : ops[1].reg;
         if ((ops[0].reg != ops[1].reg && ops[0].reg != ops[2].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) || !ctx.claimAll({ref}))
+            !ctx.areCpuFlagsDeadAfter(ref) || !ctx.claimAll({ref}))
             return false;
         MicroInstrOperand add[4] = {};
         add[0].reg               = ops[0].reg;
@@ -1779,7 +1779,7 @@ namespace PostRaPeephole
             return false;
         const auto* copied = copy->ops(*ctx.operands);
         if (!copied || copied[0].reg != select[0].reg || copied[1].reg != select[1].reg || copied[2].opBits != select[3].opBits ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({copyRef, negateRef, compareRef, ref}))
             return false;
         MicroInstrOperand rewritten[4] = {select[0], select[1], select[2], select[3]};
@@ -1813,7 +1813,7 @@ namespace PostRaPeephole
             ctx.isPrivateFrameBase(address[0].reg) || ctx.isPrivateFrameBase(address[1].reg) ||
             ctx.isPrivateFrameBase(addOps[0].reg) ||
             !ctx.isRegDeadAfter(address[0].reg, ctx.instructionIndex + 1) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
 
         MicroInstrOperand folded[8] = {};
@@ -1952,7 +1952,7 @@ namespace PostRaPeephole
         if (!add || add[3].microOp != MicroOp::Add || add[2].opBits != MicroOpBits::B64 || !add[0].reg.isInt() ||
             !add[1].reg.isInt() || add[0].reg == add[1].reg || ctx.isPrivateFrameBase(add[0].reg) ||
             ctx.isPrivateFrameBase(add[1].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
         return foldAddressIntoNextLoad(ctx, addRef, add[0].reg, add[0].reg, add[1].reg, 1, 0);
     }
@@ -2009,7 +2009,7 @@ namespace PostRaPeephole
                 return false;
         }
 
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(addRef))
             return false;
 
         MicroInstrOperand indexed[8] = {};
@@ -2067,7 +2067,7 @@ namespace PostRaPeephole
             addOps[0].reg != value || addOps[1].reg == value || !addOps[1].reg.isInt() ||
             addOps[2].opBits != MicroOpBits::B64 || addOps[3].microOp != MicroOp::Add ||
             ctx.isPrivateFrameBase(addOps[1].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
 
         MicroInstrOperand scaled[8] = {};
@@ -2124,7 +2124,7 @@ namespace PostRaPeephole
         if (result == scaled || result == other || other == scaled ||
             ctx.isPrivateFrameBase(result) || ctx.isPrivateFrameBase(scaled) || ctx.isPrivateFrameBase(other) ||
             !ctx.isRegDeadAfterCurrent(scaled) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
         MicroInstrOperand scaledAddress[8] = {};
@@ -2242,7 +2242,7 @@ namespace PostRaPeephole
             return false;
         if ((firstBool != result && !ctx.isRegDeadAfterCurrent(firstBool)) ||
             (secondBool != result && !ctx.isRegDeadAfterCurrent(secondBool)) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
         MicroInstrOperand     firstSelectOps[4]  = {select[0], select[1], firstSetOps[1], select[3]};
@@ -2283,7 +2283,7 @@ namespace PostRaPeephole
             (extOps[2].opBits != MicroOpBits::B32 && extOps[2].opBits != MicroOpBits::B64) ||
             (extOps[3].opBits != MicroOpBits::B8 && extOps[3].opBits != MicroOpBits::B16) ||
             getNumBits(extOps[3].opBits) + ops[3].valueU64 > 32 ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({extRef, ref}))
             return false;
         MicroInstrOperand rewritten[4] = {ops[0], ops[1], ops[2], ops[3]};
@@ -2587,7 +2587,7 @@ namespace PostRaPeephole
             (sourceOps[3].opBits != MicroOpBits::B8 && sourceOps[3].opBits != MicroOpBits::B16) ||
             getNumBits(cmpOps[1].opBits) < getNumBits(sourceOps[3].opBits) ||
             cmpOps[2].valueU64 > getBitsMask(sourceOps[3].opBits) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({sourceRef, cmpRef, setRef, ref}))
             return false;
         MicroInstrOperand clear[2]  = {};
@@ -2621,7 +2621,7 @@ namespace PostRaPeephole
             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
             (ops[2].microOp != MicroOp::ShiftRight && ops[2].microOp != MicroOp::ShiftArithmeticRight) || ops[3].hasWideImmediateValue() || ops[3].valueU64 != 8 ||
             (ext[0].reg != ext[1].reg && !ctx.isRegDeadAfterCurrent(ext[1].reg)) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({shiftRef, ref}))
             return false;
         const MicroInstrOperand extract[3] = {ext[0], ext[1], ext[2]};
@@ -2649,7 +2649,7 @@ namespace PostRaPeephole
             ops[3].valueU64 == 0 || ops[3].valueU64 >= 32 || ops[3].valueU64 + getNumBits(ext[3].opBits) > 32 ||
             ctx.isPrivateFrameBase(ops[0].reg) ||
             (ext[0].reg != ext[1].reg && !ctx.isRegDeadAfterCurrent(ext[1].reg)) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({shiftRef, ref}))
             return false;
         MicroInstrOperand narrowed[4] = {ops[0], ops[1], ops[2], ops[3]};
@@ -2685,7 +2685,7 @@ namespace PostRaPeephole
         const auto* cmpOps = cmp->ops(*ctx.operands);
         if (!cmpOps || !cmpOps[0].reg.isInt() || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0 ||
             (cmpOps[1].opBits != MicroOpBits::B32 && cmpOps[1].opBits != MicroOpBits::B64) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({cmpRef, setRef, ref}))
             return false;
         MicroInstrOperand copy[3] = {};

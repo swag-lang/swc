@@ -290,7 +290,7 @@ namespace PostRaPeephole
         if (!regUsedBeforeRedef(ctx, defRef, dst) &&
             (ctx.isRegDeadAfterCurrent(dst) || !ctx.physicalLiveness.valid))
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, defRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(defRef))
             return false;
 
         if (!ctx.claimAll({defRef}))

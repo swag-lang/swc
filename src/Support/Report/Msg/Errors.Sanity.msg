@@ -6,6 +6,7 @@ SWC_DIAG_DEF(sanity_err_null_deref, Error, "cannot dereference a null pointer; [
 SWC_DIAG_DEF(sanity_err_null_call, Error, "cannot call a null function pointer; [help] assign a function before calling the pointer")
 SWC_DIAG_DEF(sanity_err_return_local_address, Error, "cannot return the address of a local variable; [help] return caller-owned or heap-allocated storage")
 SWC_DIAG_DEF(sanity_err_use_after_move, Error, "cannot read a moved-from value; [help] assign the value before reading it")
+SWC_DIAG_DEF(sanity_err_write_after_move, Error, "cannot write through a pointer into moved-from storage; [help] rebind the pointer before writing through it")
 SWC_DIAG_DEF(sanity_err_free_borrowed, Error, "cannot free data borrowed from local variable '{sym}'; [help] allocate owned heap storage before calling 'free'")
 SWC_DIAG_DEF(sanity_err_free_global, Error, "cannot free a pointer to global storage; [help] release only a pointer the allocator returned")
 SWC_DIAG_DEF(sanity_err_return_released, Error, "cannot return a pointer to released memory; [help] return a live allocation, or read the value out before the release")

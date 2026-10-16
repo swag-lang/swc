@@ -24,6 +24,9 @@ struct SanitizerValue
     // Stack facts remember how many bytes a write or guard established. Zero means
     // the width is unknown; a wide copy must not promote it to eight bytes.
     uint8_t  storedBytes = 0;
+    // A pointer value that existed when its pointee was moved. Fresh addresses of
+    // the same storage can reinitialize it. This flag fits the existing padding.
+    bool     movedBorrow = false;
     uint64_t constant    = 0; // Constant
     int64_t  stackOffset = 0; // StackAddr
     // StackAddr only: frame offset the address was FORMED from (the start of the
@@ -34,7 +37,7 @@ struct SanitizerValue
 
     static SanitizerValue makeConstant(uint64_t value) { return {.kind = SanitizerValueKind::Constant, .constant = value}; }
     static SanitizerValue makeNonZero() { return {.kind = SanitizerValueKind::NonZero}; }
-    static SanitizerValue makeStackAddr(int64_t offset, int64_t origin = K_NO_ORIGIN) { return {.kind = SanitizerValueKind::StackAddr, .stackOffset = offset, .stackOrigin = origin}; }
+    static SanitizerValue makeStackAddr(int64_t offset, int64_t origin = K_NO_ORIGIN, bool movedBorrow = false) { return {.kind = SanitizerValueKind::StackAddr, .movedBorrow = movedBorrow, .stackOffset = offset, .stackOrigin = origin}; }
     static SanitizerValue makeGlobalAddr() { return {.kind = SanitizerValueKind::GlobalAddr}; }
 
     bool hasStackOrigin() const
@@ -87,7 +90,24 @@ struct SanitizerValue
 
     bool operator==(const SanitizerValue& o) const
     {
-        return kind == o.kind && storedBytes == o.storedBytes && constant == o.constant && stackOffset == o.stackOffset && stackOrigin == o.stackOrigin;
+        return kind == o.kind && storedBytes == o.storedBytes && movedBorrow == o.movedBorrow && constant == o.constant && stackOffset == o.stackOffset && stackOrigin == o.stackOrigin;
+    }
+
+    // A must-fact about an old borrow can disappear at a join without losing the
+    // address itself. Other disagreements still make the whole value unknown.
+    bool intersect(const SanitizerValue& from, bool& changed)
+    {
+        if (*this == from)
+            return true;
+        if (!isStackAddr() || !from.isStackAddr() || movedBorrow == from.movedBorrow)
+            return false;
+
+        const bool previous = movedBorrow;
+        movedBorrow         = from.movedBorrow;
+        const bool same     = *this == from;
+        movedBorrow         = previous && from.movedBorrow;
+        changed |= same && previous != movedBorrow;
+        return same;
     }
 };
 

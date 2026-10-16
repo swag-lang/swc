@@ -88,9 +88,9 @@ struct SanitizerRegInfo
     // so the two facts have to travel separately.
     int64_t pointerOriginSlot = 0;
 
-    bool operator==(const SanitizerRegInfo& o) const
+    bool sameProvenance(const SanitizerRegInfo& o) const
     {
-        return value == o.value && hasOriginSlot == o.hasOriginSlot && originSlot == o.originSlot && originSlotBits == o.originSlotBits &&
+        return hasOriginSlot == o.hasOriginSlot && originSlot == o.originSlot && originSlotBits == o.originSlotBits &&
                hasZeroTest == o.hasZeroTest && zeroTestSlot == o.zeroTestSlot && zeroTestSlotBits == o.zeroTestSlotBits && zeroTestTrueIfZero == o.zeroTestTrueIfZero &&
                hasPointerOriginSlot == o.hasPointerOriginSlot && pointerOriginSlot == o.pointerOriginSlot &&
                hasOriginReg == o.hasOriginReg && originReg == o.originReg &&
@@ -98,6 +98,11 @@ struct SanitizerRegInfo
                releasedOrigin.srcViewRef == o.releasedOrigin.srcViewRef && releasedOrigin.tokRef == o.releasedOrigin.tokRef &&
                hasOriginLocation == o.hasOriginLocation && originLocation == o.originLocation &&
                hasAddressLocation == o.hasAddressLocation && addressLocation == o.addressLocation;
+    }
+
+    bool operator==(const SanitizerRegInfo& o) const
+    {
+        return value == o.value && sameProvenance(o);
     }
 };
 

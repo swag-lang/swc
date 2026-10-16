@@ -11,11 +11,11 @@ struct MicroInstrOperand;
 
 enum class SanitizerCheckInterest : uint8_t
 {
-    Binary      = 1 << 0,
-    Call        = 1 << 1,
-    Dereference = 1 << 2,
-    PlainLoad   = 1 << 3,
-    Return      = 1 << 4,
+    Binary       = 1 << 0,
+    Call         = 1 << 1,
+    Dereference  = 1 << 2,
+    MovedStorage = 1 << 3,
+    Return       = 1 << 4,
 };
 
 // A single sanitizer check.

@@ -541,8 +541,16 @@ namespace
 
         lifecycleCtx.rightPayload = &stableRight;
 
-        MicroLabelRef doneLabel = MicroLabelRef::invalid();
-        if (stableRight.isAddress() && lifecycleCtx.target.payload.isAddress())
+        // Different frame slots cannot self-assign. Keep the guard for references,
+        // incoming arguments and return storage, whose addresses may alias.
+        const SymbolVariable* leftVar         = CodeGenMoveElision::directStructVariable(codeGen, leftRef);
+        const bool            distinctStorage = leftVar && rightVar && leftVar != rightVar &&
+                                     leftVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && rightVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
+                                     !leftVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) && !rightVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
+                                     leftVar->offset() != rightVar->offset() &&
+                                     !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *leftVar) && !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *rightVar);
+        MicroLabelRef         doneLabel       = MicroLabelRef::invalid();
+        if (stableRight.isAddress() && lifecycleCtx.target.payload.isAddress() && !distinctStorage)
         {
             doneLabel = builder.createLabel();
             builder.emitCmpRegReg(lifecycleCtx.target.payload.reg, stableRight.reg, MicroOpBits::B64);
@@ -560,17 +568,9 @@ namespace
         if (hasPostLifecycle)
             SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, postKind, lifecycleCtx.target.payload.reg));
 
-        // When both sides directly name two different struct variables, the runtime
-        // self-assignment guard can never trigger: the source invalidation is emitted
-        // after the guard's join label so the sanitizer marker survives the merge.
-        // Otherwise it stays inside the guarded region (a real self-assignment must not
-        // poison the value it just kept), where the marker dies at the join.
-        bool invalidateAfterGuard = false;
-        if (wantInvalidateSource && doneLabel.isValid())
-        {
-            const SymbolVariable* leftVar = CodeGenMoveElision::directStructVariable(codeGen, leftRef);
-            invalidateAfterGuard          = leftVar && rightVar && leftVar != rightVar;
-        }
+        // Preserve the existing named-source proof when another storage shape still
+        // needs a runtime guard: its invalidation belongs after the join.
+        const bool invalidateAfterGuard = wantInvalidateSource && doneLabel.isValid() && leftVar && rightVar && leftVar != rightVar;
 
         if (shouldResetSource && !elideSource)
             SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, rightTypeRef, stableRight.reg));
@@ -580,7 +580,7 @@ namespace
         if (doneLabel.isValid())
             builder.placeLabel(doneLabel);
 
-        if (wantInvalidateSource && invalidateAfterGuard)
+        if (invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
 
         // A call result - emitted, expanded inline, or behind an error-management wrapper,

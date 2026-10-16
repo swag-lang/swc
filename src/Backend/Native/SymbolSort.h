@@ -86,6 +86,9 @@ namespace SymbolSort
         }
     };
 
+    template<typename T>
+    void sortByLocation(std::vector<T*>& values, const CompilerInstance& compiler, LocationKeyCache& keys);
+
     template<typename T, typename MAKE_KEY>
     void sortAndUnique(std::vector<T*>& values, const MAKE_KEY& makeKey)
     {
@@ -120,6 +123,16 @@ namespace SymbolSort
     void sortAndUniqueByLocation(std::vector<T*>& values, const CompilerInstance& compiler, LocationKeyCache& keys)
     {
         values.erase(std::remove(values.begin(), values.end(), nullptr), values.end());
+        sortByLocation(values, compiler, keys);
+        values.erase(std::unique(values.begin(), values.end()), values.end());
+    }
+
+    // Sort a non-null, already unique symbol list by the same stable location order. Native
+    // code-generation dependencies are inserted through a membership set after their first sort,
+    // so later rounds need no null removal or duplicate scan.
+    template<typename T>
+    void sortByLocation(std::vector<T*>& values, const CompilerInstance& compiler, LocationKeyCache& keys)
+    {
         if (values.size() < 2)
             return;
 
@@ -132,13 +145,13 @@ namespace SymbolSort
             // Equal path prefixes leave only the ten-digit, zero-padded uint32 token.
             // Numeric order is identical, including the invalid token's UINT32_MAX value.
             std::ranges::stable_sort(values, {}, [](const T* symbol) { return symbol->tokRef().get(); });
-            values.erase(std::unique(values.begin(), values.end()), values.end());
             return;
         }
 
         // A key is the file part, which ends with the only separator it holds, then ten digits.
         // Two keys then compare as their file parts and, on a tie, as their token numbers, so the
         // keys need not be built: the same stable order comes from the parts.
+
         struct Located
         {
             T*          symbol = nullptr;
@@ -151,9 +164,17 @@ namespace SymbolSort
         located.reserve(values.size());
         for (T* symbol : values)
             located.push_back({.symbol = symbol, .prefix = &keys.prefix(*symbol), .tokRef = symbol->tokRef().get()});
+
         if (keys.hasInnerSeparator())
         {
-            sortAndUnique(values, [&keys](const T& symbol) { return keys.key(symbol); });
+            std::vector<Entry<T>> entries;
+            entries.reserve(values.size());
+            for (T* symbol : values)
+                entries.push_back({.symbol = symbol, .key = keys.key(*symbol)});
+            std::ranges::stable_sort(entries, {}, &Entry<T>::key);
+            values.clear();
+            for (const auto& entry : entries)
+                values.push_back(entry.symbol);
             return;
         }
 
@@ -168,14 +189,8 @@ namespace SymbolSort
         });
 
         values.clear();
-        T* previous = nullptr;
         for (const Located& entry : located)
-        {
-            if (entry.symbol == previous)
-                continue;
             values.push_back(entry.symbol);
-            previous = entry.symbol;
-        }
     }
 
     template<typename T>

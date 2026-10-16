@@ -173,28 +173,9 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
     const DataSegment& segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
 
-    if (constant.kind() == ConstantKind::Struct)
+    if (constant.kind() == ConstantKind::Struct || constant.kind() == ConstantKind::Array)
     {
-        const std::span<const std::byte> payload = constant.getStruct();
-        DataSegmentRef                   payloadRef;
-        const bool                       hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
-        SWC_ASSERT(hasPayloadRef);
-        SWC_ASSERT(payloadRef.shardIndex == shardIndex);
-        if (!hasPayloadRef)
-            return;
-
-        DataSegmentAllocation allocation;
-        SWC_ASSERT(segment.findAllocation(allocation, baseOffset));
-        SWC_ASSERT(allocation.offset == payloadRef.offset);
-        SWC_ASSERT(allocation.size >= payload.size());
-
-        validateNativeStaticPayload(constant.typeRef(), shardIndex, payloadRef.offset, payload);
-        return;
-    }
-
-    if (constant.kind() == ConstantKind::Array)
-    {
-        const std::span<const std::byte> payload = constant.getArray();
+        const std::span<const std::byte> payload = constant.kind() == ConstantKind::Struct ? constant.getStruct() : constant.getArray();
         DataSegmentRef                   payloadRef;
         const bool                       hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
         SWC_ASSERT(hasPayloadRef);

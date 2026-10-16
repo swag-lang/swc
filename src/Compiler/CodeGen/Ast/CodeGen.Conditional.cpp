@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -79,7 +80,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     {
         // Conditional expressions must short-circuit to preserve branch semantics.
         const CodeGenNodePayload& condPayload = codeGen.payload(resolvedChildRef);
-        const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : codeGen.viewType(resolvedChildRef).typeRef();
+        const TypeRef             condTypeRef = CodeGenExprView::payloadTypeRef(codeGen, condPayload, resolvedChildRef);
         const TypeInfo&           condType    = codeGen.typeMgr().get(condTypeRef);
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(condType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
@@ -259,7 +260,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         }
 
         const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedChildRef);
-        const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : codeGen.viewType(resolvedChildRef).typeRef();
+        const TypeRef             leftTypeRef = CodeGenExprView::payloadTypeRef(codeGen, leftPayload, resolvedChildRef);
         const TypeInfo&           leftType    = codeGen.typeMgr().get(leftTypeRef);
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(leftType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);

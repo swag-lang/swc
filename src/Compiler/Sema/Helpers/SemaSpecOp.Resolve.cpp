@@ -676,6 +676,22 @@ namespace
         return firstConstCandidate;
     }
 
+    // Leaves an indexed write to the write operator of the assignment around it.
+    void deferIndexAssignSpecOp(Sema& sema, AstNodeRef indexExprRef, bool& outHandled)
+    {
+        auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
+        sema.setSemaPayload(indexExprRef, payload);
+        outHandled = true;
+    }
+
+    // Binds the current assignment to its write operator 'calledFn'.
+    void bindAssignSpecOp(Sema& sema, SymbolFunction* calledFn, bool& outHandled)
+    {
+        sema.ensureSemaPayload<AssignSpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
+        outHandled = true;
+    }
+
     AstNodeRef normalizeIndexSpecOpArgRef(Sema& sema, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -1174,17 +1190,7 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     if (!matched)
         return Result::Continue;
 
-    auto* assignPayload = sema.semaPayload<AssignSpecOpPayload>(sema.curNodeRef());
-    if (!assignPayload)
-    {
-        assignPayload = sema.compiler().allocate<AssignSpecOpPayload>();
-        sema.setSemaPayload(sema.curNodeRef(), assignPayload);
-    }
-
-    assignPayload->calledFn = calledFn;
-
-    sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
-    outHandled = true;
+    bindAssignSpecOp(sema, calledFn, outHandled);
     return Result::Continue;
 }
 
@@ -1223,16 +1229,8 @@ Result SemaSpecOp::tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstN
     if (!matched)
         return Result::Continue;
 
-    auto* payload = sema.semaPayload<VarInitSpecOpPayload>(sema.curNodeRef());
-    if (!payload)
-    {
-        payload = sema.compiler().allocate<VarInitSpecOpPayload>();
-        sema.setSemaPayload(sema.curNodeRef(), payload);
-    }
-
-    payload->calledFn = calledFn;
-
-    outHandled = payload->calledFn != nullptr;
+    sema.ensureSemaPayload<VarInitSpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
+    outHandled                                                               = calledFn != nullptr;
     return Result::Continue;
 }
 
@@ -1471,9 +1469,7 @@ namespace
                 }
                 else if (!candidates.empty())
                 {
-                    auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-                    sema.setSemaPayload(indexExprRef, payload);
-                    outHandled = true;
+                    deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
                     return Result::Continue;
                 }
             }
@@ -1510,11 +1506,7 @@ namespace
         if (valueCandidates.empty() && ptrCandidates.empty())
         {
             if (deferToSimpleAssignWriteSpecOp)
-            {
-                auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-                sema.setSemaPayload(indexExprRef, payload);
-                outHandled = true;
-            }
+                deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
             return Result::Continue;
         }
 
@@ -1527,9 +1519,7 @@ namespace
                 splitMutableReceiverCandidates(sema, ptrCandidates.span(), mutableCandidates, constCandidates);
             if (mutableCandidates.empty())
             {
-                auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-                sema.setSemaPayload(indexExprRef, payload);
-                outHandled = true;
+                deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
                 return Result::Continue;
             }
         }
@@ -1584,11 +1574,7 @@ namespace
         if (!matched)
         {
             if (deferToSimpleAssignWriteSpecOp)
-            {
-                auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-                sema.setSemaPayload(indexExprRef, payload);
-                outHandled = true;
-            }
+                deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
             return Result::Continue;
         }
 
@@ -1599,9 +1585,7 @@ namespace
 
         if (deferToSimpleAssignWriteSpecOp && !returnType.isReference() && calledFn->specOpKind() != SpecOpKind::OpIndexPtr)
         {
-            auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-            sema.setSemaPayload(indexExprRef, payload);
-            outHandled = true;
+            deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
             return Result::Continue;
         }
 
@@ -1679,43 +1663,12 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         bool            setMatched = false;
         SWC_RESULT(probeIndexAssignSpecOp(sema, node, indexedExprRef, indexArgRefs.span(), candidates.span(), setFn, setMatched));
 
-        // A dedicated indexed write operator is more specific than mutating through an opIndex reference.
-        if (setMatched)
-        {
-            SWC_ASSERT(setFn);
-            canAssignThroughRef = false;
-        }
-
-        if (!setMatched)
-        {
-            if (!canAssignThroughRef)
-            {
-                SmallVector<AstNodeRef> args;
-                args.reserve(indexArgRefs.size() + 1);
-                for (const AstNodeRef indexArgRef : indexArgRefs)
-                    args.push_back(normalizeIndexSpecOpArgRef(sema, indexArgRef));
-                args.push_back(node.nodeRightRef);
-                sema.clearSemaPayload(leftNodeRef);
-                auto* deferredPayload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-                sema.setSemaPayload(leftNodeRef, deferredPayload);
-                SymbolFunction* calledFn = nullptr;
-                SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), indexedExprRef, false, nullptr, true, true, &calledFn));
-
-                auto* assignPayload = sema.semaPayload<AssignSpecOpPayload>(sema.curNodeRef());
-                if (!assignPayload)
-                {
-                    assignPayload = sema.compiler().allocate<AssignSpecOpPayload>();
-                    sema.setSemaPayload(sema.curNodeRef(), assignPayload);
-                }
-
-                assignPayload->calledFn = calledFn;
-
-                sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
-                outHandled = true;
-            }
-
+        // A dedicated indexed write operator is more specific than mutating through an opIndex
+        // reference; without one, the write goes through the reference when it can, and through
+        // the general write operator below otherwise.
+        SWC_ASSERT(!setMatched || setFn);
+        if (!setMatched && canAssignThroughRef)
             return Result::Continue;
-        }
     }
 
     SmallVector<AstNodeRef> args;
@@ -1729,17 +1682,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     SymbolFunction* calledFn = nullptr;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), indexedExprRef, false, nullptr, true, true, &calledFn));
 
-    auto* assignPayload = sema.semaPayload<AssignSpecOpPayload>(sema.curNodeRef());
-    if (!assignPayload)
-    {
-        assignPayload = sema.compiler().allocate<AssignSpecOpPayload>();
-        sema.setSemaPayload(sema.curNodeRef(), assignPayload);
-    }
-
-    assignPayload->calledFn = calledFn;
-
-    sema.setType(sema.curNodeRef(), sema.typeMgr().typeVoid());
-    outHandled = true;
+    bindAssignSpecOp(sema, calledFn, outHandled);
     return Result::Continue;
 }
 
@@ -1785,14 +1728,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     SymbolFunction*         calledFn = nullptr;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, false, nullptr, true, true, &calledFn));
 
-    auto* unaryPayload = sema.semaPayload<UnarySpecOpPayload>(sema.curNodeRef());
-    if (!unaryPayload)
-    {
-        unaryPayload = sema.compiler().allocate<UnarySpecOpPayload>();
-        sema.setSemaPayload(sema.curNodeRef(), unaryPayload);
-    }
-
-    unaryPayload->calledFn = calledFn;
+    sema.ensureSemaPayload<UnarySpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
     outHandled             = true;
     return Result::Continue;
 }
@@ -1904,14 +1840,7 @@ namespace
         SymbolFunction* calledFn = nullptr;
         SWC_RESULT(resolveSyntheticCall(sema, node, selected.candidates.span(), selected.args.span(), selected.receiverRef, false, nullptr, true, true, &calledFn));
 
-        auto* binaryPayload = sema.semaPayload<BinarySpecOpPayload>(sema.curNodeRef());
-        if (!binaryPayload)
-        {
-            binaryPayload = sema.compiler().allocate<BinarySpecOpPayload>();
-            sema.setSemaPayload(sema.curNodeRef(), binaryPayload);
-        }
-
-        binaryPayload->calledFn = calledFn;
+        sema.ensureSemaPayload<BinarySpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
         outHandled              = true;
         return Result::Continue;
     }
@@ -2043,19 +1972,13 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     SymbolFunction* calledFn = nullptr;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args, node.nodeLeftRef, false, nullptr, true, true, &calledFn));
 
-    auto* relationalPayload = sema.semaPayload<RelationalSpecOpPayload>(relRef);
-    if (!relationalPayload)
-    {
-        relationalPayload = sema.compiler().allocate<RelationalSpecOpPayload>();
-        sema.setSemaPayload(relRef, relationalPayload);
-    }
-
-    relationalPayload->calledFn = calledFn;
+    auto& relationalPayload    = sema.ensureSemaPayload<RelationalSpecOpPayload>(relRef);
+    relationalPayload.calledFn = calledFn;
 
     const SemaNodeView specOpView          = sema.viewConstant(relRef);
     const ConstantRef  specOpCstRef        = specOpView.cstRef();
     const AstNodeRef   relSubstRef         = specOpView.nodeRef();
-    relationalPayload->inlineSubstituteRef = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
+    relationalPayload.inlineSubstituteRef  = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
 
     switch (tok.id)
     {

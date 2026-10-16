@@ -379,6 +379,27 @@ namespace
         }
     }
 
+    // Runs the marker verification as its own timed stage; tells whether no error was raised.
+    bool runVerifyStage(TaskContext& ctx)
+    {
+        std::optional<ScopedTimedLog> stage;
+        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))
+            stage.emplace(ctx, ScopedTimedLog::Stage::Verify);
+        verifyExpectedMarkers(ctx);
+        return !Stats::hasError();
+    }
+
+    // A request to run 'function' at once, outside any node.
+    JITExecManager::Request immediateJitRequest(const SymbolFunction& function)
+    {
+        JITExecManager::Request request;
+        request.function     = &function;
+        request.nodeRef      = function.declNodeRef();
+        request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
+        request.runImmediate = true;
+        return request;
+    }
+
     struct DataSegmentSnapshot
     {
         ByteArray globalZero;
@@ -428,11 +449,7 @@ namespace
         if (!function.jitEntryAddress())
             return false;
 
-        JITExecManager::Request request;
-        request.function     = &function;
-        request.nodeRef      = function.declNodeRef();
-        request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
-        request.runImmediate = true;
+        const JITExecManager::Request request = immediateJitRequest(function);
         return CommandRun::afterPauses(ctx, [&] {
                    return ctx.compiler().jitExecMgr().submit(ctx, request);
                }) == Result::Continue &&
@@ -454,11 +471,7 @@ namespace
         // never comes through here.
         ctx.compiler().ensureProcessInfoRunArgs();
 
-        JITExecManager::Request request;
-        request.function     = &function;
-        request.nodeRef      = function.declNodeRef();
-        request.codeRef      = function.decl() ? function.decl()->codeRef() : SourceCodeRef::invalid();
-        request.runImmediate = true;
+        const JITExecManager::Request request = immediateJitRequest(function);
 
         const size_t errorsBefore = Stats::getNumErrors();
         while (true)
@@ -649,21 +662,13 @@ namespace
                     if (Stats::hasError())
                         return false;
 
-                    std::optional<ScopedTimedLog> stage;
-                    if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))
-                        stage.emplace(ctx, ScopedTimedLog::Stage::Verify);
-                    verifyExpectedMarkers(ctx);
-                    return !Stats::hasError();
+                    return runVerifyStage(ctx);
                 }
             }
         }
 
-        TaskContext                   ctx(compiler);
-        std::optional<ScopedTimedLog> stage;
-        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))
-            stage.emplace(ctx, ScopedTimedLog::Stage::Verify);
-        verifyExpectedMarkers(ctx);
-        return !Stats::hasError();
+        TaskContext ctx(compiler);
+        return runVerifyStage(ctx);
     }
 
 }

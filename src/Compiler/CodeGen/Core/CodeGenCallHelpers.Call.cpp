@@ -170,7 +170,7 @@ namespace
 
     TypeRef resolveUntypedVariadicArgTypeRef(CodeGen& codeGen, const CodeGenNodePayload& argPayload, AstNodeRef argRef)
     {
-        const TypeRef argTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
+        const TypeRef argTypeRef = CodeGenExprView::payloadTypeRef(codeGen, argPayload, argRef);
         if (argTypeRef.isValid() && !codeGen.ctx().typeMgr().get(argTypeRef).isAnyVariadic())
             return argTypeRef;
 
@@ -442,7 +442,7 @@ namespace
         if (argPayload.isAddress())
             return;
 
-        const TypeRef sourceTypeRef = argPayload.typeRef.isValid() ? argPayload.typeRef : codeGen.viewType(argRef).typeRef();
+        const TypeRef sourceTypeRef = CodeGenExprView::payloadTypeRef(codeGen, argPayload, argRef);
         SWC_ASSERT(sourceTypeRef.isValid());
         const TypeInfo& sourceType = ctx.typeMgr().get(sourceTypeRef);
         if ((sourceType.isPointerOrReference() && !resolvedArg.bindsReferenceToValue) || argPayload.hasMaterializedPointerLikeValue())
@@ -1687,7 +1687,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     {
         const ScopedDebugSource debugSource(builder, calleePayload->sourceCodeRef);
         CodeGenNodePayload      callablePayload = *calleePayload;
-        TypeRef                 callableTypeRef = callablePayload.typeRef.isValid() ? callablePayload.typeRef : codeGen.viewType(calleeRef).typeRef();
+        TypeRef                 callableTypeRef = CodeGenExprView::payloadTypeRef(codeGen, callablePayload, calleeRef);
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, callablePayload, callableTypeRef);
         SWC_ASSERT(callableTypeRef.isValid() && codeGen.typeMgr().get(callableTypeRef).isFunction());
         callTargetReg = materializeCallTargetReg(codeGen, callablePayload, *calledFunction, callConv, closureContextReg);

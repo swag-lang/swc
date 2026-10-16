@@ -141,12 +141,12 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     for (size_t i = 0; i < sections.size(); ++i)
         sections[i].sectionNumber = static_cast<uint16_t>(i + 1);
 
-    std::vector<CoffSymbolRecord>      symbols;
-    std::unordered_map<Utf8, uint32_t> symbolIndices;
-    addDefinedSymbols(description, sections, debugInfoResult.symbols, symbols, symbolIndices);
-    addUndefinedSymbols(sections, symbols, symbolIndices);
+    std::vector<CoffSymbolRecord> symbols;
+    CoffSymbolIndex               symbolIndex;
+    addDefinedSymbols(description, sections, debugInfoResult.symbols, symbols, symbolIndex);
+    addUndefinedSymbols(sections, symbols, symbolIndex);
 
-    return buildCoffFile(outBytes, sections, symbols, symbolIndices);
+    return buildCoffFile(outBytes, sections, symbols, symbolIndex);
 }
 
 Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
@@ -301,36 +301,38 @@ Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& sectio
     return Result::Continue;
 }
 
-void NativeObjFileWriterCoff::addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices, CoffSymbolRecord record)
+// 'record.name' is a copy; the index keys the name by the owner the caller copied it from.
+void NativeObjFileWriterCoff::addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex, const std::string_view ownedName, CoffSymbolRecord record)
 {
-    symbolIndices.emplace(record.name, static_cast<uint32_t>(symbols.size()));
+    SWC_ASSERT(ownedName == record.name.view());
+    symbolIndex.tryAdd(ownedName, static_cast<uint32_t>(symbols.size()));
     symbols.push_back(std::move(record));
 }
 
-void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices) const
+void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex) const
 {
     if (description.startup)
     {
-        addSymbolRecord(symbols, symbolIndices, {
-                                                    .name          = description.startup->symbolName,
-                                                    .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
-                                                    .value         = description.startup->textOffset,
-                                                    .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
-                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                });
+        addSymbolRecord(symbols, symbolIndex, description.startup->symbolName.view(), {
+                                                                                          .name          = description.startup->symbolName,
+                                                                                          .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
+                                                                                          .value         = description.startup->textOffset,
+                                                                                          .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
+                                                                                          .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                                                      });
     }
 
     for (const NativeFunctionInfo* info : description.functions)
     {
         if (!info)
             continue;
-        addSymbolRecord(symbols, symbolIndices, {
-                                                    .name          = info->symbolName,
-                                                    .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
-                                                    .value         = info->textOffset,
-                                                    .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
-                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                });
+        addSymbolRecord(symbols, symbolIndex, info->symbolName.view(), {
+                                                                           .name          = info->symbolName,
+                                                                           .sectionNumber = static_cast<int16_t>(sections[0].sectionNumber),
+                                                                           .value         = info->textOffset,
+                                                                           .type          = static_cast<uint16_t>(IMAGE_SYM_DTYPE_FUNCTION << 8),
+                                                                           .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                                       });
     }
 
     for (const auto& extraSymbol : extraSymbols)
@@ -349,13 +351,13 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         if (sectionNumber == 0)
             continue;
 
-        addSymbolRecord(symbols, symbolIndices, {
-                                                    .name          = extraSymbol.name,
-                                                    .sectionNumber = sectionNumber,
-                                                    .value         = extraSymbol.value,
-                                                    .type          = extraSymbol.type,
-                                                    .storageClass  = extraSymbol.storageClass,
-                                                });
+        addSymbolRecord(symbols, symbolIndex, extraSymbol.name.view(), {
+                                                                           .name          = extraSymbol.name,
+                                                                           .sectionNumber = sectionNumber,
+                                                                           .value         = extraSymbol.value,
+                                                                           .type          = extraSymbol.type,
+                                                                           .storageClass  = extraSymbol.storageClass,
+                                                                       });
     }
 
     for (uint32_t i = 0; i < description.rdataAllocationCount; ++i)
@@ -363,13 +365,14 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         const auto& allocation = builder_->rdataAllocationMap[description.rdataShardIndex][description.rdataAllocationIndex + i];
         const auto& section    = sections[i + 1];
         SWC_ASSERT(section.data.name == ".rdata" || section.data.name == ".rbss");
-        addSymbolRecord(symbols, symbolIndices, {
-                                                    .name          = builder_->rdataAllocationSymbol(allocation),
-                                                    .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                                                    .value         = 0,
-                                                    .type          = 0,
-                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                });
+        const Utf8& rdataName = allocation.symbolName.empty() ? symbolIndex.ownedNames.emplace_back(builder_->rdataAllocationSymbol(allocation)) : allocation.symbolName;
+        addSymbolRecord(symbols, symbolIndex, rdataName.view(), {
+                                                                    .name          = rdataName,
+                                                                    .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                                    .value         = 0,
+                                                                    .type          = 0,
+                                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                                });
     }
 
     if (!description.includeData)
@@ -387,23 +390,23 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         if (!baseName)
             continue;
 
-        addSymbolRecord(symbols, symbolIndices, {
-                                                    .name          = *baseName,
-                                                    .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                                                    .value         = 0,
-                                                    .type          = 0,
-                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                });
+        addSymbolRecord(symbols, symbolIndex, baseName->view(), {
+                                                                    .name          = *baseName,
+                                                                    .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                                    .value         = 0,
+                                                                    .type          = 0,
+                                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                                });
     }
 }
 
-void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices)
+void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex)
 {
     for (const auto& section : sections)
     {
         for (const auto& relocation : section.relocations)
         {
-            if (!symbolIndices.try_emplace(relocation.symbolName, static_cast<uint32_t>(symbols.size())).second)
+            if (!symbolIndex.tryAdd(relocation.symbolName.view(), static_cast<uint32_t>(symbols.size())))
                 continue;
 
             symbols.push_back({.name = relocation.symbolName, .sectionNumber = 0, .value = 0, .type = 0, .storageClass = IMAGE_SYM_CLASS_EXTERNAL});
@@ -411,7 +414,7 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
     }
 }
 
-Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices)
+Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex)
 {
     outBytes.clear();
     CoffStringTable stringTable;
@@ -505,12 +508,12 @@ Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<C
 
         for (const auto& relocation : section.relocations)
         {
-            const auto it = symbolIndices.find(relocation.symbolName);
-            SWC_ASSERT(it != symbolIndices.end());
+            const uint32_t* symbolTableIndex = symbolIndex.find(relocation.symbolName.view());
+            SWC_ASSERT(symbolTableIndex != nullptr);
 
             IMAGE_RELOCATION relocRecord{};
             relocRecord.VirtualAddress   = relocation.offset;
-            relocRecord.SymbolTableIndex = it->second;
+            relocRecord.SymbolTableIndex = *symbolTableIndex;
             relocRecord.Type             = relocation.type;
             std::memcpy(outBytes.data() + relocOffset, &relocRecord, sizeof(relocRecord));
             relocOffset += sizeof(IMAGE_RELOCATION);

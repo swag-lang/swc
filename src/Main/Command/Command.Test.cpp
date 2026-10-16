@@ -49,16 +49,6 @@ namespace
         return false;
     }
 
-    uint32_t codeRangeEndLine(const TaskContext& ctx, const SourceCodeRange& codeRange)
-    {
-        if (!codeRange.srcView || !codeRange.len)
-            return codeRange.line;
-
-        SourceCodeRange endRange;
-        endRange.fromOffset(ctx, *codeRange.srcView, codeRange.offset + codeRange.len - 1, 1);
-        return endRange.line;
-    }
-
     bool functionSourceLineSpan(const CompilerInstance& compiler, const SymbolFunction& function, uint32_t& outLineStart, uint32_t& outLineEnd)
     {
         const AstNode* decl = function.decl();
@@ -80,7 +70,7 @@ namespace
             return false;
 
         outLineStart = startRange.line;
-        outLineEnd   = codeRangeEndLine(ctx, startRange);
+        outLineEnd   = startRange.endLine(ctx);
 
         const auto* compilerFunction = decl->safeCast<AstCompilerFunc>();
         if (compilerFunction && compilerFunction->nodeBodyRef.isValid())
@@ -88,7 +78,7 @@ namespace
             const AstNode&        body      = declAst.node(compilerFunction->nodeBodyRef);
             const SourceCodeRange bodyRange = body.codeRangeWithChildren(ctx, declAst, declView);
             if (bodyRange.srcView && bodyRange.len)
-                outLineEnd = std::max(outLineEnd, codeRangeEndLine(ctx, bodyRange));
+                outLineEnd = std::max(outLineEnd, bodyRange.endLine(ctx));
         }
 
         return true;

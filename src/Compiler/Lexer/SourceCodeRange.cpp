@@ -83,4 +83,14 @@ void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view,
     }
 }
 
+uint32_t SourceCodeRange::endLine(const TaskContext& ctx) const
+{
+    if (!srcView || !len)
+        return line;
+
+    SourceCodeRange endRange;
+    endRange.fromOffset(ctx, *srcView, offset + len - 1, 1);
+    return endRange.line;
+}
+
 SWC_END_NAMESPACE();

@@ -14,6 +14,9 @@ struct SourceCodeRange
     uint32_t          column  = 0;
 
     void fromOffset(const TaskContext& ctx, const SourceView& view, uint32_t inOffset, uint32_t inLen = 1);
+
+    // The line containing the final byte, or the starting line for an empty range.
+    uint32_t endLine(const TaskContext& ctx) const;
 };
 
 struct SourceCodeRef

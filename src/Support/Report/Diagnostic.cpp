@@ -110,16 +110,6 @@ namespace
 
     constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 
-    uint32_t codeRangeEndLine(const TaskContext& ctx, const SourceCodeRange& codeRange)
-    {
-        if (codeRange.srcView == nullptr || codeRange.len == 0)
-            return codeRange.line;
-
-        SourceCodeRange endRange;
-        endRange.fromOffset(ctx, *codeRange.srcView, codeRange.offset + codeRange.len - 1, 1);
-        return endRange.line;
-    }
-
     bool isFrontEndError(const Diagnostic& diagnostic)
     {
         if (diagnostic.elements().empty())
@@ -385,7 +375,7 @@ void Diagnostic::report(TaskContext& ctx) const
                     SourceFile& file = ctx.compiler().file(fileOwner_);
                     file.setHasError();
                     const SourceCodeRange startRange = reportedDiagnostic.elements_.front()->codeRange(0, ctx);
-                    file.addErrorLineRange(startRange.line, codeRangeEndLine(ctx, startRange));
+                    file.addErrorLineRange(startRange.line, startRange.endLine(ctx));
                 }
             }
             break;

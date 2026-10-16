@@ -145,7 +145,7 @@ namespace
             return;
         }
 
-        if (type.isSlice() || type.isPointerOrReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+        if (type.hasDirectPayloadTypeRef())
         {
             collectModuleApiTypeRefDependencies(collector, type.payloadTypeRef());
             return;

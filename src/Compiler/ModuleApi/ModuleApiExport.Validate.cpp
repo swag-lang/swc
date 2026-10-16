@@ -135,7 +135,7 @@ namespace
         if (type.isArray())
             return validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, type.payloadArrayElemTypeRef(), stack);
 
-        if (type.isSlice() || type.isPointerOrReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+        if (type.hasDirectPayloadTypeRef())
             return validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, type.payloadTypeRef(), stack);
 
         if (type.isFunction())

@@ -172,6 +172,7 @@ public:
     bool isPointerLikeOrReference() const noexcept { return isPointerLike() || isReference(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
+    bool hasDirectPayloadTypeRef() const noexcept { return isTypeValue() || isPointerOrReference() || isSlice() || isTypedVariadic() || isCodeBlock(); }
     bool isArrayOrSlice() const noexcept { return isArray() || isSlice(); }
     bool isIndirectIndexable() const noexcept { return isPointerOrReference() || isSlice() || isTypedVariadic(); }
     bool isIndexable() const noexcept { return isArrayOrSlice() || isString() || isCString() || isAnyVariadic(); }

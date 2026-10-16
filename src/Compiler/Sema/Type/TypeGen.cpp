@@ -49,7 +49,7 @@ namespace
 
         if (type.isArray())
             ok = canReflectTypeRef(ctx, type.payloadArrayElemTypeRef(), visiting);
-        else if (type.isSlice() || type.isPointerOrReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+        else if (type.hasDirectPayloadTypeRef())
             ok = canReflectTypeRef(ctx, type.payloadTypeRef(), visiting);
         else if (type.isAlias())
             ok = canReflectTypeRef(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);

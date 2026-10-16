@@ -1617,6 +1617,18 @@ namespace
         return true;
     }
 
+    inline bool tryGetShortCircuitBoolValue(bool& outValue, MicroCond setCond, MicroCond branchCond)
+    {
+        if (setCond == branchCond)
+        {
+            outValue = true;
+            return true;
+        }
+
+        MicroCond invertedCond = MicroCond::Unconditional;
+        return MicroPassHelpers::invertCondition(invertedCond, setCond) && invertedCond == branchCond;
+    }
+
     // How many low bits of `reg` the instruction reads, or 0 when the read is
     // not one of the plain copies, compares and extensions a boolean meets.
     uint32_t booleanReadBits(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg reg)
@@ -2069,12 +2081,8 @@ namespace
                 continue;
             const MicroReg value = storage.ptr(chain[0])->ops(operands)[0].reg;
 
-            const MicroCond setCond = setOps[1].cpuCond;
-            MicroCond       invCond = MicroCond::Unconditional;
-            bool            boolOne = false;
-            if (setCond == jumpOps[0].cpuCond)
-                boolOne = true;
-            else if (!MicroPassHelpers::invertCondition(invCond, setCond) || invCond != jumpOps[0].cpuCond)
+            bool boolOne = false;
+            if (!tryGetShortCircuitBoolValue(boolOne, setOps[1].cpuCond, jumpOps[0].cpuCond))
                 continue;
 
             // The join copies the value on, reading no more than the boolean.
@@ -2431,12 +2439,8 @@ namespace
                 continue;
 
             // The branch condition pins the boolean's value on the taken edge.
-            const MicroCond setCond = setOps[1].cpuCond;
-            MicroCond       invCond = MicroCond::Unconditional;
-            bool            boolOne = false;
-            if (setCond == jumpOps[0].cpuCond)
-                boolOne = true;
-            else if (!MicroPassHelpers::invertCondition(invCond, setCond) || invCond != jumpOps[0].cpuCond)
+            bool boolOne = false;
+            if (!tryGetShortCircuitBoolValue(boolOne, setOps[1].cpuCond, jumpOps[0].cpuCond))
                 continue;
 
             // The join: copies of the boolean, `cmp B, 0`, a conditional jump.

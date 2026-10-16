@@ -1179,6 +1179,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     ctx.physicalLivenessReady = false;
     ctx.upperHalfReady        = false;
     ctx.upperHalfValid        = false;
+    ctx.lastFlagsDeadRef      = MicroInstrRef::invalid();
 
     const CallConv& conv = CallConv::get(context.callConvKind);
     ctx.passContext      = &context;

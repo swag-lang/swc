@@ -1615,7 +1615,7 @@ namespace PostRaPeephole
         if (!add || add->op != MicroInstrOpcode::OpBinaryRegReg || !ops || ops[3].microOp != MicroOp::Add ||
             ops[0].reg != src || !ops[1].reg.isInt() || !mul[1].reg.isInt() ||
             ops[2].opBits != copy[2].opBits || mul[2].opBits != copy[2].opBits ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
         MicroInstrOperand address[8] = {};
         address[0].reg               = dst;
@@ -1661,7 +1661,7 @@ namespace PostRaPeephole
         const auto* ops = add->ops(*ctx.operands);
         if (!ops || ops[3].microOp != MicroOp::Add || ops[0].reg != copy[1].reg || !ops[1].reg.isInt() ||
             ops[2].opBits != copy[2].opBits || !ctx.isRegDeadAfterCurrent(copy[1].reg) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
         MicroInstrOperand address[8] = {};
         address[0].reg               = copy[0].reg;
@@ -1731,7 +1731,7 @@ namespace PostRaPeephole
             !extend || extend->op != MicroInstrOpcode::LoadSignedExtRegReg || !extended ||
             extended[0].reg != result || extended[1].reg != merged ||
             extended[2].opBits != MicroOpBits::B64 || extended[3].opBits != MicroOpBits::B32 ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subtractRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(subtractRef))
             return false;
 
         const MicroInstrRef otherLoadRef  = ctx.previousRef(copyRef);
@@ -1844,7 +1844,7 @@ namespace PostRaPeephole
             !extend || extend->op != MicroInstrOpcode::LoadSignedExtRegReg || !extended ||
             extended[0].reg != result || extended[1].reg != mask ||
             extended[2].opBits != MicroOpBits::B64 || extended[3].opBits != MicroOpBits::B32 ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
 
         const MicroInstrRef otherLoadRef  = ctx.previousRef(copyRef);
@@ -1940,7 +1940,7 @@ namespace PostRaPeephole
             !initialCopyInst || initialCopyInst->op != MicroInstrOpcode::LoadRegReg || !initialCopy ||
             initialCopy[0].reg != merged || initialCopy[1].reg != result || initialCopy[2].opBits != MicroOpBits::B64 ||
             !xorOps[1].reg.isInt() || xorOps[1].reg == result || xorOps[1].reg == merged ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subtractRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(subtractRef))
             return false;
 
         MicroInstrOperand rewrittenXor[4]      = {orOps[0], orOps[1], orOps[2], orOps[3]};
@@ -1991,7 +1991,7 @@ namespace PostRaPeephole
         const auto*         sub         = subtract ? subtract->ops(*ctx.operands) : nullptr;
         if (!subtract || subtract->op != MicroInstrOpcode::OpBinaryRegReg || !sub ||
             sub[0].reg != merged || sub[1].reg != result || sub[2].opBits != MicroOpBits::B32 || sub[3].microOp != MicroOp::Subtract ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, subtractRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(subtractRef))
             return false;
 
         const MicroInstrRef shiftRef = ctx.previousRef(subtractRef);
@@ -2574,7 +2574,7 @@ namespace PostRaPeephole
             selected[0].reg != result || selected[1].reg != common || selected[3].opBits != bits ||
             !ctx.isRegDeadAfter(firstCount, ctx.instructionIndex + 4) ||
             !ctx.isRegDeadAfter(common, ctx.instructionIndex + 4) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(selectRef))
             return false;
         if (instructionMentionsAny(ctx, *compare, {result, common, firstCount, secondCount}))
             return false;
@@ -2688,7 +2688,7 @@ namespace PostRaPeephole
             return false;
         const bool firstCountDead = ctx.isRegDeadAfter(firstCount, ctx.instructionIndex + 5);
         const bool commonDead     = ctx.isRegDeadAfter(common, ctx.instructionIndex + 5);
-        const bool flagsDead      = MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder);
+        const bool flagsDead      = ctx.areCpuFlagsDeadAfter(selectRef);
         if (!firstCountDead || !commonDead || !flagsDead)
             return false;
         if (instructionMentionsAny(ctx, compareInst, {result, common, firstCount, secondCount}))
@@ -2789,7 +2789,7 @@ namespace PostRaPeephole
             selected[0].reg != result || selected[1].reg != common || selected[3].opBits != bits ||
             !ctx.isRegDeadAfter(firstCount, ctx.instructionIndex + 3) ||
             !ctx.isRegDeadAfter(common, ctx.instructionIndex + 3) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(selectRef))
             return false;
         if (instructionMentionsAny(ctx, compareInst, {result, common, firstCount, secondCount}))
             return false;
@@ -2918,7 +2918,7 @@ namespace PostRaPeephole
             !ctx.isRegDeadAfter(alternate, ctx.instructionIndex + 7) ||
             !ctx.isRegDeadAfter(firstCount, ctx.instructionIndex + 7) ||
             !ctx.isRegDeadAfter(common, ctx.instructionIndex + 7) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(selectRef))
             return false;
         MicroCond inverted;
         if (!MicroPassHelpers::invertCondition(inverted, selected[2].cpuCond))
@@ -3318,7 +3318,7 @@ namespace PostRaPeephole
             (selected[3].opBits != bits && !(bits == MicroOpBits::B16 && selected[3].opBits == MicroOpBits::B32)) ||
             !ctx.isRegDeadAfter(firstVarying, ctx.instructionIndex + 4) ||
             !ctx.isRegDeadAfter(common, ctx.instructionIndex + 4) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(selectRef))
             return false;
 
         MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
@@ -3408,7 +3408,7 @@ namespace PostRaPeephole
             added[0].reg != result || !added[1].reg.isInt() || added[1].reg == result || added[1].reg == alternative ||
             added[2].opBits != selected[3].opBits || added[3].microOp != MicroOp::Add ||
             !ctx.isRegDeadAfter(alternative, ctx.instructionIndex + 3) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
 
         MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
@@ -3454,7 +3454,7 @@ namespace PostRaPeephole
         if (!ops || ops[3].microOp != MicroOp::Add || ops[0].reg != copy[0].reg || !ops[1].reg.isInt() ||
             (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64) ||
             getNumBits(copy[2].opBits) < getNumBits(ops[2].opBits) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, addRef, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
         MicroInstrOperand address[8] = {};
         address[0].reg               = copy[0].reg;

@@ -53,6 +53,14 @@ namespace PostRaPeephole
         bool                  upperHalfReady = false;
         bool                  upperHalfValid = false;
 
+        // Whether nothing reads the CPU flags left after `ref`. The rules anchored on one
+        // instruction ask it about that instruction in turn, each answer scanning ahead.
+        // The scan only queues rewrites, so the last answer stays exact until the run
+        // ends; run() forgets it before the next one.
+        bool                  areCpuFlagsDeadAfter(MicroInstrRef ref) const;
+        mutable MicroInstrRef lastFlagsDeadRef = MicroInstrRef::invalid();
+        mutable bool          lastFlagsDead    = false;
+
         bool isUpperHalfZeroBefore(MicroInstrRef ref, MicroReg reg);
         bool isRegDeadAfterCurrent(MicroReg reg);
         bool isRegDeadAfter(MicroReg reg, uint32_t index);

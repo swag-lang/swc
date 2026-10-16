@@ -405,9 +405,10 @@ impl AllocatorPage
         while Swag.atomicCompareExchange(&.remoteLock, 0, 1) != 0 {}
     }
 
-    // A release is all an unlock needs: the next owner takes the lock with a compare-exchange,
-    // which sees every write made under it. The locked exchange it replaced ordered nothing more
-    // that anyone reads.
+    // Releases the lock and publishes the protected writes.
+    //
+    // The next owner's compare-exchange acquires those writes. An exchange here would
+    // add a locked instruction without strengthening that handoff.
     mtd unlockRemote()
     {
         Swag.atomicStore(&.remoteLock, 0)

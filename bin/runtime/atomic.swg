@@ -29,21 +29,26 @@ impl AtomicValue
     // Returns the current value.
     mtd const load()->T => Swag.atomicLoad(cast #unconst (*T, &.storage))
 
-    // Returns the current value. When it was written by [[Swag.AtomicValue.storeRelease]],
-    // everything the writing thread did before that write is visible after this read.
+    // Returns the current value.
+    //
+    // When it was written by [[Swag.AtomicValue.storeRelease]], everything the writing
+    // thread did before that write is visible after this read.
     mtd const loadAcquire()->T => Swag.atomicLoad(cast #unconst (*T, &.storage))
 
-    // Returns the current value, ordered against nothing else: for a count or a statistic that no
-    // other access depends on.
+    // Returns the current value without ordering other accesses.
+    //
+    // Use it for a count or statistic that no other access depends on.
     mtd const loadRelaxed()->T => Swag.atomicLoad(cast #unconst (*T, &.storage))
 
     // Replaces the value.
     mtd store(value: T) { discard Swag.atomicExchange(&.storage, value) }
 
-    // Replaces the value. A thread whose [[Swag.AtomicValue.loadAcquire]] reads it also sees
-    // everything this thread wrote before: the way to publish data behind a flag, or to release a
-    // lock. It does not order a later read of this thread against it, which is what the plain
-    // [[Swag.AtomicValue.store]] is for.
+    // Replaces the value and publishes earlier writes.
+    //
+    // A thread whose [[Swag.AtomicValue.loadAcquire]] reads it sees everything written
+    // before it: this can publish data behind a flag or release a lock. A later read
+    // in this thread is not ordered against the store; [[Swag.AtomicValue.store]]
+    // provides that ordering.
     mtd storeRelease(value: T) { Swag.atomicStore(&.storage, value) }
 
     // Replaces the value, ordered against nothing else.

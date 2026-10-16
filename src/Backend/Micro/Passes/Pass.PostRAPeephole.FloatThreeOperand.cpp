@@ -22,7 +22,8 @@ namespace PostRaPeephole
 {
     namespace
     {
-        constexpr uint32_t K_MAX_COPY_FOLD_SCAN = 8;
+        constexpr uint32_t K_MAX_COPY_FOLD_SCAN         = 8;
+        constexpr uint32_t K_MAX_COPY_FOLD_LOOKAHEAD    = 12;
 
         bool hasThreeOperandForm(const MicroOp op)
         {
@@ -2135,13 +2136,11 @@ namespace PostRaPeephole
         if (!dst.isFloat() || !src.isFloat() || dst == src)
             return false;
 
-        constexpr uint32_t kMaxScan = 12;
-
         auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
         ++scanIt;
         MicroInstrRef     opRef  = scanIt.current;
         const MicroInstr* opInst = nullptr;
-        for (uint32_t step = 0; step < kMaxScan && scanIt.current.isValid(); ++step, ++scanIt)
+        for (uint32_t step = 0; step < K_MAX_COPY_FOLD_LOOKAHEAD && scanIt.current.isValid(); ++step, ++scanIt)
         {
             opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;
@@ -2232,13 +2231,11 @@ namespace PostRaPeephole
         // control flow can enter from elsewhere - reaching the operation
         // without having run the copy would find a destination that never
         // received src1.
-        constexpr uint32_t kMaxScan = 12;
-
         auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
         ++scanIt;
         MicroInstrRef     opRef  = scanIt.current;
         const MicroInstr* opInst = nullptr;
-        for (uint32_t step = 0; step < kMaxScan && scanIt.current.isValid(); ++step, ++scanIt)
+        for (uint32_t step = 0; step < K_MAX_COPY_FOLD_LOOKAHEAD && scanIt.current.isValid(); ++step, ++scanIt)
         {
             opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;

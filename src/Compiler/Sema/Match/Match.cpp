@@ -17,6 +17,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // A generic function or struct root: the overload checks skip it instead of waiting for its type.
+    bool isGenericFunctionOrStructRoot(const Symbol& symbol)
+    {
+        if (symbol.isFunction())
+            return symbol.cast<SymbolFunction>().isGenericRoot();
+        return symbol.isStruct() && symbol.cast<SymbolStruct>().isGenericRoot();
+    }
+
     using MatchPriority  = MatchContext::Priority;
     using VisibilityTier = MatchContext::VisibilityTier;
 
@@ -583,9 +591,7 @@ Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCalle
     for (const Symbol* other : fallbackSymbols)
     {
         SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
-        if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
-            continue;
-        if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+        if (isGenericFunctionOrStructRoot(*other))
             continue;
         SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
     }
@@ -636,9 +642,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
             SWC_ASSERT(sym.isTyped());
-            if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
-                continue;
-            if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+            if (isGenericFunctionOrStructRoot(*other))
                 continue;
             SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))
@@ -673,9 +677,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (sym.acceptOverloads() && other->acceptOverloads())
         {
             SWC_ASSERT(sym.isTyped());
-            if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
-                continue;
-            if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+            if (isGenericFunctionOrStructRoot(*other))
                 continue;
             SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))

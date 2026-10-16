@@ -122,13 +122,6 @@ namespace
         return DebugPath::normalizedString(fs::path(sourcePath.c_str()).parent_path());
     }
 
-    Utf8 buildInfoFileName(const Utf8& sourcePath)
-    {
-        if (sourcePath.empty())
-            return {};
-        return {fs::path(sourcePath.c_str()).filename().string()};
-    }
-
     // ---- Hashing ------------------------------------------------------------------------------------
 
     uint32_t loadLe32(const char* p)
@@ -730,7 +723,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
         const Utf8     primarySource = module.primaryFileIndex < debugInfo.files.size() ? debugInfo.files[module.primaryFileIndex].path : module.name;
         const uint32_t currentDirId  = appendStringIdRecord(ipiRecords, ipiIndexEnd, buildInfoDirectory(primarySource));
         const uint32_t buildToolId   = appendStringIdRecord(ipiRecords, ipiIndexEnd, {});
-        const uint32_t sourceFileId  = appendStringIdRecord(ipiRecords, ipiIndexEnd, buildInfoFileName(primarySource));
+        const uint32_t sourceFileId  = appendStringIdRecord(ipiRecords, ipiIndexEnd, DebugPath::buildInfoFileName(primarySource));
         const uint32_t pdbFileId     = appendStringIdRecord(ipiRecords, ipiIndexEnd, pdbPath);
         const uint32_t commandLineId = appendStringIdRecord(ipiRecords, ipiIndexEnd, {});
         module.buildInfoIndex        = appendBuildInfoRecord(ipiRecords, ipiIndexEnd, {currentDirId, buildToolId, sourceFileId, pdbFileId, commandLineId});

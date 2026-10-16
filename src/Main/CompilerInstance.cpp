@@ -204,17 +204,31 @@ namespace
         return baseName;
     }
 
+    // The configured work directory, then the command-line one, then the temporary directory.
+    // Writes a function's JIT entry into its constant data slot, under the allocation's lock.
+    void patchJitFunctionSlot(ConstantManager& cstMgr, DataSegmentRef storage, void* address)
+    {
+        DataSegment&          segment = cstMgr.shardDataSegment(storage.shardIndex);
+        DataSegmentAllocation allocation;
+        SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
+        const std::scoped_lock allocationLock(segment.allocationMutex(allocation.offset));
+        *segment.ptr<void*>(storage.offset) = address;
+    }
+
+    fs::path workOrTemporaryDirectory(const CompilerInstance& compiler)
+    {
+        const Utf8 workDir = CompilerInstance::buildCfgString(compiler.buildCfg().workDir);
+        if (!workDir.empty())
+            return FileSystem::absolutePathNoThrow(fs::path(workDir.c_str()));
+        if (!compiler.cmdLine().workDir.empty())
+            return FileSystem::absolutePathNoThrow(compiler.cmdLine().workDir);
+        return FileSystem::absolutePathNoThrow(Os::getTemporaryPath());
+    }
+
     fs::path generatedSourceOutputDirectory(const CompilerInstance& compiler)
     {
         if (compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.buildCfg().backend.debugInfo)
-        {
-            const Utf8 workDir = CompilerInstance::buildCfgString(compiler.buildCfg().workDir);
-            if (!workDir.empty())
-                return FileSystem::absolutePathNoThrow(fs::path(workDir.c_str()));
-            if (!compiler.cmdLine().workDir.empty())
-                return FileSystem::absolutePathNoThrow(compiler.cmdLine().workDir);
-            return FileSystem::absolutePathNoThrow(Os::getTemporaryPath());
-        }
+            return workOrTemporaryDirectory(compiler);
 
         const Utf8 outDir = CompilerInstance::buildCfgString(compiler.buildCfg().outDir);
         if (!outDir.empty())
@@ -224,14 +238,7 @@ namespace
         if (!compiler.cmdLine().exportApiDir.empty())
             return FileSystem::absolutePathNoThrow(compiler.cmdLine().exportApiDir);
 
-        const Utf8 workDir = CompilerInstance::buildCfgString(compiler.buildCfg().workDir);
-        if (!workDir.empty())
-            return FileSystem::absolutePathNoThrow(fs::path(workDir.c_str()));
-
-        if (!compiler.cmdLine().workDir.empty())
-            return FileSystem::absolutePathNoThrow(compiler.cmdLine().workDir);
-
-        return FileSystem::absolutePathNoThrow(Os::getTemporaryPath());
+        return workOrTemporaryDirectory(compiler);
     }
 
     fs::path generatedSourceDumpPath(const CompilerInstance& compiler, const uint32_t threadIndex)
@@ -1034,11 +1041,7 @@ void CompilerInstance::registerDeferredJitConstantFunction(SymbolFunction& symbo
 
     // A reflected generic method may still be compiling its own body. Keep its slot
     // empty until its code and dependencies are executable, and retain the relocation.
-    DataSegment&          segment = cstMgr().shardDataSegment(storage.shardIndex);
-    DataSegmentAllocation allocation;
-    SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
-    const std::scoped_lock allocationLock(segment.allocationMutex(allocation.offset));
-    *segment.ptr<void*>(storage.offset) = address;
+    patchJitFunctionSlot(cstMgr(), storage, address);
 }
 
 void CompilerInstance::publishJitFunctionEntry(SymbolFunction& symbol, void* address)
@@ -1050,13 +1053,7 @@ void CompilerInstance::publishJitFunctionEntry(SymbolFunction& symbol, void* add
         if (it != deferredJitConstantFunctions_.end())
         {
             for (const DataSegmentRef storage : it->second)
-            {
-                DataSegment&          segment = cstMgr().shardDataSegment(storage.shardIndex);
-                DataSegmentAllocation allocation;
-                SWC_FORCE_ASSERT(segment.findAllocation(allocation, storage.offset));
-                const std::scoped_lock allocationLock(segment.allocationMutex(allocation.offset));
-                *segment.ptr<void*>(storage.offset) = address;
-            }
+                patchJitFunctionSlot(cstMgr(), storage, address);
             deferredJitConstantFunctions_.erase(it);
         }
         // Registration checks this address under the same lock: it either joins the

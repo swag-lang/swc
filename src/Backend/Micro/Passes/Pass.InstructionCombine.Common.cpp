@@ -282,8 +282,6 @@ namespace InstructionCombine
 
     bool isRelocatedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
     {
-        constexpr uint32_t K_MAX_COPY_CHAIN = 4;
-
         for (uint32_t depth = 0; depth < K_MAX_COPY_CHAIN; ++depth)
         {
             if (!reg.isVirtualInt() || !ctx.ssa)

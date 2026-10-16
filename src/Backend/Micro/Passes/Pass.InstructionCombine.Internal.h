@@ -14,6 +14,8 @@ struct MicroPassContext;
 
 namespace InstructionCombine
 {
+    constexpr uint32_t K_MAX_COPY_CHAIN = 4;
+
     // A single rewrite command emitted by a pattern and applied after the
     // scan completes. Rewrites mutate opcode + operands in place when the
     // new operand count fits the existing block; otherwise allocOps forces

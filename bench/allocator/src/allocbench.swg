@@ -455,9 +455,9 @@ func produce(ring: *Ring, seed: u64)
     {
         let block = cast([*] u8, Memory.alloc(random.smallSize()))
         block[0] = 1
-        while Swag.atomget(&ring.head) - Swag.atomget(&ring.tail) >= XferRing {}
+        while Swag.atomicLoad(&ring.head) - Swag.atomicLoad(&ring.tail) >= XferRing {}
         ring.slots[ring.head % XferRing] = cast(u64, block)
-        discard Swag.atomxchg(&ring.head, ring.head + 1)
+        discard Swag.atomicExchange(&ring.head, ring.head + 1)
     }
 }
 
@@ -470,10 +470,10 @@ func consume(ring: *Ring, latency: *Latency?)
     var spent = 0'u64
     for n in XferCount
     {
-        while Swag.atomget(&ring.head) == ring.tail {}
+        while Swag.atomicLoad(&ring.head) == ring.tail {}
         let start = latency ? Time.monotonicTicks() : 0
         Memory.free(cast([*] void, ring.slots[ring.tail % XferRing]), 0)
-        discard Swag.atomxchg(&ring.tail, ring.tail + 1)
+        discard Swag.atomicExchange(&ring.tail, ring.tail + 1)
         if latency
         {
             spent += Time.monotonicTicks() - start
@@ -491,8 +491,8 @@ func work(job: *Job)
 {
     if job.gate
     {
-        discard Swag.atomadd(&job.gate.arrived, 1)
-        while Swag.atomget(&job.gate.open) == 0 {}
+        discard Swag.atomicAdd(&job.gate.arrived, 1)
+        while Swag.atomicLoad(&job.gate.open) == 0 {}
     }
 
     let start = Time.monotonicTicks()
@@ -577,7 +577,7 @@ func parseWorkload(name: string)->Workload fail
         jobs[i].gate     = gated ? &gate : null
         jobs[i].latency  = latency and i == (workload == .Xfer ? 1 : 0) ? &recorder : null
         jobs[i].producer = i % 2 == 0
-        try pool[i].init(func||(thread: Threading.Thread) { work(cast(*Job, thread.userParam!)) }, &jobs[i])
+        try pool[i].init(func||(thread: const *Threading.Thread) { work(cast(*Job, thread.userParam!)) }, &jobs[i])
         try pool[i].start()
     }
 
@@ -585,9 +585,9 @@ func parseWorkload(name: string)->Workload fail
     var phaseStart = 0'u64
     if gated
     {
-        while Swag.atomget(&gate.arrived) < count {}
+        while Swag.atomicLoad(&gate.arrived) < count {}
         phaseStart = Time.monotonicTicks()
-        discard Swag.atomxchg(&gate.open, 1)
+        discard Swag.atomicExchange(&gate.open, 1)
     }
 
     var operations = 0'u64

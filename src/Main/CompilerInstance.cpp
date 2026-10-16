@@ -1585,6 +1585,27 @@ std::array<uint8_t, 32> CompilerInstance::sourceFileChecksum(const SourceFile& f
     return sourceChecksums_.try_emplace(path, checksum).first->second;
 }
 
+namespace
+{
+    Result reportAstFileWriteFailure(TaskContext& ctx, const fs::path& path, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    // The system's reason for a failed stream operation, or the operation itself when it gave none.
+    Utf8 streamFailureReason(FileSystem::IoProblem problem)
+    {
+        const Utf8 because = Os::systemError();
+        if (because.empty())
+            return FileSystem::describeIoProblem(problem);
+        return FileSystem::normalizeSystemMessage(because);
+    }
+}
+
 Result CompilerInstance::flushGeneratedSourceDumps(TaskContext& ctx)
 {
     for (PerThreadData& td : perThreadData_)
@@ -1596,63 +1617,21 @@ Result CompilerInstance::flushGeneratedSourceDumps(TaskContext& ctx)
         std::error_code ec;
         fs::create_directories(generated.path.parent_path(), ec);
         if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportAstFileWriteFailure(ctx, generated.path, FileSystem::normalizeSystemMessage(ec));
 
         std::ofstream generatedStream(generated.path, std::ios::binary | std::ios::trunc);
         if (!generatedStream.is_open())
-        {
-            Utf8 because = Os::systemError();
-            if (because.empty())
-                because = FileSystem::describeIoProblem(FileSystem::IoProblem::OpenWrite);
-            else
-                because = FileSystem::normalizeSystemMessage(because);
-
-            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportAstFileWriteFailure(ctx, generated.path, streamFailureReason(FileSystem::IoProblem::OpenWrite));
 
         if (!generated.content.empty())
             generatedStream.write(generated.content.data(), static_cast<std::streamsize>(generated.content.size()));
 
         if (!generatedStream)
-        {
-            Utf8 because = Os::systemError();
-            if (because.empty())
-                because = FileSystem::describeIoProblem(FileSystem::IoProblem::Write);
-            else
-                because = FileSystem::normalizeSystemMessage(because);
-
-            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportAstFileWriteFailure(ctx, generated.path, streamFailureReason(FileSystem::IoProblem::Write));
 
         generatedStream.close();
         if (!generatedStream)
-        {
-            Utf8 because = Os::systemError();
-            if (because.empty())
-                because = FileSystem::describeIoProblem(FileSystem::IoProblem::CloseWrite);
-            else
-                because = FileSystem::normalizeSystemMessage(because);
-
-            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportAstFileWriteFailure(ctx, generated.path, streamFailureReason(FileSystem::IoProblem::CloseWrite));
 
         generated.dirty = false;
     }

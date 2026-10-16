@@ -14,6 +14,8 @@ class MicroBuilder;
 
 namespace PostRaPeephole
 {
+    constexpr int K_MAX_LIVENESS_WINDOW = 32;
+
     struct Action
     {
         // Indexed address forms carry eight operands.

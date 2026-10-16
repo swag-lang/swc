@@ -18,8 +18,6 @@ namespace PostRaPeephole
 {
     namespace
     {
-        constexpr int K_MAX_LIVENESS_WINDOW = 32;
-
         bool canForwardImmediateToBinaryOp(MicroOp op, MicroOpBits bits)
         {
             return op != MicroOp::MultiplySigned || bits != MicroOpBits::B8;

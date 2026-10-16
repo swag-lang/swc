@@ -29,7 +29,6 @@ namespace PostRaPeephole
 {
     namespace
     {
-        constexpr int      K_MAX_LIVENESS_WINDOW    = 32;
         constexpr int      K_MAX_SAME_COPY_WINDOW   = 16;
         constexpr uint32_t K_MAX_COPY_SOURCE_WINDOW = 16;
 

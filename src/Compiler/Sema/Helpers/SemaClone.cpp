@@ -503,7 +503,7 @@ namespace
     // A struct, interface or union declaration: its generic parameters, constraints and body are
     // cloned as an inline context.
     template<AstNodeId ID, typename T>
-    AstNodeRef cloneAggregateDecl(Sema& sema, const T& node, const SemaClone::CloneContext& cloneContext)
+    AstNodeRef cloneAggregateDecl(Sema& sema, const T& node, const CloneContext& cloneContext)
     {
         const AstNodeRef newRef     = cloneNodeCopy<ID>(sema, node);
         auto&            cloned     = sema.node(newRef).cast<T>();

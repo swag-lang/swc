@@ -1525,8 +1525,10 @@ Result NativeBackendBuilder::runAfterLink()
     return Result::Continue;
 }
 
-Result NativeBackendBuilder::runExistingArtifact()
+Result NativeBackendBuilder::runExistingArtifact(ArtifactRunReport* report)
 {
+    if (report)
+        *report = {};
     SWC_ASSERT(compiler_ != nullptr);
     if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
@@ -1540,7 +1542,7 @@ Result NativeBackendBuilder::runExistingArtifact()
     artifactPath = paths.artifactPath;
     pdbPath      = paths.pdbPath;
     compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
-    return runGeneratedArtifact();
+    return runGeneratedArtifact(report);
 }
 
 Result NativeBackendBuilder::prepare()
@@ -1952,7 +1954,7 @@ struct NativeBackendBuilder::NativeTestProgressContext
     ScopedTimedLog*       stage   = nullptr;
 };
 
-Result NativeBackendBuilder::runGeneratedArtifact()
+Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
 {
     std::optional<ScopedTimedLog> stage;
     if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Run))
@@ -1997,6 +1999,12 @@ Result NativeBackendBuilder::runGeneratedArtifact()
 
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(compiler_->cmdLine());
     const auto              result  = Os::runProcess(exitCode, artifactPath, runArgs, artifactDir.empty() ? buildDir : artifactDir, &options);
+    if (report)
+    {
+        report->completed = result == Os::ProcessRunResult::Ok;
+        report->exitCode  = exitCode;
+        report->output    = artifactOutput;
+    }
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

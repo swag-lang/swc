@@ -104,6 +104,13 @@ public:
         uint32_t failed   = 0;
     };
 
+    struct ArtifactRunReport
+    {
+        bool        completed = false;
+        uint32_t    exitCode  = UINT32_MAX;
+        std::string output;
+    };
+
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
     ~NativeBackendBuilder();
 
@@ -132,7 +139,7 @@ public:
     bool                                 artifactLinked() const { return artifactLinked_; }
 
     Result                       run();
-    Result                       runExistingArtifact();
+    Result                       runExistingArtifact(ArtifactRunReport* report = nullptr);
     Result                       prepare();
     std::vector<SymbolFunction*> collectPreparedFunctions() const
     {
@@ -240,7 +247,7 @@ private:
     Result      validateTarget();
     void        prepareFunctionCache();
     Result      buildObjects();
-    Result      runGeneratedArtifact();
+    Result      runGeneratedArtifact(ArtifactRunReport* report = nullptr);
     Result      runAfterLink();
 
     mutable std::once_flag                                               scopedSymbolNamesOnce_;

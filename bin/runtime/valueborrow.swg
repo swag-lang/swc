@@ -115,7 +115,7 @@ private func valueBorrowRemove(registry: *ValueBorrowRegistry, record: *ValueBor
     if record.previous do
         record.previous.next = record.next
     else do
-        registry.head = record.next
+        Swag.atomicStore(cast(*u64, &registry.head), cast(u64, record.next))
     if record.next do
         record.next.previous = record.previous
     valueBorrowFilterChange(registry, record.address, record.size, ~0'u64)
@@ -138,7 +138,7 @@ func __valueBorrowEnter(storage: *void, address: *void, size: u64, location: con
     record.next     = registry.head
     if registry.head do
         registry.head.previous = record
-    registry.head = record
+    Swag.atomicStore(cast(*u64, &registry.head), cast(u64, record))
     valueBorrowUnlock(registry)
 }
 
@@ -183,6 +183,11 @@ func __valueBorrowWrite(address: *void, size: u64, location: const *SourceCodeLo
         return
     let start    = cast(u64, address)
     let registry = valueBorrowRegistry()
+
+    // A published empty list has no overlap to inspect. Head changes remain atomic
+    // under the writer lock; this read only bypasses work while no record is active.
+    if Swag.atomicLoad(cast(*u64, &registry.head)) == 0 do
+        return
     if valueBorrowFilterMiss(registry, start, size) do
         return
     valueBorrowLock(registry)

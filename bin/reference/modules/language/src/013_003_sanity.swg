@@ -116,10 +116,16 @@ and the caller has no way to know.
 /**
 # Use of Moved-From Values
 
-Reading a local abandoned by '#move' or '#relocate' (and not reset) is a proven
-error at compile time ('.Lifecycle'). At runtime, the '.Lifecycle' **safety** half
-additionally poisons abandoned storage with '0xDD' so the accesses the static check
-cannot prove still fail deterministically.
+The '.Lifecycle' sanity check rejects a proven read from a local abandoned by '#move'
+or '#relocate' and not reset. It also rejects a write through a pointer into that local
+when the pointer predates the move, including a self-pointer copied inside the moved value.
+Direct reassignment and a fresh pointer can reinitialize the source; an 'opPostMove' hook
+can rebind a self-pointer to the destination.
+
+The proof follows known frame addresses within a function. A call can reinitialize
+storage, so moved-from facts do not survive an ordinary call. The '.Lifecycle' runtime
+**safety** guard additionally poisons abandoned storage with '0xDD'; this exposes stale
+reads that the static check cannot prove, but does not catch a stale pointer's write.
 */
 #test
 {

@@ -127,8 +127,7 @@ namespace
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& typeInfo = ctx.typeMgr().get(symVar.typeRef());
         SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-        const TypeInfo* unwrappedType   = typeInfo.unwrapAliasType(ctx);
-        const TypeInfo& storageTypeInfo = unwrappedType ? *unwrappedType : typeInfo;
+        const TypeInfo& storageTypeInfo = typeInfo.unwrapAliasTypeOrSelf(ctx);
         const TypeRef   storageTypeRef  = storageTypeInfo.typeRef();
 
         const uint64_t sizeU64 = storageTypeInfo.sizeOf(ctx);
@@ -1065,8 +1064,7 @@ namespace
             if (requiresExplicitInit && supportsDefiniteInit)
             {
                 const TypeInfo& type          = sema.typeMgr().get(finalTypeRef);
-                const TypeInfo* unwrappedType = type.unwrapAliasType(sema.ctx());
-                const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
+                const TypeInfo& storageType   = type.unwrapAliasTypeOrSelf(sema.ctx());
                 // Definite assignment tracks a complete static array as one
                 // construction unit. Element/range coverage remains deliberately
                 // conservative, but a known whole-object construction such as
@@ -1221,8 +1219,7 @@ namespace
         if (sema.isCurrentFunction() && !isParameter && context.nodeInitRef.isInvalid())
         {
             const TypeInfo& type          = sema.typeMgr().get(finalTypeRef);
-            const TypeInfo* unwrappedType = type.unwrapAliasType(sema.ctx());
-            const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
+            const TypeInfo& storageType   = type.unwrapAliasTypeOrSelf(sema.ctx());
             if (requiresExplicitInit || storageType.isStruct())
                 sema.noteInitFlowCandidate();
         }

@@ -250,8 +250,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     const SemaNodeView view = sema.viewType(nodeTypeRef);
     SWC_ASSERT(view.type());
 
-    const TypeInfo* unwrappedType = view.type()->unwrapAliasType(sema.ctx());
-    const TypeInfo& qualifiedType = unwrappedType ? *unwrappedType : *view.type();
+    const TypeInfo& qualifiedType = view.type()->unwrapAliasTypeOrSelf(sema.ctx());
 
     TypeInfoFlags typeFlags = qualifiedType.flags();
     if (this->hasFlag(AstQualifiedTypeFlagsE::Const))

@@ -78,8 +78,7 @@ namespace
         const TypeInfo* type = &ctx.typeMgr().get(typeRef);
         if (type->isPointerOrReference())
             type = &ctx.typeMgr().get(type->payloadTypeRef());
-        const TypeInfo* unwrappedType = type->unwrapAliasType(ctx);
-        return unwrappedType ? *unwrappedType : *type;
+        return type->unwrapAliasTypeOrSelf(ctx);
     }
 
     bool isOpBinarySecondParamImmutable(TaskContext& ctx, const SymbolFunction& sym, TypeRef typeRef)
@@ -280,8 +279,7 @@ namespace
             return reportSpecOpError(sema, sym, kind);
 
         const TypeInfo& declaredReturnType  = typeMgr.get(sym.returnTypeRef());
-        const TypeInfo* unwrappedReturnType = declaredReturnType.unwrapAliasType(ctx);
-        const TypeInfo& returnType          = unwrappedReturnType ? *unwrappedReturnType : declaredReturnType;
+        const TypeInfo& returnType          = declaredReturnType.unwrapAliasTypeOrSelf(ctx);
         const TypeRef   returnTypeRef       = returnType.typeRef();
 
         const bool    receiverIsConst  = params[0]->type(ctx).isConst();

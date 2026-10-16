@@ -1697,8 +1697,7 @@ namespace
         SWC_ASSERT(contextTypeRef.isValid());
 
         const TypeInfo& contextType    = codeGen.typeMgr().get(contextTypeRef);
-        const TypeInfo* resolvedAlias  = contextType.unwrapAliasType(codeGen.ctx());
-        const TypeInfo& rawContextType = resolvedAlias ? *resolvedAlias : contextType;
+        const TypeInfo& rawContextType = contextType.unwrapAliasTypeOrSelf(codeGen.ctx());
         if (rawContextType.isPointerOrReference())
         {
             if (!contextPayload.isAddress())

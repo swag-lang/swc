@@ -1319,8 +1319,7 @@ namespace
         {
             const SymbolVariable& fieldVar      = symbols[0]->cast<SymbolVariable>();
             const TypeInfo&       fieldType     = fieldVar.typeInfo(sema.ctx());
-            const TypeInfo*       unwrappedType = fieldType.unwrapAliasType(sema.ctx());
-            const TypeInfo&       fieldRealType = unwrappedType ? *unwrappedType : fieldType;
+            const TypeInfo&       fieldRealType = fieldType.unwrapAliasTypeOrSelf(sema.ctx());
             if (fieldRealType.isFunction())
                 canExtractConstantMember = false;
             // A 'late' field's value only exists at runtime: extracting the

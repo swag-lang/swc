@@ -1062,6 +1062,24 @@ namespace
         return storage.data();
     }
 
+    void pushJitArgument(SmallVector<JITArgument>& outJitArgs, TypeRef typeRef, const void* valuePtr)
+    {
+        JITArgument arg;
+        arg.typeRef  = typeRef;
+        arg.valuePtr = valuePtr;
+        outJitArgs.push_back(arg);
+    }
+
+    // Passes the address of 'pointee' as an argument of type 'typeRef', held in 'storageSize' bytes.
+    void pushJitPointerArgument(SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs, TypeRef typeRef, uint64_t storageSize, const std::byte* pointee)
+    {
+        auto& argStorage = outArgStorage.emplace_back();
+        reserveJitFoldStorage(argStorage, storageSize);
+        const uint64_t ptr = reinterpret_cast<uint64_t>(pointee);
+        std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
+        pushJitArgument(outJitArgs, typeRef, argStorage.data());
+    }
+
     void verifyJitFoldRedzones(Sema& sema, const SymbolFunction& calledFn, const SmallVector<SmallVector<std::byte>>& argStorage)
     {
 #if SWC_DEV_MODE
@@ -1155,15 +1173,7 @@ namespace
                 reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
                 SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeType) == Result::Continue);
 
-                auto& argStorage = outArgStorage.emplace_back();
-                reserveJitFoldStorage(argStorage, argStorageSize);
-                const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
-                std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
-
-                JITArgument arg;
-                arg.typeRef  = argValueTypeRef;
-                arg.valuePtr = argStorage.data();
-                outJitArgs.push_back(arg);
+                pushJitPointerArgument(outArgStorage, outJitArgs, argValueTypeRef, argStorageSize, pointeeStorage.data());
                 continue;
             }
 
@@ -1180,10 +1190,7 @@ namespace
             reserveJitFoldStorage(argStorage, argStorageSize);
             SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueType) == Result::Continue);
 
-            JITArgument arg;
-            arg.typeRef  = argValueTypeRef;
-            arg.valuePtr = argStorage.data();
-            outJitArgs.push_back(arg);
+            pushJitArgument(outJitArgs, argValueTypeRef, argStorage.data());
         }
 
         outBuilt = true;
@@ -1267,15 +1274,7 @@ namespace
                 if (receiverInitCstRef.isValid())
                     SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, receiverInitCstRef, receiverType) == Result::Continue);
 
-                auto& argStorage = outArgStorage.emplace_back();
-                reserveJitFoldStorage(argStorage, argStorageSize);
-                const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
-                std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
-
-                JITArgument arg;
-                arg.typeRef  = argValueTypeRef;
-                arg.valuePtr = argStorage.data();
-                outJitArgs.push_back(arg);
+                pushJitPointerArgument(outArgStorage, outJitArgs, argValueTypeRef, argStorageSize, pointeeStorage.data());
                 outReceiverStorage = pointeeStorage.data();
                 continue;
             }
@@ -1322,15 +1321,7 @@ namespace
                 reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
                 SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeType) == Result::Continue);
 
-                auto& argStorage = outArgStorage.emplace_back();
-                reserveJitFoldStorage(argStorage, argStorageSize);
-                const uint64_t ptr = reinterpret_cast<uint64_t>(pointeeStorage.data());
-                std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
-
-                JITArgument arg;
-                arg.typeRef  = argValueTypeRef;
-                arg.valuePtr = argStorage.data();
-                outJitArgs.push_back(arg);
+                pushJitPointerArgument(outArgStorage, outJitArgs, argValueTypeRef, argStorageSize, pointeeStorage.data());
                 continue;
             }
 
@@ -1344,10 +1335,7 @@ namespace
             reserveJitFoldStorage(argStorage, argStorageSize);
             SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueType) == Result::Continue);
 
-            JITArgument arg;
-            arg.typeRef  = argValueTypeRef;
-            arg.valuePtr = argStorage.data();
-            outJitArgs.push_back(arg);
+            pushJitArgument(outJitArgs, argValueTypeRef, argStorage.data());
         }
 
         outBuilt = outReceiverStorage != nullptr;

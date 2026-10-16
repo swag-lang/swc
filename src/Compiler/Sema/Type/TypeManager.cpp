@@ -118,8 +118,8 @@ void TypeManager::setup(TaskContext& ctx)
         const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[i];
         if (kind == RuntimeTypeKind::Count)
             continue;
-        const auto name                    = static_cast<IdentifierManager::PredefinedName>(i);
-        mapRtKind_[idMgr.predefined(name)] = kind;
+        const auto name                                      = static_cast<IdentifierManager::PredefinedName>(i);
+        mapRtKind_.getOrInsert(idMgr.predefined(name).get()) = kind;
     }
 
     for (auto& rt : runtimeTypeRefs_)
@@ -552,15 +552,15 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
         // Promotion is table-driven over the builtin numeric set. Complex/user types
         // should be rejected before this point; the assertions below catch violations
         // close to the caller that forgot to filter them.
-        const auto itL = promoteIndex_.find(lhs.get());
-        const auto itR = promoteIndex_.find(rhs.get());
+        const uint32_t* indexL = promoteIndex_.find(lhs.get());
+        const uint32_t* indexR = promoteIndex_.find(rhs.get());
 
         // If this ever trips, you're trying to promote a type that was not in
         // the numeric set when buildPromoteTable() was called.
-        SWC_ASSERT(itL != promoteIndex_.end());
-        SWC_ASSERT(itR != promoteIndex_.end());
+        SWC_ASSERT(indexL != nullptr);
+        SWC_ASSERT(indexR != nullptr);
 
-        result = promoteTable_[itL->second][itR->second];
+        result = promoteTable_[*indexL][*indexR];
     }
 
     if (!force32BitInts)
@@ -588,11 +588,11 @@ uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& 
 
 bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
 {
-    const auto it = mapRtKind_.find(idRef);
-    if (it == mapRtKind_.end())
+    const RuntimeTypeKind* found = idRef.isValid() ? mapRtKind_.find(idRef.get()) : nullptr;
+    if (!found)
         return false;
 
-    const RuntimeTypeKind kind  = it->second;
+    const RuntimeTypeKind kind  = *found;
     const auto            uKind = static_cast<uint32_t>(kind);
     return uKind >= static_cast<uint32_t>(RuntimeTypeKind::TypeInfo) &&
            uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoSimd);
@@ -623,11 +623,11 @@ bool TypeManager::isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeR
 
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
-    const auto it = mapRtKind_.find(idRef);
-    if (it == mapRtKind_.end())
+    const RuntimeTypeKind* found = idRef.isValid() ? mapRtKind_.find(idRef.get()) : nullptr;
+    if (!found)
         return;
 
-    runtimeTypeRefs_[static_cast<uint32_t>(it->second)].store(typeRef.get(), std::memory_order_release);
+    runtimeTypeRefs_[static_cast<uint32_t>(*found)].store(typeRef.get(), std::memory_order_release);
 }
 
 TypeRef TypeManager::runtimeType(RuntimeTypeKind kind) const
@@ -733,8 +733,8 @@ void TypeManager::buildPromoteTable()
     for (uint32_t i = 0; i < n; ++i)
     {
         const uint32_t key = types[i].get();
-        const auto     res = promoteIndex_.emplace(key, i);
-        SWC_ASSERT(res.second);
+        SWC_ASSERT(promoteIndex_.find(key) == nullptr);
+        promoteIndex_.emplace(key, i);
     }
 
     // Resize the promotion table with compact indices

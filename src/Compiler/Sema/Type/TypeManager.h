@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -252,7 +253,7 @@ private:
     TypeRef            addTypeAfterMiss(const TypeInfo& typeInfo, uint32_t hash, uint32_t stableHash);
 
     // Runtime types
-    std::unordered_map<IdentifierRef, RuntimeTypeKind>                               mapRtKind_;
+    FlatKeyMap<RuntimeTypeKind>                                                      mapRtKind_;
     std::array<std::atomic<uint32_t>, static_cast<uint32_t>(RuntimeTypeKind::Count)> runtimeTypeRefs_{};
 
     // Predefined types
@@ -289,8 +290,8 @@ private:
     TypeRef typeVariadic_          = TypeRef::invalid();
     TypeRef typeTypeInfo_          = TypeRef::invalid();
 
-    std::vector<std::vector<TypeRef>>      promoteTable_;
-    std::unordered_map<uint32_t, uint32_t> promoteIndex_;
+    std::vector<std::vector<TypeRef>> promoteTable_;
+    FlatKeyMap<uint32_t>              promoteIndex_;
 
     TypeRef computePromotion(TypeRef lhsRef, TypeRef rhsRef) const;
     void    buildPromoteTable();

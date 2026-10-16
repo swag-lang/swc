@@ -26,24 +26,33 @@ AstNodeRef Parser::parseAttributeValue()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
+// Parses '(' and the argument expressions after it, up to the closing ')' it leaves; returns
+// the '('.
+TokenRef Parser::parseParenArgumentExpressions(SmallVector<AstNodeRef>& outArgs)
 {
-    const TokenRef tokRef = consume();
-
-    const TokenRef          openRef = ref();
-    SmallVector<AstNodeRef> nodeArgs;
+    const TokenRef openRef = ref();
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
 
     while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
     {
-        if (!nodeArgs.empty() && !prepareNextArgument())
+        if (!outArgs.empty() && !prepareNextArgument())
             break;
 
         {
             const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
-            nodeArgs.push_back(parseExpression());
+            outArgs.push_back(parseExpression());
         }
     }
+
+    return openRef;
+}
+
+AstNodeRef Parser::parseIntrinsicCall(uint32_t numParams)
+{
+    const TokenRef tokRef = consume();
+
+    SmallVector<AstNodeRef> nodeArgs;
+    const TokenRef          openRef = parseParenArgumentExpressions(nodeArgs);
 
     reportArgumentCountForList(tokRef, nodeArgs, numParams, numParams, false);
 
@@ -84,20 +93,8 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     nodePtr->nodeExprRef    = idRef;
     idPtr->addFlag(AstIdentifierFlagsE::CallCallee);
 
-    const TokenRef          openRef = ref();
     SmallVector<AstNodeRef> nodeArgs;
-    expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
-
-    while (isNot(TokenId::SymRightParen) && isNot(TokenId::EndOfFile))
-    {
-        if (!nodeArgs.empty() && !prepareNextArgument())
-            break;
-
-        {
-            const PushContextFlags ctxFlags(this, ParserContextFlagsE::InCallArgument);
-            nodeArgs.push_back(parseExpression());
-        }
-    }
+    const TokenRef          openRef = parseParenArgumentExpressions(nodeArgs);
 
     if (numParams != UINT32_MAX)
         reportArgumentCountForList(tokRef, nodeArgs, numParams, numParams, false);

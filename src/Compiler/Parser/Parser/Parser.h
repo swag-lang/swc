@@ -269,6 +269,7 @@ private:
     AstNodeRef                     parseIdentifierSuffixValue();
     AstNodeRef                     parseQuotedSingleSuffixValue();
     AstNodeRef                     parseQuoteSuffix(AstNodeRef nodeRef);
+    TokenRef                       parseParenArgumentExpressions(SmallVector<AstNodeRef>& outArgs);
     AstNodeRef                     parseDynamicTypeTarget();
     AstNodeRef                     parseIdentifier();
     AstNodeRef                     parseAutoMemberAccessExpr();

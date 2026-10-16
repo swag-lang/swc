@@ -559,31 +559,33 @@ ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const Const
     return addCstOther(*this, shard, shardIndex, value);
 }
 
+namespace
+{
+    // A materialized payload constant borrows its bytes from a data segment, which picks its shard.
+    DataSegmentRef materializedPayloadDataRef(const ConstantValue& value)
+    {
+        SWC_ASSERT(value.isSpanPayload());
+        SWC_ASSERT(value.isPayloadBorrowed());
+
+        const DataSegmentRef dataRef = value.dataSegmentRef();
+        SWC_ASSERT(dataRef.isValid());
+        SWC_ASSERT(dataRef.shardIndex < ConstantManager::SHARD_COUNT);
+        return dataRef;
+    }
+}
+
 ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue& value)
 {
-    SWC_ASSERT(value.isSpanPayload());
-    SWC_ASSERT(value.isPayloadBorrowed());
-
-    const DataSegmentRef dataRef = value.dataSegmentRef();
-    SWC_ASSERT(dataRef.isValid());
-    SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
-
-    Shard& shard = shards_[dataRef.shardIndex];
+    const DataSegmentRef dataRef = materializedPayloadDataRef(value);
+    Shard&               shard   = shards_[dataRef.shardIndex];
     return addCstOther(*this, shard, dataRef.shardIndex, value);
 }
 
 ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const ConstantValue& value)
 {
-    SWC_ASSERT(value.isSpanPayload());
-    SWC_ASSERT(value.isPayloadBorrowed());
-
-    const DataSegmentRef dataRef = value.dataSegmentRef();
-    SWC_ASSERT(dataRef.isValid());
-    SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
-
-    Shard&   shard      = shards_[dataRef.shardIndex];
-    uint32_t localIndex = INVALID_REF;
-    localIndex          = shard.dataSegment.add(value);
+    const DataSegmentRef dataRef    = materializedPayloadDataRef(value);
+    Shard&               shard      = shards_[dataRef.shardIndex];
+    const uint32_t       localIndex = shard.dataSegment.add(value);
     SWC_ASSERT(localIndex < LOCAL_MASK);
     const auto result = ConstantRef{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
 

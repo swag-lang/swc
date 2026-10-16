@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -228,6 +229,15 @@ TypeRef TypeGen::reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& 
         return symFunc.typeRef();
 
     return ctx.typeMgr().addType(TypeInfo::makeFunction(const_cast<SymbolFunction*>(&symFunc), TypeInfoFlagsE::Zero));
+}
+
+TypeRef TypeGenInternal::pointerLayoutDepTypeRef(const TypeManager& typeMgr, const TypeInfo& type)
+{
+    // `typeinfo` values point to the runtime `Swag.TypeInfo` hierarchy even though the
+    // compiler builtin type itself does not carry an explicit payload type.
+    if (type.isTypeInfo())
+        return typeMgr.structTypeInfo();
+    return type.payloadTypeRef();
 }
 
 SWC_END_NAMESPACE();

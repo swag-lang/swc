@@ -931,6 +931,7 @@
         <ClInclude Include="src\Compiler\Sema\Symbol\SymbolOrder.h"/>
         <ClInclude Include="src\Compiler\Sema\Symbol\Symbols.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h"/>
+        <ClInclude Include="src\Compiler\Sema\Type\TypeGen.Internal.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeGenGenericArg.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\IntrinsicInitType.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h"/>

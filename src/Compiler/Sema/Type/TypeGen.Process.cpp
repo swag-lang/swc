@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -46,15 +47,6 @@ namespace
     bool shouldWaitReflectedLifecycleSema(const TaskContext& ctx, const SymbolFunction& symFunc)
     {
         return SemaSpecOp::isGeneratedLifecycleWrapperName(symFunc.name(ctx));
-    }
-
-    TypeRef pointerLayoutDepTypeRef(const TypeManager& tm, const TypeInfo& type)
-    {
-        // `typeinfo` values point to the runtime `Swag.TypeInfo` hierarchy even though the
-        // compiler builtin type itself does not carry an explicit payload type.
-        if (type.isTypeInfo())
-            return tm.structTypeInfo();
-        return type.payloadTypeRef();
     }
 
     void appendAttributeParamValueDeps(SmallVector<TypeRef>& deps, Sema& sema, ConstantRef valueCstRef)
@@ -161,7 +153,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
         }
 
         case LayoutKind::Pointer:
-            deps.push_back(pointerLayoutDepTypeRef(tm, type));
+            deps.push_back(TypeGenInternal::pointerLayoutDepTypeRef(tm, type));
             break;
 
         case LayoutKind::Slice:

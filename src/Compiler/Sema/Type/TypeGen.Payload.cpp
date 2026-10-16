@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
+#include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -473,13 +474,6 @@ namespace
     const TypeGen::TypeGenCache::Entry& payloadDepEntry(const TypeGen::TypeGenCache& cache, const TypeInfo& type)
     {
         return requireCacheEntry(cache, type.payloadTypeRef());
-    }
-
-    TypeRef pointerLayoutDepTypeRef(const TypeManager& typeMgr, const TypeInfo& type)
-    {
-        if (type.isTypeInfo())
-            return typeMgr.structTypeInfo();
-        return type.payloadTypeRef();
     }
 
     void wireTypeValueArrayPointedRelocations(const TypeGen::TypeGenCache& cache, DataSegment& storage, const SmallVector<TypeRef>& types, uint32_t baseOffset)
@@ -1253,7 +1247,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Pointer:
         {
-            const TypeRef depKey = pointerLayoutDepTypeRef(typeMgr, keyType);
+            const TypeRef depKey = TypeGenInternal::pointerLayoutDepTypeRef(typeMgr, keyType);
             const auto&   dep    = requireCacheEntry(cache, depKey);
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
             break;

@@ -839,17 +839,17 @@ namespace
         return paramType.isCodeBlock() && paramType.payloadTypeRef() == sema.typeMgr().typeVoid();
     }
 
-    bool hasExplicitLastArgumentBinding(Sema& sema, const SymbolFunction& fn, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)
+    template<typename FindParamIndex>
+    bool hasExplicitLastArgumentBinding(Sema& sema, size_t paramCount, std::span<const AstNodeRef> args, AstNodeRef ufcsArg, FindParamIndex findParamIndex)
     {
-        const auto& params = fn.parameters();
-        if (params.empty())
+        if (paramCount == 0)
             return false;
         if (args.empty())
-            return ufcsArg.isValid() && params.size() == 1;
+            return ufcsArg.isValid() && paramCount == 1;
 
         std::vector<uint8_t> assigned;
         size_t               positionalCount = 0;
-        size_t               unassignedCount = params.size() - (ufcsArg.isValid() ? 1 : 0);
+        size_t               unassignedCount = paramCount - (ufcsArg.isValid() ? 1 : 0);
 
         for (const AstNodeRef argRef : args)
         {
@@ -862,11 +862,11 @@ namespace
 
             const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
             size_t              paramIndex = 0;
-            if (fn.tryGetParameterIndexByName(paramIndex, idRef))
+            if (findParamIndex(idRef, paramIndex))
             {
                 if (assigned.empty())
                 {
-                    assigned.resize(params.size(), 0);
+                    assigned.resize(paramCount, 0);
                     if (ufcsArg.isValid())
                         assigned[0] = 1;
                 }
@@ -882,48 +882,27 @@ namespace
         return (!assigned.empty() && assigned.back() != 0) || positionalCount >= unassignedCount;
     }
 
+    bool hasExplicitLastArgumentBinding(Sema& sema, const SymbolFunction& fn, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        const auto& params = fn.parameters();
+        return hasExplicitLastArgumentBinding(sema, params.size(), args, ufcsArg, [&fn](IdentifierRef idRef, size_t& outIndex) {
+            return fn.tryGetParameterIndexByName(outIndex, idRef);
+        });
+    }
+
     bool hasExplicitLastArgumentBinding(Sema& sema, std::span<const SemaGeneric::GenericFunctionParamDesc> params, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        if (params.empty())
-            return false;
-        if (args.empty())
-            return ufcsArg.isValid() && params.size() == 1;
-
-        std::vector<uint8_t> assigned;
-        size_t               positionalCount = 0;
-        size_t               unassignedCount = params.size() - (ufcsArg.isValid() ? 1 : 0);
-
-        for (const AstNodeRef argRef : args)
-        {
-            const AstNode& argNode = sema.node(argRef);
-            if (!argNode.is(AstNodeId::NamedArgument))
-            {
-                ++positionalCount;
-                continue;
-            }
-
-            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), argNode.codeRef());
+        return hasExplicitLastArgumentBinding(sema, params.size(), args, ufcsArg, [params](IdentifierRef idRef, size_t& outIndex) {
             for (size_t paramIndex = 0; paramIndex < params.size(); ++paramIndex)
             {
                 if (params[paramIndex].idRef == idRef)
                 {
-                    if (assigned.empty())
-                    {
-                        assigned.resize(params.size(), 0);
-                        if (ufcsArg.isValid())
-                            assigned[0] = 1;
-                    }
-                    if (!assigned[paramIndex])
-                    {
-                        assigned[paramIndex] = 1;
-                        --unassignedCount;
-                    }
-                    break;
+                    outIndex = paramIndex;
+                    return true;
                 }
             }
-        }
-
-        return (!assigned.empty() && assigned.back() != 0) || positionalCount >= unassignedCount;
+            return false;
+        });
     }
 
     TypeRef consumableTrailingCodeBlockPayloadType(Sema& sema, const SymbolFunction& fn, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)

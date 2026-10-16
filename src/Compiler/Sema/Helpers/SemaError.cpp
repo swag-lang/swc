@@ -44,14 +44,16 @@ namespace
         return true;
     }
 
+    // Tells whether 'id' is an error that will be shown: overload and spec-op probing can
+    // intentionally silence diagnostics, and those speculative failures must not count.
+    bool isVisibleError(const Sema& sema, const DiagnosticId id)
+    {
+        return Diagnostic::diagIdSeverity(id) == DiagnosticSeverity::Error && !sema.ctx().silentDiagnostic();
+    }
+
     void ignoreCurrentFunctionOnError(Sema& sema, const DiagnosticId id)
     {
-        if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
-            return;
-
-        // Overload/spec-op probing can intentionally suppress diagnostics; those speculative
-        // failures must not poison the enclosing runtime function.
-        if (sema.ctx().silentDiagnostic())
+        if (!isVisibleError(sema, id))
             return;
 
         if (auto* currentFn = sema.currentFunction())
@@ -158,9 +160,7 @@ namespace
 
     void addGenericContextNotes(Sema& sema, Diagnostic& diag, const DiagnosticId id)
     {
-        if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
-            return;
-        if (sema.ctx().silentDiagnostic())
+        if (!isVisibleError(sema, id))
             return;
 
         SmallVector<const Symbol*> seen;
@@ -172,9 +172,7 @@ namespace
 
     void addExpansionContextNotes(Sema& sema, Diagnostic& diag, const DiagnosticId id)
     {
-        if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
-            return;
-        if (sema.ctx().silentDiagnostic())
+        if (!isVisibleError(sema, id))
             return;
 
         constexpr uint32_t                           expansionLimit = 4;

@@ -148,11 +148,6 @@ namespace
         return objectType.isStruct();
     }
 
-    bool isByValueAggregateType(const TypeInfo& typeInfo)
-    {
-        return typeInfo.isStruct() || typeInfo.isArray() || typeInfo.isAggregate();
-    }
-
 }
 
 TypeRef Cast::indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -181,7 +176,7 @@ TypeRef Cast::indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, Typ
     else
         return TypeRef::invalid();
 
-    if (sourceIsPointer && !isByValueAggregateType(dstType))
+    if (sourceIsPointer && !SemaHelpers::isByValueAggregateType(dstType))
         return TypeRef::invalid();
 
     if (valueTypeRef == dstTypeRef)

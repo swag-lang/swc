@@ -22,6 +22,8 @@ struct CodeGenLoweringPayload;
 
 namespace SemaHelpers
 {
+    // Structs, arrays, and aggregates carry a composite value in by-value storage.
+    bool   isByValueAggregateType(const TypeInfo& typeInfo);
     Result prepareFallibleCast(Sema& sema);
     bool   isAssumedCast(Sema& sema);
     bool   isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef);

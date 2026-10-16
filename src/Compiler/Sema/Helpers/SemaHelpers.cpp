@@ -17,6 +17,11 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool SemaHelpers::isByValueAggregateType(const TypeInfo& typeInfo)
+{
+    return typeInfo.isStruct() || typeInfo.isArray() || typeInfo.isAggregate();
+}
+
 bool SemaHelpers::isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef)
 {
     if (typeRef.isInvalid())

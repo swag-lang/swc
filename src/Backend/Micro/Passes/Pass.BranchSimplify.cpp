@@ -1582,6 +1582,39 @@ namespace
         return false;
     }
 
+    constexpr uint32_t K_MAX_SHORT_CIRCUIT_BOOL_CHAIN = 6;
+
+    inline bool collectShortCircuitBoolChain(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef jumpRef,
+                                             SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN>& outChain,
+                                             const MicroInstrOperand*& outSetOps, BoolBits& outBits)
+    {
+        auto chainIt = MicroStorage::Iterator{&storage, jumpRef};
+        --chainIt;
+        const MicroInstr* setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
+        while (setInst && setInst->op != MicroInstrOpcode::SetCondReg && outChain.size() < K_MAX_SHORT_CIRCUIT_BOOL_CHAIN &&
+               (setInst->op == MicroInstrOpcode::LoadRegReg || setInst->op == MicroInstrOpcode::LoadZeroExtRegReg))
+        {
+            outChain.push_back(chainIt.current);
+            --chainIt;
+            setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
+        }
+        if (!setInst || setInst->op != MicroInstrOpcode::SetCondReg)
+            return false;
+
+        outSetOps = setInst->ops(operands);
+        if (!outSetOps || !outSetOps[0].reg.isVirtualInt())
+            return false;
+
+        setBoolBits(outBits, outSetOps[0].reg, 8);
+        for (size_t i = outChain.size(); i > 0; --i)
+        {
+            const MicroInstr* step = storage.ptr(outChain[i - 1]);
+            if (!step || !applyBoolChainStep(outBits, *step, step->ops(operands)))
+                return false;
+        }
+        return true;
+    }
+
     // How many low bits of `reg` the instruction reads, or 0 when the read is
     // not one of the plain copies, compares and extensions a boolean meets.
     uint32_t booleanReadBits(const MicroInstr& inst, const MicroInstrOperand* ops, const MicroReg reg)
@@ -1994,8 +2027,6 @@ namespace
     // The block costs a move and a jump, so it needs two edges to pay.
     bool threadShortCircuitReturnValues(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, BranchScanCache& scanCache)
     {
-        constexpr uint32_t K_MAX_CHAIN = 6;
-
         if (!builder)
             return false;
 
@@ -2029,32 +2060,10 @@ namespace
 
             // The copies right before the jump back to their setcc; the last
             // copy's destination is the value the join receives.
-            SmallVector<MicroInstrRef, K_MAX_CHAIN> chain;
-            auto                                    chainIt = MicroStorage::Iterator{&storage, jumpRef};
-            --chainIt;
-            const MicroInstr* setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
-            while (setInst && setInst->op != MicroInstrOpcode::SetCondReg && chain.size() < K_MAX_CHAIN &&
-                   (setInst->op == MicroInstrOpcode::LoadRegReg || setInst->op == MicroInstrOpcode::LoadZeroExtRegReg))
-            {
-                chain.push_back(chainIt.current);
-                --chainIt;
-                setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
-            }
-            if (chain.empty() || !setInst || setInst->op != MicroInstrOpcode::SetCondReg)
-                continue;
-            const MicroInstrOperand* setOps = setInst->ops(operands);
-            if (!setOps || !setOps[0].reg.isVirtualInt())
-                continue;
-
+            SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN> chain;
             BoolBits bits;
-            setBoolBits(bits, setOps[0].reg, 8);
-            bool chainOk = true;
-            for (size_t i = chain.size(); i > 0 && chainOk; --i)
-            {
-                const MicroInstr* step = storage.ptr(chain[i - 1]);
-                chainOk                = step && applyBoolChainStep(bits, *step, step->ops(operands));
-            }
-            if (!chainOk)
+            const MicroInstrOperand* setOps = nullptr;
+            if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, setOps, bits) || chain.empty())
                 continue;
             const MicroReg value = storage.ptr(chain[0])->ops(operands)[0].reg;
 
@@ -2389,8 +2398,6 @@ namespace
 
     bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, ProgramLayoutCache& layoutCache)
     {
-        constexpr uint32_t K_MAX_CHAIN = 6;
-
         const ProgramLayout& layout = layoutCache.get(storage, operands);
         if (!layout.hasConditionalJump || !layout.hasSetCondition || !layout.hasImmediateCompare)
             return false;
@@ -2415,32 +2422,10 @@ namespace
             // Walk the boolean chain immediately preceding the jump back to
             // the setcc that consumed the flags the jump reads. Copies and
             // self-extensions do not touch the flags.
-            SmallVector<MicroInstrRef, K_MAX_CHAIN> chain;
-            auto                                    chainIt = MicroStorage::Iterator{&storage, jumpRef};
-            --chainIt;
-            const MicroInstr* setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
-            while (setInst && setInst->op != MicroInstrOpcode::SetCondReg && chain.size() < K_MAX_CHAIN &&
-                   (setInst->op == MicroInstrOpcode::LoadRegReg || setInst->op == MicroInstrOpcode::LoadZeroExtRegReg))
-            {
-                chain.push_back(chainIt.current);
-                --chainIt;
-                setInst = chainIt.current.isValid() ? &*chainIt : nullptr;
-            }
-            if (!setInst || setInst->op != MicroInstrOpcode::SetCondReg)
-                continue;
-            const MicroInstrOperand* setOps = setInst->ops(operands);
-            if (!setOps || !setOps[0].reg.isVirtualInt())
-                continue;
-
+            SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN> chain;
             BoolBits bits;
-            setBoolBits(bits, setOps[0].reg, 8);
-            bool chainOk = true;
-            for (size_t i = chain.size(); i > 0 && chainOk; --i)
-            {
-                const MicroInstr* step = storage.ptr(chain[i - 1]);
-                chainOk                = step && applyBoolChainStep(bits, *step, step->ops(operands));
-            }
-            if (!chainOk)
+            const MicroInstrOperand* setOps = nullptr;
+            if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, setOps, bits))
                 continue;
 
             // The branch condition pins the boolean's value on the taken edge.

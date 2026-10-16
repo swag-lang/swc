@@ -33,7 +33,7 @@ namespace SemaSymbolLookup
             return true;
 
         const auto& fn = symbol->template cast<SymbolFunction>();
-        return fn.isForeign() || !fn.isEmpty();
+        return !fn.isEmptyNonForeign();
     }
 
     // Borrow the overload list unless removing an empty declaration requires an owned copy.
@@ -63,7 +63,7 @@ namespace SemaSymbolLookup
                 if (sym->isFunction())
                 {
                     const auto& fn = sym->template cast<SymbolFunction>();
-                    if (!fn.isForeign() && fn.isEmpty())
+                    if (fn.isEmptyNonForeign())
                         continue;
                 }
 
@@ -81,7 +81,7 @@ namespace SemaSymbolLookup
             if (sym->isFunction())
             {
                 const auto& fn = sym->template cast<SymbolFunction>();
-                if (!fn.isForeign() && fn.isEmpty())
+                if (fn.isEmptyNonForeign())
                 {
                     if (!copied)
                     {

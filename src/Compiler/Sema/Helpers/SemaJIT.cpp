@@ -962,7 +962,7 @@ namespace
             return false;
         if (calledFn.isForeign() && !attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
-        if (calledFn.isEmpty() && !calledFn.isForeign())
+        if (calledFn.isEmptyNonForeign())
             return false;
         if (!calledFn.returnTypeRef().isValid())
             return false;
@@ -985,7 +985,7 @@ namespace
             return false;
         if (!attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
-        if (calledFn.isEmpty() && !calledFn.isForeign())
+        if (calledFn.isEmptyNonForeign())
             return false;
         if (!receiverTypeRef.isValid() || hasUnsupportedConstCallReturn(sema, receiverTypeRef))
             return false;

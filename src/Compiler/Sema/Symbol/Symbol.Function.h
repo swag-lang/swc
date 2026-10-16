@@ -295,6 +295,7 @@ public:
     bool             isFallible() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Fallible); }
     bool             isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    bool             isEmptyNonForeign() const noexcept { return isEmpty() && !isForeign(); }
     bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
     bool             isForeignOrEmptyOrAttribute() const noexcept { return isForeign() || isEmpty() || isAttribute(); }
     bool             isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }

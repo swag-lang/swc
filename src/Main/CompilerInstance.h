@@ -8,6 +8,7 @@
 #include "Main/ExitCodes.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/LookupTable.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
@@ -730,24 +731,24 @@ private:
     uint32_t                                              nativeProcessInfoOffset_         = UINT32_MAX;
     bool                                                  processInfoRunArgsReady_         = false;
     std::vector<SymbolFunction*>                          nativeCodeSegment_;
-    std::unordered_set<SymbolFunction*>                   nativeCodeSegmentSet_;
+    PointerSet<SymbolFunction>                            nativeCodeSegmentSet_;
     std::vector<SymbolFunction*>                          nativeTestFunctions_;
-    std::unordered_set<SymbolFunction*>                   nativeTestFunctionsSet_;
+    PointerSet<SymbolFunction>                            nativeTestFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeInitFunctions_;
-    std::unordered_set<SymbolFunction*>                   nativeInitFunctionsSet_;
+    PointerSet<SymbolFunction>                            nativeInitFunctionsSet_;
     std::vector<SymbolFunction*>                          nativePreMainFunctions_;
-    std::unordered_set<SymbolFunction*>                   nativePreMainFunctionsSet_;
+    PointerSet<SymbolFunction>                            nativePreMainFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeDropFunctions_;
-    std::unordered_set<SymbolFunction*>                   nativeDropFunctionsSet_;
+    PointerSet<SymbolFunction>                            nativeDropFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeMainFunctions_;
-    std::unordered_set<SymbolFunction*>                   nativeMainFunctionsSet_;
+    PointerSet<SymbolFunction>                            nativeMainFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeGlobalFunctionInitTargets_;
-    std::unordered_set<SymbolFunction*>                   nativeGlobalFunctionInitTargetsSet_;
+    PointerSet<SymbolFunction>                            nativeGlobalFunctionInitTargetsSet_;
     std::vector<SymbolVariable*>                          nativeGlobalVariables_;
-    std::unordered_set<SymbolVariable*>                   nativeGlobalVariablesSet_;
+    PointerSet<SymbolVariable>                            nativeGlobalVariablesSet_;
     std::vector<SymbolVariable*>                          nativeGlobalFunctionVariables_;
     std::vector<SymbolFunction*>                          jitPreparedFunctions_;
-    std::unordered_set<SymbolFunction*>                   jitPreparedFunctionsSet_;
+    PointerSet<SymbolFunction>                            jitPreparedFunctionsSet_;
     std::unordered_set<Utf8>                              resolvedFilePaths_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);

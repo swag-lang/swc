@@ -213,9 +213,12 @@ void Ast::buildReachableNodeIndex() const
         if (!nodeRef.isValid())
             continue;
 
-        const AstNode& node = this->node(nodeRef);
-        if (!index->entries.emplace(&node, ReachableNodeIndex::Entry{.nodeRef = nodeRef, .parentRef = parentRef}).second)
+        // A new entry starts with an invalid node, which no recorded one has.
+        const AstNode&             node  = this->node(nodeRef);
+        ReachableNodeIndex::Entry& entry = index->entries.getOrInsert(reinterpret_cast<uintptr_t>(&node));
+        if (entry.nodeRef.isValid())
             continue;
+        entry = {.nodeRef = nodeRef, .parentRef = parentRef};
 
         children.clear();
         nodeIdInfos(node.id()).collectChildren(children, *this, node);
@@ -241,8 +244,8 @@ AstNodeRef Ast::reachableNodeRef(const AstNode* targetNode) const
         std::shared_lock lock(reachableNodeIndexMutex_);
         if (reachableNodeIndex_ && isReachableNodeIndexCurrent(*reachableNodeIndex_))
         {
-            const auto it = reachableNodeIndex_->entries.find(targetNode);
-            return it == reachableNodeIndex_->entries.end() ? AstNodeRef::invalid() : it->second.nodeRef;
+            const ReachableNodeIndex::Entry* entry = reachableNodeIndex_->find(targetNode);
+            return entry ? entry->nodeRef : AstNodeRef::invalid();
         }
     }
 
@@ -250,8 +253,8 @@ AstNodeRef Ast::reachableNodeRef(const AstNode* targetNode) const
     if (!reachableNodeIndex_ || !isReachableNodeIndexCurrent(*reachableNodeIndex_))
         buildReachableNodeIndex();
 
-    const auto it = reachableNodeIndex_->entries.find(targetNode);
-    return it == reachableNodeIndex_->entries.end() ? AstNodeRef::invalid() : it->second.nodeRef;
+    const ReachableNodeIndex::Entry* entry = reachableNodeIndex_->find(targetNode);
+    return entry ? entry->nodeRef : AstNodeRef::invalid();
 }
 
 bool Ast::collectReachableNodePathFromIndex(const ReachableNodeIndex& index, SmallVector<AstNodeRef>& outPath, const AstNodeRef targetRef) const
@@ -264,13 +267,13 @@ bool Ast::collectReachableNodePathFromIndex(const ReachableNodeIndex& index, Sma
     while (nodeRef.isValid())
     {
         outPath.push_back(nodeRef);
-        const auto it = index.entries.find(&node(nodeRef));
-        if (it == index.entries.end() || it->second.nodeRef != nodeRef)
+        const ReachableNodeIndex::Entry* entry = index.find(&node(nodeRef));
+        if (!entry || entry->nodeRef != nodeRef)
         {
             outPath.clear();
             return false;
         }
-        nodeRef = it->second.parentRef;
+        nodeRef = entry->parentRef;
     }
 
     std::ranges::reverse(outPath);

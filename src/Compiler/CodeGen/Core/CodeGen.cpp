@@ -2077,7 +2077,7 @@ Result CodeGen::preNode(AstNode& node)
         return Result::SkipChildren;
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    if (std::ranges::any_of(valueBorrowSites, [this](const ValueBorrowSite& site) { return !site.addressHome && site.scopeRef == curNodeRef(); }))
+    if (valueBorrowValueScopeRefs.contains(curNodeRef()))
     {
         pushDeferScope(curNodeRef());
         deferScopes_.back().borrowOnly = true;
@@ -2200,7 +2200,7 @@ Result CodeGen::postNode(AstNode& node)
         popFrame();
     }
 
-    if (std::ranges::any_of(valueBorrowSites, [this](const ValueBorrowSite& site) { return !site.addressHome && site.scopeRef == curNodeRef(); }))
+    if (valueBorrowValueScopeRefs.contains(curNodeRef()))
         SWC_RESULT(popDeferScope());
     SWC_RESULT(CodeGenSafety::emitValueBorrowSite(*this, curNodeRef()));
     SWC_RESULT(flushTemporaryDrops(curNodeRef()));

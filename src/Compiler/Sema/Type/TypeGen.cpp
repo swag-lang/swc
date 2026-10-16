@@ -196,9 +196,9 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
             if (entry.state != TypeGenCache::State::Done || entry.backRefPublished)
                 continue;
 
-            const auto* ptr        = storage.ptr<std::byte>(entry.offset);
-            ptrToType_[ptr]        = cachedTypeRef;
-            entry.backRefPublished = true;
+            const auto ptr              = reinterpret_cast<uintptr_t>(storage.ptr<std::byte>(entry.offset));
+            ptrToType_.getOrInsert(ptr) = cachedTypeRef;
+            entry.backRefPublished      = true;
         }
 
         cache.pendingBackRefs.clear();
@@ -210,10 +210,8 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 TypeRef TypeGen::getBackTypeRef(const void* ptr) const
 {
     const std::shared_lock lk(ptrToTypeMutex_);
-    const auto             it = ptrToType_.find(ptr);
-    if (it != ptrToType_.end())
-        return it->second;
-    return TypeRef::invalid();
+    const TypeRef*         found = ptrToType_.find(reinterpret_cast<uintptr_t>(ptr));
+    return found ? *found : TypeRef::invalid();
 }
 
 TypeRef TypeGen::reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)

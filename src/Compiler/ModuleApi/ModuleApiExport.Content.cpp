@@ -248,6 +248,35 @@ namespace
         std::string_view name;
     };
 
+    // Applies disjoint edits, sorted by start, none of which lengthens its span. Each preserved
+    // byte moves once, instead of the whole suffix moving again for every edit.
+    void compactShrinkingEdits(Utf8& ioContent, std::span<const ModuleApiTextEdit> edits)
+    {
+        if (edits.empty())
+            return;
+
+        size_t readOffset  = edits.front().start;
+        size_t writeOffset = readOffset;
+        for (const ModuleApiTextEdit& edit : edits)
+        {
+            SWC_ASSERT(edit.start >= readOffset && edit.end <= ioContent.size());
+            SWC_ASSERT(edit.replacement.size() <= edit.end - edit.start);
+            const size_t preservedSize = edit.start - readOffset;
+            if (preservedSize)
+                std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, preservedSize);
+            writeOffset += preservedSize;
+            if (!edit.replacement.empty())
+                std::memcpy(ioContent.data() + writeOffset, edit.replacement.data(), edit.replacement.size());
+            writeOffset += edit.replacement.size();
+            readOffset = edit.end;
+        }
+
+        const size_t suffixSize = ioContent.size() - readOffset;
+        if (suffixSize)
+            std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, suffixSize);
+        ioContent.resize(writeOffset + suffixSize);
+    }
+
     bool isWhitespaceOnly(const std::string_view text)
     {
         return std::ranges::all_of(text, [](const char c) { return std::isspace(static_cast<unsigned char>(c)); });
@@ -387,6 +416,15 @@ namespace
             }
         }
 
+        // A kept list joined with ", " can come out longer than it was written. Only then do
+        // the edits shift the suffix one by one.
+        const bool shrinksOnly = std::ranges::all_of(edits, [](const ModuleApiTextEdit& edit) { return edit.replacement.size() <= edit.end - edit.start; });
+        if (shrinksOnly)
+        {
+            compactShrinkingEdits(ioContent, edits);
+            return;
+        }
+
         for (auto it = edits.rbegin(); it != edits.rend(); ++it)
             ioContent.replace(it->start, it->end - it->start, it->replacement);
     }
@@ -447,32 +485,9 @@ namespace
             });
         }
 
+        // These disjoint edits only shrink the text.
         std::ranges::sort(edits, {}, &ModuleApiTextEdit::start);
-        if (edits.empty())
-            return;
-
-        // These disjoint edits only shrink the text. Compact it once instead of moving the
-        // remaining suffix for every joined attribute list.
-        size_t readOffset  = edits.front().start;
-        size_t writeOffset = readOffset;
-        for (const ModuleApiTextEdit& edit : edits)
-        {
-            SWC_ASSERT(edit.start >= readOffset && edit.end <= ioContent.size());
-            SWC_ASSERT(edit.replacement.size() <= edit.end - edit.start);
-            const size_t preservedSize = edit.start - readOffset;
-            if (preservedSize)
-                std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, preservedSize);
-            writeOffset += preservedSize;
-            if (!edit.replacement.empty())
-                std::memcpy(ioContent.data() + writeOffset, edit.replacement.data(), edit.replacement.size());
-            writeOffset += edit.replacement.size();
-            readOffset = edit.end;
-        }
-
-        const size_t suffixSize = ioContent.size() - readOffset;
-        if (suffixSize)
-            std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, suffixSize);
-        ioContent.resize(writeOffset + suffixSize);
+        compactShrinkingEdits(ioContent, edits);
     }
 
     void normalizeModuleApiAttributes(TaskContext& ctx, Utf8& ioContent)

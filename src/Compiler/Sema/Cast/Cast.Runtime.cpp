@@ -381,6 +381,20 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
+    // A compatible cast still cannot drop const unless asked to, and folds a constant source.
+    const auto acceptCast = [&]() -> Result {
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+        if (castRequest.isConstantFolding())
+        {
+            const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
+        }
+
+        return Result::Continue;
+    };
+
     const bool payloadShortcut = pointerPayloadShortcutMatches(typeMgr, srcType, dstType);
 
     bool structsUnrelated = false;
@@ -391,16 +405,7 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
     {
         if (pointerKindsCompatibleWithLegacyPayloadShortcut(typeMgr, srcType, dstType, castRequest.kind))
         {
-            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
-                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-
-            if (castRequest.isConstantFolding())
-            {
-                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
-            }
-
-            return Result::Continue;
+            return acceptCast();
         }
     }
 
@@ -408,32 +413,14 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
     {
         if (pointerPayloadsCompatible(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef()))
         {
-            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
-                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-
-            if (castRequest.isConstantFolding())
-            {
-                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
-            }
-
-            return Result::Continue;
+            return acceptCast();
         }
 
         bool hasCompatibleUsingPath = false;
         SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef(), hasCompatibleUsingPath));
         if (hasCompatibleUsingPath)
         {
-            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
-                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
-
-            if (castRequest.isConstantFolding())
-            {
-                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
-            }
-
-            return Result::Continue;
+            return acceptCast();
         }
     }
 

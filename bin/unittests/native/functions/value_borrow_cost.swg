@@ -77,3 +77,40 @@ func blockCall(value: Block, output: *u64)->u64
         }
     }
 }
+
+#[Swag.NoInline]
+func scalarStore(output: *u64, value: u64) { output[] = value }
+
+#[Swag.NoInline]
+func activeStores(value: Small, output: *u64)->u64
+{
+    for index in 2_000_000 do scalarStore(output, index)
+    return value.first + value.second + output[]
+}
+
+#test
+{
+    for 5
+    {
+        var output: u64
+        let start = monotonicTicks()
+        for index in 2_000_000 do scalarStore(&output, index)
+        let elapsed = monotonicTicks() - start
+        Swag.print("empty-write ticks=", elapsed, " frequency=", monotonicFrequency(), "\n")
+        if output != 1_999_999 do Swag.panic("empty-write checksum", #curlocation)
+    }
+}
+
+#test
+{
+    for 5
+    {
+        var value:  Small = {17, 19}
+        var output: u64
+        let start         = monotonicTicks()
+        let checksum      = activeStores(value, &output)
+        let elapsed       = monotonicTicks() - start
+        Swag.print("active-write ticks=", elapsed, " frequency=", monotonicFrequency(), "\n")
+        if checksum != 2_000_035 or output != 1_999_999 do Swag.panic("active-write checksum", #curlocation)
+    }
+}

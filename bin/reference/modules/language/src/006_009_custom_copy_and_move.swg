@@ -218,12 +218,15 @@ impl Bag
 # Lifecycle Safety
 
 Reading a value abandoned by '#relocate' — or by '#move' when the type has no 'opDrop',
-which leaves the source unreset — reads stale bits. Under the 'Swag.SafetyWhat.Lifecycle'
-safety guard (part of 'All', so enabled by default in 'devmode'), the compiler
-reports proven reads of moved-from locals at compile time, and poisons abandoned or
-dropped storage with '0xDD' bytes at runtime so hidden violations fail deterministically
-instead of silently reading stale data. A '#move' of a type with 'opDrop' is not
-concerned: the source is reset to its defaults, which is defined behavior.
+which leaves the source unreset — reads stale bits. The '.Lifecycle' sanity check
+rejects proven reads from moved-from locals and writes through pointers into them that
+predate the move. Reassigning the source or taking a fresh pointer can reinitialize it;
+'opPostMove' can repair self-pointers in the destination.
+
+The separate '.Lifecycle' runtime safety guard, enabled by default in 'devmode', poisons
+abandoned or dropped storage with '0xDD' bytes to expose stale reads the proof misses.
+Poisoning does not detect writes through stale pointers. A '#move' of a type with 'opDrop'
+resets the source to its defaults instead, which is defined behavior.
 */
 
 /**

@@ -51,6 +51,9 @@ is the current scorecard.
   and compiler rebuild CPU/memory controls, but shared-machine drift prevents a tight bound.
   Own stack accumulator writes no longer incur a check merely because an incoming value
   parameter is borrowed; aliasable writes and concurrent registry checks remain covered.
+  An [empty-registry fast path](../bench/results/safety/20261016-empty-registry.md) also
+  reduces the focused idle-registry pointer-write cost in reversed-order samples;
+  active-list exact checks and cross-module sharing remain covered.
 - Next: repeat the paired fixture on a quiet machine with an unchanged A/A control, then
   measure a representative application. Separate fixed registration cost, write checking,
   and concurrent contention; tiny-call ratios must not stand in for application overhead.
@@ -74,18 +77,19 @@ is the current scorecard.
   independently allocated fields, and the focused sanity and workspace regressions pass
   with measured cost.
 
-### compiler.safety.019 — Remeasure sanity cost after live-state pruning
+### compiler.safety.019 — Bound current sanity cost and attribute retained-state storage
 
-- Evidence: earlier profiles attributed about 8-10% of a core devmode rebuild's busy CPU to
-  `Sanitizer::run`, mostly conditional-branch narrowing and value transfer. They predate
-  `Sanitizer::pruneDeadRegs`, which keeps only registers live at each chain head, the
-  on-demand state maps, and later register, stack-lane and freed-parameter lookup changes.
-  The sanitizer's current share of a core or full-std build is unmeasured.
-- Next: profile the current core devmode and full-std release rebuilds, reporting sanitizer
-  CPU, state memory, propagation/check visits, and wall time separately. Use those
-  measurements to choose between branch narrowing, value transfer, and state storage.
-- Done when: the current sanity pass's cost is attributed and either accepted or reduced
-  with a repeatable comparison and the safety/sanity behavior preserved.
+- Evidence: the [current profile](../bench/results/safety/20261016-moved-writes-and-sanity.md)
+  observes sanity at 5.5% of compiler CPU cycles on core devmode and 2.8% on full-std
+  release, with no iteration-cap hits. Propagation and checking perform most transfer
+  work. Logical retained register/stack payload peaks at 1.26/1.86 MiB per invocation;
+  spare capacity, hash storage, transient copies and allocator overhead remain unattributed.
+  Unchanged timing controls varied by over 10x, preventing a tight wall/CPU-time bound.
+- Next: measure actual retained capacity and heap overhead, then repeat quiet A/A controls
+  before accepting an elapsed-time bound. Use the phase and visit counts to isolate
+  transfer/state work without weakening proofs or changing analysis limits.
+- Done when: current CPU and state-heap costs are attributed and accepted or reduced with
+  a repeatable comparison and the safety/sanity behavior preserved.
 - Related: compiler.core.005.
 
 ### compiler.safety.008 — Runtime bound guards still impose measurable hot-loop cost

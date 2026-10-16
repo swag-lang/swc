@@ -28,6 +28,7 @@
 #include "Main/Stats.h"
 #include "Main/Version.h"
 #include "Support/Core/PointerSet.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
 #include "Support/Os/Os.h"
@@ -84,15 +85,6 @@ namespace
 {
     constexpr uint32_t K_FUNCTION_CACHE_MIN_INSTRUCTIONS = 64;
 
-    Utf8 digestToHex(const std::array<uint8_t, 32>& digest)
-    {
-        Utf8 result;
-        result.reserve(digest.size() * 2);
-        for (const uint8_t value : digest)
-            result += std::format("{:02x}", value);
-        return result;
-    }
-
     Utf8 functionCacheKey(const NativeBackendBuilder& builder, const SymbolFunction& function)
     {
         // A declaration can move when an unrelated function above it changes. Keep the cache key
@@ -101,7 +93,7 @@ namespace
         Utf8 identity = function.getFullScopedName(builder.ctx());
         identity += "|";
         identity += std::to_string(builder.ctx().typeMgr().get(function.typeRef()).runtimeHash(builder.ctx()));
-        return digestToHex(sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()}));
+        return Utf8Helper::toLowerHex(sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()}));
     }
 
     void appendBackendConfig(ByteArray& bytes, const Runtime::BuildCfgBackend& config)
@@ -188,7 +180,7 @@ namespace
         for (const uint32_t reg : immutableBases)
             identity.appendLe32(reg);
 
-        return digestToHex(sha256(identity.span()));
+        return Utf8Helper::toLowerHex(sha256(identity.span()));
     }
 
     Utf8 lowerPathExtension(const fs::path& path)

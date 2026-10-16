@@ -15,21 +15,9 @@ namespace
     using ModuleApiExport::isModuleApiOpaqueType;
     using ModuleApiExport::isWholeFileExportedSymbol;
     using ModuleApiExport::ModuleApiValidationStack;
+    using ModuleApiExport::symbolKindName;
     using ModuleApiExport::validatePublicFunctionSymbol;
     using ModuleApiExport::validatePublicTypeSymbol;
-
-    Utf8 moduleApiSymbolKindName(const Symbol& symbol)
-    {
-        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
-            return symbolStruct->isUnion() ? Utf8("union") : Utf8("struct");
-        if (symbol.isEnum())
-            return "enum";
-        if (symbol.isInterface())
-            return "interface";
-        if (symbol.isAlias())
-            return "alias";
-        return symbol.toFamily();
-    }
 
     struct ModuleApiValidationScope
     {
@@ -57,7 +45,7 @@ namespace
     Result reportModuleApiNonPublicTypeReference(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol)
     {
         Diagnostic diag = buildModuleApiExportDiagnostic(ctx, DiagnosticId::cmd_err_api_public_type_reference_private, focusSymbol);
-        diag.addArgument(Diagnostic::ARG_WHAT, moduleApiSymbolKindName(ownerSymbol));
+        diag.addArgument(Diagnostic::ARG_WHAT, symbolKindName(ownerSymbol));
         diag.addArgument(Diagnostic::ARG_SYM, ownerSymbol.name(ctx));
         diag.addArgument(Diagnostic::ARG_VALUE, usage);
         diag.addArgument(Diagnostic::ARG_TYPE, referencedSymbol.getFullScopedName(ctx));
@@ -235,6 +223,19 @@ namespace
 
 namespace ModuleApiExport
 {
+    Utf8 symbolKindName(const Symbol& symbol)
+    {
+        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
+            return symbolStruct->isUnion() ? Utf8("union") : Utf8("struct");
+        if (symbol.isEnum())
+            return "enum";
+        if (symbol.isInterface())
+            return "interface";
+        if (symbol.isAlias())
+            return "alias";
+        return symbol.toFamily();
+    }
+
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiValidationStack& stack)
     {
         if (stack.isValidated(symbol))

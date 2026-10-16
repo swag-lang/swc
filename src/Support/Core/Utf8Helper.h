@@ -45,6 +45,7 @@ namespace Utf8Helper
     Utf8 toNiceTime(double seconds);
     Utf8 formatFixedDecimal(double value, uint32_t precision, bool showPositiveSign = false);
     Utf8 toLowerSnake(std::string_view s);
+    Utf8 toLowerHex(std::span<const uint8_t> bytes);
     bool isHexToken(std::string_view token);
     bool isAsciiWordCharacter(char c);
     bool parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept;

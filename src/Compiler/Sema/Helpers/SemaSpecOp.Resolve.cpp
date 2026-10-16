@@ -399,15 +399,6 @@ namespace
         return true;
     }
 
-    const Symbol* currentSpecOpWaiterSymbol(Sema& sema)
-    {
-        const AstNodeRef   rootRef  = sema.visit().root();
-        const SemaNodeView rootView = sema.viewSymbol(rootRef);
-        if (rootView.hasSymbol())
-            return rootView.sym();
-        return sema.topSymMap();
-    }
-
     Result waitSpecOpCandidateReady(Sema& sema, const SymbolFunction& symFunc)
     {
         if (!symFunc.isGenericRoot())
@@ -424,7 +415,7 @@ namespace
         if (symFunc.specOpKind() != SpecOpKind::OpSetLiteral &&
             symFunc.specOpKind() != SpecOpKind::OpVisit)
             return Result::Continue;
-        if (currentSpecOpWaiterSymbol(sema) == &symFunc)
+        if (sema.waiterSymbol() == &symFunc)
             return Result::Continue;
 
         SWC_RESULT(sema.waitDeclared(&symFunc, symFunc.codeRef()));
@@ -443,7 +434,7 @@ namespace
                 if (!symFunc || symFunc->idRef() != idRef)
                     continue;
 
-                if (requireDeclaredGenericRoots && symFunc->isGenericRoot() && currentSpecOpWaiterSymbol(sema) != symFunc)
+                if (requireDeclaredGenericRoots && symFunc->isGenericRoot() && sema.waiterSymbol() != symFunc)
                     SWC_RESULT(sema.waitDeclared(symFunc, symFunc->codeRef()));
                 else
                     SWC_RESULT(waitSpecOpCandidateReady(sema, *symFunc));

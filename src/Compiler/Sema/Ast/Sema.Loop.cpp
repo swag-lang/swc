@@ -68,16 +68,6 @@ namespace
         return Result::Error;
     }
 
-    LoopSemaPayload& ensureLoopSemaPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (auto* payload = sema.semaPayload<LoopSemaPayload>(nodeRef))
-            return *payload;
-
-        auto* payload = sema.compiler().allocate<LoopSemaPayload>();
-        sema.setSemaPayload(nodeRef, payload);
-        return *payload;
-    }
-
     Result resolveForStmtIndexTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef forRef, const AstForStmt& node)
     {
         outTypeRef = TypeRef::invalid();
@@ -451,7 +441,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         TypeRef            valueTypeRef      = TypeRef::invalid();
         TypeRef            indexTypeRef      = TypeRef::invalid();
         bool               bindsValueAddress = false;
-        auto&              pl                = ensureLoopSemaPayload(sema, sema.curNodeRef());
+        auto&              pl                = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef, bindsValueAddress));
         pl.indexTypeRef = indexTypeRef;
         if (bindsValueAddress)
@@ -513,7 +503,7 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
         SWC_RESULT(SemaSpecOp::canResolveVisit(sema, *this, canResolveVisit));
         if (canResolveVisit)
         {
-            ensureLoopSemaPayload(sema, sema.curNodeRef()).usesCustomVisit = true;
+            sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef()).usesCustomVisit = true;
 
             // A '#[Macro] opVisit' expands the user loop body inside its own iteration.
             // The native path pushes the iteration borrow in 'pushLoopFrame', but a custom
@@ -575,7 +565,7 @@ Result AstForeachStmt::semaPostNode(Sema& sema) const
     SWC_RESULT(SemaSpecOp::tryResolveVisit(sema, *this, visitFn, handled));
     SWC_ASSERT(handled);
     SWC_ASSERT(visitFn != nullptr);
-    ensureLoopSemaPayload(sema, sema.curNodeRef()).visitFn = visitFn;
+    sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef()).visitFn = visitFn;
     return Result::Continue;
 }
 
@@ -625,7 +615,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
             SWC_RESULT(sema.waitSemaCompleted(symEnum, view.node()->codeRef()));
 
-            auto& payload        = ensureLoopSemaPayload(sema, sema.curNodeRef());
+            auto& payload        = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
             payload.indexTypeRef = sema.typeMgr().typeU64();
             payload.countCstRef  = sema.cstMgr().addInt(sema.ctx(), symEnum->countSymbols(SymbolKind::EnumValue));
         }
@@ -644,7 +634,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
             {
                 SemaHelpers::CountOfResultInfo countResult;
                 SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, nodeExprRef));
-                auto& payload        = ensureLoopSemaPayload(sema, sema.curNodeRef());
+                auto& payload        = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
                 payload.indexTypeRef = countResult.typeRef;
                 payload.countCstRef  = countResult.cstRef;
                 payload.countFn      = countResult.calledFn;
@@ -671,7 +661,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
             else
             {
                 const auto& rangeExpr = sema.node(nodeExprRef).cast<AstRangeExpr>();
-                auto&       payload   = ensureLoopSemaPayload(sema, sema.curNodeRef());
+                auto&       payload   = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
                 payload.isRangeLoop   = true;
                 payload.indexTypeRef  = view.typeRef();
                 payload.inclusive     = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);

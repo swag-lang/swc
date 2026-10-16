@@ -142,6 +142,28 @@ namespace MicroPassHelpers
         }
     }
 
+    // Unsigned orders and equality: the conditions whose verdict is unchanged when a compare of
+    // zero-extended values is narrowed to the source width. Signed orders are not, because
+    // 0x80..0xFF flip sign at the narrow width.
+    inline bool isUnsignedOrEqualityCondition(MicroCond cond)
+    {
+        switch (cond)
+        {
+            case MicroCond::Equal:
+            case MicroCond::NotEqual:
+            case MicroCond::Zero:
+            case MicroCond::NotZero:
+            case MicroCond::Below:
+            case MicroCond::BelowOrEqual:
+            case MicroCond::NotAbove:
+            case MicroCond::Above:
+            case MicroCond::AboveOrEqual:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     inline bool isVariableScalarShiftOp(MicroOp op)
     {
         switch (op)

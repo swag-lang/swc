@@ -145,18 +145,6 @@ namespace
         bool notNullProofRecorded = false;
     };
 
-    ErrorManagementPayload& ensureErrorManagementPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        auto* payload = sema.semaPayload<ErrorManagementPayload>(nodeRef);
-        if (!payload)
-        {
-            payload = sema.compiler().allocate<ErrorManagementPayload>();
-            sema.setSemaPayload(nodeRef, payload);
-        }
-
-        return *payload;
-    }
-
     void attachFallibleWrapper(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
     {
         if (!targetRef.isValid())
@@ -432,7 +420,7 @@ namespace
         if (errorScopeRef.isInvalid())
             return;
 
-        ensureErrorManagementPayload(sema, errorScopeRef).containsFallible = true;
+        sema.ensureSemaPayload<ErrorManagementPayload>(errorScopeRef).containsFallible = true;
     }
 
     // A `fail` in expression position produces the value its binding expects; in statement
@@ -500,7 +488,7 @@ namespace
 
     Result semaErrorManagementPreNodeCommon(Sema& sema)
     {
-        ensureErrorManagementPayload(sema, sema.curNodeRef());
+        sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef());
         return Result::Continue;
     }
 
@@ -617,7 +605,7 @@ namespace
 
     Result semaErrorManagementPostNodeCommon(Sema& sema, AstNodeRef managedChildRef)
     {
-        auto&         payload = ensureErrorManagementPayload(sema, sema.curNodeRef());
+        auto&         payload = sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef());
         const Token&  tok     = sema.token(sema.curNode().codeRef());
         const TokenId tokenId = effectiveErrorManagementTokenId(sema, tok.id);
 
@@ -1646,7 +1634,7 @@ bool SemaHelpers::isAssumedCast(Sema& sema)
     const AstNodeRef scopeRef = sema.frame().currentErrorScope();
     if (scopeRef.isInvalid() || sema.token(sema.node(scopeRef).codeRef()).id != TokenId::KwdAssume)
         return false;
-    ensureErrorManagementPayload(sema, scopeRef).containsAssumedCast = true;
+    sema.ensureSemaPayload<ErrorManagementPayload>(scopeRef).containsAssumedCast = true;
     return true;
 }
 
@@ -1721,7 +1709,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaErrorManagementPostNodeCommon(sema, nodeExprRef));
 
-    const auto& errorPayload = ensureErrorManagementPayload(sema, sema.curNodeRef());
+    const auto& errorPayload = sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef());
     if (errorPayload.containsAssumedCast && !errorPayload.containsFallible && sema.node(nodeExprRef).is(AstNodeId::AutoCastExpr))
     {
         sema.setSubstitute(sema.curNodeRef(), nodeExprRef);
@@ -1813,7 +1801,7 @@ Result AstErrorManagementStmt::semaPostNode(Sema& sema) const
     const AstNode& body = sema.node(nodeBodyRef);
     if (body.is(AstNodeId::ParallelForStmt) && body.cast<AstParallelForStmt>().hasFlag(AstParallelForStmtFlagsE::Fallible))
     {
-        ensureErrorManagementPayload(sema, sema.curNodeRef()).containsFallible = true;
+        sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef()).containsFallible = true;
         SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::ParallelRangeFallible, codeRef()));
         SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, codeRef()));
     }
@@ -1841,7 +1829,7 @@ Result AstFailExpr::semaPostNode(Sema& sema) const
         }
     }
 
-    auto& payload            = ensureErrorManagementPayload(sema, sema.curNodeRef());
+    auto& payload            = sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef());
     payload.containsFallible = true;
     payload.isFallibleResult = true;
     markCurrentErrorScopeFallible(sema);

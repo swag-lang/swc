@@ -51,17 +51,7 @@ namespace
     {
         if (const auto* function = symbol.safeCast<SymbolFunction>())
             return function->isMethod() ? Utf8("method") : Utf8("function");
-        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
-            return symbolStruct->isUnion() ? Utf8("union") : Utf8("struct");
-        if (symbol.isEnum())
-            return "enum";
-        if (symbol.isInterface())
-            return "interface";
-        if (symbol.isAlias())
-            return "alias";
-        if (symbol.isConstant())
-            return "constant";
-        return symbol.toFamily();
+        return ModuleApiExport::symbolKindName(symbol);
     }
 
     void addDependencyDeclaredHereNote(TaskContext& ctx, Diagnostic& diag, const Symbol& referencedSymbol)

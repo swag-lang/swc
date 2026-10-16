@@ -128,24 +128,9 @@ namespace
         return typeRef.isValid() && SemaSwitch::isDynamicType(sema, sema.typeMgr().get(typeRef));
     }
 
-    DynamicStructSwitchCasePayload& ensureDynamicStructSwitchCasePayload(Sema& sema, AstNodeRef caseRef)
-    {
-        auto* payload = sema.semaPayload<DynamicStructSwitchCasePayload>(caseRef);
-        if (payload)
-            return *payload;
-
-        payload = sema.compiler().allocate<DynamicStructSwitchCasePayload>();
-        sema.setSemaPayload(caseRef, payload);
-        return *payload;
-    }
-
     void markDynamicStructSwitchAsCaseExpr(Sema& sema, AstNodeRef nodeRef)
     {
-        if (sema.semaPayload<DynamicStructSwitchAsCastPayload>(nodeRef))
-            return;
-
-        auto* payload = sema.compiler().allocate<DynamicStructSwitchAsCastPayload>();
-        sema.setSemaPayload(nodeRef, payload);
+        sema.ensureSemaPayload<DynamicStructSwitchAsCastPayload>(nodeRef);
     }
 
     Result raiseDynamicStructSwitchCaseSyntaxError(Sema& sema, AstNodeRef nodeRef)
@@ -214,7 +199,7 @@ namespace
 
     void registerDynamicStructSwitchCaseExpr(Sema& sema, AstNodeRef caseRef, AstNodeRef caseExprRef, AstNodeRef typeExprRef)
     {
-        auto& payload = ensureDynamicStructSwitchCasePayload(sema, caseRef);
+        auto& payload = sema.ensureSemaPayload<DynamicStructSwitchCasePayload>(caseRef);
         for (auto& expr : payload.expressions)
         {
             if (expr.caseExprRef != caseExprRef)
@@ -229,7 +214,7 @@ namespace
 
     Result registerDynamicStructSwitchBinding(Sema& sema, AstNodeRef caseRef, AstNodeRef caseExprRef, AstNodeRef identRef, TypeRef bindingTypeRef)
     {
-        auto& payload = ensureDynamicStructSwitchCasePayload(sema, caseRef);
+        auto& payload = sema.ensureSemaPayload<DynamicStructSwitchCasePayload>(caseRef);
         if (payload.bindingSymbol != nullptr)
             return Result::Continue;
 
@@ -331,7 +316,7 @@ namespace
         SWC_RESULT(Cast::castDynamic(sema, castView, sema.typeMgr().addType(destination), CastFlagsE::Try));
 
         registerDynamicStructSwitchCaseExpr(sema, caseRef, caseExprRef, typeExprRef);
-        auto& casePayload = ensureDynamicStructSwitchCasePayload(sema, caseRef);
+        auto& casePayload = sema.ensureSemaPayload<DynamicStructSwitchCasePayload>(caseRef);
         for (auto& expr : casePayload.expressions)
             if (expr.caseExprRef == caseExprRef)
                 expr.castRef = castRef;

@@ -339,6 +339,7 @@ public:
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     const SymbolMap* topSymMap() const { return startSymMap_; }
+    const Symbol*    waiterSymbol();
 
     const SymbolNamespace& moduleNamespace() const { return nodePayloadContext().moduleNamespace(); }
     SymbolNamespace&       moduleNamespace() { return nodePayloadContext().moduleNamespace(); }
@@ -483,6 +484,18 @@ public:
         if (!payload)
             return nullptr;
         return static_cast<T*>(payload);
+    }
+
+    // The node's payload of type T, allocated from the compiler on first request.
+    template<typename T>
+    T& ensureSemaPayload(AstNodeRef n)
+    {
+        if (T* payload = semaPayload<T>(n))
+            return *payload;
+
+        T* payload = compiler().allocate<T>();
+        setSemaPayload(n, payload);
+        return *payload;
     }
 
     void                                setResolvedCallArguments(AstNodeRef n, std::span<const ResolvedCallArgument> args) { nodePayloadContext().setResolvedCallArguments(n, args); }

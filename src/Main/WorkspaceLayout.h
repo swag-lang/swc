@@ -76,6 +76,39 @@ namespace WorkspaceLayout
     // the directory is an entry rather than something else a user left here.
     inline constexpr std::string_view DEPENDENCY_CACHE_USED_MARKER = ".swc-used";
 
+    inline fs::path dependencyCacheUsedMarkerPath(const fs::path& entryDir)
+    {
+        return (entryDir / fs::path(std::string(DEPENDENCY_CACHE_USED_MARKER))).lexically_normal();
+    }
+
+    // Calls 'visit' with every entry whose marker is at least 'days' old. Returns false when the
+    // scan of the cache root failed partway, after the entries it had already reached.
+    template<typename F>
+    bool visitUnusedDependencyCacheEntries(const uint32_t days, F&& visit)
+    {
+        const auto      maxAge = std::chrono::seconds(86400ULL * days);
+        const auto      now    = fs::file_time_type::clock::now();
+        std::error_code ec;
+        for (fs::directory_iterator it(dependencyCacheRoot(), fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return false;
+
+            ec.clear();
+            if (!it->is_directory(ec) || ec)
+                continue;
+
+            ec.clear();
+            const auto usedTime = fs::last_write_time(dependencyCacheUsedMarkerPath(it->path()), ec);
+            if (ec || std::chrono::duration_cast<std::chrono::seconds>(now - usedTime) < maxAge)
+                continue;
+
+            visit(it->path());
+        }
+
+        return true;
+    }
+
     // Where compilers before 0.0.2 mirrored a script's dependencies: one directory per set of
     // imports, each with its own copy of every one of them. Nothing fills it any more, and it is
     // named here so that `swc clean --cache` can still give back the disk it holds.

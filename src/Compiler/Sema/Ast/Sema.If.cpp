@@ -31,16 +31,6 @@ namespace
         uint32_t narrowFactsAtThen = UINT32_MAX;
     };
 
-    IfSemaPayload& ensureIfSemaPayload(Sema& sema, AstNodeRef nodeRef)
-    {
-        if (auto* payload = sema.semaPayload<IfSemaPayload>(nodeRef))
-            return *payload;
-
-        auto* payload = sema.compiler().allocate<IfSemaPayload>();
-        sema.setSemaPayload(nodeRef, payload);
-        return *payload;
-    }
-
     ConstantRef conditionSymbolConstantRef(const Symbol& symbol)
     {
         if (const auto* symVar = symbol.safeCast<SymbolVariable>())
@@ -136,7 +126,7 @@ namespace
         if (conditionCstRef.isInvalid())
             return;
 
-        auto& payload                 = ensureIfSemaPayload(sema, ifRef);
+        auto& payload                 = sema.ensureSemaPayload<IfSemaPayload>(ifRef);
         payload.maskedConditionSymbol = conditionSym;
         payload.maskedConditionCstRef = conditionCstRef;
         setConditionSymbolConstantRef(*conditionSym, ConstantRef::invalid());
@@ -340,7 +330,7 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
         // the true branch recorded on its own path.
         uint32_t factsAtThen = UINT32_MAX;
         if (childRef == nodeIfBlockRef)
-            ensureIfSemaPayload(sema, sema.curNodeRef()).narrowFactsAtThen = sema.frame().narrowFactCount();
+            sema.ensureSemaPayload<IfSemaPayload>(sema.curNodeRef()).narrowFactsAtThen = sema.frame().narrowFactCount();
         else if (const auto* payload = sema.semaPayload<IfSemaPayload>(sema.curNodeRef()); payload && payload->narrowFactsAtThen < sema.frame().narrowFactCount())
             factsAtThen = payload->narrowFactsAtThen;
 

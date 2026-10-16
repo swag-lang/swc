@@ -849,31 +849,6 @@ namespace InstructionCombine
 
     namespace
     {
-        // Operand index of the MicroCond for each UsesCpuFlags opcode this
-        // fold understands; anything else blocks the rewrite.
-        // Conditions whose verdict is unchanged when a compare of a
-        // zero-extended value is narrowed to the source width: unsigned
-        // orders and equality. Signed orders are not — 0x80..0xFF flip sign
-        // at the narrow width.
-        bool condSurvivesZeroExtNarrowing(MicroCond cond)
-        {
-            switch (cond)
-            {
-                case MicroCond::Equal:
-                case MicroCond::NotEqual:
-                case MicroCond::Zero:
-                case MicroCond::NotZero:
-                case MicroCond::Below:
-                case MicroCond::BelowOrEqual:
-                case MicroCond::NotAbove:
-                case MicroCond::Above:
-                case MicroCond::AboveOrEqual:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         bool condSurvivesCompareOperandSwap(MicroCond cond)
         {
             return cond == MicroCond::Equal || cond == MicroCond::NotEqual ||
@@ -1222,7 +1197,7 @@ namespace InstructionCombine
                         return false;
                 }
 
-                if (needsUnsignedConds && !allCmpFlagConsumersSatisfy(ctx, walker.current, condSurvivesZeroExtNarrowing))
+                if (needsUnsignedConds && !allCmpFlagConsumersSatisfy(ctx, walker.current, MicroPassHelpers::isUnsignedOrEqualityCondition))
                     return false;
 
                 const MicroInstrRef cmpRef = walker.current;

@@ -41,28 +41,6 @@ namespace
     using MicroLabelHelpers::tryGetJumpTargetLabelId;
     using MicroLabelHelpers::tryGetLabelId;
 
-    // Compare and test instructions define only flags. Copying an arithmetic
-    // instruction would also copy its value definition.
-    bool isDuplicableTest(const MicroInstr& inst)
-    {
-        switch (inst.op)
-        {
-            case MicroInstrOpcode::CmpRegReg:
-            case MicroInstrOpcode::CmpRegImm:
-            case MicroInstrOpcode::CmpMemImm:
-            case MicroInstrOpcode::CmpMemReg:
-            case MicroInstrOpcode::CmpAmcImm:
-            case MicroInstrOpcode::CmpAmcReg:
-            case MicroInstrOpcode::TestRegReg:
-            case MicroInstrOpcode::TestRegImm:
-            case MicroInstrOpcode::TestMemReg:
-            case MicroInstrOpcode::TestMemImm:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     // A connector the allocator places around the test: a register move or
     // frame traffic, flag-neutral, so the compare still feeds the jump.
     bool isDuplicableConnector(const MicroInstr& inst)
@@ -731,7 +709,9 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
                 closed = haveTest;
                 break;
             }
-            if (isDuplicableTest(*testInst))
+            // A compare or test defines only flags. Copying an arithmetic instruction would
+            // also copy its value definition.
+            if (MicroInstr::isCompareOrTest(testInst->op))
             {
                 if (haveTest)
                     break;

@@ -442,83 +442,13 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             }
 
             case TaskStateKind::SemaWaitSymDeclared:
-            {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
-                if (suppressStalledDependencies)
-                    break;
-                reportStalledDependency(*sema, ctx, state);
-                break;
-            }
-
             case TaskStateKind::SemaWaitSymTyped:
-            {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
-                if (suppressStalledDependencies)
-                    break;
-                reportStalledDependency(*sema, ctx, state);
-                break;
-            }
-
             case TaskStateKind::SemaWaitSymConstraintsResolved:
             case TaskStateKind::SemaWaitSymSemaCompleted:
-            {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
-                if (suppressStalledDependencies)
-                    break;
-                reportStalledDependency(*sema, ctx, state);
-                break;
-            }
-
             case TaskStateKind::SemaWaitSymCodeGenPreSolved:
-            {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
-                if (suppressStalledDependencies)
-                    break;
-                reportStalledDependency(*sema, ctx, state);
-                break;
-            }
-
             case TaskStateKind::SemaWaitSymCodeGenCompleted:
-            {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
-                if (suppressStalledDependencies)
-                    break;
-                reportStalledDependency(*sema, ctx, state);
-                break;
-            }
-
             case TaskStateKind::SemaWaitSymJitPrepared:
-            {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
-                if (suppressStalledDependencies)
-                    break;
-                reportStalledDependency(*sema, ctx, state);
-                break;
-            }
-
             case TaskStateKind::SemaWaitSymJitPatched:
-            {
-                SWC_ASSERT(state.symbol);
-                if (!reportedSymbols.insert(state.symbol).second)
-                    break;
-                if (suppressStalledDependencies)
-                    break;
-                reportStalledDependency(*sema, ctx, state);
-                break;
-            }
-
             case TaskStateKind::SemaWaitSymJitCompleted:
             {
                 SWC_ASSERT(state.symbol);

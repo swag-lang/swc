@@ -4,7 +4,9 @@
 #include "Backend/Native/NativeSection.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Result.h"
+#include "Support/Core/StringMap.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -50,15 +52,28 @@ private:
         bool                                 hasRelocationOverflow = false;
     };
 
+    // Symbol name -> record index. Every name is borrowed from an owner that outlives the object
+    // build (the description, the relocations of the sections, the builder's tables), except a
+    // formatted rdata symbol, which this index keeps in a storage that never moves.
+    struct CoffSymbolIndex
+    {
+        bool tryAdd(const std::string_view name, const uint32_t index) { return indices.try_emplace(name, Math::hash(name), index).second; }
+
+        const uint32_t* find(const std::string_view name) const { return indices.find(name, Math::hash(name)); }
+
+        StringMap<uint32_t> indices;
+        std::deque<Utf8>    ownedNames;
+    };
+
     struct CoffStringTable
     {
         uint32_t add(const std::string_view name)
         {
             if (name.size() <= K_COFF_SHORT_NAME_SIZE)
                 return 0;
-            const auto [it, inserted] = offsets.try_emplace(name, size);
+            const auto [existing, inserted] = offsets.try_emplace(name, Math::hash(name), size);
             if (!inserted)
-                return it->second;
+                return *existing;
 
             const uint32_t offset = size;
             entries.push_back(name);
@@ -68,9 +83,9 @@ private:
 
         // buildCoffFile owns this table inside the lifetime of its immutable symbol vector.
         // Names remain stable until both their offsets and bytes have been emitted.
-        uint32_t                                       size = 4;
-        std::unordered_map<std::string_view, uint32_t> offsets;
-        std::vector<std::string_view>                  entries;
+        uint32_t                      size = 4;
+        StringMap<uint32_t>           offsets;
+        std::vector<std::string_view> entries;
     };
 
     Result        buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const;
@@ -79,10 +94,10 @@ private:
     Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
     Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
     static Result applySectionRelocations(CoffSectionBuild& section);
-    void          addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
-    static void   addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices, CoffSymbolRecord record);
-    static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
-    static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices);
+    void          addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex) const;
+    static void   addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex, std::string_view ownedName, CoffSymbolRecord record);
+    static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex);
+    static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex);
 
     NativeBackendBuilder* builder_ = nullptr;
 };

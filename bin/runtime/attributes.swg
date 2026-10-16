@@ -353,9 +353,12 @@ namespace Swag
     // direct. For example, copying 'source[]' into 'destination[]' can retain a
     // pointer field inside the source value without retaining the source's address.
     // These masks add facts; their zero defaults do not erase any direct-mask bits.
+    // Bit 'i' of 'freesIndirect' means the call invalidates the pointer held in
+    // parameter #i's pointee, without releasing the box holding that pointer.
+    // Its zero default preserves summaries generated before this mask existed.
     // Deeper indirection without a separate proof remains conservative.
     #[AttrUsage(AttributeUsage.Function)]
-    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true, returnsIndirect: u64 = 0, storesIndirect: u64 = 0, intoIndirect: u64 = 0)
+    attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true, returnsIndirect: u64 = 0, storesIndirect: u64 = 0, intoIndirect: u64 = 0, freesIndirect: u64 = 0)
 
     // Safety checks, selected by [[Safety]] at runtime and by [[Sanity]] at compile time.
     #[Swag.EnumFlags]

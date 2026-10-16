@@ -90,6 +90,7 @@ struct AttributeList
     uint64_t                        returnsIndirectParamsMask    = 0;
     uint64_t                        storesIndirectParamsMask     = 0;
     uint64_t                        storesIndirectIntoParamPairs = 0;
+    uint64_t                        freesIndirectParamsMask      = 0;
     // These two exist for `#[Swag.PrintMicro]` and `#[Swag.PrintAst]`, which a compilation carries
     // on at most one function. Inline storage for four strings each would put 320 bytes of an
     // attribute list — a third of it — at the service of two debugging attributes, and every scope
@@ -124,6 +125,7 @@ struct AttributeList
                returnsIndirectParamsMask == 0 &&
                storesIndirectParamsMask == 0 &&
                storesIndirectIntoParamPairs == 0 &&
+               freesIndirectParamsMask == 0 &&
                printMicroPassOptions.empty() &&
                printAstStageOptions.empty() &&
                warnings.empty() &&
@@ -213,7 +215,7 @@ struct AttributeList
     // parameter's storage, rather than carrying it in a separate allocation. The
     // indirect masks track borrows carried by the source parameter's pointee;
     // the destination index in an indirect pair still denotes the direct parameter.
-    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask, bool observesExternal, uint64_t returnsIndirectMask, uint64_t storesIndirectMask, uint64_t intoIndirectPairs)
+    void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask, bool observesExternal, uint64_t returnsIndirectMask, uint64_t storesIndirectMask, uint64_t intoIndirectPairs, uint64_t freesIndirectMask)
     {
         returnBorrowsParamsMask |= returnsMask;
         storesParamsMask |= storesMask;
@@ -226,6 +228,7 @@ struct AttributeList
         returnsIndirectParamsMask |= returnsIndirectMask;
         storesIndirectParamsMask |= storesIndirectMask;
         storesIndirectIntoParamPairs |= intoIndirectPairs;
+        freesIndirectParamsMask |= freesIndirectMask;
     }
 
     void setBackendOptimize(bool value)

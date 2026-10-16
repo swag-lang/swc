@@ -2109,6 +2109,21 @@ namespace
                 const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
                 if ((paramType.isAnyPointer() || paramType.isReference()) && structuralBorrowCarrierType(sema, paramType.payloadTypeRef()))
                     indirectInfo = aggregatePointeeBorrowInfo(sema, arg.argRef, paramType.payloadTypeRef(), budget);
+                else if (directInfo.kind == SemaEscapeKind::Parameter && !directInfo.viaStoredField &&
+                         !directInfo.viaOwnedPayload && !directInfo.parameterIndirectOriginsMask &&
+                         (paramType.isAnyPointer() || paramType.isReference()) &&
+                         unwrapAliasEnumType(sema, paramType.payloadTypeRef()).isAnyPointer() &&
+                         identifierVariable(sema, sema.resolvedNodeRef(arg.argRef)) == directInfo.sourceVar)
+                {
+                    // Passing the box parameter itself also forwards the identity of its
+                    // pointer contents. Do not infer this route from an enclosing carrier.
+                    indirectInfo                              = directInfo;
+                    indirectInfo.typeRef                      = paramType.payloadTypeRef();
+                    indirectInfo.parameterIndirectOriginsMask = directInfo.parameterOriginsMask;
+                    indirectInfo.parameterOriginsMask         = 0;
+                    indirectInfo.viaParameterPointee          = true;
+                    indirectInfo.markStoredFieldBorrow();
+                }
             }
             for (const bool indirect : {false, true})
             {
@@ -5532,7 +5547,7 @@ namespace SemaEscape
                         if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
                         {
                             const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
-                            if (edge.callee->freesParamsMask() & calleeBit)
+                            if ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit)
                             {
                                 const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
                                 const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
@@ -5567,6 +5582,7 @@ namespace SemaEscape
             uint32_t              callerParamIndex = 0;
             uint32_t              calleeParamIndex = 0;
             bool                  callerIndirect   = false;
+            bool                  calleeIndirect   = false;
         };
 
         std::vector<ForwardingEdge> forwardings;
@@ -5862,7 +5878,7 @@ namespace SemaEscape
                 return !(source->summary.borrows & bit) || !(source->summary.storage & bit) || (source->summary.payload & bit);
             });
             if (!ineligible)
-                forwardings.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect});
+                forwardings.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect, edge.calleeIndirect});
         });
 
         size_t pendingCount = forwardings.size();
@@ -5881,7 +5897,7 @@ namespace SemaEscape
                 if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
                 {
                     const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
-                    if (edge.callee->freesParamsMask() & calleeBit)
+                    if ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit)
                     {
                         const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
                         const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
@@ -6090,8 +6106,8 @@ namespace SemaEscape
 
                             // A value read out of the parameter's box and handed to a freeing
                             // callee releases what the box holds, never the box.
-                            if (edge.callerIndirect && edge.viaParameterPointee && !edge.calleeIndirect && !edge.viaOwnedPayload && summaryGuardsMatch(edge, true) &&
-                                (edge.callee->freesParamsMask() & calleeBit) && !(edge.caller->freesIndirectParamsMask() & callerBit))
+                            if (edge.callerIndirect && edge.viaParameterPointee && !edge.viaOwnedPayload && summaryGuardsMatch(edge, true) &&
+                                ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit) && !(edge.caller->freesIndirectParamsMask() & callerBit))
                             {
                                 edge.caller->addFreesParam(edge.callerParamIndex, true);
                                 changed = true;

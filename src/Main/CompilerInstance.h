@@ -335,7 +335,7 @@ public:
             for (size_t i = freesForwardingsEdgeCursor_; i < freeForwardingEdgeIndices_.size(); ++i)
             {
                 const SemaEscapeSummaryEdge& edge = escapeSummaryEdges_[freeForwardingEdgeIndices_[i]];
-                freesForwardings_.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect});
+                freesForwardings_.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect, edge.calleeIndirect});
             }
             freesForwardingsEdgeCursor_ = freeForwardingEdgeIndices_.size();
         }

@@ -175,6 +175,7 @@ struct SemaEscapeFreesForwarding
     uint32_t              callerParamIndex = 0;
     uint32_t              calleeParamIndex = 0;
     bool                  callerIndirect   = false;
+    bool                  calleeIndirect   = false;
 };
 
 // An edge that forwards a release: what the callee frees through its parameter, the caller frees
@@ -182,9 +183,9 @@ struct SemaEscapeFreesForwarding
 // the box. It is the only kind the frees propagation reads.
 inline bool isFreeForwardingEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
 {
-    if (!edge.caller || !edge.callee || edge.kind != SemaEscapeSummaryEdgeKind::StoresToStores || edge.viaOwnedPayload || edge.calleeIndirect)
+    if (!edge.caller || !edge.callee || edge.kind != SemaEscapeSummaryEdgeKind::StoresToStores || edge.viaOwnedPayload)
         return false;
-    return edge.callerIndirect ? edge.viaParameterPointee : !edge.viaStoredField;
+    return edge.callerIndirect ? edge.viaParameterPointee : !edge.calleeIndirect && !edge.viaStoredField;
 }
 
 // The captured argument borrows of one opaque call. Checks are templates whose site,

@@ -369,6 +369,7 @@ namespace
         uint64_t returnsIndirectMask = 0;
         uint64_t storesIndirectMask  = 0;
         uint64_t intoIndirectPairs   = 0;
+        uint64_t freesIndirectMask   = 0;
         SWC_RESULT(collectResolvedEnumMaskValue(sema, args[0], returnsMask));
         if (args.size() >= 2)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[1], storesMask));
@@ -392,7 +393,10 @@ namespace
         if (args.size() >= 11)
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[10], intoIndirectPairs));
 
-        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal, returnsIndirectMask, storesIndirectMask, intoIndirectPairs);
+        if (args.size() >= 12)
+            SWC_RESULT(collectResolvedEnumMaskValue(sema, args[11], freesIndirectMask));
+
+        outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal, returnsIndirectMask, storesIndirectMask, intoIndirectPairs, freesIndirectMask);
         return Result::Continue;
     }
 

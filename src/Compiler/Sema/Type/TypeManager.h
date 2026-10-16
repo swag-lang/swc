@@ -207,21 +207,6 @@ private:
     };
     using StoredType = std::unique_ptr<TypeInfo, StoredTypeDeleter>;
 
-    struct StoredTypeHash
-    {
-        using is_transparent = void;
-        size_t operator()(const StoredType& type) const noexcept { return type->hash(); }
-        size_t operator()(const TypeInfo& type) const noexcept { return type.hash(); }
-    };
-
-    struct StoredTypeEqual
-    {
-        using is_transparent = void;
-        bool operator()(const StoredType& lhs, const StoredType& rhs) const noexcept { return *lhs == *rhs; }
-        bool operator()(const StoredType& lhs, const TypeInfo& rhs) const noexcept { return *lhs == rhs; }
-        bool operator()(const TypeInfo& lhs, const StoredType& rhs) const noexcept { return lhs == *rhs; }
-    };
-
     // Open-addressed and append-only: a slot, once filled, keeps its type. Readers probe it
     // without a lock; writers fill it under the stripe mutex, hash before type.
     struct InternTable
@@ -233,14 +218,15 @@ private:
     };
 
     // Each stripe owns its cache line: neighbours locked by other workers must not share it.
-    // 'map' owns the interned payloads; 'table' answers lookups without a lock. Every table
-    // generation stays alive with the stripe, for readers still probing an older one.
+    // 'owned' keeps the interned payloads alive; 'table' answers every lookup, without a lock
+    // for readers and under the mutex for writers. Every table generation stays alive with the
+    // stripe, for readers still probing an older one.
     struct alignas(64) InternStripe
     {
-        std::unordered_set<StoredType, StoredTypeHash, StoredTypeEqual> map;
-        std::atomic<InternTable*>                                       table = nullptr;
-        std::vector<std::unique_ptr<InternTable>>                       tables;
-        std::mutex                                                      mutex; // writers only
+        std::vector<StoredType>                   owned;
+        std::atomic<InternTable*>                 table = nullptr;
+        std::vector<std::unique_ptr<InternTable>> tables;
+        std::mutex                                mutex; // writers only
     };
 
     struct Shard

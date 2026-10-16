@@ -937,7 +937,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
         AstMemberAccessExpr*     substituteNode = nullptr;
         const AstNodeRef         nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), autoMemberCodeRef, selected, nodeIdentRef, substituteNode);
-        const std::span<Symbol*> symbols        = sema.curViewSymbolList().symList();
+        const std::span<Symbol*> symbols        = sema.curViewSymbol().symList();
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
         sema.setSymbolList(substituteNode->nodeRightRef, symbols);

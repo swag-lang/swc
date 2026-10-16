@@ -112,9 +112,9 @@ void ConstantManager::setup(const TaskContext& ctx)
     cstS32_neg1_   = addS32(ctx, -1);
     cstNull_       = addConstant(ctx, ConstantValue::makeNull(ctx));
 
-    // The x64 bitwise float forms read a complete 16-byte operand, and their legacy SSE
-    // encodings fault on an unaligned one. A payload buffer is packed at byte alignment,
-    // so the two negation masks get aligned storage of their own, shared by every use.
+    // Scalar float bitwise forms read a complete 16-byte operand. The payload buffer is packed
+    // at byte alignment, so the two negation masks get aligned storage of their own, shared by
+    // every use.
     const auto addSignMask = [&](const uint32_t signByte, const std::byte*& outStorage, DataSegmentRef& outRef) {
         std::array<std::byte, 16> mask = {};
         mask[signByte]                 = std::byte{0x80};

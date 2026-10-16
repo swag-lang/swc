@@ -89,7 +89,7 @@ namespace
         if (info.storageTypeInfo->isFloat())
         {
             // XORing the scalar lane's sign bit preserves every payload bit, including
-            // signed zero and NaN. The x64 bitwise forms read a complete, aligned XMM
+            // signed zero and NaN. The bitwise operation reads a complete, aligned 16-byte
             // operand, which the constant manager provides once per lane width.
             DataSegmentRef   maskRef;
             const std::byte* maskStorage = codeGen.cstMgr().floatSignMask(info.opBits == MicroOpBits::B64, maskRef);

@@ -7,40 +7,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    using MicroPassHelpers::RegTouch;
+
     namespace
     {
-        struct RegTouch
-        {
-            bool use = false;
-            bool def = false;
-
-            bool any() const { return use || def; }
-        };
-
         RegTouch instructionRegTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg)
         {
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                (ctx.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
-            {
-                const MicroInstrUseDef useDef = inst.collectUseDef(*ctx.operands, ctx.encoder);
-                return {microRegSpanContains(useDef.uses.span(), reg), microRegSpanContains(useDef.defs.span(), reg)};
-            }
-
-            RegTouch touch;
-            if (const MicroInstrOperand* ops = inst.ops(*ctx.operands))
-            {
-                const auto modes = info.resolvedRegModes(ops);
-                for (size_t operand = 0; operand < modes.size(); ++operand)
-                {
-                    if (modes[operand] != MicroInstrRegMode::None && ops[operand].reg == reg)
-                    {
-                        touch.use |= modes[operand] == MicroInstrRegMode::Use || modes[operand] == MicroInstrRegMode::UseDef;
-                        touch.def |= modes[operand] == MicroInstrRegMode::Def || modes[operand] == MicroInstrRegMode::UseDef;
-                    }
-                }
-            }
-            return touch;
+            return MicroPassHelpers::regTouch(inst, *ctx.operands, reg, ctx.encoder);
         }
     }
 

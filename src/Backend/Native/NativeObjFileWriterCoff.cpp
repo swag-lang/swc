@@ -377,36 +377,23 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
 
     for (const auto& section : sections)
     {
+        const Utf8* baseName = nullptr;
         if (section.data.name == ".rdata")
-        {
-            addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = builder_->scopedSymbolNames().rdataBase,
-                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                                                        .value         = 0,
-                                                        .type          = 0,
-                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                    });
-        }
+            baseName = &builder_->scopedSymbolNames().rdataBase;
         else if (section.data.name == ".data")
-        {
-            addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = builder_->scopedSymbolNames().dataBase,
-                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                                                        .value         = 0,
-                                                        .type          = 0,
-                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                    });
-        }
+            baseName = &builder_->scopedSymbolNames().dataBase;
         else if (section.data.name == ".bss")
-        {
-            addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = builder_->scopedSymbolNames().bssBase,
-                                                        .sectionNumber = static_cast<int16_t>(section.sectionNumber),
-                                                        .value         = 0,
-                                                        .type          = 0,
-                                                        .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-                                                    });
-        }
+            baseName = &builder_->scopedSymbolNames().bssBase;
+        if (!baseName)
+            continue;
+
+        addSymbolRecord(symbols, symbolIndices, {
+                                                    .name          = *baseName,
+                                                    .sectionNumber = static_cast<int16_t>(section.sectionNumber),
+                                                    .value         = 0,
+                                                    .type          = 0,
+                                                    .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
+                                                });
     }
 }
 

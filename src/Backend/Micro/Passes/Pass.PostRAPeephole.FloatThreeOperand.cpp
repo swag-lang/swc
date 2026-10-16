@@ -1478,6 +1478,37 @@ namespace PostRaPeephole
         return true;
     }
 
+    namespace
+    {
+        struct IntegerCopy
+        {
+            MicroReg    dst;
+            MicroReg    src;
+            MicroOpBits bits;
+        };
+
+        bool tryGetIntegerCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst, IntegerCopy& out)
+        {
+            if (copyInst.numOperands < 3)
+                return false;
+
+            const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
+            if (!copyOps)
+                return false;
+            const MicroOpBits bits = copyOps[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+
+            const MicroReg dst = copyOps[0].reg;
+            const MicroReg src = copyOps[1].reg;
+            if (!dst.isInt() || !src.isInt() || dst == src || ctx.isPrivateFrameBase(dst) || ctx.isPrivateFrameBase(src))
+                return false;
+
+            out = {dst, src, bits};
+            return true;
+        }
+    }
+
     // An integer multiply by a constant names its destination separately too:
     //
     //     mov rax, rcx ; imul rax, 16843010    ->    imul rax, rcx, 16843010
@@ -1486,20 +1517,12 @@ namespace PostRaPeephole
     // 16843010` shows in every magic-number division.
     bool tryFoldCopyIntoIntegerMultiply(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (copyInst.numOperands < 3)
+        IntegerCopy copy;
+        if (!tryGetIntegerCopy(ctx, copyRef, copyInst, copy))
             return false;
-
-        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
-        if (!copyOps)
-            return false;
-        const MicroOpBits copyBits = copyOps[2].opBits;
-        if (copyBits != MicroOpBits::B32 && copyBits != MicroOpBits::B64)
-            return false;
-
-        const MicroReg dst = copyOps[0].reg;
-        const MicroReg src = copyOps[1].reg;
-        if (!dst.isInt() || !src.isInt() || dst == src || ctx.isPrivateFrameBase(dst) || ctx.isPrivateFrameBase(src))
-            return false;
+        const MicroReg    dst      = copy.dst;
+        const MicroReg    src      = copy.src;
+        const MicroOpBits copyBits = copy.bits;
 
         // The multiply that consumes the copy, with nothing in between that
         // touches either register.
@@ -1578,20 +1601,12 @@ namespace PostRaPeephole
     // flags must be dead.
     bool tryFoldCopyIntoRotateImm(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (copyInst.numOperands < 3)
+        IntegerCopy copy;
+        if (!tryGetIntegerCopy(ctx, copyRef, copyInst, copy))
             return false;
-
-        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
-        if (!copyOps)
-            return false;
-        const MicroOpBits copyBits = copyOps[2].opBits;
-        if (copyBits != MicroOpBits::B32 && copyBits != MicroOpBits::B64)
-            return false;
-
-        const MicroReg dst = copyOps[0].reg;
-        const MicroReg src = copyOps[1].reg;
-        if (!dst.isInt() || !src.isInt() || dst == src || ctx.isPrivateFrameBase(dst) || ctx.isPrivateFrameBase(src))
-            return false;
+        const MicroReg    dst      = copy.dst;
+        const MicroReg    src      = copy.src;
+        const MicroOpBits copyBits = copy.bits;
 
         // The rotate that consumes the copy, with nothing in between that touches either register.
         auto scanIt = MicroStorage::Iterator{ctx.storage, copyRef};
@@ -1759,20 +1774,12 @@ namespace PostRaPeephole
     // the product afterwards.
     bool tryFoldMultiplyIntoResultCopy(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
-        if (copyInst.numOperands < 3)
+        IntegerCopy copy;
+        if (!tryGetIntegerCopy(ctx, copyRef, copyInst, copy))
             return false;
-
-        const MicroInstrOperand* copyOps = ctx.operandsFor(copyRef);
-        if (!copyOps)
-            return false;
-        const MicroOpBits copyBits = copyOps[2].opBits;
-        if (copyBits != MicroOpBits::B32 && copyBits != MicroOpBits::B64)
-            return false;
-
-        const MicroReg dst = copyOps[0].reg;
-        const MicroReg src = copyOps[1].reg;
-        if (!dst.isInt() || !src.isInt() || dst == src || ctx.isPrivateFrameBase(dst) || ctx.isPrivateFrameBase(src))
-            return false;
+        const MicroReg    dst      = copy.dst;
+        const MicroReg    src      = copy.src;
+        const MicroOpBits copyBits = copy.bits;
         // The product only reaches the copy: anything else still reading the
         // multiplied register would read the value it no longer gets.
         if (!ctx.isRegDeadAfterCurrent(src))

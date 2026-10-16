@@ -94,6 +94,28 @@ SWC_TEST_BEGIN(WebRename_PreservesLiveJoinsAndDestructiveUpdates)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(WebRename_DistinguishesStoredLocationsByBase)
+{
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
+    const MicroReg baseA    = MicroReg::virtualIntReg(1);
+    const MicroReg baseB    = MicroReg::virtualIntReg(2);
+    const MicroReg value    = MicroReg::virtualFloatReg(1);
+    const MicroReg readback = MicroReg::virtualFloatReg(2);
+    builder.emitLoadRegMem(value, baseA, 0x40, MicroOpBits::B64);
+    const auto firstDefinition = builder.instructions().lastInstructionRef();
+    builder.emitLoadMemReg(baseA, 0x80, value, MicroOpBits::B64);
+    builder.emitLoadRegMem(value, baseA, 0x48, MicroOpBits::B64);
+    builder.emitLoadRegMem(readback, baseB, 0x80, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(renameWebs(builder, encoder));
+    if (builder.instructions().ptr(firstDefinition)->ops(builder.operands())[0].reg != value)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(WebRename_RepeatedDoubleLoadsKeepStableBits)
 {
     for (uint32_t variant = 0; variant < 14; ++variant)

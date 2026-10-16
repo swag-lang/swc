@@ -186,7 +186,21 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         MicroReg source;
         uint32_t value;
     };
-    std::unordered_map<MicroReg, std::unordered_map<uint64_t, StoredValue>> storedValues;
+    struct StoredLocation
+    {
+        MicroReg base;
+        uint64_t offset;
+
+        bool operator==(const StoredLocation&) const = default;
+    };
+    struct StoredLocationHash
+    {
+        size_t operator()(const StoredLocation& location) const
+        {
+            return std::hash<MicroReg>{}(location.base) ^ (std::hash<uint64_t>{}(location.offset) << 1);
+        }
+    };
+    std::unordered_map<StoredLocation, StoredValue, StoredLocationHash> storedValues;
     // Keyed by the packed register; only looked up.
     FlatKeySet candidates;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
@@ -202,16 +216,13 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         {
             const uint32_t valueId = ssa->reachingValueId(ops[1].reg, it.current);
             if (valueId != MicroSsaState::K_INVALID_VALUE)
-                storedValues[ops[0].reg].insert_or_assign(ops[3].valueU64, StoredValue{ops[1].reg, valueId});
+                storedValues.insert_or_assign({ops[0].reg, ops[3].valueU64}, StoredValue{ops[1].reg, valueId});
         }
         else if ((it->op == MicroInstrOpcode::LoadRegMem || it->op == MicroInstrOpcode::OpBinaryRegMem) && ops[2].opBits == MicroOpBits::B64)
         {
             const uint64_t offset = ops[it->op == MicroInstrOpcode::LoadRegMem ? 3 : 4].valueU64;
-            const auto     base   = storedValues.find(ops[1].reg);
-            if (base == storedValues.end())
-                continue;
-            const auto stored = base->second.find(offset);
-            if (stored != base->second.end() && ssa->reachingValueId(stored->second.source, it.current) != stored->second.value)
+            const auto stored = storedValues.find({ops[1].reg, offset});
+            if (stored != storedValues.end() && ssa->reachingValueId(stored->second.source, it.current) != stored->second.value)
                 candidates.insert(stored->second.source.packed);
         }
     }

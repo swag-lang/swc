@@ -357,7 +357,7 @@ namespace
 
     void enrichPointerDataSegmentRef(const ConstantManager& manager, ConstantValue& value)
     {
-        if (!value.isValuePointer() && !value.isBlockPointer())
+        if (!value.isAnyPointer())
             return;
         if (value.dataSegmentRef().isValid())
             return;
@@ -378,7 +378,7 @@ namespace
         bool                         canDeduplicateByValue = true;
         // Only these fixed-size payloads need mutable preparation. Aggregate vectors can be
         // looked up directly and copied into owned storage only when interning misses.
-        if (value.isValuePointer() || value.isBlockPointer() || borrowedPayload)
+        if (value.isAnyPointer() || borrowedPayload)
         {
             enriched.emplace(value);
             enrichPointerDataSegmentRef(manager, *enriched);

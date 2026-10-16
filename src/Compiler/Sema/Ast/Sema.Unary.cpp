@@ -454,7 +454,7 @@ namespace
             {
                 const auto&        dereference = view.node()->cast<AstUnaryExpr>();
                 const SemaNodeView pointerView = sema.viewTypeConstant(dereference.nodeExprRef);
-                if (pointerView.hasConstant() && (pointerView.cst()->isBlockPointer() || pointerView.cst()->isValuePointer()))
+                if (pointerView.hasConstant() && pointerView.cst()->isAnyPointer())
                 {
                     const uint64_t address = pointerView.cst()->isBlockPointer() ? pointerView.cst()->getBlockPointer() : pointerView.cst()->getValuePointer();
                     sema.setConstant(sema.curNodeRef(), makePointerConstantRef(sema, typeRef, address));

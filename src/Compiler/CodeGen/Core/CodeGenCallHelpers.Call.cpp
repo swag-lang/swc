@@ -331,7 +331,7 @@ namespace
             return normalizedTypeRef;
 
         const ConstantValue& cst = codeGen.cstMgr().get(cstRef);
-        if (cst.isNull() || cst.isValuePointer() || cst.isBlockPointer())
+        if (cst.isNull() || cst.isAnyPointer())
             return normalizedTypeRef;
 
         const TypeRef pointeeTypeRef = normalizedType->payloadTypeRef();

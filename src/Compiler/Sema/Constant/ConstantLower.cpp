@@ -620,7 +620,7 @@ namespace
             }
         }
 
-        SWC_INTERNAL_CHECK(cst.isNull() || cst.isValuePointer() || cst.isBlockPointer() || (bindsValueAddress && ptr != 0) ||
+        SWC_INTERNAL_CHECK(cst.isNull() || cst.isAnyPointer() || (bindsValueAddress && ptr != 0) ||
                            (bindsValueAddress && sema.typeMgr().get(dstType.payloadTypeRef()).sizeOf(sema.ctx()) == 0));
         writeValue(dstBytes, ptr);
         return Result::Continue;

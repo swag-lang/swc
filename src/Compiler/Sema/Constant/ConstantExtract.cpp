@@ -92,7 +92,7 @@ namespace
             return Result::Continue;
         }
 
-        if (cst.isValuePointer() || cst.isBlockPointer())
+        if (cst.isAnyPointer())
         {
             const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
             TypeRef         pointedTypeRef;

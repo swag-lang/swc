@@ -244,7 +244,7 @@ namespace
             }
         }
 
-        if ((defaultCst.isNull() || defaultCst.isValuePointer() || defaultCst.isBlockPointer()) &&
+        if ((defaultCst.isNull() || defaultCst.isAnyPointer()) &&
             emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, defaultCstRef))
             return true;
 

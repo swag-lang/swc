@@ -284,7 +284,7 @@ namespace
             return ConstantValue::makeEnumValue(ctx, storageRef, exprTypeRef);
         }
 
-        if (storageType.isValuePointer() || storageType.isBlockPointer())
+        if (storageType.isAnyPointer())
         {
             const uint64_t ptrValue = *reinterpret_cast<const uint64_t*>(storagePtr);
             if (!ptrValue)

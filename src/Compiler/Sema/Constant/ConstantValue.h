@@ -74,6 +74,7 @@ public:
     bool           isFloat() const { return kind_ == ConstantKind::Float; }
     bool           isValuePointer() const { return kind_ == ConstantKind::ValuePointer; }
     bool           isBlockPointer() const { return kind_ == ConstantKind::BlockPointer; }
+    bool           isAnyPointer() const { return isValuePointer() || isBlockPointer(); }
     bool           isSlice() const { return kind_ == ConstantKind::Slice; }
     bool           isNull() const { return kind_ == ConstantKind::Null; }
     bool           isTypeValue() const { return kind_ == ConstantKind::TypeValue; }

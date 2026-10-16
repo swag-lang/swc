@@ -339,6 +339,7 @@ public:
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     const SymbolMap* topSymMap() const { return startSymMap_; }
+    const Symbol*    waiterSymbol();
 
     const SymbolNamespace& moduleNamespace() const { return nodePayloadContext().moduleNamespace(); }
     SymbolNamespace&       moduleNamespace() { return nodePayloadContext().moduleNamespace(); }

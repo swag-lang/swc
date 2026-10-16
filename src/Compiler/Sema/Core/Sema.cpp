@@ -1125,17 +1125,17 @@ SemaScope* Sema::pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNode
     return scope;
 }
 
+// The symbol a wait is charged to: the one declared by the visited root, else the start scope.
+const Symbol* Sema::waiterSymbol()
+{
+    const SemaNodeView view = viewSymbol(visit().root());
+    if (view.hasSymbol())
+        return view.sym();
+    return topSymMap();
+}
+
 namespace
 {
-    const Symbol* guessCurrentSymbol(Sema& sema)
-    {
-        const AstNodeRef   n    = sema.visit().root();
-        const SemaNodeView view = sema.viewSymbol(n);
-        if (view.hasSymbol())
-            return view.sym();
-        return sema.topSymMap();
-    }
-
     AstNodeRef fallbackWaitNodeRef(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isValid())
@@ -1190,7 +1190,7 @@ namespace
         if (blockingSymbol != nullptr && blockingSymbol->isIgnored())
             return true;
 
-        const Symbol* currentSymbol = guessCurrentSymbol(sema);
+        const Symbol* currentSymbol = sema.waiterSymbol();
         return currentSymbol != nullptr && currentSymbol->isIgnored();
     }
 }
@@ -1231,7 +1231,7 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     wait.nodeRef      = waitNodeRef;
     wait.codeRef      = waitCodeRef;
     wait.idRef        = idRef;
-    wait.waiterSymbol = guessCurrentSymbol(*this);
+    wait.waiterSymbol = waiterSymbol();
     return Result::Pause;
 }
 
@@ -1290,7 +1290,7 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeR
     wait.nodeRef                 = waitNodeRef;
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.idRef                   = idRef;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
+    wait.waiterSymbol            = waiterSymbol();
     return Result::Pause;
 }
 
@@ -1305,7 +1305,7 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& cod
     wait.nodeRef                 = waitNodeRef;
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.idRef                   = idRef;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
+    wait.waiterSymbol            = waiterSymbol();
     return Result::Pause;
 }
 
@@ -1320,7 +1320,7 @@ Result Sema::parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstN
     wait.nodeRef                 = waitNodeRef;
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.symbol                  = blockingSymbol;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
+    wait.waiterSymbol            = waiterSymbol();
     return Result::Pause;
 }
 

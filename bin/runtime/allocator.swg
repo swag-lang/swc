@@ -67,13 +67,17 @@ const AllocatorBlockCacheMinBytes = 16'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxBytes = 256'u64 * 1024 * 1024
 const AllocatorBlockCacheMaxCount = 256'u64
 
-// The front of the block cache every thread keeps for itself: the last header-path blocks it freed,
-// under this size, which its own next requests take without the cache lock.
+// Number of header-path blocks each thread can cache at its front.
+//
+// Recently freed blocks below [[Swag.AllocatorBlockFrontMaxBytes]] serve the thread's
+// next requests without taking the block-cache lock.
 const AllocatorBlockFrontCount    = 16'u32
 const AllocatorBlockFrontMaxBytes = 2'u64 * 1024 * 1024
 
-// The list of ordinary live headers is sharded by address, so threads cycling large blocks rarely
-// take the same lock to link and unlink them.
+// Number of address-based shards in the list of ordinary live headers.
+//
+// Sharding lets threads cycling large blocks link and unlink headers without
+// usually taking the same lock.
 const AllocatorHeaderShardCount = 8'u64
 
 // Header-path blocks above this size are rounded to eight sizes per power of two.
@@ -1147,9 +1151,10 @@ impl Allocator
         return callerLoc
     }
 
-    // Checks a quarantined block: its header and footer and, with memory filling on, its payload,
-    // which must still hold the pattern the free wrote. A freed electric payload is inaccessible,
-    // so a write into it has already faulted.
+    // Checks the header, footer, and enabled fill pattern of a quarantined block.
+    //
+    // The payload must still hold the pattern written when it was freed. A freed
+    // electric payload is inaccessible, so a write into it has already faulted.
     mtd checkFree(header: *AllocatorHeader, callerLoc = #callerlocation)
     {
         if header.magic != MagicFree or .footerMagic(header) != MagicFree do
@@ -1188,9 +1193,10 @@ impl Allocator
         }
     }
 
-    // Makes a freed electric payload inaccessible and gives its memory back: every page after the
-    // header page is decommitted and stays reserved, so the address is never reused and any later
-    // access faults.
+    // Makes a freed electric payload inaccessible and returns its committed memory.
+    //
+    // Every page after the header page is decommitted and stays reserved. Its address
+    // is never reused, so any later access faults.
     mtd retireElectricPayload(header: *AllocatorHeader)
     {
         let base  = cast(u64, header.allocAddr)
@@ -1268,9 +1274,11 @@ impl Allocator
         }
     }
 
-    // Rounds a header-path block up to one of eight sizes per power of two so that blocks freed and requested
-    // with slightly different sizes can share the cache. The rounding wastes at most an eighth of the block in
-    // address space and commitment; the allocator never touches pages past the request.
+    // Rounds a header-path block up to one of eight sizes per power of two.
+    //
+    // Blocks requested with slightly different sizes can share the cache. Rounding
+    // wastes at most an eighth of the block in address space and commitment; the
+    // allocator never touches pages past the request.
     func largeBlockSize(size: u64)->u64
     {
         if size <= AllocatorLargeRoundMin do
@@ -1282,10 +1290,11 @@ impl Allocator
         return (size + step - 1) & ~(step - 1)
     }
 
-    // Serves the cached block that fits 'size' best, accepting up to twice the request: a cached block is
-    // already committed and touched, so handing out a larger one costs no memory, while a miss costs a
-    // reservation, a commit, and a page fault per page. Returns null when nothing fits, and the reserved and
-    // committed sizes of the block it returns.
+    // Returns the cached block that fits 'size' best, or null when none fits.
+    //
+    // A block up to twice the request is accepted: it is already committed and touched,
+    // while a miss costs a reservation, a commit, and a page fault per page. Also returns
+    // the reserved and committed sizes of the selected block.
     #[Swag.Safety(.Overflow, false)]
     mtd popCachedBlock(size: u64, blockSize: *u64, commitSize: *u64)->[*] u8?
     {
@@ -1331,9 +1340,10 @@ impl Allocator
         .cachedBlocks[index] = .cachedBlocks[.cachedBlockCount]
     }
 
-    // Sets the committed-byte budget to the live header-path bytes, within fixed bounds. This lets programs
-    // working with large buffers recycle them while returning memory when they are done, with a floor that
-    // absorbs cycles involving a few large buffers.
+    // Sets the committed-byte budget to the live header-path bytes, within fixed bounds.
+    //
+    // Programs working with large buffers can recycle them while returning memory when
+    // they are done. The floor absorbs cycles involving a few large buffers.
     mtd blockCacheBudget()->u64
     {
         let live = atomicGet(&.headerBytes)
@@ -1436,8 +1446,9 @@ impl Allocator
         return cast([*] u8, entry.address)
     }
 
-    // Gives the front's blocks freed before 'before' back to the operating system; every block when
-    // 'before' is the largest tick.
+    // Returns old front-cache blocks to the operating system.
+    //
+    // Blocks freed before 'before' are returned; the largest tick selects every block.
     mtd purgeFront(heap: *AllocatorThreadHeap, before: u64)
     {
         var i = 0'u32

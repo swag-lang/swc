@@ -134,7 +134,7 @@ public:
     // releases the pointer STORED in the box parameter #i designates ('Memory.delete(slot[])'),
     // and leaves the box itself alive. It is inferred inside the module only.
     uint64_t freesParamsMask() const noexcept;
-    uint64_t freesIndirectParamsMask() const noexcept { return freesIndirectParamsMask_.load(std::memory_order_acquire); }
+    uint64_t freesIndirectParamsMask() const noexcept;
     void     addFreesParam(size_t paramIndex, bool indirect = false) noexcept
     {
         if (paramIndex >= 64)

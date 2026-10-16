@@ -79,8 +79,9 @@ impl Executor
     // Returns whether the executor runs its own thread.
     mtd const isStarted()->bool => .handle != null
 
-    // Runs every task already submitted, then stops and joins the thread. Closing an executor that
-    // is not running does nothing.
+    // Runs every submitted task, then stops and joins the thread.
+    //
+    // Closing an executor that is not running does nothing.
     mtd close()
     {
         if not .isStarted() do

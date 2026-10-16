@@ -729,7 +729,8 @@ namespace
         const uint64_t returnsIndirectMask = symbolFunction.returnsIndirectParamsMask();
         const uint64_t storesIndirectMask  = symbolFunction.storesIndirectParamsMask();
         const uint64_t intoIndirectPairs   = symbolFunction.storesIndirectIntoParamPairs();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0 || returnsIndirectMask != 0 || storesIndirectMask != 0 || intoIndirectPairs != 0 || !symbolFunction.observesExternalBorrows()) &&
+        const uint64_t freesIndirectMask   = symbolFunction.freesIndirectParamsMask();
+        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0 || returnsIndirectMask != 0 || storesIndirectMask != 0 || intoIndirectPairs != 0 || freesIndirectMask != 0 || !symbolFunction.observesExternalBorrows()) &&
             (!hasExportedBody || !snippetSpellsAttribute(snippet.view(), "BorrowSummary")))
         {
             Utf8 summary{std::format("BorrowSummary({}, {}, {}, {}, {}, {}, {}, observesExternal: {}", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, symbolFunction.observesExternalBorrows())};
@@ -739,6 +740,8 @@ namespace
                 summary += std::format(", storesIndirect: {}", storesIndirectMask);
             if (intoIndirectPairs)
                 summary += std::format(", intoIndirect: {}", intoIndirectPairs);
+            if (freesIndirectMask)
+                summary += std::format(", freesIndirect: {}", freesIndirectMask);
             summary += ")";
             ioAttributes.push_back(std::move(summary));
         }

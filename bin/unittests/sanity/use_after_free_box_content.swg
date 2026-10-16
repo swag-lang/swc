@@ -135,3 +135,38 @@ func boxFreeLocalBox()
     var box: *BoxItem? = null     // swc-expected-note {{sema_note_borrow_source_declared_here}}
     boxFreeBox(&box)     // swc-expected-error {{sanity_err_free_borrowed}}
 }
+
+#[Swag.NoInline]
+func boxStopWrapper(box: *(*BoxItem?)) => boxStop(box)
+
+#[Swag.NoInline]
+func boxStopOuter(box: *(*BoxItem?)) => boxStopWrapper(box)
+
+#[Swag.Sanity(.Lifecycle, true)]
+func boxReadOldCopyThroughWrappers()->s32
+{
+    let item = boxNewItem()
+    item.value = 5
+    var box: *BoxItem? = item
+    boxStopOuter(&box)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return item.value      // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    discard boxReadOldCopyThroughWrappers()
+}
+
+// Forwarding a box does not release its storage or a replacement allocation.
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    var box: *BoxItem? = boxNewItem()
+    boxStopOuter(&box)
+    Swag.assert(box == null)
+    box       = boxNewItem()
+    box.value = 6
+    Swag.assert(box.value == 6)
+    boxStopOuter(&box)
+}

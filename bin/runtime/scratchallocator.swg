@@ -44,8 +44,9 @@ impl ScratchAllocator
         return req.address
     }
 
-    // Forgets the buffer and the blocks that did not fit without freeing them, once another
-    // owner has taken them over.
+    // Forgets storage after its ownership has transferred.
+    //
+    // The buffer and the blocks that did not fit are not freed.
     mtd forgetStorage()
     {
         .block     = null

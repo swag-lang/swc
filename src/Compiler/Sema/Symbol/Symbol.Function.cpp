@@ -954,6 +954,13 @@ uint64_t SymbolFunction::freesParamsMask() const noexcept
     return inferred | (attrs ? attrs->freesParamsMask : 0);
 }
 
+uint64_t SymbolFunction::freesIndirectParamsMask() const noexcept
+{
+    const uint64_t       inferred = freesIndirectParamsMask_.load(std::memory_order_acquire);
+    const AttributeList* attrs    = attributesIfAny();
+    return inferred | (attrs ? attrs->freesIndirectParamsMask : 0);
+}
+
 bool SymbolFunction::isAllocatorRelease(const TaskContext& ctx) const
 {
     const auto methodName = name(ctx);

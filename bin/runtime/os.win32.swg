@@ -603,8 +603,10 @@ func __hostTestAbort()
         __Win32RT.Sleep(__Win32RT.INFINITE)
 }
 
-// A resume point for 'catchPanic', in storage the caller keeps alive. RtlCaptureContext and
-// RtlRestoreContext need a 16-byte aligned CONTEXT, so the storage leaves room to align one.
+// A resume point for 'catchPanic', in storage the caller keeps alive.
+//
+// RtlCaptureContext and RtlRestoreContext need a 16-byte aligned CONTEXT, so the
+// storage leaves room to align one.
 const HostResumeStorageSize = 1360 + 15
 
 private func __hostAlignResume(storage: *u8)->*void => cast(*void, (cast(u64, storage) + 15) & 0xFFFF_FFFF_FFFF_FFF0)

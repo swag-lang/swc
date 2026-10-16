@@ -263,23 +263,21 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     // Most identifiers point directly into source buffers and are never copied.
     // Owned/synthetic names opt into shard storage below so every interned string
     // view remains valid for the compiler lifetime.
+    // The table holds every identifier of the stripe, and only a writer holding this mutex adds
+    // one or replaces it, so probing it again here is exact.
     const std::unique_lock lk(stripe.mutex);
-    if (const auto* it = stripe.map.find(name, hash))
-        return *it;
+    const IdentifierRef    existing = findInterned(stripe.table.load(std::memory_order_relaxed), name, hash);
+    if (existing.isValid())
+        return existing;
 
     std::string_view storedName = name;
     if (copyName && !name.empty())
     {
-        // Copy before inserting into the map: the transparent lookup compares
-        // string_view contents, but the stored key must not reference a temporary.
+        // The stored name must not reference a temporary.
         const std::scoped_lock storeLock(shard.storeMutex);
         const auto [span, _] = shard.stringStore.pushCopySpan(std::span{reinterpret_cast<const std::byte*>(name.data()), name.size()});
         storedName           = std::string_view{reinterpret_cast<const char*>(span.data()), span.size()};
     }
-
-    const auto [it, inserted] = stripe.map.try_emplace(storedName, hash, IdentifierRef{});
-    if (!inserted)
-        return *it;
 
     uint32_t localIndex = INVALID_REF;
     {
@@ -293,7 +291,6 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     result.dbgPtr = &get(result);
 #endif
 
-    *it = result;
     publishInterned(stripe, result, hash);
     return result;
 }

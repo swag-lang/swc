@@ -375,9 +375,14 @@ private:
     // as a preference when a value is given a register again, so the two arms of a diamond
     // tend to leave it in the same place and the join can keep the mapping instead of dropping
     // it. A hint only: the register still has to be free and allowed where it is taken.
-    std::vector<MicroReg>                          edgeRegisterHint_;
-    std::unordered_map<uint32_t, BoundarySnapshot> boundarySnapshots_;
-    bool                                           keepAcrossBoundaries_ = false;
+    std::vector<MicroReg> edgeRegisterHint_;
+    // The snapshot each conditional jump recorded, by instruction index: an index into
+    // 'boundarySnapshots_', whose first 'boundarySnapshotCount_' entries this run uses.
+    // The entries outlive a run, so the next one refills them instead of allocating.
+    FlatKeyMap<uint32_t>          boundarySnapshotSlots_;
+    std::vector<BoundarySnapshot> boundarySnapshots_;
+    uint32_t                      boundarySnapshotCount_ = 0;
+    bool                          keepAcrossBoundaries_  = false;
     // Whether the mapping the scan is currently holding belongs to a path that
     // reaches the next instruction. It does after anything that falls through,
     // and it does not after a return or an unconditional jump: what follows one

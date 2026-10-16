@@ -1099,7 +1099,7 @@ namespace
                 return isConst ? appendModifierType(baseType, K_CV_TYPE_MOD_CONST) : baseType;
             }
 
-            if (originalType.isValuePointer() || originalType.isBlockPointer() || originalType.isReference() || originalType.isFunction() || originalType.isTypeInfo() || originalType.isTypeValue())
+            if (originalType.isAnyPointer() || originalType.isReference() || originalType.isFunction() || originalType.isTypeInfo() || originalType.isTypeValue())
             {
                 const TypeRef  pointeeTypeRef = originalType.isFunction() || originalType.isTypeInfo() || originalType.isTypeValue() ? TypeRef::invalid() : originalType.payloadTypeRef();
                 const uint32_t pointeeType    = pointeeTypeRef.isValid() ? pointeeTypeIndexFor(pointeeTypeRef) : K_T_VOID;

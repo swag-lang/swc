@@ -85,7 +85,7 @@ namespace CodeGenTypeHelpers
         if (bits != MicroOpBits::Zero)
             return bits;
 
-        if (typeInfo.isEnum() || typeInfo.isAnyPointer() || (typeInfo.isFunction() && !typeInfo.isLambdaClosure()) || typeInfo.isCString() || typeInfo.isTypeInfo())
+        if (typeInfo.isEnum() || typeInfo.isAnyPointerOrCString() || (typeInfo.isFunction() && !typeInfo.isLambdaClosure()) || typeInfo.isTypeInfo())
             return bitsFromStorageSize(typeInfo.sizeOf(ctx));
 
         return MicroOpBits::Zero;

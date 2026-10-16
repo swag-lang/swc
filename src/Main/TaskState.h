@@ -66,6 +66,10 @@ struct TaskState
     void               setSemaParsing(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
     void               setCodeGenParsing(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
     void               setSemaWaitMainThreadRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
+
+private:
+    // The fields every active state rewrites: its location, and no wait target.
+    void resetActiveLocation(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
 };
 
 SWC_END_NAMESPACE();

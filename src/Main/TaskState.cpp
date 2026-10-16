@@ -105,8 +105,6 @@ bool TaskState::canPause() const
             return nodeRef.isValid() && symbol != nullptr;
 
         case TaskStateKind::SemaWaitTypeCompleted:
-            return nodeRef.isValid() && waiterSymbol != nullptr;
-
         case TaskStateKind::SemaWaitTypeInfoGeneration:
             return nodeRef.isValid() && waiterSymbol != nullptr;
 
@@ -136,17 +134,22 @@ void TaskState::setNone()
     typeInfoGeneration       = 0;
 }
 
-void TaskState::setRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
+void TaskState::resetActiveLocation(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
 {
-    kind                     = TaskStateKind::RunJit;
-    runJitFunction           = function;
-    codeGenFunction          = nullptr;
     weakJitRelocationBlocker = nullptr;
     nodeRef                  = currentNodeRef;
     codeRef                  = currentCodeRef;
     idRef                    = IdentifierRef::invalid();
     symbol                   = nullptr;
     waiterSymbol             = nullptr;
+}
+
+void TaskState::setRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
+{
+    kind            = TaskStateKind::RunJit;
+    runJitFunction  = function;
+    codeGenFunction = nullptr;
+    resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 
 void TaskState::setSemaParsing(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
@@ -164,12 +167,7 @@ void TaskState::setSemaParsing(AstNodeRef currentNodeRef, const SourceCodeRef& c
     kind                     = TaskStateKind::SemaParsing;
     runJitFunction           = nullptr;
     codeGenFunction          = nullptr;
-    weakJitRelocationBlocker = nullptr;
-    nodeRef                  = currentNodeRef;
-    codeRef                  = currentCodeRef;
-    idRef                    = IdentifierRef::invalid();
-    symbol                   = nullptr;
-    waiterSymbol             = nullptr;
+    resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 
 void TaskState::setCodeGenParsing(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
@@ -187,12 +185,7 @@ void TaskState::setCodeGenParsing(const SymbolFunction* function, AstNodeRef cur
     kind                     = TaskStateKind::CodeGenParsing;
     runJitFunction           = nullptr;
     codeGenFunction          = function;
-    weakJitRelocationBlocker = nullptr;
-    nodeRef                  = currentNodeRef;
-    codeRef                  = currentCodeRef;
-    idRef                    = IdentifierRef::invalid();
-    symbol                   = nullptr;
-    waiterSymbol             = nullptr;
+    resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 
 void TaskState::setSemaWaitMainThreadRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
@@ -200,12 +193,7 @@ void TaskState::setSemaWaitMainThreadRunJit(const SymbolFunction* function, AstN
     kind                     = TaskStateKind::SemaWaitMainThreadRunJit;
     runJitFunction           = function;
     codeGenFunction          = nullptr;
-    weakJitRelocationBlocker = nullptr;
-    nodeRef                  = currentNodeRef;
-    codeRef                  = currentCodeRef;
-    idRef                    = IdentifierRef::invalid();
-    symbol                   = nullptr;
-    waiterSymbol             = nullptr;
+    resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 
 SWC_END_NAMESPACE();

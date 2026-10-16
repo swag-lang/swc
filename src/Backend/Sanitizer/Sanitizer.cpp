@@ -36,6 +36,30 @@ namespace
         return true;
     }
 
+    // Keeps the keys both maps hold; a location the two disagree on becomes unknown.
+    template<typename TMap>
+    void intersectSourceLocations(TMap& into, const TMap& from, bool& changed)
+    {
+        for (auto it = into.begin(); it != into.end();)
+        {
+            const auto fromIt = from.find(it->first);
+            if (fromIt == from.end())
+            {
+                it      = into.erase(it);
+                changed = true;
+            }
+            else
+            {
+                if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
+                {
+                    it->second = {};
+                    changed    = true;
+                }
+                ++it;
+            }
+        }
+    }
+
     uint8_t sanitizerCheckInterests(const MicroInstr& inst, const MicroInstrDef& def)
     {
         if (inst.compilerSafetyCall)
@@ -1001,46 +1025,12 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
     }
     else if (into.freedPtrLocations && from.freedPtrLocations && !clearOnEmptyIntersection(*into.freedPtrLocations, *from.freedPtrLocations, changed))
     {
-        for (auto it = into.freedPtrLocations->begin(); it != into.freedPtrLocations->end();)
-        {
-            const auto fromIt = from.freedPtrLocations->find(it->first);
-            if (fromIt == from.freedPtrLocations->end())
-            {
-                it      = into.freedPtrLocations->erase(it);
-                changed = true;
-            }
-            else
-            {
-                if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
-                {
-                    it->second = {};
-                    changed    = true;
-                }
-                ++it;
-            }
-        }
+        intersectSourceLocations(*into.freedPtrLocations, *from.freedPtrLocations, changed);
     }
 
     if (!clearOnEmptyIntersection(into.freedPtrSlots, from.freedPtrSlots, changed))
     {
-        for (auto it = into.freedPtrSlots.begin(); it != into.freedPtrSlots.end();)
-        {
-            const auto fromIt = from.freedPtrSlots.find(it->first);
-            if (fromIt == from.freedPtrSlots.end())
-            {
-                it      = into.freedPtrSlots.erase(it);
-                changed = true;
-            }
-            else
-            {
-                if (it->second.isValid() && (it->second.srcViewRef != fromIt->second.srcViewRef || it->second.tokRef != fromIt->second.tokRef))
-                {
-                    it->second = {};
-                    changed    = true;
-                }
-                ++it;
-            }
-        }
+        intersectSourceLocations(into.freedPtrSlots, from.freedPtrSlots, changed);
     }
 
     if (!clearOnEmptyIntersection(into.aliasPtrRegs, from.aliasPtrRegs, changed))

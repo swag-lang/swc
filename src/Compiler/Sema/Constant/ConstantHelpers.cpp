@@ -715,7 +715,7 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     if (!result.isValid())
         return ConstantRef::invalid();
 
-    if (dataRef.isValid() && (result.isStruct() || result.isArray() || result.isSlice()) && result.isPayloadBorrowed())
+    if (dataRef.isValid() && result.isSpanPayload() && result.isPayloadBorrowed())
         return sema.cstMgr().addMaterializedPayloadConstant(result);
 
     return sema.cstMgr().addConstant(ctx, result);

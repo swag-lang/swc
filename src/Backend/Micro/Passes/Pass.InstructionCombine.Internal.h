@@ -117,6 +117,24 @@ namespace InstructionCombine
         bool       loopSlotsAll   = false;
         FlatKeySet loopSlots;
 
+        // Whether nothing reads the CPU flags left after `ref`. The rules anchored on one
+        // instruction ask it about that instruction in turn, each answer scanning ahead.
+        bool areCpuFlagsDeadAfter(MicroInstrRef ref) const;
+
+        // The last answer of each repeated question. The scan queues its rewrites and
+        // mutates nothing, so an answer stays exact until the run ends; run() forgets
+        // them before the next function.
+        struct AddressAnswer
+        {
+            MicroReg      reg;
+            MicroInstrRef atRef = MicroInstrRef::invalid();
+            bool          value = false;
+        };
+        mutable AddressAnswer lastFrameDerivedAddress;
+        mutable AddressAnswer lastRelocatedAddress;
+        mutable MicroInstrRef lastFlagsDeadRef = MicroInstrRef::invalid();
+        mutable bool          lastFlagsDead    = false;
+
         // Claim every ref atomically: returns false without side-effects if
         // any was already claimed, or if one carries a relocation the caller
         // did not take responsibility for.

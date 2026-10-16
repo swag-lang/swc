@@ -319,7 +319,7 @@ namespace InstructionCombine
         const MicroInstrOperand* extendOps = extend->ops(*ctx.operands);
         if (!extendOps || extendOps[1].reg != setOps[0].reg || extendOps[2].opBits != cmpOps[2].opBits ||
             extendOps[3].opBits != MicroOpBits::B8 || !extendOps[0].reg.isVirtualInt() ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, setRef, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(setRef) ||
             !ctx.claimAll({cmpRef, setRef, extendRef}))
             return false;
 
@@ -410,7 +410,7 @@ namespace InstructionCombine
         const MicroSsaState::ReachingDef limitInput = ctx.ssa->reachingDef(subOps[0].reg, limitDef.instRef);
         const MicroSsaState::ReachingDef fallback   = ctx.ssa->reachingDef(selectOps[0].reg, selectRef);
         if (!isAllOnesLoad(limitInput, *ctx.operands, bits) || !isAllOnesLoad(fallback, *ctx.operands, bits) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, selectRef, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(selectRef) ||
             !ctx.claimAll({sumDef.instRef, cmpRef, selectRef}))
             return false;
 
@@ -666,7 +666,7 @@ namespace InstructionCombine
             }
         }
 
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, readerRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(readerRef))
             return false;
         if (!ctx.claimAll({ref, subRef, copyRef, readerRef}))
             return false;

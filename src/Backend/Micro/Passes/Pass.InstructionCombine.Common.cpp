@@ -243,66 +243,91 @@ namespace InstructionCombine
         return found;
     }
 
-    bool isFrameDerivedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+    namespace
     {
-        constexpr uint32_t K_MAX_ADDRESS_CHAIN = 8;
-
-        for (uint32_t depth = 0; depth < K_MAX_ADDRESS_CHAIN; ++depth)
+        bool traceFrameDerivedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
         {
-            if (!reg.isValid())
-                return false;
-            if (reg == ctx.stackPointer)
-                return true;
-            if (!reg.isVirtualInt() || !ctx.ssa)
-                return false;
+            constexpr uint32_t K_MAX_ADDRESS_CHAIN = 8;
 
-            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
-            if (!def.valid() || def.isPhi || !def.inst)
-                return false;
-
-            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
-            if (!ops)
-                return false;
-
-            switch (def.inst->op)
+            for (uint32_t depth = 0; depth < K_MAX_ADDRESS_CHAIN; ++depth)
             {
-                case MicroInstrOpcode::LoadRegReg:
-                case MicroInstrOpcode::LoadAddrRegMem:
-                case MicroInstrOpcode::LoadAddrAmcRegMem:
-                    reg   = ops[1].reg;
-                    atRef = def.instRef;
-                    break;
-                default:
+                if (!reg.isValid())
                     return false;
+                if (reg == ctx.stackPointer)
+                    return true;
+                if (!reg.isVirtualInt() || !ctx.ssa)
+                    return false;
+
+                const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+                if (!def.valid() || def.isPhi || !def.inst)
+                    return false;
+
+                const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+                if (!ops)
+                    return false;
+
+                switch (def.inst->op)
+                {
+                    case MicroInstrOpcode::LoadRegReg:
+                    case MicroInstrOpcode::LoadAddrRegMem:
+                    case MicroInstrOpcode::LoadAddrAmcRegMem:
+                        reg   = ops[1].reg;
+                        atRef = def.instRef;
+                        break;
+                    default:
+                        return false;
+                }
             }
+
+            return false;
         }
 
-        return false;
+        bool traceRelocatedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+        {
+            for (uint32_t depth = 0; depth < K_MAX_COPY_CHAIN; ++depth)
+            {
+                if (!reg.isVirtualInt() || !ctx.ssa)
+                    return false;
+
+                const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
+                if (!def.valid() || def.isPhi || !def.inst)
+                    return false;
+                if (def.inst->op == MicroInstrOpcode::LoadRegPtrReloc)
+                    return true;
+                if (def.inst->op != MicroInstrOpcode::LoadRegReg)
+                    return false;
+
+                const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+                if (!ops)
+                    return false;
+                reg   = ops[1].reg;
+                atRef = def.instRef;
+            }
+
+            return false;
+        }
+    }
+
+    bool isFrameDerivedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
+    {
+        Context::AddressAnswer& last = ctx.lastFrameDerivedAddress;
+        if (last.atRef.isValid() && last.atRef == atRef && last.reg == reg)
+            return last.value;
+        last.reg   = reg;
+        last.atRef = atRef;
+        last.value = traceFrameDerivedAddress(ctx, reg, atRef);
+        return last.value;
     }
 
     bool isRelocatedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
     {
-        for (uint32_t depth = 0; depth < K_MAX_COPY_CHAIN; ++depth)
-        {
-            if (!reg.isVirtualInt() || !ctx.ssa)
-                return false;
-
-            const MicroSsaState::ReachingDef def = ctx.ssa->reachingDef(reg, atRef);
-            if (!def.valid() || def.isPhi || !def.inst)
-                return false;
-            if (def.inst->op == MicroInstrOpcode::LoadRegPtrReloc)
-                return true;
-            if (def.inst->op != MicroInstrOpcode::LoadRegReg)
-                return false;
-
-            const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
-            if (!ops)
-                return false;
-            reg   = ops[1].reg;
-            atRef = def.instRef;
-        }
-
-        return false;
+        Context::AddressAnswer& last = ctx.lastRelocatedAddress;
+        if (last.atRef.isValid() && last.atRef == atRef && last.reg == reg)
+            return last.value;
+        last.reg   = reg;
+        last.atRef = atRef;
+        last.value = traceRelocatedAddress(ctx, reg, atRef);
+        return last.value;
     }
 
     bool keepAccessScalar(Context& ctx, MicroInstrRef ref, MicroReg base)
@@ -313,6 +338,15 @@ namespace InstructionCombine
     }
 
     //===-- Context methods -------------------------------------------------===//
+
+    bool Context::areCpuFlagsDeadAfter(const MicroInstrRef ref) const
+    {
+        if (ref.isValid() && ref == lastFlagsDeadRef)
+            return lastFlagsDead;
+        lastFlagsDeadRef = ref;
+        lastFlagsDead    = MicroPassHelpers::areCpuFlagsDeadAfter(*storage, *operands, ref, builder);
+        return lastFlagsDead;
+    }
 
     bool Context::isInsideLoop(const MicroInstrRef ref)
     {

@@ -46,8 +46,8 @@ namespace InstructionCombine
                                                                             : inputMask == 0xFFFFFFFF && bits == MicroOpBits::B64 ? MicroOpBits::B32
                                                                                                                                   : MicroOpBits::Zero;
             if (inputBits == MicroOpBits::Zero ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder) ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+                !ctx.areCpuFlagsDeadAfter(def.instRef) ||
+                !ctx.areCpuFlagsDeadAfter(ref) ||
                 !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
                 return false;
             MicroInstrOperand extend[4];
@@ -90,7 +90,7 @@ namespace InstructionCombine
             MicroOp  combinedOp  = MicroOp::Add;
             uint64_t combinedImm = 0;
             return tryReassociate(op, imm, useOps[2].microOp, useOps[3].valueU64, opBits, combinedOp, combinedImm) &&
-                   MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, useRef, ctx.builder);
+                   ctx.areCpuFlagsDeadAfter(useRef);
         }
 
         bool emitClearReg(Context& ctx, MicroInstrRef ref, MicroReg dst, MicroOpBits opBits)
@@ -150,7 +150,7 @@ namespace InstructionCombine
 
             // The multiply writes flags the address computation does not (the
             // negation below writes its own, which the same check covers).
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            if (!ctx.areCpuFlagsDeadAfter(ref))
                 return false;
 
             // When dst was just copied from a source register, the address form
@@ -254,7 +254,7 @@ namespace InstructionCombine
             if (!sourceAtCopy.valid() || ctx.ssa->reachingValueId(source, ref) != sourceAtCopy.valueId)
                 return false;
 
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            if (!ctx.areCpuFlagsDeadAfter(ref))
                 return false;
             if (!ctx.claimAll({ref, def.instRef}))
                 return false;
@@ -304,9 +304,9 @@ namespace InstructionCombine
                 return false;
             // The result's single use says nothing about a setcc or overflow
             // guard reading the first operation's flags between the two.
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reaching.instRef, ctx.builder))
+            if (!ctx.areCpuFlagsDeadAfter(reaching.instRef))
                 return false;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            if (!ctx.areCpuFlagsDeadAfter(ref))
                 return false;
 
             if (!ctx.claimAll({ref, reaching.instRef, copyRef.isValid() ? copyRef : ref}))
@@ -350,8 +350,8 @@ namespace InstructionCombine
             return false;
         const auto* unary = def.inst->ops(*ctx.operands);
         if (!unary || unary[1].opBits != bits || unary[2].microOp != MicroOp::BitwiseNot ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+            !ctx.areCpuFlagsDeadAfter(def.instRef) ||
+            !ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
             return false;
         MicroInstrOperand negate[3];
@@ -412,10 +412,10 @@ namespace InstructionCombine
             const uint64_t imm  = decrement[3].valueU64 & mask;
             if (!(decrement[2].microOp == MicroOp::Add && imm == mask) && !(decrement[2].microOp == MicroOp::Subtract && imm == 1))
                 return false;
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, def.instRef, ctx.builder))
+            if (!ctx.areCpuFlagsDeadAfter(def.instRef))
                 return false;
         }
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) ||
+        if (!ctx.areCpuFlagsDeadAfter(ref) ||
             !ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
             return false;
 
@@ -466,7 +466,7 @@ namespace InstructionCombine
         // Query flags only after an operation matches. A dead result does not
         // imply dead flags: an overflow guard may still read the discarded add.
         if (isRightIdentity(op, opBits, imm) &&
-            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) && identityKeepsValue())
+            ctx.areCpuFlagsDeadAfter(ref) && identityKeepsValue())
         {
             if (!ctx.claimAll({ref}))
                 return false;
@@ -476,7 +476,7 @@ namespace InstructionCombine
 
         uint64_t absorbed = 0;
         if (isRightAbsorbing(op, opBits, imm, absorbed) &&
-            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            ctx.areCpuFlagsDeadAfter(ref))
         {
             if (absorbed == 0)
                 return emitClearReg(ctx, ref, dst, opBits);
@@ -514,7 +514,7 @@ namespace InstructionCombine
                 maskBits = MicroOpBits::B32;
 
             if (maskBits != MicroOpBits::Zero &&
-                MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) &&
+                ctx.areCpuFlagsDeadAfter(ref) &&
                 ctx.claimAll({ref}))
             {
                 MicroInstrOperand extendOps[4];
@@ -528,7 +528,7 @@ namespace InstructionCombine
         }
 
         if (op == MicroOp::Add && imm == 1 &&
-            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) && tryFoldComplementPlusOne(ctx, ref, inst))
+            ctx.areCpuFlagsDeadAfter(ref) && tryFoldComplementPlusOne(ctx, ref, inst))
             return true;
 
         // The low product by all-one bits is -x. Keep checked multiplies:
@@ -536,7 +536,7 @@ namespace InstructionCombine
         if ((op == MicroOp::MultiplySigned || op == MicroOp::MultiplyUnsigned) &&
             (opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64) &&
             (imm & getBitsMask(opBits)) == getBitsMask(opBits) &&
-            MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder) && ctx.claimAll({ref}))
+            ctx.areCpuFlagsDeadAfter(ref) && ctx.claimAll({ref}))
         {
             MicroInstrOperand negate[3];
             negate[0].reg     = dst;
@@ -659,7 +659,7 @@ namespace InstructionCombine
                 return false;
 
             // The AND's flag write must be dead (the shift redefines flags).
-            if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, reach.instRef, ctx.builder))
+            if (!ctx.areCpuFlagsDeadAfter(reach.instRef))
                 return false;
 
             // Drop the AND; `cur` keeps its pre-mask value, which the shift needs.
@@ -680,7 +680,7 @@ namespace InstructionCombine
         const auto* ops = inst.ops(*ctx.operands);
         if (!ops || !ops[0].reg.isVirtualInt() || ops[2].microOp != MicroOp::BitwiseNot ||
             (ops[1].opBits != MicroOpBits::B32 && ops[1].opBits != MicroOpBits::B64) ||
-            !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+            !ctx.areCpuFlagsDeadAfter(ref))
             return false;
         const MicroOpBits bits = ops[1].opBits;
         auto              sum  = ctx.ssa->reachingDef(ops[0].reg, ref);
@@ -721,7 +721,7 @@ namespace InstructionCombine
         else if (sum.inst->op == MicroInstrOpcode::OpBinaryRegReg)
         {
             if (add[2].opBits != bits || add[3].microOp != MicroOp::Add ||
-                !MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, sum.instRef, ctx.builder))
+                !ctx.areCpuFlagsDeadAfter(sum.instRef))
                 return false;
             const auto initial = ctx.ssa->reachingDef(add[0].reg, sum.instRef);
             if (!initial.valid() || initial.isPhi || !initial.inst || initial.inst->op != MicroInstrOpcode::LoadRegReg)

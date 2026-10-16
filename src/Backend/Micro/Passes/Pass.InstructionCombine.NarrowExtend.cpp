@@ -190,7 +190,7 @@ namespace InstructionCombine
             return false;
         if (!isExtendedBooleanByte(ctx, subOps[0].reg, sub.instRef) || !isExtendedBooleanByte(ctx, subOps[1].reg, sub.instRef))
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, sub.instRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(sub.instRef))
             return false;
         if (!ctx.claimAll({ref, sub.instRef}))
             return false;
@@ -419,7 +419,7 @@ namespace InstructionCombine
             default:
                 return false;
         }
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, readerRef, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(readerRef))
             return false;
 
         // J = I - LO, read by this compare alone.
@@ -627,7 +627,7 @@ namespace InstructionCombine
         const MicroInstrRef innerCompare = matchFlagSelect(ctx, dst, ref, outerIsLess ? greater : less, outerIsLess ? 1 : minusOne, bits);
         if (!innerCompare.isValid() || !isSameCompareOfSameValues(ctx, innerCompare, outerCompare))
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref, ctx.builder))
+        if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
         ctx.ensureVirtualIndices();

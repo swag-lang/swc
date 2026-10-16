@@ -261,6 +261,9 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.reportCallsReady         = false;
     ctx.loopSlotsReady           = false;
     ctx.loopSlotsAll             = false;
+    ctx.lastFrameDerivedAddress  = {};
+    ctx.lastRelocatedAddress     = {};
+    ctx.lastFlagsDeadRef         = MicroInstrRef::invalid();
     ctx.nextVirtualFloatRegIndex = 0;
     ctx.nextVirtualIntRegIndex   = 0;
     ctx.floatReadFits.fill(Context::FloatReadFit::Unknown);

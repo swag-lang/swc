@@ -93,15 +93,36 @@ namespace
         // Value numbering deliberately leaves frame reads to mem-to-reg.
         // Preserving them here would create single-use integer copies that
         // instruction combining removes, only to recreate them next sweep.
-        std::optional<FlatKeySet>                                                              frameDerived;
-        std::unordered_map<MicroReg, std::unordered_map<uint64_t, std::vector<MicroInstrRef>>> loads;
-        std::vector<MicroInstrRef>                                                             preserve;
-        const auto                                                                             flush = [&] {
-            for (const auto& [base, locations] : loads)
-                for (const auto& [offset, refs] : locations)
-                    if (refs.size() >= 2)
-                        preserve.insert(preserve.end(), refs.begin(), refs.end());
+        struct LoadLocation
+        {
+            MicroReg base;
+            uint64_t offset;
+
+            bool operator==(const LoadLocation&) const = default;
+        };
+        struct LoadLocationHash
+        {
+            size_t operator()(const LoadLocation& location) const
+            {
+                return std::hash<MicroReg>{}(location.base) ^ (std::hash<uint64_t>{}(location.offset) << 1);
+            }
+        };
+        struct LoadCandidate
+        {
+            LoadLocation location;
+            MicroInstrRef ref;
+        };
+
+        std::optional<FlatKeySet>                                               frameDerived;
+        std::unordered_map<LoadLocation, uint32_t, LoadLocationHash>             loadCounts;
+        std::vector<LoadCandidate>                                                loads;
+        std::vector<MicroInstrRef>                                                preserve;
+        const auto                                                                flush = [&] {
+            for (const LoadCandidate& load : loads)
+                if (loadCounts.at(load.location) >= 2)
+                    preserve.push_back(load.ref);
             loads.clear();
+            loadCounts.clear();
         };
         for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
         {
@@ -130,7 +151,11 @@ namespace
                 if (!frameDerived)
                     MicroPassHelpers::collectFrameDerivedRegs(frameDerived.emplace(), storage, operands, CallConv::get(context.callConvKind).stackPointer);
                 if (!frameDerived->contains(ops[1].reg.packed))
-                    loads[ops[1].reg][ops[3].valueU64].push_back(it.current);
+                {
+                    const LoadLocation location{.base = ops[1].reg, .offset = ops[3].valueU64};
+                    ++loadCounts[location];
+                    loads.push_back(LoadCandidate{.location = location, .ref = it.current});
+                }
             }
         }
         flush();

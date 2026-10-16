@@ -1987,7 +1987,7 @@ namespace
                             (!isCaptured && bindsPointeeByAddress && use.pointerLevel);
 
         const TypeInfo& valueType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), param.typeRef()));
-        const bool      valueAggregate = valueType.isStruct() || valueType.isAggregateStruct() || valueType.isString() || valueType.isSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
+        const bool      valueAggregate = valueType.isStruct() || valueType.isAggregateStruct() || valueType.isStringOrSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
         if (context.isOrdinaryInline && valueAggregate)
         {
             const auto abi    = ABITypeNormalize::normalize(sema.ctx(), CallConv::get(context.fn->callConvKind()), paramType, ABITypeNormalize::Usage::Argument);
@@ -2669,7 +2669,7 @@ namespace
     bool isInlineAggregateType(const TypeInfo& ti)
     {
         return ti.isStruct() || ti.isArray() || ti.isAggregate() ||
-               ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice() || ti.isFunction();
+               ti.isAny() || ti.isInterface() || ti.isStringOrSlice() || ti.isFunction();
     }
 
     // Reports whether the callee's body declares storage that must exist exactly once.

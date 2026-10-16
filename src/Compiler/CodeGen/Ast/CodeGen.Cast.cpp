@@ -795,7 +795,7 @@ namespace
 
     Result emitCStringToStringOrSliceCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
     {
-        SWC_ASSERT(dstType.isString() || dstType.isSlice());
+        SWC_ASSERT(dstType.isStringOrSlice());
 
         MicroBuilder&            builder    = codeGen.builder();
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
@@ -1300,7 +1300,7 @@ namespace
             }
         }
 
-        if (dstType.isString() || dstType.isSlice() || dstType.isInterface() || dstType.isAnyVariadic())
+        if (dstType.isStringOrSlice() || dstType.isInterface() || dstType.isAnyVariadic())
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
@@ -1603,7 +1603,7 @@ namespace
             return emitArrayToPointerCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
         if (resolvedDstType.isString() && resolvedSrcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
-        if ((resolvedDstType.isString() || resolvedDstType.isSlice()) && resolvedSrcType.isCString())
+        if (resolvedDstType.isStringOrSlice() && resolvedSrcType.isCString())
             return emitCStringToStringOrSliceCast(codeGen, srcNodeRef, dstTypeRef, resolvedDstType);
         if (resolvedDstType.isSlice())
         {

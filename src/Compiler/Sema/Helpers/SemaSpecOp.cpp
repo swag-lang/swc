@@ -289,7 +289,7 @@ namespace
         const bool    returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
         const bool    returnIsPointer  = returnType.isAnyPointer();
         const bool    returnIsNotVoid  = !returnIsVoid;
-        const bool    returnIsStrSlice = returnType.isString() || returnType.isSlice();
+        const bool    returnIsStrSlice = returnType.isStringOrSlice();
         const TypeRef u64TypeRef       = typeMgr.typeU64();
         const TypeRef boolTypeRef      = typeMgr.typeBool();
         const TypeRef s32TypeRef       = typeMgr.typeS32();

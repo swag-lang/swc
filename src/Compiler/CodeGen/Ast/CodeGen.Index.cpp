@@ -274,7 +274,7 @@ namespace
             return pointerReg;
         }
 
-        if (indexedType.isString() || indexedType.isSlice() || indexedType.isAnyVariadic())
+        if (indexedType.isStringOrSlice() || indexedType.isAnyVariadic())
         {
             const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(pointerReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);

@@ -556,7 +556,7 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
     if (storageType.isStruct() || storageType.isAggregateStruct())
         return true;
-    return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny();
+    return storageType.isStringOrSlice() || storageType.isInterface() || storageType.isAny();
 }
 
 void CodeGenFunctionHelpers::markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg)

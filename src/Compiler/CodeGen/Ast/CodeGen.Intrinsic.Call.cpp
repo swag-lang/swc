@@ -1129,7 +1129,7 @@ namespace
 
         if (exprType.isInterface())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
-        else if (exprType.isString() || exprType.isSlice() || exprType.isAny())
+        else if (exprType.isStringOrSlice() || exprType.isAny())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);
         else if (exprType.isArray())
         {

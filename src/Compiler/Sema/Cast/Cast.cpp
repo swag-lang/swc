@@ -251,10 +251,10 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (srcType.isAggregateArray() && dstType.isSlice())
         return dstTypeRef;
 
-    if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
+    if (srcType.isArray() && dstType.isStringOrSlice())
         return dstTypeRef;
 
-    if (srcType.isCString() && (dstType.isSlice() || dstType.isString()))
+    if (srcType.isCString() && dstType.isStringOrSlice())
         return dstTypeRef;
 
     if (!srcType.isAny() && dstType.isAny())

@@ -286,9 +286,7 @@ namespace
             return sourceTypeRef;
 
         const TypeInfo& sourceType = codeGen.typeMgr().get(sourceTypeRef);
-        if ((sourceType.isReference() || sourceType.isMoveReference()) &&
-            !payloadType.isReference() &&
-            !payloadType.isMoveReference())
+        if (sourceType.isReference() && !payloadType.isReference())
             return payloadTypeRef;
         if (payloadType.isFloat() && operandPayload.reg.isAnyFloat() && !sourceType.isFloat())
             return payloadTypeRef;

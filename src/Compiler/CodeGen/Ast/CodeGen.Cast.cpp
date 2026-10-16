@@ -384,7 +384,7 @@ namespace
         const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
         const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
         const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
-        SWC_ASSERT(sourceType.isReference() || sourceType.isMoveReference());
+        SWC_ASSERT(sourceType.isReference());
 
         if (!sourceType.payloadTypeRef().isValid())
             return Result::Continue;
@@ -1257,7 +1257,7 @@ namespace
         const MicroReg valueAddrReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(valueAddrReg, srcPayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
 
-        if (dstType.isReference() || dstType.isMoveReference())
+        if (dstType.isReference())
             return emitAnyReferenceCast(codeGen, srcPayload, dstType, dstTypeRef, castPayload, hasDynCastSafety, valueAddrReg);
 
         if (dstType.isAnyPointer())
@@ -1579,7 +1579,7 @@ namespace
             return Result::Continue;
         }
 
-        if (resolvedSrcType.isReference() || resolvedSrcType.isMoveReference())
+        if (resolvedSrcType.isReference())
         {
             bool handledReferenceScalarNumericCast = false;
             SWC_RESULT(tryEmitReferenceScalarNumericCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef, handledReferenceScalarNumericCast));

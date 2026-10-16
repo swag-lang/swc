@@ -108,3 +108,14 @@ is still needed; see `compiler.safety.030`.
 - Cross-module value-borrow consumer: 4 passed; indirect release import fixture passed.
 - Earlier indirect release summary batch was also checked with both compiler executables
   and both program configurations. These focused checks do not establish a whole-tree guarantee.
+
+Integration verification (separate from the timing panel above):
+
+- `fb1a7c4ed`: DevMode compiler full C++ suite (1,477), full native suite (3,886),
+  sanity, safety, and cross-module checks passed.
+- `67cd8f31d`, including the later native function deduplication change: both compiler
+  executables passed the 124 value-borrow native tests, the four cross-module value-borrow
+  tests, and the indirect-release importer in both program configurations. Release also
+  passed sanity and safety; DevMode's four PrintMicro guard counts and execution checks passed.
+- The final shared-constant refactors were rebuilt with DevMode, and sanity passed again.
+  No additional timing claim is made for these integration checks.

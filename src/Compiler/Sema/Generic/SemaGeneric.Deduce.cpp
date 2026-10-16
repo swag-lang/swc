@@ -24,8 +24,6 @@ namespace
     using SemaGeneric::Internal::genericStructDeclNode;
     using DeductionMode = SemaGeneric::Internal::GenericDeductionMode;
 
-    constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
-
     SpanRef genericStructParamSpan(const AstNode& declNode)
     {
         if (const auto* structDecl = declNode.safeCast<AstStructDecl>())
@@ -54,7 +52,7 @@ namespace
         outFailure.dstTypeRef = newTypeRef;
         outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(idRef).name});
         if (previousArg.callArgIndex != UINT32_MAX)
-            outFailure.addArgument(K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
+            outFailure.addArgument(SemaGeneric::K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
         if (previousArg.diagRef.isValid())
         {
             outFailure.noteId      = DiagnosticId::sema_note_generic_previous_deduction;
@@ -71,7 +69,7 @@ namespace
         outFailure.addArgument(Diagnostic::ARG_LEFT, sema.cstMgr().get(previousArg.cstRef).toString(sema.ctx()));
         outFailure.addArgument(Diagnostic::ARG_RIGHT, sema.cstMgr().get(newCstRef).toString(sema.ctx()));
         if (previousArg.callArgIndex != UINT32_MAX)
-            outFailure.addArgument(K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
+            outFailure.addArgument(SemaGeneric::K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
         if (previousArg.diagRef.isValid())
         {
             outFailure.noteId      = DiagnosticId::sema_note_generic_previous_deduction;

@@ -49,11 +49,7 @@ namespace
             errorNodeRef = codeGen.function().declNodeRef();
         SWC_ASSERT(errorNodeRef.isValid());
 
-        auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, errorNodeRef, SemaError::ReportLocation::Token);
-        diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-        diag.report(codeGen.ctx());
-        return Result::Error;
+        return CodeGenFunctionHelpers::raiseInternalFailure(codeGen, errorNodeRef, SemaError::ReportLocation::Token, because);
     }
 
     void appendUniqueCandidateRef(SmallVector<AstNodeRef>& outCandidateRefs, const AstNodeRef candidateRef)

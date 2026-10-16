@@ -16,8 +16,15 @@ enum class CallConvKind : uint8_t;
 struct CallConv;
 struct CodeGenNodePayload;
 
+namespace SemaError
+{
+    enum class ReportLocation;
+}
+
 namespace CodeGenFunctionHelpers
 {
+    // Reports a failure sema should have ruled out, naming the function being generated.
+    Result raiseInternalFailure(CodeGen& codeGen, AstNodeRef errorNodeRef, SemaError::ReportLocation location, std::string_view because);
     Result emitMoveValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg sourceReg, AstNodeRef sourceRef);
     struct FunctionParameterInfo
     {

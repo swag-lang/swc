@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -28,6 +29,15 @@
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
+
+Result CodeGenFunctionHelpers::raiseInternalFailure(CodeGen& codeGen, AstNodeRef errorNodeRef, SemaError::ReportLocation location, std::string_view because)
+{
+    auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, errorNodeRef, location);
+    diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
+    diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+    diag.report(codeGen.ctx());
+    return Result::Error;
+}
 
 Result CodeGenFunctionHelpers::emitMoveValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg sourceReg, AstNodeRef sourceRef)
 {

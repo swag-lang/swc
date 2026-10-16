@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenLoopFrame.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -95,11 +96,7 @@ Result AstParallelForStmt::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(parallelFn != nullptr);
     if (!parallelFn)
     {
-        auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, codeGen.curNodeRef());
-        diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, fallible ? "missing runtime helper '__parallelRangeFallible'" : "missing runtime helper '__parallelRange'");
-        diag.report(codeGen.ctx());
-        return Result::Error;
+        return CodeGenFunctionHelpers::raiseInternalFailure(codeGen, codeGen.curNodeRef(), SemaError::ReportLocation::Children, fallible ? "missing runtime helper '__parallelRangeFallible'" : "missing runtime helper '__parallelRange'");
     }
 
     MicroBuilder& builder = codeGen.builder();

@@ -4,6 +4,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
@@ -183,8 +184,12 @@ private:
             AstNodeRef parentRef = AstNodeRef::invalid();
         };
 
-        std::unordered_map<const AstNode*, Entry> entries;
-        uint32_t                                  watermarks[SHARD_COUNT] = {};
+        // Keyed by node address. Only looked up, so one flat table holds every node of the
+        // tree instead of a map node each.
+        FlatKeyMap<Entry, uintptr_t> entries;
+        uint32_t                     watermarks[SHARD_COUNT] = {};
+
+        const Entry* find(const AstNode* node) const { return entries.find(reinterpret_cast<uintptr_t>(node)); }
     };
 
     void buildReachableNodeIndex() const;

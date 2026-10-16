@@ -742,10 +742,9 @@ MicroReg CodeGenVectorHelpers::emitMinMax(CodeGen& codeGen, MicroReg leftReg, Mi
 
     if (!laneType.isFloat() && laneBits == 64)
     {
-        // There is no packed 64-bit integer minimum or maximum before AVX-512:
-        // the signed compare mask and a byte blend build it. The blend keeps
-        // its destination where the mask is clear, so the losing side is copied
-        // in first.
+        // Build packed 64-bit integer min/max from a comparison mask and byte blend.
+        // The blend keeps its destination where the mask is clear, so copy right
+        // there before selecting left where the mask is set.
         const TokenId  cmpTokId = wantMin ? TokenId::SymLess : TokenId::SymGreater;
         const MicroReg maskReg  = emitCompare(codeGen, cmpTokId, leftReg, rightReg, laneType);
         const MicroReg dstReg   = codeGen.nextVirtualFloatRegister();

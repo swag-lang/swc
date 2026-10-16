@@ -2058,9 +2058,9 @@ namespace
             CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
             resultPayload.reg                 = codeGen.nextVirtualFloatRegister();
 
-            // VPGATHERDD requires destination, index, and destructive mask to be
-            // pairwise distinct. Making the destination use-def keeps it distinct
-            // from the live index; XMM15 is the encoder-owned mask scratch.
+            // The gather op requires its destination, index, and destructive mask to be
+            // pairwise distinct. Making the destination use-def keeps it distinct from
+            // the live index; the reserved register holds the mask.
             const MicroReg maskScratchReg = MicroReg::floatReg(15);
             builder.addVirtualRegForbiddenPhysReg(resultPayload.reg, maskScratchReg);
             if (indicesReg.isVirtual())

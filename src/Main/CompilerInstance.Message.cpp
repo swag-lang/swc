@@ -196,12 +196,10 @@ namespace
         return true;
     }
 
-    bool shouldTrackCompilerMessageFunction(const CompilerInstance& compiler, const SymbolFunction& symbol)
+    // A module-level symbol of one of the module's own sources, neither an imported API nor the
+    // runtime.
+    bool isOwnModuleLevelSymbol(const CompilerInstance& compiler, const Symbol& symbol)
     {
-        if (!symbol.isSemaCompleted() || symbol.isIgnored())
-            return false;
-        if (!isCompilerMessageEligibleFunction(symbol))
-            return false;
         if (compiler.isImportedApiSource(symbol))
             return false;
         if (!isModuleLevelSymbol(symbol))
@@ -209,6 +207,15 @@ namespace
 
         const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
         return sourceFile && !sourceFile->isRuntime();
+    }
+
+    bool shouldTrackCompilerMessageFunction(const CompilerInstance& compiler, const SymbolFunction& symbol)
+    {
+        if (!symbol.isSemaCompleted() || symbol.isIgnored())
+            return false;
+        if (!isCompilerMessageEligibleFunction(symbol))
+            return false;
+        return isOwnModuleLevelSymbol(compiler, symbol);
     }
 
     bool shouldTrackCompilerMessageType(const CompilerInstance& compiler, const Symbol& symbol)
@@ -219,13 +226,7 @@ namespace
             return false;
         if (!symbol.idRef().isValid())
             return false;
-        if (compiler.isImportedApiSource(symbol))
-            return false;
-        if (!isModuleLevelSymbol(symbol))
-            return false;
-
-        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
-        return sourceFile && !sourceFile->isRuntime();
+        return isOwnModuleLevelSymbol(compiler, symbol);
     }
 
     bool shouldTrackCompilerMessageGlobal(const CompilerInstance& compiler, const SymbolVariable& symbol)
@@ -234,13 +235,7 @@ namespace
             return false;
         if (!symbol.hasGlobalStorage() || symbol.globalStorageKind() == DataSegmentKind::Compiler)
             return false;
-        if (compiler.isImportedApiSource(symbol))
-            return false;
-        if (!isModuleLevelSymbol(symbol))
-            return false;
-
-        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
-        return sourceFile && !sourceFile->isRuntime();
+        return isOwnModuleLevelSymbol(compiler, symbol);
     }
 
     std::optional<Runtime::CompilerMsgKind> compilerMessageKindForSymbol(const CompilerInstance& compiler, const Symbol& symbol, const uint64_t activeMask)

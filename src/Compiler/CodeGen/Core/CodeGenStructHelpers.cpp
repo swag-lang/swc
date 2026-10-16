@@ -47,7 +47,7 @@ const SymbolStruct* CodeGenStructHelpers::resolveRuntimeStructType(CodeGen& code
         return nullptr;
 
     const TypeInfo* typeInfo = &codeGen.typeMgr().get(typeRef);
-    if (typeInfo->isAlias() || typeInfo->isEnum())
+    if (typeInfo->isAliasOrEnum())
     {
         const TypeInfo* unwrappedType = typeInfo->unwrapAliasEnumType(codeGen.ctx());
         if (unwrappedType)
@@ -57,7 +57,7 @@ const SymbolStruct* CodeGenStructHelpers::resolveRuntimeStructType(CodeGen& code
     {
         typeRef  = typeInfo->payloadTypeRef();
         typeInfo = &codeGen.typeMgr().get(typeRef);
-        if (typeInfo->isAlias() || typeInfo->isEnum())
+        if (typeInfo->isAliasOrEnum())
         {
             const TypeInfo* unwrappedType = typeInfo->unwrapAliasEnumType(codeGen.ctx());
             if (unwrappedType)

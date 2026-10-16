@@ -85,7 +85,7 @@ namespace
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
         const TypeManager& typeMgr = ctx.typeMgr();
-        if (typeInfo.isAlias() || typeInfo.isEnum())
+        if (typeInfo.isAliasOrEnum())
         {
             const TypeInfo* rawType = typeInfo.unwrapAliasEnumType(ctx);
             SWC_ASSERT(rawType);

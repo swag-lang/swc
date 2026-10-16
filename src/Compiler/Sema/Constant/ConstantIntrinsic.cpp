@@ -412,7 +412,7 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
         else
             return;
     }
-    else if (type->isAnyPointer() || type->isCString())
+    else if (type->isAnyPointerOrCString())
     {
         if (cst.isString())
             ptrValue = reinterpret_cast<uint64_t>(cst.getString().data());

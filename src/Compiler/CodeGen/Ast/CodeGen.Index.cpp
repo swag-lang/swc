@@ -264,7 +264,7 @@ namespace
             return spillAddrReg;
         }
 
-        if (indexedType.isAnyPointer() || indexedType.isCString())
+        if (indexedType.isAnyPointerOrCString())
         {
             if (indexedPayload.isValue())
                 return indexedPayload.reg;

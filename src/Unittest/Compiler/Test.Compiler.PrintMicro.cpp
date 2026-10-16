@@ -370,12 +370,35 @@ func writeThroughPointer(target: *u64, value: u64)
     target[] = value
 }
 
+#[Swag.NoInline]
+func writeBorrowingLocals(value: Pair)->u64
+{
+    var total = value.first
+    for 16 do
+        total += value.second
+    return total
+}
+
+#[Swag.NoInline]
+func readSecond(value: Pair)->u64 => value.second
+
+#[Swag.NoInline]
+func writeAfterBorrowingCall(value: Pair)->u64
+{
+    var total = readSecond(value)
+    total += value.first
+    return total
+}
+
 #run
 {
     Swag.assert(writeLocals(2) == 9)
     var value: u64
     writeThroughPointer(&value, 5)
     Swag.assert(value == 5)
+    var pair = Pair{2, 3}
+    Swag.assert(writeBorrowingLocals(pair) == 50)
+    Swag.assert(writeAfterBorrowingCall(pair) == 5)
 }
 )";
 
@@ -384,7 +407,7 @@ func writeThroughPointer(target: *u64, value: u64)
     fs::remove_all(directory, ec);
 
     PrintMicroRun          run;
-    const std::string_view requests[] = {"writeLocals", "writeThroughPointer"};
+    const std::string_view requests[] = {"writeLocals", "writeThroughPointer", "writeBorrowingLocals", "writeAfterBorrowingCall"};
     SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
@@ -401,11 +424,13 @@ func writeThroughPointer(target: *u64, value: u64)
         return count;
     };
 
-    const size_t locals  = checkedWrites("writeLocals");
-    const size_t pointer = checkedWrites("writeThroughPointer");
-    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || locals != 0 || pointer != 1)
+    const size_t locals          = checkedWrites("writeLocals");
+    const size_t pointer         = checkedWrites("writeThroughPointer");
+    const size_t borrowingLocals = checkedWrites("writeBorrowingLocals");
+    const size_t afterCall       = checkedWrites("writeAfterBorrowingCall");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || locals != 0 || pointer != 1 || borrowingLocals != 0 || afterCall != 0)
     {
-        std::println(stderr, "[print micro value borrow writes] locals {}, pointer {}\n{}", locals, pointer, run.output);
+        std::println(stderr, "[print micro value borrow writes] locals {}, pointer {}, borrowed parameter {}, after call {}\n{}", locals, pointer, borrowingLocals, afterCall, run.output);
         return Result::Error;
     }
 }

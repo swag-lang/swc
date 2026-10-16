@@ -50,10 +50,10 @@ private func valueBorrowLock(registry: *ValueBorrowRegistry)
     }
 }
 
-#[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
+#[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.Inline]
 private func valueBorrowUnlock(registry: *ValueBorrowRegistry)
 {
-    discard Swag.atomicExchange(&registry.lock, 0)
+    Swag.atomicStore(&registry.lock, 0)
 }
 
 // A counting filter lets unrelated writes avoid the shared list lock. Hash collisions
@@ -66,19 +66,27 @@ private func valueBorrowFilterChange(registry: *ValueBorrowRegistry, address: *v
 {
     if size == 0 do
         return
-    discard Swag.atomicAdd(&registry.epoch, 1)
+
+    // The registry lock serializes writers. Atomic publication is needed for the
+    // lock-free readers, but locked read-modify-write instructions are redundant.
+    let epoch = Swag.atomicLoad(&registry.epoch)
+    Swag.atomicStore(&registry.epoch, epoch + 1)
     let start = cast(u64, address)
     if size - 1 > ~start or ((start + size - 1) >> 6) - (start >> 6) >= 8
     {
-        discard Swag.atomicAdd(&registry.wide, delta)
-        discard Swag.atomicAdd(&registry.epoch, 1)
+        Swag.atomicStore(&registry.wide, Swag.atomicLoad(&registry.wide) + delta)
+        Swag.atomicStore(&registry.epoch, epoch + 2)
         return
     }
 
     let last = (start + size - 1) >> 6
-    for var block = start >> 6; block <= last; block += 1 do
-        discard Swag.atomicAdd(&registry.cells[valueBorrowCell(block)], delta)
-    discard Swag.atomicAdd(&registry.epoch, 1)
+    for var block = start >> 6; block <= last; block += 1
+    {
+        let cell = &registry.cells[valueBorrowCell(block)]
+        Swag.atomicStore(cell, Swag.atomicLoad(cell) + delta)
+    }
+
+    Swag.atomicStore(&registry.epoch, epoch + 2)
 }
 
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false)]

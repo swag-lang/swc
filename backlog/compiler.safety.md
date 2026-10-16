@@ -45,14 +45,15 @@ is the current scorecard.
 
 ### compiler.safety.030 — Measure the runtime cost of value-borrow guards
 
-- Evidence: `SafetyWhat.ValueBorrow` registers indirect value arguments and checks writes
-  against their live storage. Registration, overlap filtering and registry locking add runtime
-  work whose cost depends on call size, write frequency and concurrent access. A direct write
-  to a function's own stack local is not checked while that function holds no borrow.
-- Next: compare identical native workloads with only `.ValueBorrow` toggled, using a quiet
-  machine. Start with repeated non-inline calls borrowing a small struct and writing a separate
-  output; distinguish this tiny-call stress case from a representative application workload.
-  Report repeated timings and absolute overhead, without extrapolating one ratio to all programs.
+- Evidence: `bin/unittests/native/functions/value_borrow_cost.swg` compares identical
+  native small-argument and block-sum calls with only `.ValueBorrow` toggled. The
+  [focused measurements](../bench/results/safety/20261016-value-borrow.md) retain all samples
+  and compiler rebuild CPU/memory controls, but shared-machine drift prevents a tight bound.
+  Own stack accumulator writes no longer incur a check merely because an incoming value
+  parameter is borrowed; aliasable writes and concurrent registry checks remain covered.
+- Next: repeat the paired fixture on a quiet machine with an unchanged A/A control, then
+  measure a representative application. Separate fixed registration cost, write checking,
+  and concurrent contention; tiny-call ratios must not stand in for application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,
   guard settings and variability, and give a bounded assessment of the runtime overhead.
 - Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,

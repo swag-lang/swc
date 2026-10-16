@@ -643,6 +643,19 @@ namespace
         builder.emitLoadRegReg(resultPayload.reg, srcReg, laneBits == 32 ? MicroOpBits::B32 : MicroOpBits::B64);
         return true;
     }
+
+    // The function an index expression resolved to, through its symbol or else its stored one.
+    SymbolFunction* resolvedIndexFunction(CodeGen& codeGen)
+    {
+        const SemaNodeView symView = codeGen.curViewSymbol();
+        if (symView.sym() && symView.sym()->isFunction())
+            return &symView.sym()->cast<SymbolFunction>();
+
+        const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+        if (storedSymView.sym() && storedSymView.sym()->isFunction())
+            return &storedSymView.sym()->cast<SymbolFunction>();
+        return nullptr;
+    }
 }
 
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -665,17 +678,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        const SemaNodeView symView = codeGen.curViewSymbol();
-        if (symView.sym() && symView.sym()->isFunction())
-        {
-            calledFn = &symView.sym()->cast<SymbolFunction>();
-        }
-        else
-        {
-            const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
-            if (storedSymView.sym() && storedSymView.sym()->isFunction())
-                calledFn = &storedSymView.sym()->cast<SymbolFunction>();
-        }
+        calledFn = resolvedIndexFunction(codeGen);
     }
 
     if (codeGen.node(nodeArgRef).is(AstNodeId::RangeExpr) && (!payloadBase || payloadBase->kind != IndexSpecOpPayloadKind::ReadSlice))
@@ -724,17 +727,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        const SemaNodeView symView = codeGen.curViewSymbol();
-        if (symView.sym() && symView.sym()->isFunction())
-        {
-            calledFn = &symView.sym()->cast<SymbolFunction>();
-        }
-        else
-        {
-            const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
-            if (storedSymView.sym() && storedSymView.sym()->isFunction())
-                calledFn = &storedSymView.sym()->cast<SymbolFunction>();
-        }
+        calledFn = resolvedIndexFunction(codeGen);
     }
 
     if (calledFn != nullptr)

@@ -16,6 +16,8 @@ class MicroSsaState;
 
 namespace MicroPassHelpers
 {
+    constexpr uint32_t K_MAX_ROOT_CHAIN = 32;
+
     struct RegTouch
     {
         bool use = false;

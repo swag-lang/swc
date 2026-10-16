@@ -33,7 +33,6 @@ namespace
 
     constexpr uint32_t K_INVALID               = std::numeric_limits<uint32_t>::max();
     constexpr uint32_t K_CHUNK_BYTES           = 16;
-    constexpr uint32_t K_MAX_ROOT_CHAIN        = 32;
     constexpr uint32_t K_MAX_PROMOTED_PER_LOOP = 6;
 
     // How much is known about where a root register points; only the stack
@@ -100,7 +99,7 @@ namespace
         bool resolveRoot(MicroReg baseReg, uint64_t& inOutOffset, MicroReg& outRoot, RootKind& outKind)
         {
             MicroReg reg = baseReg;
-            for (uint32_t depth = 0; depth < K_MAX_ROOT_CHAIN; ++depth)
+            for (uint32_t depth = 0; depth < MicroPassHelpers::K_MAX_ROOT_CHAIN; ++depth)
             {
                 if (reg == stackPointer)
                 {

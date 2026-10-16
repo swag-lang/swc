@@ -436,6 +436,8 @@ public:
         bool       addressHome;
     };
     SmallVector<ValueBorrowSite> valueBorrowSites;
+    RefSet<AstNodeRef>           valueBorrowValueScopeRefs; // Scopes of the non-home sites: every node tests this, not the list
+    RefSet<AstNodeRef>           valueBorrowExpressionRefs; // Values the sites borrow, for the same per-node test
     bool                         needsValueBorrowRuntime = false;
     void                         registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo = nullptr);
     void                         initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);

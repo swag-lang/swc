@@ -339,6 +339,16 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
         for (const AstNodeRef child : children)
             pending.push_back({child, bodyEnabled});
     }
+
+    codeGen.valueBorrowValueScopeRefs = {};
+    codeGen.valueBorrowExpressionRefs = {};
+    for (const CodeGen::ValueBorrowSite& site : codeGen.valueBorrowSites)
+    {
+        if (!site.addressHome && site.scopeRef.isValid())
+            codeGen.valueBorrowValueScopeRefs.insert(site.scopeRef);
+        if (site.expressionRef.isValid())
+            codeGen.valueBorrowExpressionRefs.insert(site.expressionRef);
+    }
 }
 
 void CodeGenSafety::initializeValueBorrowSites(CodeGen& codeGen)
@@ -350,6 +360,9 @@ void CodeGenSafety::initializeValueBorrowSites(CodeGen& codeGen)
 
 Result CodeGenSafety::emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef)
 {
+    if (!codeGen.valueBorrowExpressionRefs.contains(homeRef))
+        return Result::Continue;
+
     for (const auto& borrow : codeGen.valueBorrowSites)
     {
         if (borrow.expressionRef != homeRef)

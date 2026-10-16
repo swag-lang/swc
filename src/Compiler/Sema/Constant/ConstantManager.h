@@ -162,21 +162,6 @@ public:
     };
     using StoredConstant = std::unique_ptr<ConstantValue, StoredConstantDeleter>;
 
-    struct StoredConstantHash
-    {
-        using is_transparent = void;
-        size_t operator()(const StoredConstant& value) const noexcept { return ConstantValueHash{}(*value); }
-        size_t operator()(const ConstantValue& value) const noexcept { return ConstantValueHash{}(value); }
-    };
-
-    struct StoredConstantEqual
-    {
-        using is_transparent = void;
-        bool operator()(const StoredConstant& lhs, const StoredConstant& rhs) const noexcept { return *lhs == *rhs; }
-        bool operator()(const StoredConstant& lhs, const ConstantValue& rhs) const noexcept { return *lhs == rhs; }
-        bool operator()(const ConstantValue& lhs, const StoredConstant& rhs) const noexcept { return lhs == *rhs; }
-    };
-
     // Open-addressed and append-only: a slot, once filled, keeps its constant. Readers probe it
     // without a lock; writers fill it under the stripe mutex, hash and reference before value.
     // Identity never reads the enriched data-segment location, the one field written in place.
@@ -190,14 +175,15 @@ public:
     };
 
     // Each stripe owns its cache line: neighbours locked by other workers must not share it.
-    // 'map' owns the canonical constants; 'table' answers lookups without a lock. Every table
-    // generation stays alive with the stripe, for readers still probing an older one.
+    // 'owned' keeps the canonical constants alive; 'table' answers every lookup, without a lock
+    // for readers and under the mutex for writers. Every table generation stays alive with the
+    // stripe, for readers still probing an older one.
     struct alignas(64) InternStripe
     {
-        std::unordered_map<StoredConstant, ConstantRef, StoredConstantHash, StoredConstantEqual> map;
-        std::atomic<InternTable*>                                                                table = nullptr;
-        std::vector<std::unique_ptr<InternTable>>                                                tables;
-        std::mutex                                                                               mutex; // writers only
+        std::vector<StoredConstant>               owned;
+        std::atomic<InternTable*>                 table = nullptr;
+        std::vector<std::unique_ptr<InternTable>> tables;
+        std::mutex                                mutex; // writers only
     };
 
     // Canonical string offsets, the type and all four coordinates determine the complete

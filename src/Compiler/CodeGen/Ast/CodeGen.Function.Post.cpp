@@ -249,8 +249,7 @@ namespace
 
     MicroOpBits scalarStoreBitsForType(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        const TypeInfo* storageType = typeInfo.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& scalarType  = storageType ? *storageType : typeInfo;
+        const TypeInfo& scalarType = typeInfo.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         return CodeGenTypeHelpers::scalarStoreBits(scalarType, codeGen.ctx());
     }
 
@@ -437,8 +436,7 @@ namespace
 
         TaskContext&    ctx            = codeGen.ctx();
         const TypeInfo& originalType   = codeGen.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType  = originalType.unwrapAliasEnumType(ctx);
-        const TypeInfo& typeInfo       = unwrappedType ? *unwrappedType : originalType;
+        const TypeInfo& typeInfo       = originalType.unwrapAliasEnumTypeOrSelf(ctx);
         const TypeRef   storageTypeRef = typeInfo.typeRef();
         const uint64_t  sizeOf         = typeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());

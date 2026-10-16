@@ -163,8 +163,7 @@ namespace
 
     bool typeHasUnionStorageRec(const TaskContext& ctx, const TypeInfo& declaredType, RefSet<TypeRef>& visited)
     {
-        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(ctx);
-        const TypeInfo* type        = storageType ? storageType : &declaredType;
+        const TypeInfo* type = &declaredType.unwrapAliasEnumTypeOrSelf(ctx);
         if (!type->isArray() && !type->isStruct())
             return false;
         if (!visited.insert(type->typeRef()))
@@ -268,8 +267,7 @@ namespace
         Result writeDefault(const TypeInfo& declaredType, uint64_t size, uint64_t offset)
         {
             Sema&           sema        = *sema_;
-            const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
-            const TypeInfo& type        = storageType ? *storageType : declaredType;
+            const TypeInfo& type        = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
             if (!declaredType.isNonNullable() && !type.isNonNullable())
             {
                 if (type.isStruct())
@@ -325,8 +323,7 @@ namespace
         Result collectDynamicRelocations(const TypeInfo& declaredType, uint64_t offset)
         {
             Sema&           sema        = *sema_;
-            const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
-            const TypeInfo& type        = storageType ? *storageType : declaredType;
+            const TypeInfo& type        = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
             if (type.isArray())
             {
                 const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
@@ -365,8 +362,7 @@ namespace
 
 bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, const TypeInfo& declaredType)
 {
-    const TypeInfo* storageType = declaredType.unwrapAliasEnumType(ctx);
-    const TypeInfo& type        = storageType ? *storageType : declaredType;
+    const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(ctx);
     if (!type.isArray() && !type.isStruct())
         return false;
     RefSet<TypeRef> visited;
@@ -393,8 +389,7 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
     if (std::ranges::any_of(construction.runtimeBytes, [](uint8_t byte) { return byte != 0; }))
         return ConstantRef::invalid();
 
-    const TypeInfo* unwrappedType = type.unwrapAliasEnumType(sema.ctx());
-    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : type;
+    const TypeInfo& storageType = type.unwrapAliasEnumTypeOrSelf(sema.ctx());
 
     const uint32_t shardIndex    = staticPayloadPlacementShardIndex(sema.ctx(), type, storageType, construction.bytes, false, 0);
     DataSegment&   segment       = sema.cstMgr().shardDataSegment(shardIndex);
@@ -692,8 +687,7 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     if (sizeOf != payload.size())
         return ConstantRef::invalid();
 
-    const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(ctx);
-    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : typeInfo;
+    const TypeInfo& storageType = typeInfo.unwrapAliasEnumTypeOrSelf(ctx);
     if (storageType.isStruct() && storageType.payloadSymStruct().isUnion())
         return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeRef, payload));
 

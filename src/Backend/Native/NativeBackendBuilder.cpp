@@ -15,6 +15,7 @@
 #include "Compiler/ModuleApi/ModuleApi.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -368,26 +369,13 @@ namespace
         return builder.compiler().srcView(symbol.srcViewRef()).file();
     }
 
-    bool isRuntimeArtifactFunction(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
+    bool isNativeArtifactFunction(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
-            return false;
         if (symbol.hasUnmaterializedGenericBody())
             return false;
-
-        const AstNode* decl = symbol.decl();
-        if (!decl)
-            return true;
-
-        if (decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr)
-            return false;
-        if (decl->id() != AstNodeId::CompilerFunc)
-            return true;
-
-        const TokenId tokenId = builder.compiler().srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
-        return Token::isNativeArtifactCompilerFunc(tokenId);
+        return SemaRuntime::isRuntimeArtifactFunction(builder.compiler(), symbol);
     }
 
     bool shouldPrepareFile(const SourceFile* file)
@@ -412,7 +400,7 @@ namespace
                !symbol.isEmpty() &&
                !symbol.isAttribute() &&
                shouldPrepareFile(sourceFileForSymbol(builder, symbol)) &&
-               isRuntimeArtifactFunction(builder, symbol);
+               isNativeArtifactFunction(builder, symbol);
     }
 
     template<typename T>

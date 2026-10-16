@@ -142,6 +142,9 @@ public:
         return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
     }
 
+    // The type an alias or enum stores, or the referenced type itself when it is neither.
+    const TypeInfo& unwrapAliasEnumTypeOrSelf(const TaskContext& ctx, TypeRef typeRef) const { return get(typeRef).unwrapAliasEnumTypeOrSelf(ctx); }
+
     // Selects one of 'SymbolStruct::opDrop', 'opPostCopy' or 'opPostMove'.
     using LifecycleOperator = const SymbolFunction* (SymbolStruct::*) () const;
 

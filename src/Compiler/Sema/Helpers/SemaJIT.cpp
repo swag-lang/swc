@@ -604,7 +604,7 @@ namespace
         // repeated element, and the metadata roots a compile-time call collects from constant
         // data reach almost the same closure as one another. The membership set is therefore
         // built while the order is, and a root the order already holds is never read.
-        const bool mayRepeat = !extraRoots.empty() || SemaRuntime::isRuntimeArtifactFunction(sema, symFn);
+        const bool mayRepeat = !extraRoots.empty() || SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn);
         if (!mayRepeat)
         {
             symFn.visitJitOrder([&out](SymbolFunction* function) {
@@ -633,7 +633,7 @@ namespace
             appendJitOrderDeduplicated(*root, out, seen);
         }
 
-        if (SemaRuntime::isRuntimeArtifactFunction(sema, symFn))
+        if (SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn))
             appendGlobalFunctionInitJitOrder(sema, out, seen);
     }
 
@@ -685,7 +685,7 @@ namespace
     const SymbolFunction* jitWaiterSymbol(Sema& sema)
     {
         const SymbolFunction* currentFn = sema.currentFunction();
-        if (currentFn && SemaRuntime::isCompilerOnlyFunction(sema, *currentFn))
+        if (currentFn && SemaRuntime::isCompilerOnlyFunction(sema.compiler(), *currentFn))
             return currentFn;
 
         const SymbolFunction* enclosingFn = sema.frame().enclosingFunction();
@@ -825,9 +825,7 @@ namespace
     JITCallResultMeta computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
     {
         TaskContext&                           ctx           = sema.ctx();
-        const TypeInfo&                        exprType      = sema.typeMgr().get(exprTypeRef);
-        const TypeInfo*                        unwrappedType = exprType.unwrapAliasEnumType(ctx);
-        const TypeInfo&                        storageType   = unwrappedType ? *unwrappedType : exprType;
+        const TypeInfo&                        storageType   = sema.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, exprTypeRef);
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, CallConv::swag(), storageType, ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!storageType.isVoid());
 

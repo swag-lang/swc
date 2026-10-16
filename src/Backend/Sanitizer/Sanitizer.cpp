@@ -106,9 +106,7 @@ const TypeInfo* Sanitizer::declaredPointerType(TypeRef typeRef, uint64_t offset)
 {
     while (typeRef.isValid())
     {
-        const TypeInfo& declared  = ctx().typeMgr().get(typeRef);
-        const TypeInfo* unwrapped = declared.unwrapAliasEnumType(ctx());
-        const TypeInfo& type      = unwrapped ? *unwrapped : declared;
+        const TypeInfo& type = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), typeRef);
         if (type.isStruct())
         {
             const SymbolStruct& structure = type.payloadSymStruct();
@@ -354,9 +352,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
             const TypeRef typeRef = parameters[i]->typeRef();
             if (!typeRef.isValid())
                 continue;
-            const TypeInfo& declaredType  = ctx().typeMgr().get(typeRef);
-            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx());
-            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+            const TypeInfo& type = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), typeRef);
             MicroReg        reg;
             if (type.isAnyPointer() && !type.isNullable() && callParameterRegister(reg, *function, context_.callConvKind, i))
                 setRegValue(inState_[0], reg, SanitizerValue::makeNonZero());

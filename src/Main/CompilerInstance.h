@@ -165,6 +165,9 @@ public:
 
         return Utf8{value};
     }
+    // The build configuration's names, falling back to what the command line implies.
+    Utf8                            artifactName() const;
+    Utf8                            moduleNamespaceName() const;
     const WarningPolicy&            warningPolicy() const { return warningPolicy_; }
     const Utf8&                     lastArtifactLabel() const { return lastArtifactLabel_; }
     void                            setLastArtifactLabel(Utf8 label) { lastArtifactLabel_ = std::move(label); }

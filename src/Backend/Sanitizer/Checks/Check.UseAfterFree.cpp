@@ -24,9 +24,7 @@ namespace
         if (!returnTypeRef.isValid())
             return false;
 
-        const TypeInfo& declaredType  = sanitizer.ctx().typeMgr().get(returnTypeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sanitizer.ctx());
-        const TypeInfo& returnType    = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& returnType = sanitizer.ctx().typeMgr().unwrapAliasEnumTypeOrSelf(sanitizer.ctx(), returnTypeRef);
         return returnType.isAnyPointer() || returnType.isReference();
     }
 }

@@ -167,25 +167,9 @@ namespace
 
 namespace ModuleApiExport
 {
-    Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
-    {
-        Utf8 moduleNamespaceName = CompilerInstance::buildCfgString(compiler.buildCfg().moduleNamespace);
-        if (!moduleNamespaceName.empty())
-            return moduleNamespaceName;
-
-        Utf8 artifactName = CompilerInstance::buildCfgString(compiler.buildCfg().name);
-        if (artifactName.empty())
-            artifactName = defaultArtifactName(compiler.cmdLine());
-        return defaultModuleNamespace(artifactName);
-    }
-
     Utf8 buildModuleArtifactName(const CompilerInstance& compiler)
     {
-        Utf8 artifactName = CompilerInstance::buildCfgString(compiler.buildCfg().name);
-        if (!artifactName.empty())
-            return artifactName;
-
-        artifactName = defaultArtifactName(compiler.cmdLine());
+        Utf8 artifactName = compiler.artifactName();
         if (!artifactName.empty())
             return artifactName;
         return "module";
@@ -352,7 +336,6 @@ namespace ModuleApi
         using ModuleApiExport::appendGeneratedRootsForFile;
         using ModuleApiExport::buildExportedModuleApiContent;
         using ModuleApiExport::buildGeneratedModuleApiSingleFileContent;
-        using ModuleApiExport::buildModuleNamespaceName;
         using ModuleApiExport::ModuleApiGeneratedRoot;
         using ModuleApiExport::preferredLineEnding;
         using ModuleApiExport::sortGeneratedModuleApiRoots;
@@ -391,7 +374,7 @@ namespace ModuleApi
         if (suppressExport)
             return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
-        const Utf8        moduleNamespace  = buildModuleNamespaceName(compiler);
+        const Utf8        moduleNamespace  = compiler.moduleNamespaceName();
         const SourceFile* firstSourceFile  = nullptr;
         bool              hasModuleSources = false;
 

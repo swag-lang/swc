@@ -27,8 +27,7 @@ namespace
 ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, const CallConv& conv, const TypeInfo& type, Usage usage)
 {
     // Convert semantic types into one ABI transfer model: register value or indirect pointer.
-    const TypeInfo* normalizedType = type.unwrapAliasEnumType(ctx);
-    const TypeInfo& ty             = normalizedType ? *normalizedType : type;
+    const TypeInfo& ty = type.unwrapAliasEnumTypeOrSelf(ctx);
     if (ty.isVoid())
         return makeNormalizedType(true, false, false, 0);
 

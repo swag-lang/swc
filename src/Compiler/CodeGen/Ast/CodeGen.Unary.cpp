@@ -24,8 +24,7 @@ namespace
 {
     TypeRef resolveDerefResultTypeRef(CodeGen& codeGen, const TypeInfo& operandType)
     {
-        const TypeInfo* unwrappedType = operandType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& pointerType   = unwrappedType ? *unwrappedType : operandType;
+        const TypeInfo& pointerType = operandType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         return pointerType.dereferenceTypeRef(codeGen.ctx());
     }
 

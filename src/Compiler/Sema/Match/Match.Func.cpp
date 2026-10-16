@@ -65,9 +65,7 @@ namespace
         if (!sourceTypeRef.isValid())
             return pointeeTypeRef;
 
-        const TypeInfo& declaredSourceType = sema.typeMgr().get(sourceTypeRef);
-        const TypeInfo* unwrappedSource    = declaredSourceType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& sourceType         = unwrappedSource ? *unwrappedSource : declaredSourceType;
+        const TypeInfo& sourceType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef);
 
         // A '#move' parameter accepts an UNSIZED literal: the argument is cast to the
         // pointee value and materialized into the call-site temporary like a plain
@@ -421,15 +419,6 @@ namespace
         return firstParam && firstParam->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
     }
 
-    TypeRef unwrapAliasEnumOrSelf(Sema& sema, TypeRef typeRef)
-    {
-        if (typeRef.isInvalid())
-            return TypeRef::invalid();
-
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-    }
-
     // True when the argument expression is an explicit '#move expr' (or the move variant of
     // '#fwd expr'), i.e. a freshly formed move reference, as opposed to reading a variable
     // whose type happens to be a move reference (a documented copy).
@@ -455,8 +444,7 @@ namespace
             return vi;
 
         const TypeInfo& declaredType  = params.back()->type(sema.ctx());
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& lastParamType = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& lastParamType = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
         vi.isVariadic                 = lastParamType.isVariadic();
         vi.isTypedVariadic            = lastParamType.isTypedVariadic();
         return vi;
@@ -1264,8 +1252,8 @@ namespace
 
         if (isUfcsArgument && from.isValid() && to.isValid())
         {
-            const TypeRef fromCheckRef = unwrapAliasEnumOrSelf(sema, from);
-            const TypeRef toCheckRef   = unwrapAliasEnumOrSelf(sema, to);
+            const TypeRef fromCheckRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), from);
+            const TypeRef toCheckRef   = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), to);
             if (fromCheckRef == toCheckRef && sema.typeMgr().get(fromCheckRef).isPointerOrReference())
             {
                 outRank = ConvRank::Exact;
@@ -1978,8 +1966,7 @@ namespace
             // constraint), leaving only the move variant.
             if (params[i]->hasExtraFlag(SymbolVariableFlagsE::FwdCopy))
             {
-                const TypeInfo* unwrappedParam = param.unwrapAliasEnumType(sema.ctx());
-                const TypeInfo& fwdType        = unwrappedParam ? *unwrappedParam : param;
+                const TypeInfo& fwdType        = param.unwrapAliasEnumTypeOrSelf(sema.ctx());
                 const TypeRef   fwdTypeRef     = fwdType.typeRef();
                 if (fwdType.isStruct())
                 {
@@ -2002,8 +1989,7 @@ namespace
             bool argMovesToValue = false;
             if (isExplicitMoveArgumentNode(sema, argRef))
             {
-                const TypeInfo* unwrappedParam = param.unwrapAliasEnumType(sema.ctx());
-                const TypeInfo& paramCheck     = unwrappedParam ? *unwrappedParam : param;
+                const TypeInfo& paramCheck     = param.unwrapAliasEnumTypeOrSelf(sema.ctx());
                 argMovesToValue                = !paramCheck.isMoveReference();
                 if (argMovesToValue && paramCheck.isPointerOrReference())
                 {
@@ -2089,8 +2075,7 @@ namespace
             else
             {
                 const TypeInfo& declaredType  = params.back()->type(sema.ctx());
-                const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-                const TypeInfo& variadicType  = unwrappedType ? *unwrappedType : declaredType;
+                const TypeInfo& variadicType  = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
                 const TypeRef   variadicTy    = variadicType.payloadTypeRef();
                 if (fixedVariadicArg.argRef.isValid())
                     SWC_RESULT(probeTypedVariadicArgument(sema, fn, fixedVariadicArg, variadicTy, startVariadic, mapping.variadicArgs.empty(), outCandidate, outFail));
@@ -2511,8 +2496,7 @@ namespace
         if (numParams > 0 && !mapping.variadicArgs.empty())
         {
             const TypeInfo& declaredType      = params.back()->type(sema.ctx());
-            const TypeInfo* unwrappedType     = declaredType.unwrapAliasEnumType(sema.ctx());
-            const TypeInfo& variadicParamType = unwrappedType ? *unwrappedType : declaredType;
+            const TypeInfo& variadicParamType = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
             if (variadicParamType.isTypedVariadic())
             {
                 const TypeRef variadicTy = variadicParamType.payloadTypeRef();
@@ -2634,8 +2618,7 @@ namespace
             // parameter, never a reference/pointer one (the transfer would be ignored).
             if (isExplicitMoveArgumentNode(sema, argRef))
             {
-                const TypeInfo* unwrappedParam = paramType.unwrapAliasEnumType(sema.ctx());
-                const TypeInfo& paramCheck     = unwrappedParam ? *unwrappedParam : paramType;
+                const TypeInfo& paramCheck = paramType.unwrapAliasEnumTypeOrSelf(sema.ctx());
                 if (!paramCheck.isMoveReference() && paramCheck.isPointerOrReference())
                     return SemaError::raise(sema, DiagnosticId::sema_err_move_arg_param_not_move, argValueRef);
             }
@@ -2981,9 +2964,7 @@ namespace
         if (argRef.isInvalid() || !isExplicitMoveArgumentNode(sema, argRef))
             return false;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(paramTypeRef);
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& paramType     = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& paramType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramTypeRef);
         return !paramType.isMoveReference() && paramType.isStructOrArray();
     }
 
@@ -2992,7 +2973,7 @@ namespace
         if (argRef.isInvalid() || sema.isGlobalScope())
             return Result::Continue;
 
-        const TypeRef storageTypeRef = unwrapAliasEnumOrSelf(sema, paramTypeRef);
+        const TypeRef storageTypeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), paramTypeRef);
         return SemaHelpers::attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_move_storage");
     }
 
@@ -3072,8 +3053,7 @@ namespace
             {
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
                 const TypeInfo& declaredType  = selectedFn.parameters()[i]->type(sema.ctx());
-                const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
-                const TypeInfo& parameterType = unwrappedType ? *unwrappedType : declaredType;
+                const TypeInfo& parameterType = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
                 if (parameterType.isMoveReference())
                 {
                     // Binding an ordinary value to a move reference creates an owned

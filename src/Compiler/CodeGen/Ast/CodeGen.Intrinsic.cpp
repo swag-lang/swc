@@ -43,10 +43,7 @@ namespace
 
     bool intrinsicInitTypeUsesFloatPayload(CodeGen& codeGen, const TypeInfo& typeInfo)
     {
-        if (!typeInfo.isAlias() && !typeInfo.isEnum())
-            return typeInfo.isFloat();
-        const TypeInfo* storageType = typeInfo.unwrapAliasEnumType(codeGen.ctx());
-        return storageType ? storageType->isFloat() : typeInfo.isFloat();
+        return typeInfo.unwrapAliasEnumTypeOrSelf(codeGen.ctx()).isFloat();
     }
 
     TypeRef intrinsicLifecycleTargetTypeRef(CodeGen& codeGen, TypeRef whatTypeRef, const bool hasExplicitCount)

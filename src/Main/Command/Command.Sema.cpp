@@ -7,7 +7,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Command/CommandLineParser.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -17,26 +17,6 @@
 #include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
-    {
-        Utf8 moduleNamespaceName;
-        if (compiler.buildCfg().moduleNamespace.ptr && compiler.buildCfg().moduleNamespace.length)
-            moduleNamespaceName = compiler.buildCfg().moduleNamespace;
-        if (!moduleNamespaceName.empty())
-            return moduleNamespaceName;
-
-        Utf8 artifactName;
-        if (compiler.buildCfg().name.ptr && compiler.buildCfg().name.length)
-            artifactName = compiler.buildCfg().name;
-        if (artifactName.empty())
-            artifactName = defaultArtifactName(compiler.cmdLine());
-        return defaultModuleNamespace(artifactName);
-    }
-
-}
 
 namespace Command
 {
@@ -142,7 +122,7 @@ namespace Command
         if (!moduleNamespace)
         {
             auto* symModule           = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-            Utf8  moduleNamespaceName = buildModuleNamespaceName(compiler);
+            Utf8  moduleNamespaceName = compiler.moduleNamespaceName();
 
             constexpr SymbolFlags namespaceFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
             const IdentifierRef   idRef          = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));

@@ -27,9 +27,7 @@ bool SemaHelpers::isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef)
     if (typeRef.isInvalid())
         return false;
 
-    const TypeInfo& typeInfo      = sema.typeMgr().get(typeRef);
-    const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(sema.ctx());
-    return (unwrappedType ? *unwrappedType : typeInfo).isAnyVariadic();
+    return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isAnyVariadic();
 }
 
 bool SemaHelpers::isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef)
@@ -377,19 +375,12 @@ namespace
         return nodeRef;
     }
 
-    const TypeInfo& narrowUnwrappedType(Sema& sema, TypeRef typeRef)
-    {
-        const TypeInfo& type          = sema.typeMgr().get(typeRef);
-        const TypeInfo* unwrappedType = type.unwrapAliasEnumType(sema.ctx());
-        return unwrappedType ? *unwrappedType : type;
-    }
-
     bool typeRefIsNullable(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
             return false;
 
-        return narrowUnwrappedType(sema, typeRef).isNullable();
+        return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isNullable();
     }
 
     // A fact only attaches to a path whose declared type can carry it.
@@ -401,9 +392,9 @@ namespace
         switch (kind)
         {
             case SemaNarrowFactKind::NonNull:
-                return narrowUnwrappedType(sema, typeRef).isNullable();
+                return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isNullable();
             case SemaNarrowFactKind::NonZero:
-                return narrowUnwrappedType(sema, typeRef).isIntLike();
+                return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isIntLike();
         }
 
         return false;

@@ -195,9 +195,7 @@ namespace
         if (receiverTypeRef.isInvalid())
             return false;
 
-        const TypeInfo& declaredReceiver  = codeGen.typeMgr().get(receiverTypeRef);
-        const TypeInfo* unwrappedReceiver = declaredReceiver.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& receiverType      = unwrappedReceiver ? *unwrappedReceiver : declaredReceiver;
+        const TypeInfo& receiverType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), receiverTypeRef);
         if (!receiverType.isPointerOrReference())
             return false;
 

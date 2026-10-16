@@ -108,8 +108,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (sizeOf != payload.size())
         return ConstantRef::invalid();
 
-    const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(ctx);
-    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : typeInfo;
+    const TypeInfo& storageType = typeInfo.unwrapAliasEnumTypeOrSelf(ctx);
     if (storageType.isStruct() && storageType.payloadSymStruct().isUnion())
         return codeGen.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeRef, payload));
 

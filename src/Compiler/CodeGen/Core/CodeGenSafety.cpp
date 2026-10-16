@@ -42,8 +42,7 @@ namespace
 
     Result emitTypedLifecyclePoison(CodeGen& codeGen, MicroReg addressReg, const TypeInfo& originalType)
     {
-        const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
+        const TypeInfo& type = originalType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
             return CodeGenSafety::emitLifecyclePoison(codeGen, addressReg, type.sizeOf(codeGen.ctx()));
 
@@ -647,9 +646,7 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
     // The local's storage must be the struct itself: for a reference-like variable the
     // frame slot holds a pointer, and marking it would flag legitimate reads of the
     // reference on the way to its (correctly poisoned) pointee.
-    const TypeInfo& declaredType  = codeGen.typeMgr().get(symVar.typeRef());
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-    const TypeInfo& varType       = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& varType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), symVar.typeRef());
     if (!varType.isStruct())
         return Result::Continue;
 
@@ -880,9 +877,7 @@ Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, M
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null))
         return Result::Continue;
 
-    const TypeInfo& originalType  = codeGen.typeMgr().get(lateTypeRef);
-    const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
-    const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : originalType;
+    const TypeInfo& typeInfo = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), lateTypeRef);
     if (!typeInfo.isNonNullable())
         return Result::Continue;
 

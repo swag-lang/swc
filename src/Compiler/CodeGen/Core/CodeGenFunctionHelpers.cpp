@@ -520,9 +520,7 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     if (!typeRef.isValid())
         return false;
 
-    const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
-    const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
-    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
+    const TypeInfo& storageType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef);
     if (!SemaHelpers::isByValueAggregateType(storageType))
         return false;
     if (paramInfo)
@@ -551,9 +549,7 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     // call runs, so every read through the parameter is fixed for the call and may leave a loop
     // or be reused across stores and calls. A function that must watch an object another thread
     // changes takes a pointer. An array parameter is a view the callee itself writes through.
-    const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
-    const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
-    const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
+    const TypeInfo& storageType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef);
     if (storageType.isStructOrAggregateStruct())
         return true;
     return storageType.isStringOrSlice() || storageType.isInterface() || storageType.isAny();
@@ -724,8 +720,7 @@ namespace
 {
     bool canEmitDefaultPayloadBytesInline(CodeGen& codeGen, const TypeInfo& declaredType)
     {
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& typeInfo = declaredType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
 
         if (typeInfo.isNumericIntLike() || typeInfo.isFloat())
             return true;
@@ -846,8 +841,7 @@ namespace
 
     Result emitImplicitDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg)
     {
-        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& typeInfo    = storageType ? *storageType : declaredType;
+        const TypeInfo& typeInfo    = declaredType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const TypeRef   typeRef     = typeInfo.typeRef();
         if (typeInfo.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeInfo, dstAddressReg);
@@ -873,8 +867,7 @@ namespace
             return Result::Continue;
 
         SWC_ASSERT(elemCount <= std::numeric_limits<uint32_t>::max());
-        const TypeInfo* unwrappedElemType = elemType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& storageElemType   = unwrappedElemType ? *unwrappedElemType : elemType;
+        const TypeInfo& storageElemType = elemType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         if (storageElemType.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemType, dstAddressReg, static_cast<uint32_t>(elemCount));
         if (!storageElemType.isArray())
@@ -1045,9 +1038,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, const Type
 
 Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
 {
-    const TypeInfo& declaredType  = codeGen.typeMgr().get(typeRef);
-    const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-    const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+    const TypeInfo& type = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), typeRef);
     SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, dstAddressReg, type.sizeOf(codeGen.ctx())));
     if (!type.isStruct() || !type.payloadSymStruct().isDynamic())
         return emitImplicitDefaultValue(codeGen, type, dstAddressReg);

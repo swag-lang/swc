@@ -644,9 +644,7 @@ namespace
             const TypeRef fieldTypeRef = fields[fieldIndex]->typeRef();
             if (!fieldTypeRef.isValid())
                 return false;
-            const TypeInfo& declaredType  = sema_->typeMgr().get(fieldTypeRef);
-            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema_->ctx());
-            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+            const TypeInfo& type = sema_->typeMgr().unwrapAliasEnumTypeOrSelf(sema_->ctx(), fieldTypeRef);
             return type.isPointerOrReference();
         }
 
@@ -657,8 +655,7 @@ namespace
             const TypeInfo& declaredType = sema_->typeMgr().get(typeRef);
             if (declaredType.isNullable())
                 return false;
-            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema_->ctx());
-            const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+            const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(sema_->ctx());
             return !type.isNullable() && type.isPointerLikeOrReference();
         }
 

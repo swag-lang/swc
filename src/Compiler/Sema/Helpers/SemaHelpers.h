@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
@@ -276,8 +277,17 @@ namespace SemaHelpers
     inline const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& typeInfo      = *view.type();
-        const TypeInfo* unwrappedType = typeInfo.unwrapAliasEnumType(sema.ctx());
-        return unwrappedType ? *unwrappedType : typeInfo;
+        return typeInfo.unwrapAliasEnumTypeOrSelf(sema.ctx());
+    }
+
+    // The constant an index operand carries, looked through an enum value to its payload.
+    inline ConstantRef indexOperandConstantRef(const SemaNodeView& view)
+    {
+        if (view.cstRef().isInvalid())
+            return ConstantRef::invalid();
+        if (!view.cst() || !view.cst()->isEnumValue())
+            return view.cstRef();
+        return view.cst()->getEnumValue();
     }
 
     // An operand of reference type takes part in an expression through the value it designates,

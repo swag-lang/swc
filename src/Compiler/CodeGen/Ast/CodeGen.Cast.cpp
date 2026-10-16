@@ -128,12 +128,8 @@ namespace
         if (!srcStructTypeRef.isValid() || !dstStructTypeRef.isValid())
             return false;
 
-        const TypeInfo& declaredSrcType = typeMgr.get(srcStructTypeRef);
-        const TypeInfo& declaredDstType = typeMgr.get(dstStructTypeRef);
-        const TypeInfo* srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo* dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& srcStructType   = srcStorageType ? *srcStorageType : declaredSrcType;
-        const TypeInfo& dstStructType   = dstStorageType ? *dstStorageType : declaredDstType;
+        const TypeInfo& srcStructType = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), srcStructTypeRef);
+        const TypeInfo& dstStructType = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstStructTypeRef);
         if (!srcStructType.isStruct() || !dstStructType.isStruct())
             return false;
 
@@ -149,12 +145,8 @@ namespace
             return false;
 
         const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    declaredSrcType = typeMgr.get(sourceTypeRef);
-        const TypeInfo&    declaredDstType = typeMgr.get(dstTypeRef);
-        const TypeInfo*    srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
-        const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
+        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&    dstType         = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         if (!sourceType.isPointerOrReference())
             return false;
         if (!dstType.isPointerOrReference())
@@ -169,9 +161,7 @@ namespace
             return false;
 
         const TypeManager& typeMgr           = codeGen.typeMgr();
-        const TypeInfo&    declaredSrcType   = typeMgr.get(sourceTypeRef);
-        const TypeInfo*    srcStorageType    = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&    sourceType        = srcStorageType ? *srcStorageType : declaredSrcType;
+        const TypeInfo&    sourceType        = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeRef      sourceTypeToCheck = sourceType.typeRef();
         const TypeInfo&    dstType           = typeMgr.get(dstTypeRef);
         // Wide non-vector values also carry a backing address when classified as
@@ -231,9 +221,7 @@ namespace
             return false;
 
         const TypeManager& typeMgr           = codeGen.typeMgr();
-        const TypeInfo&    declaredSrcType   = typeMgr.get(sourceTypeRef);
-        const TypeInfo*    srcStorageType    = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&    sourceType        = srcStorageType ? *srcStorageType : declaredSrcType;
+        const TypeInfo&    sourceType        = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeRef      sourceTypeToCheck = sourceType.typeRef();
         const TypeInfo&    dstType           = typeMgr.get(dstTypeRef);
         if (sourceType.isPointerOrReference() || sourceType.isTypeInfo() || sourceType.isNull())
@@ -281,12 +269,8 @@ namespace
             return false;
 
         const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    declaredSrcType = typeMgr.get(sourceTypeRef);
-        const TypeInfo&    declaredDstType = typeMgr.get(dstTypeRef);
-        const TypeInfo*    srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
-        const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
+        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&    dstType         = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         SWC_ASSERT(sourceType.isReference() && dstType.isAnyPointer());
 
         const TypeRef sourcePointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
@@ -317,9 +301,7 @@ namespace
         TypeRef            readTypeRef     = sourceTypeRef;
         CodeGenNodePayload readPayload     = sourcePayloadForCast(codeGen, srcNodeRef);
         const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    declaredSrcType = typeMgr.get(sourceTypeRef);
-        const TypeInfo*    srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
+        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeInfo*    readTypeInfo;
         if (sourceType.isAnyPointer())
         {
@@ -378,20 +360,14 @@ namespace
             return Result::Continue;
 
         const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    declaredSrcType = typeMgr.get(sourceTypeRef);
-        const TypeInfo&    declaredDstType = typeMgr.get(dstTypeRef);
-        const TypeInfo*    srcStorageType  = declaredSrcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
-        const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
+        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&    dstType         = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         SWC_ASSERT(sourceType.isReference());
 
         if (!sourceType.payloadTypeRef().isValid())
             return Result::Continue;
 
-        const TypeInfo& declaredPointee = typeMgr.get(sourceType.payloadTypeRef());
-        const TypeInfo* pointeeStorage  = declaredPointee.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& pointeeType     = pointeeStorage ? *pointeeStorage : declaredPointee;
+        const TypeInfo& pointeeType = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
         if (!pointeeType.isScalarNumeric() || !dstType.isScalarNumeric())
             return Result::Continue;
 
@@ -877,9 +853,7 @@ namespace
         {
             if (!field->isUsingField())
                 continue;
-            const TypeInfo& declaredType  = ctx.typeMgr().get(field->typeRef());
-            const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
-            const TypeInfo& fieldType     = unwrappedType ? *unwrappedType : declaredType;
+            const TypeInfo& fieldType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, field->typeRef());
             if (!fieldType.isStruct())
                 continue;
             count += countFixedUsingPaths(ctx, fieldType.payloadSymStruct(), target);
@@ -935,9 +909,7 @@ namespace
             // its fixed address adjustment when the dynamic guard is disabled.
             if (lowering->assumedDynamicCast && !lowering->hasDynamicCastCheck() && resultType.isValuePointer())
             {
-                const TypeInfo& declaredType  = codeGen.typeMgr().get(targetTypeRef);
-                const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-                const TypeInfo& targetType    = unwrappedType ? *unwrappedType : declaredType;
+                const TypeInfo& targetType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), targetTypeRef);
                 if (targetType.isStruct())
                 {
                     const SymbolStruct&                    sourceStruct = codeGen.typeMgr().get(sourceInfo.structTypeRef).payloadSymStruct();
@@ -1230,9 +1202,7 @@ namespace
             return Result::Continue;
         }
 
-        const TypeInfo& declaredDstType = codeGen.typeMgr().get(dstTypeRef);
-        const TypeInfo* dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& dstType         = dstStorageType ? *dstStorageType : declaredDstType;
+        const TypeInfo& dstType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         if (dstType.isAny())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
@@ -1465,10 +1435,8 @@ namespace
 
         const TypeInfo& srcType            = typeMgr.get(sourceTypeRef);
         const TypeInfo& dstType            = typeMgr.get(dstTypeRef);
-        const TypeInfo* srcStorageType     = srcType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo* dstStorageType     = dstType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& resolvedSrcType    = srcStorageType ? *srcStorageType : srcType;
-        const TypeInfo& resolvedDstType    = dstStorageType ? *dstStorageType : dstType;
+        const TypeInfo& resolvedSrcType    = srcType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const TypeInfo& resolvedDstType    = dstType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const TypeRef   resolvedSrcTypeRef = resolvedSrcType.typeRef();
         const TypeRef   resolvedDstTypeRef = resolvedDstType.typeRef();
         // Address homes refer to the descriptor itself, including an 'any' value.

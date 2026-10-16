@@ -85,7 +85,6 @@ namespace ModuleApiExport
     };
 
     // ModuleApiExport.cpp
-    Utf8             buildModuleNamespaceName(const CompilerInstance& compiler);
     Utf8             buildModuleArtifactName(const CompilerInstance& compiler);
     bool             isWholeFileExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol);
     std::string_view preferredLineEnding(const SourceFile& file);

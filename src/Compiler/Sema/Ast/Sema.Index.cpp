@@ -70,15 +70,6 @@ namespace
         return Result::Continue;
     }
 
-    ConstantRef resolveIndexOperandConstantRef(const SemaNodeView& nodeArgView)
-    {
-        if (nodeArgView.cstRef().isInvalid())
-            return ConstantRef::invalid();
-        if (!nodeArgView.cst() || !nodeArgView.cst()->isEnumValue())
-            return nodeArgView.cstRef();
-        return nodeArgView.cst()->getEnumValue();
-    }
-
     TypeRef resolveIndexedExprTypeRef(Sema& sema, const SemaNodeView& indexedView)
     {
         return SemaHelpers::unwrapAliasRefType(sema.ctx(), indexedView.typeRef());
@@ -167,7 +158,7 @@ namespace
 
         if (nodeArgView.cst())
         {
-            const ConstantRef resolvedCstRef = resolveIndexOperandConstantRef(nodeArgView);
+            const ConstantRef resolvedCstRef = SemaHelpers::indexOperandConstantRef(nodeArgView);
             SWC_ASSERT(resolvedCstRef.isValid());
             const auto& idxInt = sema.cstMgr().get(resolvedCstRef).getInt();
             if (!idxInt.fits64())
@@ -416,7 +407,7 @@ namespace
             const SemaNodeView argument = sema.viewTypeConstant(argumentRef);
             if (!argument.type() || !argument.cst())
                 return TypeRef::invalid();
-            const ConstantRef constantRef = resolveIndexOperandConstantRef(argument);
+            const ConstantRef constantRef = SemaHelpers::indexOperandConstantRef(argument);
             const auto&       constant    = sema.cstMgr().get(constantRef);
             if (!constant.isInt() || !constant.getInt().fits64())
                 return TypeRef::invalid();

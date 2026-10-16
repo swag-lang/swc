@@ -297,9 +297,7 @@ namespace
             return ImplicitDefaultKind::Mixed;
 
         const ConstantValue& cst          = sema.cstMgr().get(cstRef);
-        const TypeInfo&      declaredType = sema.typeMgr().get(typeRef);
-        const TypeInfo*      storageType  = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo&      type         = storageType ? *storageType : declaredType;
+        const TypeInfo&      type         = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
 
         if (cst.isEnumValue())
         {
@@ -387,8 +385,7 @@ namespace
         if (declaredType.isNonNullable())
             return ImplicitDefaultKind::RequiresInit;
 
-        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type        = storageType ? *storageType : declaredType;
+        const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
         if (type.isNonNullable())
             return ImplicitDefaultKind::RequiresInit;
 
@@ -428,8 +425,7 @@ namespace
             return Result::Continue;
         }
 
-        const TypeInfo* storageType = declaredType.unwrapAliasEnumType(sema.ctx());
-        const TypeInfo& type        = storageType ? *storageType : declaredType;
+        const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
         if (type.isNonNullable())
         {
             if (!dstBytes.empty())
@@ -875,8 +871,7 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
 {
     if (!typeHasDynamicStorage(sema.ctx(), originalType))
         return Result::Continue;
-    const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(sema.ctx());
-    const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
+    const TypeInfo& type          = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
     const TypeRef   typeRef       = type.typeRef();
     if (type.isArray())
     {
@@ -1019,9 +1014,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
 
 bool SymbolStruct::typeHasRuntimeImplicitDefault(Sema& sema, TypeRef typeRef)
 {
-    const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
-    const TypeInfo* storageType  = declaredType.unwrapAliasEnumType(sema.ctx());
-    const TypeInfo& type         = storageType ? *storageType : declaredType;
+    const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
     if (type.isArray())
     {
         if (std::ranges::any_of(type.payloadArrayDims(), [](uint64_t count) { return count == 0; }))
@@ -1341,9 +1334,7 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         const SymbolVariable& field = *fields_[i];
         if (!field.isUsingField())
             continue;
-        const TypeInfo& declaredType  = ctx.typeMgr().get(field.typeRef());
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
-        const TypeInfo& fieldType     = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& fieldType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, field.typeRef());
         if (!fieldType.isStruct())
             continue;
         for (const uint32_t slotOffset : fieldType.payloadSymStruct().dynamicSlotOffsets())

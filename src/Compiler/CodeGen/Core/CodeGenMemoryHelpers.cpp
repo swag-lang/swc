@@ -20,8 +20,7 @@ namespace
     Result emitDynamicIdentityRec(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, bool initializeUsingSlots)
     {
         // The caller has established dynamic storage; array elements retain that property.
-        const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
+        const TypeInfo& type          = originalType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         MicroBuilder&   builder       = codeGen.builder();
         if (type.isArray())
             return CodeGenArrayTraversal::emit(codeGen, dstReg, type, [&](const TypeInfo& elementType, MicroReg elementReg) {
@@ -621,9 +620,7 @@ namespace
         if (symVar.isPublic() || symVar.globalAddressEscapes())
             return false;
 
-        const TypeInfo& declaredType  = codeGen.typeMgr().get(symVar.typeRef());
-        const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
-        const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
+        const TypeInfo& type = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), symVar.typeRef());
         return type.isNumericIntLike() || type.isFloat() || type.isAnyPointer();
     }
 }
@@ -878,8 +875,7 @@ Result CodeGenMemoryHelpers::emitDynamicIdentity(CodeGen& codeGen, TypeRef typeR
 
 void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, MicroReg srcReg)
 {
-    const TypeInfo* unwrappedType = originalType.unwrapAliasEnumType(codeGen.ctx());
-    const TypeInfo& type          = unwrappedType ? *unwrappedType : originalType;
+    const TypeInfo& type          = originalType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
     const uint64_t  size          = type.sizeOf(codeGen.ctx());
     SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
     if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))

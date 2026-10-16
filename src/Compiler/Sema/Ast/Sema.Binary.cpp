@@ -29,12 +29,7 @@ namespace
         if (SemaHelpers::aliasType(sema, nodeLeftView).isIntLike())
             return Result::Continue;
 
-        const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
-        const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-        auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
-        diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef());
-        diag.report(sema.ctx());
-        return Result::Error;
+        return SemaError::raiseModifierOnlyInteger(sema, node, nodeLeftView.typeRef());
     }
 
     bool needsBinaryOverflowRuntimeSafety(Sema& sema, const AstBinaryExpr& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
@@ -182,18 +177,8 @@ namespace
         const TypeInfo& storageType = preserveShiftLeftType || shouldKeepLeftAliasResult(nodeLeftView) ? leftType : leftCstType;
 
         // Wrap and promote modifiers can only be applied to int-like values.
-        if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
-        {
-            if (!storageType.isIntLike())
-            {
-                const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
-                const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-                auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
-                diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef());
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-        }
+        if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}) && !storageType.isIntLike())
+            return SemaError::raiseModifierOnlyInteger(sema, node, nodeLeftView.typeRef());
 
         if (storageType.isFloat())
         {

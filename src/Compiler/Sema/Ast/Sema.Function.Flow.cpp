@@ -465,9 +465,7 @@ namespace
         const TypeInfo& outerType = SemaHelpers::aliasEnumType(sema, childView);
         if (outerType.isReference())
         {
-            const TypeInfo& declaredPointeeType  = sema.typeMgr().get(outerType.payloadTypeRef());
-            const TypeInfo* unwrappedPointeeType = declaredPointeeType.unwrapAliasEnumType(sema.ctx());
-            const TypeInfo& pointeeType          = unwrappedPointeeType ? *unwrappedPointeeType : declaredPointeeType;
+            const TypeInfo& pointeeType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), outerType.payloadTypeRef());
             if (!pointeeType.isNullable())
                 return TypeRef::invalid();
 

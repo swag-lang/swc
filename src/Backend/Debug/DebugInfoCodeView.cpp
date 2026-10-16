@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Debug/DebugInfoCodeView.h"
 #include "Backend/BinaryPatch.h"
+#include "Backend/Debug/CodeViewRecords.h"
 #include "Backend/Debug/DebugPath.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeNames.h"
@@ -30,42 +31,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_CV_SIGNATURE_C13    = 4;
-    constexpr uint32_t K_DEBUG_S_SYMBOLS     = 0xF1;
-    constexpr uint32_t K_DEBUG_S_LINES       = 0xF2;
-    constexpr uint32_t K_DEBUG_S_STRINGTABLE = 0xF3;
-    constexpr uint32_t K_DEBUG_S_FILECHKSMS  = 0xF4;
     constexpr uint16_t K_S_CONSTANT          = 0x1107;
-    constexpr uint16_t K_S_UDT               = 0x1108;
-    constexpr uint16_t K_S_LDATA32           = 0x110C;
-    constexpr uint16_t K_S_GDATA32           = 0x110D;
-    constexpr uint16_t K_S_REGREL32          = 0x1111;
-    constexpr uint16_t K_S_FRAMEPROC         = 0x1012;
-    constexpr uint16_t K_S_OBJNAME           = 0x1101;
-    constexpr uint16_t K_S_GPROC32_ID        = 0x1147;
-    constexpr uint16_t K_S_BUILDINFO         = 0x114C;
-    constexpr uint16_t K_S_PROC_ID_END       = 0x114F;
-    constexpr uint16_t K_S_COMPILE3          = 0x113C;
-    constexpr uint16_t K_LF_MODIFIER         = 0x1001;
-    constexpr uint16_t K_LF_POINTER          = 0x1002;
-    constexpr uint16_t K_LF_ARRAY            = 0x1503;
-    constexpr uint16_t K_LF_STRUCTURE        = 0x1505;
-    constexpr uint16_t K_LF_PROCEDURE        = 0x1008;
-    constexpr uint16_t K_LF_ARGLIST          = 0x1201;
-    constexpr uint16_t K_LF_FIELDLIST        = 0x1203;
-    constexpr uint16_t K_LF_FUNC_ID          = 0x1601;
-    constexpr uint16_t K_LF_BUILDINFO        = 0x1603;
-    constexpr uint16_t K_LF_STRING_ID        = 0x1605;
-    constexpr uint16_t K_LF_MEMBER           = 0x150D;
-    constexpr uint16_t K_LF_INDEX            = 0x1404;
     // CodeView type records store their length in a uint16_t, so a single record (e.g. a field list)
     // cannot exceed 0xFFFF bytes. Field lists that would overflow are split into several records
     // chained with LF_INDEX. Match cl.exe/LLVM and cap below the hard limit to leave room for the
     // trailing LF_INDEX (8 bytes) and end-of-record padding.
     constexpr uint32_t K_CV_FIELDLIST_MAX_RECORD = 0xFF00;
-    constexpr uint32_t K_CV_CFL_CXX              = 0x01;
-    constexpr uint16_t K_CV_CFL_AMD64            = 0x00D0;
-    constexpr uint32_t K_CV_TYPE_SIGNATURE       = 4;
     constexpr uint32_t K_CV_FIRST_NONPRIM        = 0x1000;
     constexpr uint32_t K_T_VOID                  = 0x0003;
     constexpr uint32_t K_T_PVOID64               = 0x0603;
@@ -407,7 +378,7 @@ namespace
 
     uint32_t compileFlags(const Runtime::BuildCfgBackend& backend)
     {
-        uint32_t value = K_CV_CFL_CXX;
+        uint32_t value = CodeViewRecords::K_CV_CFL_CXX;
         if (!backend.debugInfo)
             value |= 1u << 9;
         return value;
@@ -544,9 +515,9 @@ namespace
         constexpr uint16_t majorVersion = std::max<uint16_t>(1, SWC_VERSION);
         constexpr uint16_t minorVersion = SWC_REVISION;
         constexpr uint16_t buildVersion = SWC_BUILD_NUM;
-        const uint32_t     recordOffset = beginRecord(bytes, K_S_COMPILE3);
+        const uint32_t     recordOffset = beginRecord(bytes, CodeViewRecords::K_S_COMPILE3);
         bytes.appendLe32(compileFlags(backend));
-        bytes.appendLe16(K_CV_CFL_AMD64);
+        bytes.appendLe16(CodeViewRecords::K_CV_CFL_AMD64);
         bytes.appendLe16(majorVersion);
         bytes.appendLe16(minorVersion);
         bytes.appendLe16(buildVersion);
@@ -562,7 +533,7 @@ namespace
     void appendObjNameRecord(ByteArray& bytes, const fs::path& objectPath)
     {
         const auto     objectName   = DebugPath::normalizedString(objectPath);
-        const uint32_t recordOffset = beginRecord(bytes, K_S_OBJNAME);
+        const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_S_OBJNAME);
         bytes.appendLe32(0);
         writeCString(bytes, objectName);
         endRecord(bytes, recordOffset);
@@ -570,7 +541,7 @@ namespace
 
     void appendBuildInfoRecord(ByteArray& bytes, const uint32_t buildInfoTypeIndex)
     {
-        const uint32_t recordOffset = beginRecord(bytes, K_S_BUILDINFO);
+        const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_S_BUILDINFO);
         bytes.appendLe32(buildInfoTypeIndex);
         endRecord(bytes, recordOffset);
     }
@@ -647,7 +618,7 @@ namespace
             return;
 
         SWC_ASSERT(local.offset <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
-        const uint32_t recordOffset = beginRecord(bytes, K_S_REGREL32);
+        const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_S_REGREL32);
         bytes.appendLe32(static_cast<uint32_t>(static_cast<int32_t>(local.offset)));
         bytes.appendLe32(typeIndex);
         bytes.appendLe16(cvReg);
@@ -657,7 +628,7 @@ namespace
 
     void appendDataSymbol(ByteArray& bytes, NativeSectionData& debugSection, const CompilerInstance& compiler, const DebugInfoDataRecord& data, const uint32_t typeIndex)
     {
-        const uint32_t recordOffset = beginRecord(bytes, data.isGlobal ? K_S_GDATA32 : K_S_LDATA32);
+        const uint32_t recordOffset = beginRecord(bytes, data.isGlobal ? CodeViewRecords::K_S_GDATA32 : CodeViewRecords::K_S_LDATA32);
         bytes.appendLe32(typeIndex);
 
         const char*    relocBaseSymbol = sectionBaseSymbolName(data.sectionName);
@@ -698,7 +669,7 @@ namespace
         if (typeName.empty())
             return;
 
-        const uint32_t recordOffset = beginRecord(bytes, K_S_UDT);
+        const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_S_UDT);
         bytes.appendLe32(typeIndex);
         writeCString(bytes, typeName);
         endRecord(bytes, recordOffset);
@@ -713,7 +684,7 @@ namespace
 
         const uint32_t codeSize = static_cast<uint32_t>(function.machineCode->bytes.size());
 
-        const uint32_t procOffset = beginRecord(bytes, K_S_GPROC32_ID);
+        const uint32_t procOffset = beginRecord(bytes, CodeViewRecords::K_S_GPROC32_ID);
         bytes.appendLe32(0);
         bytes.appendLe32(0);
         bytes.appendLe32(0);
@@ -732,7 +703,7 @@ namespace
         addSecrelAndSectionRelocations(debugSection, function.symbolName, offRelocOffset, segRelocOffset);
         endRecord(bytes, procOffset);
 
-        const uint32_t frameOffset = beginRecord(bytes, K_S_FRAMEPROC);
+        const uint32_t frameOffset = beginRecord(bytes, CodeViewRecords::K_S_FRAMEPROC);
         bytes.appendLe32(function.frameSize);
         bytes.appendLe32(0);
         bytes.appendLe32(0);
@@ -751,7 +722,7 @@ namespace
         for (size_t i = 0; i < function.constants.size(); ++i)
             appendConstantSymbol(bytes, ctx, function.constants[i], constantTypeIndices[i]);
 
-        const uint32_t endOffset = beginRecord(bytes, K_S_PROC_ID_END);
+        const uint32_t endOffset = beginRecord(bytes, CodeViewRecords::K_S_PROC_ID_END);
         SWC_UNUSED(endOffset);
         endRecord(bytes, endOffset);
     }
@@ -781,7 +752,7 @@ namespace
 
         void begin()
         {
-            bytes.appendLe32(K_CV_TYPE_SIGNATURE);
+            bytes.appendLe32(CodeViewRecords::K_CV_TYPE_SIGNATURE);
         }
 
         // Closes the record started at 'recordOffset'. A record identical to one already emitted
@@ -805,7 +776,7 @@ namespace
 
         uint32_t appendArgList(const std::span<const uint32_t> arguments)
         {
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_ARGLIST);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_ARGLIST);
             bytes.appendLe32(static_cast<uint32_t>(arguments.size()));
             for (const uint32_t argType : arguments)
                 bytes.appendLe32(argType);
@@ -815,7 +786,7 @@ namespace
         uint32_t appendProcedureType(const uint32_t returnType, const std::span<const uint32_t> arguments)
         {
             const uint32_t argListType  = appendArgList(arguments);
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_PROCEDURE);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_PROCEDURE);
             bytes.appendLe32(returnType);
             bytes.pushBack(static_cast<std::byte>(K_CV_CALL_NEAR_C));
             bytes.pushBack(std::byte{0});
@@ -826,7 +797,7 @@ namespace
 
         uint32_t appendFunctionId(const Utf8& functionName, const uint32_t procedureType)
         {
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_FUNC_ID);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_FUNC_ID);
             bytes.appendLe32(0);
             bytes.appendLe32(procedureType);
             writeCString(bytes, functionName);
@@ -835,7 +806,7 @@ namespace
 
         uint32_t appendStringId(const Utf8& value)
         {
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_STRING_ID);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_STRING_ID);
             bytes.appendLe32(0);
             writeCString(bytes, value);
             return finishRecord(recordOffset);
@@ -848,7 +819,7 @@ namespace
             if (cacheIt != modifierTypes.end())
                 return cacheIt->second;
 
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_MODIFIER);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_MODIFIER);
             bytes.appendLe32(baseTypeIndex);
             bytes.appendLe16(modifiers);
             const uint32_t typeIndex = finishRecord(recordOffset);
@@ -862,7 +833,7 @@ namespace
             if (cacheIt != pointerTypes.end())
                 return cacheIt->second;
 
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_POINTER);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_POINTER);
             bytes.appendLe32(pointeeTypeIndex);
             bytes.appendLe32(K_CV_PTR_ATTR_NEAR64);
             const uint32_t typeIndex = finishRecord(recordOffset);
@@ -877,7 +848,7 @@ namespace
             if (cacheIt != arrayTypes.end())
                 return cacheIt->second;
 
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_ARRAY);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_ARRAY);
             bytes.appendLe32(elementTypeIndex);
             bytes.appendLe32(K_T_UINT8);
             writeEncodedUnsigned(bytes, sizeOf);
@@ -909,7 +880,7 @@ namespace
         {
             for (const FieldDesc& field : fields)
             {
-                bytes.appendLe16(K_LF_MEMBER);
+                bytes.appendLe16(CodeViewRecords::K_LF_MEMBER);
                 bytes.appendLe16(K_CV_MEMBER_ACCESS_PUBLIC);
                 bytes.appendLe32(field.typeIndex);
                 writeEncodedUnsigned(bytes, field.offset);
@@ -921,11 +892,11 @@ namespace
         // record via a trailing LF_INDEX leaf (0 means no continuation). Returns its type index.
         uint32_t appendFieldListChunk(const std::span<const FieldDesc> fields, const uint32_t continuationTypeIndex)
         {
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_FIELDLIST);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_FIELDLIST);
             appendFieldListMembers(fields);
             if (continuationTypeIndex != 0)
             {
-                bytes.appendLe16(K_LF_INDEX);
+                bytes.appendLe16(CodeViewRecords::K_LF_INDEX);
                 bytes.appendLe16(0); // padding, must be zero
                 bytes.appendLe32(continuationTypeIndex);
             }
@@ -968,7 +939,7 @@ namespace
 
         uint32_t appendStructRecord(const Utf8& typeName, const uint32_t fieldListType, const uint16_t memberCount, const uint64_t sizeOf, const uint16_t properties)
         {
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_STRUCTURE);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_STRUCTURE);
             bytes.appendLe16(memberCount);
             bytes.appendLe16(properties);
             bytes.appendLe32(fieldListType);
@@ -981,7 +952,7 @@ namespace
 
         uint32_t appendForwardStructRecord(const Utf8& typeName)
         {
-            const uint32_t recordOffset = beginRecord(bytes, K_LF_STRUCTURE);
+            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_STRUCTURE);
             bytes.appendLe16(0);
             bytes.appendLe16(0x0080);
             bytes.appendLe32(0);
@@ -1227,7 +1198,7 @@ namespace
 
         uint32_t appendBuildInfo(const std::array<uint32_t, 5>& items)
         {
-            const uint32_t     recordOffset = beginRecord(bytes, K_LF_BUILDINFO);
+            const uint32_t     recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_BUILDINFO);
             constexpr uint16_t size         = std::tuple_size_v<std::array<uint32_t, 5>>;
             bytes.appendLe16(size);
             for (const uint32_t item : items)
@@ -1253,7 +1224,7 @@ namespace
         if (functionLines.blocks.empty())
             return;
 
-        const uint32_t subsectionLenOffset = beginSubsection(bytes, K_DEBUG_S_LINES);
+        const uint32_t subsectionLenOffset = beginSubsection(bytes, CodeViewRecords::K_DEBUG_S_LINES);
         const uint32_t offRelocOffset      = static_cast<uint32_t>(bytes.size());
         bytes.appendLe32(0);
         const uint32_t segRelocOffset = static_cast<uint32_t>(bytes.size());
@@ -1296,7 +1267,7 @@ namespace
         debugSection.name            = ".debug$S";
         debugSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_DISCARDABLE | IMAGE_SCN_ALIGN_1BYTES | IMAGE_SCN_MEM_READ;
 
-        debugSection.bytes.appendLe32(K_CV_SIGNATURE_C13);
+        debugSection.bytes.appendLe32(CodeViewRecords::K_CV_SIGNATURE_C13);
 
         struct FunctionSymbolTypes
         {
@@ -1369,7 +1340,7 @@ namespace
         const uint32_t commandLineId      = types.appendStringId(buildCommandLine);
         const uint32_t buildInfoId        = types.appendBuildInfo({currentDirId, buildToolId, sourceFileId, pdbFileId, commandLineId});
 
-        uint32_t symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+        uint32_t symbolsLenOffset = beginSubsection(debugSection.bytes, CodeViewRecords::K_DEBUG_S_SYMBOLS);
         appendObjNameRecord(debugSection.bytes, request.objectPath);
         appendCompileRecord(debugSection.bytes, request.ctx->compiler().buildCfg().backend);
         endSubsection(debugSection.bytes, symbolsLenOffset);
@@ -1379,7 +1350,7 @@ namespace
             const DebugInfoFunctionRecord& function = request.functions[i];
             if (function.machineCode)
             {
-                symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+                symbolsLenOffset = beginSubsection(debugSection.bytes, CodeViewRecords::K_DEBUG_S_SYMBOLS);
                 appendProcSymbols(debugSection.bytes, debugSection, *request.ctx, function, functionSymbolTypes[i].functionTypeIndex, functionSymbolTypes[i].parameterTypes, functionSymbolTypes[i].localTypes, functionSymbolTypes[i].constantTypes);
                 endSubsection(debugSection.bytes, symbolsLenOffset);
             }
@@ -1389,7 +1360,7 @@ namespace
 
         if (!request.globals.empty() || !request.constants.empty() || !types.udtNames.empty())
         {
-            symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+            symbolsLenOffset = beginSubsection(debugSection.bytes, CodeViewRecords::K_DEBUG_S_SYMBOLS);
 
             for (size_t i = 0; i < request.globals.size(); ++i)
             {
@@ -1416,16 +1387,16 @@ namespace
 
         if (!checksums.entries.empty())
         {
-            const uint32_t checksumLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_FILECHKSMS);
+            const uint32_t checksumLenOffset = beginSubsection(debugSection.bytes, CodeViewRecords::K_DEBUG_S_FILECHKSMS);
             checksums.commit(debugSection.bytes);
             endSubsection(debugSection.bytes, checksumLenOffset);
 
-            const uint32_t stringLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_STRINGTABLE);
+            const uint32_t stringLenOffset = beginSubsection(debugSection.bytes, CodeViewRecords::K_DEBUG_S_STRINGTABLE);
             strings.commit(debugSection.bytes);
             endSubsection(debugSection.bytes, stringLenOffset);
         }
 
-        symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
+        symbolsLenOffset = beginSubsection(debugSection.bytes, CodeViewRecords::K_DEBUG_S_SYMBOLS);
         appendBuildInfoRecord(debugSection.bytes, buildInfoId);
         endSubsection(debugSection.bytes, symbolsLenOffset);
 

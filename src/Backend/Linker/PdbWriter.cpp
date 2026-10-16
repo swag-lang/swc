@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/PdbWriter.h"
 #include "Backend/Debug/CodeViewLeaf.h"
+#include "Backend/Debug/CodeViewRecords.h"
 #include "Backend/Debug/DebugPath.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
@@ -21,32 +22,11 @@ namespace
 
     // ---- CodeView / PDB constants -------------------------------------------------------------------
 
-    constexpr uint32_t K_CV_SIGNATURE_C13 = 4;
-
-    constexpr uint16_t K_S_END       = 0x0006;
-    constexpr uint16_t K_S_FRAMEPROC = 0x1012;
-    constexpr uint16_t K_S_OBJNAME   = 0x1101;
-    constexpr uint16_t K_S_COMPILE3  = 0x113C;
     constexpr uint16_t K_S_GPROC32   = 0x1110;
     constexpr uint16_t K_S_PUB32     = 0x110E;
-    constexpr uint16_t K_S_LDATA32   = 0x110C;
-    constexpr uint16_t K_S_GDATA32   = 0x110D;
-    constexpr uint16_t K_S_UDT       = 0x1108;
-    constexpr uint16_t K_S_REGREL32  = 0x1111;
     constexpr uint16_t K_S_PROCREF   = 0x1125;
-    constexpr uint16_t K_S_BUILDINFO = 0x114C;
-
-    constexpr uint16_t K_LF_BUILDINFO = 0x1603;
-    constexpr uint16_t K_LF_STRING_ID = 0x1605;
-
-    constexpr uint32_t K_DEBUG_S_SYMBOLS    = 0xF1;
-    constexpr uint32_t K_DEBUG_S_LINES      = 0xF2;
-    constexpr uint32_t K_DEBUG_S_FILECHKSMS = 0xF4;
 
     constexpr uint32_t K_CV_LINE_STATEMENT = 0x80000000u;
-
-    constexpr uint16_t K_CV_CFL_AMD64 = 0x00D0;
-    constexpr uint32_t K_CV_CFL_CXX   = 0x01; // S_COMPILE3 language byte: C++ (matches the COFF object writer)
 
     constexpr uint32_t K_PUB_FLAG_FUNCTION = 0x00000002u;
 
@@ -120,7 +100,7 @@ namespace
         Bytes payload;
         payload.appendLe32(0);
         payload.appendCString(value.view());
-        appendTypeRecord(out, K_LF_STRING_ID, payload);
+        appendTypeRecord(out, CodeViewRecords::K_LF_STRING_ID, payload);
         return nextTypeIndex++;
     }
 
@@ -131,7 +111,7 @@ namespace
         payload.appendLe16(offset);
         for (const uint32_t item : items)
             payload.appendLe32(item);
-        appendTypeRecord(out, K_LF_BUILDINFO, payload);
+        appendTypeRecord(out, CodeViewRecords::K_LF_BUILDINFO, payload);
         return nextTypeIndex++;
     }
 
@@ -439,7 +419,6 @@ namespace
     // ---- TPI / IPI ----------------------------------------------------------------------------------
 
     constexpr uint16_t K_LF_CLASS            = 0x1504;
-    constexpr uint16_t K_LF_STRUCTURE        = 0x1505;
     constexpr uint16_t K_LF_INTERFACE        = 0x1519;
     constexpr uint16_t K_CV_PROP_FORWARD_REF = 0x0080;
     constexpr uint16_t K_CV_PROP_SCOPED      = 0x0100;
@@ -466,7 +445,7 @@ namespace
     {
         uint16_t kind = 0;
         std::memcpy(&kind, record.data() + sizeof(uint16_t), sizeof(kind));
-        if (kind != K_LF_CLASS && kind != K_LF_STRUCTURE && kind != K_LF_INTERFACE)
+        if (kind != K_LF_CLASS && kind != CodeViewRecords::K_LF_STRUCTURE && kind != K_LF_INTERFACE)
             return hashBufferV8(record);
 
         uint16_t properties = 0;
@@ -633,7 +612,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
         payload.appendLe32(addr.offset);
         payload.appendLe16(addr.segment);
         payload.appendCString(g.displayName.view());
-        const uint32_t recordOffset = appendSymbol(symRecords, g.isPublic ? K_S_GDATA32 : K_S_LDATA32, payload);
+        const uint32_t recordOffset = appendSymbol(symRecords, g.isPublic ? CodeViewRecords::K_S_GDATA32 : CodeViewRecords::K_S_LDATA32, payload);
         globalSyms.push_back({recordOffset, g.displayName});
     }
 
@@ -642,7 +621,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
         Bytes payload;
         payload.appendLe32(udt.typeIndex);
         payload.appendCString(udt.name.view());
-        const uint32_t recordOffset = appendSymbol(symRecords, K_S_UDT, payload);
+        const uint32_t recordOffset = appendSymbol(symRecords, CodeViewRecords::K_S_UDT, payload);
         globalSyms.push_back({recordOffset, udt.name});
     }
 
@@ -767,7 +746,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
             Bytes payload;
             payload.appendLe32(0); // signature
             payload.appendCString(module.name.view());
-            appendSymbol(moduleSymbols, K_S_OBJNAME, payload);
+            appendSymbol(moduleSymbols, CodeViewRecords::K_S_OBJNAME, payload);
         }
         {
             // Keep this record byte-for-byte consistent with the COFF object writer's S_COMPILE3
@@ -780,8 +759,8 @@ void PdbWriter::build(ByteArray&                         outBytes,
             const Utf8     version = debugInfo.compilerVersion.empty() ? Utf8(std::format("swc {}.{}.{}", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM)) : debugInfo.compilerVersion;
 
             Bytes payload;
-            payload.appendLe32(K_CV_CFL_CXX);   // flags (low byte = language: C++)
-            payload.appendLe16(K_CV_CFL_AMD64); // machine
+            payload.appendLe32(CodeViewRecords::K_CV_CFL_CXX);   // flags (low byte = language: C++)
+            payload.appendLe16(CodeViewRecords::K_CV_CFL_AMD64); // machine
             payload.appendLe16(major);          // frontend major (producer/compiler version)
             payload.appendLe16(minor);          // frontend minor
             payload.appendLe16(build);          // frontend build
@@ -791,7 +770,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
             payload.appendLe16(build);          // backend build
             payload.appendLe16(0);              // backend QFE
             payload.appendCString(version.view());
-            appendSymbol(moduleSymbols, K_S_COMPILE3, payload);
+            appendSymbol(moduleSymbols, CodeViewRecords::K_S_COMPILE3, payload);
         }
 
         for (const LinkDebugFunction* fn : module.functions)
@@ -832,7 +811,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
                 fp.appendLe32(0);                  // exception handler offset
                 fp.appendLe16(fn->frameToCodeReg); // frame base-register encoding (sectExHdlr slot)
                 fp.appendLe32(fn->frameProcFlags);
-                appendSymbol(moduleSymbols, K_S_FRAMEPROC, fp);
+                appendSymbol(moduleSymbols, CodeViewRecords::K_S_FRAMEPROC, fp);
             }
 
             for (const LinkDebugLocal& local : fn->locals)
@@ -846,10 +825,10 @@ void PdbWriter::build(ByteArray&                         outBytes,
                 lp.appendLe32(local.typeIndex);
                 lp.appendLe16(local.cvRegister);
                 lp.appendCString(local.name.view());
-                appendSymbol(moduleSymbols, K_S_REGREL32, lp);
+                appendSymbol(moduleSymbols, CodeViewRecords::K_S_REGREL32, lp);
             }
 
-            const uint32_t endOffset = appendSymbol(moduleSymbols, K_S_END, {});
+            const uint32_t endOffset = appendSymbol(moduleSymbols, CodeViewRecords::K_S_END, {});
             moduleSymbols.writeLe32(endFieldOffset, symBase + endOffset);
         }
 
@@ -857,7 +836,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
         {
             Bytes payload;
             payload.appendLe32(module.buildInfoIndex);
-            appendSymbol(moduleSymbols, K_S_BUILDINFO, payload);
+            appendSymbol(moduleSymbols, CodeViewRecords::K_S_BUILDINFO, payload);
         }
 
         Bytes       c13;
@@ -903,7 +882,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
                 }
             }
 
-            c13.appendLe32(K_DEBUG_S_LINES);
+            c13.appendLe32(CodeViewRecords::K_DEBUG_S_LINES);
             c13.appendLe32(static_cast<uint32_t>(content.size()));
             c13.append(content);
             c13.align(4);
@@ -911,13 +890,13 @@ void PdbWriter::build(ByteArray&                         outBytes,
 
         if (!chksmContent.empty())
         {
-            c13.appendLe32(K_DEBUG_S_FILECHKSMS);
+            c13.appendLe32(CodeViewRecords::K_DEBUG_S_FILECHKSMS);
             c13.appendLe32(static_cast<uint32_t>(chksmContent.size()));
             c13.append(chksmContent);
             c13.align(4);
         }
 
-        module.stream.appendLe32(K_CV_SIGNATURE_C13);
+        module.stream.appendLe32(CodeViewRecords::K_CV_SIGNATURE_C13);
         module.stream.append(moduleSymbols);
         module.symByteSize = static_cast<uint32_t>(module.stream.size());
         module.stream.append(c13);

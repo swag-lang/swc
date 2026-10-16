@@ -74,9 +74,10 @@ namespace SymbolInternal
             out.push_back({.idRef = binding.idRef, .exprRef = binding.exprRef, .typeRef = binding.typeRef, .cstRef = binding.cstRef});
     }
 
-    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
+    template<typename T>
+    T* findGenericEvalEntry(std::span<T> entries, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
     {
-        for (const auto& entry : entries)
+        for (T& entry : entries)
         {
             if (entry.payloadContext != payloadContext)
                 continue;
@@ -87,26 +88,23 @@ namespace SymbolInternal
             if (!sameGenericEvalBindings(entry.bindings, bindings))
                 continue;
 
-            return entry.evalRef;
+            return &entry;
         }
 
-        return AstNodeRef::invalid();
+        return nullptr;
+    }
+
+    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        const GenericEvalEntry* entry = findGenericEvalEntry(entries, payloadContext, ownerAst, sourceRef, bindings);
+        return entry ? entry->evalRef : AstNodeRef::invalid();
     }
 
     void cacheGenericEvalNode(std::vector<GenericEvalEntry>& entries, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef)
     {
-        for (auto& entry : entries)
+        if (GenericEvalEntry* entry = findGenericEvalEntry(std::span{entries}, payloadContext, ownerAst, sourceRef, bindings))
         {
-            if (entry.payloadContext != payloadContext)
-                continue;
-            if (entry.ownerAst != &ownerAst)
-                continue;
-            if (entry.sourceRef != sourceRef)
-                continue;
-            if (!sameGenericEvalBindings(entry.bindings, bindings))
-                continue;
-
-            entry.evalRef = evalRef;
+            entry->evalRef = evalRef;
             return;
         }
 

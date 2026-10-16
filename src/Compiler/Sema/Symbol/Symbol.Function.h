@@ -296,6 +296,7 @@ public:
     bool             isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
+    bool             isForeignOrEmptyOrAttribute() const noexcept { return isForeign() || isEmpty() || isAttribute(); }
     bool             isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
     bool             hasVariadicParam() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Variadic); }
     void             setPure(bool value) noexcept;

@@ -149,7 +149,7 @@ namespace
         function.visitJitOrder([&](const SymbolFunction* called) {
             if (unpublished)
                 return;
-            if (called->isForeign() || called->isEmpty() || called->isAttribute())
+            if (called->isForeignOrEmptyOrAttribute())
                 return;
             if (!called->jitEntryAddress())
             {
@@ -361,7 +361,7 @@ namespace
         {
             if (!target)
                 continue;
-            if (target->isForeign() || target->isEmpty() || target->isAttribute())
+            if (target->isForeignOrEmptyOrAttribute())
                 continue;
 
             appendJitOrderDeduplicated(*target, out, seen);
@@ -372,7 +372,7 @@ namespace
     {
         if (fn.isIgnored())
             return false;
-        if (fn.isForeign() || fn.isEmpty() || fn.isAttribute())
+        if (fn.isForeignOrEmptyOrAttribute())
             return false;
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
             return false;
@@ -389,7 +389,7 @@ namespace
         // One dependency that is not includable settles the verdict, so the walk stops
         // there rather than reading the rest of a closure whose answer cannot change.
         return root.allInJitOrder([](const SymbolFunction* dependency) {
-            if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
+            if (dependency->isForeignOrEmptyOrAttribute())
                 return true;
             if (dependency->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return true;

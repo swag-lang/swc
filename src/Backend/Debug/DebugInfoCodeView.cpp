@@ -950,17 +950,10 @@ namespace
             return finishRecord(recordOffset);
         }
 
+        // A forward reference (property 0x0080): no field list, no members, no size.
         uint32_t appendForwardStructRecord(const Utf8& typeName)
         {
-            const uint32_t recordOffset = beginRecord(bytes, CodeViewRecords::K_LF_STRUCTURE);
-            bytes.appendLe16(0);
-            bytes.appendLe16(0x0080);
-            bytes.appendLe32(0);
-            bytes.appendLe32(0);
-            bytes.appendLe32(0);
-            writeEncodedUnsigned(bytes, 0);
-            writeCString(bytes, typeName);
-            return finishRecord(recordOffset);
+            return appendStructRecord(typeName, 0, 0, 0, 0x0080);
         }
 
         static uint32_t primitiveTypeIndex(const TypeInfo& typeInfo)

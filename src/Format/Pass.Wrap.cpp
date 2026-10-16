@@ -456,20 +456,21 @@ namespace
             return true;
         }
 
-        std::vector<FormatGap> snapshotGaps(const ListState& state) const
+        // The gaps after 'firstPiece' up to and including the one before 'lastPiece'.
+        std::vector<FormatGap> snapshotGaps(uint32_t firstPiece, uint32_t lastPiece) const
         {
             std::vector<FormatGap> result;
-            result.reserve(state.closePiece - state.openPiece);
-            for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
+            result.reserve(lastPiece - firstPiece);
+            for (uint32_t i = firstPiece + 1; i <= lastPiece; ++i)
                 result.push_back(model_->gapBefore(i));
             return result;
         }
 
-        void restoreGaps(const ListState& state, const std::vector<FormatGap>& gaps) const
+        void restoreGaps(uint32_t firstPiece, uint32_t lastPiece, const std::vector<FormatGap>& gaps) const
         {
-            SWC_ASSERT(gaps.size() == state.closePiece - state.openPiece);
-            for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
-                model_->gapBefore(i) = gaps[i - state.openPiece - 1];
+            SWC_ASSERT(gaps.size() == lastPiece - firstPiece);
+            for (uint32_t i = firstPiece + 1; i <= lastPiece; ++i)
+                model_->gapBefore(i) = gaps[i - firstPiece - 1];
         }
 
         uint32_t spacesAfterOpen(const ListState& state) const
@@ -570,7 +571,7 @@ namespace
                 return;
             }
 
-            const std::vector<FormatGap> originalGaps = snapshotGaps(state);
+            const std::vector<FormatGap> originalGaps = snapshotGaps(state.openPiece, state.closePiece);
             const bool                   joined       = joinList(state);
             SWC_ASSERT(joined);
             if (joinedListFits(state))
@@ -579,7 +580,7 @@ namespace
                 return;
             }
 
-            restoreGaps(state, originalGaps);
+            restoreGaps(state.openPiece, state.closePiece, originalGaps);
             state.lineMode = ListLineMode::MultiLine;
         }
 
@@ -625,22 +626,6 @@ namespace
                     return false;
             }
             return true;
-        }
-
-        std::vector<FormatGap> snapshotLogicalGaps(const LogicalState& state) const
-        {
-            std::vector<FormatGap> result;
-            result.reserve(state.lastPiece - state.firstPiece);
-            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
-                result.push_back(model_->gapBefore(i));
-            return result;
-        }
-
-        void restoreLogicalGaps(const LogicalState& state, const std::vector<FormatGap>& gaps) const
-        {
-            SWC_ASSERT(gaps.size() == state.lastPiece - state.firstPiece);
-            for (uint32_t i = state.firstPiece + 1; i <= state.lastPiece; ++i)
-                model_->gapBefore(i) = gaps[i - state.firstPiece - 1];
         }
 
         void joinLogicalBoundaries(const LogicalState& state) const
@@ -708,7 +693,7 @@ namespace
                 return;
             }
 
-            const std::vector<FormatGap> originalGaps = snapshotLogicalGaps(state);
+            const std::vector<FormatGap> originalGaps = snapshotGaps(state.firstPiece, state.lastPiece);
             const bool                   joined       = joinLogicalExpression(state);
             SWC_ASSERT(joined);
             if (joinedLogicalExpressionFits(state))
@@ -717,7 +702,7 @@ namespace
                 return;
             }
 
-            restoreLogicalGaps(state, originalGaps);
+            restoreGaps(state.firstPiece, state.lastPiece, originalGaps);
             state.lineMode = ListLineMode::MultiLine;
         }
 

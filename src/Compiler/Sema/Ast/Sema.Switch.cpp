@@ -263,12 +263,7 @@ namespace
 
         const auto*      binding = sema.node(caseExprRef).safeCast<AstAsCastExpr>();
         const AstNodeRef typeRef = binding ? binding->nodeExprRef : caseExprRef;
-        auto             diag    = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, typeRef);
-        diag.addArgument(Diagnostic::ARG_VALUE, sema.typeMgr().get(targetStructTypeRef).toName(sema.ctx()));
-        diag.addNote(DiagnosticId::sema_note_previous_case_value);
-        diag.last().addSpan(sema.node(*previous).codeRangeWithChildren(sema.ctx(), sema.ast()));
-        diag.report(sema.ctx());
-        return Result::Error;
+        return SemaError::raiseDuplicateCaseValue(sema, DiagnosticId::sema_err_switch_case_duplicate, typeRef, sema.typeMgr().get(targetStructTypeRef).toName(sema.ctx()), *previous);
     }
 
     Result validateDynamicStructCaseExpr(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef caseExprRef)
@@ -731,12 +726,7 @@ namespace
         if (!previous)
             return Result::Continue;
 
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef);
-        diag.addArgument(Diagnostic::ARG_VALUE, exprView.cst()->toString(sema.ctx()));
-        diag.addNote(DiagnosticId::sema_note_previous_case_value);
-        diag.last().addSpan(sema.node(*previous).codeRangeWithChildren(sema.ctx(), sema.ast()));
-        diag.report(sema.ctx());
-        return Result::Error;
+        return SemaError::raiseDuplicateCaseValue(sema, DiagnosticId::sema_err_switch_case_duplicate, caseExprRef, exprView.cst()->toString(sema.ctx()), *previous);
     }
 
     Result checkDuplicateCaseValuesAfterWhere(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef)

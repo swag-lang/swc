@@ -620,12 +620,7 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     if (!previous)
         return Result::Continue;
 
-    auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_case_duplicate, childRef);
-    diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(caseCstRef).toString(sema.ctx()));
-    diag.addNote(DiagnosticId::sema_note_previous_case_value);
-    diag.last().addSpan(sema.node(*previous).codeRangeWithChildren(sema.ctx(), sema.ast()));
-    diag.report(sema.ctx());
-    return Result::Error;
+    return SemaError::raiseDuplicateCaseValue(sema, DiagnosticId::sema_err_static_switch_case_duplicate, childRef, sema.cstMgr().get(caseCstRef).toString(sema.ctx()), *previous);
 }
 
 Result AstCompilerSwitch::semaPostNode(Sema& sema) const

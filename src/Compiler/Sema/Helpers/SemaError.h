@@ -79,6 +79,7 @@ namespace SemaError
     Result     raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols);
     Result     raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNodeRef, const Symbol& symbol);
     Result     raiseModifierOnlyInteger(Sema& sema, const AstNode& node, TypeRef typeRef);
+    Result     raiseDuplicateCaseValue(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, const Utf8& value, AstNodeRef previousRef);
     Result     raiseLiteralTooBig(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal);
     Diagnostic reportFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Token);
     Result     raiseFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, AstNodeRef nodeValueRef = AstNodeRef::invalid(), ReportLocation location = ReportLocation::Token);

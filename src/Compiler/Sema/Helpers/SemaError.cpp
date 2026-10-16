@@ -436,6 +436,17 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
     return Result::Error;
 }
 
+// A case value a switch already has, with a note on the case that holds it first.
+Result SemaError::raiseDuplicateCaseValue(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, const Utf8& value, AstNodeRef previousRef)
+{
+    auto diag = report(sema, id, atNodeRef);
+    diag.addArgument(Diagnostic::ARG_VALUE, value);
+    diag.addNote(DiagnosticId::sema_note_previous_case_value);
+    diag.last().addSpan(sema.node(previousRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 // A '#wrap' or '#promote' modifier on an operator whose operand is not an integer.
 Result SemaError::raiseModifierOnlyInteger(Sema& sema, const AstNode& node, TypeRef typeRef)
 {

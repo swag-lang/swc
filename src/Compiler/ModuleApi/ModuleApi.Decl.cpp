@@ -84,12 +84,6 @@ namespace
         return true;
     }
 
-    bool isCurrentModuleSymbol(TaskContext& ctx, const Symbol& symbol)
-    {
-        const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
-        return sourceFile && ModuleApi::isCurrentModuleSourceFile(*sourceFile);
-    }
-
     const SymbolImpl* implContextForPublicSymbol(const Symbol& symbol)
     {
         const SymbolMap* symMap = symbol.ownerSymMap();
@@ -110,7 +104,7 @@ namespace
         if (symImpl)
         {
             const SymbolMap* targetSymMap = symImpl->targetSymbolMap();
-            if (targetSymMap && isCurrentModuleSymbol(ctx, *targetSymMap))
+            if (targetSymMap && ModuleApi::isCurrentModuleSymbol(ctx.compiler(), *targetSymMap))
                 symMap = targetSymMap;
         }
 
@@ -190,7 +184,7 @@ namespace
             return false;
 
         const SymbolMap* targetSymMap = symImpl->targetSymbolMap();
-        return targetSymMap && !isCurrentModuleSymbol(ctx, *targetSymMap);
+        return targetSymMap && !ModuleApi::isCurrentModuleSymbol(ctx.compiler(), *targetSymMap);
     }
 
 }
@@ -214,6 +208,13 @@ namespace ModuleApi
 
         return sourceFile.hasFlag(FileFlagsE::CustomSrc) && sourceFile.moduleNamespace() != nullptr;
     }
+
+    bool isCurrentModuleSymbol(const CompilerInstance& compiler, const Symbol& symbol)
+    {
+        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
+        return sourceFile && isCurrentModuleSourceFile(*sourceFile);
+    }
+
     bool isGeneratedSourceDecl(const SourceFile& file, const AstNodeRef declRef)
     {
         if (declRef.isInvalid() || !file.ast().hasSourceView())

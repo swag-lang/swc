@@ -4,8 +4,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class CompilerInstance;
+
 namespace ModuleApi
 {
+    bool isCurrentModuleSymbol(const CompilerInstance& compiler, const Symbol& symbol);
+
     inline bool sameNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
     {
         return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());

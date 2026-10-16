@@ -18,6 +18,7 @@ namespace ModuleApiExport
     using ModuleApi::findEnclosingImplRef;
     using ModuleApi::findExportDeclRoot;
     using ModuleApi::isCurrentModuleSourceFile;
+    using ModuleApi::isCurrentModuleSymbol;
     using ModuleApi::isExportedPublicDeclScope;
     using ModuleApi::isModuleApiOpaqueType;
     using ModuleApi::moduleApiNodeSourceView;
@@ -86,7 +87,6 @@ namespace ModuleApiExport
     // ModuleApiExport.cpp
     Utf8             buildModuleNamespaceName(const CompilerInstance& compiler);
     Utf8             buildModuleArtifactName(const CompilerInstance& compiler);
-    bool             isCurrentModuleSymbol(const CompilerInstance& compiler, const Symbol& symbol);
     bool             isWholeFileExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol);
     std::string_view preferredLineEnding(const SourceFile& file);
     Result           writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content);

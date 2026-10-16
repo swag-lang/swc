@@ -191,15 +191,6 @@ namespace ModuleApiExport
         return "module";
     }
 
-    bool isCurrentModuleSymbol(const CompilerInstance& compiler, const Symbol& symbol)
-    {
-        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
-        if (!sourceFile)
-            return false;
-
-        return isCurrentModuleSourceFile(*sourceFile);
-    }
-
     bool isWholeFileExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol)
     {
         const SourceFile* sourceFile = compiler.sourceViewFile(symbol);

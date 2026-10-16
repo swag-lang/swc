@@ -1534,7 +1534,7 @@ namespace
     bool isNonNullValuePointerParam(Sema& sema, const SymbolVariable& param)
     {
         const TypeInfo& paramType = param.type(sema.ctx());
-        return paramType.isValuePointer() && !paramType.isNullable();
+        return paramType.isNonNullValuePointer();
     }
 
     // A method whose receiver `me` is a non-null pointer.
@@ -1933,7 +1933,7 @@ namespace
         mat.forAddress       = !isCaptured && mat.hasAddressUse && (!mat.bindsByAddress || !sema.isLValue(binding.exprRef));
         // A pointer parameter fed by a narrowed nullable pointer binds a value, not a place: its
         // home pins the non-null parameter type while the caller's fact is still live.
-        const bool narrowedPointer = mat.narrowDependent && paramType.isValuePointer() && !paramType.isNullable() && !bindsPointeeByAddress;
+        const bool narrowedPointer = mat.narrowDependent && paramType.isNonNullValuePointer() && !bindsPointeeByAddress;
         mat.forNarrowFact          = mat.narrowDependent && (!mat.bindsByAddress || narrowedPointer);
         mat.forContextLambda       = isInlineContextualLambdaArg(sema, binding.exprRef);
         // A nullable parameter needs storage on which its body can record a narrowing
@@ -2033,7 +2033,7 @@ namespace
         // parameter, so pin the parameter's declared non-null pointer type onto the clone:
         // a proof carried by a narrowing fact or by a `with` binding's narrowed base cannot
         // be re-derived from bare syntax.
-        else if (paramType.isValuePointer() && !paramType.isNullable() && param.typeRef().isValid())
+        else if (paramType.isNonNullValuePointer() && param.typeRef().isValid())
         {
             clonedInitRef = Cast::createCastNode(sema, param.typeRef(), clonedInitRef);
         }

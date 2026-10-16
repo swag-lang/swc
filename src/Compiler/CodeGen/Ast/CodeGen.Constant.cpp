@@ -432,7 +432,7 @@ namespace
         if (currentTypeRef.isValid())
         {
             const TypeInfo& currentType = *currentView.type();
-            if (currentType.isArray() || currentType.isStruct() || currentType.isAggregateArray() || currentType.isAggregateStruct())
+            if (currentType.isStructOrArray() || currentType.isAggregate())
                 return currentTypeRef;
         }
 

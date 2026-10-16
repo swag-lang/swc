@@ -2022,7 +2022,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
         // question about the pointee. Two pointers keep comparing as addresses, and so
         // does a pointer against 'null' - an identity question, never the pointee's.
         const TypeInfo& retryLeftType = sema.typeMgr().get(unwrappedTypeRef);
-        if (retryLeftType.isValuePointer() && !retryLeftType.isNullable())
+        if (retryLeftType.isNonNullValuePointer())
         {
             const SemaNodeView rhsView = sema.viewType(node.nodeRightRef);
             if (rhsView.type() && !rhsView.type()->isPointerLikeAliasAware(sema.ctx()) && !rhsView.type()->isType() && !rhsView.type()->isNull())

@@ -2874,7 +2874,7 @@ namespace
         // the pointee's address), except the implicit receiver, which keeps address identity.
         TypeRef         boxTypeRef  = argView.typeRef();
         const TypeInfo& unwrappedTy = SemaHelpers::aliasEnumType(sema, argView);
-        if (unwrappedTy.isValuePointer() && !unwrappedTy.isNullable() && unwrappedTy.isConst())
+        if (unwrappedTy.isNonNullValuePointer() && unwrappedTy.isConst())
         {
             const AstNodeRef   sourceRef  = SemaHelpers::resolveTransparentExprSourceRef(sema, outResolvedArg.argRef);
             const SemaNodeView sourceView = sema.viewSymbol(sourceRef);

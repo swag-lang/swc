@@ -88,7 +88,7 @@ namespace
             return false;
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
-        if (type.isReference() || type.isPointerLike())
+        if (type.isPointerLikeOrReference())
             return type.isConst();
 
         if (sym.isGenericRoot())

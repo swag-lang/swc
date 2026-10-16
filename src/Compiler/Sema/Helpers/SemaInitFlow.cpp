@@ -659,7 +659,7 @@ namespace
                 return false;
             const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema_->ctx());
             const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-            return !type.isNullable() && (type.isPointerLike() || type.isReference());
+            return !type.isNullable() && type.isPointerLikeOrReference();
         }
 
         // Records whether a function-level return can produce a null value. The

@@ -168,6 +168,7 @@ public:
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
     bool isAnyPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
     bool isPointerOrReference() const noexcept { return isAnyPointer() || isReference(); }
+    bool isPointerLikeOrReference() const noexcept { return isPointerLike() || isReference(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
     bool isIndexable() const noexcept { return isArray() || isSlice() || isString() || isCString() || isAnyVariadic(); }

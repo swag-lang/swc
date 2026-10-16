@@ -1801,7 +1801,7 @@ namespace
             return Result::Continue;
         }
 
-        if (resolvedDstType.isBool() && (resolvedSrcType.isPointerLike() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference() || resolvedSrcType.isNull()))
+        if (resolvedDstType.isBool() && (resolvedSrcType.isPointerLikeOrReference() || resolvedSrcType.isNull()))
         {
             const MicroReg srcReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, srcPayload, resolvedSrcTypeRef, resolvedSrcType, MicroOpBits::B64);
 

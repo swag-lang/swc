@@ -667,7 +667,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
         return true;
     }
 
-    if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isTypeInfo() || typeInfo.isCString() || typeInfo.isFunction())
+    if (typeInfo.isPointerLikeOrReference())
     {
         SWC_ASSERT(payload.size() == sizeof(uint64_t));
 

@@ -4155,13 +4155,18 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         files.push_back(file);
     }
 
-    if (files.empty())
-    {
+    // What the setup leaves behind: the build configuration, owning its strings, and what it imported and read.
+    const auto captureSnapshot = [&] {
         outSnapshot.buildCfg           = setupCompiler.buildCfg();
         outSnapshot.imports            = setupCompiler.moduleSetupImports();
         outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
         outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+    };
+
+    if (files.empty())
+    {
+        captureSnapshot();
         return Result::Continue;
     }
 
@@ -4216,11 +4221,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         SWC_RESULT(setupCompiler.collectModuleSetupLoadedFiles(setupCtx, semaDone, files));
     }
 
-    outSnapshot.buildCfg           = setupCompiler.buildCfg();
-    outSnapshot.imports            = setupCompiler.moduleSetupImports();
-    outSnapshot.loadedFiles        = setupCompiler.moduleSetupLoadedFiles();
-    outSnapshot.compilerInputFiles = setupCompiler.compilerInputFiles();
-    ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+    captureSnapshot();
     return Result::Continue;
 }
 

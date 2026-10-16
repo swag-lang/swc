@@ -456,7 +456,7 @@ namespace
         return members;
     }
 
-    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, size_t& nextFunctionIndex)
+    bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, size_t& nextFunctionIndex, std::vector<SymbolFunction*>* pendingFunctions = nullptr)
     {
         bool changed = false;
         for (; nextFunctionIndex < functions.size(); ++nextFunctionIndex)
@@ -474,6 +474,8 @@ namespace
                     continue;
 
                 functions.push_back(dep);
+                if (pendingFunctions)
+                    pendingFunctions->push_back(dep);
                 changed = true;
             }
         }
@@ -501,7 +503,7 @@ namespace
         }
     };
 
-    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, RejectedConstantFunctions* rejected = nullptr)
+    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset, RejectedConstantFunctions* rejected = nullptr, std::vector<SymbolFunction*>* pendingFunctions = nullptr)
     {
         const DataSegment&    segment = builder.compiler().cstMgr().shardDataSegment(shardIndex);
         DataSegmentAllocation allocation;
@@ -534,18 +536,20 @@ namespace
                     continue;
 
                 functions.push_back(target);
+                if (pendingFunctions)
+                    pendingFunctions->push_back(target);
                 changed = true;
                 continue;
             }
 
             const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
-            changed                         = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, targetShardIndex, relocation.targetOffset, rejected) || changed;
+            changed                         = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, targetShardIndex, relocation.targetOffset, rejected, pendingFunctions) || changed;
         }
 
         return changed;
     }
 
-    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, bool& globalInitScanned, RejectedConstantFunctions* rejected = nullptr)
+    bool appendGlobalConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, StampedKeySet& visitedAllocations, bool& globalInitScanned, RejectedConstantFunctions* rejected = nullptr, std::vector<SymbolFunction*>* pendingFunctions = nullptr)
     {
         if (globalInitScanned)
             return false;
@@ -559,7 +563,7 @@ namespace
             if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
                 continue;
 
-            changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, relocation.targetShardIndex, relocation.targetOffset, rejected) || changed;
+            changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, relocation.targetShardIndex, relocation.targetOffset, rejected, pendingFunctions) || changed;
         }
         return changed;
     }
@@ -599,16 +603,16 @@ namespace
     // or generic instance still being analysed) is checked again every round.
     struct ConstantDependencyScan
     {
-        StampedKeySet visitedAllocations;
-        bool          globalInitScanned = false;
-        // Relocations already walked, by function address; only looked up.
-        FlatKeyMap<size_t, uint64_t> scannedRelocations;
-        RejectedConstantFunctions    rejected;
+        StampedKeySet               visitedAllocations;
+        bool                        globalInitScanned = false;
+        std::vector<SymbolFunction*> pendingFunctions;
+        std::vector<SymbolFunction*> workFunctions;
+        RejectedConstantFunctions  rejected;
     };
 
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, ConstantDependencyScan& scan)
     {
-        bool   changed       = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, scan.globalInitScanned, &scan.rejected);
+        bool   changed       = appendGlobalConstantFunctionDependencies(builder, functions, seenFunctions, scan.visitedAllocations, scan.globalInitScanned, &scan.rejected, &scan.pendingFunctions);
         size_t rejectedCount = 0;
         for (SymbolFunction* target : scan.rejected.functions)
         {
@@ -622,24 +626,16 @@ namespace
 
             seenFunctions.insert(target);
             functions.push_back(target);
+            scan.pendingFunctions.push_back(target);
             changed = true;
         }
         scan.rejected.functions.resize(rejectedCount);
 
-        for (size_t index = 0; index < functions.size(); ++index)
+        scan.workFunctions.clear();
+        scan.workFunctions.swap(scan.pendingFunctions);
+        const auto scanFunction = [&](const SymbolFunction* function)
         {
-            const SymbolFunction* function = functions[index];
-            if (!function)
-                continue;
-
             const MachineCode& code = function->loweredCode();
-            if (code.codeRelocations.empty())
-                continue;
-            size_t& scanned = scan.scannedRelocations.getOrInsert(reinterpret_cast<uint64_t>(function));
-            if (scanned == code.codeRelocations.size())
-                continue;
-            scanned = code.codeRelocations.size();
-
             for (const MicroRelocation& relocation : code.codeRelocations)
             {
                 if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
@@ -649,8 +645,16 @@ namespace
                 if (!builder.tryResolveConstantSourceRef(sourceRef, relocation))
                     continue;
 
-                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, scan.visitedAllocations, sourceRef.shardIndex, sourceRef.offset, &scan.rejected) || changed;
+                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, scan.visitedAllocations, sourceRef.shardIndex, sourceRef.offset, &scan.rejected, &scan.workFunctions) || changed;
             }
+        };
+
+        for (size_t index = 0; index < scan.workFunctions.size(); ++index)
+        {
+            SymbolFunction* function = scan.workFunctions[index];
+            scanFunction(function);
+            if (!function->isCodeGenPreSolved() && !function->isCodeGenCompleted())
+                scan.pendingFunctions.push_back(function);
         }
 
         return changed;
@@ -1649,6 +1653,7 @@ Result NativeBackendBuilder::prepare()
 
     SWC_SCHED_PHASE(ctx_.global().jobMgr(), "codegen");
     ConstantDependencyScan constantScan;
+    constantScan.pendingFunctions = functions;
     // The functions before this index had their calls walked since the last code generation, and
     // nothing has been lowered since: only the constant dependencies appended after them are new.
     size_t      callsWalked          = 0;
@@ -1657,7 +1662,7 @@ Result NativeBackendBuilder::prepare()
     bool        codeGenSourceChecked = false;
     while (true)
     {
-        functionsNeedSort |= appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, callsWalked);
+        functionsNeedSort |= appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, callsWalked, &constantScan.pendingFunctions);
         if (functionsNeedSort)
         {
             SymbolSort::sortAndUniqueByLocation(functions, *compiler_, sortKeys);
@@ -1678,7 +1683,7 @@ Result NativeBackendBuilder::prepare()
         SWC_RESULT(scheduleCodeGen(*this, codeGenSource, functions));
 
         size_t     nextCallDependencyIndex = 0;
-        const bool addedCallDeps           = appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, nextCallDependencyIndex);
+        const bool addedCallDeps           = appendCodeGenDependencies(*this, functions, seenCodeGenFunctions, nextCallDependencyIndex, &constantScan.pendingFunctions);
         callsWalked                        = functions.size();
         const bool addedConstantDeps       = appendConstantFunctionDependencies(*this, functions, seenCodeGenFunctions, constantScan);
         functionsNeedSort                  = addedCallDeps || addedConstantDeps;

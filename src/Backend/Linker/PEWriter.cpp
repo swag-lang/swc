@@ -976,17 +976,28 @@ bool PEWriter::reserveResourceSection(Diagnostic& outDiag)
 
 namespace
 {
-    // Looks up each symbol's final placement in a flat, pre-resolved address map; resolves global data by
-    // its section name + offset.
+    // Looks up each symbol's final placement in the writer's own symbol map, and places it with the
+    // segment and RVA of its section; resolves global data by its section name + offset.
+    template<typename SymbolLocMap>
     struct PeSymbolResolver final : PdbWriter::SymbolResolver
     {
-        const std::unordered_map<Utf8, PdbSymbolAddress>* addresses = nullptr;
-        const std::unordered_map<Utf8, PdbSymbolAddress>* sections  = nullptr;
+        const SymbolLocMap*                               symbols = nullptr;
+        std::span<const uint32_t>                         segmentOf;
+        std::span<const uint32_t>                         sectionRva;
+        const std::unordered_map<Utf8, PdbSymbolAddress>* sections = nullptr;
 
         PdbSymbolAddress resolve(const Utf8& name) const override
         {
-            const auto it = addresses->find(name);
-            return it == addresses->end() ? PdbSymbolAddress{} : it->second;
+            const auto it = symbols->find(name);
+            if (it == symbols->end())
+                return {};
+
+            PdbSymbolAddress addr;
+            addr.found   = true;
+            addr.segment = static_cast<uint16_t>(segmentOf[it->second.sectionIndex]);
+            addr.offset  = it->second.value;
+            addr.rva     = sectionRva[it->second.sectionIndex] + it->second.value;
+            return addr;
         }
 
         PdbSymbolAddress resolveSection(const Utf8& sectionName, const uint32_t offset) const override
@@ -1034,18 +1045,6 @@ void PEWriter::emitDebugInfo()
         pdbSections.push_back(std::move(info));
     }
 
-    std::unordered_map<Utf8, PdbSymbolAddress> addresses;
-    addresses.reserve(symbols_.size());
-    for (const auto& [name, loc] : symbols_)
-    {
-        PdbSymbolAddress addr;
-        addr.found   = true;
-        addr.segment = static_cast<uint16_t>(segmentOf[loc.sectionIndex]);
-        addr.offset  = loc.value;
-        addr.rva     = sectionRva[loc.sectionIndex] + loc.value;
-        addresses.emplace(name, addr);
-    }
-
     std::unordered_map<Utf8, PdbSymbolAddress> sectionAddresses;
     for (size_t idx = 0; idx < sections_.size(); ++idx)
     {
@@ -1057,9 +1056,11 @@ void PEWriter::emitDebugInfo()
         sectionAddresses.emplace(sections_[idx].name, addr);
     }
 
-    PeSymbolResolver resolver;
-    resolver.addresses = &addresses;
-    resolver.sections  = &sectionAddresses;
+    PeSymbolResolver<decltype(symbols_)> resolver;
+    resolver.symbols    = &symbols_;
+    resolver.segmentOf  = segmentOf;
+    resolver.sectionRva = sectionRva;
+    resolver.sections   = &sectionAddresses;
 
     std::array<uint8_t, 16> guid{};
     uint32_t                age        = 0;

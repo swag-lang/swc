@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Debug/SymbolTable.h"
+#include "Support/Core/StringMap.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 #include "Support/Report/Diagnostic.h"
@@ -266,15 +268,18 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
     // Views of the names: the objects' own outlive the merge, and the image's symbols already
     // present (typically none) are copied once, since the image grows below.
-    std::unordered_set<std::string_view> definedNames;
-    std::vector<Utf8>                    presentNames;
+    StringMap<bool>   definedNames;
+    std::vector<Utf8> presentNames;
+    const auto        defineName = [&](const std::string_view name) {
+        return definedNames.try_emplace(name, Math::hash(name), true).second;
+    };
 
     // Seed with any sections already present (typically none).
     for (uint32_t i = 0; i < outImage.sections.size(); ++i)
         sectionByName[outImage.sections[i].name] = i;
     presentNames.reserve(outImage.symbols.size());
     for (const LinkSymbol& symbol : outImage.symbols)
-        definedNames.insert(presentNames.emplace_back(symbol.name).view());
+        defineName(presentNames.emplace_back(symbol.name).view());
 
     for (const CoffObject& object : objects)
     {
@@ -352,7 +357,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
         {
             if (symbol.sectionIndex >= baseOffset.size() || baseOffset[symbol.sectionIndex] < 0)
                 continue; // defined in a dropped section
-            if (!definedNames.insert(symbol.name.view()).second)
+            if (!defineName(symbol.name.view()))
                 continue; // first definition wins
 
             LinkSymbol out;

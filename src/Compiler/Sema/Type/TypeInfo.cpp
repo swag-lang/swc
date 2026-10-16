@@ -383,7 +383,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 
 TypeRef TypeInfo::payloadTypeRef() const noexcept
 {
-    SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isCodeBlock());
+    SWC_ASSERT(isTypeValue() || isPointerOrReference() || isSlice() || isAlias() || isTypedVariadic() || isCodeBlock());
     if (isAlias())
         return payloadAlias_.sym->underlyingTypeRef();
     return payloadTypeRef_.typeRef;

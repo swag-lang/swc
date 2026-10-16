@@ -76,7 +76,7 @@ namespace
     const TypeInfo& unwrapPointerOrRefType(TaskContext& ctx, TypeRef typeRef)
     {
         const TypeInfo* type = &ctx.typeMgr().get(typeRef);
-        if (type->isReference() || type->isAnyPointer())
+        if (type->isPointerOrReference())
             type = &ctx.typeMgr().get(type->payloadTypeRef());
         const TypeInfo* unwrappedType = type->unwrapAliasType(ctx);
         return unwrappedType ? *unwrappedType : *type;

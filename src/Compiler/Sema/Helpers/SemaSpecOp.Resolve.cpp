@@ -380,7 +380,7 @@ namespace
             return false;
         if (view.type()->isConst())
             return true;
-        if (view.type()->isReference() || view.type()->isAnyPointer())
+        if (view.type()->isPointerOrReference())
             return sema.typeMgr().get(view.type()->payloadTypeRef()).isConst();
         return false;
     }
@@ -1010,8 +1010,7 @@ namespace
                 // non-pointer operand passes its ADDRESS (loading its first bytes as the
                 // receiver pointer would index through the operand's leading field).
                 const SemaNodeView operandView      = sema.viewNodeTypeSymbol(exprRef);
-                const bool         operandIsPointee = !operandView.type() ||
-                                              (!operandView.type()->isReference() && !operandView.type()->isAnyPointer());
+                const bool         operandIsPointee = !operandView.type() || !operandView.type()->isPointerOrReference();
                 if (receiverType->isReference())
                     resolvedArg.bindsReferenceToValue = true;
                 else if (operandIsPointee)

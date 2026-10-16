@@ -319,7 +319,7 @@ namespace
 
         if (cst.isNull())
         {
-            if (type.isAnyPointer() || type.isReference() || type.isString() || type.isCString() || type.isSlice() || type.isAny() || type.isInterface() ||
+            if (type.isPointerOrReference() || type.isString() || type.isCString() || type.isSlice() || type.isAny() || type.isInterface() ||
                 type.isTypeInfo() || type.isFunction())
                 return ImplicitDefaultKind::AllZero;
             return ImplicitDefaultKind::Mixed;
@@ -343,7 +343,7 @@ namespace
         if (type.isSlice())
             return cst.isSlice() && cst.getSliceCount() == 0 && !cst.getSlice().data() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
 
-        if (type.isAnyPointer() || type.isReference() || type.isTypeInfo() || type.isFunction())
+        if (type.isPointerOrReference() || type.isTypeInfo() || type.isFunction())
         {
             if (cst.isValuePointer())
                 return cst.getValuePointer() == 0 ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;

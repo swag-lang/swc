@@ -28,7 +28,7 @@ namespace
             return TypeRef::invalid();
 
         const TypeInfo& whatType = sema.typeMgr().get(whatTypeRef);
-        if (whatType.isReference() || whatType.isAnyPointer())
+        if (whatType.isPointerOrReference())
             whatTypeRef = IntrinsicInitType::normalizeTypeRef(sema.ctx(), whatType.payloadTypeRef());
 
         if (!flattenArrays)
@@ -74,7 +74,7 @@ namespace
     void markIntrinsicOperandAddressableStorage(Sema& sema, const SemaNodeView& operandView)
     {
         const TypeInfo* operandType = normalizedIntrinsicOperandType(sema, operandView);
-        if (!operandView.sym() || !operandView.sym()->isVariable() || !operandType || operandType->isReference() || operandType->isAnyPointer())
+        if (!operandView.sym() || !operandView.sym()->isVariable() || !operandType || operandType->isPointerOrReference())
             return;
 
         auto& symVar = operandView.sym()->cast<SymbolVariable>();
@@ -93,12 +93,12 @@ namespace
             SWC_RESULT(SemaCheck::isValue(sema, countView.nodeRef()));
             SWC_RESULT(Cast::cast(sema, countView, sema.typeMgr().typeU64(), CastKind::Implicit));
 
-            if (!whatType || (!whatType->isAnyPointer() && !whatType->isReference()))
+            if (!whatType || !whatType->isPointerOrReference())
                 return SemaError::raiseRequestedTypeFam(sema, whatView.nodeRef(), whatView.typeRef(), sema.typeMgr().typeBlockPtrVoid());
             return Result::Continue;
         }
 
-        if (whatType && (whatType->isAnyPointer() || whatType->isReference()))
+        if (whatType && whatType->isPointerOrReference())
             return Result::Continue;
 
         SWC_ASSERT(whatView.node() != nullptr);

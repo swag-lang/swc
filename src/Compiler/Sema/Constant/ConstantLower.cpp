@@ -936,7 +936,7 @@ namespace
         if (dstType.isFunction() && dstType.isLambdaClosure())
             return lowerClosureConstantToBytes(dstBytes, cst);
 
-        if (dstType.isAnyPointer() || dstType.isReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction())
+        if (dstType.isPointerOrReference() || dstType.isTypeInfo() || dstType.isCString() || dstType.isFunction())
             return lowerPointerLikeConstantToBytes(sema, dstBytes, dstType, cstRef, cst);
 
         SWC_UNREACHABLE();

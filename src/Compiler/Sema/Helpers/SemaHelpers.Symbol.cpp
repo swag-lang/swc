@@ -92,7 +92,7 @@ namespace
     bool isPointerOrReferenceAliasAware(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& typeInfo = SemaHelpers::aliasEnumType(sema, view);
-        return typeInfo.isAnyPointer() || typeInfo.isReference();
+        return typeInfo.isPointerOrReference();
     }
 
     TypeRef countOfPassthroughTypeRef(TaskContext& ctx, TypeRef typeRef)
@@ -1640,7 +1640,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
 
     // Pointer/Reference
     const TypeInfo& leftType = aliasEnumType(sema, nodeLeftView);
-    if (leftType.isAnyPointer() || leftType.isReference())
+    if (leftType.isPointerOrReference())
     {
         sema.setType(memberRef, leftType.payloadTypeRef());
         sema.setIsValue(node);

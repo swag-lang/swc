@@ -104,7 +104,7 @@ namespace
 
         const TypeInfo& type = unwrapAliasEnumType(sema, typeRef);
         typeRef              = type.typeRef();
-        if (type.isAnyPointer() || type.isReference())
+        if (type.isPointerOrReference())
             typeRef = unwrapAliasEnum(sema, type.payloadTypeRef());
         return hasOwningLifecycle(sema, typeRef);
     }
@@ -193,7 +193,7 @@ namespace
         const TypeInfo& declaredType  = sema.typeMgr().get(paramTypeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& paramType     = unwrappedType ? *unwrappedType : declaredType;
-        return !paramType.isAnyPointer() && !paramType.isReference() && !paramType.isAnyVariadic();
+        return !paramType.isPointerOrReference() && !paramType.isAnyVariadic();
     }
 
     // Does a by-value parameter really behave like a local? An OWNING one does not: the
@@ -997,7 +997,7 @@ namespace
             if (pointerTypeRef.isValid())
             {
                 const TypeInfo& pointerType = unwrapAliasEnumType(sema, pointerTypeRef);
-                if ((pointerType.isAnyPointer() || pointerType.isReference()) &&
+                if (pointerType.isPointerOrReference() &&
                     pointer.sourceVar && sourceTypeRef == pointerType.typeRef() &&
                     unwrapAliasEnum(sema, pointerType.payloadTypeRef()) == normalizedValueTypeRef)
                 {
@@ -1160,7 +1160,7 @@ namespace
             if (sourceTypeRef.isValid())
             {
                 const TypeInfo& sourceType = unwrapAliasEnumType(sema, sourceTypeRef);
-                valueBackedParameter       = sourceType.isAnyPointer() || sourceType.isReference();
+                valueBackedParameter       = sourceType.isPointerOrReference();
             }
         }
 
@@ -2094,11 +2094,11 @@ namespace
             if (paramTypeRef.isValid())
             {
                 const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
-                if ((paramType.isAnyPointer() || paramType.isReference()) && structuralBorrowCarrierType(sema, paramType.payloadTypeRef()))
+                if (paramType.isPointerOrReference() && structuralBorrowCarrierType(sema, paramType.payloadTypeRef()))
                     indirectInfo = aggregatePointeeBorrowInfo(sema, arg.argRef, paramType.payloadTypeRef(), budget);
                 else if (directInfo.kind == SemaEscapeKind::Parameter && !directInfo.viaStoredField &&
                          !directInfo.viaOwnedPayload && !directInfo.parameterIndirectOriginsMask &&
-                         (paramType.isAnyPointer() || paramType.isReference()) &&
+                         paramType.isPointerOrReference() &&
                          unwrapAliasEnumType(sema, paramType.payloadTypeRef()).isAnyPointer() &&
                          identifierVariable(sema, sema.resolvedNodeRef(arg.argRef)) == directInfo.sourceVar)
                 {
@@ -2772,7 +2772,7 @@ namespace
                         if (leftTypeRef.isValid())
                         {
                             const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
-                            if ((leftType.isAnyPointer() || leftType.isReference()) && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
+                            if (leftType.isPointerOrReference() && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
                             {
                                 // Reading through a slot does not make a copied pointer
                                 // alias that slot. An aggregate already held by value
@@ -2899,7 +2899,7 @@ namespace
                     break;
                 const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
                 SemaEscapeInfo  info;
-                if ((leftType.isAnyPointer() || leftType.isReference()) && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
+                if (leftType.isPointerOrReference() && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
                 {
                     info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
                 }
@@ -3524,7 +3524,7 @@ namespace
         if (viewType.isInterface() || viewType.isAny())
             return true;
 
-        if (!viewType.isAnyPointer() && !viewType.isReference())
+        if (!viewType.isPointerOrReference())
             return false;
 
         const TypeRef pointeeTypeRef = unwrapAliasEnum(sema, viewType.payloadTypeRef());
@@ -4144,7 +4144,7 @@ namespace
             return false;
 
         const TypeInfo& rootType = unwrapAliasEnumType(sema, rootTypeRef);
-        return !rootType.isAnyPointer() && !rootType.isReference();
+        return !rootType.isPointerOrReference();
     }
 
     // Does this body put another context back? The scoped idiom spells that as a 'defer'

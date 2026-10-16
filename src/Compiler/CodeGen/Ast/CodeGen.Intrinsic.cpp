@@ -56,7 +56,7 @@ namespace
             return TypeRef::invalid();
 
         const TypeInfo* currentType = &codeGen.typeMgr().get(whatTypeRef);
-        if (currentType->isReference() || currentType->isAnyPointer())
+        if (currentType->isPointerOrReference())
         {
             whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType->payloadTypeRef());
             if (hasExplicitCount && whatTypeRef.isValid())
@@ -88,7 +88,7 @@ namespace
 
         const TypeRef   normalizedWhatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatTypeRef);
         const TypeInfo& whatType              = codeGen.typeMgr().get(normalizedWhatTypeRef);
-        if (whatType.isReference() || whatType.isAnyPointer())
+        if (whatType.isPointerOrReference())
         {
             if (!whatPayload.isAddress())
                 return whatPayload.reg;
@@ -127,7 +127,7 @@ namespace
             return result;
 
         const TypeInfo& whatType = codeGen.typeMgr().get(result.fillTypeRef);
-        if (whatType.isReference() || whatType.isAnyPointer())
+        if (whatType.isPointerOrReference())
             result.fillTypeRef = IntrinsicInitType::normalizeTypeRef(codeGen.ctx(), whatType.payloadTypeRef());
 
         uint64_t totalCount = 1;

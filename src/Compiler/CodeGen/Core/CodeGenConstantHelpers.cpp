@@ -26,7 +26,7 @@ namespace
 
         if (storageType.isArray() || storageType.isSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
-        else if (storageType.isBool() || storageType.isChar() || storageType.isRune() || storageType.isInt() || storageType.isFloat() || storageType.isAnyPointer() || storageType.isReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
+        else if (storageType.isBool() || storageType.isChar() || storageType.isRune() || storageType.isInt() || storageType.isFloat() || storageType.isPointerOrReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         else
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);

@@ -153,7 +153,7 @@ namespace
                 continue;
             }
 
-            if (typeInfo.isReference() || typeInfo.isAnyPointer())
+            if (typeInfo.isPointerOrReference())
             {
                 typeRef = typeInfo.payloadTypeRef();
                 continue;

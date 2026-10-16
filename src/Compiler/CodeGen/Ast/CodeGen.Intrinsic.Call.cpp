@@ -1720,7 +1720,7 @@ namespace
         const TypeInfo& contextType    = codeGen.typeMgr().get(contextTypeRef);
         const TypeInfo* resolvedAlias  = contextType.unwrapAliasType(codeGen.ctx());
         const TypeInfo& rawContextType = resolvedAlias ? *resolvedAlias : contextType;
-        if (rawContextType.isReference() || rawContextType.isAnyPointer())
+        if (rawContextType.isPointerOrReference())
         {
             if (!contextPayload.isAddress())
                 return contextPayload.reg;

@@ -48,6 +48,9 @@ enum class MicroInstrFlagsE : uint16_t
     RegisterDefsAtOutput = 1 << 10,
     // A compare or test that defines the flags and nothing else. CmpRegAmc is not marked.
     CompareOrTest = 1 << 11,
+    // A memory access that may name a constant or an arena-resident global from the
+    // instruction pointer, a relocation supplying the displacement.
+    RelocatableMemoryAccess = 1 << 12,
 };
 using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 
@@ -227,6 +230,7 @@ struct MicroInstr
 
     static constexpr const MicroInstrDef& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
     static bool                           isCompareOrTest(MicroInstrOpcode op) { return info(op).flags.has(MicroInstrFlagsE::CompareOrTest); }
+    static bool                           isRelocatableMemoryAccess(MicroInstrOpcode op) { return info(op).flags.has(MicroInstrFlagsE::RelocatableMemoryAccess); }
 };
 
 SWC_END_NAMESPACE();

@@ -137,32 +137,9 @@ namespace
         if (!isValidAnyRegister(reg))
             return false;
 
-        switch (op)
-        {
-            case MicroInstrOpcode::LoadAddrRegMem:
-                return reg.isAnyInt() || reg.isInstructionPointer();
-
-            // Reading a constant or an arena-resident global, or writing such
-            // a global, addresses it from the instruction pointer with a
-            // relocation supplying the displacement.
-            case MicroInstrOpcode::LoadRegMem:
-            case MicroInstrOpcode::LoadMemReg:
-            case MicroInstrOpcode::LoadMemImm:
-            case MicroInstrOpcode::OpBinaryRegMem:
-            case MicroInstrOpcode::OpBinaryRegRegMem:
-            case MicroInstrOpcode::OpTernaryRegRegMem:
-            case MicroInstrOpcode::OpBinaryMemImm:
-            case MicroInstrOpcode::OpBinaryMemReg:
-            case MicroInstrOpcode::OpUnaryMem:
-            case MicroInstrOpcode::CmpMemReg:
-            case MicroInstrOpcode::CmpMemImm:
-            case MicroInstrOpcode::TestMemReg:
-            case MicroInstrOpcode::TestMemImm:
-                return reg.isAnyInt() || reg.isInstructionPointer();
-
-            default:
-                return reg.isAnyInt();
-        }
+        if (op == MicroInstrOpcode::LoadAddrRegMem || MicroInstr::isRelocatableMemoryAccess(op))
+            return reg.isAnyInt() || reg.isInstructionPointer();
+        return reg.isAnyInt();
     }
 
     bool isValidAmcIndexRegister(const MicroReg reg)
@@ -517,23 +494,13 @@ namespace
             case MicroInstrOpcode::LoadRegPtrReloc:
                 break;
 
-            // A constant or arena-resident global accessed through the
-            // instruction pointer: the relocation supplies the displacement,
-            // so it is only legal on the RIP form.
-            case MicroInstrOpcode::LoadRegMem:
-            case MicroInstrOpcode::LoadMemReg:
-            case MicroInstrOpcode::LoadMemImm:
-            case MicroInstrOpcode::OpBinaryRegMem:
-            case MicroInstrOpcode::OpBinaryRegRegMem:
-            case MicroInstrOpcode::OpTernaryRegRegMem:
-            case MicroInstrOpcode::OpBinaryMemImm:
-            case MicroInstrOpcode::OpBinaryMemReg:
-            case MicroInstrOpcode::OpUnaryMem:
-            case MicroInstrOpcode::CmpMemReg:
-            case MicroInstrOpcode::CmpMemImm:
-            case MicroInstrOpcode::TestMemReg:
-            case MicroInstrOpcode::TestMemImm:
+            default:
             {
+                if (!MicroInstr::isRelocatableMemoryAccess(inst.op))
+                    return reportError(context, phase, std::format("relocation #{} points to non-relocatable opcode {}", relocationIndex, static_cast<uint32_t>(inst.op)));
+
+                // The relocation supplies the displacement, so it is only legal on the
+                // instruction-pointer form.
                 if (relocation.form != MicroRelocation::Form::Relative32)
                     return reportError(context, phase, std::format("relocation #{} on a memory access is not instruction-pointer relative", relocationIndex));
 
@@ -543,9 +510,6 @@ namespace
                     return reportError(context, phase, std::format("relocation #{} names a memory access whose base is not the instruction pointer", relocationIndex));
                 break;
             }
-
-            default:
-                return reportError(context, phase, std::format("relocation #{} points to non-relocatable opcode {}", relocationIndex, static_cast<uint32_t>(inst.op)));
         }
 
         return Result::Continue;

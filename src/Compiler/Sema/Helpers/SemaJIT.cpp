@@ -866,6 +866,17 @@ namespace
         return completion->result;
     }
 
+    // A request to run 'symFn' for 'nodeRef'.
+    JITExecManager::Request jitNodeRequest(Sema& sema, const SymbolFunction& symFn, AstNodeRef nodeRef, bool runImmediate)
+    {
+        JITExecManager::Request request;
+        request.function     = &symFn;
+        request.nodeRef      = nodeRef;
+        request.codeRef      = sema.node(nodeRef).codeRef();
+        request.runImmediate = runImmediate;
+        return request;
+    }
+
     Result submitJitNode(Sema& sema, AstNodeRef nodeRef, JITExecManager::Request request, const std::shared_ptr<JITPendingNodeData>& pendingEntry, const JITCallResultMeta& resultMeta, bool setFoldedTypedConst)
     {
         TaskContext& ctx = sema.ctx();
@@ -1387,13 +1398,9 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     JITNodePayload& payload      = pendingEntry->payload;
     payload.resultStorage.resize(resultMeta.resultSize);
 
-    JITExecManager::Request request;
-    request.function     = &symFn;
-    request.nodeRef      = nodeExprRef;
-    request.codeRef      = sema.node(nodeExprRef).codeRef();
+    JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeExprRef, false);
     request.arg0         = reinterpret_cast<uint64_t>(payload.resultStorage.data());
-    request.hasArg0      = true;
-    request.runImmediate = false;
+    request.hasArg0                 = true;
 
     return submitJitNode(sema, nodeExprRef, request, pendingEntry, resultMeta, false);
 }
@@ -1415,13 +1422,9 @@ Result SemaJIT::runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef n
     SmallVector<std::byte> resultStorage;
     resultStorage.resize(resultMeta.resultSize);
 
-    JITExecManager::Request request;
-    request.function     = &symFn;
-    request.nodeRef      = nodeExprRef;
-    request.codeRef      = sema.node(nodeExprRef).codeRef();
+    JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeExprRef, true);
     request.arg0         = reinterpret_cast<uint64_t>(resultStorage.data());
-    request.hasArg0      = true;
-    request.runImmediate = true;
+    request.hasArg0                 = true;
 
     const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
     if (jitResult != Result::Continue)
@@ -1456,13 +1459,9 @@ Result SemaJIT::runFunctionResult(Sema& sema, SymbolFunction& symFn, AstNodeRef 
     JITNodePayload& payload      = pendingEntry->payload;
     payload.resultStorage.resize(resultMeta.resultSize);
 
-    JITExecManager::Request request;
-    request.function     = &symFn;
-    request.nodeRef      = nodeRef;
-    request.codeRef      = sema.node(nodeRef).codeRef();
+    JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, false);
     request.jitReturn    = JITReturn{.typeRef = symFn.returnTypeRef(), .valuePtr = payload.resultStorage.data()};
-    request.hasJitReturn = true;
-    request.runImmediate = false;
+    request.hasJitReturn            = true;
 
     return submitJitNode(sema, nodeRef, request, pendingEntry, resultMeta, false);
 }
@@ -1571,14 +1570,10 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         return Result::Continue;
     }
 
-    JITExecManager::Request request;
-    request.function     = &calledFn;
-    request.nodeRef      = callRef;
-    request.codeRef      = sema.node(callRef).codeRef();
+    JITExecManager::Request request = jitNodeRequest(sema, calledFn, callRef, false);
     request.jitArgs      = payload.jitArgs.span();
     request.jitReturn    = JITReturn{.typeRef = exprTypeRef, .valuePtr = payload.resultStorage.data()};
-    request.hasJitReturn = true;
-    request.runImmediate = false;
+    request.hasJitReturn            = true;
 
     return submitJitNode(sema, callRef, request, pendingEntry, resultMeta, true);
 }
@@ -1630,14 +1625,10 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
 
     SWC_RESULT(prepareJitFunction(sema, calledFn));
 
-    JITExecManager::Request request;
-    request.function     = &calledFn;
-    request.nodeRef      = callRef;
-    request.codeRef      = sema.node(callRef).codeRef();
+    JITExecManager::Request request = jitNodeRequest(sema, calledFn, callRef, true);
     request.jitArgs      = jitArgs.span();
     request.jitReturn    = JITReturn{.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr};
-    request.hasJitReturn = true;
-    request.runImmediate = true;
+    request.hasJitReturn            = true;
 
     const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
     verifyJitFoldRedzones(sema, calledFn, argStorage);
@@ -1665,12 +1656,7 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
     ///////////////////////////////////////////
     // Submit statement execution to the JIT manager.
     TaskContext&            ctx = sema.ctx();
-    JITExecManager::Request request;
-    request.function     = &symFn;
-    request.nodeRef      = nodeRef;
-    request.codeRef      = sema.node(nodeRef).codeRef();
-    request.hasArg0      = false;
-    request.runImmediate = false;
+    JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, false);
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 
@@ -1691,12 +1677,7 @@ Result SemaJIT::runStatementImmediate(Sema& sema, SymbolFunction& symFn, AstNode
     SWC_RESULT(prepareFunction(sema, symFn));
 
     TaskContext&            ctx = sema.ctx();
-    JITExecManager::Request request;
-    request.function     = &symFn;
-    request.nodeRef      = nodeRef;
-    request.codeRef      = sema.node(nodeRef).codeRef();
-    request.hasArg0      = false;
-    request.runImmediate = true;
+    JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, true);
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 

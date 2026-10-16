@@ -1505,7 +1505,7 @@ namespace
             const SemaNodeView resolvedView = sema.viewType(nodeRef);
             if (const TypeInfo* resolvedType = resolvedView.type())
             {
-                if (resolvedType->isValuePointer() && !resolvedType->isNullable())
+                if (resolvedType->isNonNullValuePointer())
                 {
                     const Symbol* sym = sema.viewSymbol(nodeRef).sym();
                     if (sym && sym->isVariable())

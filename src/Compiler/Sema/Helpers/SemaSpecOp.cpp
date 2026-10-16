@@ -373,7 +373,7 @@ namespace
             // The returned pointer is the element's address, so the indexed expression can be an
             // lvalue: a non-null single-value pointer is the whole contract.
             case SpecOpKind::OpIndexPtr:
-                if (params.size() < 2 || !returnType.isValuePointer() || returnType.isNullable() || !indexParametersHaveSameType(ctx, params, 1, params.size()))
+                if (params.size() < 2 || !returnType.isNonNullValuePointer() || !indexParametersHaveSameType(ctx, params, 1, params.size()))
                     return reportSpecOpError(sema, sym, kind);
                 break;
 

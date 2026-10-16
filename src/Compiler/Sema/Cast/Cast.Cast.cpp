@@ -602,7 +602,7 @@ namespace
             return false;
 
         const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
-        if (!receiverType.isValuePointer() || receiverType.isNullable())
+        if (!receiverType.isNonNullValuePointer())
             return false;
 
         const SemaNodeView sourceView = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type);

@@ -468,22 +468,8 @@ namespace
         }
     }
 
-    void storeParameterDefaultConstants(std::span<Symbol* const> symbols, bool isParameter, ConstantRef cstRef)
-    {
-        if (!isParameter || cstRef.isInvalid())
-            return;
-
-        for (Symbol* s : symbols)
-        {
-            auto* symVar = getVariableSymbol(s);
-            if (!symVar)
-                continue;
-
-            symVar->setDefaultValueRef(cstRef);
-        }
-    }
-
-    void storeVariableDefaultConstants(std::span<Symbol* const> symbols, ConstantRef cstRef)
+    // Hands 'cstRef' to 'store' on every declared variable; an invalid constant stores nothing.
+    void storeVariableConstants(std::span<Symbol* const> symbols, ConstantRef cstRef, void (SymbolVariable::*store)(ConstantRef))
     {
         if (cstRef.isInvalid())
             return;
@@ -494,22 +480,7 @@ namespace
             if (!symVar)
                 continue;
 
-            symVar->setDefaultValueRef(cstRef);
-        }
-    }
-
-    void storeLetConstants(std::span<Symbol* const> symbols, bool isLet, ConstantRef cstRef)
-    {
-        if (!isLet || cstRef.isInvalid())
-            return;
-
-        for (Symbol* s : symbols)
-        {
-            auto* symVar = getVariableSymbol(s);
-            if (!symVar)
-                continue;
-
-            symVar->setCstRef(cstRef);
+            (symVar->*store)(cstRef);
         }
     }
 
@@ -1211,10 +1182,10 @@ namespace
         const ConstantRef initCstRef        = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
         const ConstantRef globalInitCstRef  = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitGlobalStoreRef);
         const ConstantRef variableDefaultCf = setInitInfo.handled ? setInitInfo.defaultValueCstRef : initCstRef;
-        storeLetConstants(symbols, isLet, initCstRef);
+        storeVariableConstants(symbols, isLet ? initCstRef : ConstantRef::invalid(), &SymbolVariable::setCstRef);
         storeGlobalVariableConstants(symbols, globalInitCstRef);
-        storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? initCstRef : ConstantRef::invalid());
-        storeVariableDefaultConstants(symbols, variableDefaultCf);
+        storeVariableConstants(symbols, isParameter && context.nodeInitRef.isValid() ? initCstRef : ConstantRef::invalid(), &SymbolVariable::setDefaultValueRef);
+        storeVariableConstants(symbols, variableDefaultCf, &SymbolVariable::setDefaultValueRef);
 
         if (allowGlobalFunctionAddressInit)
         {

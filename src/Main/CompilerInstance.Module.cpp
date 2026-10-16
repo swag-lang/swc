@@ -1980,19 +1980,10 @@ namespace
         return Result::Error;
     }
 
-    Utf8 formatWorkspaceReuseStat(const TaskContext& ctx, const CompilerInstance& compiler)
+    Utf8 formatWorkspaceArtifactStat(const TaskContext& ctx, const CompilerInstance& compiler, std::string_view state)
     {
         std::vector<Utf8> parts;
-        parts.push_back(ScopedTimedLog::formatStatName(ctx, "up-to-date"));
-        if (!compiler.lastArtifactLabel().empty())
-            parts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
-        return ScopedTimedLog::joinStatItems(ctx, parts);
-    }
-
-    Utf8 formatWorkspaceRelinkStat(const TaskContext& ctx, const CompilerInstance& compiler)
-    {
-        std::vector<Utf8> parts;
-        parts.push_back(ScopedTimedLog::formatStatName(ctx, "relinked"));
+        parts.push_back(ScopedTimedLog::formatStatName(ctx, state));
         if (!compiler.lastArtifactLabel().empty())
             parts.push_back(ScopedTimedLog::formatStatName(ctx, compiler.lastArtifactLabel()));
         return ScopedTimedLog::joinStatItems(ctx, parts);
@@ -3814,7 +3805,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             else
             {
                 moduleStage.markUpToDate();
-                moduleStage.setStat(formatWorkspaceReuseStat(probeCtx, probeCompiler));
+                moduleStage.setStat(formatWorkspaceArtifactStat(probeCtx, probeCompiler, "up-to-date"));
             }
             return Result::Continue;
         }
@@ -3846,7 +3837,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                 if (writeWorkspaceArtifactManifest(probeCtx, manifest, manifestPath) != Result::Continue)
                     return Result::Error;
 
-                moduleStage.setStat(formatWorkspaceRelinkStat(probeCtx, probeCompiler));
+                moduleStage.setStat(formatWorkspaceArtifactStat(probeCtx, probeCompiler, "relinked"));
                 return Result::Continue;
             }
         }

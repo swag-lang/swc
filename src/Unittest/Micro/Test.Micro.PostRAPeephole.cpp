@@ -4156,8 +4156,7 @@ SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatCompareUsesMemoryOperand)
                     if (inst.op != MicroInstrOpcode::CmpRegAmc)
                         continue;
                     const auto* ops = inst.ops(builder.operands());
-                    found           = ops && ops[0].reg == lhs && ops[1].reg == base && ops[2].reg == index &&
-                            ops[3].opBits == bits && ops[5].valueU64 == 8 && ops[6].valueU64 == 16;
+                    found           = ops && ops[0].reg == lhs && ops[1].reg == base && ops[2].reg == index && ops[3].opBits == bits && ops[5].valueU64 == 8 && ops[6].valueU64 == 16;
                 }
                 if (!found)
                     return Result::Error;
@@ -5540,9 +5539,11 @@ SWC_TEST_BEGIN(PostRAPeephole_FusedProductReusesMultiplyInput)
                             SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
 
                             const auto upperSource = productFirst ? left : addend;
-                            const bool expected    = variant != 1 && product != addend &&
+
+                            const bool expected = variant != 1 && product != addend &&
                                                   (operation != MicroOp::FloatSubtract || !productFirst) &&
                                                   (!productObserved || product == output) && (!upperObserved || upperSource == output);
+
                             const auto* result = builder.instructions().ptr(accumulate);
                             if (!result || (result->op == MicroInstrOpcode::OpTernaryRegRegReg) != expected)
                                 return Result::Error;

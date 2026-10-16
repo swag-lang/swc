@@ -273,19 +273,23 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 {
     const uint32_t hash       = typeInfo.hash();
     const uint32_t stableHash = stableShardHash(compiler_, typeInfo, hash);
+    const TypeRef  found      = findInterned(publishedInternTable(stableHash), typeInfo, hash);
+    if (found.isValid())
+        return found;
+
+    return addTypeAfterMiss(typeInfo, hash, stableHash);
+}
+
+TypeRef TypeManager::addTypeAfterMiss(const TypeInfo& typeInfo, const uint32_t hash, const uint32_t stableHash)
+{
     const uint32_t shardIndex = stableHash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto&          shard       = shards_[shardIndex];
     const uint32_t stripeIndex = (stableHash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
     auto&          stripe      = shard.internStripes[stripeIndex];
 
-    // Intern lookup takes no lock: most requests name a type that already exists, and every
-    // worker asks for the common ones. Only the insertion path locks the stripe and appends to
-    // the shard store.
-    const TypeRef found = findInterned(stripe.table.load(std::memory_order_acquire), typeInfo, hash);
-    if (found.isValid())
-        return found;
-
+    // The published-table lookup already missed. Keep the locked lookup because another worker
+    // may have inserted this type before this thread acquired the stripe.
     const std::unique_lock lk(stripe.mutex);
     const auto             existing = stripe.map.find(typeInfo);
     if (existing != stripe.map.end())
@@ -363,7 +367,7 @@ TypeRef TypeManager::addArrayType(const std::span<const uint64_t> dims, const Ty
     if (found.isValid())
         return found;
 
-    return addType(TypeInfo::makeArray(dims, elementTypeRef, flags, indexTypeRefs));
+    return addTypeAfterMiss(TypeInfo::makeArray(dims, elementTypeRef, flags, indexTypeRefs), hash, hash);
 }
 
 TypeRef TypeManager::addArrayTypeAfterFirstDimension(const TypeInfo& arrayType)
@@ -400,7 +404,7 @@ TypeRef TypeManager::addAggregateStructType(const std::span<const IdentifierRef>
     if (found.isValid())
         return found;
 
-    return addType(TypeInfo::makeAggregateStruct(names, types));
+    return addTypeAfterMiss(TypeInfo::makeAggregateStruct(names, types), hash, place);
 }
 
 TypeRef TypeManager::addAggregateArrayType(const std::span<const TypeRef> types)
@@ -416,7 +420,7 @@ TypeRef TypeManager::addAggregateArrayType(const std::span<const TypeRef> types)
     if (found.isValid())
         return found;
 
-    return addType(TypeInfo::makeAggregateArray(types));
+    return addTypeAfterMiss(TypeInfo::makeAggregateArray(types), hash, place);
 }
 
 void TypeManager::publishInterned(InternStripe& stripe, const TypeInfo* type, size_t hash)

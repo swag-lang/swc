@@ -32,7 +32,6 @@ namespace
     using NaturalLoop = MicroPassHelpers::NaturalLoop;
 
     constexpr uint32_t K_INVALID               = std::numeric_limits<uint32_t>::max();
-    constexpr uint32_t K_CHUNK_BYTES           = 16;
     constexpr uint32_t K_MAX_PROMOTED_PER_LOOP = 6;
 
     // How much is known about where a root register points; only the stack
@@ -187,7 +186,7 @@ namespace
             case MicroInstrOpcode::VecUnaryRegMem:
                 // Widening reads eight bytes; other packed unary operations read sixteen.
                 baseReg = ops[1].reg;
-                size    = 16;
+                size    = K_MICRO_128_BIT_BYTES;
                 switch (ops[4].microOp)
                 {
                     case MicroOp::VecWidenLoU8:
@@ -482,12 +481,12 @@ namespace
             {
                 if (access.rootReg != fn.stackPointer)
                     continue;
-                const bool overlaps = access.offset < chunk.offset + K_CHUNK_BYTES &&
+                const bool overlaps = access.offset < chunk.offset + K_MICRO_128_BIT_BYTES &&
                                       chunk.offset < access.offset + access.size;
                 if (!overlaps)
                     continue;
                 const bool isChunkAccess = (access.isVecLoad || access.isVecStore) &&
-                                           access.offset == chunk.offset && access.size == K_CHUNK_BYTES;
+                                           access.offset == chunk.offset && access.size == K_MICRO_128_BIT_BYTES;
                 if (!isChunkAccess)
                 {
                     clean = false;

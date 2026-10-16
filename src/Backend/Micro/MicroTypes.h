@@ -13,6 +13,8 @@ enum class MicroOpBits : uint8_t
     B128 = 128,
 };
 
+constexpr uint32_t K_MICRO_128_BIT_BYTES = static_cast<uint32_t>(MicroOpBits::B128) / 8;
+
 inline MicroOpBits microOpBitsFromChunkSize(uint32_t chunkSize)
 {
     switch (chunkSize)

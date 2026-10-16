@@ -65,10 +65,9 @@ namespace
     {
         uint32_t bytes = 4;
 
-        uint32_t    count() const { return 16 / bytes; }
+        uint32_t    count() const { return K_MICRO_128_BIT_BYTES / bytes; }
         MicroOpBits bits() const { return bytes == 4 ? MicroOpBits::B32 : MicroOpBits::B64; }
     };
-    constexpr uint32_t K_CHUNK_BYTES     = 16;
     constexpr uint32_t K_MAX_PLAN_INSTRS = 4096;
     constexpr uint32_t K_MAX_TREE_DEPTH  = 512;
 
@@ -1864,10 +1863,12 @@ namespace
     // Reads a read-only sixteen-byte constant into `dst`. The allocation owns
     // all sixteen bytes and is aligned on them, so a packed operation may
     // also take it as its memory operand once the load is folded.
-    void emitVectorConstantLoad(const SlpFunctionContext& fn, const MicroInstrRef beforeRef, const MicroReg dst, const std::array<char, 16>& bytes)
+    void emitVectorConstantLoad(const SlpFunctionContext& fn, const MicroInstrRef beforeRef, const MicroReg dst,
+                                const std::array<char, K_MICRO_128_BIT_BYTES>& bytes)
     {
         DataSegmentRef         segmentRef;
-        const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{bytes.data(), bytes.size()}, &segmentRef, 16);
+        const std::string_view stored = fn.context->taskContext->cstMgr().addPayloadBuffer(std::string_view{bytes.data(), bytes.size()}, &segmentRef,
+                                                                                           K_MICRO_128_BIT_BYTES);
 
         std::array<MicroInstrOperand, 4> loadOps;
         loadOps[0].reg              = dst;
@@ -2121,7 +2122,7 @@ namespace
                 if (record.rootKey != load.rootKey)
                     continue;
                 // Subtraction also handles a small range straddling displacement zero.
-                if (record.offset - load.baseOffset < K_CHUNK_BYTES || load.baseOffset - record.offset < record.size)
+                if (record.offset - load.baseOffset < K_MICRO_128_BIT_BYTES || load.baseOffset - record.offset < record.size)
                     return false;
             }
         }
@@ -2375,7 +2376,7 @@ namespace
                         // One read of the repeated constant instead of an
                         // immediate, a move across register classes and a
                         // shuffle: the four lanes already exist in memory.
-                        std::array<char, 16> lanes;
+                        std::array<char, K_MICRO_128_BIT_BYTES> lanes;
                         const uint64_t       lane = planInstr.imm;
                         for (uint32_t index = 0; index < fn.shape.count(); ++index)
                             std::memcpy(lanes.data() + index * fn.shape.bytes, &lane, fn.shape.bytes);
@@ -2435,10 +2436,10 @@ namespace
                     {
                         SWC_ASSERT(fn.nextVirtualFloatRegIndex < MicroReg::K_MAX_INDEX);
                         maskReg = MicroReg::virtualFloatReg(fn.nextVirtualFloatRegIndex++);
-                        std::array<char, 16> mask{};
+                        std::array<char, K_MICRO_128_BIT_BYTES> mask{};
                         // Indices are relative to each word; repeating one four-byte control
                         // would select every output word's bytes from the first input word.
-                        for (uint32_t index = 0; index < 16; ++index)
+                        for (uint32_t index = 0; index < K_MICRO_128_BIT_BYTES; ++index)
                             mask[index] = static_cast<char>((index & ~3u) | ((index + 4u - maskIndex) & 3u));
                         emitVectorConstantLoad(fn, firstDeletedRef, maskReg, mask);
                     }

@@ -48,11 +48,7 @@ namespace
 
     Result raiseConstantMaterializationError(CodeGen& codeGen, std::string_view because)
     {
-        auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, codeGenErrorNodeRef(codeGen));
-        diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-        diag.report(codeGen.ctx());
-        return Result::Error;
+        return CodeGenFunctionHelpers::raiseInternalFailure(codeGen, codeGenErrorNodeRef(codeGen), SemaError::ReportLocation::Children, because);
     }
 
     void emitPayloadBytesToAddress(CodeGen& codeGen, MicroReg dstReg, std::span<const std::byte> bytes)

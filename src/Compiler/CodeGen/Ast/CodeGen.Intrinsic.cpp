@@ -277,24 +277,9 @@ namespace
         const uint64_t sizeOf = fillType.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf > 0);
 
-        MicroBuilder&       builder   = codeGen.builder();
-        const MicroLabelRef loopLabel = builder.createLabel();
-        const MicroLabelRef doneLabel = builder.createLabel();
-        const MicroReg      cursorReg = codeGen.nextVirtualIntRegister();
-        const MicroReg      iterReg   = codeGen.nextVirtualIntRegister();
-
-        builder.emitLoadRegReg(cursorReg, dstAddressReg, MicroOpBits::B64);
-        builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
-        builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-        builder.placeLabel(loopLabel);
-        SWC_RESULT(emitIntrinsicInitStore(codeGen, fillType, srcPayload, cursorReg));
-        builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-        builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
-        builder.placeLabel(doneLabel);
+        const CodeGenMemoryHelpers::ElementLoop loop = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
+        SWC_RESULT(emitIntrinsicInitStore(codeGen, fillType, srcPayload, loop.cursorReg));
+        CodeGenMemoryHelpers::endElementLoop(codeGen, loop, sizeOf);
         return Result::Continue;
     }
 

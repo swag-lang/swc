@@ -112,18 +112,8 @@ namespace
         if (!codeGen.typeMgr().get(payloadTypeRef).isInt())
             return;
 
-        ioTypeRef         = payloadTypeRef;
-        ioPayload.typeRef = payloadTypeRef;
-        if (ioPayload.isValue())
-        {
-            ioPayload.setIsAddress();
-            return;
-        }
-
-        const MicroReg referenceSlotReg = ioPayload.reg;
-        ioPayload.reg                   = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
-        ioPayload.setIsAddress();
+        ioTypeRef = payloadTypeRef;
+        CodeGenReferenceHelpers::derefReferencePayload(codeGen, ioPayload, payloadTypeRef);
     }
 
     TypeRef resolveMemberAccessLeftTypeRef(CodeGen& codeGen, AstNodeRef leftRef)
@@ -589,7 +579,7 @@ namespace
     // An 8- or 16-bit integer lane slides down by whole bytes instead, leaves
     // through the same move, and is extended from its own width. Dynamic
     // indices keep the spill-and-load path. Reading the low lane this way is
-    // what `storeLow4`/`storeLow8` and every lane extraction of a transpose
+    // what a low-lane store and every lane extraction of a transpose
     // compile to, so it is worth a direct form.
     bool tryEmitSimdLaneRead(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {

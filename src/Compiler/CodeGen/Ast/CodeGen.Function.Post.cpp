@@ -337,11 +337,7 @@ namespace
         const AstNodeRef errorNodeRef = resolveCodeGenErrorNodeRef(codeGen, nodeRef);
         SWC_ASSERT(errorNodeRef.isValid());
 
-        auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, errorNodeRef, location);
-        diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-        diag.report(codeGen.ctx());
-        return Result::Error;
+        return CodeGenFunctionHelpers::raiseInternalFailure(codeGen, errorNodeRef, location, because);
     }
 
     Result emitRuntimeHelperCallWithNoArgs(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, std::string_view missingHelperName, AstNodeRef nodeRef)

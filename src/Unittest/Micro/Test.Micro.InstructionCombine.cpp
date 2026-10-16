@@ -3865,14 +3865,11 @@ namespace
         builder.emitRet();
     }
 
-    MicroOpBits signExtendSourceBits(const MicroBuilder& builder)
+    // The width operand of the first instruction with this opcode, or Zero when there is none.
+    MicroOpBits firstOpcodeBits(const MicroBuilder& builder, MicroInstrOpcode opcode, uint32_t bitsOperand)
     {
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == MicroInstrOpcode::LoadSignedExtRegReg)
-                return inst.ops(builder.operands())[3].opBits;
-        }
-        return MicroOpBits::Zero;
+        const MicroInstr* inst = Backend::Unittest::findFirstOpcode(builder, opcode);
+        return inst ? inst->ops(builder.operands())[bitsOperand].opBits : MicroOpBits::Zero;
     }
 }
 
@@ -3885,7 +3882,7 @@ SWC_TEST_BEGIN(InstCombine_BooleanDifference_NarrowsToByte)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (signExtendSourceBits(builder) != MicroOpBits::B8)
+    if (firstOpcodeBits(builder, MicroInstrOpcode::LoadSignedExtRegReg, 3) != MicroOpBits::B8)
         return Result::Error;
     return Result::Continue;
 }
@@ -3899,7 +3896,7 @@ SWC_TEST_BEGIN(InstCombine_BooleanDifferenceCopy_NarrowsToByte)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (signExtendSourceBits(builder) != MicroOpBits::B8)
+    if (firstOpcodeBits(builder, MicroInstrOpcode::LoadSignedExtRegReg, 3) != MicroOpBits::B8)
         return Result::Error;
     return Result::Continue;
 }
@@ -3913,7 +3910,7 @@ SWC_TEST_BEGIN(InstCombine_DifferenceWithPlainValue_Kept)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (signExtendSourceBits(builder) != MicroOpBits::B32)
+    if (firstOpcodeBits(builder, MicroInstrOpcode::LoadSignedExtRegReg, 3) != MicroOpBits::B32)
         return Result::Error;
     return Result::Continue;
 }
@@ -4201,16 +4198,6 @@ namespace
         builder.emitLoadMemReg(base, 4, flag, MicroOpBits::B8);
         builder.emitRet();
     }
-
-    MicroOpBits firstCompareBits(const MicroBuilder& builder)
-    {
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == MicroInstrOpcode::CmpRegImm)
-                return inst.ops(builder.operands())[1].opBits;
-        }
-        return MicroOpBits::Zero;
-    }
 }
 
 // A range of bytes is tested on the byte itself.
@@ -4221,7 +4208,7 @@ SWC_TEST_BEGIN(InstCombine_WidenedByteRange_ComparesTheByte)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (firstCompareBits(builder) != MicroOpBits::B8 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 0)
+    if (firstOpcodeBits(builder, MicroInstrOpcode::CmpRegImm, 1) != MicroOpBits::B8 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -4235,7 +4222,7 @@ SWC_TEST_BEGIN(InstCombine_WidenedByteSignedRange_Kept)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (firstCompareBits(builder) != MicroOpBits::B32)
+    if (firstOpcodeBits(builder, MicroInstrOpcode::CmpRegImm, 1) != MicroOpBits::B32)
         return Result::Error;
     return Result::Continue;
 }
@@ -4623,16 +4610,6 @@ namespace
         builder.emitLoadMemReg(base, 16, wide, MicroOpBits::B64);
         builder.emitRet();
     }
-
-    MicroOpBits firstSelectBits(const MicroBuilder& builder)
-    {
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == MicroInstrOpcode::LoadCondRegReg)
-                return inst.ops(builder.operands())[3].opBits;
-        }
-        return MicroOpBits::Zero;
-    }
 }
 
 // A qword select read as a dword selects dwords.
@@ -4643,7 +4620,7 @@ SWC_TEST_BEGIN(InstCombine_SelectReadAsDword_Narrows)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (firstSelectBits(builder) != MicroOpBits::B32)
+    if (firstOpcodeBits(builder, MicroInstrOpcode::LoadCondRegReg, 3) != MicroOpBits::B32)
         return Result::Error;
     return Result::Continue;
 }
@@ -4657,7 +4634,7 @@ SWC_TEST_BEGIN(InstCombine_SelectReadWhole_Kept)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (firstSelectBits(builder) != MicroOpBits::B64)
+    if (firstOpcodeBits(builder, MicroInstrOpcode::LoadCondRegReg, 3) != MicroOpBits::B64)
         return Result::Error;
     return Result::Continue;
 }

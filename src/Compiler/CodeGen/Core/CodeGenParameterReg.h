@@ -2,6 +2,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
@@ -91,6 +92,42 @@ namespace CodeGenParameterReg
             CodeGenFunctionHelpers::markImmutableIndirectParameter(codeGen, *registerPayload.symVar, registerPayload.paramInfo, reboundPayload.reg);
             codeGen.setVariablePayload(*registerPayload.symVar, reboundPayload);
         }
+    }
+
+    // Loads every register parameter into a fresh virtual register, keeping each one off the
+    // physical registers the later parameters still arrive in, then rebinds them.
+    inline void materializeRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
+    {
+        const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
+        SWC_ASSERT(paramInfos.size() == params.size());
+        if (params.empty())
+            return;
+
+        const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
+        MicroBuilder&   builder  = codeGen.builder();
+
+        SmallVector<uint32_t> registerParamIndices;
+        appendRegisterParameterIndices(registerParamIndices, params, paramInfos);
+        SmallVector<RegisterParameterPayload> registerPayloads;
+        registerPayloads.reserve(registerParamIndices.size());
+
+        for (size_t i = 0; i < registerParamIndices.size(); ++i)
+        {
+            const uint32_t paramIndex = registerParamIndices[i];
+            const auto*    symVar     = params[paramIndex];
+            SWC_ASSERT(symVar != nullptr);
+            const auto& paramInfo = paramInfos[paramIndex];
+
+            SmallVector<MicroReg> futureSourceRegs;
+            collectFutureSourceRegs(futureSourceRegs, callConv, paramInfos, registerParamIndices.span(), i, paramInfo.isFloat);
+
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+            symbolPayload.typeRef = symVar->typeRef();
+            bindRegisterParameter(codeGen, builder, symbolFunc, *symVar, paramInfo, symbolPayload, futureSourceRegs, registerPayloads);
+        }
+
+        rebindRegisterParameters(codeGen, builder, registerPayloads.span());
     }
 }
 

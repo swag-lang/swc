@@ -4,28 +4,11 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.CopyElimination.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    Result runCopyEliminationPass(MicroBuilder& builder)
-    {
-        MicroCopyEliminationPass pass;
-        MicroPassManager         passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
-    }
-
-}
 
 // mov v1, v1 -> erased.
 SWC_TEST_BEGIN(CopyElim_SelfCopy_Erased)
@@ -36,7 +19,7 @@ SWC_TEST_BEGIN(CopyElim_SelfCopy_Erased)
     builder.emitLoadRegReg(v1, v1, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
@@ -59,7 +42,7 @@ SWC_TEST_BEGIN(CopyElim_ChainedCopies_CanonicalizesSource)
     builder.emitOpBinaryRegImm(v3, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
@@ -96,7 +79,7 @@ SWC_TEST_BEGIN(CopyElim_RewritesPureUseAcrossJoin)
     builder.emitCmpRegImm(v2, ApInt(1, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
         return Result::Error;
@@ -126,7 +109,7 @@ SWC_TEST_BEGIN(CopyElim_DoesNotPropagatePastSourceRedefinition)
     builder.emitCmpRegImm(v2, ApInt(1, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
@@ -157,7 +140,7 @@ SWC_TEST_BEGIN(CopyElim_TransfersForbiddenPhysRegsToCanonicalSource)
     builder.emitCmpRegImm(v2, ApInt(1, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
 
     if (!builder.isVirtualRegPhysRegForbidden(v1, callConv.intReturn))
         return Result::Error;
@@ -181,7 +164,7 @@ SWC_TEST_BEGIN(CopyElim_DoesNotRewriteUseDefOperand)
     builder.emitCmpRegImm(v2, ApInt(1, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
         return Result::Error;
@@ -217,7 +200,7 @@ SWC_TEST_BEGIN(CopyElim_PropagatesInDominatorOrderWithoutPhis)
     builder.emitLoadMemReg(MicroReg::intReg(2), 8, orphan, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
     if (builder.instructions().ptr(firstCopy) || builder.instructions().ptr(secondCopy))
         return Result::Error;
     if (builder.instructions().ptr(store)->ops(builder.operands())[1].reg != source)
@@ -271,7 +254,7 @@ SWC_TEST_BEGIN(CopyElim_PropagatesNamedPhiInDominatorOrder)
     builder.emitLoadMemReg(MicroReg::intReg(2), 16, orphan, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runCopyEliminationPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroCopyEliminationPass>(builder));
     if (builder.instructions().ptr(firstCopy) || builder.instructions().ptr(secondCopy))
         return Result::Error;
     if (builder.instructions().ptr(store)->ops(builder.operands())[1].reg != source)

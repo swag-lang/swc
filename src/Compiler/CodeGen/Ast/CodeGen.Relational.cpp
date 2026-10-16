@@ -719,13 +719,7 @@ namespace
         preparedArgs.reserve(2);
         CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[0]->typeRef(), leftAddrReg);
         CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, otherPayload, params[1]->typeRef());
-        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
-
-        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
-        if (equalsFn.isForeign())
-            ABICall::callExtern(builder, callConvKind, &equalsFn, preparedCall);
-        else
-            ABICall::callLocal(builder, callConvKind, &equalsFn, preparedCall);
+        CodeGenCallHelpers::emitPreparedCall(codeGen, equalsFn, callConv, preparedArgs);
         codeGen.function().addCallDependency(&equalsFn);
 
         const MicroReg                         resultReg     = codeGen.nextVirtualIntRegister();

@@ -25,6 +25,7 @@ namespace CodeGenCallHelpers
     Result          emitFallibleFailureJumpIfHasError(CodeGen& codeGen);
     bool            canReadErrorFlagInline(const CodeGen& codeGen);
     void            isolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args);
+    void            emitPreparedCall(CodeGen& codeGen, const SymbolFunction& function, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& preparedArgs);
     void            appendPreparedValueArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef);
     void            appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg);
     Result          emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs);

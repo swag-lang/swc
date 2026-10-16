@@ -14,17 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runBranchSimplifyPass(MicroBuilder& builder)
-    {
-        MicroBranchSimplifyPass pass;
-        MicroPassManager        passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
-    }
-
     uint32_t countConditionalJumps(const MicroBuilder& builder)
     {
         uint32_t count = 0;
@@ -38,17 +27,6 @@ namespace
                 ++count;
         }
 
-        return count;
-    }
-
-    uint32_t countTableAddresses(const MicroBuilder& builder)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == MicroInstrOpcode::LoadRegPtrReloc)
-                ++count;
-        }
         return count;
     }
 
@@ -94,7 +72,7 @@ SWC_TEST_BEGIN(BranchSimplify_ErasesJumpToImmediateLabel)
     builder.placeLabel(labelDone);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0)
         return Result::Error;
@@ -122,7 +100,7 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsJumpThroughEmptyBlock)
     builder.placeLabel(labelJoin);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (anyJumpTargetsLabel(builder, labelAlias))
         return Result::Error;
@@ -153,7 +131,7 @@ SWC_TEST_BEGIN(BranchSimplify_ErasesBranchImpliedFalseByDominatingTest)
     builder.placeLabel(labelRet);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -184,7 +162,7 @@ SWC_TEST_BEGIN(BranchSimplify_JumpsOnBranchImpliedTrueByDominatingTest)
     builder.placeLabel(labelRet);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -218,7 +196,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsBranchesNotImplied)
     builder.placeLabel(labelRet);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 3)
         return Result::Error;
@@ -247,7 +225,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsBranchOnAnotherRegister)
     builder.placeLabel(labelRet);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 2)
         return Result::Error;
@@ -275,7 +253,7 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownTrueBranch)
     builder.placeLabel(labelJoin);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0)
         return Result::Error;
@@ -307,7 +285,7 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownFalseBranch)
     builder.placeLabel(labelJoin);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0)
         return Result::Error;
@@ -339,7 +317,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDynamicBranchAcrossFloatClear)
         builder.placeLabel(skip);
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
         if (countConditionalJumps(builder) != 1)
             return Result::Error;
@@ -372,7 +350,7 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownBranchAfterIntegerClear)
     builder.placeLabel(labelJoin);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0)
         return Result::Error;
@@ -404,7 +382,7 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownSignedLessBranch)
     builder.placeLabel(labelJoin);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countLoadImmValue(builder, 1) != 0)
         return Result::Error;
@@ -434,7 +412,7 @@ SWC_TEST_BEGIN(BranchSimplify_FoldsKnownUnsignedBelowBranch)
     builder.placeLabel(labelJoin);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countLoadImmValue(builder, 10) != 0)
         return Result::Error;
@@ -456,7 +434,7 @@ SWC_TEST_BEGIN(BranchSimplify_ErasesDeadTailAfterRet)
     builder.emitLoadRegImm(v1, ApInt(2, 64), MicroOpBits::B64);
     builder.emitLoadRegImm(v1, ApInt(3, 64), MicroOpBits::B64);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countLoadImmValue(builder, 1) != 1)
         return Result::Error;
@@ -485,7 +463,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsMinPatternToCmov)
     builder.placeLabel(skip);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     uint32_t cmovCount = 0;
     for (const MicroInstr& inst : builder.instructions().view())
@@ -522,7 +500,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsConditionalConstantToCmov)
     builder.placeLabel(skip);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     uint32_t cmovCount = 0;
     for (const MicroInstr& inst : builder.instructions().view())
@@ -560,7 +538,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsMultiInstructionBranchBody)
     builder.placeLabel(skip);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -599,7 +577,7 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExit)
     builder.placeLabel(exit);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     // Every remaining conditional jump lands on the exit label; the join is gone.
     const MicroOperandStorage& operands = builder.operands();
@@ -655,7 +633,7 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsConstantIncomingEdges)
         builder.emitLoadMemReg(output, 8, value, MicroOpBits::B8);
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         if (countConditionalJumps(builder) != 1 || anyJumpTargetsLabel(builder, join))
             return Result::Error;
         // The merge value remains live after the branch, and all stores must survive.
@@ -707,7 +685,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConstantEdgeKeepsEffectsAndLiveFlags)
         }
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         if (!anyJumpTargetsLabel(builder, join))
             return Result::Error;
     }
@@ -754,7 +732,7 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsInlinedBooleanReturnToSoleBranch)
             builder.emitLoadMemReg(c, 0, flag, MicroOpBits::B8);
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         bool threaded = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
@@ -821,7 +799,7 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExitPastJoin)
     const MicroLabelRef exit = builder.createLabel();
     emitFallThroughJoin(builder, join, exit, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     const uint64_t target = earlyExitTarget(builder);
     if (target == UINT64_MAX || target == join.get() || target == exit.get())
@@ -838,7 +816,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsShortCircuitExitWhenFallThroughReadsFlags)
     const MicroLabelRef exit = builder.createLabel();
     emitFallThroughJoin(builder, join, exit, true);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (earlyExitTarget(builder) != join.get())
         return Result::Error;
@@ -888,7 +866,7 @@ SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExitThroughJoinCopy)
     const MicroLabelRef exit = builder.createLabel();
     emitNestedShortCircuit(builder, join, exit, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (anyJumpTargetsLabel(builder, join))
         return Result::Error;
@@ -914,7 +892,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsShortCircuitExitWhenRhsReadsJoinCopy)
     const MicroLabelRef exit = builder.createLabel();
     emitNestedShortCircuit(builder, join, exit, true);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (!anyJumpTargetsLabel(builder, join))
         return Result::Error;
@@ -937,7 +915,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsReferencedLabel)
     builder.placeLabel(target);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     uint32_t labelCount = 0;
     for (const MicroInstr& inst : builder.instructions().view())
@@ -967,7 +945,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsByteSelectBranch)
     builder.placeLabel(skip);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -1040,7 +1018,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsDiamondSelectToCmov)
     builder.emitLoadRegReg(shape.result, vB, MicroOpBits::B32);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalMoves(builder, MicroCond::GreaterOrEqual) != 1)
         return Result::Error;
@@ -1093,7 +1071,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsGuardedSelectToCmovChain)
     builder.emitLoadRegReg(MicroReg::virtualIntReg(14), vResult, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0)
         return Result::Error;
@@ -1120,7 +1098,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsDiamondConstantsToCmov)
     builder.emitLoadRegImm(shape.result, ApInt(9, 32), MicroOpBits::B32);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalMoves(builder, MicroCond::NotEqual) != 1)
         return Result::Error;
@@ -1151,7 +1129,7 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingArm)
     builder.emitLoadCondRegReg(shape.result, vB, MicroCond::Greater, MicroOpBits::B32);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalMoves(builder, MicroCond::Less) != 1 || countConditionalMoves(builder, MicroCond::Greater) != 1)
         return Result::Error;
@@ -1193,7 +1171,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWithFlagReadAfterBitwiseNot)
     builder.emitLoadCondRegReg(shape.result, vA, MicroCond::Equal, MicroOpBits::B32);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -1232,7 +1210,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsEarlyReturnWithFlagReadAfterBitwiseNot)
     builder.emitLoadRegReg(returnReg, tail, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -1259,7 +1237,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWithGuardedLoad)
     builder.emitLoadRegImm(shape.result, ApInt(0, 32), MicroOpBits::B32);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -1288,7 +1266,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWithSharedArmLabel)
     builder.emitLoadRegReg(MicroReg::virtualIntReg(13), shape.result, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 2)
         return Result::Error;
@@ -1313,7 +1291,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWhenArmReadsResultFirst)
     builder.emitLoadRegReg(shape.result, shape.result, MicroOpBits::B32);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -1339,7 +1317,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsDiamondWhenArmClobbersCompareInput)
     builder.emitLoadRegReg(shape.result, vA, MicroOpBits::B32);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -1363,7 +1341,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsByteDiamond)
     builder.emitLoadRegReg(shape.result, vB, MicroOpBits::B8);
     closeDiamond(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1)
         return Result::Error;
@@ -1401,7 +1379,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsEarlyReturnToCmov)
     builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalMoves(builder, MicroCond::Less) != 1)
         return Result::Error;
@@ -1429,8 +1407,8 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsEarlyReturnChainToCmovs)
     builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalMoves(builder, MicroCond::Less) != 2)
         return Result::Error;
@@ -1461,7 +1439,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsEarlyReturnWithGuardedLoad)
     builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;
@@ -1491,7 +1469,7 @@ SWC_TEST_BEGIN(BranchSimplify_SinksCompareBelowFlagWritingEarlyReturn)
     builder.emitLoadRegReg(returnReg, v, MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalMoves(builder, MicroCond::Less) != 1)
         return Result::Error;
@@ -1536,7 +1514,7 @@ SWC_TEST_BEGIN(BranchSimplify_EarlyReturnChecksBothCompareInputs)
         builder.emitLoadRegReg(result, lhs, MicroOpBits::B32);
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         // The negation requires reissuing the compare. Either operand being
         // overwritten by the tail prevents that, even if it is the second one.
         const bool canConvert = tailDef == scratch;
@@ -1567,7 +1545,7 @@ SWC_TEST_BEGIN(BranchSimplify_InvertsJumpPairAfterImmediateJumpErasure)
     builder.emitLoadMemImm(base, 0, ApInt(2, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
     if (countConditionalJumps(builder) != 1 || anyJumpTargetsLabel(builder, next))
         return Result::Error;
     for (const MicroInstr& inst : builder.instructions().view())
@@ -1611,7 +1589,7 @@ SWC_TEST_BEGIN(BranchSimplify_TriangleScratchPreservesAcceptedPlanOrder)
         builder.emitLoadRegImm(MicroReg::virtualIntReg(1000), ApInt(99, 64), MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         if (countConditionalMoves(builder, MicroCond::NotEqual) != (includeImmediate ? 2 : 1))
             return Result::Error;
         bool foundScratch = false;
@@ -1662,7 +1640,7 @@ SWC_TEST_BEGIN(BranchSimplify_BooleanFusionChecksTakenFlags)
         builder.emitSetCondReg(output, MicroCond::Above);
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         bool hasBooleanCompare = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
@@ -1693,7 +1671,7 @@ SWC_TEST_BEGIN(BranchSimplify_BooleanMoveFusionPreservesLaterFlags)
         builder.emitSetCondReg(MicroReg::virtualIntReg(4), MicroCond::Above);
         builder.emitRet();
 
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         bool hasBooleanCompare = false;
         for (const MicroInstr& inst : builder.instructions().view())
         {
@@ -1724,7 +1702,7 @@ SWC_TEST_BEGIN(BranchSimplify_RepeatedBooleanMovesStillFuse)
         builder.emitLoadCondRegReg(MicroReg::virtualIntReg(3 + i), input, MicroCond::NotEqual, MicroOpBits::B64);
     }
     builder.emitRet();
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
     uint32_t moves = 0;
     for (const MicroInstr& inst : builder.instructions().view())
     {
@@ -1784,7 +1762,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsConditionalUpdateToCmov)
     builder.emitLoadRegReg(shape.result, vT, MicroOpBits::B64);
     closeTriangle(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || countConditionalMoves(builder, MicroCond::Greater) != 1)
         return Result::Error;
@@ -1812,7 +1790,7 @@ SWC_TEST_BEGIN(BranchSimplify_ConditionalUpdateReissuesCompare)
     builder.emitOpBinaryRegImm(shape.result, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
     closeTriangle(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || countConditionalMoves(builder, MicroCond::Greater) != 1)
         return Result::Error;
@@ -1846,7 +1824,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsConditionalUpdateWithGuardedLoad)
     builder.emitOpBinaryRegImm(shape.result, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
     closeTriangle(builder, shape);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 1 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0)
         return Result::Error;
@@ -1886,7 +1864,7 @@ SWC_TEST_BEGIN(BranchSimplify_EqualityChainBecomesBitTest)
     const std::array<uint64_t, 4> constants = {32, 9, 10, 13};
     emitEqualityChain(builder, constants);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || countLoadImmValue(builder, (1ULL << 32) | (1ULL << 9) | (1ULL << 10) | (1ULL << 13)) != 1)
         return Result::Error;
@@ -1945,7 +1923,7 @@ SWC_TEST_BEGIN(BranchSimplify_WideEqualityChainBecomesOr)
     const std::array<uint64_t, 3> constants = {1, 40, 200};
     emitEqualityChain(builder, constants);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || countBinaryRegRegOps(builder, MicroOp::Or) != 2 || countBinaryRegRegOps(builder, MicroOp::ShiftRight) != 0)
         return Result::Error;
@@ -1959,7 +1937,7 @@ SWC_TEST_BEGIN(BranchSimplify_RangeChainBecomesBranchless)
     MicroBuilder builder(ctx);
     emitRangeChain(builder, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || countBinaryRegRegOps(builder, MicroOp::Or) != 2)
         return Result::Error;
@@ -1973,7 +1951,7 @@ SWC_TEST_BEGIN(BranchSimplify_RangeChainWithStoreKept)
     MicroBuilder builder(ctx);
     emitRangeChain(builder, true);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) == 0)
         return Result::Error;
@@ -2032,7 +2010,7 @@ SWC_TEST_BEGIN(BranchSimplify_SignDiamondBecomesByteDifference)
     MicroBuilder builder(ctx);
     emitSignDiamond(builder, MicroCond::LessOrEqual, MicroCond::Less, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || !hasSignedByteExtend(builder))
         return Result::Error;
@@ -2046,7 +2024,7 @@ SWC_TEST_BEGIN(BranchSimplify_UnsignedSignDiamondBecomesByteDifference)
     MicroBuilder builder(ctx);
     emitSignDiamond(builder, MicroCond::BelowOrEqual, MicroCond::Below, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || !hasSignedByteExtend(builder))
         return Result::Error;
@@ -2066,7 +2044,7 @@ SWC_TEST_BEGIN(BranchSimplify_MixedSignDiamondKept)
     MicroBuilder builder(ctx);
     emitSignDiamond(builder, MicroCond::LessOrEqual, MicroCond::Below, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (hasSignedByteExtend(builder))
         return Result::Error;
@@ -2080,7 +2058,7 @@ SWC_TEST_BEGIN(BranchSimplify_SignDiamondWithOtherValueKept)
     MicroBuilder builder(ctx);
     emitSignDiamond(builder, MicroCond::LessOrEqual, MicroCond::Less, true);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (hasSignedByteExtend(builder))
         return Result::Error;
@@ -2135,17 +2113,6 @@ namespace
             builder.emitLoadMemReg(base, 8, result, MicroOpBits::B32);
         builder.emitRet();
     }
-
-    uint32_t countSelects(const MicroBuilder& builder)
-    {
-        uint32_t count = 0;
-        for (const MicroInstr& inst : builder.instructions().view())
-        {
-            if (inst.op == MicroInstrOpcode::LoadCondRegReg)
-                ++count;
-        }
-        return count;
-    }
 }
 
 // Returning a small constant per case reads a constant table at the index.
@@ -2156,9 +2123,9 @@ SWC_TEST_BEGIN(BranchSimplify_ReturningSwitchBecomesLookupTable)
     const std::array<uint64_t, 3> values = {1, 4, 9};
     emitConstantSwitch(builder, keys, values, 16, true, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
-    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1 || countTableAddresses(builder) != 1)
+    if (countConditionalJumps(builder) != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -2173,9 +2140,9 @@ SWC_TEST_BEGIN(BranchSimplify_JoiningSwitchBecomesPackedTable)
     const std::array<uint64_t, 4> values = {0, 1, 5, 70};
     emitConstantSwitch(builder, keys, values, 0xFFFFFFFF, false, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
-    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1)
+    if (countConditionalJumps(builder) != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -2189,9 +2156,9 @@ SWC_TEST_BEGIN(BranchSimplify_SwitchWithLoadedArmKept)
     const std::array<uint64_t, 3> values = {1, 4, 9};
     emitConstantSwitch(builder, keys, values, 16, true, true);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
-    if (countSelects(builder) != 0 || countConditionalJumps(builder) == 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0 || countConditionalJumps(builder) == 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -2205,9 +2172,9 @@ SWC_TEST_BEGIN(BranchSimplify_WholeWordSwitchKept)
     const std::array<uint64_t, 3> values = {1, 2, 3};
     emitConstantSwitch(builder, keys, values, 0, true, false, MicroOpBits::B64);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
-    if (countSelects(builder) != 0 || countConditionalJumps(builder) == 0)
+    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 0 || countConditionalJumps(builder) == 0)
         return Result::Error;
     return Result::Continue;
 }
@@ -2221,9 +2188,9 @@ SWC_TEST_BEGIN(BranchSimplify_WideSwitchBecomesLookupTable)
     const std::array<uint64_t, 4> values = {0x10000, 0x20000, 0x30000, 0x40000};
     emitConstantSwitch(builder, keys, values, 0x50000, true, false);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
-    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1 || countTableAddresses(builder) != 1)
+    if (countConditionalJumps(builder) != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegPtrReloc) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -2264,9 +2231,9 @@ SWC_TEST_BEGIN(BranchSimplify_SwitchWithCaseRangeBecomesPackedTable)
     builder.emitLoadRegImm(result, ApInt(30, 64), MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
-    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1)
+    if (countConditionalJumps(builder) != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -2300,9 +2267,9 @@ SWC_TEST_BEGIN(BranchSimplify_SwitchFallingIntoLastCaseBecomesPackedTable)
     builder.emitLoadRegImm(result, ApInt(30, 64), MicroOpBits::B32);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
-    if (countConditionalJumps(builder) != 0 || countSelects(builder) != 1)
+    if (countConditionalJumps(builder) != 0 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }
@@ -2315,7 +2282,7 @@ SWC_TEST_BEGIN(BranchSimplify_MirroredSignDiamondBecomesByteDifference)
     MicroBuilder builder(ctx);
     emitSignDiamond(builder, MicroCond::GreaterOrEqual, MicroCond::Greater, false, true);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (countConditionalJumps(builder) != 0 || !hasSignedByteExtend(builder))
         return Result::Error;
@@ -2329,7 +2296,7 @@ SWC_TEST_BEGIN(BranchSimplify_MirroredSignDiamondWithLessKept)
     MicroBuilder builder(ctx);
     emitSignDiamond(builder, MicroCond::GreaterOrEqual, MicroCond::Less, false, true);
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
 
     if (hasSignedByteExtend(builder))
         return Result::Error;
@@ -2377,14 +2344,14 @@ SWC_TEST_BEGIN(BranchSimplify_FloatSelectOfComparedValues_BecomesMinMax)
     {
         MicroBuilder builder(ctx);
         emitFloatSelect(builder, MicroCond::BelowOrEqual, true);
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         if (floatSelectOp(builder) != MicroOp::FloatMax || countConditionalJumps(builder) != 0)
             return Result::Error;
     }
     {
         MicroBuilder builder(ctx);
         emitFloatSelect(builder, MicroCond::BelowOrEqual, false);
-        SWC_RESULT(runBranchSimplifyPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
         if (floatSelectOp(builder) != MicroOp::FloatMin || countConditionalJumps(builder) != 0)
             return Result::Error;
     }
@@ -2397,7 +2364,7 @@ SWC_TEST_BEGIN(BranchSimplify_FloatSelectOnNonStrictTest_Kept)
 {
     MicroBuilder builder(ctx);
     emitFloatSelect(builder, MicroCond::Below, true);
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
     if (floatSelectOp(builder) != MicroOp::Move)
         return Result::Error;
     return Result::Continue;
@@ -2616,7 +2583,7 @@ SWC_TEST_BEGIN(BranchSimplify_TrapEndsTheFailurePath)
     builder.placeLabel(success);
     builder.emitRet();
 
-    SWC_RESULT(runBranchSimplifyPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Trap) != 1 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Breakpoint) != 0 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::Ret) != 1)

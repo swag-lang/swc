@@ -4,8 +4,6 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -18,16 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runLoopUnrollPass(MicroBuilder& builder)
-    {
-        MicroLoopUnrollPass pass;
-        MicroPassManager    passManager;
-        passManager.addStartPass(pass);
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
-    }
-
     void emitCountedLoop(MicroBuilder& builder, MicroLabelRef header)
     {
         constexpr MicroReg counter = MicroReg::virtualIntReg(1);
@@ -59,7 +47,7 @@ SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
         builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
 
         const bool     flattened = bound == 16;
         const uint32_t jumps     = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond);
@@ -115,7 +103,7 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumUsesClosedForm)
         builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, accumulator, test.sumBits);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
             Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 0 ||
             Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Subtract) != 0)
@@ -160,7 +148,7 @@ SWC_TEST_BEGIN(LoopUnroll_ConstantIndexSumRejectsDynamicInputAndLiveFlags)
         builder.placeLabel(done);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != (liveFlags ? 2u : 1u))
             return Result::Error;
     }
@@ -194,7 +182,7 @@ SWC_TEST_BEGIN(LoopUnroll_IndexedXorReduction_VectorizesFullGroupsAndKeepsScalar
             builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, value, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
         const bool     vectorized  = bound >= 64 && !escapedValue;
         const uint64_t vectorWidth = bound >= 128 ? 8 : 4;
         const bool     hasTail     = bound % vectorWidth != 0;
@@ -258,7 +246,7 @@ SWC_TEST_BEGIN(LoopUnroll_LargeBranchedConstantTable_Flattens)
         builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
         const uint32_t expectedJumps = constantTable ? 4 : 2;
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != expectedJumps ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != (constantTable ? 4u : 1u) ||
@@ -309,7 +297,7 @@ SWC_TEST_BEGIN(LoopUnroll_SeventeenConstantTableTrips_FlattenWithinSizeBudget)
     builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 17 ||
         builder.codeRelocations().size() != 17)
@@ -336,7 +324,7 @@ SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_GroupsFourAndKeepsTail)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     std::array<uint32_t, 4> displacements{};
     for (const MicroInstr& inst : builder.instructions().view())
     {
@@ -371,7 +359,7 @@ SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedCopy_GroupsFourAndKeepsTail)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     std::array<uint32_t, 4> readDisplacements{};
     std::array<uint32_t, 4> writeDisplacements{};
     for (const MicroInstr& inst : builder.instructions().view())
@@ -415,7 +403,7 @@ SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_RejectsOtherCounterUses)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;
@@ -440,7 +428,7 @@ SWC_TEST_BEGIN(LoopUnroll_DynamicIndexedRead_RejectsChangingBase)
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
         return Result::Error;
@@ -455,7 +443,7 @@ SWC_TEST_BEGIN(LoopUnroll_MultipleLoops_RebuildsIncomingJumpRanges)
     emitCountedLoop(builder, builder.createLabel());
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 6)
@@ -479,7 +467,7 @@ SWC_TEST_BEGIN(LoopUnroll_SingleTrip_LosesItsLatch)
     builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegImm) != 0 ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
@@ -526,7 +514,7 @@ SWC_TEST_BEGIN(LoopUnroll_TriangularNest_UnrollsOuterLoop)
         builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, outerHeader);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
 
         // Every copy keeps its guard and its inner latch until the constants fold.
         const bool     unrolled = mode == 0;
@@ -573,7 +561,7 @@ SWC_TEST_BEGIN(LoopUnroll_OutsideReadsAndCarriedValuesKeepTheirNames)
         builder.emitLoadMemReg(sp, 0x70, after, MicroOpBits::B64);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
             return Result::Error;
         std::array<uint32_t, 4> copies{};
@@ -630,7 +618,7 @@ SWC_TEST_BEGIN(LoopUnroll_FreshRegisterFilesRespectRenamingEligibility)
         builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
         builder.emitRet();
 
-        SWC_RESULT(runLoopUnrollPass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 0)
             return Result::Error;
         uint32_t integerCopies = 0;
@@ -672,7 +660,7 @@ SWC_TEST_BEGIN(LoopUnroll_MultipleIncomingJumps_PreservesLoop)
     emitCountedLoop(builder, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 2)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
@@ -700,7 +688,7 @@ SWC_TEST_BEGIN(LoopUnroll_ExternalJumpToBody_PreservesLoop)
     builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
     builder.emitRet();
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 2)
         return Result::Error;
     if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 2)
@@ -740,7 +728,7 @@ SWC_TEST_BEGIN(LoopUnroll_RejectedCandidateKeepsRelocationsForFollowingLoop)
     expected.targetAddress  = 0x1000;
     builder.addRelocation(expected);
 
-    SWC_RESULT(runLoopUnrollPass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
     if (!builder.instructions().ptr(rejectedLatch) || builder.instructions().ptr(unrolledLatch) ||
         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 2 || builder.codeRelocations().size() != 3)
         return Result::Error;

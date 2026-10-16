@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenPointerIndex.h"
+#include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -115,18 +116,8 @@ namespace
         if (!leftTypeInfo.isReference())
             return;
 
-        ioTypeRef         = leftTypeInfo.payloadTypeRef();
-        ioPayload.typeRef = ioTypeRef;
-        if (ioPayload.isValue())
-        {
-            ioPayload.setIsAddress();
-            return;
-        }
-
-        const MicroReg referenceSlotReg = ioPayload.reg;
-        ioPayload.reg                   = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
-        ioPayload.setIsAddress();
+        ioTypeRef = leftTypeInfo.payloadTypeRef();
+        CodeGenReferenceHelpers::derefReferencePayload(codeGen, ioPayload, ioTypeRef);
     }
 
     AssignTarget resolveAssignTarget(CodeGen& codeGen, AstNodeRef leftRef)

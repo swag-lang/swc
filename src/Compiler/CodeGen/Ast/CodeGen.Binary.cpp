@@ -295,7 +295,7 @@ namespace
         if (srcType.typeRef() == dstTypeRef)
             return;
 
-        SWC_ASSERT(!srcType.isAlias() && !srcType.isEnum());
+        SWC_ASSERT(!srcType.isAliasOrEnum());
         const TypeInfo&   dstType      = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         const MicroOpBits dstBits      = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         dstTypeRef                     = dstType.typeRef();

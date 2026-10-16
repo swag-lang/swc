@@ -1976,7 +1976,7 @@ namespace
                             (!isCaptured && inlineBindingNeedsRepeatedLValueMaterialization(sema, binding, use)) ||
                             (!isCaptured && bindsPointeeByAddress && use.pointerLevel);
 
-        const TypeInfo& valueType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), param.typeRef()));
+        const TypeInfo& valueType      = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), param.typeRef());
         const bool      valueAggregate = valueType.isStructOrAggregateStruct() || valueType.isStringOrSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
         if (context.isOrdinaryInline && valueAggregate)
         {

@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -28,6 +29,15 @@
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
+
+Result CodeGenFunctionHelpers::raiseInternalFailure(CodeGen& codeGen, AstNodeRef errorNodeRef, SemaError::ReportLocation location, std::string_view because)
+{
+    auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, errorNodeRef, location);
+    diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
+    diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+    diag.report(codeGen.ctx());
+    return Result::Error;
+}
 
 Result CodeGenFunctionHelpers::emitMoveValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg, MicroReg sourceReg, AstNodeRef sourceRef)
 {
@@ -1154,27 +1164,13 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
 
     const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
-    const uint32_t sizeOf    = checkedTypeSizeInBytes(codeGen, typeInfo);
-    MicroBuilder&  builder   = codeGen.builder();
-    const auto     loopLabel = builder.createLabel();
-    const auto     doneLabel = builder.createLabel();
-    const auto     cursorReg = codeGen.nextVirtualIntRegister();
-    const auto     iterReg   = codeGen.nextVirtualIntRegister();
-    builder.emitLoadRegReg(cursorReg, dstAddressReg, MicroOpBits::B64);
-    builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
-    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-    builder.placeLabel(loopLabel);
+    const uint32_t                          sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+    const CodeGenMemoryHelpers::ElementLoop loop   = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
     if (symStruct.hasImplicitAllZeroDefault())
-        CodeGenMemoryHelpers::emitMemZero(codeGen, cursorReg, sizeOf);
+        CodeGenMemoryHelpers::emitMemZero(codeGen, loop.cursorReg, sizeOf);
     else
-        SWC_RESULT(emitStructDefaultValue(codeGen, typeInfo, cursorReg));
-    builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
-    builder.placeLabel(doneLabel);
+        SWC_RESULT(emitStructDefaultValue(codeGen, typeInfo, loop.cursorReg));
+    CodeGenMemoryHelpers::endElementLoop(codeGen, loop, sizeOf);
     return Result::Continue;
 }
 
@@ -1226,24 +1222,10 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
     if (typeInfo.isStruct())
         return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, countReg);
 
-    const uint32_t sizeOf    = checkedTypeSizeInBytes(codeGen, typeInfo);
-    MicroBuilder&  builder   = codeGen.builder();
-    const auto     loopLabel = builder.createLabel();
-    const auto     doneLabel = builder.createLabel();
-    const auto     cursorReg = codeGen.nextVirtualIntRegister();
-    const auto     iterReg   = codeGen.nextVirtualIntRegister();
-    builder.emitLoadRegReg(cursorReg, dstAddressReg, MicroOpBits::B64);
-    builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
-    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-    builder.placeLabel(loopLabel);
-    SWC_RESULT(emitImplicitDefaultValue(codeGen, typeInfo, cursorReg));
-    builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
-    builder.placeLabel(doneLabel);
+    const uint32_t                          sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+    const CodeGenMemoryHelpers::ElementLoop loop   = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
+    SWC_RESULT(emitImplicitDefaultValue(codeGen, typeInfo, loop.cursorReg));
+    CodeGenMemoryHelpers::endElementLoop(codeGen, loop, sizeOf);
     return Result::Continue;
 }
 

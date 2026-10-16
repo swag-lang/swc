@@ -157,39 +157,6 @@ namespace
         CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc);
     }
 
-    void materializeCompilerRegisterParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
-    {
-        const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
-        if (params.empty())
-            return;
-
-        const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
-
-        SmallVector<uint32_t> registerParamIndices;
-        CodeGenParameterReg::appendRegisterParameterIndices(registerParamIndices, params, paramInfos);
-
-        MicroBuilder&                                              builder = codeGen.builder();
-        SmallVector<CodeGenParameterReg::RegisterParameterPayload> registerPayloads;
-        registerPayloads.reserve(registerParamIndices.size());
-        for (size_t i = 0; i < registerParamIndices.size(); ++i)
-        {
-            const uint32_t paramIndex = registerParamIndices[i];
-            const auto*    symVar     = params[paramIndex];
-            SWC_ASSERT(symVar != nullptr);
-
-            CodeGenNodePayload symbolPayload;
-            symbolPayload.typeRef = symVar->typeRef();
-            symbolPayload.reg     = paramInfos[paramIndex].isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-
-            SmallVector<MicroReg> futureSourceRegs;
-            CodeGenParameterReg::collectFutureSourceRegs(futureSourceRegs, callConv, paramInfos, registerParamIndices.span(), i, paramInfos[paramIndex].isFloat);
-
-            CodeGenParameterReg::bindRegisterParameter(codeGen, builder, symbolFunc, *symVar, paramInfos[paramIndex], symbolPayload, futureSourceRegs, registerPayloads);
-        }
-
-        CodeGenParameterReg::rebindRegisterParameters(codeGen, builder, registerPayloads.span());
-    }
-
     Result codeGenCompilerFunctionBody(CodeGen& codeGen, const AstNodeRef childRef, const AstNodeRef bodyRef)
     {
         if (!isActiveCompilerRunRoot(codeGen))
@@ -217,7 +184,7 @@ namespace
             }
         }
 
-        materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
+        CodeGenParameterReg::materializeRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
         CodeGenSafety::initializeValueBorrowSites(codeGen);
         return Result::Continue;
     }
@@ -291,7 +258,7 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
 
     codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
 
-    materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
+    CodeGenParameterReg::materializeRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
     CodeGenSafety::initializeValueBorrowSites(codeGen);
     return Result::Continue;
 }

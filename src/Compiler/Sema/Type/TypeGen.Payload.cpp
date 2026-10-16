@@ -967,8 +967,8 @@ namespace
 
                 // Wire the interface method table (itable) into `value` so `Swag.makeInterface`/`Swag.tableOf`
                 // can build an interface from a runtime typeinfo when the implementing struct lives
-                // in a module the call site cannot enumerate as a static candidate (e.g. core's
-                // `parseValue` building an interface for `Pixel.Color`). Layout matches
+                // in a module the call site cannot enumerate as a static candidate (e.g. a generic
+                // function of a library building an interface for a struct of an importer). Layout matches
                 // SymbolImpl::ensureInterfaceMethodTable: slot[0] = the owning struct's typeinfo,
                 // slot[1..] = the impl's resolved method pointers. Skip generic ROOTs (their methods
                 // are uninstantiated and have no concrete code to relocate to).

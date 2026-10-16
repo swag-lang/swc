@@ -4,26 +4,11 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.SinkToUse.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    Result runSinkToUsePass(MicroBuilder& builder)
-    {
-        MicroSinkToUsePass pass;
-        MicroPassManager   passManager;
-        passManager.addStartPass(pass);
-
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
-    }
-}
 
 SWC_TEST_BEGIN(SinkToUse_MovesDefinitionToItsConsumer)
 {
@@ -40,7 +25,7 @@ SWC_TEST_BEGIN(SinkToUse_MovesDefinitionToItsConsumer)
     const auto consumer = builder.instructions().lastInstructionRef();
     builder.emitRet();
 
-    SWC_RESULT(runSinkToUsePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
     if (builder.instructions().ptr(original))
         return Result::Error;
     const auto  precedingRef = builder.instructions().findPreviousInstructionRef(consumer);
@@ -65,7 +50,7 @@ SWC_TEST_BEGIN(SinkToUse_LoadCannotCrossBaseRedefinition)
     builder.emitLoadRegReg(result, value, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runSinkToUsePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
     if (!builder.instructions().ptr(load))
         return Result::Error;
     return Result::Continue;
@@ -86,7 +71,7 @@ SWC_TEST_BEGIN(SinkToUse_LoadCannotCrossMemoryWrite)
     builder.emitLoadRegReg(result, value, MicroOpBits::B64);
     builder.emitRet();
 
-    SWC_RESULT(runSinkToUsePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
     if (!builder.instructions().ptr(load))
         return Result::Error;
     return Result::Continue;
@@ -109,7 +94,7 @@ SWC_TEST_BEGIN(SinkToUse_ChainKeepsProducerOrderAcrossRounds)
     const auto store = builder.instructions().lastInstructionRef();
     builder.emitRet();
 
-    SWC_RESULT(runSinkToUsePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
     auto previousRef = store;
     for (const auto reg : {third, second, first})
     {
@@ -132,7 +117,7 @@ SWC_TEST_BEGIN(SinkToUse_ChainKeepsProducerOrderAcrossRounds)
     std::vector<MicroInstrRef> settledRefs;
     for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
         settledRefs.push_back(it.current);
-    SWC_RESULT(runSinkToUsePass(builder));
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
     size_t index = 0;
     for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
     {
@@ -160,7 +145,7 @@ SWC_TEST_BEGIN(SinkToUse_OperandClusterKeepsStableOrder)
         const auto consumer = builder.instructions().lastInstructionRef();
         builder.emitRet();
 
-        SWC_RESULT(runSinkToUsePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
         const auto  rightRef  = builder.instructions().findPreviousInstructionRef(consumer);
         const auto  leftRef   = builder.instructions().findPreviousInstructionRef(rightRef);
         const auto* leftInst  = builder.instructions().ptr(leftRef);
@@ -172,7 +157,7 @@ SWC_TEST_BEGIN(SinkToUse_OperandClusterKeepsStableOrder)
         if (!hasGap && (leftRef != originalLeft || rightRef != originalRight))
             return Result::Error;
 
-        SWC_RESULT(runSinkToUsePass(builder));
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
         if (builder.instructions().findPreviousInstructionRef(consumer) != rightRef || builder.instructions().findPreviousInstructionRef(rightRef) != leftRef)
             return Result::Error;
     }

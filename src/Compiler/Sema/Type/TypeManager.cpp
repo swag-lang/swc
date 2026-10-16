@@ -487,7 +487,7 @@ TypeRef TypeManager::unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) co
     if (!typeRef.isValid())
         return TypeRef::invalid();
     const TypeInfo& typeInfo = get(typeRef);
-    if (!typeInfo.isAlias() && !typeInfo.isEnum())
+    if (!typeInfo.isAliasOrEnum())
         return typeRef;
     return typeInfo.unwrapAliasEnum(ctx, typeRef);
 }

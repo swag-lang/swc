@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -66,7 +67,7 @@ namespace
 }
 
 // '--print-micro' selects a function by its scoped name or by a trailing part of it, so
-// 'Pixel.Webp.decodeLossy', 'Webp.decodeLossy' and 'decodeLossy' all name the same function.
+// 'Lib.Codec.decode', 'Codec.decode' and 'decode' all name the same function.
 void CodeGen::appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::span<const Utf8> requests, std::string_view scopedName)
 {
     for (const Utf8& request : requests)
@@ -1420,23 +1421,9 @@ Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecyc
     const uint64_t  sizeOf     = typeInfo.sizeOf(mutableCtx);
     SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
 
-    MicroBuilder& builder   = this->builder();
-    const auto    loopLabel = builder.createLabel();
-    const auto    doneLabel = builder.createLabel();
-    const auto    cursorReg = nextVirtualIntRegister();
-    const auto    iterReg   = nextVirtualIntRegister();
-    builder.emitLoadRegReg(cursorReg, addressReg, MicroOpBits::B64);
-    builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
-    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
-
-    builder.placeLabel(loopLabel);
-    SWC_RESULT(emitLifecycle(normalizedTypeRef, lifecycleKind, cursorReg));
-    builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
-    builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
-    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
-    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
-    builder.placeLabel(doneLabel);
+    const CodeGenMemoryHelpers::ElementLoop loop = CodeGenMemoryHelpers::beginElementLoop(*this, addressReg, countReg);
+    SWC_RESULT(emitLifecycle(normalizedTypeRef, lifecycleKind, loop.cursorReg));
+    CodeGenMemoryHelpers::endElementLoop(*this, loop, sizeOf);
     return Result::Continue;
 }
 

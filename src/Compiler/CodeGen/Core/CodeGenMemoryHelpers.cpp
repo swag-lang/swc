@@ -1157,6 +1157,32 @@ void CodeGenMemoryHelpers::emitCStringCountReg(CodeGen& codeGen, MicroReg countR
     builder.placeLabel(doneLabel);
 }
 
+CodeGenMemoryHelpers::ElementLoop CodeGenMemoryHelpers::beginElementLoop(CodeGen& codeGen, MicroReg addressReg, MicroReg countReg)
+{
+    MicroBuilder& builder = codeGen.builder();
+    ElementLoop   loop;
+    loop.loopLabel = builder.createLabel();
+    loop.doneLabel = builder.createLabel();
+    loop.cursorReg = codeGen.nextVirtualIntRegister();
+    loop.iterReg   = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegReg(loop.cursorReg, addressReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(loop.iterReg, countReg, MicroOpBits::B64);
+    builder.emitCmpRegImm(loop.iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loop.doneLabel);
+    builder.placeLabel(loop.loopLabel);
+    return loop;
+}
+
+void CodeGenMemoryHelpers::endElementLoop(CodeGen& codeGen, const ElementLoop& loop, uint64_t elementSize)
+{
+    MicroBuilder& builder = codeGen.builder();
+    builder.emitOpBinaryRegImm(loop.cursorReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(loop.iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCmpRegImm(loop.iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loop.loopLabel);
+    builder.placeLabel(loop.doneLabel);
+}
+
 void CodeGenMemoryHelpers::emitMemZero(CodeGen& codeGen, MicroReg dstReg, uint32_t sizeInBytes)
 {
     if (!sizeInBytes)

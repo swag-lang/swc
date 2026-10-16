@@ -25,6 +25,7 @@ namespace SemaHelpers
     Result prepareFallibleCast(Sema& sema);
     bool   isAssumedCast(Sema& sema);
     bool   isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef);
+    bool   isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef);
     Result materializeMovedValue(Sema& sema, SemaNodeView& view);
     bool   ownsExpressionValue(Sema& sema, AstNodeRef nodeRef);
     bool   expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef);

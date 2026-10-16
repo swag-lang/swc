@@ -1610,21 +1610,18 @@ namespace
 
     bool isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef, bool resolveAliases)
     {
+        if (resolveAliases)
+            return SemaHelpers::isVariadicTypeNode(sema, typeNodeRef);
+
         if (typeNodeRef.isInvalid())
             return false;
 
         const AstNode& typeNode = sema.node(typeNodeRef);
         if (typeNode.is(AstNodeId::VariadicType) || typeNode.is(AstNodeId::TypedVariadicType))
             return true;
-        if (!resolveAliases)
-        {
-            if (const auto* namedType = typeNode.safeCast<AstNamedType>())
-                return SemaHelpers::isVariadicTypeRefOrAlias(sema, safeNamedTypeRef(sema, *namedType));
-            return false;
-        }
-
-        const TypeRef typeRef = SemaHelpers::structuralTypeRefFromTypeNode(sema, typeNodeRef);
-        return SemaHelpers::isVariadicTypeRefOrAlias(sema, typeRef);
+        if (const auto* namedType = typeNode.safeCast<AstNamedType>())
+            return SemaHelpers::isVariadicTypeRefOrAlias(sema, safeNamedTypeRef(sema, *namedType));
+        return false;
     }
 
     void appendGenericRootCallParams(Sema& sema, AstNodeRef paramRef, SmallVector<GenericRootCallParam>& outParams, bool captureNames)

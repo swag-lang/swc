@@ -113,18 +113,6 @@ namespace
         return patternRef;
     }
 
-    bool isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef)
-    {
-        if (typeNodeRef.isInvalid())
-            return false;
-
-        const AstNode& typeNode = sema.node(typeNodeRef);
-        if (typeNode.is(AstNodeId::VariadicType) || typeNode.is(AstNodeId::TypedVariadicType))
-            return true;
-
-        return SemaHelpers::isVariadicTypeRefOrAlias(sema, SemaHelpers::structuralTypeRefFromTypeNode(sema, typeNodeRef));
-    }
-
     void appendFunctionParamNodes(Sema& sema, AstNodeRef nodeParamsRef, SmallVector<AstNodeRef>& outParams)
     {
         if (nodeParamsRef.isInvalid())
@@ -169,7 +157,7 @@ namespace
             desc.typeRef         = varDecl.typeOrInitRef();
             desc.resolvedTypeRef = SemaHelpers::structuralTypeRefFromTypeNode(sema, desc.typeRef);
             desc.defaultRef      = varDecl.nodeInitRef;
-            desc.isVariadic      = isVariadicTypeNode(sema, desc.typeRef);
+            desc.isVariadic      = SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
             desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
             outParams.push_back(desc);
             return;
@@ -187,7 +175,7 @@ namespace
                 desc.typeRef         = multiVar.typeOrInitRef();
                 desc.resolvedTypeRef = SemaHelpers::structuralTypeRefFromTypeNode(sema, desc.typeRef);
                 desc.defaultRef      = multiVar.nodeInitRef;
-                desc.isVariadic      = isVariadicTypeNode(sema, desc.typeRef);
+                desc.isVariadic      = SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
                 desc.hasExplicitType = multiVar.nodeTypeRef.isValid();
                 outParams.push_back(desc);
             }
@@ -524,7 +512,7 @@ namespace
                     desc.idRef           = symField->idRef();
                     desc.typeRef         = varDecl->typeOrInitRef();
                     desc.defaultRef      = varDecl->nodeInitRef;
-                    desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(sema, symField->typeRef()) || isVariadicTypeNode(sema, desc.typeRef);
+                    desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(sema, symField->typeRef()) || SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
                     desc.hasExplicitType = varDecl->nodeTypeRef.isValid();
                     outFields.push_back(desc);
                 }
@@ -1073,7 +1061,7 @@ namespace
                     desc.typeRef         = varDecl.typeOrInitRef();
                     desc.resolvedTypeRef = symParam->typeRef().isValid() ? symParam->typeRef() : SemaHelpers::structuralTypeRefFromTypeNode(sema, desc.typeRef);
                     desc.defaultRef      = varDecl.nodeInitRef;
-                    desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(sema, symParam->typeRef()) || isVariadicTypeNode(sema, desc.typeRef);
+                    desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(sema, symParam->typeRef()) || SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
                     desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
                     symbolParamDescs.push_back(desc);
                 }

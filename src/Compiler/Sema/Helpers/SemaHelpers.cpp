@@ -27,6 +27,18 @@ bool SemaHelpers::isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef)
     return (unwrappedType ? *unwrappedType : typeInfo).isAnyVariadic();
 }
 
+bool SemaHelpers::isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef)
+{
+    if (typeNodeRef.isInvalid())
+        return false;
+
+    const AstNode& typeNode = sema.node(typeNodeRef);
+    if (typeNode.is(AstNodeId::VariadicType) || typeNode.is(AstNodeId::TypedVariadicType))
+        return true;
+
+    return isVariadicTypeRefOrAlias(sema, structuralTypeRefFromTypeNode(sema, typeNodeRef));
+}
+
 void SemaHelpers::addCurrentScopeSymbol(Sema& sema, Symbol* sym)
 {
     SemaScope* scope = currentLocalSymbolScope(sema);

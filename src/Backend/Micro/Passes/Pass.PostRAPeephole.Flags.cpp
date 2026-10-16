@@ -9,6 +9,8 @@ namespace PostRaPeephole
 {
     using MicroPassHelpers::RegTouch;
 
+    constexpr uint32_t K_MAX_CARRY_PATTERN_WINDOW = 4;
+
     namespace
     {
         RegTouch instructionRegTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg)
@@ -292,8 +294,6 @@ namespace PostRaPeephole
     // flags included, so nothing downstream sees a difference.
     bool tryFoldBorrowDifference(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
     {
-        constexpr uint32_t K_MAX_WINDOW = 4;
-
         if (ctx.isClaimed(ref))
             return false;
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
@@ -309,7 +309,7 @@ namespace PostRaPeephole
         // no other access to its register in between.
         MicroInstrRef setRef = MicroInstrRef::invalid();
         MicroInstrRef cursor = ctx.previousRef(ref);
-        for (uint32_t step = 0; step < K_MAX_WINDOW && cursor.isValid(); ++step)
+        for (uint32_t step = 0; step < K_MAX_CARRY_PATTERN_WINDOW && cursor.isValid(); ++step)
         {
             const MicroInstr* current = ctx.instruction(cursor);
             if (!current || current->op == MicroInstrOpcode::Label)
@@ -1616,8 +1616,6 @@ namespace PostRaPeephole
     // SBB or ADC reads. The load of T goes once T dies at the select.
     bool tryFoldCarrySelectOfConstants(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        constexpr uint32_t K_MAX_WINDOW = 4;
-
         if (ctx.isClaimed(ref) || !ctx.encoder || !ctx.encoder->supportsCarryArithmetic())
             return false;
         const auto* select = inst.ops(*ctx.operands);
@@ -1637,7 +1635,7 @@ namespace PostRaPeephole
         MicroInstrRef resultLoad = MicroInstrRef::invalid();
         MicroInstrRef otherLoad  = MicroInstrRef::invalid();
         MicroInstrRef cursor     = ctx.previousRef(ref);
-        for (uint32_t step = 0; step < K_MAX_WINDOW && cursor.isValid() && (!resultLoad.isValid() || !otherLoad.isValid()); ++step)
+        for (uint32_t step = 0; step < K_MAX_CARRY_PATTERN_WINDOW && cursor.isValid() && (!resultLoad.isValid() || !otherLoad.isValid()); ++step)
         {
             const MicroInstr* current = ctx.instruction(cursor);
             if (!current || current->op == MicroInstrOpcode::Label)

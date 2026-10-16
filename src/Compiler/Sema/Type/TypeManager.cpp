@@ -289,11 +289,12 @@ TypeRef TypeManager::addTypeAfterMiss(const TypeInfo& typeInfo, const uint32_t h
     auto&          stripe      = shard.internStripes[stripeIndex];
 
     // The published-table lookup already missed. Keep the locked lookup because another worker
-    // may have inserted this type before this thread acquired the stripe.
+    // may have inserted this type before this thread acquired the stripe. The table holds every
+    // type of the stripe, and only a writer holding this mutex adds one or replaces it.
     const std::unique_lock lk(stripe.mutex);
-    const auto             existing = stripe.map.find(typeInfo);
-    if (existing != stripe.map.end())
-        return (*existing)->typeRef();
+    const TypeRef          existing = findInterned(stripe.table.load(std::memory_order_relaxed), typeInfo, hash);
+    if (existing.isValid())
+        return existing;
 
     uint32_t  localIndex = INVALID_REF;
     TypeInfo* ptr        = nullptr;
@@ -303,8 +304,6 @@ TypeRef TypeManager::addTypeAfterMiss(const TypeInfo& typeInfo, const uint32_t h
         SWC_ASSERT(localIndex < LOCAL_MASK);
         ptr = shard.store.ptr<TypeInfo>(localIndex);
     }
-    StoredType stored(ptr);
-
     // TypeRef encodes shard + local index. The TypeInfo stores its own TypeRef so
     // callers that only hold a payload pointer can still recover stable identity.
     TypeRef result{(shardIndex << LOCAL_BITS) | localIndex};
@@ -314,10 +313,9 @@ TypeRef TypeManager::addTypeAfterMiss(const TypeInfo& typeInfo, const uint32_t h
 #endif
     ptr->typeRef_ = result;
 
-    const auto [it, inserted] = stripe.map.insert(std::move(stored));
-    SWC_ASSERT(inserted);
+    stripe.owned.emplace_back(ptr);
     publishInterned(stripe, ptr, hash);
-    return (*it)->typeRef();
+    return result;
 }
 
 template<typename Matches>

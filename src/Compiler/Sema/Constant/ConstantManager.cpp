@@ -63,9 +63,14 @@ namespace
         table.size++;
     }
 
-    // Called under the stripe mutex, once the canonical constant is in 'map'.
-    ConstantRef publishInterned(ConstantManager::InternStripe& stripe, const ConstantValue& value, ConstantRef ref, uint32_t hash)
+    // Called under the stripe mutex. The stripe takes ownership of the canonical constant, and
+    // the table it is published in is the only index: writers probe it again under the mutex,
+    // where nobody else can add a constant or replace the table.
+    ConstantRef publishInterned(ConstantManager::InternStripe& stripe, ConstantManager::StoredConstant canonical, ConstantRef ref, uint32_t hash)
     {
+        const ConstantValue& value = *canonical;
+        stripe.owned.push_back(std::move(canonical));
+
         // Keeping the load at or below one half bounds every probe and guarantees an empty slot.
         ConstantManager::InternTable* table = stripe.table.load(std::memory_order_relaxed);
         if (!table || (table->size + 1) * 2 > table->capacity)
@@ -256,9 +261,9 @@ namespace
         ConstantRef   result;
 
         const std::unique_lock lk(stripe.mutex);
-        const auto             existing = stripe.map.find(value);
-        if (existing != stripe.map.end())
-            return existing->second;
+        const ConstantRef      existing = findInterned(stripe, value, routingHash);
+        if (existing.isValid())
+            return existing;
 
         const uint32_t shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
         if (value.isStruct())
@@ -284,10 +289,8 @@ namespace
         localIndex = shard.dataSegment.add(stored);
         ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        result                    = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
-        const auto [it, inserted] = stripe.map.emplace(std::move(canonical), result);
-        SWC_ASSERT(inserted);
-        return publishInterned(stripe, *it->first, it->second, routingHash);
+        result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+        return publishInterned(stripe, std::move(canonical), result, routingHash);
     }
 
     ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t routingHash, const TaskContext& ctx, const ConstantValue& value)
@@ -302,9 +305,9 @@ namespace
 
         {
             const std::unique_lock lk(stripe.mutex);
-            const auto             it = stripe.map.find(value);
-            if (it != stripe.map.end())
-                return it->second;
+            const ConstantRef      existing = findInterned(stripe, value, routingHash);
+            if (existing.isValid())
+                return existing;
 
             const bool preserveType = ctx.typeMgr().get(value.typeRef()).isString();
             if (!preserveType)
@@ -312,9 +315,9 @@ namespace
                 // Alias inputs can miss with their original type but normalize to an existing key.
                 // Check before allocating a constant that would be discarded at insertion.
                 const ConstantValue normalizedValue = ConstantValue::makeString(ctx, value.getString());
-                const auto          normalized      = stripe.map.find(normalizedValue);
-                if (normalized != stripe.map.end())
-                    return normalized->second;
+                const ConstantRef   normalized      = findInterned(stripe, normalizedValue, Math::hash(normalizedValue.hash()));
+                if (normalized.isValid())
+                    return normalized;
             }
 
             const uint32_t                         shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
@@ -326,10 +329,9 @@ namespace
             localIndex = shard.dataSegment.add(strValue);
             ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
             SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-            result                            = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
-            const auto [insertedIt, inserted] = stripe.map.emplace(std::move(canonical), result);
-            SWC_ASSERT(inserted);
-            result = publishInterned(stripe, *insertedIt->first, insertedIt->second, Math::hash(insertedIt->first->hash()));
+            result                    = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+            const uint32_t storedHash = Math::hash(canonical->hash());
+            result                    = publishInterned(stripe, std::move(canonical), result, storedHash);
         }
 
         return result;
@@ -397,12 +399,13 @@ namespace
         const ConstantValue& stored = enriched ? *enriched : value;
         // The input may itself be interned and have its location enriched concurrently. Keep
         // one snapshot for locking, updates, and publication; location is not part of identity.
-        const DataSegmentRef           dataRef = stored.dataSegmentRef();
-        ConstantManager::InternStripe* stripe  = nullptr;
+        const DataSegmentRef           dataRef     = stored.dataSegmentRef();
+        ConstantManager::InternStripe* stripe      = nullptr;
+        uint32_t                       routingHash = 0;
         if (canDeduplicateByValue)
         {
-            const uint32_t routingHash = Math::hash(stored.hash());
-            stripe                     = &internStripe(shard, routingHash);
+            routingHash = Math::hash(stored.hash());
+            stripe      = &internStripe(shard, routingHash);
             if (dataRef.isInvalid())
             {
                 const ConstantRef found = findInterned(*stripe, stored, routingHash);
@@ -417,21 +420,19 @@ namespace
             if (canDeduplicateByValue)
             {
                 const std::unique_lock lk(stripe->mutex);
-                const auto             it = stripe->map.find(stored);
-                if (it != stripe->map.end())
+                const ConstantRef      existing = findInterned(*stripe, stored, routingHash);
+                if (existing.isValid())
                 {
-                    updateStoredDataSegmentRef(shard, it->second, dataRef);
-                    return it->second;
+                    updateStoredDataSegmentRef(shard, existing, dataRef);
+                    return existing;
                 }
 
                 localIndex = shard.dataSegment.add(stored);
                 ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
                 SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
                 canonical->setDataSegmentRef(dataRef);
-                result                            = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
-                const auto [insertedIt, inserted] = stripe->map.emplace(std::move(canonical), result);
-                SWC_ASSERT(inserted);
-                return publishInterned(*stripe, *insertedIt->first, insertedIt->second, Math::hash(insertedIt->first->hash()));
+                result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+                return publishInterned(*stripe, std::move(canonical), result, routingHash);
             }
             else
             {

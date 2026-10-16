@@ -1436,7 +1436,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
     {
-        SemaNodeView nodeSymbolsView = sema.curViewSymbolList();
+        SemaNodeView nodeSymbolsView = sema.curViewSymbol();
         if (!nodeSymbolsView.hasSymbolList())
             semaPreDecl(sema);
         nodeSymbolsView.recompute(sema, SemaNodeViewPartE::Symbol);
@@ -1448,7 +1448,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
         }
     }
 
-    const std::span<Symbol* const> symbols = sema.curViewSymbolList().symList();
+    const std::span<Symbol* const> symbols = sema.curViewSymbol().symList();
     SemaHelpers::ensureCurrentLocalScopeSymbols(sema, symbols);
     for (const Symbol* sym : symbols)
     {
@@ -1465,7 +1465,7 @@ Result AstMultiVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         auto frame = sema.frame();
         if (requiresConstExprInitializer(sema, flags()))
             frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
-        for (const Symbol* sym : sema.curViewSymbolList().symList())
+        for (const Symbol* sym : sema.curViewSymbol().symList())
             frame.hideLookupSymbol(sym);
         frame.setBindingScoped();
         sema.pushFramePopOnPostChild(frame, childRef);
@@ -1478,7 +1478,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     if (childRef == nodeTypeRef)
     {
         if (isRetValTypeNode(sema, nodeTypeRef))
-            markRetValVariables(sema.curViewSymbolList().symList());
+            markRetValVariables(sema.curViewSymbol().symList());
 
         if (nodeInitRef.isValid())
         {
@@ -1496,7 +1496,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstMultiVarDecl::semaPostNode(Sema& sema) const
 {
-    const std::span<Symbol* const> symbols = sema.curViewSymbolList().symList();
+    const std::span<Symbol* const> symbols = sema.curViewSymbol().symList();
     const SemaPostVarDeclArgs      context = {this, tokRef(), nodeInitRef, nodeTypeRef, flags(), storageFlags};
     return semaPostVarDeclCommon(sema, context, symbols);
 }

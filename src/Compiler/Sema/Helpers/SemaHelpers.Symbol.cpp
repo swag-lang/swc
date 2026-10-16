@@ -1294,7 +1294,7 @@ namespace
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
 
         // Constant struct member access
-        const SemaNodeView             nodeRightView = sema.viewSymbolList(node.nodeRightRef);
+        const SemaNodeView             nodeRightView = sema.viewSymbol(node.nodeRightRef);
         const std::span<Symbol* const> symbols       = nodeRightView.symList();
         const size_t                   finalSymCount = symbols.size();
 

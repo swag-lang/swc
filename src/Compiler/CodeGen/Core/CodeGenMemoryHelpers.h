@@ -14,6 +14,19 @@ struct CodeGenNodePayload;
 
 namespace CodeGenMemoryHelpers
 {
+    // A loop over 'count' consecutive elements: 'cursorReg' addresses the current one, and the
+    // element body is emitted between beginElementLoop and endElementLoop.
+    struct ElementLoop
+    {
+        MicroLabelRef loopLabel;
+        MicroLabelRef doneLabel;
+        MicroReg      cursorReg;
+        MicroReg      iterReg;
+    };
+
+    ElementLoop beginElementLoop(CodeGen& codeGen, MicroReg addressReg, MicroReg countReg);
+    void        endElementLoop(CodeGen& codeGen, const ElementLoop& loop, uint64_t elementSize);
+
     void     emitGlobalVariableAddress(CodeGen& codeGen, MicroReg reg, const SymbolVariable& symVar);
     void     emitConvertFloatToInt(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);
     void     emitConvertIntToFloat(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, MicroOpBits srcOpBits, MicroOpBits dstOpBits, bool unsignedSource);

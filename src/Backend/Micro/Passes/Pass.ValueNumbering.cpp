@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Support/Core/FlatTable.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
@@ -610,7 +611,7 @@ namespace
     private:
         static constexpr size_t INITIAL_CAPACITY = 64;
 
-        size_t slotIndex(const uint64_t hash) const { return static_cast<size_t>(hash * 0x9E3779B97F4A7C15ULL >> 32) & (buckets_.size() - 1); }
+        size_t slotIndex(const uint64_t hash) const { return FlatTable::slotIndex(hash, buckets_.size() - 1); }
 
         void grow()
         {

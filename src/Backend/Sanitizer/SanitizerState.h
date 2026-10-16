@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Sanitizer/SanitizerValue.h"
 #include "Compiler/Lexer/SourceCodeRange.h"
+#include "Support/Core/FlatTable.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -309,7 +310,7 @@ private:
 
     static size_t slotIndex(const K& key, size_t mask) noexcept
     {
-        return static_cast<size_t>(static_cast<uint64_t>(key) * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+        return FlatTable::slotIndex(static_cast<uint64_t>(key), mask);
     }
 
     size_t findIndex(const K& key) const noexcept

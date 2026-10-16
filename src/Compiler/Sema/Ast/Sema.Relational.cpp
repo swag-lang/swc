@@ -573,7 +573,7 @@ namespace
 
         bool isAggregateEqualityOperand(const TypeInfo& type)
         {
-            return type.isSlice() || type.isArray() || type.isStruct() || type.isAggregate();
+            return type.isArrayOrSlice() || type.isStruct() || type.isAggregate();
         }
 
         Result aggregateLiteralForEquality(Sema& sema, SemaNodeView& literalView, SemaNodeView& typedView)
@@ -583,7 +583,7 @@ namespace
 
             const TypeInfo& literalType = SemaHelpers::aliasEnumType(sema, literalView);
             const TypeInfo& typedType   = SemaHelpers::aliasEnumType(sema, typedView);
-            const bool      arrayMatch  = literalType.isAggregateArray() && (typedType.isArray() || typedType.isSlice());
+            const bool      arrayMatch  = literalType.isAggregateArray() && typedType.isArrayOrSlice();
             const bool      structMatch = literalType.isAggregateStruct() && typedType.isStruct();
             if (!arrayMatch && !structMatch)
                 return Result::Continue;

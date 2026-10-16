@@ -1889,7 +1889,7 @@ namespace
         mat.bindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
         // A buffer projection exposes element storage. A synthetic 'let' must not
         // make a mutable slice or array parameter's buffer const.
-        mat.hasAddressUse = use.address || (use.buffer && (paramType.isSlice() || paramType.isArray()));
+        mat.hasAddressUse = use.address || (use.buffer && paramType.isArrayOrSlice());
         // A non-null pointer parameter CAN bind a flow-narrowed nullable argument. A
         // by-address binding is pinned in place with a typed cast instead of being
         // re-homed into a local.

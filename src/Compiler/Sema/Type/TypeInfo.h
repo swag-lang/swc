@@ -171,7 +171,8 @@ public:
     bool isPointerLikeOrReference() const noexcept { return isPointerLike() || isReference(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
-    bool isIndexable() const noexcept { return isArray() || isSlice() || isString() || isCString() || isAnyVariadic(); }
+    bool isArrayOrSlice() const noexcept { return isArray() || isSlice(); }
+    bool isIndexable() const noexcept { return isArrayOrSlice() || isString() || isCString() || isAnyVariadic(); }
     bool isSimd() const noexcept { return kind_ == TypeInfoKind::Simd; }
 
     bool isSupportsNullableQualifier() const noexcept;

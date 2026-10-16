@@ -602,7 +602,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
     SmallVector<AstNodeRef> children;
     sema.ast().appendNodes(children, spanChildrenRef);
 
-    if (indexedType.isArray() || indexedType.isSlice() || indexedType.isAnyVariadic())
+    if (indexedType.isArrayOrSlice() || indexedType.isAnyVariadic())
     {
         const uint32_t maxIndexCount = resolveMaxSequentialIndexCount(sema, indexedTypeRef);
         if (children.size() > maxIndexCount)
@@ -615,7 +615,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         }
     }
 
-    if (indexedType.isArray() || indexedType.isAggregateArray() || indexedType.isSlice() || indexedType.isAnyVariadic() || indexedType.isAnyString() || indexedType.isBlockPointer() || indexedType.isTypedVariadic())
+    if (indexedType.isArrayOrSlice() || indexedType.isAggregateArray() || indexedType.isAnyVariadic() || indexedType.isAnyString() || indexedType.isBlockPointer() || indexedType.isTypedVariadic())
     {
         TypeRef     currentTypeRef  = indexedTypeRef;
         ConstantRef currentCstRef   = nodeExprView.cstRef();

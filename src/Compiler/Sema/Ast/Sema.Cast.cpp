@@ -104,7 +104,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
             return Result::Continue;
         const TypeInfo& targetType = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), targetTypeRef));
         const bool      needsElementCasts =
-            (sourceView.type()->isAggregateArray() && (targetType.isArray() || targetType.isSlice())) ||
+            (sourceView.type()->isAggregateArray() && targetType.isArrayOrSlice()) ||
             (sourceView.type()->isAggregateStruct() && targetType.isStruct());
         if (needsElementCasts)
         {

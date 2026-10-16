@@ -1859,7 +1859,7 @@ namespace
                             const TypeInfo& paramType = sema_->typeMgr().get(param->typeRef());
                             // Arrays and slices are passed by address: the callee can
                             // fill them (out-parameter shape).
-                            takesAddress = paramType.isPointerOrReference() || paramType.isSlice() || paramType.isArray();
+                            takesAddress = paramType.isPointerOrReference() || paramType.isArrayOrSlice();
                         }
                     }
 

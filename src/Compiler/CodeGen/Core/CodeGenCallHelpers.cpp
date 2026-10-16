@@ -117,7 +117,7 @@ namespace
                         SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), std::span{rawBytes.data(), rawBytes.size()}, cstRef, targetType) == Result::Continue);
 
                         ConstantRef typedNullCstRef = ConstantRef::invalid();
-                        if (targetType.isStruct() || targetType.isArray() || targetType.isAny() || targetType.isInterface() || targetType.isString() || targetType.isSlice())
+                        if (targetType.isStruct() || targetType.isArrayOrSlice() || targetType.isAny() || targetType.isInterface() || targetType.isString())
                         {
                             typedNullCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, targetTypeRef, std::span{rawBytes.data(), rawBytes.size()});
                         }

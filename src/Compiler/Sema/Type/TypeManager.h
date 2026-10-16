@@ -260,6 +260,7 @@ private:
     static TypeRef     findInternedIf(const InternTable* table, size_t hash, const Matches& matches) noexcept;
     const InternTable* publishedInternTable(uint32_t stableHash) const noexcept;
     static void        publishInterned(InternStripe& stripe, const TypeInfo* type, size_t hash);
+    TypeRef            addTypeAfterMiss(const TypeInfo& typeInfo, uint32_t hash, uint32_t stableHash);
 
     // Runtime types
     std::unordered_map<IdentifierRef, RuntimeTypeKind>                               mapRtKind_;

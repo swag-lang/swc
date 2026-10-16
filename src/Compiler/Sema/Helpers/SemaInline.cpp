@@ -1505,7 +1505,7 @@ namespace
             const SemaNodeView resolvedView = sema.viewType(nodeRef);
             if (const TypeInfo* resolvedType = resolvedView.type())
             {
-                if (resolvedType->isValuePointer() && !resolvedType->isNullable())
+                if (resolvedType->isNonNullValuePointer())
                 {
                     const Symbol* sym = sema.viewSymbol(nodeRef).sym();
                     if (sym && sym->isVariable())
@@ -1534,7 +1534,7 @@ namespace
     bool isNonNullValuePointerParam(Sema& sema, const SymbolVariable& param)
     {
         const TypeInfo& paramType = param.type(sema.ctx());
-        return paramType.isValuePointer() && !paramType.isNullable();
+        return paramType.isNonNullValuePointer();
     }
 
     // A method whose receiver `me` is a non-null pointer.
@@ -1691,7 +1691,7 @@ namespace
 
             // A castless by-address receiver types as its pointee, so its home holds the
             // receiver's ADDRESS.
-            const bool paramBindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+            const bool paramBindsByAddress = paramType.isReferenceOrNonNullValuePointer();
             if (paramBindsByAddress && binding.sourceParam->typeRef().isValid() && inlineBindingSourceTypesAsPointee(sema, binding.exprRef))
             {
                 const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
@@ -1886,7 +1886,7 @@ namespace
         mat.capturedByRef = inlineBindingIsCaptured(binding.idRef, context.identifiers.capturedByRef);
         // A non-null pointer parameter binds by address exactly like a reference did:
         // its binding aliases the caller's storage and must not be re-homed.
-        mat.bindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+        mat.bindsByAddress = paramType.isReferenceOrNonNullValuePointer();
         // A buffer projection exposes element storage. A synthetic 'let' must not
         // make a mutable slice or array parameter's buffer const.
         mat.hasAddressUse = use.address || (use.buffer && paramType.isArrayOrSlice());
@@ -1933,7 +1933,7 @@ namespace
         mat.forAddress       = !isCaptured && mat.hasAddressUse && (!mat.bindsByAddress || !sema.isLValue(binding.exprRef));
         // A pointer parameter fed by a narrowed nullable pointer binds a value, not a place: its
         // home pins the non-null parameter type while the caller's fact is still live.
-        const bool narrowedPointer = mat.narrowDependent && paramType.isValuePointer() && !paramType.isNullable() && !bindsPointeeByAddress;
+        const bool narrowedPointer = mat.narrowDependent && paramType.isNonNullValuePointer() && !bindsPointeeByAddress;
         mat.forNarrowFact          = mat.narrowDependent && (!mat.bindsByAddress || narrowedPointer);
         mat.forContextLambda       = isInlineContextualLambdaArg(sema, binding.exprRef);
         // A nullable parameter needs storage on which its body can record a narrowing
@@ -1989,7 +1989,7 @@ namespace
                             (!isCaptured && bindsPointeeByAddress && use.pointerLevel);
 
         const TypeInfo& valueType      = sema.typeMgr().get(sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), param.typeRef()));
-        const bool      valueAggregate = valueType.isStruct() || valueType.isAggregateStruct() || valueType.isString() || valueType.isSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
+        const bool      valueAggregate = valueType.isStructOrAggregateStruct() || valueType.isStringOrSlice() || valueType.isInterface() || valueType.isAny() || valueType.isLambdaClosure();
         if (context.isOrdinaryInline && valueAggregate)
         {
             const auto abi    = ABITypeNormalize::normalize(sema.ctx(), CallConv::get(context.fn->callConvKind()), paramType, ABITypeNormalize::Usage::Argument);
@@ -2035,7 +2035,7 @@ namespace
         // parameter, so pin the parameter's declared non-null pointer type onto the clone:
         // a proof carried by a narrowing fact or by a `with` binding's narrowed base cannot
         // be re-derived from bare syntax.
-        else if (paramType.isValuePointer() && !paramType.isNullable() && param.typeRef().isValid())
+        else if (paramType.isNonNullValuePointer() && param.typeRef().isValid())
         {
             clonedInitRef = Cast::createCastNode(sema, param.typeRef(), clonedInitRef);
         }
@@ -2670,8 +2670,8 @@ namespace
     // slice parameters; owning aggregate values still need stronger materialization support.
     bool isInlineAggregateType(const TypeInfo& ti)
     {
-        return ti.isStruct() || ti.isArray() || ti.isAggregateStruct() || ti.isAggregateArray() ||
-               ti.isAny() || ti.isInterface() || ti.isString() || ti.isSlice() || ti.isFunction();
+        return ti.isStructOrArray() || ti.isAggregate() ||
+               ti.isAny() || ti.isInterface() || ti.isStringOrSlice() || ti.isFunction();
     }
 
     // Reports whether the callee's body declares storage that must exist exactly once.

@@ -113,7 +113,7 @@ namespace
         {
             if (!dependency || dependency == &function)
                 continue;
-            if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
+            if (dependency->isForeignOrEmptyOrAttribute())
                 continue;
             if (dependency->hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
                 continue;

@@ -289,7 +289,7 @@ namespace
         const bool    returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
         const bool    returnIsPointer  = returnType.isAnyPointer();
         const bool    returnIsNotVoid  = !returnIsVoid;
-        const bool    returnIsStrSlice = returnType.isString() || returnType.isSlice();
+        const bool    returnIsStrSlice = returnType.isStringOrSlice();
         const TypeRef u64TypeRef       = typeMgr.typeU64();
         const TypeRef boolTypeRef      = typeMgr.typeBool();
         const TypeRef s32TypeRef       = typeMgr.typeS32();
@@ -373,7 +373,7 @@ namespace
             // The returned pointer is the element's address, so the indexed expression can be an
             // lvalue: a non-null single-value pointer is the whole contract.
             case SpecOpKind::OpIndexPtr:
-                if (params.size() < 2 || !returnType.isValuePointer() || returnType.isNullable() || !indexParametersHaveSameType(ctx, params, 1, params.size()))
+                if (params.size() < 2 || !returnType.isNonNullValuePointer() || !indexParametersHaveSameType(ctx, params, 1, params.size()))
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
@@ -425,7 +425,7 @@ bool SemaSpecOp::isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, 
         return false;
 
     const TypeInfo& type = ctx.typeMgr().get(typeRef);
-    if (type.isReference() || (type.isValuePointer() && !type.isNullable()))
+    if (type.isReferenceOrNonNullValuePointer())
         typeRef = type.payloadTypeRef();
 
     const TypeRef candidateTypeRef = ctx.typeMgr().unwrapAlias(ctx, typeRef);

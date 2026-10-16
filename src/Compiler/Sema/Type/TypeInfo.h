@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/RefTypes.h"
@@ -30,6 +31,28 @@ enum class TypeInfoFlagsE : uint8_t
     Nullable = 1 << 1,
 };
 using TypeInfoFlags = EnumFlags<TypeInfoFlagsE>;
+
+enum class TypeInfoKindFlagsE : uint16_t
+{
+    Zero                = 0,
+    AliasOrEnum         = 1 << 0,
+    AnyPointerOrCString = 1 << 1,
+    AnyPointer          = 1 << 2,
+    PointerOrReference  = 1 << 3,
+    Type                = 1 << 4,
+    Aggregate           = 1 << 5,
+    IntLike             = 1 << 6,
+    NumericIntLike      = 1 << 7,
+    AnyVariadic         = 1 << 8,
+    PointerLike         = 1 << 9,
+    StringOrSlice       = 1 << 10,
+    AnyString           = 1 << 11,
+    StructOrArray       = 1 << 12,
+    ArrayOrSlice        = 1 << 13,
+    StructOrAggregateStruct = 1 << 14,
+    ArrayOrAggregateArray   = 1 << 15,
+};
+using TypeInfoKindFlags = EnumFlags<TypeInfoKindFlagsE>;
 
 enum class TypeInfoKind : uint8_t
 {
@@ -63,6 +86,118 @@ enum class TypeInfoKind : uint8_t
     TypeInfo,
     Simd,
 };
+
+namespace TypeInfoKindFlagsDetail
+{
+    // Kind-only query bits are shared here so TypeInfo gains no per-instance storage.
+    constexpr size_t KIND_COUNT = static_cast<size_t>(TypeInfoKind::Simd) + 1;
+
+    constexpr TypeInfoKindFlags get(const TypeInfoKind kind) noexcept
+    {
+        TypeInfoKindFlags flags = TypeInfoKindFlagsE::Zero;
+        switch (kind)
+        {
+            case TypeInfoKind::Bool:
+                flags.add(TypeInfoKindFlagsE::NumericIntLike);
+                break;
+            case TypeInfoKind::Int:
+                flags.add(TypeInfoKindFlagsE::IntLike);
+                flags.add(TypeInfoKindFlagsE::NumericIntLike);
+                break;
+            case TypeInfoKind::Char:
+            case TypeInfoKind::Rune:
+                flags.add(TypeInfoKindFlagsE::IntLike);
+                flags.add(TypeInfoKindFlagsE::NumericIntLike);
+                break;
+            case TypeInfoKind::String:
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                flags.add(TypeInfoKindFlagsE::StringOrSlice);
+                flags.add(TypeInfoKindFlagsE::AnyString);
+                break;
+            case TypeInfoKind::TypeValue:
+                flags.add(TypeInfoKindFlagsE::Type);
+                break;
+            case TypeInfoKind::Any:
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                break;
+            case TypeInfoKind::CString:
+                flags.add(TypeInfoKindFlagsE::AnyPointerOrCString);
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                flags.add(TypeInfoKindFlagsE::AnyString);
+                break;
+            case TypeInfoKind::Enum:
+                flags.add(TypeInfoKindFlagsE::AliasOrEnum);
+                flags.add(TypeInfoKindFlagsE::Type);
+                break;
+            case TypeInfoKind::ValuePointer:
+            case TypeInfoKind::BlockPointer:
+                flags.add(TypeInfoKindFlagsE::AnyPointerOrCString);
+                flags.add(TypeInfoKindFlagsE::AnyPointer);
+                flags.add(TypeInfoKindFlagsE::PointerOrReference);
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                break;
+            case TypeInfoKind::MoveReference:
+                flags.add(TypeInfoKindFlagsE::PointerOrReference);
+                break;
+            case TypeInfoKind::Slice:
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                flags.add(TypeInfoKindFlagsE::StringOrSlice);
+                flags.add(TypeInfoKindFlagsE::ArrayOrSlice);
+                break;
+            case TypeInfoKind::AggregateStruct:
+                flags.add(TypeInfoKindFlagsE::StructOrAggregateStruct);
+                flags.add(TypeInfoKindFlagsE::Aggregate);
+                break;
+            case TypeInfoKind::AggregateArray:
+                flags.add(TypeInfoKindFlagsE::ArrayOrAggregateArray);
+                flags.add(TypeInfoKindFlagsE::Aggregate);
+                break;
+            case TypeInfoKind::Struct:
+                flags.add(TypeInfoKindFlagsE::Type);
+                flags.add(TypeInfoKindFlagsE::StructOrArray);
+                flags.add(TypeInfoKindFlagsE::StructOrAggregateStruct);
+                break;
+            case TypeInfoKind::Interface:
+                flags.add(TypeInfoKindFlagsE::Type);
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                break;
+            case TypeInfoKind::Alias:
+                flags.add(TypeInfoKindFlagsE::AliasOrEnum);
+                break;
+            case TypeInfoKind::Function:
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                break;
+            case TypeInfoKind::TypeInfo:
+                flags.add(TypeInfoKindFlagsE::Type);
+                flags.add(TypeInfoKindFlagsE::PointerLike);
+                break;
+            case TypeInfoKind::Variadic:
+            case TypeInfoKind::TypedVariadic:
+                flags.add(TypeInfoKindFlagsE::AnyVariadic);
+                break;
+            case TypeInfoKind::Invalid:
+            case TypeInfoKind::Float:
+            case TypeInfoKind::Void:
+            case TypeInfoKind::Null:
+            case TypeInfoKind::CodeBlock:
+            case TypeInfoKind::Simd:
+                break;
+            case TypeInfoKind::Array:
+                flags.add(TypeInfoKindFlagsE::StructOrArray);
+                flags.add(TypeInfoKindFlagsE::ArrayOrSlice);
+                flags.add(TypeInfoKindFlagsE::ArrayOrAggregateArray);
+                break;
+        }
+        return flags;
+    }
+
+    inline constexpr std::array<TypeInfoKindFlags, KIND_COUNT> BY_KIND = [] {
+        std::array<TypeInfoKindFlags, KIND_COUNT> result{};
+        for (size_t i = 0; i < result.size(); ++i)
+            result[i] = get(static_cast<TypeInfoKind>(i));
+        return result;
+    }();
+}
 
 enum class TypeExpandE : uint32_t
 {
@@ -118,6 +253,8 @@ public:
     bool isNonNullable() const noexcept { return isSupportsNullableQualifier() && !flags_.has(TypeInfoFlagsE::Nullable); }
     bool isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
     bool isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }
+    bool isStructOrAggregateStruct() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::StructOrAggregateStruct); }
+    bool isArrayOrAggregateArray() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::ArrayOrAggregateArray); }
     bool isBool() const noexcept { return kind_ == TypeInfoKind::Bool; }
     bool isChar() const noexcept { return kind_ == TypeInfoKind::Char; }
     bool isString() const noexcept { return kind_ == TypeInfoKind::String; }
@@ -139,7 +276,7 @@ public:
     bool isMoveReference() const noexcept { return kind_ == TypeInfoKind::MoveReference; }
     bool isSlice() const noexcept { return kind_ == TypeInfoKind::Slice; }
     bool isArray() const noexcept { return kind_ == TypeInfoKind::Array; }
-    bool isAggregate() const noexcept { return isAggregateStruct() || isAggregateArray(); }
+    bool isAggregate() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::Aggregate); }
     bool isAlias() const noexcept { return kind_ == TypeInfoKind::Alias; }
     bool isFunction() const noexcept { return kind_ == TypeInfoKind::Function; }
     bool isVariadic() const noexcept { return kind_ == TypeInfoKind::Variadic; }
@@ -154,24 +291,33 @@ public:
     bool isIntUnsizedSigned() const noexcept { return isIntUnsized() && isIntSigned(); }
     bool isIntUnsizedUnsigned() const noexcept { return isIntUnsized() && isIntUnsigned(); }
     bool isIntUnsizedUnknownSign() const noexcept { return isIntUnsized() && payloadInt_.sign == Sign::Unknown; }
-    bool isType() const noexcept { return isTypeValue() || isEnum() || isStruct() || isInterface() || isTypeInfo(); }
+    bool isType() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::Type); }
+    bool isAliasOrEnum() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::AliasOrEnum); }
     bool isCharRune() const noexcept { return isChar() || isRune(); }
-    bool isIntLike() const noexcept { return isInt() || isCharRune(); }
-    bool isNumericIntLike() const noexcept { return isIntLike() || isBool(); }
+    bool isIntLike() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::IntLike); }
+    bool isNumericIntLike() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::NumericIntLike); }
     bool isNumericSigned() const noexcept { return isIntSigned(); }
-    bool isPointerLike() const noexcept { return isAnyPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction() || isTypeInfo(); }
+    bool isPointerLike() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::PointerLike); }
     bool isConvertibleToBool() const noexcept { return isBool() || isPointerLike() || isIntLike() || isFloat() || isEnumFlags(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isBoolOrIntLikeUnsigned() const noexcept { return isBool() || isIntLikeUnsigned(); }
     bool usesUnsignedConditions() const noexcept { return isFloat() || isIntLikeUnsigned() || isPointerLike() || isBool() || isEnum(); }
     bool isConcreteScalar() const noexcept { return isScalarNumeric() && !isIntUnsized() && !isFloatUnsized(); }
-    bool isAnyPointer() const noexcept { return isValuePointer() || isBlockPointer(); }
-    bool isPointerOrReference() const noexcept { return isAnyPointer() || isReference(); }
+    bool isAnyPointer() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::AnyPointer); }
+    bool isNonNullValuePointer() const noexcept { return isValuePointer() && !isNullable(); }
+    bool isPointerOrReference() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::PointerOrReference); }
+    bool isAnyPointerOrCString() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::AnyPointerOrCString); }
+    bool isReferenceOrNonNullValuePointer() const noexcept { return isReference() || isNonNullValuePointer(); }
     bool isPointerLikeOrReference() const noexcept { return isPointerLike() || isReference(); }
-    bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
-    bool isAnyString() const noexcept { return isString() || isCString(); }
-    bool isArrayOrSlice() const noexcept { return isArray() || isSlice(); }
+    bool isAnyVariadic() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::AnyVariadic); }
+    bool isAnyString() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::AnyString); }
+    bool isStringOrSlice() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::StringOrSlice); }
+    bool isStructOrArray() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::StructOrArray); }
+    bool hasDirectPayloadTypeRef() const noexcept { return isTypeValue() || isPointerOrReference() || isSlice() || isTypedVariadic() || isCodeBlock(); }
+    bool isArrayOrSlice() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::ArrayOrSlice); }
+    bool isArrayOrSimd() const noexcept { return isArray() || isSimd(); }
+    bool isIndirectIndexable() const noexcept { return isPointerOrReference() || isSlice() || isTypedVariadic(); }
     bool isIndexable() const noexcept { return isArrayOrSlice() || isString() || isCString() || isAnyVariadic(); }
     bool isSimd() const noexcept { return kind_ == TypeInfoKind::Simd; }
 
@@ -329,7 +475,7 @@ public:
     const TypeInfo* unwrapAliasEnumType(const TaskContext& ctx) const noexcept
     {
         SWC_ASSERT(typeRef_.isValid());
-        return isAlias() || isEnum() ? resolveAliasType<true>(ctx) : nullptr;
+        return isAliasOrEnum() ? resolveAliasType<true>(ctx) : nullptr;
     }
 
     static TypeInfo makeBool();
@@ -379,6 +525,10 @@ public:
 
 private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    bool hasKindFlag(TypeInfoKindFlagsE flag) const noexcept
+    {
+        return TypeInfoKindFlagsDetail::BY_KIND[static_cast<size_t>(kind_)].has(flag);
+    }
     template<bool IncludeEnum>
     const TypeInfo* resolveAliasType(const TaskContext& ctx) const noexcept;
 

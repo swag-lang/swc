@@ -224,7 +224,7 @@ namespace
         if (type.isArray())
             return owningDropTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visited);
 
-        if (type.isAggregateStruct() || type.isAggregateArray())
+        if (type.isAggregate())
         {
             for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
             {
@@ -269,7 +269,7 @@ namespace
         if (type.isArray())
             return lifecycleFlagsOfTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visiting);
 
-        if (type.isAggregateStruct() || type.isAggregateArray())
+        if (type.isAggregate())
             return lifecycleFlagsOfFields(ctx, type.payloadAggregate().types, visiting);
 
         if (!type.isStruct())

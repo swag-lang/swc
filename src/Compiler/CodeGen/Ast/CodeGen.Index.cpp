@@ -264,7 +264,7 @@ namespace
             return spillAddrReg;
         }
 
-        if (indexedType.isAnyPointer() || indexedType.isCString())
+        if (indexedType.isAnyPointerOrCString())
         {
             if (indexedPayload.isValue())
                 return indexedPayload.reg;
@@ -274,7 +274,7 @@ namespace
             return pointerReg;
         }
 
-        if (indexedType.isString() || indexedType.isSlice() || indexedType.isAnyVariadic())
+        if (indexedType.isStringOrSlice() || indexedType.isAnyVariadic())
         {
             const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(pointerReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
@@ -290,7 +290,7 @@ namespace
         if (indexedType.isArray())
             return typeMgr.get(typeMgr.arrayElementTypeRef(indexedType)).sizeOf(codeGen.ctx());
 
-        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
+        if (indexedType.isIndirectIndexable())
             return typeMgr.get(indexedType.payloadTypeRef()).sizeOf(codeGen.ctx());
         if (indexedType.isAnyString())
             return typeMgr.get(typeMgr.typeU8()).sizeOf(codeGen.ctx());
@@ -308,7 +308,7 @@ namespace
         if (indexedType.isArray())
             return typeMgr.arrayElementTypeRef(indexedType);
 
-        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
+        if (indexedType.isIndirectIndexable())
             return indexedType.payloadTypeRef();
         if (indexedType.isAnyString())
             return typeMgr.typeU8();

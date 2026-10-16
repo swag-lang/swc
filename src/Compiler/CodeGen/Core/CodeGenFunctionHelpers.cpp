@@ -85,7 +85,7 @@ namespace
         SWC_ASSERT(dstBytes.size() == srcBytes.size());
 
         const TypeManager& typeMgr = ctx.typeMgr();
-        if (typeInfo.isAlias() || typeInfo.isEnum())
+        if (typeInfo.isAliasOrEnum())
         {
             const TypeInfo* rawType = typeInfo.unwrapAliasEnumType(ctx);
             SWC_ASSERT(rawType);
@@ -554,9 +554,9 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     const TypeInfo& paramType     = ctx.typeMgr().get(typeRef);
     const TypeInfo* unwrappedType = paramType.unwrapAliasEnumType(ctx);
     const TypeInfo& storageType   = unwrappedType ? *unwrappedType : paramType;
-    if (storageType.isStruct() || storageType.isAggregateStruct())
+    if (storageType.isStructOrAggregateStruct())
         return true;
-    return storageType.isString() || storageType.isSlice() || storageType.isInterface() || storageType.isAny();
+    return storageType.isStringOrSlice() || storageType.isInterface() || storageType.isAny();
 }
 
 void CodeGenFunctionHelpers::markImmutableIndirectParameter(CodeGen& codeGen, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo, MicroReg reg)
@@ -733,7 +733,7 @@ namespace
         if (typeInfo.isArray())
             return canEmitDefaultPayloadBytesInline(codeGen, codeGen.typeMgr().get(typeInfo.payloadArrayElemTypeRef()));
 
-        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        if (typeInfo.isAggregate())
         {
             for (const TypeRef childTypeRef : typeInfo.payloadAggregate().types)
             {
@@ -793,7 +793,7 @@ namespace
     {
         const uint32_t       size  = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         const ConstantValue& value = codeGen.cstMgr().get(valueRef);
-        if ((value.isStruct() || value.isArray()) && value.isPayloadBorrowed() && value.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(codeGen.ctx(), typeInfo))
+        if (value.isStructOrArray() && value.isPayloadBorrowed() && value.dataSegmentRef().isValid() && ConstantHelpers::typeHasUnionStorage(codeGen.ctx(), typeInfo))
         {
             // Construction already identified the live relocations. A raw byte round trip
             // would lose that inventory and reinterpret inactive union alternatives.

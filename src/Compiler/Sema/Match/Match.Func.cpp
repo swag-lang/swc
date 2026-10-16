@@ -2874,7 +2874,7 @@ namespace
         // the pointee's address), except the implicit receiver, which keeps address identity.
         TypeRef         boxTypeRef  = argView.typeRef();
         const TypeInfo& unwrappedTy = SemaHelpers::aliasEnumType(sema, argView);
-        if (unwrappedTy.isValuePointer() && !unwrappedTy.isNullable() && unwrappedTy.isConst())
+        if (unwrappedTy.isNonNullValuePointer() && unwrappedTy.isConst())
         {
             const AstNodeRef   sourceRef  = SemaHelpers::resolveTransparentExprSourceRef(sema, outResolvedArg.argRef);
             const SemaNodeView sourceView = sema.viewSymbol(sourceRef);
@@ -2942,7 +2942,7 @@ namespace
         // A contextual aggregate literal keeps its provisional aggregate type on the
         // source node even after the UFCS cast has concretized it to the receiver type.
         // The literal owns runtime storage, so its address is the pointer argument.
-        if (sourceType.isAggregateStruct() || sourceType.isAggregateArray())
+        if (sourceType.isAggregate())
             return true;
 
         return pointeeTypeToCheck == sourceTypeToCheck;
@@ -2984,7 +2984,7 @@ namespace
         const TypeInfo& declaredType  = sema.typeMgr().get(paramTypeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& paramType     = unwrappedType ? *unwrappedType : declaredType;
-        return !paramType.isMoveReference() && (paramType.isStruct() || paramType.isArray());
+        return !paramType.isMoveReference() && paramType.isStructOrArray();
     }
 
     Result attachMovedValueRuntimeStorageIfNeeded(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)

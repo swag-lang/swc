@@ -44,7 +44,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     if (ty.isFloat() && (ty.payloadFloatBits() == 32 || ty.payloadFloatBits() == 64))
         return makeNormalizedType(false, true, false, static_cast<uint8_t>(ty.payloadFloatBits()));
 
-    if (ty.isAnyPointer() || ty.isReference() || ty.isMoveReference() || ty.isNull() || ty.isCString() || (ty.isFunction() && !ty.isLambdaClosure()) || ty.isTypeInfo())
+    if (ty.isPointerOrReference() || ty.isNull() || ty.isAnyPointerOrCString() || (ty.isFunction() && !ty.isLambdaClosure()) || ty.isTypeInfo())
         return makeNormalizedType(false, false, false, 64);
 
     if (ty.isVariadic())
@@ -64,7 +64,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         return makeIndirectStructType(size, align, needsCopy);
     }
 
-    if (ty.isString() || ty.isSlice() || ty.isInterface() || ty.isAny())
+    if (ty.isStringOrSlice() || ty.isInterface() || ty.isAny())
     {
         const uint64_t rawSize = ty.sizeOf(ctx);
         SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
@@ -81,7 +81,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
     if (ty.isSimd())
         return makeNormalizedType(false, true, false, 128);
 
-    if (ty.isStruct() || ty.isArray() || ty.isAggregate())
+    if (ty.isStructOrArray() || ty.isAggregate())
     {
         const uint64_t rawSize = ty.sizeOf(ctx);
         SWC_ASSERT(rawSize <= std::numeric_limits<uint32_t>::max());
@@ -90,7 +90,7 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         // An array parameter is a view of the caller's storage: writes through it are the
         // language contract, and C decays an array parameter to a pointer rather than pass it
         // by value. So only value-semantic aggregates ride the by-value rule for arguments.
-        const bool hasValueSemantics = ty.isStruct() || ty.isAggregateStruct();
+        const bool hasValueSemantics = ty.isStructOrAggregateStruct();
 
         auto passingKind = StructArgPassingKind::ByReference;
         if (usage == Usage::Return)

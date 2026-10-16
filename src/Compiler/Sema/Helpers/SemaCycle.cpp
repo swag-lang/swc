@@ -200,7 +200,7 @@ namespace
         const TypeInfo& typeInfo = sema.typeMgr().get(state.autoScopeTypeRef);
 
         auto diagId = DiagnosticId::sema_err_auto_scope_missing_enum_value;
-        if (typeInfo.isStruct() || typeInfo.isAggregateStruct())
+        if (typeInfo.isStructOrAggregateStruct())
             diagId = DiagnosticId::sema_err_auto_scope_missing_struct_member;
 
         auto diag = SemaError::report(sema, diagId, state.codeRef);

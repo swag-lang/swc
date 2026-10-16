@@ -228,7 +228,7 @@ namespace
             result = sema.waitSemaCompleted(&type, waitNodeRef);
         else if (type.isArray())
             result = waitTypeImplicitDefaultReadyRec(sema, type.payloadArrayElemTypeRef(), waitNodeRef, visited);
-        else if (type.isAggregateStruct() || type.isAggregateArray())
+        else if (type.isAggregate())
         {
             for (const TypeRef childTypeRef : type.payloadAggregate().types)
             {
@@ -410,7 +410,7 @@ namespace
             return classifyTypeImplicitDefault(sema, type.payloadArrayElemTypeRef());
         }
 
-        if (type.isAggregateStruct() || type.isAggregateArray())
+        if (type.isAggregate())
             return classifyAggregateTypeImplicitDefault(sema, type.payloadAggregate().types);
 
         return ImplicitDefaultKind::AllZero;

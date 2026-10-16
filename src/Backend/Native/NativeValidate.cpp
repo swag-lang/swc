@@ -101,7 +101,7 @@ bool NativeValidate::isNativeStaticType(const TypeRef typeRef) const
     if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
         return true;
 
-    if (typeInfo.isPointerLike() || typeInfo.isReference() || typeInfo.isVariadic() || typeInfo.isTypedVariadic())
+    if (typeInfo.isPointerLikeOrReference() || typeInfo.isAnyVariadic())
         return false;
 
     return false;

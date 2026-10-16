@@ -135,7 +135,7 @@ namespace
         if (type.isArray())
             return validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, type.payloadArrayElemTypeRef(), stack);
 
-        if (type.isSlice() || type.isPointerOrReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+        if (type.hasDirectPayloadTypeRef())
             return validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, type.payloadTypeRef(), stack);
 
         if (type.isFunction())
@@ -154,7 +154,7 @@ namespace
             return Result::Continue;
         }
 
-        if (type.isAggregateStruct() || type.isAggregateArray())
+        if (type.isAggregate())
         {
             for (const TypeRef childTypeRef : type.payloadAggregate().types)
                 SWC_RESULT(validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, childTypeRef, stack));

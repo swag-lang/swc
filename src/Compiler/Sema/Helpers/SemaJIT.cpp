@@ -149,7 +149,7 @@ namespace
         function.visitJitOrder([&](const SymbolFunction* called) {
             if (unpublished)
                 return;
-            if (called->isForeign() || called->isEmpty() || called->isAttribute())
+            if (called->isForeignOrEmptyOrAttribute())
                 return;
             if (!called->jitEntryAddress())
             {
@@ -361,7 +361,7 @@ namespace
         {
             if (!target)
                 continue;
-            if (target->isForeign() || target->isEmpty() || target->isAttribute())
+            if (target->isForeignOrEmptyOrAttribute())
                 continue;
 
             appendJitOrderDeduplicated(*target, out, seen);
@@ -372,7 +372,7 @@ namespace
     {
         if (fn.isIgnored())
             return false;
-        if (fn.isForeign() || fn.isEmpty() || fn.isAttribute())
+        if (fn.isForeignOrEmptyOrAttribute())
             return false;
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
             return false;
@@ -389,7 +389,7 @@ namespace
         // One dependency that is not includable settles the verdict, so the walk stops
         // there rather than reading the rest of a closure whose answer cannot change.
         return root.allInJitOrder([](const SymbolFunction* dependency) {
-            if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
+            if (dependency->isForeignOrEmptyOrAttribute())
                 return true;
             if (dependency->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
                 return true;
@@ -962,7 +962,7 @@ namespace
             return false;
         if (calledFn.isForeign() && !attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
-        if (calledFn.isEmpty() && !calledFn.isForeign())
+        if (calledFn.isEmptyNonForeign())
             return false;
         if (!calledFn.returnTypeRef().isValid())
             return false;
@@ -985,7 +985,7 @@ namespace
             return false;
         if (!attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
-        if (calledFn.isEmpty() && !calledFn.isForeign())
+        if (calledFn.isEmptyNonForeign())
             return false;
         if (!receiverTypeRef.isValid() || hasUnsupportedConstCallReturn(sema, receiverTypeRef))
             return false;
@@ -998,7 +998,7 @@ namespace
         const TypeRef   receiverType              = normalizedReceiverTypeRef.isValid() ? normalizedReceiverTypeRef : receiverTypeRef;
         const TypeInfo& receiverParam             = sema.typeMgr().get(receiverParamRef);
         // The pointer-world receiver binds by address exactly as the reference did.
-        if (!receiverParam.isReference() && !(receiverParam.isValuePointer() && !receiverParam.isNullable()))
+        if (!receiverParam.isReferenceOrNonNullValuePointer())
             return false;
         if (receiverParam.payloadTypeRef() != receiverType)
             return false;
@@ -1134,7 +1134,7 @@ namespace
 
             const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);
             const ConstantValue& argConstantValue = sema.cstMgr().get(argCstRef);
-            if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
+            if (argValueType.isReferenceOrNonNullValuePointer() &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
                 !argConstantValue.isBlockPointer())
@@ -1247,7 +1247,7 @@ namespace
             {
                 const TypeInfo& argValueType = sema.typeMgr().get(argValueTypeRef);
                 // The pointer-world receiver binds by address exactly as the reference did.
-                if (!argValueType.isReference() && !(argValueType.isValuePointer() && !argValueType.isNullable()))
+                if (!argValueType.isReferenceOrNonNullValuePointer())
                     return Result::Continue;
 
                 const TypeRef pointeeTypeRef = argValueType.payloadTypeRef();
@@ -1301,7 +1301,7 @@ namespace
 
             const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);
             const ConstantValue& argConstantValue = sema.cstMgr().get(argCstRef);
-            if ((argValueType.isReference() || (argValueType.isValuePointer() && !argValueType.isNullable())) &&
+            if (argValueType.isReferenceOrNonNullValuePointer() &&
                 !argConstantValue.isNull() &&
                 !argConstantValue.isValuePointer() &&
                 !argConstantValue.isBlockPointer())

@@ -145,7 +145,7 @@ namespace
             return;
         }
 
-        if (type.isSlice() || type.isPointerOrReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+        if (type.hasDirectPayloadTypeRef())
         {
             collectModuleApiTypeRefDependencies(collector, type.payloadTypeRef());
             return;
@@ -157,7 +157,7 @@ namespace
             return;
         }
 
-        if (type.isAggregateStruct() || type.isAggregateArray())
+        if (type.isAggregate())
         {
             for (const TypeRef childTypeRef : type.payloadAggregate().types)
                 collectModuleApiTypeRefDependencies(collector, childTypeRef);

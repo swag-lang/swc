@@ -923,7 +923,7 @@ namespace
         const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(sema.ctx());
         const TypeInfo& type          = unwrappedType ? *unwrappedType : declaredType;
-        return (type.isStruct() || type.isArray()) && typeCanCarryBorrowImpl(sema, type.typeRef()) ? &type : nullptr;
+        return type.isStructOrArray() && typeCanCarryBorrowImpl(sema, type.typeRef()) ? &type : nullptr;
     }
 
     // A copied aggregate keeps the borrows in its fields, not the address used to

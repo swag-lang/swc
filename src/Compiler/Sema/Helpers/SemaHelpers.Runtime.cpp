@@ -706,7 +706,7 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeR
     if (typeInfo.isAnyString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface())
         return true;
 
-    if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+    if (typeInfo.isAggregate())
         return true;
 
     // Simd constants borrow a byte payload, so the raw return bytes must be

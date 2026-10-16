@@ -598,7 +598,7 @@ namespace
 
         // A reference bound a value constant by materializing it and taking its address;
         // a non-null value pointer (a UFCS or method receiver) binds the same way.
-        const bool bindsValueAddress = dstType.isReference() || (dstType.isValuePointer() && !dstType.isNullable());
+        const bool bindsValueAddress = dstType.isReferenceOrNonNullValuePointer();
 
         uint64_t ptr = 0;
         if (cst.isValuePointer())

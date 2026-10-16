@@ -74,7 +74,7 @@ namespace
             return Result::Continue;
         }
 
-        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        if (typeInfo.isAggregate())
         {
             for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
                 SWC_RESULT(waitStaticPayloadTypeReadyRec(sema, fieldTypeRef, waitNodeRef, visited));
@@ -116,9 +116,9 @@ namespace
         const TypeRef storageTypeRef = storageType.typeRef();
         ConstantValue result;
 
-        if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregateStruct() || storageType.isAggregateArray() || (storageType.isFunction() && storageType.isLambdaClosure()))
+        if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure()))
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
-        else if (storageType.isArray() || storageType.isSimd())
+        else if (storageType.isArrayOrSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
         else
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
@@ -222,7 +222,7 @@ namespace
                 return Result::Continue;
             std::span<const std::byte> source;
             DataSegmentRef             sourceRef;
-            if ((value.isStruct() || value.isArray()) && value.isPayloadBorrowed())
+            if (value.isStructOrArray() && value.isPayloadBorrowed())
             {
                 source = value.isStruct() ? value.getStruct() : value.getArray();
                 if (source.size() != size || !sema.cstMgr().resolveConstantDataSegmentRef(sourceRef, valueRef, source.data()))
@@ -498,7 +498,7 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     // Mirror makeMaterializedConstantValue's kind decision. Only the array/struct branches build a
     // borrowed span constant; the scalar branch takes a different code path.
     ConstantKind kind;
-    if (storageType.isArray() || storageType.isSimd())
+    if (storageType.isArrayOrSimd())
         kind = ConstantKind::Array;
     else if (storageType.isNumericIntLike() || storageType.isFloat() || storageType.isPointerOrReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
         return 0;
@@ -640,7 +640,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
         return true;
     }
 
-    if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+    if (typeInfo.isAggregate())
     {
         uint64_t offset = 0;
         for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)

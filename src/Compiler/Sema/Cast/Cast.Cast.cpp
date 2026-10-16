@@ -298,7 +298,7 @@ namespace
     {
         if (srcType.isAnyPointer())
             return DiagnosticId::sema_err_bool_test_not_nullable;
-        if (srcType.isSlice() || srcType.isString())
+        if (srcType.isStringOrSlice())
             return DiagnosticId::sema_err_bool_test_not_nullable_emptiness;
         return DiagnosticId::sema_err_bool_test_not_nullable_absence;
     }
@@ -602,7 +602,7 @@ namespace
             return false;
 
         const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
-        if (!receiverType.isValuePointer() || receiverType.isNullable())
+        if (!receiverType.isNonNullValuePointer())
             return false;
 
         const SemaNodeView sourceView = sema.viewStored(sourceArgRef, SemaNodeViewPartE::Type);

@@ -250,7 +250,7 @@ namespace
             return TypeRef::invalid();
 
         const TypeInfo& resultType = sema.typeMgr().get(resultTypeRef);
-        if (resultType.isSlice() || resultType.isString())
+        if (resultType.isStringOrSlice())
             return resultTypeRef;
 
         return TypeRef::invalid();

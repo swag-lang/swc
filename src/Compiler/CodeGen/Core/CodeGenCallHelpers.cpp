@@ -227,7 +227,7 @@ namespace
         // castless receiver) passes the address of its own static payload: a segment
         // address every backend relocates. Lowering the pointer itself to bytes would
         // bake a compiler-memory address into the emitted code, dead in a native image.
-        if (storageType.isValuePointer() && !storageType.isNullable() && (defaultCst.isStruct() || defaultCst.isArray()))
+        if (storageType.isNonNullValuePointer() && defaultCst.isStructOrArray())
         {
             const TypeRef     pointeeTypeRef = storageType.payloadTypeRef();
             const ConstantRef safeCstRef     = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultCstRef, pointeeTypeRef);

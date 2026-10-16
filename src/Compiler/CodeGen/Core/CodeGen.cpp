@@ -1532,12 +1532,21 @@ void CodeGen::registerValueBorrowEnd(uint32_t recordOffset)
     action.borrowRecordOffset = recordOffset;
 }
 
-bool CodeGen::hasOpenValueBorrow() const
+bool CodeGen::hasOpenLocalValueBorrow() const
 {
+    if (valueBorrowSites.empty())
+        return false;
+
+    // Call-site records precede parameter records in the frame. Incoming parameters
+    // borrow storage that existed before this frame, so they cannot cover its locals.
+    const uint32_t lastLocalRecordOffset = valueBorrowSites.back().stackOffset;
     for (const CodeGenDeferScope& scope : deferScopes_)
     {
-        if (std::ranges::any_of(scope.actions, [](const CodeGenDeferredAction& action) { return action.kind == CodeGenDeferredAction::Kind::EndValueBorrow; }))
-            return true;
+        for (const CodeGenDeferredAction& action : scope.actions)
+        {
+            if (action.kind == CodeGenDeferredAction::Kind::EndValueBorrow && action.borrowRecordOffset <= lastLocalRecordOffset)
+                return true;
+        }
     }
 
     return false;

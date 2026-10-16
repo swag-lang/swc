@@ -132,7 +132,7 @@ public:
     //
     // The indirect mask is the same fact one dereference further: bit i set = the call
     // releases the pointer STORED in the box parameter #i designates ('Memory.delete(slot[])'),
-    // and leaves the box itself alive. It is inferred inside the module only.
+    // and leaves the box itself alive. It is inferred from bodies and preserved in module APIs.
     uint64_t freesParamsMask() const noexcept;
     uint64_t freesIndirectParamsMask() const noexcept;
     void     addFreesParam(size_t paramIndex, bool indirect = false) noexcept

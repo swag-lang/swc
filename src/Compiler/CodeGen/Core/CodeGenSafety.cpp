@@ -402,7 +402,7 @@ bool CodeGenSafety::hasValueBorrowSafety(const CodeGen& codeGen)
 }
 
 // A direct write to a local that owns its stack slot, rather than referring to other storage,
-// cannot reach a live value borrow while the function has none of its own open: a caller's
+// cannot reach a live value borrow while the function has no call-site borrow open: a caller's
 // borrow ranges over storage that existed before this frame, and a callee's borrow ends before
 // the callee returns. An inline expansion keeps the guard, because its body runs inside the
 // interval of the caller's call borrows. A local stored in the caller's return slot keeps it too,
@@ -413,7 +413,7 @@ bool CodeGenSafety::isUnborrowableLocalWrite(CodeGen& codeGen, AstNodeRef target
         targetRef = codeGen.node(targetRef).cast<AstParenExpr>().nodeExprRef;
     if (!codeGen.node(targetRef).is(AstNodeId::Identifier))
         return false;
-    if (codeGen.frame().currentInlineContext().payload || codeGen.hasOpenValueBorrow())
+    if (codeGen.frame().currentInlineContext().payload || codeGen.hasOpenLocalValueBorrow())
         return false;
 
     const Symbol* symbol = codeGen.viewSymbol(targetRef).sym();

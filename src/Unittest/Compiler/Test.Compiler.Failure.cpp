@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -62,6 +63,42 @@ namespace
         static constexpr std::array        fields_ = {&Stats::numErrors, &Stats::numWarnings, &Stats::numFiles, &Stats::numTests, &Stats::numTestsFailed, &Stats::numTokens, &Stats::numFormatRewrittenFiles};
         std::array<size_t, fields_.size()> saved_{};
     };
+
+    Result runNativeFailure(const TaskContext& ctx, std::string& output, uint32_t& failedTests, const fs::path& sourcePath, const std::string_view configuration)
+    {
+        RestoreCommandMetrics restoreMetrics;
+        CommandLine           command;
+        command.command           = CommandKind::Test;
+        command.name              = "compiler_native_failure";
+        command.buildCfg          = Utf8(configuration);
+        command.buildCfgExplicit  = true;
+        command.silent            = true;
+        command.logColor          = false;
+        command.testJit           = false;
+        command.testNative        = false;
+        command.numCores          = 1;
+        command.runTimeoutSeconds = 15;
+        command.outDir            = sourcePath.parent_path() / "output";
+        command.workDir           = sourcePath.parent_path() / "work";
+        command.outDirStorage     = Utf8(command.outDir);
+        command.workDirStorage    = Utf8(command.workDir);
+        command.files.insert(sourcePath);
+        CommandLineParser::refreshBuildCfg(command);
+
+        // Compilation and linking are prerequisites, not part of the termination deadline.
+        // The normal native runner starts its deadline only when launching the artifact.
+        CompilerInstance compiler(ctx.global(), command);
+        if (compiler.run() != ExitCode::Success)
+            return Result::Error;
+        NativeBackendBuilder builder(compiler, false);
+        SWC_RESULT(builder.run());
+        builder.ctx().setMuteOutput(true);
+        NativeBackendBuilder::ArtifactRunReport report;
+        const Result runResult = builder.runExistingArtifact(&report);
+        failedTests            = builder.nativeTestsFailed;
+        output                 = std::move(report.output);
+        return runResult == Result::Error && report.completed && report.exitCode != 0 ? Result::Continue : Result::Error;
+    }
 
     class DiagnosticFreeFailureJob final : public Job
     {
@@ -287,31 +324,14 @@ func failRecoveryPanic() fail
         const fs::path caseDirectory = directory.path() / (switchContext ? "local_context" : "runner_context");
         const fs::path sourcePath    = caseDirectory / "recovery.swg";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
-        const std::vector<Utf8> args = {
-            "test",
-            "--file",
-            Utf8(sourcePath),
-            "--out-dir",
-            Utf8(caseDirectory / "output"),
-            "--work-dir",
-            Utf8(caseDirectory / "work"),
-            "--build-cfg",
-            "devmode",
-            "--no-test-jit",
-            "--num-cores",
-            "1",
-            "--no-log-color",
-        };
-        std::string                 output;
-        uint32_t                    exitCode = UINT32_MAX;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 30000};
-        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, caseDirectory, &options);
         // The first panic is intentional. The second native test must run on a clean context,
         // observe the captured payload's destruction, and handle a new error normally.
-        if (result != Os::ProcessRunResult::Ok || exitCode == 0 ||
+        std::string output;
+        uint32_t    failedTests = 0;
+        if (runNativeFailure(ctx, output, failedTests, sourcePath, "devmode") != Result::Continue ||
             output.find("intentional first-test panic with a live captured error") == std::string::npos ||
             output.find("captured error recovery completed") == std::string::npos ||
-            output.find("generated executable '#test' result: 1 did not pass") == std::string::npos ||
+            failedTests != 1 ||
             output.find("hardware exception") != std::string::npos)
         {
             std::println(stderr, "[native panic recovery, local context={}] {}", switchContext, output);
@@ -348,26 +368,9 @@ func hook(message: string?, location: Swag.SourceCodeLocation)
     Swag.print("expect resumed after failure\n")
 }
 )SWAG"));
-        const std::vector<Utf8> args = {
-            "test",
-            "--file",
-            Utf8(sourcePath),
-            "--out-dir",
-            Utf8(caseDirectory / "output"),
-            "--work-dir",
-            Utf8(caseDirectory / "work"),
-            "--build-cfg",
-            Utf8(configuration),
-            "--no-test-jit",
-            "--num-cores",
-            "1",
-            "--no-log-color",
-        };
-        std::string                 output;
-        uint32_t                    exitCode = UINT32_MAX;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
-        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, caseDirectory, &options);
-        if (result != Os::ProcessRunResult::Ok || exitCode == 0 ||
+        std::string output;
+        uint32_t    failedTests = 0;
+        if (runNativeFailure(ctx, output, failedTests, sourcePath, configuration) != Result::Continue ||
             output.find("expect hook observed the error") == std::string::npos ||
             output.find("expect resumed after failure") != std::string::npos ||
             output.find("hardware exception") != std::string::npos)
@@ -407,30 +410,13 @@ func injectStatement(statement: #code) { #inject(statement) }
 #test { Swag.print("test-owned try recovery completed\n") }
 )SWAG";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
-        const std::vector<Utf8> args = {
-            "test",
-            "--file",
-            Utf8(sourcePath),
-            "--out-dir",
-            Utf8(caseDirectory / "output"),
-            "--work-dir",
-            Utf8(caseDirectory / "work"),
-            "--build-cfg",
-            "release",
-            "--no-test-jit",
-            "--num-cores",
-            "1",
-            "--no-log-color",
-        };
-        std::string                 output;
-        uint32_t                    exitCode = UINT32_MAX;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false, .timeoutMs = 15000};
-        const auto                  result = Os::runProcess(exitCode, Os::getExeFullName(), args, caseDirectory, &options);
-        if (result != Os::ProcessRunResult::Ok || exitCode == 0 ||
+        std::string output;
+        uint32_t    failedTests = 0;
+        if (runNativeFailure(ctx, output, failedTests, sourcePath, "release") != Result::Continue ||
             output.find("terminal test-owned try") == std::string::npos ||
             output.find("test-owned try resumed") != std::string::npos ||
             output.find("test-owned try recovery completed") == std::string::npos ||
-            output.find("generated executable '#test' result: 1 did not pass") == std::string::npos ||
+            failedTests != 1 ||
             output.find("hardware exception") != std::string::npos)
         {
             std::println(stderr, "[terminal test-owned try, injection={}] {}", injection, output);

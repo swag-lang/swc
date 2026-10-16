@@ -606,7 +606,6 @@ namespace
         StampedKeySet               visitedAllocations;
         bool                        globalInitScanned = false;
         std::vector<SymbolFunction*> pendingFunctions;
-        std::vector<SymbolFunction*> workFunctions;
         RejectedConstantFunctions  rejected;
     };
 
@@ -631,8 +630,6 @@ namespace
         }
         scan.rejected.functions.resize(rejectedCount);
 
-        scan.workFunctions.clear();
-        scan.workFunctions.swap(scan.pendingFunctions);
         const auto scanFunction = [&](const SymbolFunction* function)
         {
             const MachineCode& code = function->loweredCode();
@@ -645,17 +642,20 @@ namespace
                 if (!builder.tryResolveConstantSourceRef(sourceRef, relocation))
                     continue;
 
-                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, scan.visitedAllocations, sourceRef.shardIndex, sourceRef.offset, &scan.rejected, &scan.workFunctions) || changed;
+                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, scan.visitedAllocations, sourceRef.shardIndex, sourceRef.offset, &scan.rejected, &scan.pendingFunctions) || changed;
             }
         };
 
-        for (size_t index = 0; index < scan.workFunctions.size(); ++index)
+        size_t pendingRead  = 0;
+        size_t pendingWrite = 0;
+        while (pendingRead < scan.pendingFunctions.size())
         {
-            SymbolFunction* function = scan.workFunctions[index];
+            SymbolFunction* function = scan.pendingFunctions[pendingRead++];
             scanFunction(function);
             if (!function->isCodeGenPreSolved() && !function->isCodeGenCompleted())
-                scan.pendingFunctions.push_back(function);
+                scan.pendingFunctions[pendingWrite++] = function;
         }
+        scan.pendingFunctions.resize(pendingWrite);
 
         return changed;
     }
@@ -1546,8 +1546,10 @@ Result NativeBackendBuilder::runAfterLink()
     return Result::Continue;
 }
 
-Result NativeBackendBuilder::runExistingArtifact()
+Result NativeBackendBuilder::runExistingArtifact(ArtifactRunReport* report)
 {
+    if (report)
+        *report = {};
     SWC_ASSERT(compiler_ != nullptr);
     if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
@@ -1561,7 +1563,7 @@ Result NativeBackendBuilder::runExistingArtifact()
     artifactPath = paths.artifactPath;
     pdbPath      = paths.pdbPath;
     compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
-    return runGeneratedArtifact();
+    return runGeneratedArtifact(report);
 }
 
 Result NativeBackendBuilder::prepare()
@@ -1981,7 +1983,7 @@ struct NativeBackendBuilder::NativeTestProgressContext
     ScopedTimedLog*       stage   = nullptr;
 };
 
-Result NativeBackendBuilder::runGeneratedArtifact()
+Result NativeBackendBuilder::runGeneratedArtifact(ArtifactRunReport* report)
 {
     std::optional<ScopedTimedLog> stage;
     if (ScopedTimedLog::isOutputEnabled(ctx_, ScopedTimedLog::Stage::Run))
@@ -2026,6 +2028,12 @@ Result NativeBackendBuilder::runGeneratedArtifact()
 
     const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(compiler_->cmdLine());
     const auto              result  = Os::runProcess(exitCode, artifactPath, runArgs, artifactDir.empty() ? buildDir : artifactDir, &options);
+    if (report)
+    {
+        report->completed = result == Os::ProcessRunResult::Ok;
+        report->exitCode  = exitCode;
+        report->output    = artifactOutput;
+    }
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

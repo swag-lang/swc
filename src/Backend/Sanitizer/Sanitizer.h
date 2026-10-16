@@ -88,7 +88,7 @@ public:
     void report(const MicroInstr& inst, DiagnosticId id, const SourceCodeRef& noteSource, DiagnosticId noteId);
     void report(const MicroInstr& inst, DiagnosticId id, std::string_view sym, std::string_view what);
 
-    void reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, DiagnosticId id);
+    void reportAccessToMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, DiagnosticId id);
 
 private:
     struct EnabledCheck
@@ -195,6 +195,7 @@ private:
     static bool resolveGuardSlot(GuardSlot& out, const SanitizerRegInfo& subject, uint8_t bits);
     void        queueRefined(SanitizerState state, uint32_t index, const GuardSlot& guard, bool slotIsZero, SmallVector<uint32_t, 32>& worklist);
     static void dropZeros(SanitizerState& state);
+    static void markMovedBorrows(SanitizerState& state, int64_t slot, uint64_t size);
     static bool isModelledSingleEdge(const MicroInstrDef& def, const MicroControlFlowGraph::EdgeList& succs);
     void        report(const MicroInstr& inst, DiagnosticId id, const ReportArguments& arguments, std::span<const ReportNote> notes);
 
@@ -218,6 +219,7 @@ private:
     FlatKeyMap<uint8_t>          definitionCounts_;
     std::vector<LocalSlotExtent> localSlots_;
     bool                         needsReleaseProvenance_ = false;
+    bool                         hasMoveInvalidation_    = false;
     bool                         stackBaseStable_        = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.

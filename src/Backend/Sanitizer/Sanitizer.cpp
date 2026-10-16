@@ -36,21 +36,6 @@ namespace
         return true;
     }
 
-    bool isPlainLoadInstruction(const MicroInstrOpcode op)
-    {
-        switch (op)
-        {
-            case MicroInstrOpcode::LoadRegMem:
-            case MicroInstrOpcode::LoadVolatileRegMem:
-            case MicroInstrOpcode::LoadSignedExtRegMem:
-            case MicroInstrOpcode::LoadZeroExtRegMem:
-            case MicroInstrOpcode::LoadVecRegMem:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     uint8_t sanitizerCheckInterests(const MicroInstr& inst, const MicroInstrDef& def)
     {
         if (inst.compilerSafetyCall)
@@ -65,10 +50,7 @@ namespace
 
         uint8_t baseOperandIndex = 0;
         if (MicroPassHelpers::dereferenceBaseOperandIndex(baseOperandIndex, inst.op, def))
-            result |= static_cast<uint8_t>(SanitizerCheckInterest::Dereference);
-
-        if (isPlainLoadInstruction(inst.op))
-            result |= static_cast<uint8_t>(SanitizerCheckInterest::PlainLoad);
+            result |= static_cast<uint8_t>(SanitizerCheckInterest::Dereference) | static_cast<uint8_t>(SanitizerCheckInterest::MovedStorage);
 
         return result;
     }
@@ -186,6 +168,7 @@ void Sanitizer::computeFunctionProperties()
     definitionCounts_       = {};
     stackBaseStable_        = true;
     needsReleaseProvenance_ = false;
+    hasMoveInvalidation_    = false;
 
     const uint32_t n                = cfg_->instructionCount();
     const bool     inspectStackBase = stackBaseReg_.isValid();
@@ -193,6 +176,7 @@ void Sanitizer::computeFunctionProperties()
     {
         const MicroInstr& inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
         needsReleaseProvenance_ |= inst.op == MicroInstrOpcode::SanityRelease;
+        hasMoveInvalidation_ |= inst.op == MicroInstrOpcode::SanityInvalidate;
         const MicroInstrDef&     def = MicroInstr::info(inst.op);
         const MicroInstrOperand* ops = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
         if (!ops)
@@ -295,10 +279,6 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     if (n == 0 || n > K_MAX_INSTRUCTIONS || checks.empty())
         return reported_;
 
-    SmallVector<EnabledCheck> enabledChecks;
-    for (SanitizerCheck* check : checks)
-        enabledChecks.push_back({.check = check, .interests = check->interests()});
-
     cfg_ = &cfg;
     reached_.assign(n, 0);
     inWorklist_.assign(n, 0);
@@ -308,6 +288,20 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     // Compute that property alongside the definition counts instead of scanning the
     // complete instruction stream a second time.
     computeFunctionProperties();
+
+    // A function without an invalidation cannot acquire a moved-from range. Keep
+    // its ordinary reads and writes out of the move check entirely.
+    SmallVector<EnabledCheck> enabledChecks;
+    for (SanitizerCheck* check : checks)
+    {
+        uint8_t interests = check->interests();
+        if (!hasMoveInvalidation_)
+            interests &= ~static_cast<uint8_t>(SanitizerCheckInterest::MovedStorage);
+        if (interests)
+            enabledChecks.push_back({.check = check, .interests = interests});
+    }
+    if (enabledChecks.empty())
+        return reported_;
 
     // Resolve call targets up front: checks identify what a call invokes, and the
     // fixpoint needs to know which calls never return.
@@ -934,7 +928,7 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
     for (auto it = into.upperRegValues.begin(); it != into.upperRegValues.end();)
     {
         const auto other = from.upperRegValues.find(it->first);
-        if (other == from.upperRegValues.end() || other->second != it->second)
+        if (other == from.upperRegValues.end() || !it->second.intersect(other->second, changed))
         {
             it      = into.upperRegValues.erase(it);
             changed = true;
@@ -943,15 +937,15 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
             ++it;
     }
 
-    if (into.stack.eraseIf([&](int64_t slot, const SanitizerValue& value) {
+    if (into.stack.eraseIf([&](int64_t slot, SanitizerValue& value) {
             const SanitizerValue* other = from.stack.find(slot);
-            return !other || *other != value;
+            return !other || !value.intersect(*other, changed);
         }))
         changed = true;
 
-    if (into.regs.eraseIf([&](uint32_t reg, const SanitizerRegInfo& info) {
+    if (into.regs.eraseIf([&](uint32_t reg, SanitizerRegInfo& info) {
             const SanitizerRegInfo* other = from.regs.find(reg);
-            return !other || *other != info;
+            return !other || !info.value.intersect(other->value, changed) || !info.sameProvenance(*other);
         }))
         changed = true;
 
@@ -1292,7 +1286,8 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         }
     }
 
-    if (!state.movedFrom.empty() && inst.op != MicroInstrOpcode::SanityInvalidate)
+    // Returning instrumentation cannot reinitialize the abandoned source storage.
+    if (!state.movedFrom.empty() && inst.op != MicroInstrOpcode::SanityInvalidate && !inst.compilerSafetyCall)
     {
         if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
         {
@@ -1402,7 +1397,10 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         {
             int64_t slot = 0;
             if (resolveStackSlot(state, ops[0].reg, 0, slot) && ops[1].valueU64 > 0)
+            {
+                markMovedBorrows(state, slot, ops[1].valueU64);
                 state.movedFrom.insertOrAssign(slot, {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef});
+            }
             return;
         }
         case MicroInstrOpcode::LoadRegImm:
@@ -1485,7 +1483,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 // The formed address starts the object being addressed: that is the
                 // origin, unless the base already carries one (derived pointer).
                 const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : slot;
-                setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(slot, origin));
+                setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(slot, origin, baseValue.movedBorrow));
             }
             else if (baseValue.isZero())
                 setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(0)); // zero-derived
@@ -1523,7 +1521,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             {
                 const int64_t offset = baseValue.stackOffset + static_cast<int64_t>(idxValue.constant * ops[5].valueU64 + ops[6].valueU64);
                 const int64_t origin = baseValue.hasStackOrigin() ? baseValue.stackOrigin : baseValue.stackOffset;
-                setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(offset, origin));
+                setRegValue(state, ops[0].reg, SanitizerValue::makeStackAddr(offset, origin, baseValue.movedBorrow));
             }
             else if (baseValue.kind == SanitizerValueKind::GlobalAddr)
             {
@@ -1715,11 +1713,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             if (isAddSub && cur.isZero())
                 setRegValue(state, reg, SanitizerValue::makeConstant(0));
             else if (ops[2].microOp == MicroOp::Add && cur.isStackAddr())
-                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset + static_cast<int64_t>(imm), cur.stackOrigin));
+                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset + static_cast<int64_t>(imm), cur.stackOrigin, cur.movedBorrow));
             else if (ops[2].microOp == MicroOp::Add && cur.kind == SanitizerValueKind::Constant)
                 setRegValue(state, reg, SanitizerValue::makeConstant(cur.constant + imm));
             else if (ops[2].microOp == MicroOp::Subtract && cur.isStackAddr())
-                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset - static_cast<int64_t>(imm), cur.stackOrigin));
+                setRegValue(state, reg, SanitizerValue::makeStackAddr(cur.stackOffset - static_cast<int64_t>(imm), cur.stackOrigin, cur.movedBorrow));
             else if (ops[2].microOp == MicroOp::Subtract && cur.kind == SanitizerValueKind::Constant)
                 setRegValue(state, reg, SanitizerValue::makeConstant(cur.constant - imm));
             else if (isAddSub && cur.kind == SanitizerValueKind::GlobalAddr)
@@ -2137,13 +2135,37 @@ void Sanitizer::dropZeros(SanitizerState& state)
     state.upperRegValues.eraseIf([](const auto& entry) { return entry.second.isZero(); });
 }
 
-void Sanitizer::reportLoadFromMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const DiagnosticId id)
+void Sanitizer::markMovedBorrows(SanitizerState& state, const int64_t slot, const uint64_t size)
+{
+    const auto contains = [slot, size](const int64_t offset) { return offset >= slot && static_cast<uint64_t>(offset - slot) < size; };
+    const auto mark = [&](SanitizerValue& value) {
+        if (value.isStackAddr() && (contains(value.stackOffset) || (value.hasStackOrigin() && contains(value.stackOrigin))))
+            value.movedBorrow = true;
+    };
+
+    state.stack.forEach([&](int64_t, SanitizerValue& value) { mark(value); });
+    for (auto& [_, value] : state.upperRegValues)
+        mark(value);
+    state.regs.forEach([&](uint32_t, SanitizerRegInfo& info) {
+        // A compiler-created frame address is still usable for reinitialization.
+        // Only register values read from pointer storage are old borrows here.
+        if (info.hasPointerOriginSlot)
+            mark(info.value);
+    });
+}
+
+void Sanitizer::reportAccessToMovedRange(const MicroInstr& inst, const MicroInstrDef& def, const MicroInstrOperand* ops, const SanitizerState& state, const DiagnosticId id)
 {
     if (state.movedFrom.empty())
         return;
 
+    uint8_t baseIndex = 0;
+    if (!ops || !MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, def))
+        return;
+    if (def.flags.has(MicroInstrFlagsE::WritesMemory) && !getReg(state, ops[baseIndex].reg).movedBorrow)
+        return;
     int64_t slot = 0;
-    if (!ops || !resolveStackSlot(state, ops[def.memBaseOperandIndex].reg, ops[def.memOffsetOperandIndex].valueU64, slot))
+    if (!resolveAccessStackSlot(slot, state, inst, def, ops))
         return;
 
     for (const auto& [rangeStart, range] : state.movedFrom)
@@ -2154,7 +2176,7 @@ void Sanitizer::reportLoadFromMovedRange(const MicroInstr& inst, const MicroInst
         std::array<ReportNote, 2> notes;
         size_t                    noteCount = 0;
 
-        const SanitizerRegInfo* baseInfo  = findReg(state, ops[def.memBaseOperandIndex].reg);
+        const SanitizerRegInfo* baseInfo  = findReg(state, ops[baseIndex].reg);
         const LocalSlotExtent*  movedSlot = findLocalSlot(rangeStart);
         const LocalSlotExtent*  viewSlot  = baseInfo && baseInfo->hasOriginSlot ? findLocalSlot(baseInfo->originSlot) : nullptr;
         if (viewSlot && movedSlot && viewSlot->sym && movedSlot->sym && viewSlot->sym != movedSlot->sym)

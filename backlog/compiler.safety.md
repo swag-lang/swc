@@ -59,27 +59,6 @@ is the current scorecard.
 - Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,
   language.parallelism.005.
 
-### compiler.safety.005 — A write through a pointer into a moved value is not reported
-
-- Evidence: a struct holding a pointer into its own storage keeps that pointer after `#move`, and
-  the pointer then addresses the abandoned source. Reading through it is now a compile-time error:
-  `source.cursor = &source.values[0]; var target = #move source; return target.cursor![]` reports
-  `sanity_err_use_after_move` for whole, packed, first-field and indexed self-pointers
-  ([self_borrow_move.swg](../bin/unittests/sanity/self_borrow_move.swg),
-  [self_borrow_indexed_move.swg](../bin/unittests/sanity/self_borrow_indexed_move.swg), since
-  `d2672787e`), and an `opPostMove` hook can repair the pointer in its new storage.
-- What remains: a write through the same pointer, `target.cursor![] = 7`, still stores into the
-  abandoned source with no diagnostic. The check reports only loads from a moved range
-  (`UseAfterMoveCheck::run` calls `Sanitizer::reportLoadFromMovedRange`), and a store into moved
-  storage is also how a moved-from variable is legitimately reinitialized. The commented
-  `GAP compiler.safety.005` case in
-  [cwe672_use_after_move.swg](../bin/unittests/safety/corpus/cwe672_use_after_move.swg) is that write.
-- Next: separate a store through a pointer derived from the source before the move from a direct
-  reassignment of the moved-from variable, and report the first with the same diagnostic. If the
-  analysis cannot tell them apart, document the limit next to the move rules instead.
-- Done when: the corpus write case is a fault case naming its diagnostic, or the reference
-  documents the limit; reassignment after a move and `opPostMove` repair stay accepted.
-
 ### compiler.safety.023 — Opaque results lack pointer-field provenance
 
 - Evidence: a no-inline factory can store `&local` in `carrier.borrowed` and an independent

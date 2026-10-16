@@ -9,7 +9,7 @@ using Corpus
 // Read here as: use of a value after it was moved out of. The storage is still addressable
 // and the value it holds is no longer the one the reader expects.
 //
-// Swag: two halves that answer in different builds. The static proof reports a read the flow
+// Swag: two halves that answer in different builds. The static proof reports accesses the flow
 // can prove; the runtime half poisons abandoned storage with 0xDD so what the proof misses
 // fails deterministically instead of reading plausible stale bytes.
 //
@@ -54,6 +54,24 @@ func readBorrowAfterMove()->s32
     #run readBorrowAfterMove()
 }
 
+// A pointer copied inside a value still addresses the storage abandoned by the move.
+struct SelfReferential
+{
+    storage: [4] s32
+    cursor:  *s32?
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+func writeBorrowAfterMove()
+{
+    var source: SelfReferential
+    source.cursor = &source.storage[0]
+    var target = #move source     // swc-expected-note {{sanity_note_move_origin}}
+    target.cursor![] = 7          // swc-expected-error {{sanity_err_write_after_move}}
+}
+
+#test { writeBorrowAfterMove() }
+
 // --- Known misses ---
 
 // BY DESIGN, not a gap - a move performed through a CALL is a documented miss: a call conservatively clears
@@ -73,26 +91,6 @@ func readAfterMoveThroughCall()->s32
     moveThroughCall(&source)
     return source.value     // not reported: the call cleared the moved-from state
 }
-
-// GAP compiler.safety.005 - a pointer stored INSIDE the value survives the move and then
-// addresses the abandoned source. A read through it is reported (sanity/self_borrow_move.swg);
-// a write is not, and lands in dead storage.
-// Left commented because it really does write through a dangling pointer.
-//
-// struct SelfReferential
-// {
-//     storage: [4] s32
-//     cursor:  *s32?
-// }
-//
-// #test
-// {
-//     var source: SelfReferential
-//     source.cursor = &source.storage[0]
-//     var target    = #move source
-//     target.cursor![] = 7            // writes into the abandoned 'source'
-//     Swag.assert(target.storage[0] == 7)     // fails: the write went elsewhere
-// }
 
 // --- Sound ---
 

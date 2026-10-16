@@ -918,9 +918,7 @@ bool CompilerInstance::matchesTestFilter(const SymbolFunction& symbol) const
     const auto& filters = cmdLine().testFileFilter;
     if (!filters.empty())
     {
-        const SourceFile* sourceFile = ownerSourceFile(symbol.srcViewRef());
-        if (!sourceFile)
-            sourceFile = sourceViewFile(symbol);
+        const SourceFile* sourceFile = declaringSourceFile(symbol);
         if (!sourceFile)
             return false;
 
@@ -1232,6 +1230,15 @@ const SourceFile* CompilerInstance::sourceViewFile(SourceViewRef ref) const
 const SourceFile* CompilerInstance::sourceViewFile(const Symbol& symbol) const
 {
     return sourceViewFile(symbol.srcViewRef());
+}
+
+// The file whose AST holds the symbol's declaration: the owner of its source view, else the file
+// the view reads.
+const SourceFile* CompilerInstance::declaringSourceFile(const Symbol& symbol) const
+{
+    if (const SourceFile* ownerFile = ownerSourceFile(symbol.srcViewRef()))
+        return ownerFile;
+    return sourceViewFile(symbol);
 }
 
 void CompilerInstance::registerEditorSymbol(const Symbol& symbol, const FileRef fileRef, const uint64_t revision) const

@@ -230,6 +230,18 @@ namespace ModuleApi
         return outNodeRef.isValid();
     }
 
+    // The node declaring 'symbol' in 'ast': the reachable one, else, for a symbol that comes from
+    // another source view, whichever node holds its declaration.
+    AstNodeRef findSymbolDeclRef(const Ast& ast, const Symbol& symbol)
+    {
+        AstNodeRef declRef;
+        if (tryFindReachableNodeRef(ast, symbol.decl(), declRef))
+            return declRef;
+        if (ast.hasSourceView() && symbol.srcViewRef() != ast.srcView().ref())
+            return ast.tryFindNodeRef(symbol.decl());
+        return AstNodeRef::invalid();
+    }
+
     AstNodeRef findExportDeclRoot(const SourceFile& file, const AstNodeRef declRef)
     {
         const AstNodeRef rootRef = file.ast().root();

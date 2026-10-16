@@ -11,6 +11,7 @@ struct AstFunctionDecl;
 namespace ModuleApi
 {
     bool       tryFindReachableNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef);
+    AstNodeRef findSymbolDeclRef(const Ast& ast, const Symbol& symbol);
     bool       isGeneratedSourceDecl(const SourceFile& file, AstNodeRef declRef);
     AstNodeRef findExportDeclRoot(const SourceFile& file, AstNodeRef declRef);
     bool       isModuleApiOpaqueType(const Symbol& symbol);

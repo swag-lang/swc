@@ -104,12 +104,7 @@ namespace
         if (!sourceFile || !astFile)
             return Result::Continue;
 
-        AstNodeRef declRef;
-        if (!ModuleApi::tryFindReachableNodeRef(astFile->ast(), symbol.decl(), declRef))
-        {
-            if (astFile->ast().hasSourceView() && symbol.srcViewRef() != astFile->ast().srcView().ref())
-                declRef = astFile->ast().tryFindNodeRef(symbol.decl());
-        }
+        const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(astFile->ast(), symbol);
         if (declRef.isInvalid())
             return Result::Continue;
         if (!ModuleApi::isExportedPublicDeclScope(*astFile, declRef, symbol))

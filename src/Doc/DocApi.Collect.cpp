@@ -474,20 +474,13 @@ namespace
 
     std::vector<Utf8> memberCommentLines(TaskContext& ctx, const Symbol& symbol)
     {
-        const SourceFile* file = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
-        if (!file)
-            file = ctx.compiler().sourceViewFile(symbol);
+        const SourceFile* file = ctx.compiler().declaringSourceFile(symbol);
         if (!file)
             return {};
 
-        AstNodeRef declRef;
-        if (!ModuleApi::tryFindReachableNodeRef(file->ast(), symbol.decl(), declRef))
-        {
-            if (file->ast().hasSourceView() && symbol.srcViewRef() != file->ast().srcView().ref())
-                declRef = file->ast().tryFindNodeRef(symbol.decl());
-            if (declRef.isInvalid())
-                return {};
-        }
+        const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(file->ast(), symbol);
+        if (declRef.isInvalid())
+            return {};
 
         const AstNodeRef  rootRef = ModuleApi::findExportDeclRoot(*file, declRef);
         std::vector<Utf8> result  = DocApi::symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
@@ -562,20 +555,13 @@ namespace
 
     bool hasSourceNoDocAttribute(TaskContext& ctx, const Symbol& symbol)
     {
-        const SourceFile* file = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
-        if (!file)
-            file = ctx.compiler().sourceViewFile(symbol);
+        const SourceFile* file = ctx.compiler().declaringSourceFile(symbol);
         if (!file)
             return false;
 
-        AstNodeRef declRef;
-        if (!ModuleApi::tryFindReachableNodeRef(file->ast(), symbol.decl(), declRef))
-        {
-            if (file->ast().hasSourceView() && symbol.srcViewRef() != file->ast().srcView().ref())
-                declRef = file->ast().tryFindNodeRef(symbol.decl());
-            if (declRef.isInvalid())
-                return false;
-        }
+        const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(file->ast(), symbol);
+        if (declRef.isInvalid())
+            return false;
         return hasSourceNoDocAttribute(ctx, *file, ModuleApi::findExportDeclRoot(*file, declRef));
     }
 

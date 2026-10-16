@@ -30,7 +30,7 @@ using MicroBuilderFlags = EnumFlags<MicroBuilderFlagsE>;
 class MicroBuilder
 {
 public:
-    static constexpr uint8_t K_CALL_ARG_MASK_ALL = 0xFF;
+    static constexpr uint8_t K_CALL_ARG_MASK_ALL = CallConv::K_CALL_ARG_MASK_ALL;
 
     MicroBuilder() = default;
 

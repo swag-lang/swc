@@ -71,8 +71,6 @@ void MicroInstrUseDef::addUseDef(MicroReg reg)
 
 namespace
 {
-    constexpr uint8_t K_CALL_ARG_MASK_ALL = 0xFF;
-
     void collectRegUseDefFromModes(MicroInstrUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
     {
         for (size_t i = 0; i < modes.size(); ++i)
@@ -97,7 +95,7 @@ namespace
     uint8_t resolveCallArgMask(const MicroInstr& inst, const MicroInstrOperand* ops, const uint8_t maskOperandIndex)
     {
         if (!ops || inst.numOperands <= maskOperandIndex)
-            return K_CALL_ARG_MASK_ALL;
+            return CallConv::K_CALL_ARG_MASK_ALL;
 
         return static_cast<uint8_t>(ops[maskOperandIndex].valueU32);
     }
@@ -106,7 +104,7 @@ namespace
     {
         const MicroRegSpan regs = callConv.intArgRegs;
         SWC_ASSERT(std::ranges::all_of(regs, &MicroReg::isInt));
-        if (mask == K_CALL_ARG_MASK_ALL)
+        if (mask == CallConv::K_CALL_ARG_MASK_ALL)
         {
             const size_t count = std::min<size_t>(regs.size(), callConv.numArgRegisterSlots());
             useDef.uses.append(regs.data(), count);
@@ -126,7 +124,7 @@ namespace
     {
         SWC_ASSERT(opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction));
         const uint32_t index = opcodeInfo.callConvIndex + 2;
-        CallFloatArgs  result(K_CALL_ARG_MASK_ALL);
+        CallFloatArgs  result(CallConv::K_CALL_ARG_MASK_ALL);
         if (inst.numOperands > index)
             result.widths = static_cast<uint16_t>(ops[index].valueU32);
         return result;

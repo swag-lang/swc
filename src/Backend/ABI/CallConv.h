@@ -79,6 +79,8 @@ struct CallFloatArgs
 
 struct CallConv
 {
+    static constexpr uint8_t K_CALL_ARG_MASK_ALL = 0xFF;
+
     // Concrete ABI contract used by lowering, register allocation, and final encoding.
     std::string_view name        = "?";
     std::string_view displayName = "?";

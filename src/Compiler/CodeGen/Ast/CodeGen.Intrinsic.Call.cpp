@@ -421,7 +421,8 @@ namespace
     // Build an interface value by reading the method table straight from the runtime typeinfo's
     // interface array (TypeValue.value, wired by TypeGen). This is the only mechanism that works
     // when the implementing struct lives in a module that the call site cannot enumerate as a
-    // static candidate (e.g. `parseValue` in core building an interface for `Pixel.Color`). On a
+    // static candidate (e.g. a generic function of a library building an interface for a struct
+    // declared by one of its importers). On a
     // match it fills `runtimeStorage` and jumps to `doneLabel`; otherwise it falls through leaving
     // the (already zeroed) storage untouched.
     Result emitMakeInterfaceFromRuntimeTypeInfo(CodeGen& codeGen, TypeRef interfaceTypeRef, AstNodeRef typeRefNode, MicroReg typeInfoReg, const CodeGenNodePayload& objectPayload, TypeRef objectValueTypeRef, MicroReg runtimeStorageReg, uint64_t objectSpillOffset, MicroLabelRef doneLabel)
@@ -1000,8 +1001,8 @@ namespace
         }
 
         // Fallback: read the itable from the runtime typeinfo. Required when no module at this call
-        // site enumerates the implementing struct as a candidate (e.g. core's `parseValue` for
-        // `Pixel.Color`).
+        // site enumerates the implementing struct as a candidate (e.g. a generic function of a
+        // library building an interface for a struct declared by one of its importers).
         SWC_RESULT(emitMakeInterfaceFromRuntimeTypeInfo(codeGen, resultTypeRef, typeRefNode, typeInfoReg, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff, doneLabel));
 
         builder.placeLabel(doneLabel);

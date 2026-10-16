@@ -579,7 +579,7 @@ namespace
     // An 8- or 16-bit integer lane slides down by whole bytes instead, leaves
     // through the same move, and is extended from its own width. Dynamic
     // indices keep the spill-and-load path. Reading the low lane this way is
-    // what `storeLow4`/`storeLow8` and every lane extraction of a transpose
+    // what a low-lane store and every lane extraction of a transpose
     // compile to, so it is worth a direct form.
     bool tryEmitSimdLaneRead(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {

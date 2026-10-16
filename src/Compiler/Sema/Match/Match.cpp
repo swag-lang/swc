@@ -119,10 +119,10 @@ namespace
     }
 
     // A namespace declared by the current module always wins over a same-named namespace reaching
-    // us from a dependency. Without this, a single `using Pixel` anywhere in gui makes an
-    // unqualified `Testing` mean `Pixel.Testing` even though `Gui.Testing` exists, and the module
-    // can no longer name its own namespaces. Code that wants the imported one qualifies it
-    // (`Pixel.Testing`).
+    // us from a dependency. Without this, a single `using Lib` anywhere in a module makes an
+    // unqualified `Testing` mean `Lib.Testing` even though the module declares its own `Testing`,
+    // and the module can no longer name its own namespaces. Code that wants the imported one
+    // qualifies it (`Lib.Testing`).
     //
     // Only namespaces are arbitrated here. Every other kind of symbol keeps the plain scope
     // priority, where a `using` legitimately brings a name closer than the module root.
@@ -354,10 +354,10 @@ namespace
         addPersistedUsingSymMaps(sema, lookUpCxt, fileNamespace, fileRootPriority);
 
         // Symbols imported from other modules live under the empty-named import-root namespace
-        // (as siblings of this module's namespace) so they keep their own hierarchy (e.g. `Pixel`,
-        // `Core`). An imported-API file's own relative names resolve against that root, so the
-        // current namespace path must be walked from there too (e.g. `Core.Math.Point` inside the
-        // generated `core.swg`).
+        // (as siblings of this module's namespace) so they keep their own hierarchy (e.g. `Lib`,
+        // `Os`). An imported-API file's own relative names resolve against that root, so the
+        // current namespace path must be walked from there too (e.g. `Lib.Math.Point` inside the
+        // generated `lib.swg`).
         const SymbolNamespace* importRoot = sema.compiler().importRootNamespace();
         if (importRoot == &sema.moduleNamespace())
             importRoot = nullptr;
@@ -379,10 +379,10 @@ namespace
         addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
         addPersistedUsingSymMaps(sema, lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
 
-        // Expose the imported module namespaces (Core, Pixel, ...) as siblings. Do NOT pull in
+        // Expose the imported module namespaces (Lib, Os, ...) as siblings. Do NOT pull in
         // importRoot's persisted `using` directives: those accumulate every imported file's usings
-        // (e.g. `using Win32`) and would flood unqualified lookups with unrelated symbols
-        // (e.g. `Gdi32.Rectangle` shadowing `Core.Math.Rectangle`).
+        // (e.g. `using Os`) and would flood unqualified lookups with unrelated symbols
+        // (e.g. `Os.Rectangle` shadowing `Lib.Math.Rectangle`).
         if (importRoot)
             addSymMap(lookUpCxt, importRoot, moduleRootPriority);
 

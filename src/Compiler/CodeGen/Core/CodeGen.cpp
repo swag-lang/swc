@@ -67,7 +67,7 @@ namespace
 }
 
 // '--print-micro' selects a function by its scoped name or by a trailing part of it, so
-// 'Pixel.Webp.decodeLossy', 'Webp.decodeLossy' and 'decodeLossy' all name the same function.
+// 'Lib.Codec.decode', 'Codec.decode' and 'decode' all name the same function.
 void CodeGen::appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::span<const Utf8> requests, std::string_view scopedName)
 {
     for (const Utf8& request : requests)

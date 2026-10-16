@@ -214,8 +214,8 @@ public:
 
     // Root scope hosting symbols imported from other modules. Imported-API files are scoped here
     // (instead of under this module's namespace) so an imported module keeps its own namespace
-    // hierarchy (e.g. `Pixel.Color`) exactly as if compiled directly, rather than being nested
-    // under the importing module (`Importer.Pixel.Color`). Empty-named, so it adds no prefix.
+    // hierarchy (e.g. `Lib.Color`) exactly as if compiled directly, rather than being nested
+    // under the importing module (`Importer.Lib.Color`). Empty-named, so it adds no prefix.
     SymbolNamespace*       importRootNamespace() { return importRootNamespace_; }
     const SymbolNamespace* importRootNamespace() const { return importRootNamespace_; }
     void                   setImportRootNamespace(SymbolNamespace* ns) { importRootNamespace_ = ns; }

@@ -191,8 +191,8 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
 
         // Imported-API files create their top-level symbols under the shared import-root namespace
         // (siblings of this module's namespace) so an imported module keeps its own namespace
-        // hierarchy (e.g. `Pixel.Color`) exactly as if compiled directly, instead of being nested
-        // under the importing module (`Importer.Pixel.Color`). Runtime files do the same: they are
+        // hierarchy (e.g. `Lib.Color`) exactly as if compiled directly, instead of being nested
+        // under the importing module (`Importer.Lib.Color`). Runtime files do the same: they are
         // compiled into every module, and rooting them under the module namespace would give the
         // same runtime type a different scoped name — and thus a different runtime identity
         // (descriptor fullname and crc) — in every module (`Importer.Swag.BaseError`). Lookup

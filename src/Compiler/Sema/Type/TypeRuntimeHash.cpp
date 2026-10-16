@@ -151,7 +151,7 @@ namespace
     uint32_t stableConstantHash(const TaskContext& ctx, ConstantRef cstRef);
 
     // Cross-module-stable hash of a named symbol's scoped name. Imported symbols keep their
-    // defining module's namespace hierarchy (e.g. `Pixel.Color`) in every importing module, and
+    // defining module's namespace hierarchy (e.g. `Lib.Color`) in every importing module, and
     // runtime symbols are rooted outside the module namespace (`Swag.BaseError`, see
     // topLevelCreationSymMap), so the scoped name is already canonical and identical across
     // modules.

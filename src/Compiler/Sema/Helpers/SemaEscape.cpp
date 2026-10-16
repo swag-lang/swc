@@ -136,7 +136,7 @@ namespace
         if (!type.isStruct())
             return false;
 
-        // Owner structs such as Core.String contain raw pointers internally, but their
+        // Owner structs, such as a string owning its buffer, contain raw pointers internally, but their
         // lifecycle means a bitwise field scan would confuse ownership with borrowing.
         if (hasOwningLifecycle(sema, typeRef))
             return false;
@@ -888,7 +888,7 @@ namespace
     // Only composite storage can be aliased by an implicit carrier binding (array decay,
     // opCast borrowing 'self', interface creation, ...). Scalars convert by value: casting
     // a 'u64' to a pointer reinterprets the value and never borrows the variable storage.
-    // Owner structs (Core.String, ...) qualify too: their heap payload is freed when the
+    // Owner structs (a string owning its buffer, ...) qualify too: their heap payload is freed when the
     // owner drops, and for a LOCAL owner the drop coincides with scope death - rooting a
     // view at the owner variable reports exactly the escapes that dangle. Parameter and
     // global owners yield Parameter/Static kinds and stay silent locally.

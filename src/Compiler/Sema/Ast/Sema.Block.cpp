@@ -92,8 +92,8 @@ namespace
 
     // Top-level symbols of an imported-API or runtime file are created under the shared
     // import-root namespace (not this module's namespace). An imported module keeps its own
-    // namespace hierarchy (e.g. `Pixel.Color`) instead of being nested under the importer
-    // (`Importer.Pixel.Color`); the runtime, compiled into every module, keeps one canonical
+    // namespace hierarchy (e.g. `Lib.Color`) instead of being nested under the importer
+    // (`Importer.Lib.Color`); the runtime, compiled into every module, keeps one canonical
     // scoped name (`Swag.BaseError`) so its types carry the same runtime identity (descriptor
     // fullname and crc) in every module. Lookup still uses the module namespace (so builtins
     // like `Swag` and sibling imports resolve).

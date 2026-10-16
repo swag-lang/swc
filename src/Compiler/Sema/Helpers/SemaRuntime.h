@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 
@@ -34,7 +35,7 @@ namespace SemaRuntime
         return nullptr;
     }
 
-    inline bool isCompilerOnlyFunction(const Sema& sema, const SymbolFunction& symbol)
+    inline bool isCompilerOnlyFunction(const CompilerInstance& compiler, const SymbolFunction& symbol)
     {
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return true;
@@ -48,7 +49,7 @@ namespace SemaRuntime
         if (decl->id() != AstNodeId::CompilerFunc)
             return false;
 
-        const TokenId tokenId = sema.srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
+        const TokenId tokenId = compiler.srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
         return !Token::isNativeArtifactCompilerFunc(tokenId);
     }
 
@@ -60,28 +61,15 @@ namespace SemaRuntime
     inline bool isCompilerOnlySymbol(const Sema& sema, const Symbol& symbol)
     {
         if (const auto* function = symbol.safeCast<SymbolFunction>())
-            return isCompilerOnlyFunction(sema, *function);
+            return isCompilerOnlyFunction(sema.compiler(), *function);
         if (const auto* variable = symbol.safeCast<SymbolVariable>())
             return isCompilerOnlyVariable(*variable);
         return false;
     }
 
-    inline bool isRuntimeArtifactFunction(const Sema& sema, const SymbolFunction& symbol)
+    inline bool isRuntimeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& symbol)
     {
-        if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
-            return false;
-
-        const AstNode* decl = symbol.decl();
-        if (!decl)
-            return true;
-
-        if (decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr)
-            return false;
-        if (decl->id() != AstNodeId::CompilerFunc)
-            return true;
-
-        const TokenId tokenId = sema.srcView(symbol.srcViewRef()).token(symbol.tokRef()).id;
-        return Token::isNativeArtifactCompilerFunc(tokenId);
+        return !isCompilerOnlyFunction(compiler, symbol);
     }
 
     inline bool isCompilerEvalContextNode(const Sema& sema, const AstNode& node)
@@ -124,7 +112,7 @@ namespace SemaRuntime
             return false;
 
         const auto* currentFunction = sema.currentFunction();
-        return currentFunction != nullptr && isRuntimeArtifactFunction(sema, *currentFunction);
+        return currentFunction != nullptr && isRuntimeArtifactFunction(sema.compiler(), *currentFunction);
     }
 
     // Borrow the input until a filter actually removes a symbol.

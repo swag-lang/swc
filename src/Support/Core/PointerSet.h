@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Core/FlatTable.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -72,9 +73,7 @@ public:
 
     void reserve(size_t count)
     {
-        size_t capacity = INITIAL_CAPACITY;
-        while (count * 4 > capacity * 3)
-            capacity *= 2;
+        const size_t capacity = FlatTable::capacityFor(count, INITIAL_CAPACITY);
         if (capacity > slots_.size())
             rehash(capacity);
     }
@@ -83,12 +82,7 @@ private:
     static constexpr size_t INITIAL_CAPACITY = 16;
     static constexpr size_t RELEASE_CAPACITY = 1024;
 
-    // Pointers from one allocator share their low bits; the multiply spreads them over the table.
-    static size_t slotIndex(const T* value, size_t mask) noexcept
-    {
-        const auto bits = reinterpret_cast<uintptr_t>(value);
-        return static_cast<size_t>((bits >> 4) * 0x9E3779B97F4A7C15ULL >> 32) & mask;
-    }
+    static size_t slotIndex(const T* value, size_t mask) noexcept { return FlatTable::slotIndex(value, mask); }
 
     void rehash(size_t capacity)
     {
@@ -168,10 +162,7 @@ private:
     static constexpr size_t   INITIAL_CAPACITY = 16;
     static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
 
-    static size_t slotIndex(uint32_t value, size_t mask) noexcept
-    {
-        return static_cast<size_t>(value * 0x9E3779B97F4A7C15ULL >> 32) & mask;
-    }
+    static size_t slotIndex(uint32_t value, size_t mask) noexcept { return FlatTable::slotIndex(value, mask); }
 
     void rehash(size_t capacity)
     {
@@ -271,10 +262,7 @@ private:
     static constexpr size_t   INITIAL_CAPACITY = 64;
     static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
 
-    static size_t slotIndex(uint32_t key, size_t mask) noexcept
-    {
-        return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
-    }
+    static size_t slotIndex(uint32_t key, size_t mask) noexcept { return FlatTable::slotIndex(key, mask); }
 
     void rehash(size_t capacity)
     {
@@ -361,9 +349,7 @@ public:
 
     void reserve(size_t count)
     {
-        size_t capacity = INITIAL_CAPACITY;
-        while (count * 4 > capacity * 3)
-            capacity *= 2;
+        const size_t capacity = FlatTable::capacityFor(count, INITIAL_CAPACITY);
         if (capacity > slots_.size())
             rehash(capacity);
     }
@@ -377,12 +363,7 @@ private:
 
     static constexpr size_t INITIAL_CAPACITY = 32;
 
-    // Pointers from one allocator share their low bits; the multiply spreads them over the table.
-    static size_t slotIndex(const K* key, size_t mask) noexcept
-    {
-        const auto bits = reinterpret_cast<uintptr_t>(key);
-        return static_cast<size_t>((bits >> 4) * 0x9E3779B97F4A7C15ULL >> 32) & mask;
-    }
+    static size_t slotIndex(const K* key, size_t mask) noexcept { return FlatTable::slotIndex(key, mask); }
 
     void rehash(size_t capacity)
     {
@@ -491,9 +472,7 @@ public:
 
     void reserve(size_t count)
     {
-        size_t capacity = INITIAL_CAPACITY;
-        while (count * 4 > capacity * 3)
-            capacity *= 2;
+        const size_t capacity = FlatTable::capacityFor(count, INITIAL_CAPACITY);
         if (capacity > slots_.size())
             rehash(capacity);
     }
@@ -509,10 +488,7 @@ private:
     static constexpr size_t RELEASE_CAPACITY = 1024;
     static constexpr K      K_FREE           = std::numeric_limits<K>::max();
 
-    static size_t slotIndex(K key, size_t mask) noexcept
-    {
-        return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
-    }
+    static size_t slotIndex(K key, size_t mask) noexcept { return FlatTable::slotIndex(static_cast<uint64_t>(key), mask); }
 
     // The table grows before an insertion rather than after it, so the returned value stays
     // where it is until the next one.
@@ -702,7 +678,7 @@ private:
 
     static constexpr size_t INITIAL_CAPACITY = 64;
 
-    size_t slotIndex(const uint64_t key) const { return static_cast<size_t>(key * 0x9E3779B97F4A7C15ULL >> 32) & (slots_.size() - 1); }
+    size_t slotIndex(const uint64_t key) const { return FlatTable::slotIndex(key, slots_.size() - 1); }
 
     void grow(const size_t capacity)
     {

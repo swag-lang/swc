@@ -9,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 class Diagnostic;
 class TaskContext;
 class Global;
+enum class DiagnosticId;
 
 enum class HelpOptionGroup : uint8_t
 {
@@ -76,6 +77,8 @@ private:
     const ArgInfo*             findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo*             findNegatedArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     void                       reportInvalidArgument(TaskContext& ctx, const Utf8& arg);
+    Result                     reportInvalidCommand(TaskContext& ctx, const Utf8& command);
+    Result                     reportArgumentError(TaskContext& ctx, DiagnosticId id, const Utf8& arg);
     std::optional<Utf8>        suggestArgument(const Utf8& query) const;
     static std::optional<Utf8> suggestCommand(const Utf8& query);
     bool                       processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args);

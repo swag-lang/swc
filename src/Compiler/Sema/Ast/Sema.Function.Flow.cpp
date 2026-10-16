@@ -513,12 +513,7 @@ namespace
         if (!errSym)
         {
             // A fresh lexical local in the enclosing scope: clear any caller lookup override.
-            const auto savedFrame = sema.frame();
-            auto&      frame      = sema.frame();
-            frame.setLookupScope(nullptr);
-            frame.setLookupScopeOverrideNodes(nullptr);
-            errSym       = &SemaHelpers::registerSymbol<SymbolVariable>(sema, node, errNameTokRef);
-            sema.frame() = savedFrame;
+            errSym = &SemaHelpers::withoutLookupOverride(sema, [&]() -> SymbolVariable& { return SemaHelpers::registerSymbol<SymbolVariable>(sema, node, errNameTokRef); });
 
             // 'registerSymbol' bound 'err' onto the current node as its single symbol; left as-is,
             // the node's type view would fall back to 'err' (nullable any). Name lookup for 'err' goes

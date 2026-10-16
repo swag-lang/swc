@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/FlatTable.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
@@ -1025,7 +1026,7 @@ namespace
         ConstantManager::WalkedAllocation& slotFor(const uint64_t key)
         {
             const size_t mask  = keys.size() - 1;
-            size_t       index = (key * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+            size_t       index = FlatTable::slotIndex(key, mask);
             while (keys[index] != 0)
             {
                 if (keys[index] == key)
@@ -1056,7 +1057,7 @@ namespace
             {
                 if (oldKeys[i] == 0)
                     continue;
-                size_t index = (oldKeys[i] * 0x9E3779B97F4A7C15ULL >> 32) & mask;
+                size_t index = FlatTable::slotIndex(oldKeys[i], mask);
                 while (keys[index] != 0)
                     index = (index + 1) & mask;
                 keys[index]         = oldKeys[i];

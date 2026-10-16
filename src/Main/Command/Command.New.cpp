@@ -28,29 +28,13 @@ namespace
 }
 )";
 
-    Result reportPathError(TaskContext& ctx, const DiagnosticId id, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = Diagnostic::get(id);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    Result reportPathExists(TaskContext& ctx, const fs::path& path)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_new_target_exists);
-        FileSystem::setDiagnosticPath(diag, &ctx, path);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
     Result ensureTargetDoesNotExist(TaskContext& ctx, const fs::path& path)
     {
         std::error_code ec;
         if (fs::exists(path, ec))
-            return reportPathExists(ctx, path);
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_target_exists, path);
         if (ec)
-            return reportPathError(ctx, DiagnosticId::cmd_err_new_target_check_failed, path, FileSystem::normalizeSystemMessage(ec));
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_target_check_failed, path, FileSystem::normalizeSystemMessage(ec));
         return Result::Continue;
     }
 
@@ -59,7 +43,7 @@ namespace
         std::error_code ec;
         fs::create_directories(path, ec);
         if (ec)
-            return reportPathError(ctx, DiagnosticId::cmd_err_new_directory_create_failed, path, FileSystem::normalizeSystemMessage(ec));
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_directory_create_failed, path, FileSystem::normalizeSystemMessage(ec));
         return Result::Continue;
     }
 
@@ -67,7 +51,7 @@ namespace
     {
         FileSystem::IoErrorInfo error;
         if (FileSystem::writeBinaryFile(path, content.data(), content.size(), error) != Result::Continue)
-            return reportPathError(ctx, DiagnosticId::cmd_err_new_file_write_failed, path, FileSystem::describeIoFailure(error));
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_file_write_failed, path, FileSystem::describeIoFailure(error));
         return Result::Continue;
     }
 
@@ -152,12 +136,7 @@ namespace
         std::string extension = scriptPath.extension().string();
         std::ranges::transform(extension, extension.begin(), [](const char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
         if (extension != ".swgs")
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_new_script_extension);
-            FileSystem::setDiagnosticPath(diag, &ctx, scriptPath);
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_script_extension, scriptPath);
 
         scriptPath = FileSystem::normalizePath(scriptPath);
         SWC_RESULT(ensureTargetDoesNotExist(ctx, scriptPath));

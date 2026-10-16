@@ -215,10 +215,7 @@ namespace
 
     Result reportWorkspaceDependencySyncFailure(TaskContext& ctx, const fs::path& path, const Utf8& because)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_sync_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::appendFileUsers(because, path));
-        diag.report(ctx);
-        return Result::Error;
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_dependency_sync_failed, path, FileSystem::appendFileUsers(because, path));
     }
 
     bool pathIsCurrentOrParentDirectory(const fs::path& path)
@@ -1733,21 +1730,13 @@ namespace
         std::error_code ec;
         fs::create_directories(manifestPath.parent_path(), ec);
         if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, manifestPath, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_file_write_failed, manifestPath, FileSystem::normalizeSystemMessage(ec));
 
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::writeBinaryFileAtomic(manifestPath, content.data(), content.size(), ioError) == Result::Continue)
             return Result::Continue;
 
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, manifestPath, FileSystem::describeIoFailure(ioError));
-        diag.report(ctx);
-        return Result::Error;
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_file_write_failed, manifestPath, FileSystem::describeIoFailure(ioError));
     }
 
     bool workspaceManifestContainsArtifact(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& artifactPath)
@@ -1944,12 +1933,7 @@ namespace
         fs::path        failedPath = directory;
         const bool      exists     = fs::exists(directory, ec);
         if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, directory, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_clean_remove_failed, directory, FileSystem::normalizeSystemMessage(ec));
         if (!exists)
             return Result::Continue;
 
@@ -1974,10 +1958,7 @@ namespace
         if (!ec)
             return Result::Continue;
 
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, failedPath, FileSystem::normalizeSystemMessage(ec));
-        diag.report(ctx);
-        return Result::Error;
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_clean_remove_failed, failedPath, FileSystem::normalizeSystemMessage(ec));
     }
 
     Utf8 formatWorkspaceArtifactStat(const TaskContext& ctx, const CompilerInstance& compiler, std::string_view state)
@@ -3230,9 +3211,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
     if (FileSystem::resolveExistingFolder(modulesPath, because) != Result::Continue)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_modules_missing);
-        FileSystem::setDiagnosticPath(diag, &ctx, workspacePath);
-        diag.report(ctx);
+        FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_modules_missing, workspacePath);
         return ExitCode::CompileError;
     }
 
@@ -3260,17 +3239,13 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
 
         if (FileSystem::resolveExistingFile(moduleBuild.moduleFile, because) != Result::Continue)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_file_missing);
-            FileSystem::setDiagnosticPath(diag, &ctx, moduleBuild.moduleDir);
-            diag.report(ctx);
+            FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_module_file_missing, moduleBuild.moduleDir);
             return ExitCode::CompileError;
         }
 
         if (FileSystem::resolveExistingFolder(moduleBuild.sourceDir, because) != Result::Continue)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_src_missing);
-            FileSystem::setDiagnosticPath(diag, &ctx, moduleBuild.moduleDir);
-            diag.report(ctx);
+            FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_workspace_module_src_missing, moduleBuild.moduleDir);
             return ExitCode::CompileError;
         }
 

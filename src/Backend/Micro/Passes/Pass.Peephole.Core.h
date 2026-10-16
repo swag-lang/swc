@@ -141,6 +141,23 @@ namespace MicroPeephole
         void                        add(MicroInstrOpcode op, PATTERN_FN fn) { byOpcode[static_cast<size_t>(op)].push_back(fn); }
         std::span<const PATTERN_FN> patternsFor(MicroInstrOpcode op) const { return byOpcode[static_cast<size_t>(op)].span(); }
     };
+
+    template<typename CTX, typename PATTERN_REGISTRY, typename AFTER_INSTRUCTION>
+    void runPerInstructionPatterns(CTX& ctx, const PATTERN_REGISTRY& registry, AFTER_INSTRUCTION afterInstruction)
+    {
+        const auto view  = ctx.storage->view();
+        const auto endIt = view.end();
+        for (auto it = view.begin(); it != endIt; ++it)
+        {
+            for (const auto pattern : registry.patternsFor(it->op))
+            {
+                if (pattern(ctx, it.current, *it))
+                    break;
+            }
+
+            afterInstruction();
+        }
+    }
 }
 
 SWC_END_NAMESPACE();

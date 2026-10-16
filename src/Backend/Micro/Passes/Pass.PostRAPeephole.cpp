@@ -1151,17 +1151,7 @@ namespace
 
     void runPerInstructionPatterns(Context& ctx)
     {
-        const PatternRegistry& reg   = registry();
-        const auto             view  = ctx.storage->view();
-        const auto             endIt = view.end();
-        for (auto it = view.begin(); it != endIt; ++it, ++ctx.instructionIndex)
-        {
-            for (const PatternFn fn : reg.patternsFor(it->op))
-            {
-                if (fn(ctx, it.current, *it))
-                    break;
-            }
-        }
+        MicroPeephole::runPerInstructionPatterns(ctx, registry(), [&ctx] { ++ctx.instructionIndex; });
     }
 }
 

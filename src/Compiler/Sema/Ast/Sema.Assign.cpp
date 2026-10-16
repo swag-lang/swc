@@ -228,7 +228,7 @@ namespace
             return;
         if (!rightView.sym() || !rightView.sym()->isVariable() || !rightView.type())
             return;
-        if (rightView.type()->isReference() || rightView.type()->isAnyPointer() || rightView.type()->isMoveReference())
+        if (rightView.type()->isPointerOrReference())
             return;
 
         auto& symVar = rightView.sym()->cast<SymbolVariable>();

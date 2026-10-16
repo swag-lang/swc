@@ -155,9 +155,9 @@ namespace
         const TypeInfo*    dstStorageType  = declaredDstType.unwrapAliasEnumType(codeGen.ctx());
         const TypeInfo&    sourceType      = srcStorageType ? *srcStorageType : declaredSrcType;
         const TypeInfo&    dstType         = dstStorageType ? *dstStorageType : declaredDstType;
-        if (!(sourceType.isAnyPointer() || sourceType.isReference() || sourceType.isMoveReference()))
+        if (!sourceType.isPointerOrReference())
             return false;
-        if (!(dstType.isAnyPointer() || dstType.isReference() || dstType.isMoveReference()))
+        if (!dstType.isPointerOrReference())
             return false;
 
         return resolveUsingStructCastPath(codeGen, sourceType.payloadTypeRef(), dstType.payloadTypeRef(), outSteps);
@@ -180,7 +180,7 @@ namespace
             return false;
         if (sourceType.isPointerOrReference() || sourceType.isTypeInfo() || sourceType.isNull())
             return false;
-        if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
+        if (!dstType.isPointerOrReference())
             return false;
 
         const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
@@ -238,7 +238,7 @@ namespace
         const TypeInfo&    dstType           = typeMgr.get(dstTypeRef);
         if (sourceType.isPointerOrReference() || sourceType.isTypeInfo() || sourceType.isNull())
             return false;
-        if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
+        if (!dstType.isPointerOrReference())
             return false;
 
         const TypeRef resolvedDstPointeeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), dstType.payloadTypeRef());
@@ -510,7 +510,7 @@ namespace
         }
 
         const TypeInfo& resolvedSourceType = codeGen.typeMgr().get(resolvedSourceTypeRef);
-        SWC_ASSERT(resolvedSourceType.isAnyPointer() || resolvedSourceType.isReference() || resolvedSourceType.isMoveReference());
+        SWC_ASSERT(resolvedSourceType.isPointerOrReference());
         for (const auto& step : usingPath)
         {
             SWC_ASSERT(step.field != nullptr);
@@ -1692,7 +1692,7 @@ namespace
             SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, castInfo));
 
             constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
-            const bool         sourceIsPointerLike  = resolvedSrcType.isAnyPointer() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference();
+            const bool         sourceIsPointerLike  = resolvedSrcType.isPointerOrReference();
 
             const MicroReg runtimeItfReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             MicroReg       objectReg     = MicroReg::invalid();

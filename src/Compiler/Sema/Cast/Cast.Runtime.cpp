@@ -117,7 +117,7 @@ namespace
     {
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-        SWC_ASSERT(dstType.isAnyPointer() || dstType.isReference() || dstType.isMoveReference());
+        SWC_ASSERT(dstType.isPointerOrReference());
 
         uint64_t       ptr       = 0;
         const uint64_t valueSize = srcType.sizeOf(sema.ctx());
@@ -1227,7 +1227,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         return castRequest.fail(DiagnosticId::sema_err_dynamic_cast_modifier, srcTypeRef, dstTypeRef);
 
     if (srcType.isConst() &&
-        (dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer() || dstType.isSlice() || dstType.isCString() || dstType.isInterface()) &&
+        (dstType.isPointerOrReference() || dstType.isSlice() || dstType.isCString() || dstType.isInterface()) &&
         !dstType.isConst() &&
         !castRequest.flags.has(CastFlagsE::UnConst))
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
@@ -1300,7 +1300,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     castFromAnyRequest.errorCodeRef = castRequest.errorCodeRef;
     castFromAnyRequest.setConstantFoldingSrc(valueCstRef);
 
-    if ((dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()) &&
+    if (dstType.isPointerOrReference() &&
         dstType.isConst() &&
         dstType.payloadTypeRef() == valueTypeRef)
     {

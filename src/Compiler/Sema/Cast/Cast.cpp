@@ -35,8 +35,8 @@ namespace
         const TypeInfo& target = typeMgr.get(targetRef);
         if (source.isNullable() && !target.isNullable())
             return request.fail(DiagnosticId::sema_err_cannot_cast, sourceRef, targetRef);
-        const bool sourcePointer = source.isAnyPointer() || source.isReference() || source.isMoveReference();
-        const bool targetPointer = target.isAnyPointer() || target.isReference() || target.isMoveReference();
+        const bool sourcePointer = source.isPointerOrReference();
+        const bool targetPointer = target.isPointerOrReference();
         if ((sourcePointer || source.isInterface()) && source.isConst() && !target.isConst())
             return request.fail(DiagnosticId::sema_err_cannot_cast_const, sourceRef, targetRef);
 
@@ -135,7 +135,7 @@ namespace
 
     bool isPointerLikeInterfaceObjectSource(Sema& sema, const TypeInfo& srcType)
     {
-        if (!srcType.isAnyPointer() && !srcType.isReference() && !srcType.isMoveReference())
+        if (!srcType.isPointerOrReference())
             return false;
 
         const TypeRef objectTypeRef = srcType.payloadTypeRef();
@@ -446,7 +446,7 @@ TypeRef interfaceObjectStructTypeRef(const TypeManager& typeMgr, const TaskConte
     if (sourceType->isStruct())
         return sourceType->typeRef();
 
-    if (!sourceType->isAnyPointer() && !sourceType->isReference() && !sourceType->isMoveReference())
+    if (!sourceType->isPointerOrReference())
         return TypeRef::invalid();
 
     const TypeRef objectTypeRef = sourceType->payloadTypeRef();

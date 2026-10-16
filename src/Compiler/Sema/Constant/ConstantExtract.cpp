@@ -96,7 +96,7 @@ namespace
         {
             const TypeInfo& cstType = sema.typeMgr().get(cst.typeRef());
             TypeRef         pointedTypeRef;
-            if (cstType.isAnyPointer() || cstType.isReference() || cstType.isMoveReference())
+            if (cstType.isPointerOrReference())
                 pointedTypeRef = cstType.payloadTypeRef();
             else if (cstType.isTypeInfo())
             {

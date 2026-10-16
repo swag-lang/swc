@@ -465,11 +465,7 @@ namespace
         const auto typeSafety           = assumedCast ? Runtime::SafetyWhat::Assume : Runtime::SafetyWhat::DynCast;
         const auto nullSafety           = assumedCast ? Runtime::SafetyWhat::Assume : Runtime::SafetyWhat::Null;
         const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), typeSafety);
-        const bool dstUsesTypeInfoMatch = dstType.isStruct() ||
-                                          dstType.isAnyPointer() ||
-                                          dstType.isReference() ||
-                                          dstType.isMoveReference() ||
-                                          (!dstType.isInterface() && !dstType.isAnyVariadic());
+        const bool dstUsesTypeInfoMatch = dstType.isStruct() || dstType.isPointerOrReference() || (!dstType.isInterface() && !dstType.isAnyVariadic());
         if (!dstUsesTypeInfoMatch)
             return Result::Continue;
 
@@ -495,7 +491,7 @@ namespace
         // lookup because their borrowed address may require adjustment.
         const bool directAssumedValue = castFlags.has(CastFlagsE::Assume) &&
                                         !castFlags.hasAny({CastFlagsE::Try, CastFlagsE::NoOverflow, CastFlagsE::UnConst, CastFlagsE::Fallible}) &&
-                                        !dstType.isAnyPointer() && !dstType.isReference() && !dstType.isMoveReference() &&
+                                        !dstType.isPointerOrReference() &&
                                         !dstType.isInterface() && !dstType.isTypeInfo();
         if (directAssumedValue && !hasDynCastSafety)
         {

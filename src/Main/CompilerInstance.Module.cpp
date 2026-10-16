@@ -3735,7 +3735,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
                     (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
                      probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
                     requiredArtifacts.push_back(artifactPaths.pdbPath);
-                probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
+                probeCompiler.setLastArtifactLabel(artifactPaths.artifactLabel());
             }
             else
             {

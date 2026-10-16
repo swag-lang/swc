@@ -92,6 +92,26 @@ func readAfterMoveThroughCall()->s32
     return source.value     // not reported: the call cleared the moved-from state
 }
 
+// GAP compiler.safety.031 - one field store clears the whole moved-from range.
+// This is a safe wrong-value probe: both fields are addressable scalar storage,
+// and the second still contains lifecycle poison rather than a reinitialized value.
+struct PartialReset
+{
+    first, second: s32
+}
+
+#[Swag.NoInline, Swag.Sanity(.Lifecycle, true), Swag.Safety(.Lifecycle, true)]
+func readUnresetFieldAfterMove()->s32
+{
+    var source = PartialReset{first: 17, second: 19}
+    var target = #move source
+    discard target
+    source.first = 23
+    return source.second     // Not reported: the first-field store erased the range.
+}
+
+#test { Swag.assert(readUnresetFieldAfterMove() == -572662307) }
+
 // --- Sound ---
 
 // Reassigning after the move makes the value readable again.

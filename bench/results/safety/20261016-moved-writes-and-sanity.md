@@ -130,3 +130,15 @@ compiler-process CPU, and peak memory. Admit each command separately.
 The regenerated language reference describes stale writes, valid reinitialization,
 post-move repair and the ordinary-call boundary. tools/help.swgs dm completed;
 its runtime page also incorporates the earlier retained summary/detail fixes.
+
+## Final focused follow-up
+
+With the retained empty-registry runtime, the DevMode compiler's complete C++ suite
+passed all 1,477 tests, including filesystem/native termination fixtures. The final
+safety run passed 143 tests and verified the same 15 expected JIT panics.
+
+A separately reduced safe wrong-value probe confirmed that writing one field after
+a move clears the proof for untouched fields. The failed expected-diagnostic probe
+was kept outside the checkout; the live corpus probe and compiler.safety.031 retain
+the unresolved case. It needs range trimming/splitting and read-extent coverage,
+not a broadening of the elapsed-time budget or a claim of complete move coverage.

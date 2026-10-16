@@ -296,3 +296,18 @@ is the current scorecard.
 - Done when: releasing owned pointer elements works through arrays, slices, and
   pointer conversions, while releases of local borrows stored in those containers
   remain diagnosed by focused sanity tests.
+
+### compiler.safety.031 ? Partial reinitialization clears the entire moved-from proof
+
+- Evidence: after `var target = #move source` on a two-s32 struct, `source.first = 23`
+  makes `return source.second` compile without `sanity_err_use_after_move`, although
+  the second field still contains lifecycle poison. The live safe wrong-value probe
+  in [cwe672_use_after_move.swg](../bin/unittests/safety/corpus/cwe672_use_after_move.swg)
+  records it. `clearMovedFromOverlaps` erases an entire range on any overlapping store
+  and uses a conservative 16-byte width, including for a known four-byte store.
+- Next: trim or split moved ranges with proven store widths, and test read extents
+  against remaining ranges. Cover untouched-field reads and old-pointer writes after
+  a partial reset; keep full reassignment, unknown writes and post-move repair sound.
+- Done when: writing one field preserves proofs for untouched moved-from fields,
+  complete reinitialization remains accepted, and focused corpus/sanity checks pass
+  with measured cost and without a new whole-program pass.

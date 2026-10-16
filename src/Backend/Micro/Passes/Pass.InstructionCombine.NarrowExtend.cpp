@@ -942,25 +942,6 @@ namespace InstructionCombine
             return ext[1].reg;
         }
 
-        bool isUnsignedOrEqualityCondition(MicroCond cond)
-        {
-            switch (cond)
-            {
-                case MicroCond::Above:
-                case MicroCond::AboveOrEqual:
-                case MicroCond::Below:
-                case MicroCond::BelowOrEqual:
-                case MicroCond::NotAbove:
-                case MicroCond::Equal:
-                case MicroCond::NotEqual:
-                case MicroCond::Zero:
-                case MicroCond::NotZero:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         // Every reader of the flags `ref` sets tests an unsigned order or
         // equality, up to the next flag write in the same block.
         bool flagsReadOnlyUnsigned(const Context& ctx, MicroInstrRef ref)
@@ -977,7 +958,7 @@ namespace InstructionCombine
                 if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*scan, scanOps))
                 {
                     uint8_t condIndex = 0;
-                    if (!MicroPassHelpers::conditionOperandIndex(scan->op, condIndex) || !isUnsignedOrEqualityCondition(scanOps[condIndex].cpuCond))
+                    if (!MicroPassHelpers::conditionOperandIndex(scan->op, condIndex) || !MicroPassHelpers::isUnsignedOrEqualityCondition(scanOps[condIndex].cpuCond))
                         return false;
                 }
 

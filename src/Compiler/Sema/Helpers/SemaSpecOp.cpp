@@ -425,7 +425,7 @@ bool SemaSpecOp::isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, 
         return false;
 
     const TypeInfo& type = ctx.typeMgr().get(typeRef);
-    if (type.isReference() || (type.isValuePointer() && !type.isNullable()))
+    if (type.isReferenceOrNonNullValuePointer())
         typeRef = type.payloadTypeRef();
 
     const TypeRef candidateTypeRef = ctx.typeMgr().unwrapAlias(ctx, typeRef);

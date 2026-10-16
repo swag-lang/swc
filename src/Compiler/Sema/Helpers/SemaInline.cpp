@@ -1691,7 +1691,7 @@ namespace
 
             // A castless by-address receiver types as its pointee, so its home holds the
             // receiver's ADDRESS.
-            const bool paramBindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+            const bool paramBindsByAddress = paramType.isReferenceOrNonNullValuePointer();
             if (paramBindsByAddress && binding.sourceParam->typeRef().isValid() && inlineBindingSourceTypesAsPointee(sema, binding.exprRef))
             {
                 const TypeRef sourceTypeRef = sema.viewType(binding.exprRef).typeRef();
@@ -1886,7 +1886,7 @@ namespace
         mat.capturedByRef = inlineBindingIsCaptured(binding.idRef, context.identifiers.capturedByRef);
         // A non-null pointer parameter binds by address exactly like a reference did:
         // its binding aliases the caller's storage and must not be re-homed.
-        mat.bindsByAddress = paramType.isReference() || (paramType.isValuePointer() && !paramType.isNullable());
+        mat.bindsByAddress = paramType.isReferenceOrNonNullValuePointer();
         // A buffer projection exposes element storage. A synthetic 'let' must not
         // make a mutable slice or array parameter's buffer const.
         mat.hasAddressUse = use.address || (use.buffer && paramType.isArrayOrSlice());

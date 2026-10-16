@@ -358,7 +358,7 @@ namespace
         // like member access: the operator receiver is the pointed-to object.
         TypeRef         unwrappedTypeRef = view.typeRef();
         const TypeInfo& valueType        = *view.type();
-        if (valueType.isReference() || (valueType.isValuePointer() && !valueType.isNullable()))
+        if (valueType.isReferenceOrNonNullValuePointer())
             unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
         else
             unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), unwrappedTypeRef);
@@ -1003,7 +1003,7 @@ namespace
 
             const SymbolVariable* receiver     = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
             const TypeInfo*       receiverType = receiver ? &sema.typeMgr().get(receiver->typeRef()) : nullptr;
-            if (receiverType && (receiverType->isReference() || (receiverType->isValuePointer() && !receiverType->isNullable())))
+            if (receiverType && receiverType->isReferenceOrNonNullValuePointer())
             {
                 // A reference receiver bound the operand's value by materializing it and
                 // taking its address; the pointer-world receiver binds the same way, so a
@@ -1677,7 +1677,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         if (!indexedTypeRef.isValid())
             indexedTypeRef = indexedView.typeRef();
         const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
-        writesThroughPtr            = indexedType.isReference() || (indexedType.isValuePointer() && !indexedType.isNullable());
+        writesThroughPtr            = indexedType.isReferenceOrNonNullValuePointer();
     }
     if (!writesThroughPtr)
         SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));

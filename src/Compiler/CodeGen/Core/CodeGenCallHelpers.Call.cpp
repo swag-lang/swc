@@ -234,7 +234,7 @@ namespace
         // The implicit receiver keeps its address identity for variadic APIs. Other const
         // references and const non-null value pointers represent borrowed values and are
         // boxed as their pointees.
-        const bool borrowsValue = referenceType.isReference() || (referenceType.isValuePointer() && !referenceType.isNullable());
+        const bool borrowsValue = referenceType.isReferenceOrNonNullValuePointer();
         if (!borrowsValue || !referenceType.isConst() || isImplicitMethodReceiverArgument(codeGen, argRef))
             return;
 

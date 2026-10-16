@@ -1509,6 +1509,10 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (sema.isConstExprRequired() || forceEvaluation)
         SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
 
+    // Everything the eligibility reads, purity included, is final once semantic analysis
+    // completes. A function complete before the first test gets the same answer after the
+    // wait below, which then returns at once, so only an incomplete one is asked again.
+    const bool completedBeforeEligibility = calledFn.isSemaCompleted();
     if (!supportsConstCallJit(sema, calledFn, forceEvaluation))
         return Result::Continue;
 
@@ -1516,7 +1520,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         return waitPendingJitNode(sema, calledFn, callRef);
 
     SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
-    if (!supportsConstCallJit(sema, calledFn, forceEvaluation))
+    if (!completedBeforeEligibility && !supportsConstCallJit(sema, calledFn, forceEvaluation))
         return Result::Continue;
 
     ///////////////////////////////////////////

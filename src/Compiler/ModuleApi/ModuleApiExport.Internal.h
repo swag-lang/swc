@@ -45,7 +45,8 @@ namespace ModuleApiExport
     {
         SmallVector<const Symbol*>        values;
         std::unordered_set<const Symbol*> set;
-        std::unordered_set<const Symbol*> validated;
+        // Only ever added to, so a flat table rather than a map node per symbol.
+        PointerSet<const Symbol> validated;
         // The supporting symbols of the interface being built; a non-public type among them
         // is as reachable as a public one.
         const PointerSet<const Symbol>* supportingSymbols = nullptr;

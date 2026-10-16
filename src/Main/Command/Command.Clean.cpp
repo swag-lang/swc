@@ -74,25 +74,7 @@ namespace
     // there by somebody else — and that marker's date is the last time an entry was used.
     void collectUnusedCacheEntryTargets(std::vector<CleanTarget>& outTargets, const uint32_t days)
     {
-        const auto      maxAge = std::chrono::seconds(86400ULL * days);
-        const auto      now    = fs::file_time_type::clock::now();
-        std::error_code ec;
-        for (fs::directory_iterator it(WorkspaceLayout::dependencyCacheRoot(), fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return;
-
-            ec.clear();
-            if (!it->is_directory(ec) || ec)
-                continue;
-
-            ec.clear();
-            const auto usedTime = fs::last_write_time(it->path() / fs::path(std::string(WorkspaceLayout::DEPENDENCY_CACHE_USED_MARKER)), ec);
-            if (ec || std::chrono::duration_cast<std::chrono::seconds>(now - usedTime) < maxAge)
-                continue;
-
-            addCleanTarget(outTargets, "Unused entry", it->path());
-        }
+        WorkspaceLayout::visitUnusedDependencyCacheEntries(days, [&](const fs::path& entryDir) { addCleanTarget(outTargets, "Unused entry", entryDir); });
     }
 
     void collectCacheCleanTargets(std::vector<CleanTarget>& outTargets, const CommandLine& cmdLine)

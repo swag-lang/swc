@@ -2089,23 +2089,18 @@ namespace
         return (WorkspaceLayout::dependencyCacheRoot() / fs::path(bytesToLowerHex(digest).c_str())).lexically_normal();
     }
 
-    fs::path dependencyCacheUsedMarkerPath(const fs::path& entryDir)
-    {
-        return (entryDir / fs::path(std::string(WorkspaceLayout::DEPENDENCY_CACHE_USED_MARKER))).lexically_normal();
-    }
-
     // Re-dates the entry, so that a trim can tell what is still in use from what nothing has asked
     // for in weeks. It is the one thing ever written to a published entry, it says nothing about
     // the copy, and a cache that fails to record it still answers every question correctly.
     void touchDependencyCacheEntry(const fs::path& entryDir)
     {
         std::error_code ec;
-        fs::last_write_time(dependencyCacheUsedMarkerPath(entryDir), fs::file_time_type::clock::now(), ec);
+        fs::last_write_time(WorkspaceLayout::dependencyCacheUsedMarkerPath(entryDir), fs::file_time_type::clock::now(), ec);
     }
 
     Result writeDependencyCacheUsedMarker(TaskContext& ctx, const fs::path& entryDir, const fs::path& srcDir)
     {
-        const fs::path          markerPath = dependencyCacheUsedMarkerPath(entryDir);
+        const fs::path          markerPath = WorkspaceLayout::dependencyCacheUsedMarkerPath(entryDir);
         const Utf8              content    = std::format("{}\n", Utf8(srcDir).c_str());
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::writeBinaryFile(markerPath, content.data(), content.size(), ioError) == Result::Continue)
@@ -2129,29 +2124,15 @@ namespace
     // failed halfway would leave a gutted entry that still looks complete to the next run.
     void trimUnusedDependencyCacheEntries(const fs::path& publishedEntryDir)
     {
-        const auto            maxAge = std::chrono::seconds(86400ULL * K_DEPENDENCY_CACHE_UNUSED_DAYS);
-        const auto            now    = fs::file_time_type::clock::now();
         std::vector<fs::path> unusedEntryDirs;
-        std::error_code       ec;
-        for (fs::directory_iterator it(WorkspaceLayout::dependencyCacheRoot(), fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                return;
+        const bool            scanned = WorkspaceLayout::visitUnusedDependencyCacheEntries(K_DEPENDENCY_CACHE_UNUSED_DAYS, [&](const fs::path& entryDir) {
+            if (!FileSystem::pathEquals(entryDir, publishedEntryDir))
+                unusedEntryDirs.push_back(entryDir);
+        });
+        if (!scanned)
+            return;
 
-            ec.clear();
-            if (!it->is_directory(ec) || ec)
-                continue;
-            if (FileSystem::pathEquals(it->path(), publishedEntryDir))
-                continue;
-
-            ec.clear();
-            const auto usedTime = fs::last_write_time(dependencyCacheUsedMarkerPath(it->path()), ec);
-            if (ec || std::chrono::duration_cast<std::chrono::seconds>(now - usedTime) < maxAge)
-                continue;
-
-            unusedEntryDirs.push_back(it->path());
-        }
-
+        std::error_code ec;
         for (const fs::path& entryDir : unusedEntryDirs)
         {
             const Utf8     retiredName = std::format("{}.retired.{}", entryDir.filename().string(), Os::currentProcessId());

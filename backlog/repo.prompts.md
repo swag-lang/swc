@@ -77,9 +77,9 @@ no validation. Follow validate-swag-changes and machine-load admission for every
 Commit each retained, focused-validated batch in its worktree. Integrate the first validated code
 batch into local `master` promptly, then integrate coherent groups at most every four to six
 retained batches and before ending a work session with a validated gain. Include required tests and
-documentation with the code. Bring the worktree up to date with concurrent `master` changes,
-resolve conflicts, and rerun only checks invalidated by the integration. Keep routine observations
-in the final report. Update the backlog only under the policy above; never merge a notes-only batch.
+documentation with the code. Merge the validated batch first, then synchronize the campaign worktree
+for the next batch, following the integration order below. Keep routine observations in the final
+report. Update the backlog only under the policy above; never merge a notes-only batch.
 
 Rotate an unrelated focused check every few retained batches when it exercises a meaningful path.
 Run broad suites, cross-configuration checks, whole-tree sweeps, and full measurements about every
@@ -95,12 +95,25 @@ when an older binary's artifacts would make validation unsafe. Keep temporary lo
 outside the checkout, and use the checkout-local compiler with the repository worker cap.
 
 Several agents may run different campaigns at once.
-Before each integration, inspect current `master`, incorporate its committed changes into the
-campaign branch, and rerun the focused checks affected by the combined code. A new `master` commit
-may change the behavior being tested; checks run against the combined revision provide additional
-cross-campaign coverage. Do not treat a prior green test on an older revision as evidence for a
-later combined revision when its inputs changed. Admit concurrent builds and tests separately from
-measured machine load; isolated worktrees do not isolate CPU or memory.
+Integrate in this order:
+
+1. Merge the committed, focused-validated campaign batch directly into local `master`. Allow a
+   normal merge commit when the branches have diverged. Do not first pull, merge, or rebase
+   concurrent `master` changes into the campaign branch, rebuild, or rerun tests merely because
+   another agent advanced `master`. Preserve unrelated uncommitted work in the target checkout.
+2. If the merge has conflicts, resolve them in the campaign worktree and run only the focused
+   checks invalidated by those resolutions before completing integration. This is the exception
+   to merging first. If `master` advances again, retry the merge; restart resolution and its checks
+   only for new conflicts, without chasing every intervening commit with another validation cycle.
+3. After the merge succeeds, synchronize the campaign worktree with the resulting `master` once,
+   then start the next code batch on that combined base. Include affected integration checks in
+   that next batch's focused validation; synchronization alone does not trigger an immediate
+   rebuild or test round. Further concurrent commits wait for the next integration cycle.
+
+Keep validation evidence tied to the revision actually tested: a conflict-free merge does not
+prove the combined revision green. Investigate concrete failures when found and retain the broad
+validation milestones above, without making them a gate for every merge. Admit concurrent builds
+and tests separately from measured machine load; isolated worktrees do not isolate CPU or memory.
 
 Fix every concrete defect, failing test, regression, broken consumer, or incorrect contract found
 during the campaign, regardless of which prompt or agent introduced it. Reduce it, repair its root
@@ -1128,8 +1141,16 @@ follow load admission and the six-worker cap before every build or test. Keep SW
 unchanged. Keep review inventories, logs, and probes outside every checkout. Unless integration
 has been requested separately, leave the result in the campaign worktree for review. When the
 user requests commits in `master`, integrate each coherent validated batch into `master` and
-commit it there before continuing; synchronize the campaign worktree with the newly advanced
-`master` before starting the next batch. Preserve unrelated work in the target checkout.
+commit it there before continuing. Merge the validated batch directly, allowing a normal merge
+commit when branches diverge; do not first incorporate concurrent `master` changes into the
+campaign branch or rebuild and retest because `master` advanced. Only conflicts require resolution
+in the campaign worktree and focused validation of affected resolutions before integration.
+If `master` advances again, retry the merge without restarting validation unless new conflicts
+require it. After integration succeeds, synchronize the campaign worktree once with the resulting
+`master`, then start the next batch; include affected integration checks in that batch's validation
+without an immediate rebuild or test round just for synchronization. Further concurrent commits
+wait for the next integration cycle. Keep validation evidence tied to the revision actually tested.
+Preserve unrelated work in the target checkout.
 
 RESUME A PREVIOUS PASS
 
@@ -1243,8 +1264,9 @@ WORK IN COHERENT BATCHES
      the reading benefit and why logic is preserved. Report remaining coverage honestly.
   7. Commit each coherent validated batch. When integration into master has been requested,
      integrate those batches regularly instead of keeping all completed work until the end.
-     Reconcile concurrent changes in the separate worktree, validate affected resolutions, and
-     preserve the target checkout's unrelated uncommitted work.
+     Follow WORK IN ISOLATION: merge first, resolve and validate only actual conflicts before
+     integration, then synchronize for the next batch. Preserve the target checkout's unrelated
+     uncommitted work.
 
 STOPPING CONDITION
 

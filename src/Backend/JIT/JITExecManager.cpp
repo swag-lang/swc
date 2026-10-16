@@ -174,13 +174,7 @@ void JITExecManager::executePendingWorker()
             }
         }
 
-        Result result;
-        {
-            const std::scoped_lock lock(executionMutex_);
-            result = executeItem(*itemToRun);
-        }
-
-        publishExecutionResult(*itemToRun, result);
+        runClaimedItem(*itemToRun);
     }
 }
 
@@ -194,6 +188,18 @@ JITExecManager::Item* JITExecManager::popPendingLocked()
     SWC_ASSERT(item->status == Status::Pending);
     item->status = Status::Running;
     return item;
+}
+
+// Runs an item claimed from the queue, one execution at a time, then publishes its result.
+void JITExecManager::runClaimedItem(Item& item)
+{
+    Result result;
+    {
+        const std::scoped_lock lock(executionMutex_);
+        result = executeItem(item);
+    }
+
+    publishExecutionResult(item, result);
 }
 
 void JITExecManager::publishExecutionResult(Item& item, Result result)
@@ -321,14 +327,7 @@ bool JITExecManager::executePendingMainThread()
 
         if (!itemToRun)
             break;
-        Result result;
-        {
-            const std::scoped_lock lock(executionMutex_);
-            result = executeItem(*itemToRun);
-        }
-
-        publishExecutionResult(*itemToRun, result);
-
+        runClaimedItem(*itemToRun);
         processedAny = true;
     }
 

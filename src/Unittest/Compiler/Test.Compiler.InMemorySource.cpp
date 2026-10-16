@@ -1094,6 +1094,14 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsStableTokenOrderWithinOneFile)
         if (values != reference || !std::ranges::equal(values, expected))
             return Result::Error;
 
+        std::vector<LocationSortTestSymbol*> uniqueValues = {&symbols[2], &symbols[0], &symbols[1], &symbols[3], &symbols[4], &symbols[5]};
+        auto                                uniqueReference = uniqueValues;
+        SymbolSort::sortAndUnique(uniqueReference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
+        SymbolSort::LocationKeyCache keys(compiler);
+        SymbolSort::sortByLocation(uniqueValues, compiler, keys);
+        if (uniqueValues != uniqueReference)
+            return Result::Error;
+
         const std::array smallInputs = {
             std::vector<LocationSortTestSymbol*>{},
             std::vector<LocationSortTestSymbol*>{nullptr, nullptr},
@@ -1133,6 +1141,15 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsCompositeKeysAcrossFiles)
     SymbolSort::sortAndUniqueByLocation(values, compiler);
     if (values != reference)
         return Result::Error;
+
+    std::vector<LocationSortTestSymbol*> uniqueValues = {&symbols[2], &symbols[3], &symbols[1], &symbols[0]};
+    auto                                uniqueReference = uniqueValues;
+    SymbolSort::sortAndUnique(uniqueReference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
+    SymbolSort::LocationKeyCache keys(compiler);
+    SymbolSort::sortByLocation(uniqueValues, compiler, keys);
+    if (uniqueValues != uniqueReference)
+        return Result::Error;
+
     // The longer path's 'a' precedes the shorter path's '|' delimiter.
     if (std::ranges::find(values, &symbols[2]) >= std::ranges::find(values, &symbols[0]))
         return Result::Error;

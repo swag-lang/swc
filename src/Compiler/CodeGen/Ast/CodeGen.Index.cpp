@@ -292,7 +292,7 @@ namespace
 
         if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
             return typeMgr.get(indexedType.payloadTypeRef()).sizeOf(codeGen.ctx());
-        if (indexedType.isString() || indexedType.isCString())
+        if (indexedType.isAnyString())
             return typeMgr.get(typeMgr.typeU8()).sizeOf(codeGen.ctx());
         if (indexedType.isVariadic())
             return typeMgr.get(typeMgr.typeAny()).sizeOf(codeGen.ctx());
@@ -310,7 +310,7 @@ namespace
 
         if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
             return indexedType.payloadTypeRef();
-        if (indexedType.isString() || indexedType.isCString())
+        if (indexedType.isAnyString())
             return typeMgr.typeU8();
         if (indexedType.isVariadic())
             return typeMgr.typeAny();

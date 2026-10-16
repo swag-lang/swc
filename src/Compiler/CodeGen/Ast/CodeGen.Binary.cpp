@@ -290,7 +290,7 @@ namespace
             return payloadTypeRef;
         if (payloadType.isFloat() && operandPayload.reg.isAnyFloat() && !sourceType.isFloat())
             return payloadTypeRef;
-        if ((payloadType.isIntLike() || payloadType.isBool()) && operandPayload.reg.isAnyInt() && sourceType.isFloat())
+        if (payloadType.isNumericIntLike() && operandPayload.reg.isAnyInt() && sourceType.isFloat())
             return payloadTypeRef;
 
         return sourceTypeRef;

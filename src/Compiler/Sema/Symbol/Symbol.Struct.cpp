@@ -319,7 +319,7 @@ namespace
 
         if (cst.isNull())
         {
-            if (type.isPointerOrReference() || type.isString() || type.isCString() || type.isSlice() || type.isAny() || type.isInterface() ||
+            if (type.isPointerOrReference() || type.isAnyString() || type.isSlice() || type.isAny() || type.isInterface() ||
                 type.isTypeInfo() || type.isFunction())
                 return ImplicitDefaultKind::AllZero;
             return ImplicitDefaultKind::Mixed;

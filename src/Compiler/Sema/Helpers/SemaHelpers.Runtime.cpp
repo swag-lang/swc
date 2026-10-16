@@ -703,7 +703,7 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const TaskContext& ctx, TypeR
     const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(ctx);
     const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
 
-    if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
+    if (typeInfo.isAnyString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface())
         return true;
 
     if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())

@@ -727,7 +727,7 @@ namespace
         const TypeInfo* unwrappedType = declaredType.unwrapAliasEnumType(codeGen.ctx());
         const TypeInfo& typeInfo      = unwrappedType ? *unwrappedType : declaredType;
 
-        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
+        if (typeInfo.isNumericIntLike() || typeInfo.isFloat())
             return true;
 
         if (typeInfo.isArray())

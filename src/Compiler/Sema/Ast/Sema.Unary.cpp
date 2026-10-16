@@ -262,7 +262,7 @@ namespace
     {
         SWC_UNUSED(expr);
         const TypeInfo& type = SemaHelpers::aliasType(sema, view);
-        if (type.isFloat() || type.isIntLike() || type.isSimd())
+        if (type.isScalarNumeric() || type.isSimd())
             return Result::Continue;
 
         return reportInvalidType(sema, expr, view);

@@ -126,7 +126,7 @@ namespace
                 continue;
             }
 
-            if (currentType.isString() || currentType.isCString())
+            if (currentType.isAnyString())
             {
                 count++;
                 currentTypeRef = sema.typeMgr().typeU8();
@@ -539,7 +539,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     {
         sema.setType(sema.curNodeRef(), indexedType.payloadTypeRef());
     }
-    else if (indexedType.isString() || indexedType.isCString())
+    else if (indexedType.isAnyString())
     {
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeU8());
     }
@@ -615,7 +615,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         }
     }
 
-    if (indexedType.isArray() || indexedType.isAggregateArray() || indexedType.isSlice() || indexedType.isAnyVariadic() || indexedType.isCString() || indexedType.isString() || indexedType.isBlockPointer() || indexedType.isTypedVariadic())
+    if (indexedType.isArray() || indexedType.isAggregateArray() || indexedType.isSlice() || indexedType.isAnyVariadic() || indexedType.isAnyString() || indexedType.isBlockPointer() || indexedType.isTypedVariadic())
     {
         TypeRef     currentTypeRef  = indexedTypeRef;
         ConstantRef currentCstRef   = nodeExprView.cstRef();
@@ -710,7 +710,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 continue;
             }
 
-            if (currentType.isString() || currentType.isCString())
+            if (currentType.isAnyString())
             {
                 currentTypeRef = sema.typeMgr().typeU8();
                 currentCstRef  = ConstantRef::invalid();

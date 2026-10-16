@@ -783,8 +783,8 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
         return operandReg;
     }
 
-    const bool srcIntLikeType = srcType.isIntLike() || srcType.isBool();
-    const bool dstIntLikeType = dstType.isIntLike() || dstType.isBool();
+    const bool srcIntLikeType = srcType.isNumericIntLike();
+    const bool dstIntLikeType = dstType.isNumericIntLike();
     const bool srcFloatType   = srcType.isFloat();
     const bool dstFloatType   = dstType.isFloat();
 

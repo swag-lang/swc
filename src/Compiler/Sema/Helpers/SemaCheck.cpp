@@ -252,7 +252,7 @@ namespace
             return false;
 
         const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
-        return sourceType.isString() || sourceType.isCString();
+        return sourceType.isAnyString();
     }
 
     AstNodeRef indexedSourceRef(Sema& sema, AstNodeRef nodeRef)

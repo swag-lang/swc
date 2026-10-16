@@ -500,7 +500,7 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     ConstantKind kind;
     if (storageType.isArray() || storageType.isSimd())
         kind = ConstantKind::Array;
-    else if (storageType.isBool() || storageType.isChar() || storageType.isRune() || storageType.isInt() || storageType.isFloat() || storageType.isPointerOrReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
+    else if (storageType.isNumericIntLike() || storageType.isFloat() || storageType.isPointerOrReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
         return 0;
     else
         kind = ConstantKind::Struct;
@@ -542,7 +542,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
     if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
         return resolveClosureStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, payload);
 
-    if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSimd())
+    if (typeInfo.isNumericIntLike() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSimd())
         return true;
 
     if (typeInfo.isSlice())

@@ -236,7 +236,7 @@ namespace
             bindingFlags.add(TypeInfoFlagsE::Const);
 
         TypeRef resultTypeRef = TypeRef::invalid();
-        if (type->isString() || type->isCString())
+        if (type->isAnyString())
         {
             // A 'nullable' text carries no buffer, so the pointer it hands back carries that
             // absence too: answering with the plain block pointer would lose it silently.

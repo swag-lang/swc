@@ -1042,7 +1042,7 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
     // A value handed to a bool parameter, initializer or assignment is not a condition: it does
     // not convert at all, so that is the answer it gets, before any truthiness rule applies.
-    if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isBool() && !srcType.isIntLike() && !srcType.isFloat() && !srcType.isEnumFlags())
+    if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isNumericIntLike() && !srcType.isFloat() && !srcType.isEnumFlags())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (isBoolTestAlwaysTrue(sema, castRequest, srcTypeRef))

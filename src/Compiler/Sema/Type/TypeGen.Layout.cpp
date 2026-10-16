@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
 {
-    if (type.isBool() || type.isInt() || type.isFloat() || type.isChar() || type.isString() || type.isCString() ||
+    if (type.isBool() || type.isInt() || type.isFloat() || type.isChar() || type.isAnyString() ||
         type.isRune() || type.isAny() || type.isVoid())
         return LayoutKind::Native;
 

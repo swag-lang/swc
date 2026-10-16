@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
@@ -431,6 +432,17 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
 
     diag.addNote(DiagnosticId::sema_note_compiler_only_symbol);
     diag.last().addSpan(symbol.codeRange(sema.ctx()));
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
+// A '#wrap' or '#promote' modifier on an operator whose operand is not an integer.
+Result SemaError::raiseModifierOnlyInteger(Sema& sema, const AstNode& node, TypeRef typeRef)
+{
+    const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
+    const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
+    auto              diag    = report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
+    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
     diag.report(sema.ctx());
     return Result::Error;
 }

@@ -81,12 +81,7 @@ namespace
         if (SemaHelpers::aliasType(sema, targetLeftView).isIntLike())
             return Result::Continue;
 
-        const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
-        const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-        auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
-        diag.addArgument(Diagnostic::ARG_TYPE, targetLeftView.typeRef());
-        diag.report(sema.ctx());
-        return Result::Error;
+        return SemaError::raiseModifierOnlyInteger(sema, node, targetLeftView.typeRef());
     }
 
     bool needsAssignOverflowRuntimeSafety(const AstAssignStmt& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, Sema& sema)

@@ -166,6 +166,9 @@ public:
 private:
     static uint32_t chooseShard() { return JobManager::threadIndex() % SHARD_COUNT; }
 
+    template<typename T>
+    void appendSpan(SmallVector<T>& out, SpanRef spanRef) const;
+
     struct Shard
     {
         PagedStore                store;

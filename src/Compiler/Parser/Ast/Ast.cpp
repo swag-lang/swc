@@ -61,7 +61,8 @@ bool Ast::isAdditionalNode(AstNodeRef nodeRef) const
     return local >= parsedNodeBoundaryByShard_[shard];
 }
 
-void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
+template<typename T>
+void Ast::appendSpan(SmallVector<T>& out, SpanRef spanRef) const
 {
     if (spanRef.isInvalid())
         return;
@@ -74,8 +75,13 @@ void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
     for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
         const PagedStore::SpanView::Chunk& c = *it;
-        out.append(static_cast<const AstNodeRef*>(c.ptr), c.count);
+        out.append(static_cast<const T*>(c.ptr), c.count);
     }
+}
+
+void Ast::appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const
+{
+    appendSpan(out, spanRef);
 }
 
 size_t Ast::spanSize(SpanRef spanRef) const
@@ -144,19 +150,7 @@ std::optional<size_t> Ast::findNodeIndex(SpanRef spanRef, AstNodeRef nodeRef) co
 
 void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
 {
-    if (spanRef.isInvalid())
-        return;
-
-    const uint32_t g = spanRef.get();
-    const uint32_t s = refShard(g);
-    const uint32_t l = refLocal(g);
-
-    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
-    for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
-    {
-        const PagedStore::SpanView::Chunk& c = *it;
-        out.append(static_cast<const TokenRef*>(c.ptr), c.count);
-    }
+    appendSpan(out, spanRef);
 }
 
 AstNodeRef Ast::findNodeRef(const AstNode* node) const

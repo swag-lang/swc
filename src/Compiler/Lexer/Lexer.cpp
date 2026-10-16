@@ -641,21 +641,19 @@ void Lexer::lexCharacterLiteral()
     pushToken();
 }
 
-void Lexer::lexHexNumber()
+// Consumes a run of digits and number separators, reporting doubled separators, and returns how
+// many digits it read. 'ioLastWasSep' says whether the run ends on a separator. Safe lookahead:
+// the zeros after endBuffer_ fail both checks.
+template<bool (LangSpec::*IsDigit)(uint32_t) const>
+uint32_t Lexer::lexDigitRun(bool& ioLastWasSep)
 {
-    token_.id = TokenId::NumberHex;
-    buffer_ += 2;
-
-    bool           lastWasSep = false;
-    const char8_t* sepStart   = nullptr;
-    uint32_t       digits     = 0;
-
-    // Safe lookahead: zeros after endBuffer_ will fail isHexNumber check
-    while (langSpec_->isHexNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
+    const char8_t* sepStart = nullptr;
+    uint32_t       digits   = 0;
+    while ((langSpec_->*IsDigit)(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
     {
         if (langSpec_->isNumberSep(buffer_[0]))
         {
-            if (lastWasSep)
+            if (ioLastWasSep)
             {
                 while (langSpec_->isNumberSep(buffer_[0]))
                     buffer_++;
@@ -663,16 +661,27 @@ void Lexer::lexHexNumber()
                 continue;
             }
 
-            sepStart   = buffer_;
-            lastWasSep = true;
+            sepStart     = buffer_;
+            ioLastWasSep = true;
             buffer_++;
             continue;
         }
 
         digits++;
-        lastWasSep = false;
+        ioLastWasSep = false;
         buffer_++;
     }
+
+    return digits;
+}
+
+void Lexer::lexHexNumber()
+{
+    token_.id = TokenId::NumberHex;
+    buffer_ += 2;
+
+    bool           lastWasSep = false;
+    const uint32_t digits     = lexDigitRun<&LangSpec::isHexNumber>(lastWasSep);
 
     // Require at least one digit
     if (digits == 0)
@@ -695,32 +704,7 @@ void Lexer::lexBinNumber()
     buffer_ += 2;
 
     bool           lastWasSep = false;
-    const char8_t* sepStart   = nullptr;
-    uint32_t       digits     = 0;
-
-    // Safe lookahead: zeros after endBuffer_ will fail the check
-    while (langSpec_->isBinNumber(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
-    {
-        if (langSpec_->isNumberSep(buffer_[0]))
-        {
-            if (lastWasSep)
-            {
-                while (langSpec_->isNumberSep(buffer_[0]))
-                    buffer_++;
-                raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
-                continue;
-            }
-
-            sepStart   = buffer_;
-            lastWasSep = true;
-            buffer_++;
-            continue;
-        }
-
-        digits++;
-        lastWasSep = false;
-        buffer_++;
-    }
+    const uint32_t digits     = lexDigitRun<&LangSpec::isBinNumber>(lastWasSep);
 
     // Require at least one digit
     if (digits == 0)
@@ -742,33 +726,12 @@ void Lexer::lexDecimalNumber()
 {
     token_.id = TokenId::NumberInteger;
 
-    bool           lastWasSep = false;
-    const char8_t* sepStart   = nullptr;
-    bool           hasDot     = false;
-    bool           hasExp     = false;
+    bool lastWasSep = false;
+    bool hasDot     = false;
+    bool hasExp     = false;
 
-    // Parse integer part - safe lookahead: zeros after endBuffer_ will fail the check
-    while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
-    {
-        if (langSpec_->isNumberSep(buffer_[0]))
-        {
-            if (lastWasSep)
-            {
-                while (langSpec_->isNumberSep(buffer_[0]))
-                    buffer_++;
-                raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
-                continue;
-            }
-
-            sepStart   = buffer_;
-            lastWasSep = true;
-            buffer_++;
-            continue;
-        }
-
-        lastWasSep = false;
-        buffer_++;
-    }
+    // Parse integer part
+    lexDigitRun<&LangSpec::isDigit>(lastWasSep);
 
     // Check for trailing separator before the decimal point
     if (lastWasSep)
@@ -784,27 +747,7 @@ void Lexer::lexDecimalNumber()
         if (langSpec_->isNumberSep(buffer_[0]))
             raiseTokenError(DiagnosticId::lex_err_leading_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_));
 
-        while (buffer_ < endBuffer_ && (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0])))
-        {
-            if (langSpec_->isNumberSep(buffer_[0]))
-            {
-                if (lastWasSep)
-                {
-                    while (langSpec_->isNumberSep(buffer_[0]))
-                        buffer_++;
-                    raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
-                    continue;
-                }
-
-                sepStart   = buffer_;
-                lastWasSep = true;
-                buffer_++;
-                continue;
-            }
-
-            lastWasSep = false;
-            buffer_++;
-        }
+        lexDigitRun<&LangSpec::isDigit>(lastWasSep);
 
         if (hasDot)
             token_.id = TokenId::NumberFloat;
@@ -827,30 +770,8 @@ void Lexer::lexDecimalNumber()
         if (langSpec_->isNumberSep(buffer_[0]))
             raiseTokenError(DiagnosticId::lex_err_leading_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_));
 
-        uint32_t expDigits = 0;
-        lastWasSep         = false;
-        while (langSpec_->isDigit(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
-        {
-            if (langSpec_->isNumberSep(buffer_[0]))
-            {
-                if (lastWasSep)
-                {
-                    while (langSpec_->isNumberSep(buffer_[0]))
-                        buffer_++;
-                    raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
-                    continue;
-                }
-
-                sepStart   = buffer_;
-                lastWasSep = true;
-                buffer_++;
-                continue;
-            }
-
-            expDigits++;
-            lastWasSep = false;
-            buffer_++;
-        }
+        lastWasSep               = false;
+        const uint32_t expDigits = lexDigitRun<&LangSpec::isDigit>(lastWasSep);
 
         if (expDigits == 0)
             raiseTokenError(DiagnosticId::lex_err_missing_exponent, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));

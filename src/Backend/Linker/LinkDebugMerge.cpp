@@ -3,6 +3,9 @@
 #include "Backend/BinaryPatch.h"
 #include "Backend/Debug/CodeViewLeaf.h"
 #include "Backend/Debug/CodeViewRecords.h"
+#include "Support/Core/PointerSet.h"
+#include "Support/Core/StringMap.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -223,20 +226,20 @@ namespace
 
 struct LinkDebugMerger::ObjectTypes
 {
-    std::vector<uint32_t>                  imageIndices;   // member index - 0x1000 -> image TPI index, 0 for an id record
-    std::unordered_map<uint32_t, uint32_t> procedureTypes; // member function id -> image procedure type
-    std::vector<const std::string*>        addedRecords;   // records new to the image, in index order
+    std::vector<uint32_t>           imageIndices;   // member index - 0x1000 -> image TPI index, 0 for an id record
+    FlatKeyMap<uint32_t>            procedureTypes; // member function id -> image procedure type
+    std::vector<const std::string*> addedRecords;   // records new to the image, in index order
 };
 
 struct LinkDebugMerger::ObjectSymbols
 {
-    const CoffInputSection*                      section   = nullptr;
-    uint32_t                                     compiland = 0;
-    std::span<const std::byte>                   checksums;
-    std::span<const std::byte>                   strings;
-    std::unordered_map<uint32_t, const Utf8*>    targets;   // section offset -> SECREL relocation target
-    std::unordered_map<uint32_t, uint32_t>       files;     // checksum offset -> image file index
-    std::unordered_map<std::string_view, size_t> functions; // symbol name -> index in LinkDebugInfo::functions
+    const CoffInputSection*    section   = nullptr;
+    uint32_t                   compiland = 0;
+    std::span<const std::byte> checksums;
+    std::span<const std::byte> strings;
+    FlatKeyMap<const Utf8*>    targets;   // section offset -> SECREL relocation target
+    FlatKeyMap<uint32_t>       files;     // checksum offset -> image file index
+    StringMap<size_t>          functions; // symbol name, borrowed from its relocation -> index in LinkDebugInfo::functions
 };
 
 LinkDebugMerger::LinkDebugMerger(LinkDebugInfo& debugInfo) :
@@ -389,18 +392,18 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
             case CodeViewRecords::K_S_GPROC32_ID:
             case K_S_LPROC32_ID:
             {
-                const auto target = symbols.targets.find(offset + K_PROC_OFFSET);
-                if (record.size() < K_PROC_NAME || target == symbols.targets.end())
+                const Utf8* const* target = symbols.targets.find(offset + K_PROC_OFFSET);
+                if (record.size() < K_PROC_NAME || !target)
                     return;
 
-                const auto procedure = types.procedureTypes.find(BinaryPatch::readU32(record, K_PROC_TYPE));
+                const uint32_t* procedure = types.procedureTypes.find(BinaryPatch::readU32(record, K_PROC_TYPE));
                 function.emplace();
-                function->symbolName    = *target->second;
+                function->symbolName    = **target;
                 function->displayName   = Utf8(readName(record, K_PROC_NAME));
                 function->objIndex      = symbols.compiland;
                 function->codeSize      = BinaryPatch::readU32(record, K_PROC_CODE_SIZE);
-                function->procTypeIndex = procedure == types.procedureTypes.end() ? 0 : procedure->second;
-                functionSymbol          = target->second->view();
+                function->procTypeIndex = procedure ? *procedure : 0;
+                functionSymbol          = (*target)->view();
                 break;
             }
 
@@ -425,7 +428,7 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
             case CodeViewRecords::K_S_END:
                 if (!function)
                     break;
-                symbols.functions.emplace(functionSymbol, debugInfo_->functions.size());
+                symbols.functions.try_emplace(functionSymbol, Math::hash(functionSymbol), debugInfo_->functions.size());
                 debugInfo_->functions.push_back(std::move(*function));
                 function.reset();
                 break;
@@ -433,12 +436,12 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
             case CodeViewRecords::K_S_GDATA32:
             case CodeViewRecords::K_S_LDATA32:
             {
-                const auto target = symbols.targets.find(offset + K_DATA_OFFSET);
-                if (record.size() < K_DATA_NAME || target == symbols.targets.end())
+                const Utf8* const* target = symbols.targets.find(offset + K_DATA_OFFSET);
+                if (record.size() < K_DATA_NAME || !target)
                     break;
 
                 LinkDebugGlobal global;
-                global.symbolName    = *target->second;
+                global.symbolName    = **target;
                 global.sectionOffset = BinaryPatch::readU32(record, K_DATA_OFFSET);
                 global.displayName   = Utf8(readName(record, K_DATA_NAME));
                 global.typeIndex     = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_RECORD_HEADER));
@@ -466,12 +469,13 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
 
 void LinkDebugMerger::mergeLines(ObjectSymbols& symbols, const std::span<const std::byte> lines, const uint32_t sectionOffset)
 {
-    const auto target = symbols.targets.find(sectionOffset);
-    if (lines.size() < K_LINES_HEADER_SIZE || target == symbols.targets.end())
+    const Utf8* const* target = symbols.targets.find(sectionOffset);
+    if (lines.size() < K_LINES_HEADER_SIZE || !target)
         return;
 
-    const auto owner = symbols.functions.find(target->second->view());
-    if (owner == symbols.functions.end())
+    const std::string_view targetName = (*target)->view();
+    const size_t*          owner      = symbols.functions.find(targetName, Math::hash(targetName));
+    if (!owner)
         return;
 
     for (size_t pos = K_LINES_HEADER_SIZE; pos + K_LINES_BLOCK_SIZE <= lines.size();)
@@ -493,7 +497,7 @@ void LinkDebugMerger::mergeLines(ObjectSymbols& symbols, const std::span<const s
             block.lines.push_back(BinaryPatch::readU32(lines, entry + 4) & K_CV_LINE_MASK);
         }
 
-        LinkDebugFunction& function = debugInfo_->functions[owner->second];
+        LinkDebugFunction& function = debugInfo_->functions[*owner];
         if (function.primaryFileIndex == std::numeric_limits<uint32_t>::max())
             function.primaryFileIndex = block.fileIndex;
         function.lineBlocks.push_back(std::move(block));
@@ -503,9 +507,8 @@ void LinkDebugMerger::mergeLines(ObjectSymbols& symbols, const std::span<const s
 
 uint32_t LinkDebugMerger::imageFileIndex(ObjectSymbols& symbols, const uint32_t checksumOffset)
 {
-    const auto known = symbols.files.find(checksumOffset);
-    if (known != symbols.files.end())
-        return known->second;
+    if (const uint32_t* known = symbols.files.find(checksumOffset))
+        return *known;
 
     LinkDebugFile file;
     if (checksumOffset + K_CHECKSUM_HEADER_SIZE <= symbols.checksums.size())

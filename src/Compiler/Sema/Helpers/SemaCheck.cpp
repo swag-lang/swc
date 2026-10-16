@@ -610,9 +610,7 @@ Result SemaCheck::checkMoveSourceCanReset(Sema& sema, const AstNodeRef srcRef, T
     if (!modifierFlags.has(AstModifierFlagsE::Move) || srcRef.isInvalid() || typeRef.isInvalid())
         return Result::Continue;
 
-    const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-    if (unwrappedTypeRef.isValid())
-        typeRef = unwrappedTypeRef;
+    typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
 
     SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, typeRef, srcRef));
     if (!TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef).hasDrop)

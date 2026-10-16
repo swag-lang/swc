@@ -451,14 +451,6 @@ namespace
         return DebugPath::normalizedString(currentPath);
     }
 
-    Utf8 buildInfoSourceFileName(const Utf8& primarySource)
-    {
-        if (primarySource.empty())
-            return {};
-
-        return {fs::path(primarySource.c_str()).filename().string()};
-    }
-
     Utf8 buildInfoCommandLine(const TaskContext& ctx)
     {
         return std::format("{} --build-cfg {} --artifact-kind {} --arch {}", DebugPath::normalizedString(Os::getExeFullName()), ctx.cmdLine().buildCfg, backendKindName(ctx.compiler().buildCfg().backendKind), targetArchName(ctx.cmdLine().targetArch));
@@ -1322,7 +1314,7 @@ namespace
         const Utf8 primarySource       = primarySourcePath(functionLines);
         const Utf8 buildCurrentDir     = buildInfoCurrentDirectory(request, primarySource);
         const Utf8 buildTool           = DebugPath::normalizedString(Os::getExeFullName());
-        const Utf8 buildSourceFileName = buildInfoSourceFileName(primarySource);
+        const Utf8 buildSourceFileName = DebugPath::buildInfoFileName(primarySource);
         fs::path   buildPdbPath        = request.objectPath;
         buildPdbPath.replace_extension(".pdb");
         const Utf8     buildPdbPathString = DebugPath::normalizedString(buildPdbPath);
@@ -1539,7 +1531,7 @@ void DebugInfoCodeView::buildPdbInfo(DebugInfoPdbResult& outResult, const DebugI
     const Utf8 primarySource       = primarySourcePath(request);
     const Utf8 buildCurrentDir     = buildInfoCurrentDirectory(request, primarySource);
     const Utf8 buildTool           = DebugPath::normalizedString(Os::getExeFullName());
-    const Utf8 buildSourceFileName = buildInfoSourceFileName(primarySource);
+    const Utf8 buildSourceFileName = DebugPath::buildInfoFileName(primarySource);
     fs::path   buildPdbPath        = request.objectPath;
     buildPdbPath.replace_extension(".pdb");
     const Utf8     buildPdbPathString = request.objectPath.empty() ? Utf8{} : DebugPath::normalizedString(buildPdbPath);

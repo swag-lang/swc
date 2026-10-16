@@ -1647,6 +1647,26 @@ namespace
         return receiver;
     }
 
+    // Enters the body of 'sym': a frame bound to its receiver and return type, and a local scope
+    // over its symbols.
+    void enterFunctionBody(Sema& sema, SymbolFunction& sym)
+    {
+        auto frame = sema.frame();
+        // Lookup-scope overrides are expression-local. A fresh function body must
+        // start from its lexical scope or local declarations can miss themselves.
+        frame.setLookupScope(nullptr);
+        frame.setUpLookupScope(nullptr);
+        frame.setIgnoreRuntimeAccess(false);
+        frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+        if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
+            frame.pushBindingVar(receiver);
+        // The return type binds a short body; a block body clears it at its first statement.
+        frame.pushBindingType(sym.returnTypeRef());
+        sema.pushFramePopOnPostNode(std::move(frame));
+
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+        sema.curScope().setSymMap(&sym);
+    }
 }
 
 Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -1724,22 +1744,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (sym.isSemaCompleted())
             return Result::SkipChildren;
 
-        auto frame = sema.frame();
-        if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
-            frame.pushBindingVar(receiver);
-
-        // Lookup-scope overrides are expression-local. A fresh function body must
-        // start from its lexical scope or local declarations can miss themselves.
-        frame.setLookupScope(nullptr);
-        frame.setUpLookupScope(nullptr);
-        frame.setIgnoreRuntimeAccess(false);
-        frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
-        // The return type binds a short body; a block body clears it at its first statement.
-        frame.pushBindingType(sym.returnTypeRef());
-        sema.pushFramePopOnPostNode(std::move(frame));
-
-        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
-        sema.curScope().setSymMap(&sym);
+        enterFunctionBody(sema, sym);
     }
 
     return Result::Continue;
@@ -1753,18 +1758,7 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     auto& sym = functionExprSymbol(sema, sema.curNodeRef());
     SWC_RESULT(prepareFunctionExprSignature(sema, *this, sym));
 
-    auto frame = sema.frame();
-    frame.setLookupScope(nullptr);
-    frame.setUpLookupScope(nullptr);
-    frame.setIgnoreRuntimeAccess(false);
-    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
-    if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
-        frame.pushBindingVar(receiver);
-    frame.pushBindingType(sym.returnTypeRef());
-    sema.pushFramePopOnPostNode(std::move(frame));
-
-    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
-    sema.curScope().setSymMap(&sym);
+    enterFunctionBody(sema, sym);
     return Result::Continue;
 }
 
@@ -1779,18 +1773,7 @@ Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     SWC_RESULT(prepareFunctionExprSignature(sema, *this, sym));
     SWC_RESULT(buildClosureCaptureSymbols(sema, *this, sym));
 
-    auto frame = sema.frame();
-    frame.setLookupScope(nullptr);
-    frame.setUpLookupScope(nullptr);
-    frame.setIgnoreRuntimeAccess(false);
-    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
-    if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
-        frame.pushBindingVar(receiver);
-    frame.pushBindingType(sym.returnTypeRef());
-    sema.pushFramePopOnPostNode(std::move(frame));
-
-    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
-    sema.curScope().setSymMap(&sym);
+    enterFunctionBody(sema, sym);
     return Result::Continue;
 }
 

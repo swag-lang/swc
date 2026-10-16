@@ -112,18 +112,8 @@ namespace
         if (!codeGen.typeMgr().get(payloadTypeRef).isInt())
             return;
 
-        ioTypeRef         = payloadTypeRef;
-        ioPayload.typeRef = payloadTypeRef;
-        if (ioPayload.isValue())
-        {
-            ioPayload.setIsAddress();
-            return;
-        }
-
-        const MicroReg referenceSlotReg = ioPayload.reg;
-        ioPayload.reg                   = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
-        ioPayload.setIsAddress();
+        ioTypeRef = payloadTypeRef;
+        CodeGenReferenceHelpers::derefReferencePayload(codeGen, ioPayload, payloadTypeRef);
     }
 
     TypeRef resolveMemberAccessLeftTypeRef(CodeGen& codeGen, AstNodeRef leftRef)

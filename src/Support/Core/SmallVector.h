@@ -242,7 +242,7 @@ public:
         }
         else if (n > sizeValue_)
         {
-            if (n > capacityValue_ && containsElementAddress(&value))
+            if (n > capacityValue_ && containsElementAddress(std::addressof(value)))
             {
                 const T saved(value);
                 resize(n, saved);

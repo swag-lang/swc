@@ -89,6 +89,7 @@ filesystem cases requiring `--dev-full`.
 | 36 | 1,448 | Native optimizer selection: 302 |
 | 37 | 1,449 | Native optimizer selection: 302 |
 | 38 | 1,450 | Full native: 3,891; full JIT: 1,539 |
+| 39 | 1,454 | Native `separated_float_products.swg`: 1, with the DevMode compiler and `release` program configuration |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -107,8 +108,8 @@ An initial JIT `compiler` file filter omitted the required allocator-helper sour
 the corrected full JIT run passed. The initial Tarjan regression fixture omitted
 four Swag statement separators; it was corrected before retention and now checks
 parsing errors before its graph assertions. Formatting and `git diff --check`
-passed for retained changes. No benchmark was run; Release validation is limited
-to the SmallVector defect repair below.
+passed for retained changes. No benchmark was run; Release-compiler validation is
+limited to the SmallVector lifetime repair below.
 
 Checkpoint 28 includes the prompt-2 immutable-parameter loop-read change imported
 at `205ac08ff3`. SmallVector checks also include the later immutable-field-address
@@ -117,6 +118,8 @@ Checkpoint 30 additionally exercises the memory-flags and TLS-context changes
 imported at `b5cba4d47a`.
 Checkpoint 35 includes the composite address-scale legalization and encoder case
 imported at `ab03d9dbce`.
+Checkpoint 39 includes the reloaded-factor FMA and sibling-copy forwarding changes
+imported at `e2b7ff1f54`; its native program configuration enables FMA contraction.
 
 A new SmallVector regression first exposed a leaked live prefix when copy
 construction failed. The repair cleans partial construction and raw allocations,
@@ -138,6 +141,13 @@ optimizer tests in the `devmode` program configuration:
 MSBuild.exe swc.sln /t:Build /m:6 /p:Configuration=Release /p:Platform=x64 /p:SwcCompileJobs=6 /nologo /v:minimal
 bin\swc.exe --num-cores 6 tools\unittests.swgs native -bc devmode --file-filter optimizer --num-cores 6 --rebuild
 ```
+
+Checkpoint 39 repairs a separate SmallVector compatibility defect: the borrowed-fill
+probe called an element's overloaded unary `&`. A deleted operator reproduced a
+compilation error before the change. `std::addressof` now obtains the actual object
+address; two regressions cover deleted and misleading operators, including a fill
+borrowed across growth. This changes no storage or lifetime algorithm and is not
+claimed as a speed gain. Its DevMode C++ suite passes 1,454 tests.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

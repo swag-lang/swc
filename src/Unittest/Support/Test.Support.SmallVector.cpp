@@ -108,6 +108,30 @@ namespace
         ~MoveOnlyTrackedValue() { --live; }
     };
 
+    struct NoAddressValue
+    {
+        uint32_t value;
+
+        explicit NoAddressValue(uint32_t requested = 0) noexcept :
+            value(requested)
+        {
+        }
+        NoAddressValue*       operator&()       = delete;
+        const NoAddressValue* operator&() const = delete;
+    };
+
+    struct MisleadingAddressValue
+    {
+        std::string text;
+
+        explicit MisleadingAddressValue(std::string requested) :
+            text(std::move(requested))
+        {
+        }
+        MisleadingAddressValue*       operator&() noexcept { return nullptr; }
+        const MisleadingAddressValue* operator&() const noexcept { return nullptr; }
+    };
+
     struct ThrowingForwardIterator
     {
         using iterator_category = std::forward_iterator_tag;
@@ -148,6 +172,36 @@ namespace
     static_assert(!std::is_nothrow_move_constructible_v<SmallVector<MoveOnlyTrackedValue, 2>>);
     static_assert(!std::is_copy_constructible_v<SmallVector<std::unique_ptr<uint32_t>, 2>>);
 }
+
+SWC_TEST_BEGIN(SmallVector_CopyableValuesNeedNoAddressOfOperator)
+{
+    const NoAddressValue           fill(7);
+    SmallVector<NoAddressValue, 1> values;
+    values.resize(3, fill);
+    if (values.size() != 3)
+        return Result::Error;
+    for (const auto& value : values)
+    {
+        if (value.value != 7)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SmallVector_BorrowedFillUsesTheActualElementAddress)
+{
+    SmallVector<MisleadingAddressValue, 1> values;
+    values.emplace_back("alpha");
+    values.resize(3, values.front());
+    if (values.size() != 3)
+        return Result::Error;
+    for (const auto& value : values)
+    {
+        if (value.text != "alpha")
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(SmallVector_CopyConstructionCleansPartialValues)
 {

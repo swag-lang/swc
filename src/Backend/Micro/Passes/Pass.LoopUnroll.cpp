@@ -24,7 +24,10 @@
 // after the last copy for any post-loop reader. Handing every copy a
 // constant counter is what lets the rest of the pre-RA loop finish the job -
 // constant folding collapses the per-copy extends, and the constant-index
-// fold turns every `[base + i*scale]` into a direct displacement.
+// fold turns every `[base + i*scale]` into a direct displacement. A pointer
+// the body steps in place is handed out the same way, one address operation
+// per copy, and a loop over a constant-length slice - a countdown tested at
+// the top - is first rewritten into the counted shape.
 //
 // Cloned instructions keep their relocations: any table the body reads
 // through a materialized address is re-attached to each copy. Labels inside
@@ -821,6 +824,135 @@ namespace
     }
 }
 
+namespace
+{
+    // A loop over a slice of constant length counts down and tests at the top:
+    //
+    //     LoadRegImm      %c, K          ; K > 0, in the straight-line preheader
+    //   H:
+    //     CmpRegImm       %c, 0
+    //     JumpCond        e, X
+    //     ...body...
+    //     OpBinaryRegImm  sub %c, 1
+    //     JumpCond        always, H
+    //   X:
+    //
+    // With K positive the first test never leaves, so the loop runs the same as the
+    // counted form the unroller recognizes: the body, then `add %c, 1 / cmp %c, K /
+    // jb H`, the counter starting at zero and left at zero on the one way out. Only a
+    // straight-line body that ignores the counter, and that the unroller will then
+    // copy whole, is rewritten: moving the test to the bottom of a loop that stays a
+    // loop changes where the allocator sees its header.
+    bool rotateConstantCountdown(MicroPassContext& context, const std::vector<MicroInstrRef>& order, const LabelTable& labels, uint32_t h, uint32_t latch)
+    {
+        MicroStorage&        storage  = *context.instructions;
+        MicroOperandStorage& operands = *context.operands;
+        if (h + 4 > latch || latch + 2 >= order.size())
+            return false;
+
+        const MicroInstr* cmp      = storage.ptr(order[h + 1]);
+        const MicroInstr* exit     = storage.ptr(order[h + 2]);
+        MicroInstr*       step     = storage.ptr(order[latch - 1]);
+        const MicroInstr* backEdge = storage.ptr(order[latch]);
+        const MicroInstr* tail     = storage.ptr(order[latch + 1]);
+        if (cmp->op != MicroInstrOpcode::CmpRegImm || exit->op != MicroInstrOpcode::JumpCond || step->op != MicroInstrOpcode::OpBinaryRegImm ||
+            backEdge->op != MicroInstrOpcode::JumpCond || tail->op != MicroInstrOpcode::Label)
+            return false;
+
+        const MicroInstrOperand* cmpOps  = cmp->ops(operands);
+        const MicroInstrOperand* exitOps = exit->ops(operands);
+        MicroInstrOperand*       stepOps = step->ops(operands);
+        const MicroInstrOperand* backOps = backEdge->ops(operands);
+        const MicroInstrOperand* tailOps = tail->ops(operands);
+        const MicroReg           counter = cmpOps[0].reg;
+        const MicroOpBits        bits    = cmpOps[1].opBits;
+        if (!counter.isVirtualInt() || (bits != MicroOpBits::B32 && bits != MicroOpBits::B64) || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64)
+            return false;
+        if (exitOps[0].cpuCond != MicroCond::Equal && exitOps[0].cpuCond != MicroCond::Zero)
+            return false;
+        if (backOps[0].cpuCond != MicroCond::Unconditional || exitOps[2].valueU64 != tailOps[0].valueU64)
+            return false;
+        if (stepOps[0].reg != counter || stepOps[1].opBits != bits || stepOps[2].microOp != MicroOp::Subtract || stepOps[3].hasWideImmediateValue() || stepOps[3].valueU64 != 1)
+            return false;
+
+        // The exit is reached only from the top test, which leaves it the counter at zero.
+        const LabelInfo* exitLabel = findLabel(labels, tailOps[0].valueU64);
+        if (!exitLabel || exitLabel->firstJump != h + 2 || exitLabel->lastJump != h + 2)
+            return false;
+
+        // The starting count, from the straight-line preheader, read by nothing before the loop.
+        MicroInstrOperand* initOps = nullptr;
+        for (uint32_t back = 1; back <= 8 && back <= h && !initOps; ++back)
+        {
+            MicroInstr*          cand = storage.ptr(order[h - back]);
+            const MicroInstrDef& info = MicroInstr::info(cand->op);
+            if (cand->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const MicroInstrUseDef useDef = cand->collectUseDef(operands, context.encoder);
+            if (std::ranges::find(useDef.defs, counter) == useDef.defs.end())
+            {
+                if (std::ranges::find(useDef.uses, counter) != useDef.uses.end())
+                    return false;
+                continue;
+            }
+            if (cand->op != MicroInstrOpcode::LoadRegImm)
+                return false;
+            initOps = cand->ops(operands);
+        }
+        if (!initOps || initOps[1].opBits != bits || initOps[2].hasWideImmediateValue())
+            return false;
+        const uint64_t trips = initOps[2].valueU64;
+        if (!trips || trips > K_MAX_TRIPS)
+            return false;
+
+        const uint32_t bodyBegin = h + 3;
+        const uint32_t bodyEnd   = latch - 1;
+        const uint64_t bodyCount = bodyEnd - bodyBegin;
+        if (!bodyCount || bodyCount > K_MAX_ORDINARY_BODY_INSTR || bodyCount * trips > K_MAX_ORDINARY_TOTAL_INSTR)
+            return false;
+        for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
+        {
+            const MicroInstr*    inst = storage.ptr(order[o]);
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            if (inst->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+            if (std::ranges::find(useDef.uses, counter) != useDef.uses.end() || std::ranges::find(useDef.defs, counter) != useDef.defs.end())
+                return false;
+        }
+
+        // Inserting may move the operand storage: read the back edge before.
+        const MicroOpBits jumpBits    = backOps[1].opBits;
+        const uint64_t    headerLabel = backOps[2].valueU64;
+        initOps[2].setImmediateValue(ApInt(0, getNumBits(bits)));
+        stepOps[2].microOp = MicroOp::Add;
+
+        MicroInstrOperand bound[3];
+        bound[0].reg    = counter;
+        bound[1].opBits = bits;
+        bound[2].setImmediateValue(ApInt(trips, getNumBits(bits)));
+        storage.insertDerivedBefore(operands, order[latch], MicroInstrOpcode::CmpRegImm, bound);
+        MicroInstrOperand jump[3];
+        jump[0].cpuCond  = MicroCond::Below;
+        jump[1].opBits   = jumpBits;
+        jump[2].valueU64 = headerLabel;
+        storage.insertDerivedBefore(operands, order[latch], MicroInstrOpcode::JumpCond, jump);
+
+        MicroInstrOperand zero[3];
+        zero[0].reg    = counter;
+        zero[1].opBits = bits;
+        zero[2].setImmediateValue(ApInt(0, getNumBits(bits)));
+        storage.insertDerivedBefore(operands, order[latch + 2], MicroInstrOpcode::LoadRegImm, zero);
+
+        storage.erase(order[latch]);
+        storage.erase(order[h + 2]);
+        storage.erase(order[h + 1]);
+        return true;
+    }
+}
+
 Result MicroLoopUnrollPass::run(MicroPassContext& context)
 {
     context.passChanged = false;
@@ -879,6 +1011,27 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     target.firstJump = ord;
                 target.lastJump = ord;
             }
+        }
+
+        bool rotated = false;
+        for (const auto& [jumpOrdinal, headerId] : jumps)
+        {
+            const LabelInfo&  label = *findLabel(labels, headerId);
+            const MicroInstr* jump  = storage.ptr(order[jumpOrdinal]);
+            if (label.firstJump != jumpOrdinal || label.lastJump != jumpOrdinal || jump->ops(operands)[0].cpuCond != MicroCond::Unconditional)
+                continue;
+            if (rotateConstantCountdown(context, order, labels, label.ordinal, jumpOrdinal))
+            {
+                rotated = true;
+                break;
+            }
+        }
+        if (rotated)
+        {
+            builder.invalidateControlFlowGraph();
+            context.passChanged = true;
+            unrolledOne         = true;
+            continue;
         }
 
         // Labels a relocation points at are pinned; relocations by owning slot
@@ -1303,6 +1456,43 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 });
             }
 
+            // A pointer the body steps by a constant, in place, and addresses memory
+            // through is a second induction variable. Each copy computes its own value
+            // from the previous copy's with an address operation instead of stepping
+            // the shared register, so every address the copies form has one definition
+            // the peephole folds into a displacement from the pointer the loop started
+            // from. The address operation leaves the CPU flags alone: a body that reads
+            // them keeps its steps.
+            SmallVector<MicroReg, 4> steppedPointers;
+            if (!partial && internalLabels.empty())
+            {
+                std::unordered_map<MicroReg, uint32_t> definitions;
+                std::unordered_set<MicroReg>           addressBases;
+                bool                                   readsFlags = false;
+                for (uint32_t o = bodyBegin; o < bodyEnd && !readsFlags; ++o)
+                {
+                    const MicroInstr*        inst = storage.ptr(order[o]);
+                    const MicroInstrOperand* ops  = inst->ops(operands);
+                    readsFlags                    = ops && MicroPassHelpers::instructionActuallyUsesCpuFlags(*inst, ops);
+                    const MicroInstrDef& info     = MicroInstr::info(inst->op);
+                    if (ops && info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands))
+                        addressBases.insert(ops[info.memBaseOperandIndex].reg);
+                    const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
+                    for (const MicroReg reg : useDef.defs)
+                        if (reg.isVirtualInt())
+                            definitions[reg]++;
+                    if (inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[1].opBits == MicroOpBits::B64 && !ops[3].hasWideImmediateValue() &&
+                        (ops[2].microOp == MicroOp::Add || ops[2].microOp == MicroOp::Subtract) && ops[0].reg.isVirtualInt() && ops[0].reg != counter &&
+                        std::ranges::find(steppedPointers, ops[0].reg) == steppedPointers.end())
+                        steppedPointers.push_back(ops[0].reg);
+                }
+                SmallVector<MicroReg, 4> kept;
+                for (const MicroReg reg : steppedPointers)
+                    if (!readsFlags && definitions[reg] == 1 && !renamable.contains(reg) && addressBases.contains(reg))
+                        kept.push_back(reg);
+                steppedPointers = kept;
+            }
+
             // The renaming analysis is read-only, so both files can share one
             // scan here while still observing the original instruction stream.
             uint32_t firstFreshVirtual = 0;
@@ -1361,6 +1551,23 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                         const auto remapIt = labelMap->find(newOps[2].valueU64);
                         if (remapIt != labelMap->end())
                             newOps[2].valueU64 = remapIt->second;
+                    }
+
+                    if (src->op == MicroInstrOpcode::OpBinaryRegImm && std::ranges::find(steppedPointers, newOps[0].reg) != steppedPointers.end())
+                    {
+                        const MicroReg pointer = newOps[0].reg;
+                        const auto     nameIt  = currentName.find(pointer);
+                        SWC_ASSERT(nextFreshInt < MicroReg::K_MAX_INDEX);
+                        const MicroReg    fresh = MicroReg::virtualIntReg(nextFreshInt++);
+                        const uint64_t    delta = newOps[2].microOp == MicroOp::Add ? newOps[3].valueU64 : 0 - newOps[3].valueU64;
+                        MicroInstrOperand address[4];
+                        address[0].reg      = fresh;
+                        address[1].reg      = nameIt != currentName.end() ? nameIt->second : pointer;
+                        address[2].opBits   = MicroOpBits::B64;
+                        address[3].valueU64 = delta;
+                        storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadAddrRegMem, address);
+                        currentName[pointer] = fresh;
+                        continue;
                     }
 
                     const MicroInstrRef newRef = storage.insertDerivedBefore(operands, addRef, src->op, {newOps.data(), newOps.size()});
@@ -1422,6 +1629,19 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
             if (!partial)
             {
+                // Post-loop readers of a stepped pointer see the last copy's value.
+                for (const MicroReg pointer : steppedPointers)
+                {
+                    const auto nameIt = currentName.find(pointer);
+                    if (nameIt == currentName.end())
+                        continue;
+                    MicroInstrOperand copyOps[3];
+                    copyOps[0].reg    = pointer;
+                    copyOps[1].reg    = nameIt->second;
+                    copyOps[2].opBits = MicroOpBits::B64;
+                    storage.insertDerivedBefore(operands, addRef, MicroInstrOpcode::LoadRegReg, copyOps);
+                }
+
                 // Post-loop readers of the counter see its exit value.
                 MicroInstrOperand exitOps[3];
                 exitOps[0].reg    = counter;

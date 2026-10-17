@@ -748,6 +748,78 @@ SWC_TEST_BEGIN(LoopUnroll_RejectedCandidateKeepsRelocationsForFollowingLoop)
 }
 SWC_TEST_END()
 
+// `for &x in slice` over a constant length counts down and tests at the top. Variants:
+//   0 - five trips over a stepped pointer: flattened, the copies address the
+//       pointer the loop started from through their own address operations.
+//   1 - the body reads the counter: kept.
+//   2 - another jump leaves for the exit label: kept.
+//   3 - no trip: kept.
+//   4 - seventeen trips: kept.
+SWC_TEST_BEGIN(LoopUnroll_ConstantCountdown_FlattensWithItsPointerSteps)
+{
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        constexpr MicroReg  counter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg  pointer = MicroReg::virtualIntReg(2);
+        constexpr MicroReg  value   = MicroReg::virtualIntReg(3);
+        constexpr MicroReg  base    = MicroReg::virtualIntReg(4);
+        const uint64_t      trips   = variant == 3 ? 0 : variant == 4 ? 17
+                                                                      : 5;
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef header = builder.createLabel();
+        const MicroLabelRef exit   = builder.createLabel();
+        builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+        if (variant == 2)
+        {
+            builder.emitCmpRegImm(base, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+        }
+        builder.emitLoadRegImm(counter, ApInt(trips, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(pointer, base, MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitCmpRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+        if (variant == 1)
+            builder.emitLoadRegReg(value, counter, MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(value, pointer, 0, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(pointer, 0, value, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(pointer, ApInt(0x38, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, header);
+        builder.placeLabel(exit);
+        builder.emitRet();
+
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
+
+        const bool     flattened = variant == 0;
+        const uint32_t jumps     = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond);
+        if (jumps != (flattened ? 0u : variant == 2 ? 3u
+                                                    : 2u))
+            return Result::Error;
+        if (!flattened)
+            continue;
+
+        // One store per trip; the first copy steps the pointer in place, the others
+        // each take an address one element further.
+        uint32_t steps = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == pointer)
+                ++steps;
+            if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[3].valueU64 != 0x38)
+                return Result::Error;
+        }
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 5 || steps != 1 ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 4)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

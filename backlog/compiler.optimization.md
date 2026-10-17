@@ -117,24 +117,23 @@ new language syntax.
   flow contract intact and no static per-iteration loss on reachable benchmark hot paths.
 - Related: compiler.optimization.094, compiler.optimization.117.
 
-### compiler.optimization.104 — The n-body position loop stays a five-trip countdown
+### compiler.optimization.104 — The unrolled n-body step spills the velocities it just stored
 
 - Evidence: the timestep is a loop-carried latency chain (positions, interactions,
-  velocities, positions), not a divider-throughput limit. On the bench machine ten scalar
-  `sqrtsd`+`divsd` cost the same as five packed `sqrtpd`+`divpd` (10.3 ns either way), and a
-  prototype packing all ten interactions measured neutral. Writing the position update as
-  `for i in NB` over `&bodies[i]` instead of `for &b in bodies` unrolls it and runs the task
-  8.7% faster with an unchanged checksum; the slice countdown (`rcx = 5`) is not unrolled.
+  velocities, positions), not a divider-throughput limit: on the bench machine ten scalar
+  `sqrtsd`+`divsd` cost the same as five packed `sqrtpd`+`divpd`, and packing all ten
+  interactions measured neutral. With the position loop unrolled, the step holds every body's
+  velocity in a register from its last interaction to the position update and spills several
+  of them to the frame (`[rsp+0x3xx]`), although each was just stored to its field: 405
+  instructions and 170 memory operands per step against 367 / 132 before the unroll.
 - Rejected direction: pairing roots or divisions, alone or with their producers, gains
   nothing while the divider is idle most of the step. Do not repeat it on this hardware.
-- Next: make the full unroller treat the constant-count slice countdown like the indexed
-  loop, so the copies address `[base + k * stride]` and keep their multiplication-addition
-  fusion; compare with the indexed variant's code and timing. An earlier countdown trial was
-  rejected on instruction counts alone (424 to 434 per step); judge this one on the indexed
-  variant's measured shape.
-- Done when: the slice form compiles to the indexed form's step and timing, without a
-  generated-code loss in other tasks.
-- Related: compiler.optimization.016.
+- Next: when allocation would spill a value that an earlier store of the same block wrote to
+  memory nothing has changed since, reload it from that store's location instead of adding a
+  spill store and slot; check the step's frame traffic and the other tasks' unrolled loops.
+- Done when: the step keeps no frame spill for a value it can reload from its own store, with
+  no generated-code loss in other tasks.
+- Related: compiler.optimization.016, compiler.optimization.035.
 
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 

@@ -809,8 +809,10 @@ namespace
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
             FileSystem::IoErrorInfo ioError;
-            if (FileSystem::readTextFile(path, source.content, ioError) != Result::Continue)
+            std::vector<char8_t>    bytes;
+            if (FileSystem::readBinaryFile(path, bytes, ioError, SourceContent::TRAILING_0) != Result::Continue)
                 return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::describeIoFailure(ioError));
+            source.content = std::make_shared<const SourceContent>(std::move(bytes));
             outFiles.push_back(std::move(source));
         }
         return Result::Continue;
@@ -2042,8 +2044,9 @@ namespace
         {
             for (const ModuleApi::SourceSnapshot& file : *apiSnapshot)
             {
-                const auto digest = sha256(std::span{reinterpret_cast<const std::byte*>(file.content.data()), file.content.size()});
-                entries.emplace_back(std::format("{}\t{}\t{}\t{}", Utf8(file.path.lexically_relative(srcDir)).c_str(), file.content.size(), file.writeTime.time_since_epoch().count(), Utf8Helper::toLowerHex(digest).c_str()));
+                const std::string_view content = file.content->view();
+                const auto             digest  = sha256(std::span{reinterpret_cast<const std::byte*>(content.data()), content.size()});
+                entries.emplace_back(std::format("{}\t{}\t{}\t{}", Utf8(file.path.lexically_relative(srcDir)).c_str(), content.size(), file.writeTime.time_since_epoch().count(), Utf8Helper::toLowerHex(digest).c_str()));
             }
         }
 

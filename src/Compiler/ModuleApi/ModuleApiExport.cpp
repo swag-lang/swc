@@ -238,9 +238,10 @@ namespace ModuleApi
 
         for (const SourceSnapshot& file : files)
         {
-            const fs::path path = (destinationDirectory / file.path.lexically_relative(sourceDirectory)).lexically_normal();
-            const auto     size = fs::file_size(path, ec);
-            if (!ec && size == file.content.size())
+            const std::string_view captured = file.content->view();
+            const fs::path         path     = (destinationDirectory / file.path.lexically_relative(sourceDirectory)).lexically_normal();
+            const auto             size     = fs::file_size(path, ec);
+            if (!ec && size == captured.size())
             {
                 const auto writeTime = fs::last_write_time(path, ec);
                 if (!ec && writeTime == file.writeTime)
@@ -248,12 +249,12 @@ namespace ModuleApi
                     // Restored timestamps do not establish that this is the captured generation.
                     std::string             content;
                     FileSystem::IoErrorInfo ioError;
-                    if (FileSystem::readTextFile(path, content, ioError) == Result::Continue && content == file.content)
+                    if (FileSystem::readTextFile(path, content, ioError) == Result::Continue && content == captured)
                         continue;
                 }
             }
             SWC_RESULT(ensureModuleApiDirectory(ctx, path.parent_path()));
-            SWC_RESULT(ModuleApiExport::writeModuleApiFile(ctx, path, file.content));
+            SWC_RESULT(ModuleApiExport::writeModuleApiFile(ctx, path, captured));
             fs::last_write_time(path, file.writeTime, ec);
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));

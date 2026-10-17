@@ -482,6 +482,114 @@ namespace PostRaPeephole
         return false;
     }
 
+    // Two copies of one value: the second reads its source again where the first copy
+    // still holds the value, typically because the allocator gave the value two homes
+    // before overwriting the source. Its readers can read the first copy instead, and
+    // the second copy goes away.
+    //
+    //     mov  a, s              mov  a, s
+    //     ...                    ...
+    //     mov  b, s       ->     (erased)
+    //     mov  s, x              mov  s, x
+    //     cmp  x, b              cmp  x, a
+    //
+    // Both copies are full width, nothing between them writes either `a` or `s`, every
+    // read of `b` comes before anything writes `a`, and `b` dies within the straight line.
+    bool tryForwardSiblingCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
+            return false;
+        const MicroInstrOperand* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
+            ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
+            return false;
+        const MicroReg second = copy[0].reg;
+        const MicroReg source = copy[1].reg;
+
+        // The first copy: back along the straight line, with neither its destination nor
+        // the source written since.
+        MicroReg first;
+        auto     back = MicroStorage::Iterator{ctx.storage, copyRef};
+        --back;
+        for (int step = 0; step < K_MAX_SAME_COPY_WINDOW && back.current.isValid(); ++step, --back)
+        {
+            const MicroInstr*    inst = &*back;
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            if (inst->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+            if (inst->op == MicroInstrOpcode::LoadRegReg && ops && ops[1].reg == source && ops[2].opBits == MicroOpBits::B64 &&
+                ops[0].reg != second && ops[0].reg.isInt() && !ctx.isPrivateFrameBase(ops[0].reg))
+            {
+                first = ops[0].reg;
+                break;
+            }
+            if (regTouch(ctx, *inst, source).def)
+                return false;
+        }
+        if (!first.isValid())
+            return false;
+        for (auto it = back; it.current != copyRef; ++it)
+        {
+            if (it.current != back.current && regTouch(ctx, *it, first).def)
+                return false;
+        }
+
+        // The readers of the second copy, up to its death.
+        constexpr uint32_t                                                        maxWindow   = 16;
+        constexpr uint32_t                                                        maxRewrites = 3;
+        std::array<MicroInstrRef, maxWindow + 1>                                  window;
+        std::array<MicroInstrRef, maxRewrites>                                    rewrittenRefs;
+        std::array<std::array<MicroInstrOperand, Action::K_MAX_OPS>, maxRewrites> rewrittenOps;
+        uint32_t                                                                  rewriteCount = 0;
+        window[0]                                                                              = copyRef;
+        auto walker                                                                            = MicroStorage::Iterator{ctx.storage, copyRef};
+        ++walker;
+        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
+        {
+            const MicroInstrRef  cursor  = walker.current;
+            const MicroInstr*    current = &*walker;
+            const MicroInstrDef& info    = MicroInstr::info(current->op);
+            if (ctx.isClaimed(cursor) || current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            window[step]               = cursor;
+            const MicroInstrOperand* ops = current->ops(*ctx.operands);
+            const RegTouch secondTouch = regTouch(ctx, *current, second);
+            if (secondTouch.use)
+            {
+                if (secondTouch.def || !ops || rewriteCount == maxRewrites || current->numOperands > Action::K_MAX_OPS ||
+                    info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+                    return false;
+                auto& rewritten = rewrittenOps[rewriteCount];
+                std::copy_n(ops, current->numOperands, rewritten.data());
+                for (uint32_t operand = 0; operand < info.regModes.size(); ++operand)
+                    if (info.regModes[operand] != MicroInstrRegMode::None && rewritten[operand].reg == second)
+                        rewritten[operand].reg = first;
+                MicroConformanceIssue issue;
+                if (ctx.encoder->queryConformanceIssue(issue, *current, rewritten.data()))
+                    return false;
+                rewrittenRefs[rewriteCount++] = cursor;
+            }
+            if (rewriteCount && (secondTouch.def || ctx.isRegDeadAfter(second, ctx.instructionIndex + step)))
+            {
+                if (!ctx.claimAll(std::span{window.data(), step + 1}))
+                    return false;
+                ctx.emitErase(copyRef);
+                for (uint32_t i = 0; i < rewriteCount; ++i)
+                {
+                    const MicroInstr* changed = ctx.instruction(rewrittenRefs[i]);
+                    ctx.emitRewrite(rewrittenRefs[i], changed->op, std::span{rewrittenOps[i].data(), changed->numOperands});
+                }
+                return true;
+            }
+            if (secondTouch.def || regTouch(ctx, *current, first).def)
+                return false;
+        }
+        return false;
+    }
+
     bool tryRetargetAddressResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         const auto* copy = copyInst.ops(*ctx.operands);

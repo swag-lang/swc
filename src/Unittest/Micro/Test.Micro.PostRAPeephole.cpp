@@ -3409,6 +3409,58 @@ SWC_TEST_BEGIN(PostRAPeephole_CopyForwardsIntoMemoryUpdate)
 }
 SWC_TEST_END()
 
+// Two copies of one value, the source overwritten before the second copy's reader:
+// that reader takes the first copy. Variants:
+//   0 - the first copy still holds the value at the reader: the second copy is erased.
+//   1 - the first copy is written before the reader: kept.
+//   2 - the source is written between the two copies: they hold different values, kept.
+//   3 - the second copy is 32 bits wide: kept.
+SWC_TEST_BEGIN(PostRAPeephole_SiblingCopyReaderTakesTheFirstCopy)
+{
+    constexpr MicroReg base   = MicroReg::intReg(1);
+    constexpr MicroReg source = MicroReg::intReg(2);
+    constexpr MicroReg first  = MicroReg::intReg(8);
+    constexpr MicroReg second = MicroReg::intReg(9);
+    constexpr MicroReg next   = MicroReg::intReg(10);
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegMem(source, base, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(first, source, MicroOpBits::B64);
+        builder.emitLoadRegMem(next, base, 8, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitOpBinaryRegImm(source, ApInt(3, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegReg(second, source, variant == 3 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitLoadRegReg(source, next, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(next, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitOpBinaryRegImm(first, ApInt(5, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegReg(next, second, MicroOpBits::B64);
+        builder.emitLoadCondRegReg(first, next, MicroCond::Below, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 16, first, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 24, source, MicroOpBits::B64);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        bool secondCopied = false;
+        bool readsFirst   = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == second)
+                secondCopied = true;
+            if (inst.op == MicroInstrOpcode::CmpRegReg && ops[1].reg == first)
+                readsFirst = true;
+        }
+        const bool forwarded = variant == 0;
+        if (forwarded == secondCopied || forwarded != readsFirst)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A byte copy stored at 32 bits: the store keeps reading the copy.
 SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
 {

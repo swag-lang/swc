@@ -85,23 +85,6 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.130 — A struct parameter's field read in a loop stays in the loop
-
-- Evidence: a string or slice parameter's field read in a loop that stores through another
-  pointer now stays a load and leaves the loop (`immutable_field_in_loop.swg`). The fields of a
-  struct parameter `scale: Scale` read the same way are still folded into the loop's operations
-  (`add rax, [r8 + 0x8]`, `imul r9, [r8]`): the parameter's register is not marked as immutable
-  storage. Code generation marks it (`isImmutableIndirectParameter` accepts the indirect
-  struct), but `MicroPassHelpers::collectImmutableStorageBases` rejects it: its fields are
-  addressed through `LoadAddrRegMem` (`lea %22, [%8 + 0x8]`), which is neither a read through
-  the base nor a copy into another marked base.
-- Next: accept a single-definition `LoadAddrRegMem` of a marked base as a derived base that
-  stands or falls with it (every use a read or another derived address), and report the derived
-  registers too. This widens the frozen-struct assumption of language.design.037 to every field
-  read: validate with the complete standard library in release before integrating.
-- Done when: the struct fields of `immutable_field_in_loop.swg` are read once before the loop at
-  `-bc release`, with no generated-code loss on the benchmark tasks.
-
 ### compiler.optimization.126 — Preserve nullable value-pointer types in automatic inline bindings
 
 - Evidence: nullable inline bindings retain their declared parameter contract, including widened

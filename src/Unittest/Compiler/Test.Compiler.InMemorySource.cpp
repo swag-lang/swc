@@ -1537,6 +1537,55 @@ func use(value: *s32?, count: u32)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_SharedApiTextSurvivesSnapshotAndEditorRevision)
+{
+    constexpr std::string_view         source = "func published()->s32 => 42\n";
+    std::weak_ptr<const SourceContent> retained;
+    {
+        CommandLine cmdLine;
+        cmdLine.command = CommandKind::Syntax;
+        cmdLine.name    = "shared_api_text";
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      compilerCtx(compiler);
+        auto             snapshot = std::make_shared<const SourceContent>(source);
+        retained                  = snapshot;
+
+        SourceFile& first  = compiler.addFile(Unittest::makeTestSourcePath("Compiler", "SharedApiFirst"), FileFlagsE::ImportedApi);
+        SourceFile& second = compiler.addFile(Unittest::makeTestSourcePath("Compiler", "SharedApiSecond"), FileFlagsE::ImportedApi);
+        first.setContent(snapshot);
+        second.setContent(snapshot);
+        if (first.sourceView().data() != second.sourceView().data() || first.sourceView() != source)
+            return Result::Error;
+        for (size_t i = 0; i < SourceContent::TRAILING_0; ++i)
+            if (first.content()[source.size() + i] != 0)
+                return Result::Error;
+
+        SWC_RESULT(first.loadContent(compilerCtx));
+        SourceView& original = first.ast().srcView();
+        Lexer       lexer;
+        lexer.tokenize(compilerCtx, original, LexerFlagsE::Default);
+        Parser parser;
+        parser.parse(compilerCtx, first.ast());
+        if (first.ast().root().isInvalid())
+            return Result::Error;
+
+        snapshot.reset();
+        second.setContent("func other() {}\n");
+        first.beginEditorRevision("func published()->s32 => 43\n");
+        if (retained.expired() || original.stringView() != source || first.sourceView() == source)
+            return Result::Error;
+        SWC_RESULT(first.loadContent(compilerCtx));
+        lexer.tokenize(compilerCtx, first.ast().srcView(), LexerFlagsE::Default);
+        parser.parse(compilerCtx, first.ast());
+        if (first.ast().root().isInvalid() || original.tokenString(TokenRef(1)) != "published")
+            return Result::Error;
+    }
+    if (!retained.expired())
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

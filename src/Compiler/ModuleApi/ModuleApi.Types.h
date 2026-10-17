@@ -5,6 +5,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class Symbol;
+class SourceContent;
 
 struct ModuleApiPublicEntry
 {
@@ -35,9 +36,9 @@ namespace ModuleApi
 {
     struct SourceSnapshot
     {
-        fs::path           path;
-        std::string        content;
-        fs::file_time_type writeTime{};
+        fs::path                             path;
+        std::shared_ptr<const SourceContent> content;
+        fs::file_time_type                   writeTime{};
     };
 }
 

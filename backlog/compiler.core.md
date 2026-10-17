@@ -348,15 +348,17 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   `parseSourceFiles`, declaration sema, and full sema in each consumer. Dependency source
   snapshots and native artifact reuse do not preserve the resolved interface for a consumer
   that needs recompilation. `canDelayImportedFunctionBody` already defers eligible free
-  function bodies, but excludes methods because replay cannot reconstruct their receiver
-  binding, as well as interface implementations and other context-sensitive cases.
+  function bodies, but excludes methods, interface implementations and other
+  context-sensitive cases. Restoring methods' declaration contexts is insufficient by itself:
+  delayed `ConcatBuffer.addBytes` and `reserveInPlace` can remain unresolved when native/JIT
+  preparation waits on their semantic completion through allocation-failure reporting.
 - Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
   work separately from consumer sources on a small consumer, a large module graph, and a
   diamond dependency. Compare cold and warm imports with both compiler executables. Use
   that baseline to prototype a versioned binary interface for resolved non-generic
   declarations; retain the source import path for unsupported declarations while expanding
-  coverage. Independently measure whether preserving declaration context for lazy imported
-  methods removes a substantial remaining body-sema cost.
+  coverage. Before widening lazy imported methods, close body materialization across cyclic
+  method/free-function calls, then verify both compile-time execution and native presolve.
 - Interface contract: preserve namespace and overload membership, exported and supporting
   symbols, canonical type identity, layouts, constants and default arguments, attributes
   including safety/borrow contracts, interface implementations, ABI/link identities, and

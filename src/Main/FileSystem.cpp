@@ -48,7 +48,7 @@ namespace
     }
 
     template<typename BUF>
-    Result readBinaryFileImpl(const fs::path& path, BUF& outData, FileSystem::IoErrorInfo& error)
+    Result readBinaryFileImpl(const fs::path& path, BUF& outData, FileSystem::IoErrorInfo& error, size_t extraCapacity = 0)
     {
         using T = BUF::value_type;
         static_assert(sizeof(T) == 1);
@@ -97,6 +97,8 @@ namespace
             return Result::Error;
         }
 
+        if (extraCapacity)
+            outData.reserve(static_cast<size_t>(fileSize) + extraCapacity);
         outData.resize(static_cast<size_t>(fileSize));
         if (!outData.empty() && !file.read(reinterpret_cast<char*>(outData.data()), fileSize))
         {
@@ -350,9 +352,9 @@ Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char>& outDa
     return readBinaryFileImpl(path, outData, error);
 }
 
-Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error)
+Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error, const size_t extraCapacity)
 {
-    return readBinaryFileImpl(path, outData, error);
+    return readBinaryFileImpl(path, outData, error, extraCapacity);
 }
 
 Result FileSystem::readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error)

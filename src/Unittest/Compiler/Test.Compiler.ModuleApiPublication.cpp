@@ -814,7 +814,9 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_RepublishesCapturedSourcesAndMetadata)
         file.writeTime = fs::last_write_time(file.path, ec);
         if (ec)
             return Result::Error;
-        SWC_RESULT(FileSystem::readTextFile(file.path, file.content, ioError));
+        std::vector<char8_t> bytes;
+        SWC_RESULT(FileSystem::readBinaryFile(file.path, bytes, ioError, SourceContent::TRAILING_0));
+        file.content = std::make_shared<const SourceContent>(std::move(bytes));
         files.push_back(std::move(file));
     }
 
@@ -836,7 +838,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_RepublishesCapturedSourcesAndMetadata)
         const fs::path path = destination / file.path.filename();
         std::string    content;
         SWC_RESULT(FileSystem::readTextFile(path, content, ioError));
-        if (content != file.content || fs::last_write_time(path, ec) != file.writeTime || ec)
+        if (content != file.content->view() || fs::last_write_time(path, ec) != file.writeTime || ec)
             return Result::Error;
     }
     if (fs::exists(destination / "stale.swg") || !fs::exists(destination / "artifact.lib"))
@@ -861,7 +863,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_SnapshotReplacesEqualSizeAndTimestampContent
     // Restoring a source tree can preserve both size and timestamp while changing its API.
     // Publishing the captured bytes must replace a mirror from that previous generation.
     const fs::path                               source = directory.path() / "source";
-    const std::vector<ModuleApi::SourceSnapshot> files  = {{.path = source / "value.swg", .content = std::string(API_SOURCE), .writeTime = writeTime}};
+    const std::vector<ModuleApi::SourceSnapshot> files  = {{.path = source / "value.swg", .content = std::make_shared<const SourceContent>(API_SOURCE), .writeTime = writeTime}};
     {
         ModuleApi::DirectoryAccess publication;
         Utf8                       because;

@@ -61,7 +61,7 @@ namespace FileSystem
     Result      reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path);
     Result      reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path, const Utf8& because);
     Result      readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error);
-    Result      readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error);
+    Result      readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error, size_t extraCapacity = 0);
     Result      readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error);
     Result      readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error);
     Result      writeBinaryFile(const fs::path& path, const void* data, size_t size, IoErrorInfo& error);

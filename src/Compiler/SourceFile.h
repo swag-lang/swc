@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Compiler/SourceContent.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/StrongRef.h"
@@ -48,9 +49,9 @@ public:
     Utf8                        name() const { return path_.filename().string().c_str(); }
     const Utf8&                 formattedFileName(const TaskContext* ctx) const;
     Utf8                        formatFileLocation(const TaskContext* ctx, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0) const;
-    size_t                      size() const { return content_.empty() ? 0 : content_.size() - TRAILING_0; }
-    const std::vector<char8_t>& content() const { return content_; }
-    std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
+    size_t                      size() const { return content().empty() ? 0 : content().size() - TRAILING_0; }
+    const std::vector<char8_t>& content() const { return sharedContent_ ? sharedContent_->bytes() : content_; }
+    std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content().data()), size()); }
 
     FileFlags&       flags() { return flags_; }
     const FileFlags& flags() const { return flags_; }
@@ -87,6 +88,7 @@ public:
     bool hasWarning() const { return hasWarning_; }
 
     void   setContent(std::string_view content);
+    void   setContent(std::shared_ptr<const SourceContent> content);
     void   beginEditorRevision(std::string_view content, bool force = false);
     Result loadContent(TaskContext& ctx);
 
@@ -95,28 +97,30 @@ private:
 
     struct PriorRevision
     {
-        std::vector<char8_t>         content;
-        std::unique_ptr<NodePayload> nodePayload;
-        uint64_t                     revisionId = 0;
+        std::vector<char8_t>                 content;
+        std::shared_ptr<const SourceContent> sharedContent;
+        std::unique_ptr<NodePayload>         nodePayload;
+        uint64_t                             revisionId = 0;
     };
 
-    static constexpr int TRAILING_0 = 4;
+    static constexpr size_t TRAILING_0 = SourceContent::TRAILING_0;
 
     FileRef   fileRef_ = FileRef::invalid();
     fs::path  path_;
     FileFlags flags_ = FileFlagsE::Zero;
     Utf8      apiModuleName_;
 
-    mutable std::once_flag       pathStringOnce_;
-    mutable Utf8                 pathString_;
-    mutable std::once_flag       genericPathStringOnce_;
-    mutable Utf8                 genericPathString_;
-    mutable std::mutex           formattedFileNamesMutex_;
-    mutable std::array<Utf8, 3>  formattedFileNames_;
-    mutable std::array<bool, 3>  formattedFileNamesComputed_ = {};
-    std::vector<char8_t>         content_;
-    std::unique_ptr<NodePayload> nodePayloadContext_;
-    uint64_t                     revisionId_ = 0;
+    mutable std::once_flag               pathStringOnce_;
+    mutable Utf8                         pathString_;
+    mutable std::once_flag               genericPathStringOnce_;
+    mutable Utf8                         genericPathString_;
+    mutable std::mutex                   formattedFileNamesMutex_;
+    mutable std::array<Utf8, 3>          formattedFileNames_;
+    mutable std::array<bool, 3>          formattedFileNamesComputed_ = {};
+    std::vector<char8_t>                 content_;
+    std::shared_ptr<const SourceContent> sharedContent_;
+    std::unique_ptr<NodePayload>         nodePayloadContext_;
+    uint64_t                             revisionId_ = 0;
     // Old revisions stay alive while retained symbols or source views still refer to them.
     std::vector<PriorRevision> priorRevisions_;
     std::unique_ptr<Verify>    unitTest_;

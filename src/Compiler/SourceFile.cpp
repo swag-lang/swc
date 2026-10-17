@@ -96,6 +96,14 @@ const Ast& SourceFile::ast() const
     return nodePayloadContext_->ast();
 }
 
+void SourceFile::setContent(std::shared_ptr<const SourceContent> content)
+{
+    SWC_ASSERT(!ast().hasSourceView());
+    SWC_ASSERT(content);
+    content_.clear();
+    sharedContent_ = std::move(content);
+}
+
 void SourceFile::setContent(const std::string_view content)
 {
     SWC_ASSERT(!ast().hasSourceView());
@@ -110,6 +118,7 @@ void SourceFile::setContent(const std::string_view content)
 
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
+    sharedContent_.reset();
 }
 
 void SourceFile::beginEditorRevision(const std::string_view content, const bool force)
@@ -130,9 +139,10 @@ void SourceFile::beginEditorRevision(const std::string_view content, const bool 
     nextPayload->retainEditorSymbols();
     priorRevisions_.reserve(priorRevisions_.size() + 1);
     PriorRevision previousRevision;
-    previousRevision.content     = std::move(content_);
-    previousRevision.nodePayload = std::move(nodePayloadContext_);
-    previousRevision.revisionId  = revisionId_;
+    previousRevision.content       = std::move(content_);
+    previousRevision.sharedContent = std::move(sharedContent_);
+    previousRevision.nodePayload   = std::move(nodePayloadContext_);
+    previousRevision.revisionId    = revisionId_;
     priorRevisions_.push_back(std::move(previousRevision));
 
     content_            = std::move(nextContent);
@@ -192,7 +202,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
     if (!ctx.cmdLine().editorIndex.empty() && !ast().hasSourceView())
         nodePayloadContext_->retainEditorSymbols();
 
-    if (content_.empty() && ctx.cmdLine().editorSources)
+    if (content().empty() && ctx.cmdLine().editorSources)
     {
         const auto& sources = *ctx.cmdLine().editorSources;
         const auto  it      = sources.find(EditorIndex::pathKey(path_));
@@ -200,7 +210,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
             setContent(it->second);
     }
 
-    if (!content_.empty())
+    if (!content().empty())
     {
         ensureSourceView(ctx);
         return Result::Continue;

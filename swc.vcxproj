@@ -946,6 +946,7 @@
         <ClInclude Include="src\Support\Thread\Job.h"/>
         <ClInclude Include="src\Support\Thread\JobManager.h"/>
         <ClInclude Include="src\Support\Thread\RaceCondition.h"/>
+        <ClInclude Include="src\Compiler\SourceContent.h"/>
         <ClInclude Include="src\Compiler\SourceFile.h"/>
         <ClInclude Include="src\Compiler\Verify.h"/>
     </ItemGroup>

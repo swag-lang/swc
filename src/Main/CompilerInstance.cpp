@@ -341,25 +341,6 @@ namespace
     }
 }
 
-CompilerInstance::SourceViewBuffer::SourceViewBuffer(const std::string_view source)
-{
-    content.reserve(source.size() + TRAILING_0);
-    content.resize(source.size());
-    if (!source.empty())
-        std::memcpy(content.data(), source.data(), source.size());
-
-    for (uint32_t i = 0; i < TRAILING_0; ++i)
-        content.push_back(0);
-}
-
-std::string_view CompilerInstance::SourceViewBuffer::view() const
-{
-    if (content.size() < TRAILING_0)
-        return {};
-
-    return {reinterpret_cast<const char*>(content.data()), content.size() - TRAILING_0};
-}
-
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global),
@@ -1171,7 +1152,7 @@ SourceView& CompilerInstance::addBufferedSourceView(const FileRef fileRef, const
 
     auto        srcViewRef = SourceViewRef(srcViewLookup_->size());
     SourceFile* ownerFile  = fileLookup_->at(fileRef.get());
-    auto        buffer     = std::make_unique<SourceViewBuffer>(content);
+    auto        buffer     = std::make_unique<SourceContent>(content);
     auto        sourceView = std::make_unique<SourceView>(srcViewRef, ownerFile, buffer->view());
 
     srcViewBuffers_.push_back(std::move(buffer));

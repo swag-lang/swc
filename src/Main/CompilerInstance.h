@@ -546,15 +546,6 @@ private:
         TypeRef     typeRef      = TypeRef::invalid();
     };
 
-    struct SourceViewBuffer
-    {
-        explicit SourceViewBuffer(std::string_view source);
-        std::string_view view() const;
-
-        static constexpr uint32_t TRAILING_0 = 4;
-        std::vector<char8_t>      content;
-    };
-
     SourceFile&       addResolvedFile(fs::path path, FileFlags flags);
     SourceFile&       addResolvedLoadedFile(fs::path path, FileFlags flags, std::string_view content);
     void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags, std::string_view apiModuleName = {});
@@ -592,7 +583,7 @@ private:
     const Global*                                  global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>>       files_;
     std::vector<std::unique_ptr<SourceView>>       srcViews_;
-    std::vector<std::unique_ptr<SourceViewBuffer>> srcViewBuffers_;
+    std::vector<std::unique_ptr<SourceContent>> srcViewBuffers_;
     std::unique_ptr<LookupTable<SourceFile>>       fileLookup_;
     std::unique_ptr<LookupTable<SourceView>>       srcViewLookup_;
     std::unique_ptr<TypeManager>                   typeMgr_;

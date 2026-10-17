@@ -68,45 +68,42 @@ namespace
         return payload.cases.back();
     }
 
-    AstNodeRef compilerSwitchCaseRefFromExpression(const Sema& sema, const AstCompilerSwitch& node, AstNodeRef exprRef)
+    template<typename Predicate>
+    AstNodeRef findCompilerSwitchCase(const Sema& sema, const AstCompilerSwitch& node, Predicate matches)
     {
-        const size_t count = sema.ast().spanSize(node.spanCasesRef);
-        for (size_t i = 0; i < count; ++i)
+        const auto cases = sema.ast().nodeSpan(node.spanCasesRef);
+        for (auto chunk = cases.chunksBegin(); chunk != cases.chunksEnd(); ++chunk)
         {
-            const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
-            const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
-            if (sema.ast().findNodeIndex(caseNode.spanExprRef, exprRef).has_value())
-                return caseRef;
+            for (const AstNodeRef caseRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                const auto& caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
+                if (matches(caseNode))
+                    return caseRef;
+            }
         }
 
         return AstNodeRef::invalid();
+    }
+
+    AstNodeRef compilerSwitchCaseRefFromExpression(const Sema& sema, const AstCompilerSwitch& node, AstNodeRef exprRef)
+    {
+        return findCompilerSwitchCase(sema, node, [&](const AstCompilerSwitchCase& caseNode) {
+            return sema.ast().findNodeIndex(caseNode.spanExprRef, exprRef).has_value();
+        });
     }
 
     AstNodeRef compilerSwitchCaseRefFromBody(const Sema& sema, const AstCompilerSwitch& node, AstNodeRef bodyRef)
     {
-        const size_t count = sema.ast().spanSize(node.spanCasesRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
-            const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
-            if (caseNode.nodeBodyRef == bodyRef)
-                return caseRef;
-        }
-
-        return AstNodeRef::invalid();
+        return findCompilerSwitchCase(sema, node, [bodyRef](const AstCompilerSwitchCase& caseNode) {
+            return caseNode.nodeBodyRef == bodyRef;
+        });
     }
 
     AstNodeRef compilerSwitchDefaultCaseRef(const Sema& sema, const AstCompilerSwitch& node)
     {
-        const size_t count = sema.ast().spanSize(node.spanCasesRef);
-        for (size_t i = 0; i < count; ++i)
-        {
-            const AstNodeRef caseRef = sema.ast().nthNode(node.spanCasesRef, i);
-            if (sema.node(caseRef).cast<AstCompilerSwitchCase>().spanExprRef.isInvalid())
-                return caseRef;
-        }
-
-        return AstNodeRef::invalid();
+        return findCompilerSwitchCase(sema, node, [](const AstCompilerSwitchCase& caseNode) {
+            return caseNode.spanExprRef.isInvalid();
+        });
     }
 
     Result resolveCompilerSwitchSelection(Sema& sema, const AstCompilerSwitch& node, CompilerSwitchSemaPayload& payload)
@@ -329,19 +326,23 @@ void AstCompilerSwitch::collectChildren(SmallVector<AstNodeRef>& out, const Ast&
 {
     AstNode::collectChildren(out, {nodeExprRef});
 
-    const size_t count = ast.spanSize(spanCasesRef);
-    for (size_t i = 0; i < count; ++i)
+    const auto cases = ast.nodeSpan(spanCasesRef);
+    for (auto chunk = cases.chunksBegin(); chunk != cases.chunksEnd(); ++chunk)
     {
-        const AstNodeRef caseRef  = ast.nthNode(spanCasesRef, i);
-        const auto&      caseNode = ast.node(caseRef).cast<AstCompilerSwitchCase>();
-        AstNode::collectChildren(out, ast, caseNode.spanExprRef);
+        for (const AstNodeRef caseRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+        {
+            const auto& caseNode = ast.node(caseRef).cast<AstCompilerSwitchCase>();
+            AstNode::collectChildren(out, ast, caseNode.spanExprRef);
+        }
     }
 
-    for (size_t i = 0; i < count; ++i)
+    for (auto chunk = cases.chunksBegin(); chunk != cases.chunksEnd(); ++chunk)
     {
-        const AstNodeRef caseRef  = ast.nthNode(spanCasesRef, i);
-        const auto&      caseNode = ast.node(caseRef).cast<AstCompilerSwitchCase>();
-        AstNode::collectChildren(out, {caseNode.nodeBodyRef});
+        for (const AstNodeRef caseRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+        {
+            const auto& caseNode = ast.node(caseRef).cast<AstCompilerSwitchCase>();
+            AstNode::collectChildren(out, {caseNode.nodeBodyRef});
+        }
     }
 
     // Case nodes carry source labels for tools such as the formatter. Their semantic

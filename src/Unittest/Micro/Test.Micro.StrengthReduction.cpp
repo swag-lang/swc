@@ -110,6 +110,31 @@ SWC_TEST_BEGIN(StrengthReduction_MultiplyPowerOfTwo)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(StrengthReduction_MultiplyShiftRespectsOperandWidth)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint32_t bitCount = getNumBits(bits);
+        for (const uint32_t shift : {1u, bitCount - 1, bitCount})
+        {
+            if (shift >= 64)
+                continue;
+            const uint64_t immediate = uint64_t{1} << shift;
+            MicroBuilder   builder(ctx);
+            builder.emitOpBinaryRegImm(MicroReg::intReg(8), ApInt(immediate, 64), MicroOp::MultiplySigned, bits);
+            builder.emitRet();
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
+
+            const bool fits = shift < bitCount;
+            if (getFirstBinaryOp(builder) != (fits ? MicroOp::ShiftLeft : MicroOp::MultiplySigned))
+                return Result::Error;
+            if (getFirstBinaryImm(builder) != (fits ? shift : immediate))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 // mul r, 8 is not reduced when the following branch still reads OF.
 SWC_TEST_BEGIN(StrengthReduction_MultiplyPowerOfTwoKeepsLiveFlags)
 {

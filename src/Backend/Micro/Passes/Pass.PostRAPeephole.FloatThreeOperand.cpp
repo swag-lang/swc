@@ -683,6 +683,84 @@ namespace PostRaPeephole
 
             return false;
         }
+
+        // The allocator often loads the accumulator into the register of a factor that
+        // dies at the product, which leaves the pair nothing to contract into: the factor
+        // is gone by the accumulation. The product register still holds the other factor,
+        // so it can take the whole operation, reading the accumulator from memory, and hand
+        // the result over with a move the renamer absorbs.
+        //
+        //     fmul  a, a, m          vfmadd213  a, m, [b + o]
+        //     load  m, [b + o]   ->  mov        m, a
+        //     fadd  m, a
+        bool tryFuseProductIntoReloadedFactor(Context& ctx, FloatLaneDemand& demand, std::span<const MicroInstrRef> refs, uint32_t blockBegin, uint32_t accumulateIndex)
+        {
+            if (accumulateIndex < blockBegin + 2)
+                return false;
+            const MicroInstrRef accumulateRef = refs[accumulateIndex];
+            const MicroInstrRef loadRef       = refs[accumulateIndex - 1];
+            const MicroInstrRef multiplyRef   = refs[accumulateIndex - 2];
+            if (ctx.isClaimed(accumulateRef) || ctx.isClaimed(loadRef) || ctx.isClaimed(multiplyRef))
+                return false;
+
+            FloatBinary accumulate;
+            FloatBinary multiply;
+            if (!floatBinary(accumulate, *ctx.storage->ptr(accumulateRef), *ctx.operands) ||
+                !floatBinary(multiply, *ctx.storage->ptr(multiplyRef), *ctx.operands) ||
+                accumulate.bits == MicroOpBits::B128 || multiply.op != MicroOp::FloatMultiply || multiply.bits != accumulate.bits)
+                return false;
+
+            // [reg, base, opBits, offset]
+            const MicroInstr*        load    = ctx.storage->ptr(loadRef);
+            const MicroInstrOperand* loadOps = load->ops(*ctx.operands);
+            if (load->op != MicroInstrOpcode::LoadRegMem || loadOps[2].opBits != accumulate.bits || !loadOps[1].reg.isAnyInt())
+                return false;
+            const MicroReg factor  = loadOps[0].reg;
+            const MicroReg product = multiply.dst;
+            if (!factor.isFloat() || factor == product ||
+                !((multiply.left == product && multiply.right == factor) || (multiply.left == factor && multiply.right == product)))
+                return false;
+
+            MicroOp fusedOp;
+            if (accumulate.dst != factor)
+                return false;
+            if (accumulate.left == factor && accumulate.right == product)
+                fusedOp = accumulate.op == MicroOp::FloatAdd ? MicroOp::FloatProductAdd : MicroOp::FloatProductSubtractFrom;
+            else if (accumulate.op == MicroOp::FloatAdd && accumulate.left == product && accumulate.right == factor)
+                fusedOp = MicroOp::FloatProductAdd;
+            else
+                return false;
+
+            // The product register now ends holding the result, and the move gives the
+            // accumulator the product register's upper lanes instead of the load's zeros.
+            if (demand.lanes[product.index()] || (demand.lanes[factor.index()] & ~FloatLaneDemand::mask(accumulate.bits)))
+                return false;
+
+            MicroInstrOperand fused[6] = {};
+            fused[0].reg               = product;
+            fused[1].reg               = factor;
+            fused[2].reg               = loadOps[1].reg;
+            fused[3].opBits            = accumulate.bits;
+            fused[4].microOp           = fusedOp;
+            fused[5].valueU64          = loadOps[3].valueU64;
+            MicroInstrOperand copy[3]  = {};
+            copy[0].reg                = factor;
+            copy[1].reg                = product;
+            copy[2].opBits             = MicroOpBits::B128;
+            if (!encoderAcceptsAsIs(ctx, MicroInstrOpcode::OpTernaryRegRegMem, fused) ||
+                !encoderAcceptsAsIs(ctx, MicroInstrOpcode::LoadRegReg, copy))
+                return false;
+            if (!ctx.claimAll({multiplyRef, loadRef, accumulateRef}))
+                return false;
+
+            transferFloatLaneDemand(demand, ctx, accumulateRef);
+            transferFloatLaneDemand(demand, ctx, loadRef);
+            transferFloatLaneDemand(demand, ctx, multiplyRef);
+            ctx.emitErase(multiplyRef);
+            ctx.emitRewrite(loadRef, MicroInstrOpcode::OpTernaryRegRegMem, fused, true);
+            ctx.emitRewrite(accumulateRef, MicroInstrOpcode::LoadRegReg, copy, true);
+            return true;
+        }
     }
 
     // MOVSS/MOVSD retain the old destination's upper lanes. A complete copy
@@ -748,6 +826,11 @@ namespace PostRaPeephole
                 if (allowFusion && findSeparatedProduct(ctx, refs, block.begin, i, multiplyIndex) &&
                     tryFuseFloatProduct(ctx, demand, refs[multiplyIndex], ref))
                     continue;
+                if (allowFusion && tryFuseProductIntoReloadedFactor(ctx, demand, refs, block.begin, i))
+                {
+                    i -= 2;
+                    continue;
+                }
                 bool widen = false;
                 if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
                     ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&

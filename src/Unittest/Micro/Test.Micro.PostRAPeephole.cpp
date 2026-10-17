@@ -5673,6 +5673,70 @@ SWC_TEST_BEGIN(PostRAPeephole_FusedProductPreservesAccumulatorAndExplicitMuladd)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FusedProductTakesTheReloadedFactorAccumulation)
+{
+    // fmul a, a, m; load m, [b + 8]; accumulate into m. Variants:
+    //   0 - m += a: fused into the product register, which hands the result to m.
+    //   1 - m -= a: fused as a product subtracted from the load.
+    //   2 - the product reads m first: fused.
+    //   3 - a is read after the accumulation: kept.
+    //   4 - m is stored whole, sixteen bytes: its upper lanes are observed, kept.
+    //   5 - the build does not allow fused multiply-add: kept.
+    //   6 - m = a - m: no fused form, kept.
+    constexpr MicroReg product = MicroReg::floatReg(0);
+    constexpr MicroReg factor  = MicroReg::floatReg(1);
+    constexpr MicroReg base    = MicroReg::intReg(8);
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (uint32_t variant = 0; variant < 7; ++variant)
+        {
+            MicroBuilder             builder(ctx);
+            Runtime::BuildCfgBackend config{};
+            config.fpMathFma = variant != 5;
+            builder.setBackendBuildCfg(config);
+            if (variant == 2)
+                builder.emitOpBinaryRegRegReg(product, factor, product, MicroOp::FloatMultiply, bits);
+            else
+                builder.emitOpBinaryRegRegReg(product, product, factor, MicroOp::FloatMultiply, bits);
+            builder.emitLoadRegMem(factor, base, 8, bits);
+            if (variant == 1)
+                builder.emitOpBinaryRegReg(factor, product, MicroOp::FloatSubtract, bits);
+            else if (variant == 6)
+                builder.emitOpBinaryRegRegReg(factor, product, factor, MicroOp::FloatSubtract, bits);
+            else
+                builder.emitOpBinaryRegReg(factor, product, MicroOp::FloatAdd, bits);
+            builder.emitLoadMemReg(base, 16, factor, variant == 4 ? MicroOpBits::B128 : bits);
+            if (variant == 3)
+                builder.emitLoadMemReg(base, 32, product, bits);
+            builder.emitClearReg(product, MicroOpBits::B128);
+            builder.emitClearReg(factor, MicroOpBits::B128);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+            const bool        fused     = variant <= 2;
+            const MicroInstr* fusedInst = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::OpTernaryRegRegMem);
+            if (fused != (fusedInst != nullptr))
+                return Result::Error;
+            if (!fused)
+                continue;
+            const auto* ops = fusedInst->ops(builder.operands());
+            if (ops[0].reg != product || ops[1].reg != factor || ops[2].reg != base || ops[3].opBits != bits || ops[5].valueU64 != 8 ||
+                ops[4].microOp != (variant == 1 ? MicroOp::FloatProductSubtractFrom : MicroOp::FloatProductAdd))
+                return Result::Error;
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0 ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 0)
+                return Result::Error;
+            const MicroInstr* copy = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadRegReg);
+            if (!copy || copy->ops(builder.operands())[0].reg != factor || copy->ops(builder.operands())[1].reg != product)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_WidensOnlyUnobservedScalarCopyLanes)
 {
     constexpr MicroReg source = MicroReg::floatReg(0);

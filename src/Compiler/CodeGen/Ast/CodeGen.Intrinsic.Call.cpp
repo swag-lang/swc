@@ -534,8 +534,7 @@ namespace
 
     Result codeGenAtomicBinaryRmw(CodeGen& codeGen, const AstIntrinsicCallExpr& node, MicroOp op)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const AstNodeRef          ptrRef         = children[0];
@@ -587,8 +586,7 @@ namespace
 
     Result codeGenAtomicExchange(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const AstNodeRef          ptrRef         = children[0];
@@ -619,8 +617,7 @@ namespace
 
     Result codeGenAtomicCompareExchange(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
         const AstNodeRef          ptrRef          = children[0];
@@ -700,8 +697,7 @@ namespace
     // 'Swag.atomicExchange' pays for is not needed to publish a value.
     Result codeGenAtomicStore(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const AstNodeRef          ptrRef         = children[0];
@@ -739,8 +735,7 @@ namespace
     // otherwise the runtime call stands. They differ solely in overlap handling.
     Result codeGenMemBlockIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node, bool mayOverlap)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
         const AstNodeRef          dstRef     = children[0];
@@ -768,8 +763,7 @@ namespace
 
     Result codeGenMemSetIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
         const AstNodeRef          dstRef       = children[0];
@@ -800,8 +794,7 @@ namespace
 
     Result codeGenMemCmpIntrinsic(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
         const AstNodeRef          leftRef      = children[0];
@@ -823,8 +816,7 @@ namespace
 
     Result codeGenMakeAny(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const AstNodeRef          ptrRef        = children[0];
@@ -846,8 +838,7 @@ namespace
 
     Result codeGenMakeSlice(CodeGen& codeGen, const AstIntrinsicCall& node, bool forString)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const AstNodeRef          ptrRef        = children[0];
@@ -908,8 +899,7 @@ namespace
 
     Result codeGenMakeInterface(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
         const AstNodeRef          objectRef          = children[0];
@@ -1010,8 +1000,7 @@ namespace
 
     Result codeGenIntrinsicTableOf(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
@@ -1171,9 +1160,8 @@ namespace
 
     Result codeGenAssert(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        MicroBuilder&           builder = codeGen.builder();
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        MicroBuilder& builder  = codeGen.builder();
+        const auto    children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         if (children.empty())
             return Result::Continue;
 
@@ -1328,8 +1316,7 @@ namespace
 
     Result codeGenMinMax(CodeGen& codeGen, const AstIntrinsicCallExpr& node, bool isMin)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const AstNodeRef          leftRef             = children[0];
@@ -1379,8 +1366,7 @@ namespace
 
     Result codeGenRotate(CodeGen& codeGen, const AstIntrinsicCallExpr& node, MicroOp op)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
         const AstNodeRef          valueRef      = children[0];
@@ -1499,8 +1485,7 @@ namespace
 
     Result codeGenMulAdd(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
-        SmallVector<AstNodeRef> children;
-        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
         const AstNodeRef          aRef          = children[0];

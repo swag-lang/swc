@@ -25,6 +25,27 @@ using AstFlags = EnumFlags<AstFlagsE>;
 class Ast
 {
 public:
+    class NodeSpanView
+    {
+    public:
+        NodeSpanView() = default;
+
+        uint32_t size() const { return first_.total; }
+        bool     empty() const { return !first_.total; }
+
+        const AstNodeRef& operator[](size_t index) const;
+
+    private:
+        friend class Ast;
+        explicit NodeSpanView(PagedStore::SpanView::ChunkIterator first) :
+            first_(first)
+        {
+        }
+
+        PagedStore::SpanView::ChunkIterator first_;
+    };
+    static_assert(sizeof(NodeSpanView) <= sizeof(SmallVector<AstNodeRef>));
+
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
     static SourceView*                    setThreadSourceViewOverride(SourceView* srcView)
@@ -76,6 +97,10 @@ public:
         const uint32_t globalRef = spanRef.get();
         return shards_[refShard(globalRef)].store.span<AstNodeRef>(refLocal(globalRef));
     }
+
+    // Borrow references for sparse indexed queries without copying the list.
+    // Indexing walks continuation chunks; sequential walks use nodeSpan instead.
+    NodeSpanView nodeRefs(SpanRef spanRef) const;
 
     size_t                spanSize(SpanRef spanRef) const;
     AstNodeRef            nthNode(SpanRef spanRef, size_t index) const;

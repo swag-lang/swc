@@ -4,6 +4,28 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Ast::NodeSpanView Ast::nodeRefs(SpanRef spanRef) const
+{
+    if (spanRef.isInvalid())
+        return {};
+    return NodeSpanView(nodeSpan(spanRef).chunksBegin());
+}
+
+const AstNodeRef& Ast::NodeSpanView::operator[](size_t index) const
+{
+    SWC_ASSERT(index < first_.total);
+    if (index < first_->count)
+        return static_cast<const AstNodeRef*>(first_->ptr)[index];
+
+    auto it = first_;
+    do
+    {
+        index -= it->count;
+        ++it;
+    } while (index >= it->count);
+    return static_cast<const AstNodeRef*>(it->ptr)[index];
+}
+
 bool Ast::hasNode(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())

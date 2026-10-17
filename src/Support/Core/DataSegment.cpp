@@ -194,9 +194,12 @@ void DataSegment::copyToPreserveOffsets(std::span<std::byte> dst) const
 {
     const std::shared_lock lock(mutex_);
     const uint32_t         storeExtent = store_.extentSize();
-    std::memset(dst.data(), 0, dst.size_bytes());
+    SWC_ASSERT(storeExtent <= dst.size_bytes());
     if (storeExtent)
         store_.copyToPreserveOffsets(std::span{dst.data(), storeExtent});
+    const auto tail = dst.subspan(storeExtent);
+    if (!tail.empty())
+        std::memset(tail.data(), 0, tail.size_bytes());
     for (const LargeBlock& block : largeBlocks_)
     {
         SWC_ASSERT(block.offset + block.size <= dst.size_bytes());

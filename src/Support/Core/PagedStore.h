@@ -270,6 +270,7 @@ public:
         uint32_t          elemAlign = 0;
         Chunk             current{nullptr, 0};
 
+        bool           operator==(std::default_sentinel_t) const noexcept { return hdrRef == INVALID_REF; }
         bool           operator!=(const ChunkIterator& o) const;
         const Chunk&   operator*() const { return current; }
         const Chunk*   operator->() const { return &current; }
@@ -286,7 +287,8 @@ public:
     uint32_t elemAlign() const { return elementAlign_; }
 
     ChunkIterator chunksBegin() const;
-    ChunkIterator chunksEnd() const;
+    // Completion needs no page layout or iterator payload.
+    constexpr std::default_sentinel_t chunksEnd() const noexcept { return {}; }
 
 private:
     static void     decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off);

@@ -322,6 +322,42 @@ SWC_TEST_BEGIN(PagedStore_ChunkIterationPreservesAlignedValuesAcrossPages)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_ChunkSentinelCompletesEmptyAndMultiPageSpans)
+{
+    const auto end     = PagedStore::SpanView{}.chunksEnd();
+    const auto invalid = PagedStore::SpanView{}.chunksBegin();
+    if (invalid != end || !(end == invalid))
+        return Result::Error;
+
+    std::array<uint32_t, 97> values;
+    std::iota(values.begin(), values.end(), 1u);
+    for (const size_t count : {size_t{0}, size_t{1}, values.size()})
+    {
+        PagedStore    store(64);
+        const SpanRef ref   = store.pushSpan(std::span<const uint32_t>(values).first(count));
+        const auto    view  = store.span<uint32_t>(ref.get());
+        auto          it    = view.chunksBegin();
+        const bool    empty = count == 0;
+        if ((it == end) != empty || (end == it) != empty || (it != end) == empty || (end != it) == empty)
+            return Result::Error;
+
+        size_t seen = 0;
+        for (; it != end; ++it)
+        {
+            if (!it->count || it->count > count - seen)
+                return Result::Error;
+            for (const uint32_t value : std::span(static_cast<const uint32_t*>(it->ptr), it->count))
+            {
+                if (value != values[seen++])
+                    return Result::Error;
+            }
+        }
+        if (seen != count || !(it == end))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_RawSpanAlignmentPreservesPayloadAndZeroConvention)
 {
     std::array<uint8_t, 37> bytes;

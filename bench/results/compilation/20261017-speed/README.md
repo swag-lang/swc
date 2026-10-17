@@ -43,6 +43,10 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Borrow closing-delimiter recovery lists | Constructing and destroying a temporary SmallVector for each closing delimiter, including successful matches | Every caller supplies an empty list or a literal list whose lifetime covers the call. Only a missing closer constructs the same working recovery vector, preserving token order, fallback tokens and diagnostics. Object inspection confirms the removed destructor call in expression parsing. |
 | Keep fresh attribute records at their allocated zero defaults | Resetting attribute type pointers, parameter-slice pointers and inline Any values after reserveSpan already zeroed them | Both the paged and large-block allocation paths zero the entire fresh span. These private helpers have only that fresh-array call chain; absent types, parameters and null values retain identical empty fields. Object inspection confirms the removed Any zero store with the same stack reservation. |
 | Decode single-node spans once | A second span setup, another header-size read and the indexed lookup loop for a one-element query | The writer guarantees nonempty chunks for a nonempty span. The existing one-element assertion remains; empty/invalid spans retain the invalid result when assertions are disabled. The page-growth regression checks the query, and the DevMode object has fewer calls and a smaller body and stack frame. |
+| Trust masked signed-remainder divisor widths | Rechecking the width and power-of-two predicate and computing a logarithm solely to confirm the width | The divisor has already been masked to the accepted 32/64-bit width. A remaining nonzero power of two necessarily has a shift below that width. New C++ cases cover the highest bit and discarded high stored bits; the object loses the redundant logarithm loop with the same stack reservation. |
+| Check signed-remainder eligibility before flag analysis | A suffix walk for candidates already excluded by width, immediate, divisor or register kind | The same cheap eligibility guard now precedes the same dead-flags requirement inside the private fold. Rewriting and fallback decisions remain identical. The original shared dispatch is retained; object inspection shows a smaller body with the same frame. A C++ matrix covers division/remainder, divisors 3/8, live/dead flags and deferred/immediate expansion. |
+| Compute byte-array padding once | A remainder/division operation after each padding byte | The initial remainder determines the exact number of existing pushBack operations. Their order, allocation sequence and capacities are unchanged, including general non-power-of-two alignments. An iterative oracle covers reserved and growing buffers; object inspection confirms one initial division and the same total stack reservation. |
+| Keep chunk iteration setup minimal | Constructing a complete iterator for each end comparison, its comparison call, and begin-state stores immediately overwritten | An empty sentinel tests the same invalid header reference. The begin iterator receives its final count, geometry and first chunk directly. Iterator/view fields, publication, page order and payloads are unchanged. Default/empty/single/multi-page cases cover all comparison forms; object inspection confirms removed AST end/comparison calls and smaller caller/begin frames. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -81,6 +85,10 @@ filesystem cases requiring `--dev-full`.
 | 32 | 1,446 | Full parser suites: 50 normal and 80 expected-error inputs, including runtime |
 | 33 | 1,446 | Native `typeinfo_attribute` selection: 7; JIT `typeinfo_attribute_param.swg`: 1 |
 | 34 | 1,446 | Full native: 3,891; full JIT: 1,539 |
+| 35 | 1,447 | Native optimizer selection: 302 |
+| 36 | 1,448 | Native optimizer selection: 302 |
+| 37 | 1,449 | Native optimizer selection: 302 |
+| 38 | 1,450 | Full native: 3,891; full JIT: 1,539 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -107,6 +115,8 @@ at `205ac08ff3`. SmallVector checks also include the later immutable-field-addre
 propagation imported at `a21d518c77`.
 Checkpoint 30 additionally exercises the memory-flags and TLS-context changes
 imported at `b5cba4d47a`.
+Checkpoint 35 includes the composite address-scale legalization and encoder case
+imported at `ab03d9dbce`.
 
 A new SmallVector regression first exposed a leaked live prefix when copy
 construction failed. The repair cleans partial construction and raw allocations,
@@ -117,7 +127,7 @@ standard containers can relocate vectors of move-only elements. The inline
 storage, object fields and capacity policy are unchanged. These correctness
 changes are not claimed as compilation-speed gains.
 
-The final DevMode C++ suite passes 1,445 tests, including twelve SmallVector
+The checkpoint-29 DevMode C++ suite passes 1,445 tests, including twelve SmallVector
 regressions for inline and heap storage, aliasing, interrupted constructors,
 assignments and iterator traversal, and move-only elements. Both compiler builds
 pass with the same six-worker bound. DevMode also passes the full native suite
@@ -140,3 +150,6 @@ Packing entry-escape bytes into frame ranges was discarded: eager state initiali
 and strided writes would require measurement to establish a CPU saving.
 Lazy default-value insertion was discarded: object inspection showed an additional large insertion specialization, leaving a code-footprint tradeoff for measurement.
 Reusing unique dense-index lists for access scores was discarded because the original use/definition lists intentionally retain repeated occurrences.
+Splitting the signed-operation dispatch was discarded because of generated stack/code growth; the retained eligibility guard keeps the original shared dispatch.
+Processing the first low-bit worklist item outside its vector was discarded because its generated stack grew.
+Batching integer-byte appends was discarded because some generated frames grew; only the padding-count change was retained.

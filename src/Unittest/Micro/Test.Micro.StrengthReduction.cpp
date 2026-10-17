@@ -634,6 +634,49 @@ SWC_TEST_BEGIN(StrengthReduction_LoopInstanceDefersSignedDivision)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(StrengthReduction_SignedDivisionAndRemainderRespectFlagsAndDeferral)
+{
+    constexpr std::array cases = {
+        std::pair{MicroOp::DivideSigned, uint64_t{3}},
+        std::pair{MicroOp::DivideSigned, uint64_t{8}},
+        std::pair{MicroOp::ModuloSigned, uint64_t{3}},
+        std::pair{MicroOp::ModuloSigned, uint64_t{8}},
+    };
+    for (const auto [operation, divisor] : cases)
+    {
+        for (const bool deferred : {false, true})
+        {
+            for (const bool liveFlags : {false, true})
+            {
+                constexpr MicroReg value     = MicroReg::virtualIntReg(1);
+                constexpr MicroReg condition = MicroReg::virtualIntReg(2);
+                constexpr MicroReg base      = MicroReg::virtualIntReg(3);
+                MicroBuilder       builder(ctx);
+                builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(value, ApInt(divisor, 64), operation, MicroOpBits::B64);
+                if (liveFlags)
+                {
+                    builder.emitSetCondReg(condition, MicroCond::Equal);
+                    builder.emitLoadMemReg(base, 8, condition, MicroOpBits::B8);
+                }
+                builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+                builder.emitRet();
+
+                MicroStrengthReductionPass pass(deferred);
+                MicroPassManager           passManager;
+                passManager.addStartPass(pass);
+                MicroPassContext passContext;
+                passContext.callConvKind = CallConvKind::Swag;
+                SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+                if (countBinaryRegImmOp(builder, operation) != (deferred || liveFlags ? 1u : 0u))
+                    return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 // A signed remainder by a power of two that is only tested for zero reads
 // the low bits, whatever the sign. One that is read as a value keeps its sign.
 SWC_TEST_BEGIN(StrengthReduction_SignedRemainderZeroTestBecomesMask)
@@ -664,6 +707,41 @@ SWC_TEST_BEGIN(StrengthReduction_SignedRemainderZeroTestBecomesMask)
             return Result::Error;
     }
     return Result::Continue;
+}
+SWC_TEST_END()
+
+// The highest operand bit and discarded stored bits keep the same low-bit test.
+SWC_TEST_BEGIN(StrengthReduction_SignedRemainderMaskCoversOperandWidth)
+{
+    for (const MicroOpBits opBits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint32_t bits = getNumBits(opBits);
+        for (const uint64_t divisor : {uint64_t{2}, uint64_t{8}, uint64_t{1} << (bits - 1)})
+        {
+            constexpr MicroReg value  = MicroReg::virtualIntReg(1);
+            constexpr MicroReg result = MicroReg::virtualIntReg(2);
+            constexpr MicroReg base   = MicroReg::virtualIntReg(3);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegMem(value, base, 0, opBits);
+            // High stored bits are discarded by the 32-bit operation.
+            const uint64_t stored = opBits == MicroOpBits::B32 ? divisor | (uint64_t{1} << 40) : divisor;
+            builder.emitOpBinaryRegImm(value, ApInt(stored, 64), MicroOp::ModuloSigned, opBits);
+            builder.emitCmpRegImm(value, ApInt(uint64_t{0}, 64), opBits);
+            builder.emitSetCondReg(result, MicroCond::Equal);
+            builder.emitLoadMemReg(base, 8, result, MicroOpBits::B8);
+            builder.emitRet();
+
+            MicroStrengthReductionPass pass(true);
+            MicroPassManager           passManager;
+            passManager.addStartPass(pass);
+            MicroPassContext passContext;
+            passContext.callConvKind = CallConvKind::Swag;
+            SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+            if (!hasBinaryRegImm(builder, MicroOp::And, divisor - 1) || countBinaryRegImmOp(builder, MicroOp::ModuloSigned))
+                return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

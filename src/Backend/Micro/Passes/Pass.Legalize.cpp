@@ -567,6 +567,25 @@ namespace
         const MicroReg indexReg = ops[2].reg;
         const uint64_t mulValue = ops[5].valueU64;
         const uint64_t addValue = ops[6].valueU64;
+        // Inserting may move the operand storage: keep the widths before.
+        const MicroOpBits dstBits   = ops[3].opBits;
+        const MicroOpBits valueBits = ops[4].opBits;
+
+        // A scale of 3, 5 or 9 times an encodable one is two address operations: the index
+        // times 3, 5 or 9, then the address with the remaining scale. Neither writes the
+        // flags, as the original address does not, and neither multiplies.
+        uint64_t lowFactor = 0;
+        uint64_t lowScale  = 0;
+        for (const uint64_t scale : {1ull, 2ull, 4ull, 8ull})
+        {
+            const uint64_t factor = mulValue / scale;
+            if (mulValue % scale == 0 && (factor == 3 || factor == 5 || factor == 9))
+            {
+                lowFactor = factor;
+                lowScale  = scale;
+                break;
+            }
+        }
 
         MicroReg scaledIndexReg = dstReg;
         if (dstReg == baseReg)
@@ -575,6 +594,31 @@ namespace
             addVirtualForbiddenReg(context, scaledIndexReg, dstReg);
             addVirtualForbiddenReg(context, scaledIndexReg, indexReg);
             addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, scaledIndexReg);
+        }
+
+        if (lowFactor)
+        {
+            std::array<MicroInstrOperand, 8> timesFactor = {};
+            timesFactor[0].reg                           = scaledIndexReg;
+            timesFactor[1].reg                           = indexReg;
+            timesFactor[2].reg                           = indexReg;
+            timesFactor[3].opBits                        = dstBits;
+            timesFactor[4].opBits                        = valueBits;
+            timesFactor[5].valueU64                      = lowFactor - 1;
+            timesFactor[6].valueU64                      = 0;
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadAddrAmcRegMem, timesFactor);
+
+            std::array<MicroInstrOperand, 8> address = {};
+            address[0].reg                           = dstReg;
+            address[1].reg                           = baseReg;
+            address[2].reg                           = scaledIndexReg;
+            address[3].opBits                        = dstBits;
+            address[4].opBits                        = valueBits;
+            address[5].valueU64                      = lowScale;
+            address[6].valueU64                      = addValue;
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadAddrAmcRegMem, address);
+            removeInstruction(context, instRef);
+            return;
         }
 
         if (scaledIndexReg != indexReg)

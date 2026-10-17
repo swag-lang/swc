@@ -1671,16 +1671,8 @@ namespace
 
 Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (spanConstraintsRef.isValid())
-    {
-        SmallVector<AstNodeRef> constraintRefs;
-        sema.ast().appendNodes(constraintRefs, spanConstraintsRef);
-        for (const AstNodeRef constraintRef : constraintRefs)
-        {
-            if (childRef == constraintRef)
-                return Result::SkipChildren;
-        }
-    }
+    if (spanConstraintsRef.isValid() && sema.ast().findNodeIndex(spanConstraintsRef, childRef).has_value())
+        return Result::SkipChildren;
 
     if (childRef == nodeParamsRef)
     {

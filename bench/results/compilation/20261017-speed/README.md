@@ -54,6 +54,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Zero the paged prefix only through its existing copy helper | A second zero-fill of every paged-prefix byte in DataSegment::copyToPreserveOffsets | PagedStore already zeroes that complete prefix before copying page payloads. The outer copy now zeroes only the tail, then copies the same large blocks. Empty, paged-only, large-only and mixed copies preserve payloads, page/block gaps and trailing zeros; the final object retains the same stack frame. |
 | Reuse resolved struct-field nodes for source locations | A second field-span size query and indexed lookup during each element's validation and constant folding | Both lookups had identical arguments with no intervening mutation. The existing field reference now supplies the same source location, including the invalid-node fallback. Error-only helpers retain their original implementation. Object inspection confirms the removed normal-path calls with all affected frames unchanged. |
 | Borrow fixed-arity intrinsic argument references | Initializing, filling and destroying temporary SmallVectors in fifteen intrinsic lowerings | A small read-only view returns references from the same immutable AST chunks; fixed indexed operands retain their order and identity. Sequential walks keep chunk iteration. A page-growth regression checks borrowed addresses across every chunk. All fifteen generated callers have smaller bodies and frames, and their combined code reduction exceeds the two new shared helpers. The view fits within the former temporary in both compiler configurations. |
+| Search constraints and visit using-import lists in place | Copying each constraint list before a membership query and each using list before its ordered walk | The existing chunk search tests the same reference identity and first match. The using walk visits immutable AST references in the same order and retains every symbol-map update and source revision. Both generated functions lose their appendNodes call and have smaller frames without larger bodies. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -104,6 +105,7 @@ filesystem cases requiring `--dev-full`.
 | 44 | 1,455 | Native `large_sparse_struct_defaults.swg`: 1; incoming `zero_extended_frame_slots.swg`: 1 |
 | 45 | 1,455 | Semantic `struct` selection: 44 normal and 46 expected-error inputs, including runtime |
 | 46 | 1,455 | Full native: 3,892; full JIT: 1,539 |
+| 47 | 1,455 | Full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing

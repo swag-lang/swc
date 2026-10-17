@@ -232,37 +232,39 @@ Result AstNamespaceDecl::semaPostNode(Sema& sema) const
 
 Result AstUsingDecl::semaPostNode(Sema& sema) const
 {
-    SmallVector<AstNodeRef> nodeRefs;
-    sema.ast().appendNodes(nodeRefs, spanChildrenRef);
-    for (const auto& nodeRef : nodeRefs)
+    const auto nodes = sema.ast().nodeSpan(spanChildrenRef);
+    for (auto chunk = nodes.chunksBegin(); chunk != nodes.chunksEnd(); ++chunk)
     {
-        SymbolMap* usingSymMap = usingDeclChildSymMap(sema, nodeRef);
-        SemaScope::addUsingSymMapIfMissing(sema.curScope(), usingSymMap);
-
-        // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,
-        // so persist `using` imports on the owning symbol map as well.
-        SymbolMap* ownerSymMap = SemaFrame::currentSymMap(sema);
-
-        // A runtime file's top-level `using` (e.g. `using Swag` in the bootstrap) is the prelude
-        // of every module: it is what lets the whole module — including generated imported-API
-        // sources — spell `Swag` members unqualified (`#[Inline]`). Runtime symbols are created
-        // under the import root, whose persisted usings unqualified lookups deliberately skip, so
-        // persist these on the module namespace, where they have always been collected from.
-        if (ownerSymMap && ownerSymMap == sema.compiler().importRootNamespace())
+        for (const AstNodeRef& nodeRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
         {
-            const SourceFile* file = sema.file();
-            if (file && file->isRuntime())
-                ownerSymMap = &sema.moduleNamespace();
-        }
+            SymbolMap* usingSymMap = usingDeclChildSymMap(sema, nodeRef);
+            SemaScope::addUsingSymMapIfMissing(sema.curScope(), usingSymMap);
 
-        if (ownerSymMap)
-        {
-            const SourceFile*               sourceFile = sema.file();
-            const SymbolMap::SourceRevision sourceRevision{
-                .fileRef  = sourceFile ? sourceFile->ref() : FileRef::invalid(),
-                .revision = sourceFile ? sourceFile->revisionId() : 0,
-            };
-            ownerSymMap->addUsingSymMap(sema.ctx(), usingSymMap, sourceRevision);
+            // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,
+            // so persist `using` imports on the owning symbol map as well.
+            SymbolMap* ownerSymMap = SemaFrame::currentSymMap(sema);
+
+            // A runtime file's top-level `using` (e.g. `using Swag` in the bootstrap) is the prelude
+            // of every module: it is what lets the whole module — including generated imported-API
+            // sources — spell `Swag` members unqualified (`#[Inline]`). Runtime symbols are created
+            // under the import root, whose persisted usings unqualified lookups deliberately skip, so
+            // persist these on the module namespace, where they have always been collected from.
+            if (ownerSymMap && ownerSymMap == sema.compiler().importRootNamespace())
+            {
+                const SourceFile* file = sema.file();
+                if (file && file->isRuntime())
+                    ownerSymMap = &sema.moduleNamespace();
+            }
+
+            if (ownerSymMap)
+            {
+                const SourceFile*               sourceFile = sema.file();
+                const SymbolMap::SourceRevision sourceRevision{
+                    .fileRef  = sourceFile ? sourceFile->ref() : FileRef::invalid(),
+                    .revision = sourceFile ? sourceFile->revisionId() : 0,
+                };
+                ownerSymMap->addUsingSymMap(sema.ctx(), usingSymMap, sourceRevision);
+            }
         }
     }
 

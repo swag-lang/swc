@@ -441,13 +441,10 @@ PagedStore::SpanView::ChunkIterator& PagedStore::SpanView::ChunkIterator::operat
         return *this;
     }
 
-    uint32_t  pageIndex, off;
-    const Ref cur = hdrRef;
-    decodeRef(store, cur, pageIndex, off);
-    SWC_ASSERT(pageIndex + 1 < store->publishedPageCount());
-    const Ref nextHdr = makeRef(store->pageSize(), pageIndex + 1, 0);
-
-    hdrRef                   = nextHdr;
+    // A continuation header starts at the next power-of-two page boundary.
+    const uint64_t nextHeader = (static_cast<uint64_t>(hdrRef) | store->pageMask_) + 1;
+    SWC_ASSERT(nextHeader < std::numeric_limits<Ref>::max());
+    hdrRef                   = static_cast<Ref>(nextHeader);
     const uint32_t remaining = total - done;
     current                  = chunkFromLayout(store, hdrRef, remaining, elemSize, elemAlign);
     return *this;

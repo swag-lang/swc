@@ -22,6 +22,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Queue incomplete return summaries only on their state transition | Reading and writing queue-membership bytes during completeness propagation | A summary changes from complete to incomplete once. The transition itself prevents duplicate queue entries; the later growing-mask fixpoint retains its membership array and existing queue order. |
 | Materialize completeness dependencies only when propagation is needed | Prefix summation, a second dependency walk, and the reverse-edge and cursor allocations when no dependency is missing; a separate seed scan in every case | Missing dependencies seed the same caller-order queue during the existing count walk. Without a seed, completeness cannot fall; with one, the same reverse edges and queue propagate it as before. Temporary storage is released before the mask phase. |
 | Write converged upper-half facts directly into their final slots | A per-instruction input-state allocation, its initialization, and a final full copy in the cyclic path | Every instruction starts queued and writes its input fact on each visit. Queries are enabled only after convergence; outgoing facts, requeues and visit order are unchanged. The existing final buffer already has the required slot extent. |
+| Share one enum-value lowering buffer within its metadata build | All but the first temporary byte allocation for the values of one enum | The underlying layout has one fixed size. Each value still starts with zero bytes and is fully materialized before the next reset, preserving omitted elements, padding and relocations. Capacity remains that one layout's size. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -98,6 +99,11 @@ The upper-half slot batch passed 1,424 C++ tests and the native `dword_joins.swg
 test. The new C++ loop case checks both a 32-bit backedge, which permits removing
 the clear, and a 64-bit backedge, which requires retaining it. The incremental
 DevMode build and both commands exited zero.
+
+The sixteen-change checkpoint passed 1,424 C++ tests, 3,889 native tests with the
+expected recovery probes, and 1,539 JIT tests. The enum-focused
+`typeinfo_collections.swg` check passed two tests before the broad suites. The
+DevMode build and all commands exited zero.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

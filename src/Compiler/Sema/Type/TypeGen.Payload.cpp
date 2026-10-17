@@ -621,6 +621,9 @@ namespace
 
         const TypeInfo& rawType   = ctx.typeMgr().get(rawTypeRef);
         const uint64_t  valueSize = rawType.sizeOf(ctx);
+        // All values share their underlying layout. Refill one temporary after each payload
+        // has been materialized, preserving zero padding and omitted aggregate elements.
+        std::vector<std::byte> valueBytes;
         for (uint32_t i = 0; i < values.size(); ++i)
         {
             const SymbolEnumValue* symValue = values[i];
@@ -641,7 +644,7 @@ namespace
 
             const ConstantValue& enumCst     = ctx.cstMgr().get(symValue->cstRef());
             const ConstantRef    rawValueRef = enumCst.isEnumValue() ? enumCst.getEnumValue() : symValue->cstRef();
-            std::vector          valueBytes(valueSize, std::byte{0});
+            valueBytes.assign(valueSize, std::byte{0});
             ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawType);
 
             uint32_t     valueOffset    = INVALID_REF;

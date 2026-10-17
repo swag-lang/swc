@@ -2214,7 +2214,8 @@ namespace InstructionCombine
             uint32_t leafValue = 0;
             MicroReg leafReg   = MicroReg::invalid();
             bool     hasLeaf   = false;
-            int8_t   bits[64]  = {};
+            // Every successful trace fills all positions before a caller reads them.
+            int8_t bits[64];
         };
 
         bool mergeLeaf(BitSources& into, const BitSources& from)
@@ -2281,7 +2282,9 @@ namespace InstructionCombine
                     BitSources input;
                     if (!traceBitSources(ctx, reg, def.instRef, depth + 1, input))
                         return false;
-                    out = input;
+                    out.leafValue = input.leafValue;
+                    out.leafReg   = input.leafReg;
+                    out.hasLeaf   = input.hasLeaf;
                     for (uint32_t i = 0; i < 64; ++i)
                     {
                         int8_t source = K_BIT_ZERO;
@@ -2310,7 +2313,9 @@ namespace InstructionCombine
                         !traceBitSources(ctx, ops[1].reg, def.instRef, depth + 1, right))
                         return false;
                     const uint32_t width = getNumBits(bits);
-                    out                  = BitSources{};
+                    out.leafValue        = 0;
+                    out.leafReg          = MicroReg::invalid();
+                    out.hasLeaf          = false;
                     for (uint32_t i = 0; i < 64; ++i)
                     {
                         if (i >= width)
@@ -2366,21 +2371,20 @@ namespace InstructionCombine
         if (!left.hasLeaf || !right.hasLeaf || left.leafValue != right.leafValue)
             return false;
 
-        const uint32_t width   = getNumBits(ops[2].opBits);
-        const uint32_t bytes   = width / 8;
-        BitSources     sources = left;
+        const uint32_t width = getNumBits(ops[2].opBits);
+        const uint32_t bytes = width / 8;
         for (uint32_t i = 0; i < width; ++i)
         {
             if (left.bits[i] != K_BIT_ZERO && right.bits[i] != K_BIT_ZERO)
                 return false;
-            sources.bits[i]         = left.bits[i] != K_BIT_ZERO ? left.bits[i] : right.bits[i];
+            const int8_t   source   = left.bits[i] != K_BIT_ZERO ? left.bits[i] : right.bits[i];
             const uint32_t expected = (bytes - 1 - i / 8) * 8 + i % 8;
-            if (sources.bits[i] != static_cast<int8_t>(expected))
+            if (source != static_cast<int8_t>(expected))
                 return false;
         }
 
-        const uint32_t leafAtRoot = ctx.ssa->reachingValueId(sources.leafReg, ref);
-        if (leafAtRoot == MicroSsaState::K_INVALID_VALUE || leafAtRoot != sources.leafValue || sources.leafReg == dst)
+        const uint32_t leafAtRoot = ctx.ssa->reachingValueId(left.leafReg, ref);
+        if (leafAtRoot == MicroSsaState::K_INVALID_VALUE || leafAtRoot != left.leafValue || left.leafReg == dst)
             return false;
         if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
@@ -2389,7 +2393,7 @@ namespace InstructionCombine
 
         MicroInstrOperand copy[3];
         copy[0].reg    = dst;
-        copy[1].reg    = sources.leafReg;
+        copy[1].reg    = left.leafReg;
         copy[2].opBits = ops[2].opBits;
         ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copy);
 

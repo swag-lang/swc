@@ -370,15 +370,6 @@ SpanRef PagedStore::pushSpanRaw(const void* data, uint32_t elemSize, uint32_t el
     return firstRef;
 }
 
-void PagedStore::SpanView::decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off)
-{
-    SWC_ASSERT(st != nullptr);
-    SWC_ASSERT(ref != INVALID_REF);
-    st->decodeRef(ref, pageIndex, off);
-    SWC_ASSERT(pageIndex < st->publishedPageCount());
-    SWC_ASSERT(off < st->pageSize());
-}
-
 uint32_t PagedStore::SpanView::dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign)
 {
     constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
@@ -399,14 +390,18 @@ PagedStore::SpanView::Chunk PagedStore::SpanView::chunkFromLayout(const PagedSto
     SWC_ASSERT((elemAlign & (elemAlign - 1)) == 0);
     SWC_ASSERT(elemAlign != 0);
     uint32_t pageIndex, off;
-    decodeRef(st, hdrRef, pageIndex, off);
+    st->decodeRef(hdrRef, pageIndex, off);
+    const auto* pages = st->snapshotPages();
+    SWC_ASSERT(pageIndex < pages->size());
+    SWC_ASSERT(off < st->pageSize());
+    const auto*    page       = (*pages)[pageIndex];
     const uint32_t dataOffset = dataOffsetFromHdr(off, elemAlign);
     SWC_ASSERT(dataOffset <= st->pageSize());
     const uint32_t capBytes = st->pageSize() - dataOffset;
     const uint32_t cap      = capBytes / elemSize;
-    SWC_ASSERT(dataOffset <= st->publishedPageUsed(pageIndex));
+    SWC_ASSERT(dataOffset <= page->used.load(std::memory_order_relaxed));
     // The count and pointer share one header decode and aligned data offset.
-    return {.ptr = st->publishedPageBytes(pageIndex) + dataOffset, .count = std::min<uint32_t>(cap, remaining)};
+    return {.ptr = page->bytes() + dataOffset, .count = std::min<uint32_t>(cap, remaining)};
 }
 
 PagedStore::SpanView::SpanView(const PagedStore* s, Ref head, uint32_t elemSize, uint32_t elemAlign) :
@@ -441,13 +436,10 @@ PagedStore::SpanView::ChunkIterator& PagedStore::SpanView::ChunkIterator::operat
         return *this;
     }
 
-    uint32_t  pageIndex, off;
-    const Ref cur = hdrRef;
-    decodeRef(store, cur, pageIndex, off);
-    SWC_ASSERT(pageIndex + 1 < store->publishedPageCount());
-    const Ref nextHdr = makeRef(store->pageSize(), pageIndex + 1, 0);
-
-    hdrRef                   = nextHdr;
+    // A continuation header starts at the next power-of-two page boundary.
+    const uint64_t nextHeader = (static_cast<uint64_t>(hdrRef) | store->pageMask_) + 1;
+    SWC_ASSERT(nextHeader < std::numeric_limits<Ref>::max());
+    hdrRef                   = static_cast<Ref>(nextHeader);
     const uint32_t remaining = total - done;
     current                  = chunkFromLayout(store, hdrRef, remaining, elemSize, elemAlign);
     return *this;
@@ -606,32 +598,6 @@ void PagedStore::publishPages()
     const auto* publishedRanges = publishedPageRangesStorage_.back().get();
     publishedPages_.store(published, std::memory_order_release);
     publishedPageRanges_.store(publishedRanges, std::memory_order_release);
-}
-
-uint32_t PagedStore::publishedPageCount() const noexcept
-{
-    return static_cast<uint32_t>(snapshotPages()->size());
-}
-
-uint32_t PagedStore::publishedPageUsed(uint32_t index) const noexcept
-{
-    const auto pages = snapshotPages();
-    SWC_ASSERT(index < pages->size());
-    return (*pages)[index]->used.load(std::memory_order_relaxed);
-}
-
-const uint8_t* PagedStore::publishedPageBytes(uint32_t index) const noexcept
-{
-    const auto pages = snapshotPages();
-    SWC_ASSERT(index < pages->size());
-    return (*pages)[index]->bytes();
-}
-
-uint8_t* PagedStore::publishedPageBytesMutable(uint32_t index) const noexcept
-{
-    const auto pages = snapshotPages();
-    SWC_ASSERT(index < pages->size());
-    return (*pages)[index]->bytes();
 }
 
 SWC_END_NAMESPACE();

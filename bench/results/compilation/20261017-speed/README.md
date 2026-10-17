@@ -47,6 +47,10 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Check signed-remainder eligibility before flag analysis | A suffix walk for candidates already excluded by width, immediate, divisor or register kind | The same cheap eligibility guard now precedes the same dead-flags requirement inside the private fold. Rewriting and fallback decisions remain identical. The original shared dispatch is retained; object inspection shows a smaller body with the same frame. A C++ matrix covers division/remainder, divisors 3/8, live/dead flags and deferred/immediate expansion. |
 | Compute byte-array padding once | A remainder/division operation after each padding byte | The initial remainder determines the exact number of existing pushBack operations. Their order, allocation sequence and capacities are unchanged, including general non-power-of-two alignments. An iterative oracle covers reserved and growing buffers; object inspection confirms one initial division and the same total stack reservation. |
 | Keep chunk iteration setup minimal | Constructing a complete iterator for each end comparison, its comparison call, and begin-state stores immediately overwritten | An empty sentinel tests the same invalid header reference. The begin iterator receives its final count, geometry and first chunk directly. Iterator/view fields, publication, page order and payloads are unchanged. Default/empty/single/multi-page cases cover all comparison forms; object inspection confirms removed AST end/comparison calls and smaller caller/begin frames. |
+| Advance directly to continuation-page headers | Decoding the current header and multiplying its next page index back into a reference, plus repeated current/next page-count checks | Continuation headers always begin at the next power-of-two page boundary. A widened mask-and-increment retains the reference-overflow guard; chunk decoding still checks the next page before accessing it. Existing alignment, page-growth and chunk tests pass; the iterator object loses the redundant decode with a smaller body and stack frame. |
+| Read each span chunk through one published page snapshot | Two extra acquire loads and repeated vector bounds/pointer lookups while obtaining one chunk | Published page vectors remain immutable and retained. The one snapshot already contains the referenced page; its bounds, used bytes and payload pointer are checked/read together. No publication, layout or lifetime changes are introduced. Object inspection shows a smaller chunk reader with the same stack frame. |
+| Keep array-element cast locations as node references | Resolving and copying a source-code location that no request uses | The private location helper sets a source location only alongside a valid node; that valid-node branch always selects the node instead. The invalid-node branch keeps the outer request's existing source location. Object inspection confirms the removed node lookup and non-increasing frames in all affected helpers and conversion callers. |
+| Publish token lengths once and accept digits directly | Two length stores overwritten by pushToken, and a separator-bit test for each valid decimal, hexadecimal or binary digit | Token lengths are computed before their first read or publication. The three digit classes exclude the separator, so their accepted path need not test it again; malformed separator runs retain their consumption and diagnostics. All affected functions retain their stack frames; the digit bodies shrink and the main lexer retains its code extent and multiline call. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -90,6 +94,10 @@ filesystem cases requiring `--dev-full`.
 | 37 | 1,449 | Native optimizer selection: 302 |
 | 38 | 1,450 | Full native: 3,891; full JIT: 1,539 |
 | 39 | 1,454 | Native `separated_float_products.swg`: 1, with the DevMode compiler and `release` program configuration |
+| 40 | 1,454 | Native `switch_many_chunks.swg`: 1 |
+| 41 | 1,454 | JIT reflection selection: 16 |
+| 42 | 1,454 | Semantic `array` selection: 36 normal and 41 expected-error inputs, including runtime; native SIMD selection: 51 |
+| 43 | 1,454 | Full lexer suites: 33 normal and 50 expected-error inputs, including runtime; full native: 3,891; full JIT: 1,539 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -163,3 +171,4 @@ Reusing unique dense-index lists for access scores was discarded because the ori
 Splitting the signed-operation dispatch was discarded because of generated stack/code growth; the retained eligibility guard keeps the original shared dispatch.
 Processing the first low-bit worklist item outside its vector was discarded because its generated stack grew.
 Batching integer-byte appends was discarded because some generated frames grew; only the padding-count change was retained.
+Removing the multiline-string length store was discarded because MSVC then inlined that scanner into the main lexer and enlarged its body; the two other token-length stores were removed without that change.

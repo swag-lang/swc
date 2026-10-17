@@ -649,26 +649,29 @@ uint32_t Lexer::lexDigitRun(bool& ioLastWasSep)
 {
     const char8_t* sepStart = nullptr;
     uint32_t       digits   = 0;
-    while ((langSpec_->*IsDigit)(buffer_[0]) || langSpec_->isNumberSep(buffer_[0]))
+    while (true)
     {
-        if (langSpec_->isNumberSep(buffer_[0]))
+        // All digit classes exclude the numeric separator.
+        if ((langSpec_->*IsDigit)(buffer_[0]))
         {
-            if (ioLastWasSep)
-            {
-                while (langSpec_->isNumberSep(buffer_[0]))
-                    buffer_++;
-                raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
-                continue;
-            }
-
-            sepStart     = buffer_;
-            ioLastWasSep = true;
+            digits++;
+            ioLastWasSep = false;
             buffer_++;
             continue;
         }
+        if (!langSpec_->isNumberSep(buffer_[0]))
+            break;
 
-        digits++;
-        ioLastWasSep = false;
+        if (ioLastWasSep)
+        {
+            while (langSpec_->isNumberSep(buffer_[0]))
+                buffer_++;
+            raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
+            continue;
+        }
+
+        sepStart     = buffer_;
+        ioLastWasSep = true;
         buffer_++;
     }
 
@@ -1402,7 +1405,6 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         startToken_       = buffer_;
         startTokenOffset_ = static_cast<uint32_t>(startToken_ - startBuffer_);
         token_.byteStart  = startTokenOffset_;
-        token_.byteLength = 1;
         token_.flags      = TokenFlagsE::Zero;
 #if SWC_HAS_TOKEN_DEBUG_INFO
         token_.dbgPtr     = startToken_;
@@ -1436,8 +1438,7 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         // Attribute start
         if (buffer_[0] == '#' && buffer_[1] == '[')
         {
-            token_.id         = TokenId::SymAttrStart;
-            token_.byteLength = 1;
+            token_.id = TokenId::SymAttrStart;
             buffer_ += 2;
             pushToken();
             continue;

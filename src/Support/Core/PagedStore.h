@@ -228,11 +228,6 @@ private:
     const std::vector<PageRange>* snapshotPageRanges() const noexcept;
     void                          publishPages();
 
-    uint32_t       publishedPageCount() const noexcept;
-    uint32_t       publishedPageUsed(uint32_t index) const noexcept;
-    const uint8_t* publishedPageBytes(uint32_t index) const noexcept;
-    uint8_t*       publishedPageBytesMutable(uint32_t index) const noexcept;
-
     std::vector<std::unique_ptr<Page>>                         pagesStorage_;
     std::vector<std::unique_ptr<const std::vector<Page*>>>     publishedPagesStorage_;
     std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
@@ -291,7 +286,6 @@ public:
     constexpr std::default_sentinel_t chunksEnd() const noexcept { return {}; }
 
 private:
-    static void     decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
     static uint32_t dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign);
     static uint32_t totalElems(const PagedStore* st, Ref hdrRef);
     static Chunk    chunkFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign);

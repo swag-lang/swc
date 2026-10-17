@@ -319,6 +319,7 @@ namespace InstructionCombine
 
     void runStoreToLoadForwarding(Context& ctx);
     void runDeadStoreElimination(Context& ctx);
+    void runDropUnobservedBorrows(Context& ctx);
 }
 
 SWC_END_NAMESPACE();

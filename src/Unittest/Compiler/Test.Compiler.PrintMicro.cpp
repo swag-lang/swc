@@ -516,6 +516,60 @@ func writeFrameWhileBorrowed(seed: u64)->u64
 }
 SWC_TEST_END()
 
+// A function that calls nothing and keeps no write check cannot reach anything that would judge
+// the borrows of its value parameters, so it registers none. One that calls another function
+// keeps them: the callee could write the borrowed storage.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroDropsUnobservedBorrows)
+{
+    constexpr std::string_view SOURCE = R"(#global private
+struct Pair { first, second: u64 }
+
+#[Swag.NoInline]
+func readPair(value: Pair)->u64 => value.first + value.second
+
+#[Swag.NoInline]
+func readThroughCall(value: Pair)->u64 => readPair(value) + value.first
+
+#run
+{
+    let pair = Pair{2, 3}
+    Swag.assert(readPair(pair) == 5)
+    Swag.assert(readThroughCall(pair) == 7)
+}
+)";
+
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_unobserved_borrows" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    std::error_code ec;
+    fs::remove_all(directory, ec);
+
+    PrintMicroRun          run;
+    const std::string_view requests[] = {"readPair", "readThroughCall"};
+    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    fs::remove_all(directory, ec);
+
+    const auto registrations = [&](std::string_view scopedName) {
+        const std::string_view output = run.output;
+        const size_t           header = output.find(std::format("function : {}", scopedName));
+        if (header == std::string_view::npos)
+            return SIZE_MAX;
+        const size_t           next    = output.find("[micro]", header);
+        const std::string_view listing = output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header);
+        size_t                 count   = 0;
+        for (size_t pos = listing.find("__valueBorrowEnter"); pos != std::string_view::npos; pos = listing.find("__valueBorrowEnter", pos + 1))
+            count++;
+        return count;
+    };
+
+    const size_t reader = registrations("readPair");
+    const size_t caller = registrations("readThroughCall");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || reader != 0 || caller == 0 || caller == SIZE_MAX)
+    {
+        std::println(stderr, "[print micro unobserved borrows] reader {}, caller {}\n{}", reader, caller, run.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

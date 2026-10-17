@@ -4,7 +4,11 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Main/TaskContext.h"
 
 // A runtime guard asked a second time.
 //
@@ -186,6 +190,107 @@ namespace InstructionCombine
         return true;
     }
 
+    namespace
+    {
+        // A value-borrow runtime call as code generation lays it out: its arguments copied into the
+        // convention's first registers just before it, and the whole wrapped in an adjustment of the
+        // stack pointer when the call is made at an unaligned depth.
+        struct RuntimeCallShape
+        {
+            static constexpr uint32_t K_MAX_ARGS = 4;
+
+            MicroInstrRef argRefs[K_MAX_ARGS] = {};
+            uint32_t      argCount            = 0;
+            MicroInstrRef subRef              = MicroInstrRef::invalid();
+            MicroInstrRef addRef              = MicroInstrRef::invalid();
+        };
+
+        bool readStackAdjust(const Context& ctx, const MicroInstrRef adjustRef, const MicroOp op, uint64_t& outAmount)
+        {
+            const MicroInstr*        adjust = adjustRef.isValid() ? ctx.instruction(adjustRef) : nullptr;
+            const MicroInstrOperand* ops    = adjust ? adjust->ops(*ctx.operands) : nullptr;
+            if (!ops || adjust->op != MicroInstrOpcode::OpBinaryRegImm || ops[0].reg != ctx.stackPointer || ops[2].microOp != op || ops[3].hasWideImmediateValue())
+                return false;
+            outAmount = ops[3].valueU64;
+            return true;
+        }
+
+        bool readRuntimeCallShape(RuntimeCallShape& out, const Context& ctx, MicroInstrRef callRef, const MicroInstr& callInst, uint32_t argCount)
+        {
+            SWC_ASSERT(argCount <= RuntimeCallShape::K_MAX_ARGS);
+            const MicroInstrOperand* callOps = callInst.ops(*ctx.operands);
+            if (!callOps || callInst.op != MicroInstrOpcode::CallLocal || !callInst.compilerSafetyCall)
+                return false;
+            const CallConv& conv = CallConv::get(callOps[0].callConv);
+            if (conv.intArgRegs.size() < argCount)
+                return false;
+
+            out                     = {};
+            out.argCount            = argCount;
+            MicroInstrRef ref       = callRef;
+            uint64_t      subAmount = 0;
+            uint64_t      addAmount = 0;
+            if (readStackAdjust(ctx, ctx.previousRef(callRef), MicroOp::Subtract, subAmount))
+            {
+                out.subRef = ctx.previousRef(callRef);
+                out.addRef = ctx.nextRef(callRef);
+                if (!readStackAdjust(ctx, out.addRef, MicroOp::Add, addAmount) || addAmount != subAmount)
+                    return false;
+                ref = out.subRef;
+            }
+
+            for (uint32_t step = 0; step < argCount; ++step)
+            {
+                ref                          = ctx.previousRef(ref);
+                const MicroInstr*        def = ref.isValid() ? ctx.instruction(ref) : nullptr;
+                const MicroInstrOperand* ops = def ? def->ops(*ctx.operands) : nullptr;
+                if (!ops || def->numOperands == 0)
+                    return false;
+                if (def->op != MicroInstrOpcode::LoadRegReg && def->op != MicroInstrOpcode::LoadRegImm && def->op != MicroInstrOpcode::LoadRegPtrReloc &&
+                    def->op != MicroInstrOpcode::LoadAddrRegMem && def->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                    return false;
+                const auto slot = std::ranges::find(conv.intArgRegs.begin(), conv.intArgRegs.begin() + argCount, ops[0].reg);
+                if (slot == conv.intArgRegs.begin() + argCount)
+                    return false;
+                const size_t index = static_cast<size_t>(slot - conv.intArgRegs.begin());
+                if (out.argRefs[index].isValid())
+                    return false;
+                out.argRefs[index] = ref;
+            }
+
+            return true;
+        }
+
+        void appendRuntimeCall(SmallVector<MicroInstrRef, 8>& refs, MicroInstrRef callRef, const RuntimeCallShape& shape)
+        {
+            for (uint32_t index = 0; index < shape.argCount; ++index)
+                refs.push_back(shape.argRefs[index]);
+            refs.push_back(callRef);
+            if (shape.subRef.isValid())
+            {
+                refs.push_back(shape.subRef);
+                refs.push_back(shape.addRef);
+            }
+        }
+
+        // Erases calls with their argument copies, all of them or none; the values the copies
+        // took die with them.
+        bool eraseAll(Context& ctx, std::span<const MicroInstrRef> refs)
+        {
+            for (const MicroInstrRef ref : refs)
+            {
+                if (ctx.isClaimed(ref))
+                    return false;
+            }
+            for (const MicroInstrRef ref : refs)
+            {
+                ctx.claimed.insert(ref.get());
+                ctx.emitErase(ref);
+            }
+            return true;
+        }
+    }
+
     // A value-borrow check of a write into the function's own frame.
     //
     //     rcx = %address          (erased)
@@ -201,91 +306,95 @@ namespace InstructionCombine
     // later, so nothing of it is left behind.
     bool tryDropFrameWriteGuard(Context& ctx, MicroInstrRef callRef, const MicroInstr& callInst)
     {
-        if (!callInst.frameWriteGuard || callInst.op != MicroInstrOpcode::CallLocal || !ctx.ssa)
+        if (!callInst.frameWriteGuard || !ctx.ssa)
             return false;
-        const MicroInstrOperand* callOps = callInst.ops(*ctx.operands);
-        if (!callOps)
-            return false;
+
         // Address, size, source location and the module's extent cache.
-        constexpr uint32_t K_GUARD_ARGS = 4;
-        const CallConv&    conv         = CallConv::get(callOps[0].callConv);
-        if (conv.intArgRegs.size() < K_GUARD_ARGS)
+        RuntimeCallShape shape;
+        if (!readRuntimeCallShape(shape, ctx, callRef, callInst, 4))
             return false;
 
-        // A call made at an unaligned stack depth is wrapped in an adjustment of the stack pointer.
-        const auto readStackAdjust = [&](const MicroInstrRef adjustRef, const MicroOp op, uint64_t& outAmount) {
-            const MicroInstr*        adjust = adjustRef.isValid() ? ctx.instruction(adjustRef) : nullptr;
-            const MicroInstrOperand* ops    = adjust ? adjust->ops(*ctx.operands) : nullptr;
-            if (!ops || adjust->op != MicroInstrOpcode::OpBinaryRegImm || ops[0].reg != ctx.stackPointer || ops[2].microOp != op || ops[3].hasWideImmediateValue())
-                return false;
-            outAmount = ops[3].valueU64;
-            return true;
-        };
-        MicroInstrRef ref       = callRef;
-        MicroInstrRef subRef    = MicroInstrRef::invalid();
-        MicroInstrRef addRef    = MicroInstrRef::invalid();
-        uint64_t      subAmount = 0;
-        uint64_t      addAmount = 0;
-        if (readStackAdjust(ctx.previousRef(callRef), MicroOp::Subtract, subAmount))
-        {
-            subRef = ctx.previousRef(callRef);
-            addRef = ctx.nextRef(callRef);
-            if (!readStackAdjust(addRef, MicroOp::Add, addAmount) || addAmount != subAmount)
-                return false;
-            ref = subRef;
-        }
-
-        // The arguments are copied into the convention's registers just before the call.
-        MicroInstrRef argRefs[K_GUARD_ARGS] = {MicroInstrRef::invalid(), MicroInstrRef::invalid(), MicroInstrRef::invalid(), MicroInstrRef::invalid()};
-        for (uint32_t step = 0; step < K_GUARD_ARGS; ++step)
-        {
-            ref                          = ctx.previousRef(ref);
-            const MicroInstr*        def = ref.isValid() ? ctx.instruction(ref) : nullptr;
-            const MicroInstrOperand* ops = def ? def->ops(*ctx.operands) : nullptr;
-            if (!ops || def->numOperands == 0)
-                return false;
-            if (def->op != MicroInstrOpcode::LoadRegReg && def->op != MicroInstrOpcode::LoadRegImm && def->op != MicroInstrOpcode::LoadRegPtrReloc &&
-                def->op != MicroInstrOpcode::LoadAddrRegMem && def->op != MicroInstrOpcode::LoadAddrAmcRegMem)
-                return false;
-            const auto slot = std::ranges::find(conv.intArgRegs.begin(), conv.intArgRegs.begin() + K_GUARD_ARGS, ops[0].reg);
-            if (slot == conv.intArgRegs.begin() + K_GUARD_ARGS)
-                return false;
-            const size_t index = static_cast<size_t>(slot - conv.intArgRegs.begin());
-            if (argRefs[index].isValid())
-                return false;
-            argRefs[index] = ref;
-        }
-
-        const MicroInstr*        addressDef = ctx.instruction(argRefs[0]);
+        const MicroInstr*        addressDef = ctx.instruction(shape.argRefs[0]);
         const MicroInstrOperand* addressOps = addressDef->ops(*ctx.operands);
         if (addressDef->op == MicroInstrOpcode::LoadRegImm || addressDef->op == MicroInstrOpcode::LoadRegPtrReloc ||
-            !isFrameDerivedAddress(ctx, addressOps[1].reg, argRefs[0]))
+            !isFrameDerivedAddress(ctx, addressOps[1].reg, shape.argRefs[0]))
             return false;
 
-        const MicroInstr*        sizeDef = ctx.instruction(argRefs[1]);
+        const MicroInstr*        sizeDef = ctx.instruction(shape.argRefs[1]);
         const MicroInstrOperand* sizeOps = sizeDef->ops(*ctx.operands);
         uint64_t                 size    = 0;
         if (sizeDef->op == MicroInstrOpcode::LoadRegReg)
         {
-            if (!resolveIntConstant(size, ctx, sizeOps[1].reg, argRefs[1], MicroOpBits::B64))
+            if (!resolveIntConstant(size, ctx, sizeOps[1].reg, shape.argRefs[1], MicroOpBits::B64))
                 return false;
         }
         else if (sizeDef->op != MicroInstrOpcode::LoadRegImm)
             return false;
 
-        const bool claimed = subRef.isValid() ? ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], argRefs[3], subRef, callRef, addRef}, true)
-                                              : ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], argRefs[3], callRef}, true);
-        if (!claimed)
-            return false;
-        for (const MicroInstrRef argRef : argRefs)
-            ctx.emitErase(argRef);
-        ctx.emitErase(callRef);
-        if (subRef.isValid())
+        SmallVector<MicroInstrRef, 8> refs;
+        appendRuntimeCall(refs, callRef, shape);
+        return eraseAll(ctx, refs.span());
+    }
+
+    // Value borrows nothing can observe.
+    //
+    // A borrow is only ever judged by a write check, by the runtime's own checks of an allocator
+    // release, or by code the borrowing function calls. A function that calls nothing but the
+    // borrow registration itself and the panic reports, and keeps no write check, cannot reach any
+    // of them while its borrows are open, so it registers none: a function reading the string or
+    // the struct it received by value no longer pays for the registry on every call. Writes from
+    // other threads are not the guard's to detect.
+    void runDropUnobservedBorrows(Context& ctx)
+    {
+        if (!ctx.builder || !ctx.passContext || !ctx.passContext->taskContext || !ctx.passContext->taskContext->hasCompiler())
+            return;
+
+        const IdentifierManager& idMgr   = ctx.passContext->taskContext->idMgr();
+        const IdentifierRef      enterId = idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowEnter);
+        const IdentifierRef      leaveId = idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowLeave);
+
+        struct BorrowCall
         {
-            ctx.emitErase(subRef);
-            ctx.emitErase(addRef);
+            MicroInstrRef ref;
+            uint32_t      argCount;
+        };
+        SmallVector<BorrowCall, 8> borrowCalls;
+        FlatKeyMap<uint32_t>       borrowArgs;
+        for (const MicroRelocation& relocation : ctx.builder->codeRelocations())
+        {
+            if (relocation.instructionRef.isInvalid() || !relocation.targetSymbol)
+                continue;
+            const IdentifierRef idRef = relocation.targetSymbol->idRef();
+            // Record, address, size and source location; the release takes the record alone.
+            if (idRef == enterId)
+                borrowArgs.getOrInsert(relocation.instructionRef.get()) = 4;
+            else if (idRef == leaveId)
+                borrowArgs.getOrInsert(relocation.instructionRef.get()) = 1;
         }
-        return true;
+        if (borrowArgs.empty())
+            return;
+
+        for (auto it = ctx.storage->view().begin(), endIt = ctx.storage->view().end(); it != endIt; ++it)
+        {
+            if (!MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                continue;
+            if (const uint32_t* argCount = borrowArgs.find(it.current.get()); argCount && it->compilerSafetyCall)
+                borrowCalls.push_back({it.current, *argCount});
+            else if (!ctx.isReportCall(it.current))
+                return;
+        }
+
+        // A registration left without its release would outlive the frame.
+        SmallVector<MicroInstrRef, 8> refs;
+        for (const BorrowCall& call : borrowCalls)
+        {
+            RuntimeCallShape shape;
+            if (!readRuntimeCallShape(shape, ctx, call.ref, *ctx.instruction(call.ref), call.argCount))
+                return;
+            appendRuntimeCall(refs, call.ref, shape);
+        }
+
+        eraseAll(ctx, refs.span());
     }
 }
 

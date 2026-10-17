@@ -297,6 +297,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         runStoreToLoadForwarding(ctx);
     if (hasSecondStore)
         runDeadStoreElimination(ctx);
+    runDropUnobservedBorrows(ctx);
 
     runSelectNarrowing(ctx);
 

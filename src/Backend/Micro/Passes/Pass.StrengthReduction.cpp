@@ -73,14 +73,10 @@ namespace
         return Math::integerLog2(immediate) < bitCount;
     }
 
-    bool tryReduceMultiplyToShift(MicroInstrOperand* ops, MicroOpBits opBits, uint64_t immediate)
+    void reduceMultiplyToShift(MicroInstrOperand* ops, uint64_t immediate)
     {
-        if (!canRewriteShift(opBits, immediate))
-            return false;
-
         ops[2].microOp  = MicroOp::ShiftLeft;
         ops[3].valueU64 = Math::integerLog2(immediate);
-        return true;
     }
 
     bool tryReduceMultiplyByZero(MicroInstrOperand* ops, uint64_t immediate)
@@ -1162,9 +1158,10 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                 // in this unchanged suffix, including across CFG edges.
                 if (!usedSignedMultiply && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
                     break;
-                changed = tryReduceMultiplyByZero(ops, immediate) ||
-                          tryReduceMultiplyByOne(ops, immediate) ||
-                          tryReduceMultiplyToShift(ops, opBits, immediate);
+                // The guard above already checked every nontrivial shift candidate.
+                if (!tryReduceMultiplyByZero(ops, immediate) && !tryReduceMultiplyByOne(ops, immediate))
+                    reduceMultiplyToShift(ops, immediate);
+                changed = true;
                 break;
 
             case MicroOp::Add:

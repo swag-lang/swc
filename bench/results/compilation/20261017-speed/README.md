@@ -33,140 +33,58 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Align raw span writes with a mask | Runtime remainder operations in chunked and contiguous span alignment | Raw writers accept zero or a supported power of two. A zero mask preserves the zero convention; otherwise unsigned masking rounds to the identical offset. Header placement, payload, page selection and publication are unchanged. |
 | Return Tarjan low links from the recursive walk | The low-link array allocation, its initial fill and per-edge element loads and stores | Each low link is consumed only by its own activation and its parent immediately after recursion. Discovery indices, stack membership, SCC popping and graph visitation retain their order. The DevMode object reserves the same 72 bytes per recursive call; the graph object loses one vector. |
 | Traverse attribute spans by chunks | Repeated span setup, header reads and prefix-chunk walks for each attribute | A borrowed AST span exposes the existing ordered chunks without copying references or allocating. Meta-function discovery keeps its first-match exit; semantic attribute validation preserves its first-error exit. Existing AST span helpers share the same shard decoding. |
+| Check multiply-to-shift eligibility once | A repeated operand-width check, power-of-two check and integer-logarithm scan after checking CPU flags | The sole caller already rejects every ineligible nontrivial immediate before the flags walk. Zero and one keep their existing reductions; the remaining case emits the same shift and shift amount. Width-boundary and live-flag C++ cases protect both decisions. |
 
-The changes preserve traversal order, promotion choices, virtual-register assignment,
-instruction rewriting, and graph storage. Existing C++ shape checks cover record
-field clearing and zero-byte facts. The dominator oracle compares every possible
-entry and node pair against reachability with a node removed, with and without loops;
-SSA tests also cover disconnected forward-only roots.
+The retained changes preserve traversal order, promotion choices, virtual-register
+assignment and instruction rewriting. The dominator oracle checks reachability
+with a node removed, including loops and disconnected roots. Other regression
+cases cover record-byte facts, deferred type-info work, AST pauses and restarts,
+semantic-view recomputation, span alignment and page growth, and recursive
+call-graph components.
 
-Validation ran from the campaign worktree:
+Validation used the checkout-local DevMode compiler and six workers. Every
+retained build and completed validation below exited zero; fresh machine-load
+admission preceded each command. Each changed compiler used isolated temporary
+caches while `SWC_BUILD_NUM` stayed 1173. The default C++ suite excludes the 60
+filesystem cases requiring `--dev-full`.
+
+| Validated checkpoint | C++ tests | Additional DevMode checks |
+| --- | ---: | --- |
+| 3 | 1,419 | Native record case and 299 optimizer tests |
+| 6 | 1,421 | Full native: 3,888; full JIT: 1,539; sanity: 85 |
+| 7 | 1,421 | Native type-info: 57; JIT reflection: 16 |
+| 8 | 1,423 | Three arithmetic semantic sources plus runtime; native countdown case |
+| 11 | 1,423 | Full native: 3,889; full JIT: 1,539 |
+| 12 | 1,423 | Native relaxed automatic-inlining case |
+| 14 | 1,423 | Sanity: 85 |
+| 15 | 1,424 | Native dword-join case |
+| 16 | 1,424 | Full native: 3,889; full JIT: 1,539; native enum type-info: 2 |
+| 17 | 1,424 | New large inline-binding case; four local-function semantic error sources |
+| 18 | 1,424 | Full JIT: 1,539 |
+| 19 | 1,425 | JIT reflection: 16 |
+| 22 | 1,426 | Full native: 3,890; full JIT: 1,539; native SIMD: 51; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
+| 24 | 1,427 | Native positional aggregate case; named-member semantic source; sanity: 85 |
+| 25 | 1,428 | New direct/mutual-recursion and incoming-wrapper assertions |
+| 26 | 1,429 | Two normal attribute sources and eight expected-error attribute sources, plus runtime |
+
+Full native runs include the expected idle, pending and hardware recovery probes.
+Semantic suites check source and compile-time assertions without executing
+`#test` bodies. Focused semantic selections with no matching error source were
+not counted as error coverage.
+
+Representative commands, with additional suite/file selections as listed above:
 
 ```text
 MSBuild.exe swc.sln /t:Build /m:6 /p:Configuration=DevMode /p:Platform=x64 /p:SwcCompileJobs=6 /nologo /v:minimal
 bin\swc.dm.exe unittest --num-cores 6 --verbose-unittest
-bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm native -bc devmode --file-filter record_word_paths.swg --num-cores 6 --rebuild
-bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm native -bc devmode --file-filter optimizer --num-cores 6 --rebuild
+bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm native -bc devmode --num-cores 6 --rebuild
 ```
 
-The first build, 1,419 C++ tests, and the single native record test passed before
-integrating the first batch. An incremental DevMode build and a fresh 1,419-test
-C++ run then passed with all three changes. These are the default internal C++
-tests; 60 filesystem tests requiring `--dev-full` were excluded. The final native optimizer selection
-checked 289 inputs including the runtime and passed 299 tests. Every command exited
-zero. The native tool invocations used separate external `TEMP`/`TMP` cache roots.
-Machine-load admission preceded each build and test. Formatting and `git diff --check`
-also passed. No broader repository campaign or Release-compiler build was needed
-for these local analysis changes.
-
-The continuation starts after importing `3392a220bc`. The record-state batch passed
-1,421 C++ tests and the one native record test. The sanitizer batch passed 1,421 C++
-tests and all 85 `sanity` tests, using the same commands above with `sanity` replacing
-`native` and without a file filter. Both builds and all commands exited zero.
-
-The six-change checkpoint passed 1,421 C++ tests, the complete native suite
-(3,888 tests and the expected idle/pending/hardware recovery probes), and the complete
-JIT suite (1,539 tests). All commands exited zero, using the commands above without
-native file filters and with `jit` selecting that suite. All program configurations
-were `devmode`, driven by the worktree-local DevMode compiler.
-
-The type-info traversal batch passed 1,421 C++ tests, 16 JIT reflection tests
-(`--file-filter reflection`), and 57 native metadata tests (`--file-filter typeinfo`).
-The build and all commands exited zero. These checks include recursive type metadata,
-dynamic constraints, attributes, and lifecycle reflection; the cache ownership and
-payload-publication protocol are unchanged.
-
-The promotion-row batch, including the synchronized constant-slice-countdown change
-from `master`, passed 1,423 C++ tests. Its new numeric-pair test covers all 16 builtin
-categories in both operand orders and the minimum-32-bit rule. Semantic checking
-with `--file-filter arithmetic.swg` checked three standalone arithmetic sources
-plus the runtime (31 inputs); no expected-error source matched that filter. The
-native `--file-filter constant_slice_countdown.swg` integration check passed one
-test. All builds and commands exited zero in DevMode.
-
-The eleven-change checkpoint passed 1,423 C++ tests, the complete native suite
-(3,889 tests and expected recovery probes), and all 1,539 JIT tests, all driven by
-the DevMode compiler in program configuration `devmode`. The byte-swap cases cover
-32- and 64-bit inputs, reordered terms, and near misses. The metadata cases cover
-qualified and recursive types. The three latest local changes were validated
-together before retention; all builds and commands exited zero.
-
-The blocked-call initialization batch passed 1,423 C++ tests and the native
-`inline_auto_relaxed_constructs.swg` test. Existing C++ inlining checks cover
-recursive components, blocked direct calls, nested functions, and separate ASTs.
-The incremental DevMode build and both test commands exited zero.
-
-The return-summary queue batch passed 1,423 C++ tests, including guarded aliases,
-recursive summaries and unresolved dependencies, and all 85 sanity tests. Its
-incremental DevMode build and both commands exited zero. The first two admissions
-were deferred for CPU load; neither deferred test was started.
-
-The completeness-graph batch passed 1,423 C++ tests and all 85 sanity tests after
-an incremental DevMode build. All commands exited zero. Guarded-summary coverage
-includes both fully resolved graphs and a dependency that completes on a later call.
-
-The upper-half slot batch passed 1,424 C++ tests and the native `dword_joins.swg`
-test. The new C++ loop case checks both a 32-bit backedge, which permits removing
-the clear, and a 64-bit backedge, which requires retaining it. The incremental
-DevMode build and both commands exited zero.
-
-The sixteen-change checkpoint passed 1,424 C++ tests, 3,889 native tests with the
-expected recovery probes, and 1,539 JIT tests. The enum-focused
-`typeinfo_collections.swg` check passed two tests before the broad suites. The
-DevMode build and all commands exited zero.
-
-The large inline-binding batch passed 1,424 C++ tests and its new native test,
-which passes a 32-term expression through explicit inlining. The focused semantic
-`local_function` selection checked four expected-error sources plus the runtime;
-no normal semantic source matched. The new source was formatted. The DevMode
-build and all test commands exited zero.
-
-The AST-frame batch passed 1,424 C++ tests and all 1,539 JIT tests after its
-DevMode build. The existing visitor tests cover pauses, skipped children, restarts,
-resolved ancestors and pending siblings. An initial JIT `compiler` file filter
-failed because it omitted `runtime/default_allocator_helpers.swg`; the corrected
-whole-suite command retained those required inputs and exited zero. These tests
-used the frame-change binary before the following span changes were built.
-
-The span-layout batch passed 1,425 C++ tests and 16 JIT reflection tests after
-the final DevMode build. Its new C++ case checks empty, single-page and cross-page
-spans at several page-prefix offsets, using the API's maximum supported alignment.
-Object inspection confirms one chunk-layout helper call and a mask-based reader
-alignment. Both builds and all test commands exited zero.
-
-The twenty-two-change checkpoint validated the semantic-view, record-state and
-SIMD byte-span changes together before retaining them. It passed 1,426 C++ tests,
-all 3,890 native tests with expected recovery probes, and all 1,539 JIT tests.
-The focused SIMD selection passed 51 native tests first. The full semantic suites
-checked 295 normal-suite inputs and 347 expected-error-suite inputs, including
-the runtime; they check source and compile-time assertions without executing
-`#test` bodies. All final builds and commands exited zero.
-The new C++ view test covers stored and resolved modes, constants, empty and
-nonempty symbol lists, recomputation, single symbols and invalid references.
-Existing record cases cover loops, joins, undefined bytes and escaped storage.
-The following aggregate-cursor edit was not yet compiled in this checkpoint.
-
-The aggregate-cursor batch passed 1,427 C++ tests, the native positional
-`struct_literal_scalar_store.swg` test, the semantic named-member selection and
-all 85 sanity tests. The semantic selection checked one normal source plus its
-runtime; no expected-error source matched. All commands exited zero.
-
-The raw span alignment batch shared that compiler validation, then passed all
-1,427 C++ tests again after extending its regression to contiguous spans. The
-case covers alignments 0, 1, 2, 4 and 8 at five page-prefix offsets, including
-page rollover. The final build and test exited zero. Object inspection confirms
-the span alignment divisions are gone; element-capacity divisions remain.
-
-The Tarjan batch passed 1,428 C++ tests, including direct recursion, a three-node
-cycle reaching a completed recursive component and an incoming wrapper that must
-remain eligible for inlining. The initial new fixture omitted four Swag statement
-separators; it was corrected before retention, and parsing errors are now checked
-before its graph assertions. The final DevMode build and test exited zero.
-
-The attribute-span batch passed 1,429 C++ tests and the semantic `attribute`
-selection: two normal sources and eight expected-error sources, with their
-runtime. The new C++ test checks invalid, empty, single-element and cross-page
-views after further page growth. The DevMode build and both commands exited zero.
+An initial JIT `compiler` file filter omitted the required allocator-helper source;
+the corrected full JIT run passed. The initial Tarjan regression fixture omitted
+four Swag statement separators; it was corrected before retention and now checks
+parsing errors before its graph assertions. Formatting and `git diff --check`
+passed for retained changes. No Release-compiler build or benchmark was run.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.
@@ -177,3 +95,4 @@ only refining the already-required base and preferred-register predicates avoids
 an extra test on valid candidate definitions.
 Packing entry-escape bytes into frame ranges was discarded: eager state initialization
 and strided writes would require measurement to establish a CPU saving.
+Lazy default-value insertion was discarded: object inspection showed an additional large insertion specialization, leaving a code-footprint tradeoff for measurement.

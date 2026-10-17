@@ -218,6 +218,7 @@ namespace PostRaPeephole
     bool tryForwardCopySource(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryCoalesceLocalCopyChain(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryForwardSiblingCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryForwardVectorCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryEraseRedundantCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryCanonicalizeZeroToClear(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);

@@ -3461,6 +3461,59 @@ SWC_TEST_BEGIN(PostRAPeephole_SiblingCopyReaderTakesTheFirstCopy)
 }
 SWC_TEST_END()
 
+// A whole-register vector result computed into a scratch register and moved home
+// later. Variants:
+//   0 - nothing in between touches the home or reads the scratch: the producer writes
+//       home and the move goes.
+//   1 - the home is read in between: kept.
+//   2 - the scratch is read after the move: kept.
+SWC_TEST_BEGIN(PostRAPeephole_VectorResultIsProducedInItsHome)
+{
+    constexpr MicroReg left    = MicroReg::floatReg(0);
+    constexpr MicroReg right   = MicroReg::floatReg(1);
+    constexpr MicroReg scratch = MicroReg::floatReg(2);
+    constexpr MicroReg home    = MicroReg::floatReg(3);
+    constexpr MicroReg other   = MicroReg::floatReg(4);
+    constexpr MicroReg base    = MicroReg::intReg(1);
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadVecRegMem(home, base, 0, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(left, base, 16, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(right, base, 32, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(scratch, left, right, MicroOp::VecXor, MicroOpBits::B128);
+        const MicroInstrRef producer = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegRegReg(other, left, variant == 1 ? home : right, MicroOp::VecXor, MicroOpBits::B128);
+        builder.emitLoadRegReg(home, scratch, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 48, other, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(base, 64, home, MicroOpBits::B128);
+        if (variant == 2)
+            builder.emitStoreVecMemReg(base, 80, scratch, MicroOpBits::B128);
+        builder.emitClearReg(home, MicroOpBits::B128);
+        builder.emitClearReg(scratch, MicroOpBits::B128);
+        builder.emitClearReg(other, MicroOpBits::B128);
+        builder.emitClearReg(left, MicroOpBits::B128);
+        builder.emitClearReg(right, MicroOpBits::B128);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+        bool moved = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == home && ops[1].reg == scratch)
+                moved = true;
+        }
+        const MicroInstr* produced  = builder.instructions().ptr(producer);
+        const bool        forwarded = variant == 0;
+        if (forwarded == moved || !produced || (produced->ops(builder.operands())[0].reg == home) != forwarded)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A byte copy stored at 32 bits: the store keeps reading the copy.
 SWC_TEST_BEGIN(PostRAPeephole_ByteCopyNotForwardedIntoDwordStore)
 {

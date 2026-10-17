@@ -48,6 +48,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Compute byte-array padding once | A remainder/division operation after each padding byte | The initial remainder determines the exact number of existing pushBack operations. Their order, allocation sequence and capacities are unchanged, including general non-power-of-two alignments. An iterative oracle covers reserved and growing buffers; object inspection confirms one initial division and the same total stack reservation. |
 | Keep chunk iteration setup minimal | Constructing a complete iterator for each end comparison, its comparison call, and begin-state stores immediately overwritten | An empty sentinel tests the same invalid header reference. The begin iterator receives its final count, geometry and first chunk directly. Iterator/view fields, publication, page order and payloads are unchanged. Default/empty/single/multi-page cases cover all comparison forms; object inspection confirms removed AST end/comparison calls and smaller caller/begin frames. |
 | Advance directly to continuation-page headers | Decoding the current header and multiplying its next page index back into a reference, plus repeated current/next page-count checks | Continuation headers always begin at the next power-of-two page boundary. A widened mask-and-increment retains the reference-overflow guard; chunk decoding still checks the next page before accessing it. Existing alignment, page-growth and chunk tests pass; the iterator object loses the redundant decode with a smaller body and stack frame. |
+| Read each span chunk through one published page snapshot | Two extra acquire loads and repeated vector bounds/pointer lookups while obtaining one chunk | Published page vectors remain immutable and retained. The one snapshot already contains the referenced page; its bounds, used bytes and payload pointer are checked/read together. No publication, layout or lifetime changes are introduced. Object inspection shows a smaller chunk reader with the same stack frame. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -92,6 +93,7 @@ filesystem cases requiring `--dev-full`.
 | 38 | 1,450 | Full native: 3,891; full JIT: 1,539 |
 | 39 | 1,454 | Native `separated_float_products.swg`: 1, with the DevMode compiler and `release` program configuration |
 | 40 | 1,454 | Native `switch_many_chunks.swg`: 1 |
+| 41 | 1,454 | JIT reflection selection: 16 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing

@@ -13,6 +13,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Solve forward-only record states in one sweep (`edf51be1b`) | A second full instruction-and-edge walk that only confirms convergence | Every predecessor of an instruction has already been processed. Graphs with backward edges keep the existing fixed-point loop and iteration limit. A C++ test checks that repeated field stores in a loop retain their byte-clearing operation. |
 | Solve forward-only sanitizer liveness in one reverse sweep | Repeating the chain and live-bit matrix walks to confirm unchanged sets | Chain states are numbered in instruction order, so every successor is final before its predecessor is visited. Graphs with backward edges retain their convergence loop. |
 | Visit only marked operand-width positions | Tests of unrelated union operands in register allocation and frame compaction | Removing the lowest set mask bit visits the same width operands in the same ascending order. Fixed-width vector opcodes keep their existing early return. |
+| Advance the type-info DFS dependency cursor | Rechecking the completed dependency prefix after each descent, plus a separate node-based stack-membership set | The cursor visits dependencies in the same order. Membership and the cursor fit existing entry padding, checked statically; scope cleanup clears membership before a semantic pause releases cache ownership, so a resumed walk starts each unfinished entry from its first dependency. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -49,6 +50,12 @@ The six-change checkpoint passed 1,421 C++ tests, the complete native suite
 JIT suite (1,539 tests). All commands exited zero, using the commands above without
 native file filters and with `jit` selecting that suite. All program configurations
 were `devmode`, driven by the worktree-local DevMode compiler.
+
+The type-info traversal batch passed 1,421 C++ tests, 16 JIT reflection tests
+(`--file-filter reflection`), and 57 native metadata tests (`--file-filter typeinfo`).
+The build and all commands exited zero. These checks include recursive type metadata,
+dynamic constraints, attributes, and lifecycle reflection; the cache ownership and
+payload-publication protocol are unchanged.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

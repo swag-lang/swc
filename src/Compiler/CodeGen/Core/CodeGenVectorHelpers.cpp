@@ -463,12 +463,8 @@ namespace
     // dynamic byte permute.
     MicroReg byteTableConstant(CodeGen& codeGen, const std::array<uint8_t, 16>& tableBytes)
     {
-        std::array<std::byte, 16> bytes{};
-        for (uint32_t index = 0; index < 16; ++index)
-            bytes[index] = static_cast<std::byte>(tableBytes[index]);
-
         const TypeRef vecTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(codeGen.typeMgr().typeU8(), 16));
-        return CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, {bytes.data(), bytes.size()});
+        return CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{tableBytes}));
     }
 
     MicroReg emitVecBinary(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, MicroOp op)

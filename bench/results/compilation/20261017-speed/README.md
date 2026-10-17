@@ -28,6 +28,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Compute each span chunk's layout once | A second header decode and helper call when reading a chunk, repeated alignment when a write fits its current page, and division in the reader's alignment operation | The pointer and count share the same decoded header and aligned offset. The writer recomputes only after moving to a fresh page. Reader alignment is already constrained to a nonzero power of two, so masking gives the same rounded offset. Publication, bounds checks, element counts and storage layout are unchanged. |
 | Initialize primitive semantic-view fields only during computation | Constructor stores immediately repeated by `computeInner`, plus an invalid node reference immediately replaced by the resolved reference | The sole constructor always reaches `computeInner`, which initializes every field before its first read or early return. Recomputations retain the same complete reset. Wrapper members and the object layout are unchanged; object inspection confirms removal of the primitive constructor stores. |
 | Initialize record input states only on first reach | Filling every instruction's record state before its reached bit permits a read | The entry gets an explicit empty state. First arrival assigns both byte masks before any later read; successor merging and access validation already guard every other read with reachability. The trivial state has no implicit initialization, protected by a static assertion; value-initialized map entries retain their zero defaults. |
+| Read SIMD byte tables through a byte span | Copying each 16-byte index table into a second local array | `std::as_bytes` exposes the same unsigned-byte representation. Materialization copies it synchronously into constant storage; type selection, payload hashing and emitted instructions use the same bytes and retain their order. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -129,6 +130,18 @@ spans at several page-prefix offsets, using the API's maximum supported alignmen
 Object inspection confirms one chunk-layout helper call and a mask-based reader
 alignment. Both builds and all test commands exited zero.
 
+The twenty-two-change checkpoint validated the semantic-view, record-state and
+SIMD byte-span changes together before retaining them. It passed 1,426 C++ tests,
+all 3,890 native tests with expected recovery probes, and all 1,539 JIT tests.
+The focused SIMD selection passed 51 native tests first. The full semantic suites
+checked 295 normal-suite inputs and 347 expected-error-suite inputs, including
+the runtime; they check source and compile-time assertions without executing
+`#test` bodies. All final builds and commands exited zero.
+The new C++ view test covers stored and resolved modes, constants, empty and
+nonempty symbol lists, recomputation, single symbols and invalid references.
+Existing record cases cover loops, joins, undefined bytes and escaped storage.
+The following aggregate-cursor edit was not yet compiled in this checkpoint.
+
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.
 Worklist visitation changes were left aside because changed early-exit priority
@@ -136,3 +149,5 @@ would require measurement to establish a saving.
 An additional register-kind predicate on every definition was also left aside:
 only refining the already-required base and preferred-register predicates avoids
 an extra test on valid candidate definitions.
+Packing entry-escape bytes into frame ranges was discarded: eager state initialization
+and strided writes would require measurement to establish a CPU saving.

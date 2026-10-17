@@ -330,6 +330,11 @@ SWC_TEST_BEGIN(Compiler_AutoInlineCostPricesCallsAndRewardsOneModuleCallSite)
 {
     static constexpr std::string_view SOURCE = R"(#global private
 
+#[Swag.Foreign]
+func bodylessCall(value: s32 = leaf(1))->s32
+
+func wrapsBodyless(value: s32)->s32 => bodylessCall(value)
+
 func leaf(value: s32)->s32 => value + 1
 
 func cheapCall(value: s32)->s32 => leaf(value)
@@ -474,6 +479,7 @@ func useCandidates()
     errorManaged()
     wrapsMixin()
     let closureValue = wrapsClosureProvider(7)
+    let foreignValue = wrapsBodyless(7)
 }
 )";
     // If call-graph names from separate Asts are merged, the first source's
@@ -546,6 +552,9 @@ func leaf() => useCandidates()
     if (wrapsMixin->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;
     if (wrapsClosure->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+        return Result::Error;
+    const AstFunctionDecl* wrapsBodyless = findFunctionDecl(sourceFile.ast(), "wrapsBodyless");
+    if (!wrapsBodyless || wrapsBodyless->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;
 }
 SWC_TEST_END()

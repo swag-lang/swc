@@ -358,11 +358,16 @@ void Parser::finalizeAutoInlineCandidates(const std::span<Ast* const> moduleAsts
                 const bool inlineCandidate = decl->autoInlineCost <= K_AUTO_INLINE_LAST_CALL_COST && decl->tokNameRef.isValid();
                 if (inlineCandidate)
                     functionDecls[astIndex].push_back(nodeRef);
-                if (!callGraph)
-                    callGraph = &callGraphs[ast];
                 childrenBodyOf = AutoInlineCallGraph::K_NO_FUNCTION;
-                ownIndex       = callGraph->addFunction(*ast, *decl);
                 ownBodyRef     = decl->nodeBodyRef;
+                // Bodyless declarations have no outgoing edges. A call creates its
+                // target row on demand, retaining the same unsupported-call checks.
+                if (ownBodyRef.isValid())
+                {
+                    if (!callGraph)
+                        callGraph = &callGraphs[ast];
+                    ownIndex = callGraph->addFunction(*ast, *decl);
+                }
                 if (decl->autoInlineCost == UINT32_MAX && decl->tokNameRef.isValid())
                     unsupportedFunctionNames[ast].insert(autoInlineName(ast->srcView(), decl->tokNameRef));
             }

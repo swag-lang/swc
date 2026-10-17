@@ -611,7 +611,7 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
             baseReg = ops[1].reg;
         else if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::LoadMemImm)
             baseReg = ops[0].reg;
-        if (baseReg.isValid())
+        if (baseReg.isVirtualInt())
         {
             const auto found = cands.find(baseReg);
             if (found != cands.end())
@@ -626,7 +626,7 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
     // detection that settled on another sp-derived register - an indirect
     // return slot's, a parameter home's - left every extent unusable and
     // every escape a whole-function bail.
-    if (preferred.isValid())
+    if (preferred.isVirtualInt())
     {
         const auto found = cands.find(preferred);
         if (found != cands.end() && found->second.stable && found->second.defRef.isValid())

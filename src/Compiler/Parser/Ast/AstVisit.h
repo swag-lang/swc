@@ -71,6 +71,11 @@ public:
 private:
     struct Frame
     {
+        explicit Frame(AstNodeRef ref) :
+            nodeRef(ref)
+        {
+        }
+
         enum class Stage : uint8_t
         {
             Pre,
@@ -82,8 +87,8 @@ private:
         uint32_t   nextChildIx  = 0; // index within this frame's child range
         uint32_t   firstChildIx = 0; // offset into AstVisit::children_
         uint32_t   numChildren  = 0; // number of children in that range
-        AstNodeRef nodeRef      = AstNodeRef::invalid();
-        Stage      stage        = Stage::Pre;
+        AstNodeRef nodeRef;
+        Stage      stage = Stage::Pre;
 
         enum class CallState
         {
@@ -91,7 +96,10 @@ private:
             Paused,
             Done
         };
-        CallState preNodeState, postNodeState, preChildState, postChildState;
+        CallState preNodeState     = CallState::NotCalled;
+        CallState postNodeState    = CallState::NotCalled;
+        CallState preChildState    = CallState::NotCalled;
+        CallState postChildState   = CallState::NotCalled;
         bool      pendingPostChild = false;
         bool      firstPass        = true;
     };
@@ -108,7 +116,6 @@ private:
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;
 
-    static void    resetFrame(Frame& frame, AstNodeRef nodeRef);
     AstVisitResult stepPreStage(Frame& frame);
     AstVisitResult stepChildrenStage(Frame& frame);
     AstVisitResult stepPostStage(Frame& frame);

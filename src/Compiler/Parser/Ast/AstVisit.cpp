@@ -7,25 +7,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void AstVisit::resetFrame(Frame& frame, AstNodeRef nodeRef)
-{
-    frame.node         = nullptr;
-    frame.nodeRef      = nodeRef;
-    frame.stage        = Frame::Stage::Pre;
-    frame.nextChildIx  = 0;
-    frame.firstChildIx = 0;
-    frame.numChildren  = 0;
-
-    frame.firstPass = true;
-
-    frame.preNodeState  = Frame::CallState::NotCalled;
-    frame.postNodeState = Frame::CallState::NotCalled;
-
-    frame.pendingPostChild = false;
-    frame.postChildState   = Frame::CallState::NotCalled;
-    frame.preChildState    = Frame::CallState::NotCalled;
-}
-
 void AstVisit::start(Ast& ast, AstNodeRef root)
 {
     SWC_ASSERT(root.isValid());
@@ -36,7 +17,7 @@ void AstVisit::start(Ast& ast, AstNodeRef root)
     stack_.clear();
     children_.clear();
 
-    resetFrame(stack_.emplace_back(), root);
+    stack_.emplace_back(std::as_const(root));
 }
 
 void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
@@ -46,7 +27,7 @@ void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
     const Frame& frame = stack_.back();
     if (frame.numChildren)
         children_.resize(frame.firstChildIx);
-    resetFrame(stack_.back(), nodeRef);
+    stack_.back() = Frame(nodeRef);
 }
 
 AstVisitResult AstVisit::step(const TaskContext& ctx)
@@ -158,7 +139,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
                 continue;
 
             frame.pendingPostChild = true;
-            resetFrame(stack_.emplace_back(), childRef);
+            stack_.emplace_back(childRef);
             return AstVisitResult::Continue;
         }
 
@@ -237,7 +218,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
         frame.postChildState   = Frame::CallState::NotCalled;
         frame.preChildState    = Frame::CallState::NotCalled;
         // Finish parent updates before growth can invalidate its reference.
-        resetFrame(stack_.emplace_back(), childRef);
+        stack_.emplace_back(std::as_const(childRef));
 
         return AstVisitResult::Continue;
     }

@@ -907,6 +907,84 @@ namespace PostRaPeephole
         }
     }
 
+    namespace
+    {
+        // Erases a compare with zero right after the instruction that already set ZF/SF/PF
+        // from the same value, when every reader of the flags can use those.
+        bool eraseCompareReusingFlags(Context& ctx, MicroInstrRef cmpRef, MicroInstrRef prevRef, bool widened)
+        {
+            // Validate every consumer that observes our flags before they are
+            // overwritten. Anything that uses an unsafe condition, or any flags
+            // user we don't recognize, aborts the rewrite.
+            SmallVector<MicroInstrRef, 4> signReaders;
+            auto                          scanIt = MicroStorage::Iterator{ctx.storage, cmpRef};
+            ++scanIt;
+            for (; scanIt.current.isValid(); ++scanIt)
+            {
+                const MicroInstrRef scanRef  = scanIt.current;
+                const MicroInstr*   scanInst = &*scanIt;
+                if (!scanInst)
+                    return false;
+
+                const MicroInstrOperand* scanOps = scanInst->ops(*ctx.operands);
+                if (isTriviallyErasableNoEffect(*scanInst, scanOps))
+                    continue;
+
+                if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+                {
+                    MicroCond cond;
+                    MicroCond signCond;
+                    if (!flagConsumerCond(*scanInst, scanOps, cond))
+                        return false;
+                    if (widened && (cond == MicroCond::Sign || cond == MicroCond::NotSign || signConditionAgainstZero(cond, signCond)))
+                        return false;
+                    if (signConditionAgainstZero(cond, signCond))
+                        signReaders.push_back(scanRef);
+                    else if (!isFlagReuseSafeCond(cond))
+                        return false;
+                }
+
+                const MicroInstrDef& info = MicroInstr::info(scanInst->op);
+                if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
+                {
+                    if (!ctx.builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*ctx.builder, scanRef))
+                        return false;
+                    break;
+                }
+                if (MicroPassHelpers::instructionOverwritesCpuFlags(*scanInst, scanOps) ||
+                    info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    break;
+            }
+
+            // The producer is claimed with the compare: a rule of the same sweep
+            // that rewrites it into a flag-free form (`mov r, a; add r, b` into a
+            // `lea`, relying on this very compare to redefine the flags) would
+            // leave the consumers reading nothing.
+            if (!ctx.claimAll({cmpRef, prevRef}))
+                return false;
+            for (const MicroInstrRef readerRef : signReaders)
+            {
+                if (!ctx.claimAll({readerRef}))
+                    return false;
+            }
+
+            for (const MicroInstrRef readerRef : signReaders)
+            {
+                const MicroInstr*        reader    = ctx.instruction(readerRef);
+                const MicroInstrOperand* readerOps = reader->ops(*ctx.operands);
+                uint8_t                  condIndex = 0;
+                MicroInstrOperand        rewritten[Action::K_MAX_OPS];
+                MicroPassHelpers::conditionOperandIndex(reader->op, condIndex);
+                std::ranges::copy(std::span{readerOps, reader->numOperands}, rewritten);
+                signConditionAgainstZero(readerOps[condIndex].cpuCond, rewritten[condIndex].cpuCond);
+                ctx.emitRewrite(readerRef, reader->op, std::span{rewritten, reader->numOperands});
+            }
+            ctx.emitErase(cmpRef);
+            return true;
+        }
+    }
+
     // Drop a `cmp reg, 0` when the immediately preceding ALU instruction
     // already produced `reg` and left ZF/SF/PF describing it. The branch /
     // setcc consumers read the arithmetic flags directly:
@@ -950,75 +1028,47 @@ namespace PostRaPeephole
         if (prodReg != cmpReg || (prodBits != cmpBits && !widened))
             return false;
 
-        // Validate every consumer that observes our flags before they are
-        // overwritten. Anything that uses an unsafe condition, or any flags
-        // user we don't recognize, aborts the rewrite.
-        SmallVector<MicroInstrRef, 4> signReaders;
-        auto                          scanIt = MicroStorage::Iterator{ctx.storage, cmpRef};
-        ++scanIt;
-        for (; scanIt.current.isValid(); ++scanIt)
-        {
-            const MicroInstrRef scanRef  = scanIt.current;
-            const MicroInstr*   scanInst = &*scanIt;
-            if (!scanInst)
-                return false;
+        return eraseCompareReusingFlags(ctx, cmpRef, prevRef, widened);
+    }
 
-            const MicroInstrOperand* scanOps = scanInst->ops(*ctx.operands);
-            if (isTriviallyErasableNoEffect(*scanInst, scanOps))
-                continue;
-
-            if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
-            {
-                MicroCond cond;
-                MicroCond signCond;
-                if (!flagConsumerCond(*scanInst, scanOps, cond))
-                    return false;
-                if (widened && (cond == MicroCond::Sign || cond == MicroCond::NotSign || signConditionAgainstZero(cond, signCond)))
-                    return false;
-                if (signConditionAgainstZero(cond, signCond))
-                    signReaders.push_back(scanRef);
-                else if (!isFlagReuseSafeCond(cond))
-                    return false;
-            }
-
-            const MicroInstrDef& info = MicroInstr::info(scanInst->op);
-            if (info.flags.has(MicroInstrFlagsE::JumpInstruction))
-            {
-                if (!ctx.builder || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*ctx.builder, scanRef))
-                    return false;
-                break;
-            }
-            if (MicroPassHelpers::instructionOverwritesCpuFlags(*scanInst, scanOps) ||
-                info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
-                info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
-                break;
-        }
-
-        // The producer is claimed with the compare: a rule of the same sweep
-        // that rewrites it into a flag-free form (`mov r, a; add r, b` into a
-        // `lea`, relying on this very compare to redefine the flags) would
-        // leave the consumers reading nothing.
-        if (!ctx.claimAll({cmpRef, prevRef}))
+    // The same with the result in memory: a read-modify-write of a slot sets ZF/SF/PF
+    // from the value it stores, so comparing that slot with zero right after it reads
+    // memory to learn nothing new.
+    //
+    //     sub  [b + o], 1      sub  [b + o], 1
+    //     cmp  [b + o], 0  ->   (erased)
+    //     jne  .L              jne  .L
+    bool tryReuseMemoryFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst)
+    {
+        if (ctx.isClaimed(cmpRef))
             return false;
-        for (const MicroInstrRef readerRef : signReaders)
+        // [base, opBits, offset, imm]
+        const MicroInstrOperand* cmpOps = cmpInst.ops(*ctx.operands);
+        if (!cmpOps || cmpOps[3].hasWideImmediateValue() || cmpOps[3].valueU64 != 0 || !cmpOps[0].reg.isAnyInt())
+            return false;
+
+        MicroInstrRef            prevRef = MicroInstrRef::invalid();
+        const MicroInstr*        prev    = previousMeaningfulInstr(ctx, cmpRef, prevRef);
+        const MicroInstrOperand* prevOps = prev ? prev->ops(*ctx.operands) : nullptr;
+        if (!prevOps || prevOps[0].reg != cmpOps[0].reg)
+            return false;
+        if (prev->op == MicroInstrOpcode::OpBinaryMemImm)
         {
-            if (!ctx.claimAll({readerRef}))
+            // [base, opBits, microOp, offset, imm]
+            if (prevOps[1].opBits != cmpOps[1].opBits || !isFlagReuseSafeMicroOp(prevOps[2].microOp) || prevOps[3].valueU64 != cmpOps[2].valueU64)
                 return false;
         }
-
-        for (const MicroInstrRef readerRef : signReaders)
+        else if (prev->op == MicroInstrOpcode::OpBinaryMemReg)
         {
-            const MicroInstr*        reader    = ctx.instruction(readerRef);
-            const MicroInstrOperand* readerOps = reader->ops(*ctx.operands);
-            uint8_t                  condIndex = 0;
-            MicroInstrOperand        rewritten[Action::K_MAX_OPS];
-            MicroPassHelpers::conditionOperandIndex(reader->op, condIndex);
-            std::ranges::copy(std::span{readerOps, reader->numOperands}, rewritten);
-            signConditionAgainstZero(readerOps[condIndex].cpuCond, rewritten[condIndex].cpuCond);
-            ctx.emitRewrite(readerRef, reader->op, std::span{rewritten, reader->numOperands});
+            // [base, reg, opBits, microOp, offset]
+            if (prevOps[2].opBits != cmpOps[1].opBits || !isFlagReuseSafeMicroOp(prevOps[3].microOp) || prevOps[4].valueU64 != cmpOps[2].valueU64)
+                return false;
         }
-        ctx.emitErase(cmpRef);
-        return true;
+        else
+        {
+            return false;
+        }
+        return eraseCompareReusingFlags(ctx, cmpRef, prevRef, false);
     }
 
     // (a == 0) * (b == 0) is (a | b) == 0. At this late stage the first

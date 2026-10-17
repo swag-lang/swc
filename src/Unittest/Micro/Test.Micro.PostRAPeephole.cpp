@@ -2776,6 +2776,43 @@ SWC_TEST_BEGIN(PostRAPeephole_FlagReuse_SubThenCompareZero_CompareErased)
 }
 SWC_TEST_END()
 
+// `used -= 1; if used == 0` on a field: the read-modify-write already set ZF from the
+// value it stored. Variants:
+//   0 - sub then compare of the same slot, read by je: erased.
+//   1 - another slot is compared: kept.
+//   2 - a different width: kept.
+//   3 - the reader needs CF, which the compare clears and the sub may set: kept.
+//   4 - add of a register to the slot, read by jne: erased.
+SWC_TEST_BEGIN(PostRAPeephole_FlagReuse_MemorySubThenCompareZero)
+{
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        const CallConv&     conv = CallConv::get(CallConvKind::Swag);
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef takenLabel = builder.createLabel();
+        const MicroReg      base       = conv.intRegs[0];
+
+        if (variant == 4)
+            builder.emitOpBinaryMemReg(base, 0x28, conv.intRegs[1], MicroOp::Add, MicroOpBits::B32);
+        else
+            builder.emitOpBinaryMemImm(base, 0x28, ApInt(1, 32), MicroOp::Subtract, MicroOpBits::B32);
+        builder.emitCmpMemImm(base, variant == 1 ? 0x2C : 0x28, ApInt(0, variant == 2 ? 64 : 32), variant == 2 ? MicroOpBits::B64 : MicroOpBits::B32);
+        builder.emitJumpToLabel(variant == 3 ? MicroCond::Below : variant == 4 ? MicroCond::NotEqual : MicroCond::Equal, MicroOpBits::B32, takenLabel);
+        builder.emitRet();
+        builder.placeLabel(takenLabel);
+        builder.emitRet();
+
+        SWC_RESULT(runPostRaPeepholePass(builder));
+
+        const bool erased = variant == 0 || variant == 4;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpMemImm) != (erased ? 0u : 1u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FlagReuse_UnsafeCondition_ComparePreserved)
 {
     const CallConv&     conv = CallConv::get(CallConvKind::Swag);

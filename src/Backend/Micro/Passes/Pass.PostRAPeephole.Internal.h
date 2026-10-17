@@ -165,6 +165,7 @@ namespace PostRaPeephole
     bool tryFoldFloatReturnXorCopyChain(Context& ctx, MicroInstrRef firstCopyRef, const MicroInstr& firstCopyInst);
     bool tryReuseAddFlagsForUnsignedWrap(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
+    bool tryReuseMemoryFlagsForCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryFoldZeroBooleanProduct(Context& ctx, MicroInstrRef multiplyRef, const MicroInstr& multiplyInst);
     bool tryFoldUnsignedAverage(Context& ctx, MicroInstrRef addRef, const MicroInstr& addInst);
     bool tryFoldNarrowUnsignedAverage(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

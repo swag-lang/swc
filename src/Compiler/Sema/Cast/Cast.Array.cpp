@@ -20,8 +20,7 @@ namespace
 {
     struct ArrayElemLocation
     {
-        AstNodeRef    nodeRef = AstNodeRef::invalid();
-        SourceCodeRef codeRef = SourceCodeRef::invalid();
+        AstNodeRef nodeRef = AstNodeRef::invalid();
     };
 
     AstNodeRef arrayElemValueNodeRef(const Sema& sema, AstNodeRef nodeRef)
@@ -102,7 +101,7 @@ namespace
         if (nodeRef.isInvalid())
             return {};
 
-        return {nodeRef, args.sema->node(nodeRef).codeRef()};
+        return {nodeRef};
     }
 
     CastRequest makeElemCastRequest(const CastAggregateArgs& args, const ArrayElemLocation& location)
@@ -118,7 +117,7 @@ namespace
         else
         {
             elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
-            elemCtx.errorCodeRef = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
+            elemCtx.errorCodeRef = args.castRequest->errorCodeRef;
         }
         elemCtx.applyAutoCast(*args.sema, arrayElemValueNodeRef(*args.sema, location.nodeRef));
         return elemCtx;

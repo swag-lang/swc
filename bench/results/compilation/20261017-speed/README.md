@@ -49,6 +49,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Keep chunk iteration setup minimal | Constructing a complete iterator for each end comparison, its comparison call, and begin-state stores immediately overwritten | An empty sentinel tests the same invalid header reference. The begin iterator receives its final count, geometry and first chunk directly. Iterator/view fields, publication, page order and payloads are unchanged. Default/empty/single/multi-page cases cover all comparison forms; object inspection confirms removed AST end/comparison calls and smaller caller/begin frames. |
 | Advance directly to continuation-page headers | Decoding the current header and multiplying its next page index back into a reference, plus repeated current/next page-count checks | Continuation headers always begin at the next power-of-two page boundary. A widened mask-and-increment retains the reference-overflow guard; chunk decoding still checks the next page before accessing it. Existing alignment, page-growth and chunk tests pass; the iterator object loses the redundant decode with a smaller body and stack frame. |
 | Read each span chunk through one published page snapshot | Two extra acquire loads and repeated vector bounds/pointer lookups while obtaining one chunk | Published page vectors remain immutable and retained. The one snapshot already contains the referenced page; its bounds, used bytes and payload pointer are checked/read together. No publication, layout or lifetime changes are introduced. Object inspection shows a smaller chunk reader with the same stack frame. |
+| Keep array-element cast locations as node references | Resolving and copying a source-code location that no request uses | The private location helper sets a source location only alongside a valid node; that valid-node branch always selects the node instead. The invalid-node branch keeps the outer request's existing source location. Object inspection confirms the removed node lookup and non-increasing frames in all affected helpers and conversion callers. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -94,6 +95,7 @@ filesystem cases requiring `--dev-full`.
 | 39 | 1,454 | Native `separated_float_products.swg`: 1, with the DevMode compiler and `release` program configuration |
 | 40 | 1,454 | Native `switch_many_chunks.swg`: 1 |
 | 41 | 1,454 | JIT reflection selection: 16 |
+| 42 | 1,454 | Semantic `array` selection: 36 normal and 41 expected-error inputs, including runtime; native SIMD selection: 51 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing

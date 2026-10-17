@@ -322,6 +322,45 @@ SWC_TEST_BEGIN(PagedStore_ChunkIterationPreservesAlignedValuesAcrossPages)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_RawSpanAlignmentPreservesPayloadAndZeroConvention)
+{
+    std::array<uint8_t, 37> bytes;
+    for (size_t i = 0; i < bytes.size(); ++i)
+        bytes[i] = static_cast<uint8_t>(i * 17 + 3);
+
+    for (const bool contiguous : {false, true})
+        for (const uint32_t alignment : {0u, 1u, 2u, 4u, 8u})
+        {
+            for (const uint32_t prefix : {0u, 1u, 7u, 15u, 28u})
+            {
+                PagedStore store(32);
+                if (prefix)
+                    store.reserveRange(prefix, 1, false);
+                const uint32_t count              = contiguous ? 9 : static_cast<uint32_t>(bytes.size());
+                const SpanRef  ref                = contiguous ? store.pushSpanContiguousRaw(bytes.data(), 1, alignment, count) : store.pushSpanRaw(bytes.data(), 1, alignment, count);
+                const uint32_t effectiveAlignment = alignment ? alignment : 1;
+                const auto     view               = store.spanView(ref.get(), 1, effectiveAlignment);
+                if (view.size() != count)
+                    return Result::Error;
+
+                size_t next = 0;
+                for (auto it = view.chunksBegin(); it != view.chunksEnd(); ++it)
+                {
+                    if (!it->count || it->count > count - next || reinterpret_cast<uintptr_t>(it->ptr) % effectiveAlignment)
+                        return Result::Error;
+                    const std::span chunk(static_cast<const uint8_t*>(it->ptr), it->count);
+                    if (!std::ranges::equal(chunk, std::span<const uint8_t>(bytes).subspan(next, chunk.size())))
+                        return Result::Error;
+                    next += chunk.size();
+                }
+                if (next != count)
+                    return Result::Error;
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_ReserveSpanReturnsWritableContiguousStorage)
 {
     PagedStore store(32);

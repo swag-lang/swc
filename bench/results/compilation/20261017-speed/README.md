@@ -30,6 +30,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Initialize record input states only on first reach | Filling every instruction's record state before its reached bit permits a read | The entry gets an explicit empty state. First arrival assigns both byte masks before any later read; successor merging and access validation already guard every other read with reachability. The trivial state has no implicit initialization, protected by a static assertion; value-initialized map entries retain their zero defaults. |
 | Read SIMD byte tables through a byte span | Copying each 16-byte index table into a second local array | `std::as_bytes` exposes the same unsigned-byte representation. Materialization copies it synchronously into constant storage; type selection, payload hashing and emitted instructions use the same bytes and retain their order. |
 | Mark only named aggregate slots | A byte store for every preceding positional child while resolving an aggregate child | The positional cursor only advances. Its consumed slots are never read again; named bindings retain marks because they may occupy a future slot. Child visitation, identifier lookup and slot choices are unchanged. |
+| Align raw span writes with a mask | Runtime remainder operations in chunked and contiguous span alignment | Raw writers accept zero or a supported power of two. A zero mask preserves the zero convention; otherwise unsigned masking rounds to the identical offset. Header placement, payload, page selection and publication are unchanged. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -147,6 +148,12 @@ The aggregate-cursor batch passed 1,427 C++ tests, the native positional
 `struct_literal_scalar_store.swg` test, the semantic named-member selection and
 all 85 sanity tests. The semantic selection checked one normal source plus its
 runtime; no expected-error source matched. All commands exited zero.
+
+The raw span alignment batch shared that compiler validation, then passed all
+1,427 C++ tests again after extending its regression to contiguous spans. The
+case covers alignments 0, 1, 2, 4 and 8 at five page-prefix offsets, including
+page rollover. The final build and test exited zero. Object inspection confirms
+the span alignment divisions are gone; element-capacity divisions remain.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

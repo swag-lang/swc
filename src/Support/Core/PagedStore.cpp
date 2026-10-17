@@ -8,9 +8,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint32_t spanDataOffset(uint32_t hdrOffset, uint32_t hdrSize, uint32_t elemAlign)
+    {
+        // Raw span writes also accept zero alignment, which leaves the offset unchanged.
+        const uint32_t mask = elemAlign ? elemAlign - 1 : 0;
+        return (hdrOffset + hdrSize + mask) & ~mask;
+    }
+
     uint32_t spanFootprintBytes(uint32_t hdrOffset, uint32_t hdrSize, uint32_t elemAlign, uint32_t bytes)
     {
-        const uint32_t dataOffset = Math::alignUpU32(hdrOffset + hdrSize, elemAlign);
+        const uint32_t dataOffset = spanDataOffset(hdrOffset, hdrSize, elemAlign);
         return dataOffset + bytes - hdrOffset;
     }
 }
@@ -194,14 +201,14 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     const uint32_t bytesAvail = pageSizeValue_ - off;
 
     constexpr uint32_t hdrSize    = sizeof(SpanHdrRaw);
-    uint32_t           dataOffset = Math::alignUpU32(off + hdrSize, elemAlign);
+    uint32_t           dataOffset = spanDataOffset(off, hdrSize, elemAlign);
     const uint32_t     padBytes   = dataOffset - (off + hdrSize);
 
     if (hdrSize + padBytes + elemSize > bytesAvail)
     {
         page       = newPage();
         off        = 0;
-        dataOffset = Math::alignUpU32(hdrSize, elemAlign);
+        dataOffset = spanDataOffset(0, hdrSize, elemAlign);
     }
 
     const uint32_t maxData = pageSizeValue_ - dataOffset;
@@ -307,7 +314,7 @@ SpanRef PagedStore::pushSpanContiguousRaw(const void* data, uint32_t elemSize, u
         pageUsed = 0;
     }
 
-    const uint32_t dataOffset = Math::alignUpU32(pageUsed + hdrSize, elemAlign);
+    const uint32_t dataOffset = spanDataOffset(pageUsed, hdrSize, elemAlign);
     const uint32_t newUsed    = dataOffset + bytes;
     SWC_ASSERT(newUsed <= pageSizeValue_);
 

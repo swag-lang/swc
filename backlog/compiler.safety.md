@@ -56,9 +56,13 @@ is the current scorecard.
   that calls nothing and keeps no write check registers no borrow. Against the
   same programs built without `.ValueBorrow`, nbody still costs about 1.9x, fannkuch 1.4x and
   dijkstra 1.3x; the rest measure within the machine's noise.
-- Next: in hot loops the extent loads repeat on every write; hoisting them where no borrow can
-  open or close in the loop, and the registration a function that writes pays for each value
-  parameter (about 23 ns per call, nbody's slice), are the remaining levers. Repeat the paired fixture on a quiet machine with an unchanged A/A
+- Next: every write check reloads the extent cache and the extent. In a function that calls
+  nothing but its write checks and the panic reports (dijkstra's `push` and `pop`), the extent
+  cannot change while it runs, so `value-borrow-fast-path` can load low and high once at entry,
+  with a null cache standing for the whole address space, leaving two instructions per write
+  while no borrow is open. A function that writes still pays about 23 ns per call to register
+  each value parameter (nbody's slice); checking its own writes against those ranges inline
+  would need a runtime entry that reports the conflict. Repeat the paired fixture on a quiet machine with an unchanged A/A
   control, then measure a representative application; tiny-call ratios must not stand in for
   application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,

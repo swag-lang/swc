@@ -499,11 +499,10 @@ namespace
     void materializeInlineAny(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, ConstantRef valueCstRef)
     {
         Runtime::Any* dstAny = storage.ptr<Runtime::Any>(baseOffset + fieldOffset);
-        *dstAny              = {};
 
-        // Attribute parameters store an inline Runtime::Any. The boxed type points
-        // at the reflected type cache entry, while non-empty values are copied into
-        // static payload storage so the attribute remains valid after compilation.
+        // The caller's fresh parameter span already contains an empty Runtime::Any.
+        // Non-empty values point at reflected types and static payload storage, so
+        // the attribute remains valid after compilation.
         const ConstantValue& cst = sema.ctx().cstMgr().get(valueCstRef);
         if (cst.isNull())
             return;
@@ -535,7 +534,6 @@ namespace
 
     void exportAttributeParams(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t attributeOffset, Runtime::Attribute& rtAttribute, const AttributeInstance& attribute)
     {
-        rtAttribute.params.ptr   = nullptr;
         rtAttribute.params.count = attribute.params.size();
         if (attribute.params.empty())
             return;
@@ -551,7 +549,6 @@ namespace
             Runtime::AttributeParam&      dstParam    = paramsPtr[i];
             const uint32_t                paramOffset = paramsOffset + static_cast<uint32_t>(i * sizeof(Runtime::AttributeParam));
 
-            dstParam.value = {};
             if (srcParam.nameIdRef.isValid())
             {
                 const auto& id       = ctx.idMgr().get(srcParam.nameIdRef);
@@ -581,7 +578,6 @@ namespace
             Runtime::Attribute&      rtAttr     = attrsPtr[i];
             const uint32_t           attrOffset = attrsOffset + static_cast<uint32_t>(i * sizeof(Runtime::Attribute));
 
-            rtAttr.type = nullptr;
             if (attribute.symbol)
             {
                 const TypeRef attributeTypeRef = attribute.symbol->typeRef();

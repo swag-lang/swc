@@ -46,6 +46,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Trust masked signed-remainder divisor widths | Rechecking the width and power-of-two predicate and computing a logarithm solely to confirm the width | The divisor has already been masked to the accepted 32/64-bit width. A remaining nonzero power of two necessarily has a shift below that width. New C++ cases cover the highest bit and discarded high stored bits; the object loses the redundant logarithm loop with the same stack reservation. |
 | Check signed-remainder eligibility before flag analysis | A suffix walk for candidates already excluded by width, immediate, divisor or register kind | The same cheap eligibility guard now precedes the same dead-flags requirement inside the private fold. Rewriting and fallback decisions remain identical. The original shared dispatch is retained; object inspection shows a smaller body with the same frame. A C++ matrix covers division/remainder, divisors 3/8, live/dead flags and deferred/immediate expansion. |
 | Compute byte-array padding once | A remainder/division operation after each padding byte | The initial remainder determines the exact number of existing pushBack operations. Their order, allocation sequence and capacities are unchanged, including general non-power-of-two alignments. An iterative oracle covers reserved and growing buffers; object inspection confirms one initial division and the same total stack reservation. |
+| Keep chunk iteration setup minimal | Constructing a complete iterator for each end comparison, its comparison call, and begin-state stores immediately overwritten | An empty sentinel tests the same invalid header reference. The begin iterator receives its final count, geometry and first chunk directly. Iterator/view fields, publication, page order and payloads are unchanged. Default/empty/single/multi-page cases cover all comparison forms; object inspection confirms removed AST end/comparison calls and smaller caller/begin frames. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -87,6 +88,7 @@ filesystem cases requiring `--dev-full`.
 | 35 | 1,447 | Native optimizer selection: 302 |
 | 36 | 1,448 | Native optimizer selection: 302 |
 | 37 | 1,449 | Native optimizer selection: 302 |
+| 38 | 1,450 | Full native: 3,891; full JIT: 1,539 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -125,7 +127,7 @@ standard containers can relocate vectors of move-only elements. The inline
 storage, object fields and capacity policy are unchanged. These correctness
 changes are not claimed as compilation-speed gains.
 
-The final DevMode C++ suite passes 1,445 tests, including twelve SmallVector
+The checkpoint-29 DevMode C++ suite passes 1,445 tests, including twelve SmallVector
 regressions for inline and heap storage, aliasing, interrupted constructors,
 assignments and iterator traversal, and move-only elements. Both compiler builds
 pass with the same six-worker bound. DevMode also passes the full native suite

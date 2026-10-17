@@ -455,34 +455,13 @@ PagedStore::SpanView::ChunkIterator& PagedStore::SpanView::ChunkIterator::operat
 
 PagedStore::SpanView::ChunkIterator PagedStore::SpanView::chunksBegin() const
 {
-    ChunkIterator it;
-    it.store     = store_;
-    it.hdrRef    = head_;
-    it.total     = size();
-    it.done      = 0;
-    it.elemSize  = elementSize_;
-    it.elemAlign = elementAlign_;
-
-    if (it.total == 0)
-    {
-        it.hdrRef  = std::numeric_limits<Ref>::max();
-        it.current = {.ptr = nullptr, .count = 0};
-        return it;
-    }
-
-    it.current = chunkFromLayout(store_, head_, it.total, elementSize_, elementAlign_);
-    return it;
-}
-
-PagedStore::SpanView::ChunkIterator PagedStore::SpanView::chunksEnd() const
-{
+    const uint32_t count = size();
     return {.store     = store_,
-            .hdrRef    = std::numeric_limits<Ref>::max(),
-            .total     = 0,
-            .done      = 0,
+            .hdrRef    = count ? head_ : INVALID_REF,
+            .total     = count,
             .elemSize  = elementSize_,
             .elemAlign = elementAlign_,
-            .current   = {.ptr = nullptr, .count = 0}};
+            .current   = count ? chunkFromLayout(store_, head_, count, elementSize_, elementAlign_) : Chunk{}};
 }
 
 PagedStore::SpanView PagedStore::spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const

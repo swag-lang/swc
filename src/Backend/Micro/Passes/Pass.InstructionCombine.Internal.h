@@ -124,6 +124,27 @@ namespace InstructionCombine
         bool       immutableBasesReady = false;
         FlatKeySet immutableBases;
 
+        // Whether a 64-bit read through `base` at `displacement`, its index scaled by `scale`
+        // when it has one, lands on a whole slot of a frame object every write of which leaves
+        // the upper half zero. Collected on the first question.
+        bool isZeroExtendedFrameRead(MicroReg base, MicroInstrRef ref, uint64_t displacement, uint64_t scale) const;
+
+        mutable bool                                       zeroExtendedFrameReady = false;
+        // A frame address: its offset from the frame base, the stride an index adds to it
+        // in multiples of (zero for an exact address), and for an indexed address the offset
+        // of the object its base pointed at, which the index cannot leave.
+        struct FrameAddress
+        {
+            static constexpr uint64_t K_NO_ANCHOR = UINT64_MAX;
+
+            uint64_t offset = 0;
+            uint64_t stride = 0;
+            uint64_t anchor = K_NO_ANCHOR;
+        };
+        mutable std::unordered_map<uint32_t, FrameAddress> frameAddresses;
+        mutable std::optional<FlatKeyMap<uint64_t>>        frameStackPointerOffsets;
+        mutable std::vector<std::pair<uint64_t, uint64_t>> zeroExtendedFrameObjects;
+
         // Whether nothing reads the CPU flags left after `ref`. The rules anchored on one
         // instruction ask it about that instruction in turn, each answer scanning ahead.
         bool areCpuFlagsDeadAfter(MicroInstrRef ref) const;

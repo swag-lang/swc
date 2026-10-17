@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
-#include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -14,6 +13,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeGen.Internal.h"
 #include "Compiler/Sema/Type/TypeGenGenericArg.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -24,6 +24,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct TypeInfoWalk
+    {
+        TypeGen::TypeGenCache* cache = nullptr;
+        SmallVector<TypeRef>   stack;
+
+        ~TypeInfoWalk()
+        {
+            // A semantic pause abandons this walk before the cache ownership is released.
+            // Its next owner must revisit every unfinished dependency from the start.
+            for (const TypeRef typeRef : stack)
+            {
+                const auto found = cache->entries.find(typeRef);
+                if (found != cache->entries.end())
+                    found->second.onDfsStack = false;
+            }
+        }
+    };
+
     bool shouldWaitReflectedMethodTyping(const SymbolFunction& symFunc)
     {
         // Reflection waits only for methods that can actually appear in runtime
@@ -288,10 +306,9 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
     //
     // This is intentionally iterative to avoid recursion depth issues and to allow
     // pausing/resuming if needed by the compiler pipeline.
-    SmallVector<TypeRef>        stack;
-    std::unordered_set<TypeRef> stackSet;
+    TypeInfoWalk walk{.cache = &cache};
+    auto&        stack = walk.stack;
     stack.push_back(typeRef);
-    stackSet.insert(typeRef);
 
     while (!stack.empty())
     {
@@ -386,15 +403,23 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         if (entry.state == TypeGenCache::State::Done)
         {
             // Fully processed: pop and continue unwinding.
-            stackSet.erase(key);
+            entry.onDfsStack = false;
             stack.pop_back();
             continue;
         }
 
+        if (!entry.onDfsStack)
+        {
+            SWC_ASSERT(entry.deps.size() <= std::numeric_limits<uint32_t>::max());
+            entry.onDfsStack     = true;
+            entry.nextDependency = 0;
+        }
+
         // Push the first unmet dependency.
         bool pushedDep = false;
-        for (const TypeRef depKey : entry.deps)
+        while (entry.nextDependency < entry.deps.size())
         {
+            const TypeRef depKey = entry.deps[entry.nextDependency++];
             if (depKey == key)
                 continue;
 
@@ -411,14 +436,12 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
                 // If this dependency is already on the current DFS stack, we are in
                 // a recursion cycle and keep unwinding. Relocations can still be
                 // wired because payload offsets are already reserved during init.
-                const bool depOnStack = stackSet.contains(depKey);
-                if (depOnStack)
+                if (depIt->second.onDfsStack)
                     continue;
             }
 
             // Depth-first: create this dependency payload before completing 'key'.
             stack.push_back(depKey);
-            stackSet.insert(depKey);
             pushedDep = true;
             break;
         }

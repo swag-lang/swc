@@ -50,6 +50,8 @@ public:
             TypeRef                            rtTypeRef;
             State                              state            = State::CommonInit;
             bool                               backRefPublished = false;
+            bool                               onDfsStack       = false;
+            uint32_t                           nextDependency   = 0;
             SmallVector<TypeRef>               deps;
             uint32_t                           enumValuesOffset   = 0;
             uint32_t                           enumValuesCount    = 0;
@@ -79,6 +81,9 @@ public:
             SmallVector<TypeRef>               funcGenericTypes;
             TypeRef                            funcReturnTypeRef = TypeRef::invalid();
         };
+
+        // The walk's bookkeeping occupies the existing padding before dependencies.
+        static_assert(offsetof(Entry, deps) == offsetof(Entry, state) + 8);
 
         // Even generations are free; odd generations identify one exclusive owner.
         // The generation also closes release-before-scheduler-registration races.

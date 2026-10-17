@@ -527,9 +527,11 @@ void Sanitizer::computeChainLiveness()
     // order, so walking them in reverse visits most successors first.
     // Live sets only grow. Seed the inputs with local uses and retain those bits
     // during propagation instead of keeping a second, immutable use matrix.
+    // With only forward CFG edges, every successor is final in this reverse walk;
+    // a confirmation sweep cannot add a live bit.
     chainLiveOut_.assign(words, 0);
-    bool changed = true;
-    while (changed)
+    bool changed;
+    do
     {
         changed = false;
         for (size_t s = numStates; s-- > 0;)
@@ -554,7 +556,7 @@ void Sanitizer::computeChainLiveness()
                 }
             }
         }
-    }
+    } while (changed && cfg.hasLoop());
 }
 
 void Sanitizer::pruneDeadRegs(SanitizerState& state, const uint64_t* live) const

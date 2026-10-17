@@ -95,8 +95,8 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
-        typeRef              = type.typeRef();
+        const TypeInfo& type          = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
+        typeRef                       = type.typeRef();
         if (type.isPointerOrReference())
             typeRef = unwrapAliasEnum(sema, type.payloadTypeRef());
         return hasOwningLifecycle(sema, typeRef);
@@ -108,8 +108,8 @@ namespace
             return false;
         budget--;
 
-        const TypeInfo& type          = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
-        typeRef                       = type.typeRef();
+        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
+        typeRef              = type.typeRef();
         if (isDirectBorrowCarrier(type))
             return true;
 
@@ -5662,22 +5662,17 @@ namespace SemaEscape
                 }
             }
 
-            std::vector<size_t>  incompleteWorklist;
-            std::vector<uint8_t> queued(returnEntries.size(), 0);
+            std::vector<size_t> incompleteWorklist;
             incompleteWorklist.reserve(returnEntries.size());
             for (size_t i = 0; i < returnEntries.size(); ++i)
             {
                 if (!returnEntries[i].summary.complete)
-                {
                     incompleteWorklist.push_back(i);
-                    queued[i] = 1;
-                }
             }
             size_t incompleteCursor = 0;
             while (incompleteCursor < incompleteWorklist.size())
             {
                 const size_t dependencyIndex = incompleteWorklist[incompleteCursor++];
-                queued[dependencyIndex]      = 0;
                 for (size_t dependentIndex = completionOffsets[dependencyIndex]; dependentIndex < completionOffsets[dependencyIndex + 1]; ++dependentIndex)
                 {
                     const size_t   callerIndex = completionDependents[dependentIndex];
@@ -5685,11 +5680,8 @@ namespace SemaEscape
                     if (caller.complete)
                     {
                         caller.complete = false;
-                        if (!queued[callerIndex])
-                        {
-                            incompleteWorklist.push_back(callerIndex);
-                            queued[callerIndex] = 1;
-                        }
+                        // Only the transition to incomplete enqueues a caller, so it enters once.
+                        incompleteWorklist.push_back(callerIndex);
                     }
                 }
             }
@@ -5757,11 +5749,12 @@ namespace SemaEscape
                 }
             }
 
-            std::vector<size_t> worklist(returnEntries.size());
-            size_t              worklistHead  = 0;
-            size_t              worklistTail  = 0;
-            size_t              worklistCount = 0;
-            const auto          enqueue       = [&](const size_t index) {
+            std::vector<uint8_t> queued(returnEntries.size(), 0);
+            std::vector<size_t>  worklist(returnEntries.size());
+            size_t               worklistHead  = 0;
+            size_t               worklistTail  = 0;
+            size_t               worklistCount = 0;
+            const auto           enqueue       = [&](const size_t index) {
                 SWC_ASSERT(worklistCount < worklist.size());
                 worklist[worklistTail] = index;
                 if (++worklistTail == worklist.size())

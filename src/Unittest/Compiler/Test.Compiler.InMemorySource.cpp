@@ -929,13 +929,19 @@ SWC_TEST_BEGIN(Compiler_AstNodeSpanPreservesOrderAcrossPagesAndGrowth)
     const auto invalid = ast.nodeSpan(SpanRef::invalid());
     if (!invalid.empty() || invalid.chunksBegin() != invalid.chunksEnd())
         return Result::Error;
+    const auto invalidRefs = ast.nodeRefs(SpanRef::invalid());
+    if (!invalidRefs.empty() || invalidRefs.size())
+        return Result::Error;
     for (const size_t count : {size_t{0}, size_t{1}, refs.size()})
     {
-        const SpanRef ref  = ast.pushSpan(std::span<const AstNodeRef>(refs.data(), count));
-        const auto    view = ast.nodeSpan(ref);
+        const SpanRef ref     = ast.pushSpan(std::span<const AstNodeRef>(refs.data(), count));
+        const auto    view    = ast.nodeSpan(ref);
+        const auto    indexed = ast.nodeRefs(ref);
         // Appending more pages must not invalidate an earlier view.
         ast.pushSpan(std::span<const AstNodeRef>(refs));
         if (view.size() != count)
+            return Result::Error;
+        if (indexed.size() != count || indexed.empty() != (count == 0))
             return Result::Error;
         if (count == 1 && ast.oneNode(ref) != refs.front())
             return Result::Error;
@@ -944,8 +950,10 @@ SWC_TEST_BEGIN(Compiler_AstNodeSpanPreservesOrderAcrossPagesAndGrowth)
         {
             if (!chunk->count || chunk->count > count - next)
                 return Result::Error;
-            for (const AstNodeRef nodeRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            for (const AstNodeRef& nodeRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
             {
+                if (std::addressof(indexed[next]) != std::addressof(nodeRef))
+                    return Result::Error;
                 if (nodeRef != refs[next++])
                     return Result::Error;
             }

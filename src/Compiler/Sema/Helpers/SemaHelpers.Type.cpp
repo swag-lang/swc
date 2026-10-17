@@ -903,6 +903,7 @@ namespace
                 continue;
             }
 
+            // The cursor never revisits a positional slot; only named bindings need marks.
             while (nextPos < memberCount && assigned[nextPos])
                 ++nextPos;
 
@@ -916,10 +917,7 @@ namespace
             }
 
             if (nextPos < memberCount)
-            {
-                assigned[nextPos] = 1;
                 ++nextPos;
-            }
         }
 
         return false;

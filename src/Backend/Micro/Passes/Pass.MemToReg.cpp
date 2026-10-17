@@ -1931,9 +1931,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // runs, from a forward pass over the instruction graph.
     struct RecordState
     {
-        uint8_t defined = 0;
-        uint8_t zero    = 0;
+        uint8_t defined;
+        uint8_t zero;
     };
+    static_assert(std::is_trivial_v<RecordState>);
     std::optional<std::unordered_map<uint32_t, RecordState>> recordStateAt;
     if (!records.empty())
     {
@@ -1989,10 +1990,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 return state;
             };
 
-            // Unreached instructions keep the optimistic state; the entry
-            // starts with nothing defined.
-            std::vector<RecordState> in(n, RecordState{all, all});
-            std::vector<uint8_t>     reached(n, 0);
+            // The reached bit guards every read. First arrival assigns a full state,
+            // so unreachable slots need no initialization; the entry starts empty.
+            const auto           in = std::make_unique_for_overwrite<RecordState[]>(n);
+            std::vector<uint8_t> reached(n, 0);
             in[entry]      = RecordState{};
             reached[entry] = 1;
             bool changed   = true;

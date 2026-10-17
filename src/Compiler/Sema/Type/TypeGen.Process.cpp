@@ -387,15 +387,14 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
             entry.deps = computeDeps(tm, sema, type, kind);
             // The payload is itself a DynCast instance of its concrete metadata struct.
             entry.deps.push_back(entry.rtTypeRef);
-            TypeRef unqualifiedTypeRef = key;
+            // Unqualified types would only add a self-dependency, which the walk ignores.
             if (type.isConst() || type.isNullable())
             {
                 TypeInfo unqualified = type;
                 unqualified.removeFlag(TypeInfoFlagsE::Const);
                 unqualified.removeFlag(TypeInfoFlagsE::Nullable);
-                unqualifiedTypeRef = tm.addType(unqualified);
+                entry.deps.push_back(tm.addType(unqualified));
             }
-            entry.deps.push_back(unqualifiedTypeRef);
             it = cache.entries.emplace(key, std::move(entry)).first;
         }
 

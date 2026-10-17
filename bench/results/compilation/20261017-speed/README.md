@@ -15,6 +15,9 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Visit only marked operand-width positions | Tests of unrelated union operands in register allocation and frame compaction | Removing the lowest set mask bit visits the same width operands in the same ascending order. Fixed-width vector opcodes keep their existing early return. |
 | Advance the type-info DFS dependency cursor | Rechecking the completed dependency prefix after each descent, plus a separate node-based stack-membership set | The cursor visits dependencies in the same order. Membership and the cursor fit existing entry padding, checked statically; scope cleanup clears membership before a semantic pause releases cache ownership, so a resumed walk starts each unfinished entry from its first dependency. |
 | Keep numeric-promotion rows in one allocation | Allocating each of the 16 rows separately, constructing a temporary row vector, and loading a row pointer for every promotion | Each row has the same compile-time width as the builtin numeric list, protected by a static assertion. All cells retain the same computation and row/column indices. The vector control block has the same size. |
+| Skip impossible frame-base candidate probes | Looking up physical or floating-point bases and preferred registers in a table containing only virtual integer registers | The existing validity predicates become candidate-kind predicates. The table contents, iteration order, and selection rule are unchanged. |
+| Avoid unread byte-swap provenance initialization and copies | Clearing arrays that every successful trace overwrites, copying those arrays before overwriting them again, and materializing a root result used only for immediate comparison | Successful traces still fill all 64 positions; failed traces are never read. Leaf metadata, bit-combination order, near-miss rejection, and emitted swaps are unchanged. |
+| Omit the unqualified type-info self-dependency | Appending and subsequently ignoring the current type when it has no qualifiers | The existing qualifier branch appends a dependency only when normalization is needed. Qualified types keep the same dependency and traversal position. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -66,7 +69,17 @@ plus the runtime (31 inputs); no expected-error source matched that filter. The
 native `--file-filter constant_slice_countdown.swg` integration check passed one
 test. All builds and commands exited zero in DevMode.
 
+The eleven-change checkpoint passed 1,423 C++ tests, the complete native suite
+(3,889 tests and expected recovery probes), and all 1,539 JIT tests, all driven by
+the DevMode compiler in program configuration `devmode`. The byte-swap cases cover
+32- and 64-bit inputs, reordered terms, and near misses. The metadata cases cover
+qualified and recursive types. The three latest local changes were validated
+together before retention; all builds and commands exited zero.
+
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.
 Worklist visitation changes were left aside because changed early-exit priority
 would require measurement to establish a saving.
+An additional register-kind predicate on every definition was also left aside:
+only refining the already-required base and preferred-register predicates avoids
+an extra test on valid candidate definitions.

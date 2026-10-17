@@ -12,6 +12,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Intersect forward dominators by instruction order | RPO-rank stores for reachable instructions and repeated rank-array reads during intersections | Every edge in this path points forward, so instruction indices have the same ordering as the previously stored ranks. The existing SSA helper now serves both analyses; cyclic graphs retain their previous algorithm. |
 | Solve forward-only record states in one sweep (`edf51be1b`) | A second full instruction-and-edge walk that only confirms convergence | Every predecessor of an instruction has already been processed. Graphs with backward edges keep the existing fixed-point loop and iteration limit. A C++ test checks that repeated field stores in a loop retain their byte-clearing operation. |
 | Solve forward-only sanitizer liveness in one reverse sweep | Repeating the chain and live-bit matrix walks to confirm unchanged sets | Chain states are numbered in instruction order, so every successor is final before its predecessor is visited. Graphs with backward edges retain their convergence loop. |
+| Visit only marked operand-width positions | Tests of unrelated union operands in register allocation and frame compaction | Removing the lowest set mask bit visits the same width operands in the same ascending order. Fixed-width vector opcodes keep their existing early return. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -42,6 +43,12 @@ The continuation starts after importing `3392a220bc`. The record-state batch pas
 1,421 C++ tests and the one native record test. The sanitizer batch passed 1,421 C++
 tests and all 85 `sanity` tests, using the same commands above with `sanity` replacing
 `native` and without a file filter. Both builds and all commands exited zero.
+
+The six-change checkpoint passed 1,421 C++ tests, the complete native suite
+(3,888 tests and the expected idle/pending/hardware recovery probes), and the complete
+JIT suite (1,539 tests). All commands exited zero, using the commands above without
+native file filters and with `jit` selecting that suite. All program configurations
+were `devmode`, driven by the worktree-local DevMode compiler.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

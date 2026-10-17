@@ -74,10 +74,9 @@ namespace
     uint64_t memoryAccessBytes(const MicroInstrDef& info, const MicroInstrOperand* ops)
     {
         uint64_t bytes = 0;
-        for (uint8_t i = 0; i < 8; ++i)
+        for (uint32_t remaining = info.opBitsMask; remaining; remaining &= remaining - 1)
         {
-            if (!(info.opBitsMask & (1u << i)))
-                continue;
+            const auto     i     = std::countr_zero(remaining);
             const uint64_t width = getNumBytes(ops[i].opBits);
             if (width && (!bytes || width < bytes))
                 bytes = width;

@@ -11,11 +11,9 @@ bool MicroInstr::has128BitOperands(const MicroInstrOperand* operands) const
     const MicroInstrDef& definition = info(op);
     if (definition.flags.has(MicroInstrFlagsE::Fixed128BitOperands))
         return true;
-    uint8_t remaining = definition.opBitsMask;
-    for (uint8_t index = 0; remaining; ++index, remaining >>= 1)
+    for (uint32_t remaining = definition.opBitsMask; remaining; remaining &= remaining - 1)
     {
-        if (!(remaining & 1))
-            continue;
+        const auto index = std::countr_zero(remaining);
         SWC_ASSERT(index < numOperands);
         if (operands[index].opBits == MicroOpBits::B128)
             return true;

@@ -1140,6 +1140,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopySource);
         r.add(MicroInstrOpcode::LoadRegReg, tryCoalesceLocalCopyChain);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardSiblingCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryForwardVectorCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseRedundantCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyBefore32BitWrite);

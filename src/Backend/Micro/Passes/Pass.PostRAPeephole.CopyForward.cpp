@@ -3695,6 +3695,81 @@ namespace PostRaPeephole
         return false;
     }
 
+    // The vector form of the producer retargeting above: a whole-register vector result
+    // computed into a scratch register and moved to its home later, typically a
+    // loop-carried value the allocator renamed for the last stretch of the body.
+    //
+    //     vor     x8, x5, x4         vor     x4, x5, x4
+    //     ...                  ->    ...
+    //     movaps  x4, x8             (erased)
+    //
+    // Nothing between the two may read or write the destination, nor read the scratch,
+    // and the scratch must die at the copy. The producer may read the destination: its
+    // inputs are read before its result is written.
+    bool tryForwardVectorCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
+            return false;
+        const MicroInstrOperand* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B128 || !copy[0].reg.isFloat() || !copy[1].reg.isFloat() || copy[0].reg == copy[1].reg)
+            return false;
+        const MicroReg dst = copy[0].reg;
+        const MicroReg src = copy[1].reg;
+
+        constexpr uint32_t                       maxWindow = 16;
+        std::array<MicroInstrRef, maxWindow + 1> window;
+        uint32_t                                 count = 0;
+        window[count++]                                = copyRef;
+        auto scan                                      = MicroStorage::Iterator{ctx.storage, copyRef};
+        --scan;
+        for (; scan.current.isValid() && count <= maxWindow; --scan)
+        {
+            const MicroInstr*    inst = &*scan;
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+            if (ctx.isClaimed(scan.current) || inst->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                return false;
+            window[count++]         = scan.current;
+            const RegTouch srcTouch = regTouch(ctx, *inst, src);
+            if (srcTouch.def && !srcTouch.use)
+                break;
+            const RegTouch dstTouch = regTouch(ctx, *inst, dst);
+            if (srcTouch.use || srcTouch.def || dstTouch.use || dstTouch.def)
+                return false;
+        }
+        if (!scan.current.isValid() || count > maxWindow + 1 || window[count - 1] != scan.current)
+            return false;
+
+        // The producer writes the whole register, `src` and nothing else, as a plain definition.
+        const MicroInstr&        producer = *scan;
+        const MicroInstrOperand* ops      = producer.ops(*ctx.operands);
+        const MicroInstrDef&     info     = MicroInstr::info(producer.op);
+        if (!ops || ops[0].reg != src || producer.numOperands > Action::K_MAX_OPS || info.flags.has(MicroInstrFlagsE::EncoderRegUseDef) || !info.opBitsMask)
+            return false;
+        if (info.resolvedRegModes(ops)[0] != MicroInstrRegMode::Def)
+            return false;
+        for (uint32_t i = 0; i < producer.numOperands && i < 8; ++i)
+        {
+            if ((info.opBitsMask & (1u << i)) && ops[i].opBits != MicroOpBits::B128)
+                return false;
+        }
+        const MicroInstrUseDef useDef = producer.collectUseDef(*ctx.operands, ctx.encoder);
+        if (useDef.isCall || useDef.defs.size() != 1 || useDef.defs[0] != src)
+            return false;
+        if (!ctx.isRegDeadAfter(src, ctx.instructionIndex))
+            return false;
+
+        MicroInstrOperand retargeted[Action::K_MAX_OPS] = {};
+        std::copy_n(ops, producer.numOperands, retargeted);
+        retargeted[0].reg = dst;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, producer, retargeted) || !ctx.claimAll(std::span{window.data(), count}))
+            return false;
+        ctx.emitRewrite(scan.current, producer.op, std::span{retargeted, producer.numOperands});
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
         // Liveness here is a linear forward scan, sound only on the pristine

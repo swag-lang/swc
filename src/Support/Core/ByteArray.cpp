@@ -340,8 +340,13 @@ void ByteArray::writeLe64(const size_t offset, const uint64_t value) noexcept
 
 void ByteArray::align(const size_t alignment, const std::byte pad)
 {
-    while (size() % alignment != 0)
+    const size_t remainder = size() % alignment;
+    if (!remainder)
+        return;
+    size_t padding = alignment - remainder;
+    do
         pushBack(pad);
+    while (--padding);
 }
 
 SWC_END_NAMESPACE();

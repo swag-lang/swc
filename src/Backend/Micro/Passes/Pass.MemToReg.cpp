@@ -1949,6 +1949,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         else
             recordStateAt.emplace();
 
+        const bool              forwardOnly = !cfg.hasLoop();
+        const uint32_t          sweepLimit  = forwardOnly ? 1 : 64;
         SmallVector<RecordWord> kept;
         for (RecordWord& record : records)
         {
@@ -1994,7 +1996,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             in[entry]      = RecordState{};
             reached[entry] = 1;
             bool changed   = true;
-            for (uint32_t sweep = 0; changed && sweep < 64; ++sweep)
+            for (uint32_t sweep = 0; changed && sweep < sweepLimit; ++sweep)
             {
                 changed = false;
                 for (uint32_t index = 0; index < n; ++index)
@@ -2017,7 +2019,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     }
                 }
             }
-            bool valid = !changed;
+            // Forward-only edges deliver every predecessor state before its target is
+            // visited. One sweep is final; only back-edges need a convergence check.
+            bool valid = forwardOnly || !changed;
 
             // A field store and a read need the whole word; a whole store
             // needs nothing.

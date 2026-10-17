@@ -839,6 +839,40 @@ SWC_TEST_BEGIN(MemToReg_RecordBuiltOnEveryPathStaysInRegister)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MemToReg_RecordFieldStoreRetainsLoopByteFacts)
+{
+    const MicroReg     sp    = CallConv::get(CallConvKind::Swag).stackPointer;
+    constexpr MicroReg frame = MicroReg::virtualIntReg(1);
+    constexpr MicroReg field = MicroReg::virtualIntReg(2);
+    constexpr MicroReg whole = MicroReg::virtualIntReg(3);
+    for (const bool withLoop : {false, true})
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef head = builder.createLabel();
+        builder.emitLoadAddressRegMem(frame, sp, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(field, MicroReg::intReg(1), MicroOpBits::B64);
+        builder.emitLoadMemImm(frame, 0, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(head);
+        builder.emitLoadMemReg(frame, 1, field, MicroOpBits::B8);
+        if (withLoop)
+        {
+            builder.emitCmpRegImm(field, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, head);
+        }
+        builder.emitLoadRegMem(whole, frame, 0, MicroOpBits::B64);
+        builder.emitLoadRegReg(MicroReg::intReg(0), whole, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runMemToRegPass(builder));
+
+        // The first trip overwrites known-zero bytes. Later trips must clear the previous field.
+        if (countFrameAccesses(builder, frame) != 0 || countBinaryImm(builder, MicroOp::And) != (withLoop ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A field stored over a word whose bytes are not known zero clears them
 // first; a record whose address escapes, or whose field is stored before the
 // word has a value on every path, stays in the frame.

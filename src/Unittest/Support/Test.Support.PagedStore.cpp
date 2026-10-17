@@ -573,6 +573,59 @@ SWC_TEST_BEGIN(DataSegment_StringPoolRelocationsRetainIndependentKeysAcrossResto
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_OffsetCopiesPreservePayloadGapsAndTrailingZeros)
+{
+    struct Payload
+    {
+        uint32_t  offset;
+        uint32_t  count;
+        std::byte value;
+    };
+    for (const bool pagedPrefix : {false, true})
+    {
+        for (const bool largeBlocks : {false, true})
+        {
+            DataSegment             segment;
+            SmallVector<Payload, 4> payloads;
+            if (pagedPrefix)
+            {
+                const uint32_t count            = PagedStore::K_DEFAULT_PAGE_SIZE - 7;
+                const auto [firstOffset, first] = segment.reserveBytes(count, 8, false);
+                std::fill_n(first, count, std::byte{0x31});
+                payloads.push_back({firstOffset, count, std::byte{0x31}});
+                const auto [secondOffset, second] = segment.reserveBytes(13, 8, false);
+                std::fill_n(second, 13, std::byte{0x42});
+                payloads.push_back({secondOffset, 13, std::byte{0x42}});
+            }
+            if (largeBlocks)
+            {
+                const uint32_t count            = PagedStore::K_DEFAULT_PAGE_SIZE + 17;
+                const auto [largeOffset, large] = segment.reserveBytes(count, 64, false);
+                std::fill_n(large, count, std::byte{0x53});
+                payloads.push_back({largeOffset, count, std::byte{0x53}});
+                const auto [lastOffset, last] = segment.reserveBytes(17, 64, false);
+                std::fill_n(last, 17, std::byte{0x64});
+                payloads.push_back({lastOffset, 17, std::byte{0x64}});
+            }
+            std::vector<std::byte> expected(segment.extentSize() + 11, std::byte{0});
+            for (const Payload& payload : payloads)
+                std::fill_n(expected.data() + payload.offset, payload.count, payload.value);
+            std::vector<std::byte> actual(expected.size(), std::byte{0xCC});
+            segment.copyToPreserveOffsets(actual);
+            if (actual != expected)
+                return Result::Error;
+            if (largeBlocks)
+            {
+                std::ranges::fill(actual, std::byte{0xCC});
+                segment.copyTo(actual);
+                if (actual != expected)
+                    return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

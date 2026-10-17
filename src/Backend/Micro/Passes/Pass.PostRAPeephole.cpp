@@ -1013,6 +1013,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftNoCopy);
         r.add(MicroInstrOpcode::CmpRegImm, tryFactorCommonConditionalShiftBare);
         r.add(MicroInstrOpcode::CmpRegImm, tryReuseFlagsForCompare);
+        r.add(MicroInstrOpcode::CmpMemImm, tryReuseMemoryFlagsForCompare);
         r.add(MicroInstrOpcode::TestMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::TestRegReg, tryEraseDeadCompare);

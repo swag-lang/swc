@@ -624,6 +624,45 @@ SWC_TEST_BEGIN(Sema_TypeManagerConcurrentInterningKeepsCanonicalStorage)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sema_PromotionTableKeepsNumericPairs)
+{
+    TypeManager& typeMgr = ctx.typeMgr();
+    struct TestCase
+    {
+        TypeRef lhs;
+        TypeRef rhs;
+        TypeRef expected;
+    };
+    const std::array cases = {
+        TestCase{typeMgr.typeU8(), typeMgr.typeU16(), typeMgr.typeU16()},
+        TestCase{typeMgr.typeU32(), typeMgr.typeU64(), typeMgr.typeU64()},
+        TestCase{typeMgr.typeS8(), typeMgr.typeS16(), typeMgr.typeS16()},
+        TestCase{typeMgr.typeS32(), typeMgr.typeS64(), typeMgr.typeS64()},
+        TestCase{typeMgr.typeU64(), typeMgr.typeS32(), typeMgr.typeU64()},
+        TestCase{typeMgr.typeS64(), typeMgr.typeU16(), typeMgr.typeS64()},
+        TestCase{typeMgr.typeF32(), typeMgr.typeU64(), typeMgr.typeF64()},
+        TestCase{typeMgr.typeF32(), typeMgr.typeU8(), typeMgr.typeF32()},
+        TestCase{typeMgr.typeFloat(0), typeMgr.typeF32(), typeMgr.typeF32()},
+        TestCase{typeMgr.typeIntSigned(), typeMgr.typeU16(), typeMgr.typeU16()},
+        TestCase{typeMgr.typeIntUnsigned(), typeMgr.typeS16(), typeMgr.typeS16()},
+        TestCase{typeMgr.typeInt(), typeMgr.typeF32(), typeMgr.typeF32()},
+        TestCase{typeMgr.typeChar(), typeMgr.typeF64(), typeMgr.typeF64()},
+        TestCase{typeMgr.typeRune(), typeMgr.typeF64(), typeMgr.typeF64()},
+    };
+    for (const TestCase& test : cases)
+    {
+        if (typeMgr.promote(test.lhs, test.rhs, false) != test.expected ||
+            typeMgr.promote(test.rhs, test.lhs, false) != test.expected)
+            return Result::Error;
+    }
+    if (typeMgr.promote(typeMgr.typeS8(), typeMgr.typeS16(), true) != typeMgr.typeS32() ||
+        typeMgr.promote(typeMgr.typeU8(), typeMgr.typeU16(), true) != typeMgr.typeU32() ||
+        typeMgr.promote(typeMgr.typeF32(), typeMgr.typeU8(), true) != typeMgr.typeF32())
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Sema_TypeManagerReleasesOwnedPayloads)
 {
     // Observe only this thread's isolated allocations, including the vectors inside

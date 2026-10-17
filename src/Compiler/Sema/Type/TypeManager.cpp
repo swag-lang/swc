@@ -612,8 +612,8 @@ bool TypeManager::isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeR
     if (!pointeeTypeRef.isValid())
         return false;
 
-    const TypeInfo& declaredPointee  = get(pointeeTypeRef);
-    const TypeInfo& pointeeType      = declaredPointee.unwrapAliasEnumTypeOrSelf(ctx);
+    const TypeInfo& declaredPointee = get(pointeeTypeRef);
+    const TypeInfo& pointeeType     = declaredPointee.unwrapAliasEnumTypeOrSelf(ctx);
     if (!pointeeType.isStruct())
         return false;
 
@@ -725,6 +725,7 @@ void TypeManager::buildPromoteTable()
         typeRune_};
 
     constexpr size_t n = types.size();
+    static_assert(n == PROMOTE_TYPE_COUNT);
 
     promoteIndex_.clear();
     promoteIndex_.reserve(n);
@@ -737,8 +738,8 @@ void TypeManager::buildPromoteTable()
         promoteIndex_.emplace(key, i);
     }
 
-    // Resize the promotion table with compact indices
-    promoteTable_.assign(n, std::vector<TypeRef>(n));
+    // Rows share one allocation and a fixed stride for promotion lookups.
+    promoteTable_.resize(n);
 
     for (uint32_t i = 0; i < n; ++i)
     {

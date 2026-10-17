@@ -14,6 +14,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Solve forward-only sanitizer liveness in one reverse sweep | Repeating the chain and live-bit matrix walks to confirm unchanged sets | Chain states are numbered in instruction order, so every successor is final before its predecessor is visited. Graphs with backward edges retain their convergence loop. |
 | Visit only marked operand-width positions | Tests of unrelated union operands in register allocation and frame compaction | Removing the lowest set mask bit visits the same width operands in the same ascending order. Fixed-width vector opcodes keep their existing early return. |
 | Advance the type-info DFS dependency cursor | Rechecking the completed dependency prefix after each descent, plus a separate node-based stack-membership set | The cursor visits dependencies in the same order. Membership and the cursor fit existing entry padding, checked statically; scope cleanup clears membership before a semantic pause releases cache ownership, so a resumed walk starts each unfinished entry from its first dependency. |
+| Keep numeric-promotion rows in one allocation | Allocating each of the 16 rows separately, constructing a temporary row vector, and loading a row pointer for every promotion | Each row has the same compile-time width as the builtin numeric list, protected by a static assertion. All cells retain the same computation and row/column indices. The vector control block has the same size. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -56,6 +57,14 @@ The type-info traversal batch passed 1,421 C++ tests, 16 JIT reflection tests
 The build and all commands exited zero. These checks include recursive type metadata,
 dynamic constraints, attributes, and lifecycle reflection; the cache ownership and
 payload-publication protocol are unchanged.
+
+The promotion-row batch, including the synchronized constant-slice-countdown change
+from `master`, passed 1,423 C++ tests. Its new numeric-pair test covers all 16 builtin
+categories in both operand orders and the minimum-32-bit rule. Semantic checking
+with `--file-filter arithmetic.swg` checked three standalone arithmetic sources
+plus the runtime (31 inputs); no expected-error source matched that filter. The
+native `--file-filter constant_slice_countdown.swg` integration check passed one
+test. All builds and commands exited zero in DevMode.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

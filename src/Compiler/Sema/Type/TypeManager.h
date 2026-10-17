@@ -290,8 +290,10 @@ private:
     TypeRef typeVariadic_          = TypeRef::invalid();
     TypeRef typeTypeInfo_          = TypeRef::invalid();
 
-    std::vector<std::vector<TypeRef>> promoteTable_;
-    FlatKeyMap<uint32_t>              promoteIndex_;
+    static constexpr uint32_t PROMOTE_TYPE_COUNT = 16;
+
+    std::vector<std::array<TypeRef, PROMOTE_TYPE_COUNT>> promoteTable_;
+    FlatKeyMap<uint32_t>                                 promoteIndex_;
 
     TypeRef computePromotion(TypeRef lhsRef, TypeRef rhsRef) const;
     void    buildPromoteTable();

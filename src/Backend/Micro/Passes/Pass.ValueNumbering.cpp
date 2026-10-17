@@ -543,6 +543,23 @@ namespace
         SmallVector<uint64_t, 8> key;
     };
 
+    // A high multiply, the expensive half of a division by a constant: worth a copy that
+    // keeps its result when the register holding it is overwritten in place before a
+    // repeat, as `n % k` and `n / k` lower to the same `mulhi` and then go separate ways.
+    bool isPreservableCompute(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        return inst.op == MicroInstrOpcode::OpBinaryRegReg &&
+               (ops[3].microOp == MicroOp::MultiplyHighUnsigned || ops[3].microOp == MicroOp::MultiplyHighSigned);
+    }
+
+    struct PlannedPreservation
+    {
+        MicroInstrRef afterRef = MicroInstrRef::invalid();
+        MicroReg      source   = MicroReg::invalid();
+        MicroReg      kept     = MicroReg::invalid();
+        MicroOpBits   bits     = MicroOpBits::B64;
+    };
+
     struct PlannedRewrite
     {
         MicroInstrRef    instRef = MicroInstrRef::invalid();
@@ -738,6 +755,13 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     uint32_t                                            lastEpoch             = 0;
 
     std::optional<bool> readOnlySelfCalls;
+
+    // The copies that keep an overwritten result for a repeat, by the index of its
+    // numbered instruction, and the next free integer register for them.
+    std::unordered_map<uint32_t, MicroReg> preservedByIndex;
+    std::vector<PlannedPreservation>       preservations;
+    uint32_t                               nextIntIndex   = 0;
+    uint32_t                               nextFloatIndex = 0;
 
     // The epoch in force at each instruction. Epochs are never reused: a label
     // that resumes its single predecessor's epoch shares it only with the
@@ -994,9 +1018,11 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             if (aliasOnly)
                 break;
 
-            // The earlier result must still be what its register holds here.
+            // The earlier result must still be what its register holds here, or be worth
+            // keeping in a register of its own.
             const uint32_t reachingId = ssaState->reachingValueId(cand.defReg, instRef);
-            if (reachingId == MicroSsaState::K_INVALID_VALUE || reachingId != cand.defValueId)
+            const bool     overwritten = reachingId == MicroSsaState::K_INVALID_VALUE || reachingId != cand.defValueId;
+            if (overwritten && (!sameResult || !isPreservableCompute(*inst, ops) || !cand.defReg.isVirtualInt()))
                 continue;
 
             // Replacing a flag-defining compute with a copy removes its flags
@@ -1010,10 +1036,24 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             // Same result: a plain copy of it. A plain load of bytes an earlier
             // load already holds: a copy of just those bytes. An extending
             // load of them: the same extension, applied to the earlier register.
+            MicroReg source = cand.defReg;
+            if (overwritten)
+            {
+                MicroReg& kept = preservedByIndex[cand.index];
+                if (!kept.isValid())
+                {
+                    if (!nextIntIndex)
+                        MicroPassHelpers::computeNextVirtualRegIndices(context, nextIntIndex, nextFloatIndex);
+                    kept = MicroReg::virtualIntReg(nextIntIndex++);
+                    preservations.push_back({.afterRef = instrRefs[cand.index], .source = cand.defReg, .kept = kept, .bits = cand.movBits});
+                }
+                source = kept;
+            }
+
             PlannedRewrite& rewrite = rewrites.emplace_back();
             rewrite.instRef         = instRef;
             rewrite.dstReg          = dstReg;
-            rewrite.srcReg          = cand.defReg;
+            rewrite.srcReg          = source;
             rewrite.srcBits         = srcBits;
             if (sameResult)
             {
@@ -1082,6 +1122,22 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             ops[3].opBits     = rewrite.srcBits;
         }
     }
+
+    // The kept copies go right after the instruction whose result they keep, before
+    // anything overwrites it.
+    for (const PlannedPreservation& preservation : preservations)
+    {
+        auto next = MicroStorage::Iterator{&storage, preservation.afterRef};
+        ++next;
+        SWC_ASSERT(next.current.isValid());
+        std::array<MicroInstrOperand, 3> copy;
+        copy[0].reg    = preservation.kept;
+        copy[1].reg    = preservation.source;
+        copy[2].opBits = preservation.bits;
+        storage.insertDerivedBefore(operands, next.current, MicroInstrOpcode::LoadRegReg, copy);
+    }
+    if (!preservations.empty())
+        context.builder->invalidateControlFlowGraph();
 
     context.passChanged = true;
     return Result::Continue;

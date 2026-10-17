@@ -117,10 +117,9 @@ namespace
         }
     }
 
-    CallFloatArgs callFloatArgsFromOperands(
-        const MicroInstr& inst, const MicroInstrDef& opcodeInfo, const MicroInstrOperand* ops)
+    CallFloatArgs callFloatArgsFromOperands(const MicroInstr& inst, const MicroInstrDef& opcodeInfo, const MicroInstrOperand* ops)
     {
-        SWC_ASSERT(opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction));
+        // Both callers establish that this is a call instruction.
         const uint32_t index = opcodeInfo.callConvIndex + 2;
         CallFloatArgs  result(CallConv::K_CALL_ARG_MASK_ALL);
         if (inst.numOperands > index)
@@ -139,6 +138,7 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
 CallFloatArgs MicroInstr::callFloatArgs(const MicroOperandStorage& operands) const
 {
     const MicroInstrDef& opcodeInfo = info(op);
+    SWC_ASSERT(opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction));
     return callFloatArgsFromOperands(*this, opcodeInfo, ops(operands));
 }
 

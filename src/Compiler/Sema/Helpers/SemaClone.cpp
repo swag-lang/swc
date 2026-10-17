@@ -350,12 +350,14 @@ namespace
 
     void collectClosureCaptureIdentifiers(Sema& sema, const Ast& sourceAst, SpanRef captureArgsRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
-        SmallVector<AstNodeRef> captures;
-        sourceAst.appendNodes(captures, captureArgsRef);
-        for (const AstNodeRef captureRef : captures)
+        const auto captures = sourceAst.nodeSpan(captureArgsRef);
+        for (auto chunk = captures.chunksBegin(); chunk != captures.chunksEnd(); ++chunk)
         {
-            const auto& captureArg = sourceAst.node(captureRef).cast<AstClosureArgument>();
-            collectSourceIdentifierUses(sema, sourceAst, captureArg.nodeIdentifierRef, outIdentifiers);
+            for (const AstNodeRef captureRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                const auto& captureArg = sourceAst.node(captureRef).cast<AstClosureArgument>();
+                collectSourceIdentifierUses(sema, sourceAst, captureArg.nodeIdentifierRef, outIdentifiers);
+            }
         }
     }
 

@@ -58,6 +58,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Read namespace segment counts from span metadata | Copying the namespace token list just to obtain its size | The span header already stores the same count, including zero for an invalid span. The scope-pop loop retains its count and order; the generated function loses its temporary and token-copy call and has a smaller body and frame. |
 | Collect generic metadata from borrowed chunks | Temporary reference vectors in both generic-parameter collectors and each where-constraint evaluation | Parameter ownership resolution, output reservation and declaration order are unchanged. Constraint evaluation retains its first failure, pause behavior and diagnostics; new AST allocations do not move retained source pages. All three generated functions lose their appendNodes call with smaller bodies and frames. |
 | Clone generic block children directly from their source chunks | A source-reference vector before cloning constraint and impl blocks | Each original child is cloned once in the same order into the existing output vector, with the same reservation and failure exit. Source chunks remain retained while clones allocate new pages. Both clone helpers have smaller bodies and frames; their callers are unchanged. |
+| Collect capture identifiers from borrowed chunks | Copying a closure's capture-reference list before collecting its identifier uses | The original source AST supplies the same ordered captures and recursive identifier walk. Output bindings retain their shadowing rules. The generated helper loses its appendNodes call with a smaller body and frame. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -112,6 +113,7 @@ filesystem cases requiring `--dev-full`.
 | 48 | 1,457 | Semantic `namespace` selection: 31 normal and 29 expected-error inputs, including runtime; native optimizer: 303 |
 | 49 | 1,457 | Full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 | 50 | 1,457 | Semantic `generic` selection: 68 normal and 45 expected-error inputs, including runtime; native `where` selection: 12 |
+| 51 | 1,457 | Full native: 3,892; full JIT: 1,539 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -194,3 +196,4 @@ Removing the duplicated prefix fill from DataSegment::copyTo was discarded becau
 Folding cyclic dominator child-link initialization into DFS or RPO construction was discarded because both generated frames grew. The original implementation was restored and rebuilt before checkpoint 45.
 Borrowing intrinsic arguments in parser rewriting and the vector-intrinsic dispatcher was left aside because those generated bodies grew. Only the fifteen lowerings with smaller bodies and frames retain the view.
 Chunk iteration in the generated-operator attribute predicate was left aside because its generated body grew; that predicate retains its original temporary.
+Chunk iteration in closure declaration and escape analysis was also left aside because those bodies grew. Only capture-identifier collection retains that change.

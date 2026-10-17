@@ -343,10 +343,48 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Related: compiler.core.001, compiler.core.004, compiler.core.016.
 ### compiler.core.001 — Replace generated dependency source with a reusable module interface
 
-- Evidence: every workspace import currently adds generated API source to the dependent compiler front end, repeating lexing, parsing, and semantic analysis for unchanged dependencies.
-- Next: define a versioned binary interface that preserves exported symbols, types, constants, attributes, ABI data, and bodies needed by downstream optimization; keep readable `.swg` export for inspection.
-- Done when: workspace imports no longer parse generated API source, cache invalidation covers every exported input, and fresh and reused interfaces produce identical diagnostics and artifacts.
-- Related: compiler.core.002, compiler.core.006, compiler.language.service.001, compiler.language.service.003, compiler.core.030.
+- Evidence: `CompilerInstance::appendImportedApiSnapshot` creates an `ImportedApi` source
+  file for every published API source. `Command::sema` sends those files through
+  `parseSourceFiles`, declaration sema, and full sema in each consumer. Dependency source
+  snapshots and native artifact reuse do not preserve the resolved interface for a consumer
+  that needs recompilation. `canDelayImportedFunctionBody` already defers eligible free
+  function bodies, but excludes methods because replay cannot reconstruct their receiver
+  binding, as well as interface implementations and other context-sensitive cases.
+- Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
+  work separately from consumer sources on a small consumer, a large module graph, and a
+  diamond dependency. Compare cold and warm imports with both compiler executables. Use
+  that baseline to prototype a versioned binary interface for resolved non-generic
+  declarations; retain the source import path for unsupported declarations while expanding
+  coverage. Independently measure whether preserving declaration context for lazy imported
+  methods removes a substantial remaining body-sema cost.
+- Interface contract: preserve namespace and overload membership, exported and supporting
+  symbols, canonical type identity, layouts, constants and default arguments, attributes
+  including safety/borrow contracts, interface implementations, ABI/link identities, and
+  source provenance. Index declarations for selective materialization without hiding
+  overloads or implementations from lookup. Keep generic templates and required
+  inline/macro/mixin bodies in separately indexed sections; instantiate or expand them in
+  the consumer context when required. Resolved ordinary bodies can later use the typed-body
+  representation from compiler.optimization.107. Importing metadata must not replay module
+  setup or compile-time side effects; requested compile-time calls retain their execution
+  behavior. Keep readable `.swg` export for inspection and compatibility.
+- Ownership: compiler instances own their identifier, type and constant managers, and symbols
+  point into mutable ASTs. Serialize stable interface-local identities and remap them into
+  the consumer; do not persist raw pointers or share live semantic state across consumers.
+  Reuse immutable interface bytes within a workspace invocation, with consumer-owned
+  materialization and generic-instance state.
+- Cache/publication: validate format and compiler identity, target/ABI, relevant configuration,
+  exported content including required bodies, and transitive interface fingerprints. Publish
+  the interface with the matching API/native artifact generation under the existing
+  publication protocol. Reject partial, corrupt or incompatible entries; use a complete
+  matching source API or rebuild rather than mixing generations.
+- Done when: supported workspace imports skip API lexing, parsing and declaration sema;
+  complete coverage removes the generated-source import path from ordinary builds. Warm
+  imports show lower wall time and peak memory on the measured consumers. Fresh and reused
+  paths preserve diagnostics, source locations, overload resolution, generic/inline/macro
+  behavior, compile-time execution and native behavior. Workspace regressions cover diamond
+  dependencies, configuration and transitive API/body changes, stale/corrupt entries and
+  concurrent publication under both compiler executables with real parallelism.
+- Related: compiler.core.002, compiler.core.006, compiler.language.service.001, compiler.language.service.003, compiler.core.030, compiler.optimization.107.
 ### compiler.core.002 — Front-end invalidation is module-wide
 
 - Evidence: front-end state is not persisted, so the compiler.core.004 `core_touch` workload

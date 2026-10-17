@@ -245,6 +245,20 @@ namespace MicroPassHelpers
         }
     };
 
+    // In a forward-only graph, node indices are already a topological rank.
+    inline uint32_t intersectForwardIdom(uint32_t lhs, uint32_t rhs, const std::vector<uint32_t>& idom)
+    {
+        while (lhs != rhs)
+        {
+            while (lhs > rhs)
+                lhs = idom[lhs];
+            while (rhs > lhs)
+                rhs = idom[rhs];
+        }
+
+        return lhs;
+    }
+
     // An SSA snapshot of the same graph already has the entry-rooted dominance
     // intervals, whether or not its values are current. Use it when available;
     // standalone and nonzero-entry callers keep the same graph analysis without

@@ -25,20 +25,6 @@ namespace
 
         return lhs;
     }
-
-    // In a forward-only graph, block indices are already a topological rank.
-    uint32_t intersectForwardIdom(uint32_t lhs, uint32_t rhs, const std::vector<uint32_t>& idom)
-    {
-        while (lhs != rhs)
-        {
-            while (lhs > rhs)
-                lhs = idom[lhs];
-            while (rhs > lhs)
-                rhs = idom[rhs];
-        }
-
-        return lhs;
-    }
 }
 
 bool MicroSsaState::isTrackedReg(const MicroReg reg)
@@ -704,7 +690,7 @@ bool MicroSsaState::computeDominators(const bool acyclic)
                     newIdom = predecessorBlock;
                 }
                 else if (predecessorRoot == root)
-                    newIdom = intersectForwardIdom(predecessorBlock, newIdom, idomValues);
+                    newIdom = MicroPassHelpers::intersectForwardIdom(predecessorBlock, newIdom, idomValues);
             }
             SWC_ASSERT(newIdom != K_INVALID_BLOCK);
             componentRoots[blockIndex] = root;

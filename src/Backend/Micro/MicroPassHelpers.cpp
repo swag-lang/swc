@@ -1382,7 +1382,6 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
         // Every edge points forward. Process reachable nodes in instruction
         // order; an unreachable predecessor still has no dominator and is
         // ignored exactly as it is in the general traversal.
-        rpoPosition[entry] = 0;
         rpo.push_back(entry);
         for (uint32_t node = entry + 1; node < n; ++node)
         {
@@ -1392,12 +1391,11 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
                 SWC_ASSERT(pred < n);
                 if (idom[pred] == MicroDomTree::K_INVALID_NODE)
                     continue;
-                newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
+                newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersectForwardIdom(pred, newIdom, idom);
             }
             if (newIdom == MicroDomTree::K_INVALID_NODE)
                 continue;
-            idom[node]        = newIdom;
-            rpoPosition[node] = static_cast<uint32_t>(rpo.size());
+            idom[node] = newIdom;
             rpo.push_back(node);
         }
     }

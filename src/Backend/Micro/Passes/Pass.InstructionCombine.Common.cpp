@@ -323,9 +323,12 @@ namespace InstructionCombine
         return cachedAddressAnswer<traceRelocatedAddress>(ctx.lastRelocatedAddress, ctx, reg, atRef);
     }
 
+    // A read in a loop through the frame, a relocated address or immutable storage
+    // stays a load of its own: loop-invariant code motion hoists a load, never a
+    // memory operand folded into an operation that also reads a carried register.
     bool keepAccessScalar(Context& ctx, MicroInstrRef ref, MicroReg base)
     {
-        if (!isFrameDerivedAddress(ctx, base, ref) && !isRelocatedAddress(ctx, base, ref))
+        if (!isFrameDerivedAddress(ctx, base, ref) && !isRelocatedAddress(ctx, base, ref) && !ctx.isImmutableStorageBase(base))
             return false;
         return ctx.isInsideLoop(ref);
     }
@@ -339,6 +342,18 @@ namespace InstructionCombine
         lastFlagsDeadRef = ref;
         lastFlagsDead    = MicroPassHelpers::areCpuFlagsDeadAfter(*storage, *operands, ref, builder);
         return lastFlagsDead;
+    }
+
+    bool Context::isImmutableStorageBase(const MicroReg reg)
+    {
+        if (!reg.isVirtualInt() || !passContext || !builder || builder->immutableStorageBases().empty())
+            return false;
+        if (!immutableBasesReady)
+        {
+            immutableBasesReady = true;
+            MicroPassHelpers::collectImmutableStorageBases(immutableBases, *passContext);
+        }
+        return immutableBases.contains(reg.packed);
     }
 
     bool Context::isInsideLoop(const MicroInstrRef ref)

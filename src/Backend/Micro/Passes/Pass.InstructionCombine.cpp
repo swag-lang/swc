@@ -260,6 +260,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.reportCalls.clear();
     ctx.reportCallsReady         = false;
     ctx.loopSlotsReady           = false;
+    ctx.immutableBasesReady      = false;
     ctx.loopSlotsAll             = false;
     ctx.lastFrameDerivedAddress  = {};
     ctx.lastRelocatedAddress     = {};

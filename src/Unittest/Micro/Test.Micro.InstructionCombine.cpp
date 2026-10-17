@@ -6065,6 +6065,51 @@ SWC_TEST_BEGIN(InstCombine_ScalarVectorProjectionsPreserveLiveLoopJoins)
 }
 SWC_TEST_END()
 
+// A value parameter's field read in a loop stays a load, which loop-invariant code
+// motion hoists, instead of a memory operand re-read on every trip. Modes:
+//   0 - immutable storage, in a loop: kept a load.
+//   1 - ordinary pointer, in a loop: folded.
+//   2 - immutable storage, no loop: folded.
+SWC_TEST_BEGIN(InstCombine_ImmutableParameterReadInLoopStaysALoad)
+{
+    for (const uint32_t mode : {0u, 1u, 2u})
+    {
+        constexpr MicroReg parameter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg output    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg total     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg value     = MicroReg::virtualIntReg(4);
+        constexpr MicroReg count     = MicroReg::virtualIntReg(5);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegReg(parameter, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(output, MicroReg::intReg(3), MicroOpBits::B64);
+        if (mode != 1)
+            builder.markImmutableStorageBase(parameter);
+        builder.emitLoadRegImm(total, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        if (mode != 2)
+            builder.placeLabel(loop);
+        builder.emitLoadRegMem(value, parameter, 8, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(total, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(output, 0, total, MicroOpBits::B64);
+        if (mode != 2)
+        {
+            builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitCmpRegImm(count, ApInt(10, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        }
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+
+        const bool kept = mode == 0;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (kept ? 1u : 0u) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != (kept ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

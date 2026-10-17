@@ -121,7 +121,6 @@ namespace
         void findCycles()
         {
             indices_.assign(edges_.size(), UINT32_MAX);
-            lowLinks_.resize(edges_.size());
             onStack_.assign(edges_.size(), false);
             cyclic_.assign(edges_.size(), false);
             for (uint32_t i = 0; i < edges_.size(); ++i)
@@ -213,11 +212,12 @@ namespace
             return *index;
         }
 
-        void connect(const uint32_t nodeIndex)
+        uint32_t connect(const uint32_t nodeIndex)
         {
-            indices_[nodeIndex]  = nextIndex_;
-            lowLinks_[nodeIndex] = nextIndex_;
-            nextIndex_++;
+            // Only this invocation and its parent consume the low link.
+            const uint32_t index = nextIndex_++;
+            indices_[nodeIndex]  = index;
+            uint32_t lowLink     = index;
             stack_.push_back(nodeIndex);
             onStack_[nodeIndex] = true;
 
@@ -225,15 +225,14 @@ namespace
             {
                 if (indices_[targetIndex] == UINT32_MAX)
                 {
-                    connect(targetIndex);
-                    lowLinks_[nodeIndex] = std::min(lowLinks_[nodeIndex], lowLinks_[targetIndex]);
+                    lowLink = std::min(lowLink, connect(targetIndex));
                 }
                 else if (onStack_[targetIndex])
-                    lowLinks_[nodeIndex] = std::min(lowLinks_[nodeIndex], indices_[targetIndex]);
+                    lowLink = std::min(lowLink, indices_[targetIndex]);
             }
 
-            if (lowLinks_[nodeIndex] != indices_[nodeIndex])
-                return;
+            if (lowLink != index)
+                return lowLink;
 
             // The root is the only member exactly when it is already on top of the stack.
             const bool isCycle = stack_.back() != nodeIndex || std::ranges::find(edges_[nodeIndex], nodeIndex) != edges_[nodeIndex].end();
@@ -247,13 +246,13 @@ namespace
                 if (memberIndex == nodeIndex)
                     break;
             }
+            return lowLink;
         }
 
         StringMap<uint32_t>                nameIndices_;
         std::vector<AutoInlineName>        names_;
         std::vector<SmallVector<uint32_t>> edges_;
         std::vector<uint32_t>              indices_;
-        std::vector<uint32_t>              lowLinks_;
         std::vector<bool>                  onStack_;
         std::vector<bool>                  cyclic_;
         std::unique_ptr<uint8_t[]>         blockedCalls_;
@@ -288,21 +287,24 @@ namespace
         if (!decl || decl->tokNameRef.isInvalid())
             return;
 
-        const size_t count = ast.spanSize(attributes->spanChildrenRef);
-        for (size_t i = 0; i < count; ++i)
+        const auto attributesView = ast.nodeSpan(attributes->spanChildrenRef);
+        for (auto chunk = attributesView.chunksBegin(); chunk != attributesView.chunksEnd(); ++chunk)
         {
-            const AstNodeRef attributeRef = ast.nthNode(attributes->spanChildrenRef, i);
-            if (attributeRef.isInvalid() || !ast.hasNode(attributeRef))
-                continue;
-            const auto* attribute = ast.node(attributeRef).safeCast<AstAttribute>();
-            if (!attribute)
-                continue;
-
-            const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef).text;
-            if (attributeName == "Macro" || attributeName == "Mixin")
+            const std::span attributeRefs(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);
+            for (const AstNodeRef attributeRef : attributeRefs)
             {
-                outNames.insert(autoInlineName(ast.srcView(), decl->tokNameRef));
-                break;
+                if (attributeRef.isInvalid() || !ast.hasNode(attributeRef))
+                    continue;
+                const auto* attribute = ast.node(attributeRef).safeCast<AstAttribute>();
+                if (!attribute)
+                    continue;
+
+                const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef).text;
+                if (attributeName == "Macro" || attributeName == "Mixin")
+                {
+                    outNames.insert(autoInlineName(ast.srcView(), decl->tokNameRef));
+                    return;
+                }
             }
         }
     }

@@ -60,9 +60,9 @@ namespace
         if (typeRef.isInvalid())
             return nullptr;
 
-        const TypeInfo& typeInfo      = sema.typeMgr().get(typeRef);
-        const TypeInfo& symbolType    = typeInfo.unwrapAliasTypeOrSelf(sema.ctx());
-        Symbol*         symbol        = symbolType.getSymbol();
+        const TypeInfo& typeInfo   = sema.typeMgr().get(typeRef);
+        const TypeInfo& symbolType = typeInfo.unwrapAliasTypeOrSelf(sema.ctx());
+        Symbol*         symbol     = symbolType.getSymbol();
         if (!symbol || !symbol->isSymMap())
             return nullptr;
 
@@ -687,9 +687,13 @@ namespace
         if (target.none())
             return Result::Continue;
 
-        const size_t count = sema.ast().spanSize(list.spanChildrenRef);
-        for (size_t i = 0; i < count; ++i)
-            SWC_RESULT(checkAttributeUsage(sema, sema.ast().nthNode(list.spanChildrenRef, i), target));
+        const auto attributes = sema.ast().nodeSpan(list.spanChildrenRef);
+        for (auto chunk = attributes.chunksBegin(); chunk != attributes.chunksEnd(); ++chunk)
+        {
+            const std::span attributeRefs(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);
+            for (const AstNodeRef attributeRef : attributeRefs)
+                SWC_RESULT(checkAttributeUsage(sema, attributeRef, target));
+        }
 
         return Result::Continue;
     }

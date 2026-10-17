@@ -915,6 +915,45 @@ SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSee
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AstNodeSpanPreservesOrderAcrossPagesAndGrowth)
+{
+    CommandLine             cmdLine;
+    CompilerInstance        compiler(ctx.global(), cmdLine);
+    TaskContext             compilerCtx(compiler);
+    SourceFile&             source = Unittest::addTestSource(compilerCtx, "Compiler", "AstNodeSpanPages", "");
+    Ast&                    ast    = source.ast();
+    std::vector<AstNodeRef> refs;
+    for (size_t i = 0; i < 2049; ++i)
+        refs.push_back(ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first);
+
+    const auto invalid = ast.nodeSpan(SpanRef::invalid());
+    if (!invalid.empty() || invalid.chunksBegin() != invalid.chunksEnd())
+        return Result::Error;
+    for (const size_t count : {size_t{0}, size_t{1}, refs.size()})
+    {
+        const SpanRef ref  = ast.pushSpan(std::span<const AstNodeRef>(refs.data(), count));
+        const auto    view = ast.nodeSpan(ref);
+        // Appending more pages must not invalidate an earlier view.
+        ast.pushSpan(std::span<const AstNodeRef>(refs));
+        if (view.size() != count)
+            return Result::Error;
+        size_t next = 0;
+        for (auto chunk = view.chunksBegin(); chunk != view.chunksEnd(); ++chunk)
+        {
+            if (!chunk->count || chunk->count > count - next)
+                return Result::Error;
+            for (const AstNodeRef nodeRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (nodeRef != refs[next++])
+                    return Result::Error;
+            }
+        }
+        if (next != count)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_AstVisitPreservesSiblingsAcrossPauseSkipAndRestart)
 {
     CommandLine      cmdLine;
@@ -1094,8 +1133,8 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsStableTokenOrderWithinOneFile)
         if (values != reference || !std::ranges::equal(values, expected))
             return Result::Error;
 
-        std::vector<LocationSortTestSymbol*> uniqueValues = {&symbols[2], &symbols[0], &symbols[1], &symbols[3], &symbols[4], &symbols[5]};
-        auto                                uniqueReference = uniqueValues;
+        std::vector<LocationSortTestSymbol*> uniqueValues    = {&symbols[2], &symbols[0], &symbols[1], &symbols[3], &symbols[4], &symbols[5]};
+        auto                                 uniqueReference = uniqueValues;
         SymbolSort::sortAndUnique(uniqueReference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
         SymbolSort::LocationKeyCache keys(compiler);
         SymbolSort::sortByLocation(uniqueValues, compiler, keys);
@@ -1142,8 +1181,8 @@ SWC_TEST_BEGIN(Compiler_SymbolLocationSortKeepsCompositeKeysAcrossFiles)
     if (values != reference)
         return Result::Error;
 
-    std::vector<LocationSortTestSymbol*> uniqueValues = {&symbols[2], &symbols[3], &symbols[1], &symbols[0]};
-    auto                                uniqueReference = uniqueValues;
+    std::vector<LocationSortTestSymbol*> uniqueValues    = {&symbols[2], &symbols[3], &symbols[1], &symbols[0]};
+    auto                                 uniqueReference = uniqueValues;
     SymbolSort::sortAndUnique(uniqueReference, SymbolSort::LocationKeyFactory<LocationSortTestSymbol>{.compiler = &compiler});
     SymbolSort::LocationKeyCache keys(compiler);
     SymbolSort::sortByLocation(uniqueValues, compiler, keys);
@@ -1291,6 +1330,65 @@ func foreignUnsupported()->func||()->s32
     const AstFunctionDecl* wrapper = findFunctionDecl(clean.ast(), "wrapper");
     if (!wrapper || !wrapper->hasFlag(AstFunctionFlagsE::AutoInlineBody))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AutoInlineCyclesKeepIncomingWrappersSeparate)
+{
+    static constexpr std::string_view SOURCE = R"(#global private
+func leaf() {}
+func self()
+{
+    self()
+    leaf()
+}
+func first()
+{
+    second()
+    leaf()
+}
+func second() { third() }
+func third()
+{
+    first()
+    self()
+}
+func bridge()
+{
+    first()
+    self()
+}
+func outer() { bridge() }
+)";
+    CommandLine                       cmdLine;
+    CompilerInstance                  compiler(ctx.global(), cmdLine);
+    TaskContext                       compilerCtx(compiler);
+    SourceFile&                       source = Unittest::addTestSource(compilerCtx, "Compiler", "AutoInlineIncomingCycleWrapper", SOURCE);
+    Lexer                             lexer;
+    Parser                            parser;
+    const uint64_t                    errorsBefore = Stats::get().numErrors.load(std::memory_order_relaxed);
+    lexer.tokenize(compilerCtx, source.ast().srcView(), LexerFlagsE::Default);
+    if (source.ast().srcView().mustSkip())
+        return Result::Error;
+    parser.parse(compilerCtx, source.ast());
+    if (Stats::get().numErrors.load(std::memory_order_relaxed) != errorsBefore)
+        return Result::Error;
+    const std::array asts = {&source.ast()};
+    Parser::finalizeAutoInlineCandidates(asts);
+
+    // The three-node cycle also reaches an already completed self-recursive component.
+    for (const std::string_view name : {"self", "first", "second", "third"})
+    {
+        const AstFunctionDecl* decl = findFunctionDecl(source.ast(), name);
+        if (!decl || decl->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+    }
+    for (const std::string_view name : {"leaf", "bridge"})
+    {
+        const AstFunctionDecl* decl = findFunctionDecl(source.ast(), name);
+        if (!decl || !decl->hasFlag(AstFunctionFlagsE::AutoInlineBody))
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

@@ -31,6 +31,8 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Read SIMD byte tables through a byte span | Copying each 16-byte index table into a second local array | `std::as_bytes` exposes the same unsigned-byte representation. Materialization copies it synchronously into constant storage; type selection, payload hashing and emitted instructions use the same bytes and retain their order. |
 | Mark only named aggregate slots | A byte store for every preceding positional child while resolving an aggregate child | The positional cursor only advances. Its consumed slots are never read again; named bindings retain marks because they may occupy a future slot. Child visitation, identifier lookup and slot choices are unchanged. |
 | Align raw span writes with a mask | Runtime remainder operations in chunked and contiguous span alignment | Raw writers accept zero or a supported power of two. A zero mask preserves the zero convention; otherwise unsigned masking rounds to the identical offset. Header placement, payload, page selection and publication are unchanged. |
+| Return Tarjan low links from the recursive walk | The low-link array allocation, its initial fill and per-edge element loads and stores | Each low link is consumed only by its own activation and its parent immediately after recursion. Discovery indices, stack membership, SCC popping and graph visitation retain their order. The DevMode object reserves the same 72 bytes per recursive call; the graph object loses one vector. |
+| Traverse attribute spans by chunks | Repeated span setup, header reads and prefix-chunk walks for each attribute | A borrowed AST span exposes the existing ordered chunks without copying references or allocating. Meta-function discovery keeps its first-match exit; semantic attribute validation preserves its first-error exit. Existing AST span helpers share the same shard decoding. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -154,6 +156,17 @@ The raw span alignment batch shared that compiler validation, then passed all
 case covers alignments 0, 1, 2, 4 and 8 at five page-prefix offsets, including
 page rollover. The final build and test exited zero. Object inspection confirms
 the span alignment divisions are gone; element-capacity divisions remain.
+
+The Tarjan batch passed 1,428 C++ tests, including direct recursion, a three-node
+cycle reaching a completed recursive component and an incoming wrapper that must
+remain eligible for inlining. The initial new fixture omitted four Swag statement
+separators; it was corrected before retention, and parsing errors are now checked
+before its graph assertions. The final DevMode build and test exited zero.
+
+The attribute-span batch passed 1,429 C++ tests and the semantic `attribute`
+selection: two normal sources and eight expected-error sources, with their
+runtime. The new C++ test checks invalid, empty, single-element and cross-page
+views after further page growth. The DevMode build and both commands exited zero.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

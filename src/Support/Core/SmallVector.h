@@ -8,6 +8,7 @@ template<class T, std::size_t InlineCapacity = 16>
 class SmallVector
 {
     static_assert(InlineCapacity > 0, "InlineCapacity must be > 0");
+    static constexpr bool K_NOTHROW_RELOCATE = std::is_nothrow_constructible_v<T, decltype(std::move_if_noexcept(std::declval<T&>()))>;
 
 public:
     using value_type             = T;
@@ -50,7 +51,9 @@ public:
         sizeValue_ = il.size();
     }
 
-    SmallVector(const SmallVector& other) :
+    SmallVector(const SmallVector& other)
+        requires(std::is_copy_constructible_v<T>)
+        :
         SmallVector()
     {
         alloc_ = std::allocator_traits<allocator_type>::select_on_container_copy_construction(other.alloc_);
@@ -59,7 +62,7 @@ public:
         sizeValue_ = other.sizeValue_;
     }
 
-    SmallVector(SmallVector&& other) noexcept :
+    SmallVector(SmallVector&& other) noexcept(K_NOTHROW_RELOCATE) :
         ptr_(inlineData())
     {
         alloc_ = std::move(other.alloc_);
@@ -87,6 +90,7 @@ public:
     }
 
     SmallVector& operator=(const SmallVector& other)
+        requires(std::is_copy_constructible_v<T>)
     {
         if (this == &other)
             return *this;
@@ -104,7 +108,7 @@ public:
         return *this;
     }
 
-    SmallVector& operator=(SmallVector&& other) noexcept
+    SmallVector& operator=(SmallVector&& other) noexcept(K_NOTHROW_RELOCATE)
     {
         if (this == &other)
             return *this;
@@ -238,6 +242,12 @@ public:
         }
         else if (n > sizeValue_)
         {
+            if (n > capacityValue_ && containsElementAddress(&value))
+            {
+                const T saved(value);
+                resize(n, saved);
+                return;
+            }
             reserve(n);
             for (; sizeValue_ < n; ++sizeValue_)
                 std::construct_at(ptr_ + sizeValue_, value);
@@ -248,7 +258,7 @@ public:
     T& emplace_back(Args&&... args)
     {
         if (sizeValue_ == capacityValue_)
-            reallocate(growTo(sizeValue_ + 1));
+            return growAndEmplaceBack(std::forward<Args>(args)...);
         T* p = std::construct_at(ptr_ + sizeValue_, std::forward<Args>(args)...);
         ++sizeValue_;
         return *p;
@@ -276,7 +286,14 @@ public:
         if (count == 0)
             return;
 
-        reserve(sizeValue_ + count);
+        if (sizeValue_ + count > capacityValue_ && containsElementAddress(data))
+        {
+            const size_type offset = static_cast<size_type>(data - ptr_);
+            reserve(sizeValue_ + count);
+            data = ptr_ + offset;
+        }
+        else
+            reserve(sizeValue_ + count);
         uninitializedCopyN(data, count, ptr_ + sizeValue_);
         sizeValue_ += count;
     }
@@ -310,25 +327,23 @@ public:
     template<class... Args>
     iterator emplace(const_iterator cpos, Args&&... args)
     {
-        size_type idx = static_cast<size_type>(cpos - cbegin());
-        if (sizeValue_ == capacityValue_)
-            reallocate(growTo(sizeValue_ + 1));
-
+        const size_type idx = static_cast<size_type>(cpos - cbegin());
         if (idx == sizeValue_)
         {
-            std::construct_at(ptr_ + sizeValue_, std::forward<Args>(args)...);
-            ++sizeValue_;
+            emplace_back(std::forward<Args>(args)...);
+            return begin() + idx;
         }
-        else
-        {
-            // make room: move-construct new last, then shift via move-assign
-            std::construct_at(ptr_ + sizeValue_, std::move(ptr_[sizeValue_ - 1]));
-            for (size_type i = sizeValue_ - 1; i > idx; --i)
-                ptr_[i] = std::move(ptr_[i - 1]);
-            std::destroy_at(ptr_ + idx);
-            std::construct_at(ptr_ + idx, std::forward<Args>(args)...);
-            ++sizeValue_;
-        }
+
+        // Preserve arguments that refer to an element before growing or shifting it.
+        T value(std::forward<Args>(args)...);
+        if (sizeValue_ == capacityValue_)
+            reallocate(growTo(sizeValue_ + 1));
+        const size_type previousSize = sizeValue_;
+        uninitializedMoveN(ptr_ + previousSize - 1, 1, ptr_ + previousSize);
+        ++sizeValue_;
+        for (size_type i = previousSize - 1; i > idx; --i)
+            ptr_[i] = std::move(ptr_[i - 1]);
+        ptr_[idx] = std::move(value);
         return begin() + idx;
     }
 
@@ -344,18 +359,44 @@ public:
 
     iterator erase_unordered(const_iterator cpos)
     {
-        size_type idx = static_cast<size_type>(cpos - cbegin());
-        std::destroy_at(ptr_ + idx);
+        const size_type idx = static_cast<size_type>(cpos - cbegin());
         if (idx != sizeValue_ - 1)
         {
-            std::construct_at(ptr_ + idx, std::move(back()));
-            std::destroy_at(ptr_ + sizeValue_ - 1);
+            if constexpr (K_NOTHROW_RELOCATE)
+            {
+                std::destroy_at(ptr_ + idx);
+                std::construct_at(ptr_ + idx, std::move_if_noexcept(back()));
+            }
+            else if constexpr (std::is_move_assignable_v<T>)
+                ptr_[idx] = std::move(back());
+            else
+            {
+                std::destroy_at(ptr_ + idx);
+                try
+                {
+                    std::construct_at(ptr_ + idx, std::move(back()));
+                }
+                catch (...)
+                {
+                    // No assignment can fill the hole. Retain only the live prefix.
+                    destroyN(ptr_ + idx + 1, sizeValue_ - idx - 1);
+                    sizeValue_ = idx;
+                    throw;
+                }
+            }
         }
+        std::destroy_at(ptr_ + sizeValue_ - 1);
         --sizeValue_;
         return begin() + idx;
     }
 
 private:
+    bool containsElementAddress(const T* element) const noexcept
+    {
+        const std::less<const T*> less;
+        return !less(element, ptr_) && less(element, ptr_ + sizeValue_);
+    }
+
     T* inlineData() noexcept
     {
         return std::launder(reinterpret_cast<T*>(&inlineDataStorage_[0]));
@@ -377,14 +418,26 @@ private:
 
     static void uninitializedMoveN(T* src, size_type n, T* dst)
     {
-        for (size_type i = 0; i < n; ++i)
-            std::construct_at(dst + i, std::move_if_noexcept(src[i]));
+        if constexpr (K_NOTHROW_RELOCATE)
+        {
+            for (size_type i = 0; i < n; ++i)
+                std::construct_at(dst + i, std::move_if_noexcept(src[i]));
+        }
+        else if constexpr (std::is_copy_constructible_v<T>)
+            std::uninitialized_copy_n(src, n, dst);
+        else
+            std::uninitialized_move_n(src, n, dst);
     }
 
     static void uninitializedCopyN(const T* src, size_type n, T* dst)
     {
-        for (size_type i = 0; i < n; ++i)
-            std::construct_at(dst + i, src[i]);
+        if constexpr (std::is_nothrow_copy_constructible_v<T>)
+        {
+            for (size_type i = 0; i < n; ++i)
+                std::construct_at(dst + i, src[i]);
+        }
+        else
+            std::uninitialized_copy_n(src, n, dst);
     }
 
     size_type growTo(size_type minCapacityValue) const
@@ -397,13 +450,65 @@ private:
     void reallocate(size_type newCapacityValue)
     {
         T* new_mem = std::allocator_traits<allocator_type>::allocate(alloc_, newCapacityValue);
-        uninitializedMoveN(ptr_, sizeValue_, new_mem);
+        if constexpr (K_NOTHROW_RELOCATE)
+            uninitializedMoveN(ptr_, sizeValue_, new_mem);
+        else
+        {
+            try
+            {
+                uninitializedMoveN(ptr_, sizeValue_, new_mem);
+            }
+            catch (...)
+            {
+                std::allocator_traits<allocator_type>::deallocate(alloc_, new_mem, newCapacityValue);
+                throw;
+            }
+        }
+        replaceStorage(new_mem, newCapacityValue);
+    }
+
+    void replaceStorage(T* newStorage, size_type newCapacityValue) noexcept
+    {
         destroyN(ptr_, sizeValue_);
         if (!isInline())
             std::allocator_traits<allocator_type>::deallocate(alloc_, ptr_, capacityValue_);
 
-        ptr_           = new_mem;
+        ptr_           = newStorage;
         capacityValue_ = newCapacityValue;
+    }
+
+    template<class... Args>
+    T& growAndEmplaceBack(Args&&... args)
+    {
+        const size_type newCapacityValue = growTo(sizeValue_ + 1);
+        T*              newStorage       = std::allocator_traits<allocator_type>::allocate(alloc_, newCapacityValue);
+        T*              added            = newStorage + sizeValue_;
+        // Construct the new value while any arguments borrowed from old elements are alive.
+        if constexpr (std::is_nothrow_constructible_v<T, Args&&...> && K_NOTHROW_RELOCATE)
+        {
+            std::construct_at(added, std::forward<Args>(args)...);
+            uninitializedMoveN(ptr_, sizeValue_, newStorage);
+        }
+        else
+        {
+            bool addedConstructed = false;
+            try
+            {
+                std::construct_at(added, std::forward<Args>(args)...);
+                addedConstructed = true;
+                uninitializedMoveN(ptr_, sizeValue_, newStorage);
+            }
+            catch (...)
+            {
+                if (addedConstructed)
+                    std::destroy_at(added);
+                std::allocator_traits<allocator_type>::deallocate(alloc_, newStorage, newCapacityValue);
+                throw;
+            }
+        }
+        replaceStorage(newStorage, newCapacityValue);
+        ++sizeValue_;
+        return *added;
     }
 
     void clearHeapIfNeeded()
@@ -431,7 +536,10 @@ private:
         const size_type n = static_cast<size_type>(std::distance(first, last));
         reserve(n);
         for (; first != last; ++first)
-            emplace_back(*first);
+        {
+            std::construct_at(ptr_ + sizeValue_, *first);
+            ++sizeValue_;
+        }
     }
 
     template<class It>
@@ -457,7 +565,10 @@ private:
         if (idx == sizeValue_)
         {
             for (; first != last; ++first)
-                std::construct_at(ptr_ + sizeValue_++, *first);
+            {
+                std::construct_at(ptr_ + sizeValue_, *first);
+                ++sizeValue_;
+            }
             return begin() + idx;
         }
 
@@ -465,21 +576,38 @@ private:
         if (count < tail)
         {
             uninitializedMoveN(ptr_ + sizeValue_ - count, count, ptr_ + sizeValue_);
+            sizeValue_ += count;
             for (size_type i = tail - count; i > 0; --i)
                 ptr_[idx + count + i - 1] = std::move(ptr_[idx + i - 1]);
-            sizeValue_ += count;
             for (size_type i = 0; i < count; ++i, ++first)
                 ptr_[idx + i] = *first;
         }
         else
         {
-            uninitializedMoveN(ptr_ + idx, tail, ptr_ + idx + count);
-            sizeValue_ += count;
-            size_type i = 0;
-            for (; i < tail; ++i, ++first)
-                ptr_[idx + i] = *first;
-            for (; first != last; ++first, ++i)
-                std::construct_at(ptr_ + idx + i, *first);
+            constexpr bool nothrowRange = K_NOTHROW_RELOCATE && std::is_nothrow_move_assignable_v<T> &&
+                                          std::is_nothrow_constructible_v<T, decltype(*first)> && std::is_nothrow_assignable_v<T&, decltype(*first)> &&
+                                          noexcept(*first) && noexcept(++first) && noexcept(first != last);
+            if constexpr (!nothrowRange)
+            {
+                // Append a contiguous live prefix before rotating fallible values into place.
+                const size_type previousSize = sizeValue_;
+                for (; first != last; ++first)
+                {
+                    std::construct_at(ptr_ + sizeValue_, *first);
+                    ++sizeValue_;
+                }
+                std::rotate(ptr_ + idx, ptr_ + previousSize, ptr_ + sizeValue_);
+            }
+            else
+            {
+                uninitializedMoveN(ptr_ + idx, tail, ptr_ + idx + count);
+                sizeValue_ += count;
+                size_type i = 0;
+                for (; i < tail; ++i, ++first)
+                    ptr_[idx + i] = *first;
+                for (; first != last; ++first, ++i)
+                    std::construct_at(ptr_ + idx + i, *first);
+            }
         }
 
         return begin() + idx;

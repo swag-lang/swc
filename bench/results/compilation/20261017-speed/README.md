@@ -1,7 +1,9 @@
 # Structural compilation savings, 2026-10-17
 
 This prompt-4 pass starts at `46c33a053c` on `perf/prompt4-20261017` in an external
-worktree. It uses only that worktree's DevMode compiler, with six workers.
+worktree. Planned speed work uses that worktree's DevMode compiler, with six workers.
+The reproduced SmallVector lifetime defect also requires the Release compiler
+under the shared protocol's defect-repair exception.
 `SWC_BUILD_NUM` remains 1173. The existing compilation reports guided selection
 of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 
@@ -35,6 +37,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Traverse attribute spans by chunks | Repeated span setup, header reads and prefix-chunk walks for each attribute | A borrowed AST span exposes the existing ordered chunks without copying references or allocating. Meta-function discovery keeps its first-match exit; semantic attribute validation preserves its first-error exit. Existing AST span helpers share the same shard decoding. |
 | Check multiply-to-shift eligibility once | A repeated operand-width check, power-of-two check and integer-logarithm scan after checking CPU flags | The sole caller already rejects every ineligible nontrivial immediate before the flags walk. Zero and one keep their existing reductions; the remaining case emits the same shift and shift amount. Width-boundary and live-flag C++ cases protect both decisions. |
 | Walk static-switch cases by chunks | Repeated span setup, header reads and prefix walks during case lookup and semantic child collection | Searches retain their first matching case. Child collection keeps the selector, all case values, all bodies and the case-label nodes in their original separate phases, without a new buffer. A C++ case checks that flattened order including a default section. |
+| Construct a reserved forward assignment directly | A capacity comparison for every assigned element | The forward range supplies its complete distance before reservation. Direct construction retains the same values, order, size publication and capacity policy; input iterators keep their incremental growth path. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -86,11 +89,33 @@ An initial JIT `compiler` file filter omitted the required allocator-helper sour
 the corrected full JIT run passed. The initial Tarjan regression fixture omitted
 four Swag statement separators; it was corrected before retention and now checks
 parsing errors before its graph assertions. Formatting and `git diff --check`
-passed for retained changes. No Release-compiler build or benchmark was run.
+passed for retained changes. No benchmark was run; Release validation is limited
+to the SmallVector defect repair below.
 
 Checkpoint 28 includes the prompt-2 immutable-parameter loop-read change imported
-at `205ac08ff3`. The following SmallVector regression source was not yet compiled
-in that checkpoint; its later checks are recorded separately.
+at `205ac08ff3`. SmallVector checks also include the later immutable-field-address
+propagation imported at `a21d518c77`.
+
+A new SmallVector regression first exposed a leaked live prefix when copy
+construction failed. The repair cleans partial construction and raw allocations,
+keeps contiguous live elements after interrupted insertion or erasure, preserves
+borrowed element arguments through growth, and reports fallible inline moves
+accurately through C++ traits. Copy operations require copyable elements, so
+standard containers can relocate vectors of move-only elements. The inline
+storage, object fields and capacity policy are unchanged. These correctness
+changes are not claimed as compilation-speed gains.
+
+The final DevMode C++ suite passes 1,445 tests, including twelve SmallVector
+regressions for inline and heap storage, aliasing, interrupted constructors,
+assignments and iterator traversal, and move-only elements. Both compiler builds
+pass with the same six-worker bound. DevMode also passes the full native suite
+(3,891 tests) and JIT suite (1,539 tests). The Release compiler passes 302 native
+optimizer tests in the `devmode` program configuration:
+
+```text
+MSBuild.exe swc.sln /t:Build /m:6 /p:Configuration=Release /p:Platform=x64 /p:SwcCompileJobs=6 /nologo /v:minimal
+bin\swc.exe --num-cores 6 tools\unittests.swgs native -bc devmode --file-filter optimizer --num-cores 6 --rebuild
+```
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

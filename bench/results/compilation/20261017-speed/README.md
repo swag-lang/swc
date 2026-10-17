@@ -67,6 +67,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Retain immutable token lists when cloning within one AST | A temporary token-reference vector, its fill, and a second AST span allocation/copy for same-owner clones | The resolved owner must equal the destination AST. Token lists are immutable and live for that AST's lifetime; cross-owner clones retain their copies. The ownership regression covers empty, single-name and multi-page lists across three ASTs after page growth. Object inspection confirms the same-owner return precedes vector initialization and copying, with an unchanged frame. |
 | Keep fresh reflection descriptors at their allocated defaults | Rewriting zero runtime fields and fresh struct-cache fields; looking up and resetting every empty attribute slice | A cache miss supplies a new entry and a fully zeroed concrete payload before its sole initialization. Attribute slices belong to those payloads or fresh TypeValue arrays, and wiring runs once before Done. Nonzero fields, relocations and capacities are unchanged. All affected reflection helpers retain their frames; generated initialization bodies shrink and empty attribute lists return before their storage lookup. |
 | Walk lambda-type parameters from AST chunks | A temporary parameter-reference vector before constructing a lambda's function type | The same immutable references produce parameters, defaults, names and diagnostics in the same order. AST pages remain retained across semantic work. The generated function has a smaller body and frame. |
+| Check the call-instruction contract at the public query | Rechecking the call flag inside a collector branch that already established it | Opcode definitions are immutable constexpr data. The public floating-argument query retains the assertion; the guarded collector shares the decoding helper without repeating it. Both public functions retain their frames, and the collector loses the duplicate test and assertion block. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -129,6 +130,7 @@ filesystem cases requiring `--dev-full`.
 | 56 | 1,459 | Full sanity suite: 85 |
 | 57 | 1,459 | Full native: 3,892; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 | 58 | 1,459 | Full native: 3,892; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
+| 59 | 1,459 | Native `call_float_arg` selection: 4; full JIT: 1,539 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing

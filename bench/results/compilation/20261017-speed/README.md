@@ -23,6 +23,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Materialize completeness dependencies only when propagation is needed | Prefix summation, a second dependency walk, and the reverse-edge and cursor allocations when no dependency is missing; a separate seed scan in every case | Missing dependencies seed the same caller-order queue during the existing count walk. Without a seed, completeness cannot fall; with one, the same reverse edges and queue propagate it as before. Temporary storage is released before the mask phase. |
 | Write converged upper-half facts directly into their final slots | A per-instruction input-state allocation, its initialization, and a final full copy in the cyclic path | Every instruction starts queued and writes its input fact on each visit. Queries are enabled only after convergence; outgoing facts, requeues and visit order are unchanged. The existing final buffer already has the required slot extent. |
 | Share one enum-value lowering buffer within its metadata build | All but the first temporary byte allocation for the values of one enum | The underlying layout has one fixed size. Each value still starts with zero bytes and is fully materialized before the next reset, preserving omitted elements, padding and relocations. Capacity remains that one layout's size. |
+| Keep large inline-binding visited sets in a flat key table | Per-node hash allocations and linked-node probing after the first 16 visited nodes | The small path and pending-node order are unchanged. Membership uses the same 32-bit reference identity; a static assertion bounds the optional control object's size. The flat slots replace MSVC's two-iterator buckets and linked reference nodes. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -104,6 +105,12 @@ The sixteen-change checkpoint passed 1,424 C++ tests, 3,889 native tests with th
 expected recovery probes, and 1,539 JIT tests. The enum-focused
 `typeinfo_collections.swg` check passed two tests before the broad suites. The
 DevMode build and all commands exited zero.
+
+The large inline-binding batch passed 1,424 C++ tests and its new native test,
+which passes a 32-term expression through explicit inlining. The focused semantic
+`local_function` selection checked four expected-error sources plus the runtime;
+no normal semantic source matched. The new source was formatted. The DevMode
+build and all test commands exited zero.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

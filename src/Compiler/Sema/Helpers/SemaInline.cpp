@@ -207,13 +207,15 @@ namespace
 
     struct InlineBindingVisitedNodes
     {
-        SmallVector<AstNodeRef>                       small;
-        std::optional<std::unordered_set<AstNodeRef>> large;
+        SmallVector<AstNodeRef>   small;
+        std::optional<FlatKeySet> large;
+
+        static_assert(sizeof(std::optional<FlatKeySet>) <= sizeof(std::optional<std::unordered_set<AstNodeRef>>));
 
         bool insert(AstNodeRef nodeRef)
         {
             if (large)
-                return large->insert(nodeRef).second;
+                return large->insert(nodeRef.get());
             if (std::ranges::find(small, nodeRef) != small.end())
                 return false;
             if (small.size() < small.capacity())
@@ -223,11 +225,13 @@ namespace
             }
 
             // The vector has only used its inline storage. At the first overflow,
-            // switch to membership lookup instead of growing a quadratic visited scan.
+            // switch to a flat membership table instead of growing a quadratic scan or
+            // allocating one hash node per visited AST node. Traversal order stays in pending.
             large.emplace();
             large->reserve(small.size() * 2);
-            large->insert(small.begin(), small.end());
-            return large->insert(nodeRef).second;
+            for (const AstNodeRef seen : small)
+                large->insert(seen.get());
+            return large->insert(nodeRef.get());
         }
     };
 

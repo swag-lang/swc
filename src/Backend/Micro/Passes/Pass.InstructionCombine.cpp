@@ -222,6 +222,8 @@ namespace
             {
                 if (it->op == MicroInstrOpcode::LoadRegMem)
                     tryFoldGlobalUnaryMemoryOp(ctx, it.current, *it);
+                else if (it->frameWriteGuard)
+                    tryDropFrameWriteGuard(ctx, it.current, *it);
                 continue;
             }
             for (const PatternFn fn : reg.patternsFor(it->op))

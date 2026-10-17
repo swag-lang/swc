@@ -436,6 +436,86 @@ func writeAfterBorrowingCall(value: Pair)->u64
 }
 SWC_TEST_END()
 
+// A write the backend proves lands in the function's frame loses its check while the function
+// has no borrow of its own open, whatever pointer the source wrote through. A borrow the function
+// opens itself, here an inline binding, keeps the check of every write made while it is open.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroDropsFrameWriteChecks)
+{
+    constexpr std::string_view SOURCE = R"(#global private
+struct Pair { first, second: u64 }
+
+#[Swag.Inline]
+func bump(table: *[4] u32, index: u32)
+{
+    table[][index] = table[][index] + 7
+}
+
+#[Swag.NoInline]
+func writeFrameThroughPointer(count: u32)->u32
+{
+    var table: [4] u32
+    for i in count
+    {
+        bump(&table, 1)
+        bump(&table, i & 3)
+    }
+    return table[1] + table[2]
+}
+
+#[Swag.Inline]
+func readAlongsideWrite(value: Pair, destination: *Pair)->u64
+{
+    destination.first = 53
+    return value.first
+}
+
+#[Swag.NoInline]
+func writeFrameWhileBorrowed(seed: u64)->u64
+{
+    var value = Pair{seed, seed + 1}
+    var other = Pair{seed + 2, seed + 3}
+    return readAlongsideWrite(value, &other) + other.first
+}
+
+#run
+{
+    Swag.assert(writeFrameThroughPointer(8) == 84)
+    Swag.assert(writeFrameWhileBorrowed(5) == 58)
+}
+)";
+
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_frame_write_checks" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    std::error_code ec;
+    fs::remove_all(directory, ec);
+
+    PrintMicroRun          run;
+    const std::string_view requests[] = {"writeFrameThroughPointer", "writeFrameWhileBorrowed"};
+    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    fs::remove_all(directory, ec);
+
+    const auto checkedWrites = [&](std::string_view scopedName) {
+        const std::string_view output = run.output;
+        const size_t           header = output.find(std::format("function : {}", scopedName));
+        if (header == std::string_view::npos)
+            return SIZE_MAX;
+        const size_t           next    = output.find("[micro]", header);
+        const std::string_view listing = output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header);
+        size_t                 count   = 0;
+        for (size_t pos = listing.find("__valueBorrowWrite"); pos != std::string_view::npos; pos = listing.find("__valueBorrowWrite", pos + 1))
+            count++;
+        return count;
+    };
+
+    const size_t frame    = checkedWrites("writeFrameThroughPointer");
+    const size_t borrowed = checkedWrites("writeFrameWhileBorrowed");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || frame != 0 || borrowed == 0 || borrowed == SIZE_MAX)
+    {
+        std::println(stderr, "[print micro frame write checks] frame {}, while borrowed {}\n{}", frame, borrowed, run.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

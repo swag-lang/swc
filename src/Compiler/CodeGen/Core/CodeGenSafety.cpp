@@ -449,7 +449,7 @@ Result CodeGenSafety::prepareValueBorrowSafety(CodeGen& codeGen)
 
 namespace
 {
-    Result emitValueBorrowRuntimeCall(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, SmallVector<MicroReg>& args, bool withLocation)
+    Result emitValueBorrowRuntimeCall(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, SmallVector<MicroReg>& args, bool withLocation, bool frameWriteGuard = false)
     {
         const auto* function = codeGen.compiler().runtimeFunctionSymbol(codeGen.idMgr().runtimeFunction(kind));
         SWC_ASSERT(function);
@@ -466,7 +466,10 @@ namespace
         {
             auto* instruction = instructions.ptr(ref);
             if (MicroInstr::info(instruction->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+            {
                 instruction->compilerSafetyCall = true;
+                instruction->frameWriteGuard    = frameWriteGuard;
+            }
         }
         return Result::Continue;
     }
@@ -504,7 +507,11 @@ Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, M
     SmallVector<MicroReg> args;
     args.push_back(address);
     args.push_back(size);
-    return emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite, args, true);
+    // A borrow covering this frame can only be one of the function's own, opened at a call site
+    // or an inline binding and closed when that call returns: a caller's borrow covers storage
+    // older than the frame, and a callee's ends before the callee returns. While none of the
+    // function's own is open, the backend drops the check of a write it proves lands in the frame.
+    return emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite, args, true, !codeGen.hasOpenLocalValueBorrow());
 }
 
 Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, uint64_t size)

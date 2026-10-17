@@ -214,6 +214,9 @@ struct MicroInstr
     uint8_t          numOperands = 0;
     // Generated guards may touch their private records, but preserve source-program memory.
     bool compilerSafetyCall = false;
+    // A value-borrow write guard emitted while the function had no borrow of its own open.
+    // A write it proves lands in this frame cannot meet a live borrow, so it needs no check.
+    bool frameWriteGuard = false;
 
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;

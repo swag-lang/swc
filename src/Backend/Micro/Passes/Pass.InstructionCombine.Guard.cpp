@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
@@ -182,6 +183,104 @@ namespace InstructionCombine
         MicroInstrOperand newOps[3] = {jumpOps[0], jumpOps[1], jumpOps[2]};
         newOps[0].cpuCond           = MicroCond::Unconditional;
         ctx.emitRewrite(jumpRef, MicroInstrOpcode::JumpCond, newOps);
+        return true;
+    }
+
+    // A value-borrow check of a write into the function's own frame.
+    //
+    //     rcx = %address          (erased)
+    //     rdx = %size             (erased)
+    //     r8  = %location         (erased)
+    //     call __valueBorrowWrite (erased)
+    //
+    // Code generation marks a write guard emitted while the function had no borrow of its own
+    // open. Only such a borrow could cover this frame, so a fixed-size write whose address is
+    // proved to lie in the frame cannot meet one. A write of a computed size keeps its check:
+    // nothing bounds it to the frame.
+    bool tryDropFrameWriteGuard(Context& ctx, MicroInstrRef callRef, const MicroInstr& callInst)
+    {
+        if (!callInst.frameWriteGuard || callInst.op != MicroInstrOpcode::CallLocal || !ctx.ssa)
+            return false;
+        const MicroInstrOperand* callOps = callInst.ops(*ctx.operands);
+        if (!callOps)
+            return false;
+        const CallConv& conv = CallConv::get(callOps[0].callConv);
+        if (conv.intArgRegs.size() < 3)
+            return false;
+
+        // A call made at an unaligned stack depth is wrapped in an adjustment of the stack pointer.
+        const auto readStackAdjust = [&](const MicroInstrRef adjustRef, const MicroOp op, uint64_t& outAmount) {
+            const MicroInstr*        adjust = adjustRef.isValid() ? ctx.instruction(adjustRef) : nullptr;
+            const MicroInstrOperand* ops    = adjust ? adjust->ops(*ctx.operands) : nullptr;
+            if (!ops || adjust->op != MicroInstrOpcode::OpBinaryRegImm || ops[0].reg != ctx.stackPointer || ops[2].microOp != op || ops[3].hasWideImmediateValue())
+                return false;
+            outAmount = ops[3].valueU64;
+            return true;
+        };
+        MicroInstrRef ref       = callRef;
+        MicroInstrRef subRef    = MicroInstrRef::invalid();
+        MicroInstrRef addRef    = MicroInstrRef::invalid();
+        uint64_t      subAmount = 0;
+        uint64_t      addAmount = 0;
+        if (readStackAdjust(ctx.previousRef(callRef), MicroOp::Subtract, subAmount))
+        {
+            subRef = ctx.previousRef(callRef);
+            addRef = ctx.nextRef(callRef);
+            if (!readStackAdjust(addRef, MicroOp::Add, addAmount) || addAmount != subAmount)
+                return false;
+            ref = subRef;
+        }
+
+        // The arguments are copied into the convention's registers just before the call.
+        MicroInstrRef argRefs[3] = {MicroInstrRef::invalid(), MicroInstrRef::invalid(), MicroInstrRef::invalid()};
+        for (uint32_t step = 0; step < 3; ++step)
+        {
+            ref                          = ctx.previousRef(ref);
+            const MicroInstr*        def = ref.isValid() ? ctx.instruction(ref) : nullptr;
+            const MicroInstrOperand* ops = def ? def->ops(*ctx.operands) : nullptr;
+            if (!ops || def->numOperands == 0)
+                return false;
+            if (def->op != MicroInstrOpcode::LoadRegReg && def->op != MicroInstrOpcode::LoadRegImm && def->op != MicroInstrOpcode::LoadRegPtrReloc &&
+                def->op != MicroInstrOpcode::LoadAddrRegMem && def->op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                return false;
+            const auto slot = std::ranges::find(conv.intArgRegs.begin(), conv.intArgRegs.begin() + 3, ops[0].reg);
+            if (slot == conv.intArgRegs.begin() + 3)
+                return false;
+            const size_t index = static_cast<size_t>(slot - conv.intArgRegs.begin());
+            if (argRefs[index].isValid())
+                return false;
+            argRefs[index] = ref;
+        }
+
+        const MicroInstr*        addressDef = ctx.instruction(argRefs[0]);
+        const MicroInstrOperand* addressOps = addressDef->ops(*ctx.operands);
+        if (addressDef->op == MicroInstrOpcode::LoadRegImm || addressDef->op == MicroInstrOpcode::LoadRegPtrReloc ||
+            !isFrameDerivedAddress(ctx, addressOps[1].reg, argRefs[0]))
+            return false;
+
+        const MicroInstr*        sizeDef = ctx.instruction(argRefs[1]);
+        const MicroInstrOperand* sizeOps = sizeDef->ops(*ctx.operands);
+        uint64_t                 size    = 0;
+        if (sizeDef->op == MicroInstrOpcode::LoadRegReg)
+        {
+            if (!resolveIntConstant(size, ctx, sizeOps[1].reg, argRefs[1], MicroOpBits::B64))
+                return false;
+        }
+        else if (sizeDef->op != MicroInstrOpcode::LoadRegImm)
+            return false;
+
+        const bool claimed = subRef.isValid() ? ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], subRef, callRef, addRef}, true)
+                                              : ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], callRef}, true);
+        if (!claimed)
+            return false;
+        for (const MicroInstrRef argRef : argRefs)
+            ctx.emitErase(argRef);
+        ctx.emitErase(callRef);
+        if (subRef.isValid())
+        {
+            ctx.emitErase(subRef);
+            ctx.emitErase(addRef);
+        }
         return true;
     }
 }

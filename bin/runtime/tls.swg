@@ -39,6 +39,7 @@ private func __tlsCreatePtr(id: u64)->*void?
     if not ptr do
         return null
     Swag.memset(ptr, 0, size)
+    cast(*Swag.Context, ptr).runtimeTlsIdPlusOne = id + 1
     if not __tlsSetValue(id, ptr)
     {
         __bootstrapFree(cast([*] void?, ptr))

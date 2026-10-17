@@ -1838,9 +1838,10 @@ namespace
 
         ABICall::materializeReturnToReg(builder, contextReg, tlsGetPtrCallConvKind, tlsGetPtrRet);
         builder.placeLabel(haveContext);
+        // The context records its slot where it is installed, by '__tlsCreatePtr' or
+        // 'Swag.setContext', so the lookup on every call stays a read.
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultView.typeRef());
         builder.emitLoadRegReg(resultPayload.reg, contextReg, MicroOpBits::B64);
-        builder.emitLoadMemReg(resultPayload.reg, offsetof(Runtime::Context, runtimeTlsIdPlusOne), tlsIdPlusOneReg, MicroOpBits::B64);
         return Result::Continue;
     }
 
@@ -1908,6 +1909,13 @@ namespace
                 return Result::Error;
 
             SWC_RESULT(materializeNativeRuntimeContextTlsId(tlsIdReg, codeGen, *tlsAllocFunction));
+
+            // An installed context carries its slot, which a dynamically loaded module syncs to.
+            MicroBuilder&  builder         = codeGen.builder();
+            const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(tlsIdPlusOneReg, tlsIdReg, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadMemReg(contextReg, offsetof(Runtime::Context, runtimeTlsIdPlusOne), tlsIdPlusOneReg, MicroOpBits::B64);
         }
         else
         {

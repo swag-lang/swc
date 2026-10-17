@@ -59,6 +59,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Collect generic metadata from borrowed chunks | Temporary reference vectors in both generic-parameter collectors and each where-constraint evaluation | Parameter ownership resolution, output reservation and declaration order are unchanged. Constraint evaluation retains its first failure, pause behavior and diagnostics; new AST allocations do not move retained source pages. All three generated functions lose their appendNodes call with smaller bodies and frames. |
 | Clone generic block children directly from their source chunks | A source-reference vector before cloning constraint and impl blocks | Each original child is cloned once in the same order into the existing output vector, with the same reservation and failure exit. Source chunks remain retained while clones allocate new pages. Both clone helpers have smaller bodies and frames; their callers are unchanged. |
 | Collect capture identifiers from borrowed chunks | Copying a closure's capture-reference list before collecting its identifier uses | The original source AST supplies the same ordered captures and recursive identifier walk. Output bindings retain their shadowing rules. The generated helper loses its appendNodes call with a smaller body and frame. |
+| Reuse the span iterator's decoded element count | Separate size reads before or after beginning the same span walk | The first iterator already records the immutable total. Single-node assertions, symbol-list empty/contiguity checks, generic output reservations and clone walks use that same count. Empty spans, ownership, allocation capacities and visit order are unchanged. All seven generated functions lose their redundant size calls with unchanged frames and smaller bodies. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -114,6 +115,7 @@ filesystem cases requiring `--dev-full`.
 | 49 | 1,457 | Full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 | 50 | 1,457 | Semantic `generic` selection: 68 normal and 45 expected-error inputs, including runtime; native `where` selection: 12 |
 | 51 | 1,457 | Full native: 3,892; full JIT: 1,539 |
+| 52 | 1,457 | Full semantic suites: 295 normal and 347 expected-error inputs, including runtime; native `where` selection: 12 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing

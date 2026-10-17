@@ -149,9 +149,10 @@ namespace SemaGeneric
             return;
 
         const auto params = ast->nodeSpan(spanRef);
-        outParams.reserve(outParams.size() + params.size());
+        auto       chunk  = params.chunksBegin();
+        outParams.reserve(outParams.size() + chunk.total);
 
-        for (auto chunk = params.chunksBegin(); chunk != params.chunksEnd(); ++chunk)
+        for (; chunk != params.chunksEnd(); ++chunk)
         {
             for (const AstNodeRef paramRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
                 appendCollectedGenericParam(sema, ast->node(paramRef), paramRef, outParams);
@@ -209,8 +210,9 @@ namespace SemaGeneric
             return;
 
         const auto params = sema.ast().nodeSpan(spanRef);
-        outParams.reserve(outParams.size() + params.size());
-        for (auto chunk = params.chunksBegin(); chunk != params.chunksEnd(); ++chunk)
+        auto       chunk  = params.chunksBegin();
+        outParams.reserve(outParams.size() + chunk.total);
+        for (; chunk != params.chunksEnd(); ++chunk)
         {
             for (const AstNodeRef paramRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
                 appendCollectedGenericParam(sema, sema.node(paramRef), paramRef, outParams);

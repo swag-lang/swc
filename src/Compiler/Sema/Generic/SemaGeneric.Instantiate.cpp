@@ -750,11 +750,12 @@ namespace SemaGeneric
         {
             const auto& constraintBlock = sema.node(constraintBlockRef).cast<AstConstraintBlock>();
             const auto  sourceChildren  = sema.ast().nodeSpan(constraintBlock.spanChildrenRef);
+            auto        chunk           = sourceChildren.chunksBegin();
 
             SmallVector<AstNodeRef> clonedChildren;
-            clonedChildren.reserve(sourceChildren.size());
+            clonedChildren.reserve(chunk.total);
             const SemaClone::CloneContext cloneContext{bindings};
-            for (auto chunk = sourceChildren.chunksBegin(); chunk != sourceChildren.chunksEnd(); ++chunk)
+            for (; chunk != sourceChildren.chunksEnd(); ++chunk)
             {
                 for (const AstNodeRef childRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
                 {
@@ -857,13 +858,14 @@ namespace SemaGeneric
         AstNodeRef cloneGenericImplBlock(Sema& sema, const AstImpl& implDecl, std::span<const SemaClone::ParamBinding> bindings)
         {
             const auto children = sema.ast().nodeSpan(implDecl.spanChildrenRef);
-            if (children.empty())
+            auto       chunk    = children.chunksBegin();
+            if (!chunk.total)
                 return AstNodeRef::invalid();
 
             SmallVector<AstNodeRef> clonedChildren;
-            clonedChildren.reserve(children.size());
+            clonedChildren.reserve(chunk.total);
             const SemaClone::CloneContext cloneContext{bindings, {}, true};
-            for (auto chunk = children.chunksBegin(); chunk != children.chunksEnd(); ++chunk)
+            for (; chunk != children.chunksEnd(); ++chunk)
             {
                 for (const AstNodeRef childRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
                 {

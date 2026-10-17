@@ -1952,33 +1952,38 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         SmallVector<RecordWord> kept;
         for (RecordWord& record : records)
         {
-            const uint8_t                                   all = static_cast<uint8_t>((1u << record.bytes) - 1);
-            std::unordered_map<uint32_t, const SlotAccess*> accessAt;
+            const uint8_t                             all = static_cast<uint8_t>((1u << record.bytes) - 1);
+            std::unordered_map<uint32_t, RecordState> writeEffects;
             for (const SlotAccess& acc : record.accesses)
-                accessAt[acc.ref.get()] = &acc;
-
-            // The state after an instruction, from the state before it.
-            const auto transfer = [&](const uint32_t index, RecordState state) {
-                const auto found = accessAt.find(refs[index].get());
-                if (found == accessAt.end() || !found->second->isWrite)
-                    return state;
-                const SlotAccess&        acc   = *found->second;
+            {
+                if (!acc.isWrite)
+                    continue;
                 const MicroInstr*        inst  = storage.ptr(acc.ref);
                 const MicroInstrOperand* iops  = inst->ops(operands);
                 const uint32_t           rel   = static_cast<uint32_t>(acc.offset - record.offset);
                 const uint32_t           count = getNumBytes(acc.bits);
                 const uint8_t            mask  = static_cast<uint8_t>(((1u << count) - 1) << rel);
-                state.defined |= mask;
-                state.zero &= static_cast<uint8_t>(~mask);
+                RecordState              effect{mask, 0};
                 if (inst->op == MicroInstrOpcode::LoadMemImm)
                 {
                     const uint64_t value = iops[3].valueU64;
                     for (uint32_t b = 0; b < count; ++b)
                     {
                         if (((value >> (b * 8)) & 0xFF) == 0)
-                            state.zero |= static_cast<uint8_t>(1u << (rel + b));
+                            effect.zero |= static_cast<uint8_t>(1u << (rel + b));
                     }
                 }
+                writeEffects[acc.ref.get()] = effect;
+            }
+
+            // Store effects do not depend on the incoming state or graph sweep.
+            const auto transfer = [&](const uint32_t index, RecordState state) {
+                const auto found = writeEffects.find(refs[index].get());
+                if (found == writeEffects.end())
+                    return state;
+                const RecordState effect = found->second;
+                state.defined |= effect.defined;
+                state.zero = static_cast<uint8_t>((state.zero & ~effect.defined) | effect.zero);
                 return state;
             };
 

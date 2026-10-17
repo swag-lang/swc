@@ -42,6 +42,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Trust the allocator's private dense virtual-register table | Three repeated register-kind checks and sentinel/bounds checks for every scored virtual occurrence | Both insertion sites require virtual registers, and every scored use and definition was indexed before arrays were sized. The interval fallback does not mutate those lists. Occurrence multiplicity, scores, traversal and allocation choices are unchanged; object inspection confirms removal of both scored-loop bounds sequences. |
 | Borrow closing-delimiter recovery lists | Constructing and destroying a temporary SmallVector for each closing delimiter, including successful matches | Every caller supplies an empty list or a literal list whose lifetime covers the call. Only a missing closer constructs the same working recovery vector, preserving token order, fallback tokens and diagnostics. Object inspection confirms the removed destructor call in expression parsing. |
 | Keep fresh attribute records at their allocated zero defaults | Resetting attribute type pointers, parameter-slice pointers and inline Any values after reserveSpan already zeroed them | Both the paged and large-block allocation paths zero the entire fresh span. These private helpers have only that fresh-array call chain; absent types, parameters and null values retain identical empty fields. Object inspection confirms the removed Any zero store with the same stack reservation. |
+| Decode single-node spans once | A second span setup, another header-size read and the indexed lookup loop for a one-element query | The writer guarantees nonempty chunks for a nonempty span. The existing one-element assertion remains; empty/invalid spans retain the invalid result when assertions are disabled. The page-growth regression checks the query, and the DevMode object has fewer calls and a smaller body and stack frame. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -79,6 +80,7 @@ filesystem cases requiring `--dev-full`.
 | 31 | 1,446 | Native optimizer selection: 302 |
 | 32 | 1,446 | Full parser suites: 50 normal and 80 expected-error inputs, including runtime |
 | 33 | 1,446 | Native `typeinfo_attribute` selection: 7; JIT `typeinfo_attribute_param.swg`: 1 |
+| 34 | 1,446 | Full native: 3,891; full JIT: 1,539 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing

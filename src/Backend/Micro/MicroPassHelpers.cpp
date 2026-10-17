@@ -1596,6 +1596,22 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
     MicroStorage&        storage  = *context.instructions;
     MicroOperandStorage& operands = *context.operands;
 
+    // A field of the storage is addressed through an address operation on its base: that
+    // address names the same storage and stands or falls with the base.
+    std::unordered_set<MicroReg> tracked = marked;
+    for (bool grew = true; grew;)
+    {
+        grew = false;
+        for (const MicroInstr& inst : storage.view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadAddrRegMem)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (ops && ops[2].opBits == MicroOpBits::B64 && ops[0].reg.isVirtualInt() && tracked.contains(ops[1].reg))
+                grew |= tracked.insert(ops[0].reg).second;
+        }
+    }
+
     // Registers by packed form. The defined ones are also listed, for the final pass.
     FlatKeySet                                    defined;
     SmallVector<MicroReg, 4>                      definedList;
@@ -1619,27 +1635,37 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
             if (mode == MicroInstrRegMode::None)
                 continue;
             const MicroReg reg = ops[operandIndex].reg;
-            if (!reg.isValid() || reg.isNoBase() || !marked.contains(reg))
+            if (!reg.isValid() || reg.isNoBase() || !tracked.contains(reg))
                 continue;
 
+            const bool derivesAddress = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64;
             if (mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef)
             {
                 // The one definition takes the incoming argument: a copy of its register or
-                // of another marked base, or a read of its stack slot.
-                const bool fromArgument = mode == MicroInstrRegMode::Def && operandIndex == 0 &&
+                // of another marked base, or a read of its stack slot. A derived address is
+                // defined once, from its base.
+                const bool fromArgument = mode == MicroInstrRegMode::Def && operandIndex == 0 && marked.contains(reg) &&
                                           ((inst.op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 &&
                                             (!ops[1].reg.isVirtual() || marked.contains(ops[1].reg))) ||
                                            (inst.op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
                                             !ops[1].reg.isVirtual()));
-                if (!fromArgument || !defined.insert(reg.packed))
+                const bool fromBase = mode == MicroInstrRegMode::Def && operandIndex == 0 && !marked.contains(reg) && derivesAddress &&
+                                      tracked.contains(ops[1].reg);
+                if ((!fromArgument && !fromBase) || !defined.insert(reg.packed))
                 {
-                    if (rejected.insert(reg.packed) && rejected.size() == marked.size())
+                    if (rejected.insert(reg.packed) && rejected.size() == tracked.size())
                         return;
                 }
                 else
                 {
                     definedList.push_back(reg);
                 }
+                continue;
+            }
+
+            if (derivesAddress && operandIndex == 1 && ops[0].reg != reg && tracked.contains(ops[0].reg))
+            {
+                copies.push_back({reg, ops[0].reg});
                 continue;
             }
 
@@ -1661,9 +1687,9 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
                 continue;
             }
 
-            // Rejection is permanent. Once every marked base is rejected,
+            // Rejection is permanent. Once every tracked base is rejected,
             // neither later operands nor copy propagation can add an output.
-            if (rejected.insert(reg.packed) && rejected.size() == marked.size())
+            if (rejected.insert(reg.packed) && rejected.size() == tracked.size())
                 return;
         }
     }
@@ -1678,7 +1704,7 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
             if (fromRejected != toRejected)
             {
                 rejected.insert(fromRejected ? to.packed : from.packed);
-                if (rejected.size() == marked.size())
+                if (rejected.size() == tracked.size())
                     return;
                 changed = true;
             }

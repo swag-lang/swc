@@ -203,6 +203,49 @@ SWC_TEST_BEGIN(LICM_HoistsImmutableParameterReadAcrossStoreAndCall)
 }
 SWC_TEST_END()
 
+// A field of a by-value struct parameter is read through an address formed from the
+// parameter; that address names the same frozen storage, so the read leaves a loop that
+// stores and calls. Modes:
+//   0 - the field address is only read through: hoisted.
+//   1 - the field address is stored: it escapes, and the base with it, so the read stays.
+SWC_TEST_BEGIN(LICM_HoistsImmutableParameterFieldReadThroughItsAddress)
+{
+    for (const uint32_t mode : {0u, 1u})
+    {
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        constexpr MicroReg parameter = MicroReg::virtualIntReg(1);
+        constexpr MicroReg output    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg count     = MicroReg::virtualIntReg(3);
+        constexpr MicroReg value     = MicroReg::virtualIntReg(4);
+        constexpr MicroReg field     = MicroReg::virtualIntReg(5);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        builder.emitLoadRegReg(parameter, MicroReg::intReg(2), MicroOpBits::B64);
+        builder.emitLoadRegReg(output, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.markImmutableStorageBase(parameter);
+        builder.emitLoadAddressRegMem(field, parameter, 8, MicroOpBits::B64);
+        if (mode == 1)
+            builder.emitLoadMemReg(output, 8, field, MicroOpBits::B64);
+        builder.emitLoadRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadRegMem(value, field, 0, MicroOpBits::B64);
+        builder.emitLoadMemReg(output, 0, value, MicroOpBits::B64);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegReg(count, value, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitRet();
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
+
+        const uint32_t loopStart = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        const uint32_t load      = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::LoadRegMem);
+        if (load == std::numeric_limits<uint32_t>::max() || (load < loopStart) != (mode == 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A zeroed vector register read by several stores leaves a call-free loop, but stays in a loop
 // that calls: the clear is free to repeat, and hoisted it would have to survive every call in
 // a callee-saved register.

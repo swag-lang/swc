@@ -7,8 +7,9 @@ struct Scale
     limit:  s64
 }
 
-// The fields of a value parameter cannot change during the call: a loop that
-// stores through another pointer reads them once, before it starts.
+// The fields of a value parameter, string or struct, cannot change during the
+// call: a loop that stores through another pointer reads them once, before it
+// starts, a struct field through the address formed from the parameter.
 #[Swag.Optimize(true), Swag.NoInline]
 func fillScaled(out: [*] s64, count: u64, scale: Scale, text: string)->s64
 {

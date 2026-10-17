@@ -2038,7 +2038,9 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 const bool rewritesFlags = acc.isWrite ? !wholeStore : acc.offset != record.offset;
                 if (rewritesFlags && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, acc.ref, context.builder))
                     valid = false;
-                (*recordStateAt)[acc.ref.get()] = in[index];
+                // Only partial stores consult these byte facts during rewriting.
+                if (acc.isWrite && !wholeStore)
+                    (*recordStateAt)[acc.ref.get()] = in[index];
             }
             if (valid)
                 kept.push_back(std::move(record));

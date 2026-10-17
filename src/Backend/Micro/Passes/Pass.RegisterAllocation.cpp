@@ -788,8 +788,9 @@ void MicroRegisterAllocationPass::computeGlobalAccessBenefits(std::vector<uint64
             if (!reg.isVirtual())
                 return;
 
+            // analyzeLiveness indexed every virtual use and definition in these lists.
             const uint32_t denseIndex = denseVirtualRegs_.find(reg);
-            if (denseIndex != MicroDenseRegIndex::K_INVALID_INDEX && denseIndex < outBenefit.size() && globalBenefits_[denseIndex])
+            if (globalBenefits_[denseIndex])
                 outBenefit[denseIndex] += weight;
         };
 
@@ -1255,8 +1256,6 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
     const std::span<const uint64_t> headerLiveRow = DenseBits::row(liveInVirtualBits_, region.header, wordCount);
     for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
     {
-        if (!vregs[denseIndex].isVirtual())
-            continue;
         if (!DenseBits::contains(headerLiveRow, denseIndex))
             continue;
 
@@ -1543,7 +1542,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     const auto&    vregs     = denseVirtualRegs_.regs();
     for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
     {
-        if (!vregs[denseIndex].isVirtual() || !benefits[denseIndex])
+        if (!benefits[denseIndex])
             continue;
         if (virtualSpanLo_[denseIndex] > virtualSpanHi_[denseIndex])
             continue;
@@ -1983,8 +1982,6 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
     for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
     {
         const MicroReg vreg = vregs[denseIndex];
-        if (!vreg.isVirtual())
-            continue;
 
         auto& regState = states_[denseIndex];
         if (regState.pinned)

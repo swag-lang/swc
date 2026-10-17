@@ -39,6 +39,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Walk static-switch cases by chunks | Repeated span setup, header reads and prefix walks during case lookup and semantic child collection | Searches retain their first matching case. Child collection keeps the selector, all case values, all bodies and the case-label nodes in their original separate phases, without a new buffer. A C++ case checks that flattened order including a default section. |
 | Construct a reserved forward assignment directly | A capacity comparison for every assigned element | The forward range supplies its complete distance before reservation. Direct construction retains the same values, order, size publication and capacity policy; input iterators keep their incremental growth path. |
 | Traverse switch selections and duplicate checks by chunks | Per-case and per-value span setup, header reads and prefix walks | Semantic selection still visits every value and retains the first matching body and first default; code generation keeps its first-match return. Duplicate checks retain their range exclusion, order and first diagnostic. No new buffer or lookup table is introduced. |
+| Trust the allocator's private dense virtual-register table | Three repeated register-kind checks and sentinel/bounds checks for every scored virtual occurrence | Both insertion sites require virtual registers, and every scored use and definition was indexed before arrays were sized. The interval fallback does not mutate those lists. Occurrence multiplicity, scores, traversal and allocation choices are unchanged; object inspection confirms removal of both scored-loop bounds sequences. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -73,6 +74,7 @@ filesystem cases requiring `--dev-full`.
 | 26 | 1,429 | Two normal attribute sources and eight expected-error attribute sources, plus runtime |
 | 28 | 1,432 | Full native: 3,891; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 | 30 | 1,446 | Native `static_control.swg`: 1; semantic `switch` selection: 35 normal and 38 expected-error inputs, including runtime |
+| 31 | 1,446 | Native optimizer selection: 302 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing

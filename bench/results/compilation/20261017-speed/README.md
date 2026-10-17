@@ -52,6 +52,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Keep array-element cast locations as node references | Resolving and copying a source-code location that no request uses | The private location helper sets a source location only alongside a valid node; that valid-node branch always selects the node instead. The invalid-node branch keeps the outer request's existing source location. Object inspection confirms the removed node lookup and non-increasing frames in all affected helpers and conversion callers. |
 | Publish token lengths once and accept digits directly | Two length stores overwritten by pushToken, and a separator-bit test for each valid decimal, hexadecimal or binary digit | Token lengths are computed before their first read or publication. The three digit classes exclude the separator, so their accepted path need not test it again; malformed separator runs retain their consumption and diagnostics. All affected functions retain their stack frames; the digit bodies shrink and the main lexer retains its code extent and multiline call. |
 | Zero the paged prefix only through its existing copy helper | A second zero-fill of every paged-prefix byte in DataSegment::copyToPreserveOffsets | PagedStore already zeroes that complete prefix before copying page payloads. The outer copy now zeroes only the tail, then copies the same large blocks. Empty, paged-only, large-only and mixed copies preserve payloads, page/block gaps and trailing zeros; the final object retains the same stack frame. |
+| Reuse resolved struct-field nodes for source locations | A second field-span size query and indexed lookup during each element's validation and constant folding | Both lookups had identical arguments with no intervening mutation. The existing field reference now supplies the same source location, including the invalid-node fallback. Error-only helpers retain their original implementation. Object inspection confirms the removed normal-path calls with all affected frames unchanged. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -100,6 +101,7 @@ filesystem cases requiring `--dev-full`.
 | 42 | 1,454 | Semantic `array` selection: 36 normal and 41 expected-error inputs, including runtime; native SIMD selection: 51 |
 | 43 | 1,454 | Full lexer suites: 33 normal and 50 expected-error inputs, including runtime; full native: 3,891; full JIT: 1,539 |
 | 44 | 1,455 | Native `large_sparse_struct_defaults.swg`: 1; incoming `zero_extended_frame_slots.swg`: 1 |
+| 45 | 1,455 | Semantic `struct` selection: 44 normal and 46 expected-error inputs, including runtime |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -177,3 +179,4 @@ Processing the first low-bit worklist item outside its vector was discarded beca
 Batching integer-byte appends was discarded because some generated frames grew; only the padding-count change was retained.
 Removing the multiline-string length store was discarded because MSVC then inlined that scanner into the main lexer and enlarged its body; the two other token-length stores were removed without that change.
 Removing the duplicated prefix fill from DataSegment::copyTo was discarded because its frame grew; only copyToPreserveOffsets retains that change with an unchanged frame.
+Folding cyclic dominator child-link initialization into DFS or RPO construction was discarded because both generated frames grew. The original implementation was restored and rebuilt before checkpoint 45.

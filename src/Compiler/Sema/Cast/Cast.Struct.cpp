@@ -613,7 +613,7 @@ namespace
         {
             const SymbolVariable& dstField  = *dstFields[srcToDst[i]];
             const AstNodeRef      fieldNode = aggregateFieldNodeRef(args, i, srcTypes.size());
-            const SourceCodeRef   fieldRef  = aggregateFieldRef(args, i, srcTypes.size());
+            const SourceCodeRef   fieldRef  = fieldNode.isValid() ? args.sema->node(fieldNode).codeRef() : SourceCodeRef::invalid();
             const Result          res       = checkElemCast(args, srcTypes[i], dstField.typeRef(), fieldNode, fieldRef);
             if (res == Result::Error)
                 nameFailedField(args, dstField);
@@ -641,7 +641,7 @@ namespace
             const size_t        dstIndex = srcToDst[i];
             ConstantRef         castedRef;
             const AstNodeRef    fieldNode = aggregateFieldNodeRef(args, i, values.size());
-            const SourceCodeRef fieldRef  = aggregateFieldRef(args, i, values.size());
+            const SourceCodeRef fieldRef  = fieldNode.isValid() ? args.sema->node(fieldNode).codeRef() : SourceCodeRef::invalid();
             SWC_RESULT(foldElemCast(args, srcTypes[i], dstFields[dstIndex]->typeRef(), fieldNode, fieldRef, values[i], castedRef));
             if (castedRef.isInvalid())
             {

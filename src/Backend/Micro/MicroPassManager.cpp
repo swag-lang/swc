@@ -30,6 +30,7 @@
 #include "Backend/Micro/Passes/Pass.SinkToUse.h"
 #include "Backend/Micro/Passes/Pass.SlpVectorize.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
+#include "Backend/Micro/Passes/Pass.StoreForwardSplit.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
@@ -521,6 +522,7 @@ MicroPassManager::MicroPassManager()
     lateBranchSimplifyPass_    = std::make_unique<MicroBranchSimplifyPass>(true);
     loopUnrollPass_            = std::make_unique<MicroLoopUnrollPass>();
     slpVectorizePass_          = std::make_unique<MicroSlpVectorizePass>();
+    storeForwardSplitPass_     = std::make_unique<MicroStoreForwardSplitPass>();
     webRenamePass_             = std::make_unique<MicroWebRenamePass>();
     vecLoopPromotePass_        = std::make_unique<MicroVecLoopPromotePass>();
 
@@ -621,6 +623,9 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         // policy; when it rewrites something, the pre-RA loop runs again to
         // clean up the dead scalar chains.
         addVectorizePass(*slpVectorizePass_);
+        // Last of the passes that create 16-byte loads: one that narrower stores of its
+        // loop wrote would wait for them to reach the cache, so it reads two halves.
+        addVectorizePass(*storeForwardSplitPass_);
         // Carry adjacent elements only after loop/alias shapes have converged
         // and vectorization has selected its lanes. Analyze each function once;
         // the ordinary cleanup loop folds the new copies.

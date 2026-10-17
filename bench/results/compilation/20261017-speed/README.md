@@ -63,6 +63,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Test floating call-argument presence directly | Constructing and indexing a lane-mask table for a boolean use/definition query | A register is present exactly when its two width bits are nonzero. Register bounds, order, all three present widths and missing-operand defaults are unchanged. The generated use/definition collector loses the table store and lookup, with a smaller body and the same frame. |
 | Advance JIT bridge stack offsets in one ordered pass | A second argument-layout vector and repeated prefix searches for each stack-passed argument | Bridge arguments have no register homes. The existing ABI stack cursor visits only stack arguments in declaration order, with identical default widths, shadow space and wide-value alignment. A C++ oracle compares emitted stores against the existing layout queries for three conventions, three argument patterns and six list sizes. The generated helper is smaller with a smaller frame; its callAddress caller is unchanged. |
 | Reuse the register-slot count in wide argument offsets | A second numArgRegisterSlots call after the wide-argument scan | The scan and offset calculation use the same immutable convention. Non-wide and independent-bank paths retain their decisions. The offset function loses the duplicate call with the same frame; stack-reservation code retains its original generated shape. |
+| Write only argument classes for sanitizer register selection | Rewriting argument widths and home flags, plus an unused default-width selection | The register-index query reads only each argument's floating/integer class. All type normalization, null checks, hidden arguments and register decisions remain unchanged. The generated helper has a smaller body with the same frame. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -122,6 +123,7 @@ filesystem cases requiring `--dev-full`.
 | 53 | 1,457 | Native `call_float_arg` selection: 4 |
 | 54 | 1,458 | Full JIT: 1,539; C++ coverage includes the new address-call stack-layout oracle |
 | 55 | 1,458 | Native SIMD selection: 51 |
+| 56 | 1,459 | Full sanity suite: 85 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -156,6 +158,8 @@ Checkpoint 44 includes the frame-slot zero-extension change imported at
 `b6f4998b7c` and executes its native regression.
 Checkpoint 48 includes the vector-result home forwarding and high-multiply value
 numbering imported at `a7cc628dd5`; its C++ suite covers both new regressions.
+Checkpoint 56 includes the imported-API documentation-trivia change imported at
+`a3c9a0a290`; its C++ suite covers the new documentation regression.
 
 A new SmallVector regression first exposed a leaked live prefix when copy
 construction failed. The repair cleans partial construction and raw allocations,

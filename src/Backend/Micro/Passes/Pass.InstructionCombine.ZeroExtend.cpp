@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -181,7 +182,17 @@ namespace InstructionCombine
                     return source.valid() && valueIsZeroExtended32(ctx, source.valueId, visited, depth + 1);
                 }
             }
-            return inst && definesZeroExtended32(*inst, inst->ops(*ctx.operands), value->reg);
+            if (!inst)
+                return false;
+            const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+            if (definesZeroExtended32(*inst, ops, value->reg))
+                return true;
+            // A whole slot of a frame object that only ever holds zero-extended values.
+            if (inst->op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64)
+                return ctx.isZeroExtendedFrameRead(ops[1].reg, value->instRef, ops[3].valueU64, 0);
+            if (inst->op == MicroInstrOpcode::LoadAmcRegMem && ops[3].opBits == MicroOpBits::B64 && ops[4].opBits == MicroOpBits::B64)
+                return ctx.isZeroExtendedFrameRead(ops[1].reg, value->instRef, ops[6].valueU64, ops[5].valueU64);
+            return false;
         }
 
         bool isDwordToQwordExtend(const MicroInstrOperand* ops)
@@ -501,6 +512,309 @@ namespace InstructionCombine
     {
         SmallVector<uint32_t> visited;
         return ctx.ssa && valueIsZeroExtended32(ctx, valueId, visited, 0);
+    }
+
+    namespace
+    {
+        using FrameAddress = Context::FrameAddress;
+
+        // The stride two index steps leave an address in multiples of; zero is exact.
+        uint64_t combinedStride(const uint64_t left, const uint64_t right)
+        {
+            return std::gcd(left, right);
+        }
+
+        // The frame address in a register: the frame base, the stack pointer where its
+        // displacement from the base is known, or a single-definition copy, `lea` or indexed
+        // `lea` of either.
+        bool frameAddressOf(const Context& ctx, FrameAddress& out, const MicroReg reg, const MicroInstrRef ref)
+        {
+            if (reg == ctx.stackPointer)
+            {
+                const uint64_t* found = ctx.frameStackPointerOffsets ? ctx.frameStackPointerOffsets->find(ref.get()) : nullptr;
+                if (!found)
+                    return false;
+                out = {.offset = *found};
+                return true;
+            }
+            const auto found = ctx.frameAddresses.find(reg.packed);
+            if (found == ctx.frameAddresses.end())
+                return false;
+            out = found->second;
+            return true;
+        }
+
+        // A store's address and value, in either addressing shape: `stride` is zero for a
+        // plain displacement, and a constant stands in for the value register when
+        // `isImmediate`.
+        struct FrameStore
+        {
+            MicroReg    base;
+            uint64_t    displacement = 0;
+            uint64_t    stride       = 0;
+            MicroOpBits bits         = MicroOpBits::Zero;
+            MicroReg    value;
+            uint64_t    immediate   = 0;
+            bool        isImmediate = false;
+        };
+
+        bool decodeFrameStore(FrameStore& out, const MicroInstr& inst, const MicroInstrOperand* ops)
+        {
+            switch (inst.op)
+            {
+                case MicroInstrOpcode::LoadMemReg:
+                case MicroInstrOpcode::StoreVecMemReg:
+                    out = {.base = ops[0].reg, .displacement = ops[3].valueU64, .bits = ops[2].opBits, .value = ops[1].reg};
+                    return true;
+                case MicroInstrOpcode::LoadAmcMemReg:
+                    out = {.base = ops[0].reg, .displacement = ops[6].valueU64, .stride = ops[5].valueU64, .bits = ops[4].opBits, .value = ops[2].reg};
+                    return true;
+                case MicroInstrOpcode::LoadMemImm:
+                    if (ops[3].hasWideImmediateValue())
+                        return false;
+                    out = {.base = ops[0].reg, .displacement = ops[2].valueU64, .bits = ops[1].opBits, .immediate = ops[3].valueU64, .isImmediate = true};
+                    return true;
+                case MicroInstrOpcode::LoadAmcMemImm:
+                    if (ops[7].hasWideImmediateValue())
+                        return false;
+                    out = {.base = ops[0].reg, .displacement = ops[6].valueU64, .stride = ops[5].valueU64, .bits = ops[4].opBits, .immediate = ops[7].valueU64, .isImmediate = true};
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        const MicroFrameObject* frameObjectAt(std::span<const MicroFrameObject> objects, const uint64_t offset)
+        {
+            for (const MicroFrameObject& object : objects)
+            {
+                if (offset >= object.offset && offset - object.offset < object.size)
+                    return &object;
+            }
+            return nullptr;
+        }
+
+        // The frame object an access through `reg`, displaced by `displacement` and indexed in
+        // steps of `stride`, reaches, with its offset and the stride of its slots. An exact
+        // access names its object by the byte it touches, and touches none in a gap. An indexed
+        // one stays in the object its base pointed at; the frame base and the stack pointer
+        // point at no object, so an index from them could reach any. False when unknown.
+        bool frameAccess(const Context& ctx, std::span<const MicroFrameObject> objects, const MicroFrameObject*& outObject, uint64_t& outOffset, uint64_t& outStride,
+                         const MicroReg reg, const MicroInstrRef ref, const uint64_t displacement, const uint64_t stride)
+        {
+            FrameAddress address;
+            if (!frameAddressOf(ctx, address, reg, ref))
+                return false;
+            outOffset = address.offset + displacement;
+            outStride = combinedStride(address.stride, stride);
+            if (!outStride)
+            {
+                outObject = frameObjectAt(objects, outOffset);
+                return true;
+            }
+            uint64_t anchor = address.anchor;
+            if (!address.stride && reg != ctx.passContext->debugStackBaseVirtualReg && reg != ctx.stackPointer)
+                anchor = address.offset;
+            outObject = anchor == FrameAddress::K_NO_ANCHOR ? nullptr : frameObjectAt(objects, anchor);
+            return outObject != nullptr;
+        }
+
+        // The frame objects whose every write is a 64-bit store of a value with a clear upper
+        // half at a whole slot, or a store of zero. Frame objects are disjoint and an address
+        // formed from one reaches that object alone, so an object is spoiled only by a write
+        // that reaches it or by its address escaping: passed, stored, or computed on. A frame
+        // address that cannot be followed spoils everything.
+        void collectZeroExtendedFrameObjects(const Context& ctx)
+        {
+            ctx.zeroExtendedFrameObjects.clear();
+            ctx.frameAddresses.clear();
+            ctx.frameStackPointerOffsets.reset();
+            if (!ctx.ssa || !ctx.passContext || !ctx.passContext->builder)
+                return;
+            const MicroPassContext& context   = *ctx.passContext;
+            const MicroReg          frameBase = context.debugStackBaseVirtualReg;
+            if (!frameBase.isVirtualInt())
+                return;
+            const std::span<const MicroFrameObject> objects = MicroPassHelpers::frameObjects(context);
+            if (objects.empty())
+                return;
+
+            std::unordered_map<uint32_t, uint32_t> definitions;
+            MicroInstrRef                          frameBaseRef = MicroInstrRef::invalid();
+            uint64_t                               frameBaseSp  = 0;
+            for (auto it = ctx.storage->view().begin(), end = ctx.storage->view().end(); it != end; ++it)
+            {
+                const MicroInstrOperand* ops = it->ops(*ctx.operands);
+                if (!ops)
+                    continue;
+                const auto modes = MicroInstr::info(it->op).resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtualInt())
+                        ++definitions[ops[i].reg.packed];
+                }
+                if ((it->op == MicroInstrOpcode::LoadRegReg || it->op == MicroInstrOpcode::LoadAddrRegMem) &&
+                    ops[0].reg == frameBase && ops[1].reg == ctx.stackPointer && ops[2].opBits == MicroOpBits::B64)
+                {
+                    frameBaseRef = it.current;
+                    frameBaseSp  = it->op == MicroInstrOpcode::LoadAddrRegMem ? ops[3].valueU64 : 0;
+                }
+            }
+            if (frameBaseRef.isInvalid() || definitions[frameBase.packed] != 1)
+                return;
+            ctx.frameStackPointerOffsets         = MicroPassHelpers::collectStackPointerOffsets(context, frameBaseRef, frameBaseSp);
+            ctx.frameAddresses[frameBase.packed] = {};
+
+            // Single-definition copies, `lea`s and indexed `lea`s of known frame addresses, in
+            // any order. The base of an indexed `lea` names the object; its index only steps
+            // within it.
+            const auto derivation = [&](FrameAddress& out, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroInstrRef ref) {
+                FrameAddress source;
+                switch (inst.op)
+                {
+                    case MicroInstrOpcode::LoadRegReg:
+                        if (ops[2].opBits != MicroOpBits::B64 || !frameAddressOf(ctx, source, ops[1].reg, ref))
+                            return false;
+                        out = source;
+                        return true;
+                    case MicroInstrOpcode::LoadAddrRegMem:
+                        if (ops[2].opBits != MicroOpBits::B64 || !frameAddressOf(ctx, source, ops[1].reg, ref))
+                            return false;
+                        out = {.offset = source.offset + ops[3].valueU64, .stride = source.stride};
+                        return true;
+                    case MicroInstrOpcode::LoadAddrAmcRegMem:
+                        if (ops[3].opBits != MicroOpBits::B64 || !frameAddressOf(ctx, source, ops[1].reg, ref))
+                            return false;
+                        out = {.offset = source.offset + ops[6].valueU64, .stride = combinedStride(source.stride, ops[5].valueU64 ? ops[5].valueU64 : 1), .anchor = source.anchor};
+                        if (!source.stride)
+                            out.anchor = ops[1].reg == frameBase || ops[1].reg == ctx.stackPointer ? FrameAddress::K_NO_ANCHOR : source.offset;
+                        return true;
+                    default:
+                        return false;
+                }
+            };
+            for (bool changed = true; changed;)
+            {
+                changed = false;
+                for (auto it = ctx.storage->view().begin(), end = ctx.storage->view().end(); it != end; ++it)
+                {
+                    const MicroInstrOperand* ops = it->ops(*ctx.operands);
+                    FrameAddress             address;
+                    if (!ops || !ops[0].reg.isVirtualInt() || ops[0].reg == frameBase || definitions[ops[0].reg.packed] != 1 ||
+                        ctx.frameAddresses.contains(ops[0].reg.packed) || !derivation(address, *it, ops, it.current))
+                        continue;
+                    ctx.frameAddresses[ops[0].reg.packed] = address;
+                    changed                               = true;
+                }
+            }
+
+            FlatKeySet derived;
+            MicroPassHelpers::collectFrameDerivedRegs(derived, *ctx.storage, *ctx.operands, ctx.stackPointer);
+            std::vector<uint8_t> spoiled(objects.size());
+            const auto           spoil = [&](const MicroReg reg, const MicroInstrRef ref) {
+                const MicroFrameObject* object = nullptr;
+                uint64_t                offset = 0;
+                uint64_t                stride = 0;
+                if (!frameAccess(ctx, objects, object, offset, stride, reg, ref, 0, 0))
+                    return false;
+                if (object)
+                    spoiled[object - objects.data()] = 1;
+                return true;
+            };
+            const auto isFrameAddress = [&](const MicroReg reg) {
+                return reg == frameBase || reg == ctx.stackPointer || ctx.frameAddresses.contains(reg.packed) || derived.contains(reg.packed);
+            };
+
+            for (auto it = ctx.storage->view().begin(), end = ctx.storage->view().end(); it != end; ++it)
+            {
+                const MicroInstr&        inst = *it;
+                const MicroInstrOperand* ops  = inst.ops(*ctx.operands);
+                if (!ops)
+                    continue;
+                const MicroInstrDef& info      = MicroInstr::info(inst.op);
+                uint8_t              baseIndex = 0;
+                const bool           hasBase   = MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, info);
+                const bool           recorded  = ops[0].reg != frameBase && ctx.frameAddresses.contains(ops[0].reg.packed) &&
+                                      (inst.op == MicroInstrOpcode::LoadRegReg || inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem);
+
+                // Every other appearance of a frame address is an escape.
+                const auto modes = info.resolvedRegModes(ops);
+                for (size_t i = 0; i < modes.size(); ++i)
+                {
+                    if (modes[i] != MicroInstrRegMode::Use && modes[i] != MicroInstrRegMode::UseDef)
+                        continue;
+                    const MicroReg reg = ops[i].reg;
+                    if (reg == ctx.stackPointer || !isFrameAddress(reg) || (hasBase && i == baseIndex) || (recorded && i == 1))
+                        continue;
+                    if (!spoil(reg, it.current))
+                        return;
+                }
+                if (!info.flags.has(MicroInstrFlagsE::WritesMemory))
+                    continue;
+
+                FrameStore store;
+                if (!decodeFrameStore(store, inst, ops))
+                {
+                    if (hasBase && isFrameAddress(ops[baseIndex].reg) && !spoil(ops[baseIndex].reg, it.current))
+                        return;
+                    continue;
+                }
+                if (!isFrameAddress(store.base))
+                    continue;
+                const MicroFrameObject* object = nullptr;
+                uint64_t                offset = 0;
+                uint64_t                stride = 0;
+                if (!frameAccess(ctx, objects, object, offset, stride, store.base, it.current, store.displacement, store.stride))
+                    return;
+                if (!object)
+                    continue;
+
+                bool zero = store.isImmediate && store.immediate == 0;
+                bool kept = store.isImmediate && store.immediate <= UINT32_MAX;
+                if (!store.isImmediate)
+                {
+                    const auto value = ctx.ssa->reachingDef(store.value, it.current);
+                    if (value.valid() && !value.isPhi && value.inst && value.inst->op == MicroInstrOpcode::ClearReg)
+                        zero = getNumBits(value.inst->ops(*ctx.operands)[1].opBits) >= getNumBits(store.bits);
+                    else if (value.valid() && store.value.isVirtualInt())
+                        kept = isValueZeroExtended32(ctx, value.valueId);
+                }
+                const bool wholeSlot = store.bits == MicroOpBits::B64 && (offset - object->offset) % 8 == 0 && stride % 8 == 0;
+                if (!zero && !(kept && wholeSlot))
+                    spoiled[object - objects.data()] = 1;
+            }
+
+            for (size_t i = 0; i < objects.size(); ++i)
+            {
+                if (!spoiled[i] && objects[i].size)
+                    ctx.zeroExtendedFrameObjects.emplace_back(objects[i].offset, objects[i].offset + objects[i].size);
+            }
+        }
+    }
+
+    bool Context::isZeroExtendedFrameRead(const MicroReg base, const MicroInstrRef ref, const uint64_t displacement, const uint64_t scale) const
+    {
+        if (!zeroExtendedFrameReady)
+        {
+            // Ready before the walk: a store whose value is itself such a read asks again
+            // and finds nothing proven yet.
+            zeroExtendedFrameReady = true;
+            collectZeroExtendedFrameObjects(*this);
+        }
+        if (zeroExtendedFrameObjects.empty())
+            return false;
+        const MicroFrameObject* object = nullptr;
+        uint64_t                offset = 0;
+        uint64_t                stride = 0;
+        if (!frameAccess(*this, MicroPassHelpers::frameObjects(*passContext), object, offset, stride, base, ref, displacement, scale) || !object ||
+            stride % 8 != 0 || (offset - object->offset) % 8 != 0 || (!stride && object->offset + object->size - offset < 8))
+            return false;
+        for (const auto& [lo, hi] : zeroExtendedFrameObjects)
+        {
+            if (lo == object->offset)
+                return true;
+        }
+        return false;
     }
 
     bool tryDropRedundantZeroExtend(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)

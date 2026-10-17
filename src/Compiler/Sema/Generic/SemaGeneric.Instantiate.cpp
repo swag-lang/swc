@@ -748,19 +748,21 @@ namespace SemaGeneric
     {
         AstNodeRef makeConstraintBlockRunNode(Sema& sema, AstNodeRef constraintBlockRef, std::span<const SemaClone::ParamBinding> bindings)
         {
-            const auto&             constraintBlock = sema.node(constraintBlockRef).cast<AstConstraintBlock>();
-            SmallVector<AstNodeRef> sourceChildren;
-            sema.ast().appendNodes(sourceChildren, constraintBlock.spanChildrenRef);
+            const auto& constraintBlock = sema.node(constraintBlockRef).cast<AstConstraintBlock>();
+            const auto  sourceChildren  = sema.ast().nodeSpan(constraintBlock.spanChildrenRef);
 
             SmallVector<AstNodeRef> clonedChildren;
             clonedChildren.reserve(sourceChildren.size());
             const SemaClone::CloneContext cloneContext{bindings};
-            for (const AstNodeRef childRef : sourceChildren)
+            for (auto chunk = sourceChildren.chunksBegin(); chunk != sourceChildren.chunksEnd(); ++chunk)
             {
-                const AstNodeRef clonedChildRef = SemaClone::cloneAst(sema, childRef, cloneContext);
-                if (clonedChildRef.isInvalid())
-                    return AstNodeRef::invalid();
-                clonedChildren.push_back(clonedChildRef);
+                for (const AstNodeRef childRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                {
+                    const AstNodeRef clonedChildRef = SemaClone::cloneAst(sema, childRef, cloneContext);
+                    if (clonedChildRef.isInvalid())
+                        return AstNodeRef::invalid();
+                    clonedChildren.push_back(clonedChildRef);
+                }
             }
 
             TokenRef bodyTokRef = constraintBlock.tokRef();
@@ -854,21 +856,23 @@ namespace SemaGeneric
 
         AstNodeRef cloneGenericImplBlock(Sema& sema, const AstImpl& implDecl, std::span<const SemaClone::ParamBinding> bindings)
         {
-            SmallVector<AstNodeRef> children;
-            sema.ast().appendNodes(children, implDecl.spanChildrenRef);
+            const auto children = sema.ast().nodeSpan(implDecl.spanChildrenRef);
             if (children.empty())
                 return AstNodeRef::invalid();
 
             SmallVector<AstNodeRef> clonedChildren;
             clonedChildren.reserve(children.size());
             const SemaClone::CloneContext cloneContext{bindings, {}, true};
-            for (const AstNodeRef childRef : children)
+            for (auto chunk = children.chunksBegin(); chunk != children.chunksEnd(); ++chunk)
             {
-                const AstNodeRef clonedRef = SemaClone::cloneAst(sema, childRef, cloneContext);
-                if (clonedRef.isInvalid())
-                    return AstNodeRef::invalid();
+                for (const AstNodeRef childRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                {
+                    const AstNodeRef clonedRef = SemaClone::cloneAst(sema, childRef, cloneContext);
+                    if (clonedRef.isInvalid())
+                        return AstNodeRef::invalid();
 
-                clonedChildren.push_back(clonedRef);
+                    clonedChildren.push_back(clonedRef);
+                }
             }
 
             auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::TopLevelBlock>(implDecl.tokRef());

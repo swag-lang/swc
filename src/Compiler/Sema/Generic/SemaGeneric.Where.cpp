@@ -212,35 +212,36 @@ namespace SemaGeneric
             if (!context.root || context.spanWhereRef.isInvalid())
                 return Result::Continue;
 
-            SmallVector<AstNodeRef> constraintRefs;
-            sema.ast().appendNodes(constraintRefs, context.spanWhereRef);
-            for (const AstNodeRef constraintRef : constraintRefs)
+            const auto constraints = sema.ast().nodeSpan(context.spanWhereRef);
+            for (auto chunk = constraints.chunksBegin(); chunk != constraints.chunksEnd(); ++chunk)
             {
-                if (!isWhereConstraint(sema, constraintRef))
-                    continue;
-
-                AstNodeRef evalRef = AstNodeRef::invalid();
-                SWC_RESULT(evalGenericConstraintNode(sema, *context.root, constraintRef, context.bindings, evalRef));
-                if (evalRef.isInvalid())
-                    continue;
-
-                const GenericConstraintOutcome outcome = classifyGenericConstraintOutcome(sema, sema.viewNodeTypeConstant(evalRef));
-                if (outcome.kind == GenericConstraintOutcomeKind::Satisfied)
-                    continue;
-
-                outSatisfied = false;
-                if (outFailure)
+                for (const AstNodeRef constraintRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
                 {
-                    fillGenericConstraintFailure(sema, *outFailure, context, constraintRef, outcome);
-                    return Result::Continue;
-                }
+                    if (!isWhereConstraint(sema, constraintRef))
+                        continue;
 
-                return reportGenericConstraintFailure(sema, context, constraintRef, outcome);
+                    AstNodeRef evalRef = AstNodeRef::invalid();
+                    SWC_RESULT(evalGenericConstraintNode(sema, *context.root, constraintRef, context.bindings, evalRef));
+                    if (evalRef.isInvalid())
+                        continue;
+
+                    const GenericConstraintOutcome outcome = classifyGenericConstraintOutcome(sema, sema.viewNodeTypeConstant(evalRef));
+                    if (outcome.kind == GenericConstraintOutcomeKind::Satisfied)
+                        continue;
+
+                    outSatisfied = false;
+                    if (outFailure)
+                    {
+                        fillGenericConstraintFailure(sema, *outFailure, context, constraintRef, outcome);
+                        return Result::Continue;
+                    }
+
+                    return reportGenericConstraintFailure(sema, context, constraintRef, outcome);
+                }
             }
 
             return Result::Continue;
         }
-
     }
 
     namespace Internal

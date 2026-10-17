@@ -148,12 +148,14 @@ namespace SemaGeneric
         if (!ast)
             return;
 
-        SmallVector<AstNodeRef> params;
-        ast->appendNodes(params, spanRef);
+        const auto params = ast->nodeSpan(spanRef);
         outParams.reserve(outParams.size() + params.size());
 
-        for (const AstNodeRef paramRef : params)
-            appendCollectedGenericParam(sema, ast->node(paramRef), paramRef, outParams);
+        for (auto chunk = params.chunksBegin(); chunk != params.chunksEnd(); ++chunk)
+        {
+            for (const AstNodeRef paramRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                appendCollectedGenericParam(sema, ast->node(paramRef), paramRef, outParams);
+        }
     }
 
     void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs)
@@ -206,11 +208,13 @@ namespace SemaGeneric
         if (spanRef.isInvalid())
             return;
 
-        SmallVector<AstNodeRef> params;
-        sema.ast().appendNodes(params, spanRef);
+        const auto params = sema.ast().nodeSpan(spanRef);
         outParams.reserve(outParams.size() + params.size());
-        for (const AstNodeRef paramRef : params)
-            appendCollectedGenericParam(sema, sema.node(paramRef), paramRef, outParams);
+        for (auto chunk = params.chunksBegin(); chunk != params.chunksEnd(); ++chunk)
+        {
+            for (const AstNodeRef paramRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                appendCollectedGenericParam(sema, sema.node(paramRef), paramRef, outParams);
+        }
     }
 
     void appendResolvedGenericBinding(const GenericParamDesc& param, const GenericResolvedArg& arg, SmallVector<SemaClone::ParamBinding>& outBindings)

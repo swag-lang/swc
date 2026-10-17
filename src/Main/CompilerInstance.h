@@ -583,7 +583,7 @@ private:
     const Global*                                  global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>>       files_;
     std::vector<std::unique_ptr<SourceView>>       srcViews_;
-    std::vector<std::unique_ptr<SourceContent>> srcViewBuffers_;
+    std::vector<std::unique_ptr<SourceContent>>    srcViewBuffers_;
     std::unique_ptr<LookupTable<SourceFile>>       fileLookup_;
     std::unique_ptr<LookupTable<SourceView>>       srcViewLookup_;
     std::unique_ptr<TypeManager>                   typeMgr_;

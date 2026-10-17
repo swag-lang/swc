@@ -165,7 +165,7 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
         SWC_ASSERT(std::ranges::all_of(callConv.floatArgRegs, &MicroReg::isFloat));
         for (uint32_t index = 0; index < std::min<size_t>(callConv.floatArgRegs.size(), 8); ++index)
         {
-            if (floatArgs.laneMask(index))
+            if (floatArgs.widths & (3u << (index * 2)))
                 useDef.uses.push_back(callConv.floatArgRegs[index]);
         }
         // ABI tables contain physical registers, so no operand-sentinel filtering is needed.

@@ -194,31 +194,31 @@ std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint3
     const uint32_t bytesAvail = pageSizeValue_ - off;
 
     constexpr uint32_t hdrSize    = sizeof(SpanHdrRaw);
-    const uint32_t     dataOffset = Math::alignUpU32(off + hdrSize, elemAlign);
+    uint32_t           dataOffset = Math::alignUpU32(off + hdrSize, elemAlign);
     const uint32_t     padBytes   = dataOffset - (off + hdrSize);
 
     if (hdrSize + padBytes + elemSize > bytesAvail)
     {
-        page = newPage();
-        off  = 0;
+        page       = newPage();
+        off        = 0;
+        dataOffset = Math::alignUpU32(hdrSize, elemAlign);
     }
 
-    const uint32_t dataOffsetF = Math::alignUpU32(off + hdrSize, elemAlign);
-    const uint32_t maxData     = pageSizeValue_ - dataOffsetF;
-    const uint32_t cap         = maxData / elemSize;
-    const uint32_t fit         = std::min<uint32_t>(remaining, cap);
+    const uint32_t maxData = pageSizeValue_ - dataOffset;
+    const uint32_t cap     = maxData / elemSize;
+    const uint32_t fit     = std::min<uint32_t>(remaining, cap);
     SWC_ASSERT(fit > 0);
 
     const SpanRef  hdrRef{makeRef(pageSizeValue_, curPageIndex_, off)};
-    const uint32_t newUsed = dataOffsetF + fit * elemSize;
+    const uint32_t newUsed = dataOffset + fit * elemSize;
     SWC_ASSERT(newUsed <= pageSizeValue_);
     page->used.store(newUsed, std::memory_order_relaxed);
-    totalBytes_ += hdrSize + (dataOffsetF - (off + hdrSize)) + fit * elemSize;
+    totalBytes_ += hdrSize + (dataOffset - (off + hdrSize)) + fit * elemSize;
 
     auto* hdr  = reinterpret_cast<SpanHdrRaw*>(page->bytes() + off);
     hdr->total = totalElems;
 
-    std::memcpy(page->bytes() + dataOffsetF, src, static_cast<size_t>(fit) * elemSize);
+    std::memcpy(page->bytes() + dataOffset, src, static_cast<size_t>(fit) * elemSize);
 
     return {hdrRef, fit};
 }
@@ -375,17 +375,8 @@ void PagedStore::SpanView::decodeRef(const PagedStore* st, Ref ref, uint32_t& pa
 uint32_t PagedStore::SpanView::dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign)
 {
     constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
-    return Math::alignUpU32(hdrOffset + hdrSize, elemAlign);
-}
-
-const void* PagedStore::SpanView::dataPtr(const PagedStore* st, Ref hdrRef, uint32_t elemAlign)
-{
-    uint32_t pageIndex, off;
-    decodeRef(st, hdrRef, pageIndex, off);
-    const uint32_t dataOffset = dataOffsetFromHdr(off, elemAlign);
-    SWC_ASSERT(dataOffset <= st->pageSize());
-    SWC_ASSERT(dataOffset <= st->publishedPageUsed(pageIndex));
-    return st->publishedPageBytes(pageIndex) + dataOffset;
+    // Chunk layouts require a nonzero power-of-two alignment.
+    return (hdrOffset + hdrSize + elemAlign - 1) & ~(elemAlign - 1);
 }
 
 uint32_t PagedStore::SpanView::totalElems(const PagedStore* st, Ref hdrRef)
@@ -393,7 +384,7 @@ uint32_t PagedStore::SpanView::totalElems(const PagedStore* st, Ref hdrRef)
     return st->ptr<SpanHdrRaw>(hdrRef)->total;
 }
 
-uint32_t PagedStore::SpanView::chunkCountFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign)
+PagedStore::SpanView::Chunk PagedStore::SpanView::chunkFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign)
 {
     SWC_ASSERT(st != nullptr);
     SWC_ASSERT(hdrRef != INVALID_REF);
@@ -406,7 +397,9 @@ uint32_t PagedStore::SpanView::chunkCountFromLayout(const PagedStore* st, Ref hd
     SWC_ASSERT(dataOffset <= st->pageSize());
     const uint32_t capBytes = st->pageSize() - dataOffset;
     const uint32_t cap      = capBytes / elemSize;
-    return std::min<uint32_t>(cap, remaining);
+    SWC_ASSERT(dataOffset <= st->publishedPageUsed(pageIndex));
+    // The count and pointer share one header decode and aligned data offset.
+    return {.ptr = st->publishedPageBytes(pageIndex) + dataOffset, .count = std::min<uint32_t>(cap, remaining)};
 }
 
 PagedStore::SpanView::SpanView(const PagedStore* s, Ref head, uint32_t elemSize, uint32_t elemAlign) :
@@ -449,9 +442,7 @@ PagedStore::SpanView::ChunkIterator& PagedStore::SpanView::ChunkIterator::operat
 
     hdrRef                   = nextHdr;
     const uint32_t remaining = total - done;
-    const uint32_t cnt       = chunkCountFromLayout(store, hdrRef, remaining, elemSize, elemAlign);
-    const void*    p         = dataPtr(store, hdrRef, elemAlign);
-    current                  = {.ptr = p, .count = cnt};
+    current                  = chunkFromLayout(store, hdrRef, remaining, elemSize, elemAlign);
     return *this;
 }
 
@@ -472,9 +463,7 @@ PagedStore::SpanView::ChunkIterator PagedStore::SpanView::chunksBegin() const
         return it;
     }
 
-    const uint32_t cnt = chunkCountFromLayout(store_, head_, it.total, elementSize_, elementAlign_);
-    const void*    p   = dataPtr(store_, head_, elementAlign_);
-    it.current         = {.ptr = p, .count = cnt};
+    it.current = chunkFromLayout(store_, head_, it.total, elementSize_, elementAlign_);
     return it;
 }
 

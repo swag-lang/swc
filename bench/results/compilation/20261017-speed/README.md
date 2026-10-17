@@ -25,6 +25,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Share one enum-value lowering buffer within its metadata build | All but the first temporary byte allocation for the values of one enum | The underlying layout has one fixed size. Each value still starts with zero bytes and is fully materialized before the next reset, preserving omitted elements, padding and relocations. Capacity remains that one layout's size. |
 | Keep large inline-binding visited sets in a flat key table | Per-node hash allocations and linked-node probing after the first 16 visited nodes | The small path and pending-node order are unchanged. Membership uses the same 32-bit reference identity; a static assertion bounds the optional control object's size. The flat slots replace MSVC's two-iterator buckets and linked reference nodes. |
 | Construct AST visitor frames with their final node reference | The second initialization of every newly pushed frame | Member defaults now describe the complete initial state, and emplacement supplies the node reference directly. Restarts assign that same initial state. Object inspection confirms removal of the caller's repeated stores, with one emplacement specialization and unchanged frame fields. |
+| Compute each span chunk's layout once | A second header decode and helper call when reading a chunk, repeated alignment when a write fits its current page, and division in the reader's alignment operation | The pointer and count share the same decoded header and aligned offset. The writer recomputes only after moving to a fresh page. Reader alignment is already constrained to a nonzero power of two, so masking gives the same rounded offset. Publication, bounds checks, element counts and storage layout are unchanged. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -119,6 +120,12 @@ resolved ancestors and pending siblings. An initial JIT `compiler` file filter
 failed because it omitted `runtime/default_allocator_helpers.swg`; the corrected
 whole-suite command retained those required inputs and exited zero. These tests
 used the frame-change binary before the following span changes were built.
+
+The span-layout batch passed 1,425 C++ tests and 16 JIT reflection tests after
+the final DevMode build. Its new C++ case checks empty, single-page and cross-page
+spans at several page-prefix offsets, using the API's maximum supported alignment.
+Object inspection confirms one chunk-layout helper call and a mask-based reader
+alignment. Both builds and all test commands exited zero.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

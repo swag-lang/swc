@@ -279,6 +279,49 @@ SWC_TEST_BEGIN(DataSegment_LargeBlockPointersPreservePagedPrefixAndAlignedAlloca
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PagedStore_ChunkIterationPreservesAlignedValuesAcrossPages)
+{
+    struct alignas(alignof(std::max_align_t)) Value
+    {
+        uint64_t first;
+        uint64_t second;
+
+        bool operator==(const Value&) const = default;
+    };
+    std::array<Value, 17> values;
+    for (size_t i = 0; i < values.size(); ++i)
+        values[i] = {i * 31 + 7, i * 43 + 11};
+
+    for (const uint32_t prefix : {0u, 1u, 7u, 16u, 33u, 60u})
+    {
+        for (const size_t count : {0u, 1u, 3u, 4u, 5u, 17u})
+        {
+            PagedStore store(64);
+            if (prefix)
+                store.reserveRange(prefix, 1, false);
+            const SpanRef ref  = store.pushSpan(std::span<const Value>(values).first(count));
+            const auto    view = store.span<Value>(ref.get());
+            if (view.size() != count)
+                return Result::Error;
+
+            size_t next = 0;
+            for (auto it = view.chunksBegin(); it != view.chunksEnd(); ++it)
+            {
+                if (!it->count || it->count > count - next || reinterpret_cast<uintptr_t>(it->ptr) % alignof(Value))
+                    return Result::Error;
+                const std::span chunk(static_cast<const Value*>(it->ptr), it->count);
+                if (!std::ranges::equal(chunk, std::span<const Value>(values).subspan(next, chunk.size())))
+                    return Result::Error;
+                next += chunk.size();
+            }
+            if (next != count)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PagedStore_ReserveSpanReturnsWritableContiguousStorage)
 {
     PagedStore store(32);

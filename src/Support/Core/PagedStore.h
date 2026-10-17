@@ -289,11 +289,10 @@ public:
     ChunkIterator chunksEnd() const;
 
 private:
-    static void        decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
-    static uint32_t    dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign);
-    static const void* dataPtr(const PagedStore* st, Ref hdrRef, uint32_t elemAlign);
-    static uint32_t    totalElems(const PagedStore* st, Ref hdrRef);
-    static uint32_t    chunkCountFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign);
+    static void     decodeRef(const PagedStore* st, Ref ref, uint32_t& pageIndex, uint32_t& off);
+    static uint32_t dataOffsetFromHdr(uint32_t hdrOffset, uint32_t elemAlign);
+    static uint32_t totalElems(const PagedStore* st, Ref hdrRef);
+    static Chunk    chunkFromLayout(const PagedStore* st, Ref hdrRef, uint32_t remaining, uint32_t elemSize, uint32_t elemAlign);
 
     const PagedStore* store_        = nullptr;
     Ref               head_         = INVALID_REF;

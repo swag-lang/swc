@@ -104,6 +104,62 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(Sema_NodeViewsInitializeAndResetAbsentPayloads)
+{
+    SemaDecisionFixture fixture(ctx, "NodeViewPayloadReset");
+    Sema&               sema = fixture.sema();
+    const AstNodeRef    constantRef = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    const AstNodeRef    symbolRef   = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    const AstNodeRef    listRef     = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    const AstNodeRef    emptyRef    = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    const ConstantRef   valueRef    = ctx.cstMgr().addConstant(ctx, ConstantValue::makeBool(ctx, true));
+    sema.setConstant(constantRef, valueRef);
+
+    constexpr SymbolFlags flags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+    auto*                 first  = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    auto*                 second = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    first->setTypeRef(ctx.typeMgr().typeS32());
+    second->setTypeRef(ctx.typeMgr().typeBool());
+    sema.setSymbol(symbolRef, first);
+    std::array<Symbol*, 2> symbols = {first, second};
+
+    const auto hasNoPayload = [](const SemaNodeView& view) {
+        return !view.type() && !view.cst() && !view.sym() && !view.hasType() && !view.hasConstant() &&
+               !view.hasSymbol() && !view.hasSymbolList() && view.symbols().empty() && view.symList().empty();
+    };
+    for (const SemaNodeViewResolveE mode : {SemaNodeViewResolveE::Stored, SemaNodeViewResolveE::Resolved})
+    {
+        SemaNodeView empty(sema, AstNodeRef::invalid(), SemaNodeViewPartE::All, mode);
+        if (empty.node() || empty.nodeRef().isValid() || !hasNoPayload(empty))
+            return Result::Error;
+
+        SemaNodeView view(sema, constantRef, SemaNodeViewPartE::All, mode);
+        if (view.node() != &sema.node(constantRef) || view.cstRef() != valueRef || !view.cst() || view.typeRef() != ctx.typeMgr().typeBool())
+            return Result::Error;
+
+        sema.setSymbolList(listRef, std::span<Symbol*>(symbols));
+        view.compute(sema, listRef, SemaNodeViewPartE::All, mode);
+        if (!view.hasSymbolList() || !view.hasSymbol() || !std::ranges::equal(view.symbols(), symbols) || view.cst())
+            return Result::Error;
+        sema.setSymbolList(listRef, std::span<Symbol*>{});
+        view.recompute(sema);
+        if (!view.hasSymbolList() || view.hasSymbol() || view.sym() || !view.symbols().empty())
+            return Result::Error;
+
+        view.compute(sema, symbolRef, SemaNodeViewPartE::All, mode);
+        if (view.sym() != first || !view.hasSymbol() || view.hasSymbolList() || view.typeRef() != ctx.typeMgr().typeS32() || view.cst())
+            return Result::Error;
+        view.compute(sema, emptyRef, SemaNodeViewPartE::All, mode);
+        if (view.node() != &sema.node(emptyRef) || !hasNoPayload(view))
+            return Result::Error;
+        view.compute(sema, AstNodeRef::invalid(), SemaNodeViewPartE::All, mode);
+        if (view.node() || view.nodeRef().isValid() || !hasNoPayload(view))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Sema_OverloadRankingUsesOrderedConversionCriteria)
 {
     SWC_UNUSED(ctx);

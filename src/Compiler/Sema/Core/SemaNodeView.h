@@ -66,19 +66,21 @@ private:
     void assignSymbolList(std::span<Symbol*> symbols);
     bool loadResolvedSymbols(const Sema& sema, AstNodeRef targetRef, SemaNodeViewResolveE resolveMode);
 
-    const AstNode*       node_         = nullptr;
-    const ConstantValue* cst_          = nullptr;
-    const TypeInfo*      type_         = nullptr;
-    Symbol*              sym_          = nullptr;
-    std::span<Symbol*>   symList_      = {};
-    bool                 hasSymbol_    = false;
-    bool                 hasSymList_   = false;
+    // Construction always calls computeInner, which initializes every field before resolution.
+    // Primitive defaults would duplicate that initialization.
+    const AstNode*       node_;
+    const ConstantValue* cst_;
+    const TypeInfo*      type_;
+    Symbol*              sym_;
+    std::span<Symbol*>   symList_ = {};
+    bool                 hasSymbol_;
+    bool                 hasSymList_;
     AstNodeRef           queryNodeRef_ = AstNodeRef::invalid();
     AstNodeRef           nodeRef_      = AstNodeRef::invalid();
     ConstantRef          cstRef_       = ConstantRef::invalid();
     TypeRef              typeRef_      = TypeRef::invalid();
     SemaNodeViewPart     computedPart_ = SemaNodeViewPartE::Zero;
-    SemaNodeViewResolveE mode_         = SemaNodeViewResolveE::Resolved;
+    SemaNodeViewResolveE mode_;
 };
 
 SWC_END_NAMESPACE();

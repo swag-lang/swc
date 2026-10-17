@@ -69,7 +69,6 @@ void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart par
     hasSymbol_    = false;
     hasSymList_   = false;
     queryNodeRef_ = ref;
-    nodeRef_      = AstNodeRef::invalid();
     cstRef_       = ConstantRef::invalid();
     typeRef_      = TypeRef::invalid();
     computedPart_ = part;

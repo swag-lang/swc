@@ -94,20 +94,20 @@ namespace
         if (args.empty())
             return;
 
-        const auto numArgs    = static_cast<uint32_t>(args.size());
-        const auto argLayouts = collectArgLayouts(args);
+        const auto numArgs = static_cast<uint32_t>(args.size());
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
 
         ABICall::ArgRegisterState registerState;
+        ABICall::ArgStackState    stackState;
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg = args[i];
-            if (registerState.next(conv, i, argLayouts[i].isFloat) != K_NO_ARG_REGISTER)
+            if (registerState.next(conv, i, arg.isFloat) != K_NO_ARG_REGISTER)
                 continue;
 
             const uint64_t    argAddr     = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
             const MicroOpBits argBits     = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
-            const uint64_t    stackOffset = ABICall::callArgStackOffset(conv, argLayouts, i);
+            const uint64_t    stackOffset = stackState.next(conv, arg.numBits ? arg.numBits : 64);
             if (argBits == MicroOpBits::B128)
             {
                 builder.emitLoadRegMem(conv.floatReturn, regBase, argAddr, argBits);
@@ -123,7 +123,7 @@ namespace
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg      = args[i];
-            const uint32_t      regIndex = registerState.next(conv, i, argLayouts[i].isFloat);
+            const uint32_t      regIndex = registerState.next(conv, i, arg.isFloat);
             if (regIndex == K_NO_ARG_REGISTER)
                 continue;
 

@@ -667,6 +667,41 @@ SWC_TEST_BEGIN(StrengthReduction_SignedRemainderZeroTestBecomesMask)
 }
 SWC_TEST_END()
 
+// The highest operand bit and discarded stored bits keep the same low-bit test.
+SWC_TEST_BEGIN(StrengthReduction_SignedRemainderMaskCoversOperandWidth)
+{
+    for (const MicroOpBits opBits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint32_t bits = getNumBits(opBits);
+        for (const uint64_t divisor : {uint64_t{2}, uint64_t{8}, uint64_t{1} << (bits - 1)})
+        {
+            constexpr MicroReg value  = MicroReg::virtualIntReg(1);
+            constexpr MicroReg result = MicroReg::virtualIntReg(2);
+            constexpr MicroReg base   = MicroReg::virtualIntReg(3);
+            MicroBuilder       builder(ctx);
+            builder.emitLoadRegMem(value, base, 0, opBits);
+            // High stored bits are discarded by the 32-bit operation.
+            const uint64_t stored = opBits == MicroOpBits::B32 ? divisor | (uint64_t{1} << 40) : divisor;
+            builder.emitOpBinaryRegImm(value, ApInt(stored, 64), MicroOp::ModuloSigned, opBits);
+            builder.emitCmpRegImm(value, ApInt(uint64_t{0}, 64), opBits);
+            builder.emitSetCondReg(result, MicroCond::Equal);
+            builder.emitLoadMemReg(base, 8, result, MicroOpBits::B8);
+            builder.emitRet();
+
+            MicroStrengthReductionPass pass(true);
+            MicroPassManager           passManager;
+            passManager.addStartPass(pass);
+            MicroPassContext passContext;
+            passContext.callConvKind = CallConvKind::Swag;
+            SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+            if (!hasBinaryRegImm(builder, MicroOp::And, divisor - 1) || countBinaryRegImmOp(builder, MicroOp::ModuloSigned))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 // A remainder read after the compare keeps its full expansion.
 SWC_TEST_BEGIN(StrengthReduction_RemainderReadAfterCompareKept)
 {

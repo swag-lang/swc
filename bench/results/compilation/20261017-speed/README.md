@@ -62,6 +62,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Reuse the span iterator's decoded element count | Separate size reads before or after beginning the same span walk | The first iterator already records the immutable total. Single-node assertions, symbol-list empty/contiguity checks, generic output reservations and clone walks use that same count. Empty spans, ownership, allocation capacities and visit order are unchanged. All seven generated functions lose their redundant size calls with unchanged frames and smaller bodies. |
 | Test floating call-argument presence directly | Constructing and indexing a lane-mask table for a boolean use/definition query | A register is present exactly when its two width bits are nonzero. Register bounds, order, all three present widths and missing-operand defaults are unchanged. The generated use/definition collector loses the table store and lookup, with a smaller body and the same frame. |
 | Advance JIT bridge stack offsets in one ordered pass | A second argument-layout vector and repeated prefix searches for each stack-passed argument | Bridge arguments have no register homes. The existing ABI stack cursor visits only stack arguments in declaration order, with identical default widths, shadow space and wide-value alignment. A C++ oracle compares emitted stores against the existing layout queries for three conventions, three argument patterns and six list sizes. The generated helper is smaller with a smaller frame; its callAddress caller is unchanged. |
+| Reuse the register-slot count in wide argument offsets | A second numArgRegisterSlots call after the wide-argument scan | The scan and offset calculation use the same immutable convention. Non-wide and independent-bank paths retain their decisions. The offset function loses the duplicate call with the same frame; stack-reservation code retains its original generated shape. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -120,6 +121,7 @@ filesystem cases requiring `--dev-full`.
 | 52 | 1,457 | Full semantic suites: 295 normal and 347 expected-error inputs, including runtime; native `where` selection: 12 |
 | 53 | 1,457 | Native `call_float_arg` selection: 4 |
 | 54 | 1,458 | Full JIT: 1,539; C++ coverage includes the new address-call stack-layout oracle |
+| 55 | 1,458 | Native SIMD selection: 51 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -203,3 +205,4 @@ Folding cyclic dominator child-link initialization into DFS or RPO construction 
 Borrowing intrinsic arguments in parser rewriting and the vector-intrinsic dispatcher was left aside because those generated bodies grew. Only the fifteen lowerings with smaller bodies and frames retain the view.
 Chunk iteration in the generated-operator attribute predicate was left aside because its generated body grew; that predicate retains its original temporary.
 Chunk iteration in closure declaration and escape analysis was also left aside because those bodies grew. Only capture-identifier collection retains that change.
+Sharing the register-slot count in stack-reservation calculation was left aside because its generated frame grew. Only wide argument offsets retain that reuse.

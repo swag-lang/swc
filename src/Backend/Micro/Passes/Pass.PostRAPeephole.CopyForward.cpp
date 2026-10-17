@@ -3953,7 +3953,6 @@ namespace PostRaPeephole
             }
             else
             {
-                std::vector<UpperHalfState> in(count, ~UpperHalfState{0});
                 std::vector<UpperHalfState> out(count, ~UpperHalfState{0});
                 std::vector<uint8_t>        queued(count, 1);
                 SmallVector<uint32_t>       worklist;
@@ -3969,9 +3968,12 @@ namespace PostRaPeephole
                     UpperHalfState state = index == 0 ? 0 : ~UpperHalfState{0};
                     for (const uint32_t pred : cfg.predecessors(index))
                         state &= out[pred];
-                    in[index] = state;
+                    // Every node is initially queued. Its final visit writes the result slot,
+                    // and queries remain disabled until the whole worklist has converged.
+                    const MicroInstrRef instRef    = refs[index];
+                    upperHalfZeroIn[instRef.get()] = state;
 
-                    const MicroInstr* inst = storage->ptr(refs[index]);
+                    const MicroInstr* inst = storage->ptr(instRef);
                     if (!inst)
                         return false;
                     const UpperHalfState after = upperHalfAfter(*this, *inst, state);
@@ -3987,8 +3989,6 @@ namespace PostRaPeephole
                         }
                     }
                 }
-                for (uint32_t index = 0; index < count; ++index)
-                    upperHalfZeroIn[refs[index].get()] = in[index];
             }
 
             upperHalfValid = true;

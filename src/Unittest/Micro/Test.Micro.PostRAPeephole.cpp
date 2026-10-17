@@ -3110,6 +3110,32 @@ SWC_TEST_BEGIN(PostRAPeephole_UpperHalfClearAfterQwordPath_Kept)
 }
 SWC_TEST_END()
 
+// The backedge can invalidate the entry path's known-zero upper half.
+SWC_TEST_BEGIN(PostRAPeephole_UpperHalfClearAtLoopHeadUsesConvergedBackedge)
+{
+    const auto&        conv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg r8   = MicroReg::intReg(8);
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        const auto   loop = builder.createLabel();
+        builder.emitLoadRegImm(r8, ApInt(7, 64), MicroOpBits::B32);
+        builder.placeLabel(loop);
+        builder.emitLoadRegReg(r8, r8, MicroOpBits::B32);
+        builder.emitOpBinaryRegReg(r8, conv.intRegs[1], MicroOp::Add, bits);
+        builder.emitCmpRegImm(conv.intRegs[0], ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+        builder.emitLoadRegReg(conv.intReturn, r8, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaPeepholePass(builder));
+
+        if (countDwordSelfMoves(builder, r8) != (bits == MicroOpBits::B64 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A call forgets what the register held before it.
 SWC_TEST_BEGIN(PostRAPeephole_UpperHalfClearAfterCall_Kept)
 {

@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 func sortWords(order, counts, off, length []int, text []byte, low, high int) {
 	less := func(a, b int) bool {
 		if counts[a] != counts[b] {
@@ -46,7 +44,7 @@ func main() {
 		}
 	}
 
-	startTime := time.Now()
+	startTime := now()
 	m := newByteMap(16384, text)
 	start := -1
 	for i, b := range text {

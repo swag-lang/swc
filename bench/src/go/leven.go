@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 func main() {
 	words := make([][]byte, 6000)
 	for i := range words {
@@ -27,7 +25,7 @@ func main() {
 		}
 		queries[q] = w
 	}
-	start := time.Now()
+	start := now()
 	var row0, row1 [64]int
 	check := 0
 	for _, a := range queries {

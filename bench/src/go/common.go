@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"syscall"
+	"unsafe"
 )
 
 var seed int64 = 12345
@@ -12,9 +13,22 @@ func rnd() int {
 	return int(seed)
 }
 
-func report(check int, start time.Time) {
-	elapsed := time.Since(start)
-	fmt.Printf("CHECK=%d MS=%.6f\n", check, float64(elapsed.Nanoseconds())/1e6)
+// The Windows performance counter, as in every other port. time.Now reads the interrupt
+// clock, which only advances once per timer tick: a run of a few milliseconds can read
+// a tick short, and a 10 ms raytrace once read 0.5 ms.
+var kernel32 = syscall.NewLazyDLL("kernel32.dll")
+var queryPerformanceCounter = kernel32.NewProc("QueryPerformanceCounter")
+var queryPerformanceFrequency = kernel32.NewProc("QueryPerformanceFrequency")
+
+func now() float64 {
+	var counter, frequency int64
+	queryPerformanceCounter.Call(uintptr(unsafe.Pointer(&counter)))
+	queryPerformanceFrequency.Call(uintptr(unsafe.Pointer(&frequency)))
+	return float64(counter) / float64(frequency)
+}
+
+func report(check int, start float64) {
+	fmt.Printf("CHECK=%d MS=%.6f\n", check, (now()-start)*1000.0)
 }
 
 func makeWord(i, minLength, span int) []byte {

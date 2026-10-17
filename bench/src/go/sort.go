@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 func quicksort(a []int, lo, hi int) {
 	for hi-lo > 16 {
 		mid := lo + (hi-lo)/2
@@ -54,7 +52,7 @@ func main() {
 	for i := range a {
 		a[i] = rnd()
 	}
-	start := time.Now()
+	start := now()
 	quicksort(a, 0, len(a)-1)
 	sorted := true
 	for i := 1; i < len(a); i++ {

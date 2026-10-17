@@ -165,6 +165,39 @@ class ScheduleTests(unittest.TestCase):
             self.assertGreaterEqual(cycles[-1], driver.RUN_MAX_REPS - reps)
 
 
+class TimerFaultTests(unittest.TestCase):
+    @staticmethod
+    def keep(samples):
+        acc = {}
+        for ms in samples:
+            driver.keep_run(acc, (7, ms), {"wall_ms": 30.0, "peak_job_bytes": 10})
+        return acc
+
+    def test_a_clock_that_reads_short_does_not_become_the_result(self):
+        """Go's raytrace of 2026-10-17: one 0.51 ms reading among 10.5-13.2 ms runs."""
+        acc = self.keep([13.24, 10.53, 11.59, 11.73, 10.66, 0.51])
+        self.assertEqual(acc["ms"], 10.53)
+        self.assertEqual(acc["timer_faults"], [0.51])
+        self.assertEqual(len(acc["samples"]), 6)
+
+    def test_a_warm_jit_run_against_cold_ones_is_honest(self):
+        acc = self.keep([75.58, 70.13, 40.0])
+        self.assertEqual(acc["ms"], 40.0)
+        self.assertNotIn("timer_faults", acc)
+
+    def test_two_samples_are_never_judged(self):
+        acc = self.keep([20.0, 1.0])
+        self.assertEqual(acc["ms"], 1.0)
+        self.assertNotIn("timer_faults", acc)
+
+    def test_an_archived_campaign_is_settled_when_read(self):
+        archived = {"tasks": {"leven": {"go": {"run": {
+            "ms": 8.08, "samples": [23.56, 30.95, 20.92, 8.08, 16.31, 16.77]}}}}}
+        run = history.settle_campaign(archived)["tasks"]["leven"]["go"]["run"]
+        self.assertEqual(run["ms"], 16.31)
+        self.assertEqual(run["timer_faults"], [8.08])
+
+
 class EditLoopTests(unittest.TestCase):
     def test_build_records_every_sample_and_keeps_its_minimum(self):
         with tempfile.TemporaryDirectory() as directory:

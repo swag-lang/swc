@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 type node struct{ left, right *node }
 
 func bottomUp(depth int) *node {
@@ -20,7 +18,7 @@ func checkTree(n *node) int {
 
 func main() {
 	const minDepth, maxDepth = 4, 12
-	start := time.Now()
+	start := now()
 	stretch := bottomUp(maxDepth + 1)
 	total := checkTree(stretch)
 	stretch = nil

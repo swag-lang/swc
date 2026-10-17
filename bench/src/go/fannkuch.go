@@ -1,11 +1,9 @@
 package main
 
-import "time"
-
 func main() {
 	const n = 9
 	var perm, perm1, count [n]int
-	start := time.Now()
+	start := now()
 	for i := range perm1 {
 		perm1[i] = i
 	}

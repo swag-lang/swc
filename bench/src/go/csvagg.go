@@ -1,9 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
 func main() {
 	regions := []string{"EMEA", "APAC", "AMER", "LATAM", "NORDIC", "IBERIA", "BENELUX", "DACH"}
@@ -17,7 +14,7 @@ func main() {
 		text = fmt.Appendf(text, "%d,%s,%d-%02d-%02d,%d,%d.%02d", j, region, y, m, d, qty, cents/100, cents%100)
 	}
 
-	startTime := time.Now()
+	startTime := now()
 	agg := newByteMap(64, text)
 	var count, quantity [64]int
 	var revenue, maximum [64]float64

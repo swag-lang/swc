@@ -220,13 +220,17 @@ def keep_run(acc, got, r):
         acc["check"] = check
     elif acc["check"] != check:
         acc["error"] = "unstable checksum %d vs %d" % (acc["check"], check)
-    acc["ms"] = ms if acc.get("ms") is None else min(acc["ms"], ms)
     acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
     acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
     # Every sample is kept, not just the minimum that becomes the result: without them
     # a campaign cannot say how sure it is, and a number nobody can question is not a
     # measurement.
     acc.setdefault("samples", []).append(ms)
+    # The result is the fastest sample, unless a clock read it short; every new sample
+    # can change which samples are judged faults, so both are decided again each time.
+    acc["ms"] = min(acc["samples"])
+    acc.pop("timer_faults", None)
+    history.settle_run(acc)
 
 
 def spread_pct(samples):
@@ -615,8 +619,11 @@ def main():
                     entry["build"] = acc_build[name]
                 entry["run"] = acc_run.get(name, {})
                 r = entry["run"]
-                spread = spread_pct(r.get("samples"))
+                spread = spread_pct(history.timer_faults(r.get("samples") or [])[0])
                 spread = "%+4.0f%%" % spread if spread is not None else "n/a"
+                if r.get("timer_faults"):
+                    print("  %-20s TIMER FAULT, samples set aside: %s ms"
+                          % (name, ", ".join("%.2f" % v for v in r["timer_faults"])))
                 if r.get("error"):
                     print("  %-20s RUN ERROR %s" % (name, r["error"]))
                 elif name in aot and measure_build:

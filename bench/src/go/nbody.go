@@ -1,9 +1,6 @@
 package main
 
-import (
-	"math"
-	"time"
-)
+import "math"
 
 const solarMass = 4.0 * 3.141592653589793 * 3.141592653589793
 const daysPerYear = 365.24
@@ -70,7 +67,7 @@ func main() {
 		{1.53796971148509165e+01, -2.59193146099879641e+01, 1.79258772950371181e-01,
 			2.68067772490389322e-03 * daysPerYear, 1.62824170038242295e-03 * daysPerYear, -9.51592254519715870e-05 * daysPerYear, 5.15138902046611451e-05 * solarMass},
 	}
-	start := time.Now()
+	start := now()
 	offsetMomentum(bodies)
 	for s := 0; s < 500000; s++ {
 		advance(bodies, 0.01)

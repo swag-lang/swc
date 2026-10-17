@@ -286,6 +286,21 @@ window multiplied *every* compilation of `raytrace` by ten — clang-cl went fro
 ends and was fiction in the middle. Against that timeline the neighbour test reads 950 %, where
 a clean campaign reads 14 to 23 %.
 
+*Inside each series*, every program times itself and a run's result is its fastest sample, so
+a single clock that reads short becomes the fastest runtime on its task and the reference every
+Swag ratio there is divided by. Every port reads the Windows performance counter for that
+reason. Go's `time.Now` reads the interrupt clock instead, which advances once per timer tick:
+on 2026-10-17 it read 0.51 ms for a raytrace its other samples timed at 10.5–13.2 ms, and 8.08 ms
+for a leven timed at 16.3–31.0 ms, and Swag release appeared to fall to 17× the best on raytrace
+without having moved. The Go port now calls `QueryPerformanceCounter` like the others. Behind
+that, `history.timer_faults` sets aside a lowest sample under half of the next one, when three
+or more samples remain: across every archived campaign the widest honest gap is 0.57, a JIT's
+warm run against its cold ones. Set-aside samples stay in the record under `timer_faults` and
+the campaign log prints them. The rule is applied when a campaign is read, so archived
+campaigns are judged by it too. That campaign, `20261017-163049`, also carried a Go sort sample
+22 % under Go's best of any earlier campaign, too close to its neighbours to be judged; it
+was moved to `results/rejected/`.
+
 Never present two half-campaigns measured at different moments side by side: the gap between
 them is machine noise, not a result.
 

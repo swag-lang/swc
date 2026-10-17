@@ -1,9 +1,6 @@
 package main
 
-import (
-	"math"
-	"time"
-)
+import "math"
 
 var scx = [4]float64{0, 2, -2, 0}
 var scy = [4]float64{-0.5, 0, 0, -5001}
@@ -71,7 +68,7 @@ func trace(ox, oy, oz, dx, dy, dz float64, depth int) (float64, float64, float64
 
 func main() {
 	const width, height = 480, 360
-	start := time.Now()
+	start := now()
 	aspect := float64(width) / float64(height)
 	check := 0
 	for py := 0; py < height; py++ {

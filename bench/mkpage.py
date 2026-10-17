@@ -152,7 +152,7 @@ def latest_campaign(phase=None):
             continue
         measured = set(phases or ("build", "run"))
         if (phase is None and {"build", "run"}.issubset(measured)) or phase in measured:
-            return campaign
+            return history.settle_campaign(campaign)
     what = "complete" if phase is None else phase
     raise SystemExit("no %s campaign of protocol %d in bench/results — run a campaign first"
                      % (what, history.PROTOCOL))

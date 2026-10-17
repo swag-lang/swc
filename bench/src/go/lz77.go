@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 const hashSize, window, minMatch, maxMatch, maxChain = 65536, 32768, 4, 258, 32
 
 func hashAt(data []byte, p int) int {
@@ -32,7 +30,7 @@ func main() {
 			pos++
 		}
 	}
-	start := time.Now()
+	start := now()
 	head, prev := make([]int, hashSize), make([]int, window)
 	for i := range head {
 		head[i] = -1

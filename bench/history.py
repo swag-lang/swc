@@ -56,6 +56,16 @@ BUILT = ["swag-release", "swag-fast-debug"]
 MIN_CONTROLS = 3
 FAMILIES = (("run", "ms"), ("build", "wall_ms"))
 
+# Every program times itself, and a run's result is its fastest sample, so one clock
+# that reads short becomes the fastest runtime on that task. Go's time.Now once read
+# 0.5 ms for a raytrace its other samples timed at 10.5 ms, and that sample made Go
+# the reference every Swag ratio on the task was divided by. A pinned run cannot go
+# twice as fast as its next fastest one: across every archived campaign the widest
+# honest gap is 0.57, a JIT's warm run against its cold ones, and the clock faults
+# read 0.05 to 0.50. Below this ratio the lowest sample is a timer fault, set aside
+# and kept in the record.
+TIMER_FAULT_RATIO = 0.5
+
 
 def geo(values):
     values = [v for v in values if v and v > 0]
@@ -146,6 +156,44 @@ def describe(swc, label="", settings=None):
         "swc": swc,
         "swc_bytes": stat.st_size if stat else 0,
     }
+
+
+def timer_faults(samples):
+    """Split self-timed run samples into the honest ones and the timer faults.
+
+    Only the lowest samples are judged, each against the next one up, and two honest
+    samples always remain to judge by.
+    """
+    honest = sorted(samples)
+    faults = []
+    while len(honest) >= 3 and honest[0] < TIMER_FAULT_RATIO * honest[1]:
+        faults.append(honest.pop(0))
+    return honest, faults
+
+
+def settle_run(run):
+    """Set a run's result to its fastest honest sample, recording the timer faults.
+
+    A run without a fault keeps the result it recorded: archived samples were rounded,
+    the result was not.
+    """
+    samples = (run or {}).get("samples")
+    if not samples or run.get("error"):
+        return run
+    honest, faults = timer_faults(samples)
+    if faults:
+        run["ms"] = honest[0]
+        run["timer_faults"] = faults
+    return run
+
+
+def settle_campaign(campaign):
+    """Apply the timer-fault rule to every run of a campaign, archived ones included."""
+    for entries in (campaign.get("tasks") or {}).values():
+        for entry in entries.values():
+            if isinstance(entry, dict) and entry.get("run"):
+                settle_run(entry["run"])
+    return campaign
 
 
 def _metric(entry, family, key):
@@ -448,7 +496,7 @@ def condense(results, refs=None, baseline=None):
     spreads = []
     for entries in results["tasks"].values():
         for runtime, data in entries.items():
-            samples = (data.get("run") or {}).get("samples") or []
+            samples = timer_faults((data.get("run") or {}).get("samples") or [])[0]
             if len(samples) > 1 and min(samples) > 0:
                 spreads.append((max(samples) / min(samples) - 1.0) * 100.0)
     entry["sample_spread_pct"] = statistics.median(spreads) if spreads else None
@@ -515,7 +563,7 @@ def load_results():
         with open(path, encoding="utf-8") as stream:
             campaign = json.load(stream)
         if campaign.get("meta", {}).get("protocol") == PROTOCOL:
-            results.append(campaign)
+            results.append(settle_campaign(campaign))
     results.sort(key=lambda result: datetime.datetime.fromisoformat(result["meta"]["date"]))
     return results
 

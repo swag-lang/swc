@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 type heap struct {
 	distance, node []int
 	size           int
@@ -55,7 +53,7 @@ func main() {
 	for i := range weight {
 		weight[i] = 1 + rnd()%9
 	}
-	start := time.Now()
+	start := now()
 	dist := make([]int, nn)
 	for i := range dist {
 		dist[i] = 1 << 60

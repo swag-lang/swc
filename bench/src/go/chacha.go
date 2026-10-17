@@ -1,7 +1,5 @@
 package main
 
-import "time"
-
 func rol(x uint32, k uint) uint32 { return x<<k | x>>(32-k) }
 
 func quarterRound(s *[16]uint32, a, b, c, d int) {
@@ -28,7 +26,7 @@ func main() {
 	for i := range nonce {
 		nonce[i] = uint32(rnd())
 	}
-	start := time.Now()
+	start := now()
 	initial := [16]uint32{0x61707865, 0x3320646e, 0x79622d32, 0x6b206574}
 	for i := range key {
 		initial[4+i] = key[i]

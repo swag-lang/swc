@@ -67,11 +67,7 @@ void Ast::appendSpan(SmallVector<T>& out, SpanRef spanRef) const
     if (spanRef.isInvalid())
         return;
 
-    const uint32_t g = spanRef.get();
-    const uint32_t s = refShard(g);
-    const uint32_t l = refLocal(g);
-
-    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+    const PagedStore::SpanView view = nodeSpan(spanRef);
     for (PagedStore::SpanView::ChunkIterator it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
         const PagedStore::SpanView::Chunk& c = *it;
@@ -89,11 +85,7 @@ size_t Ast::spanSize(SpanRef spanRef) const
     if (spanRef.isInvalid())
         return 0;
 
-    const uint32_t g = spanRef.get();
-    const uint32_t s = refShard(g);
-    const uint32_t l = refLocal(g);
-
-    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+    const PagedStore::SpanView view = nodeSpan(spanRef);
     return view.size();
 }
 
@@ -102,11 +94,7 @@ AstNodeRef Ast::nthNode(SpanRef spanRef, size_t index) const
     if (spanRef.isInvalid())
         return AstNodeRef::invalid();
 
-    const uint32_t g = spanRef.get();
-    const uint32_t s = refShard(g);
-    const uint32_t l = refLocal(g);
-
-    const PagedStore::SpanView view = shards_[s].store.span<AstNodeRef>(l);
+    const PagedStore::SpanView view = nodeSpan(spanRef);
     if (index >= view.size())
         return AstNodeRef::invalid();
 
@@ -133,9 +121,8 @@ std::optional<size_t> Ast::findNodeIndex(SpanRef spanRef, AstNodeRef nodeRef) co
     if (spanRef.isInvalid())
         return std::nullopt;
 
-    const uint32_t             globalRef = spanRef.get();
-    const PagedStore::SpanView view      = shards_[refShard(globalRef)].store.span<AstNodeRef>(refLocal(globalRef));
-    size_t                     offset    = 0;
+    const PagedStore::SpanView view   = nodeSpan(spanRef);
+    size_t                     offset = 0;
     for (auto it = view.chunksBegin(); it != view.chunksEnd(); ++it)
     {
         const std::span nodes(static_cast<const AstNodeRef*>(it->ptr), it->count);

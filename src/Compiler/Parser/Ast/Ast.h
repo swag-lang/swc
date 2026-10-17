@@ -65,9 +65,18 @@ public:
         return *shards_[refShard(g)].store.ptr<AstNode>(refLocal(g));
     }
 
-    bool                  hasNode(AstNodeRef nodeRef) const;
-    bool                  hasSpan(SpanRef spanRef) const;
-    void                  appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
+    bool hasNode(AstNodeRef nodeRef) const;
+    bool hasSpan(SpanRef spanRef) const;
+    void appendNodes(SmallVector<AstNodeRef>& out, SpanRef spanRef) const;
+    // Non-owning chunks let a sequential walk decode each span header only once.
+    PagedStore::SpanView nodeSpan(SpanRef spanRef) const
+    {
+        if (spanRef.isInvalid())
+            return {};
+        const uint32_t globalRef = spanRef.get();
+        return shards_[refShard(globalRef)].store.span<AstNodeRef>(refLocal(globalRef));
+    }
+
     size_t                spanSize(SpanRef spanRef) const;
     AstNodeRef            nthNode(SpanRef spanRef, size_t index) const;
     AstNodeRef            oneNode(SpanRef spanRef) const;

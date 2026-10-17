@@ -915,6 +915,45 @@ SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSee
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AstNodeSpanPreservesOrderAcrossPagesAndGrowth)
+{
+    CommandLine             cmdLine;
+    CompilerInstance        compiler(ctx.global(), cmdLine);
+    TaskContext             compilerCtx(compiler);
+    SourceFile&             source = Unittest::addTestSource(compilerCtx, "Compiler", "AstNodeSpanPages", "");
+    Ast&                    ast    = source.ast();
+    std::vector<AstNodeRef> refs;
+    for (size_t i = 0; i < 2049; ++i)
+        refs.push_back(ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first);
+
+    const auto invalid = ast.nodeSpan(SpanRef::invalid());
+    if (!invalid.empty() || invalid.chunksBegin() != invalid.chunksEnd())
+        return Result::Error;
+    for (const size_t count : {size_t{0}, size_t{1}, refs.size()})
+    {
+        const SpanRef ref  = ast.pushSpan(std::span<const AstNodeRef>(refs.data(), count));
+        const auto    view = ast.nodeSpan(ref);
+        // Appending more pages must not invalidate an earlier view.
+        ast.pushSpan(std::span<const AstNodeRef>(refs));
+        if (view.size() != count)
+            return Result::Error;
+        size_t next = 0;
+        for (auto chunk = view.chunksBegin(); chunk != view.chunksEnd(); ++chunk)
+        {
+            if (!chunk->count || chunk->count > count - next)
+                return Result::Error;
+            for (const AstNodeRef nodeRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (nodeRef != refs[next++])
+                    return Result::Error;
+            }
+        }
+        if (next != count)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_AstVisitPreservesSiblingsAcrossPauseSkipAndRestart)
 {
     CommandLine      cmdLine;

@@ -287,21 +287,24 @@ namespace
         if (!decl || decl->tokNameRef.isInvalid())
             return;
 
-        const size_t count = ast.spanSize(attributes->spanChildrenRef);
-        for (size_t i = 0; i < count; ++i)
+        const auto attributesView = ast.nodeSpan(attributes->spanChildrenRef);
+        for (auto chunk = attributesView.chunksBegin(); chunk != attributesView.chunksEnd(); ++chunk)
         {
-            const AstNodeRef attributeRef = ast.nthNode(attributes->spanChildrenRef, i);
-            if (attributeRef.isInvalid() || !ast.hasNode(attributeRef))
-                continue;
-            const auto* attribute = ast.node(attributeRef).safeCast<AstAttribute>();
-            if (!attribute)
-                continue;
-
-            const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef).text;
-            if (attributeName == "Macro" || attributeName == "Mixin")
+            const std::span attributeRefs(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);
+            for (const AstNodeRef attributeRef : attributeRefs)
             {
-                outNames.insert(autoInlineName(ast.srcView(), decl->tokNameRef));
-                break;
+                if (attributeRef.isInvalid() || !ast.hasNode(attributeRef))
+                    continue;
+                const auto* attribute = ast.node(attributeRef).safeCast<AstAttribute>();
+                if (!attribute)
+                    continue;
+
+                const std::string_view attributeName = autoInlineCallName(ast, attribute->nodeCallRef).text;
+                if (attributeName == "Macro" || attributeName == "Mixin")
+                {
+                    outNames.insert(autoInlineName(ast.srcView(), decl->tokNameRef));
+                    return;
+                }
             }
         }
     }

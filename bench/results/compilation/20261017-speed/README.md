@@ -55,6 +55,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Reuse resolved struct-field nodes for source locations | A second field-span size query and indexed lookup during each element's validation and constant folding | Both lookups had identical arguments with no intervening mutation. The existing field reference now supplies the same source location, including the invalid-node fallback. Error-only helpers retain their original implementation. Object inspection confirms the removed normal-path calls with all affected frames unchanged. |
 | Borrow fixed-arity intrinsic argument references | Initializing, filling and destroying temporary SmallVectors in fifteen intrinsic lowerings | A small read-only view returns references from the same immutable AST chunks; fixed indexed operands retain their order and identity. Sequential walks keep chunk iteration. A page-growth regression checks borrowed addresses across every chunk. All fifteen generated callers have smaller bodies and frames, and their combined code reduction exceeds the two new shared helpers. The view fits within the former temporary in both compiler configurations. |
 | Search constraints and visit using-import lists in place | Copying each constraint list before a membership query and each using list before its ordered walk | The existing chunk search tests the same reference identity and first match. The using walk visits immutable AST references in the same order and retains every symbol-map update and source revision. Both generated functions lose their appendNodes call and have smaller frames without larger bodies. |
+| Read namespace segment counts from span metadata | Copying the namespace token list just to obtain its size | The span header already stores the same count, including zero for an invalid span. The scope-pop loop retains its count and order; the generated function loses its temporary and token-copy call and has a smaller body and frame. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -106,6 +107,7 @@ filesystem cases requiring `--dev-full`.
 | 45 | 1,455 | Semantic `struct` selection: 44 normal and 46 expected-error inputs, including runtime |
 | 46 | 1,455 | Full native: 3,892; full JIT: 1,539 |
 | 47 | 1,455 | Full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
+| 48 | 1,457 | Semantic `namespace` selection: 31 normal and 29 expected-error inputs, including runtime; native optimizer: 303 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -138,6 +140,8 @@ Checkpoint 39 includes the reloaded-factor FMA and sibling-copy forwarding chang
 imported at `e2b7ff1f54`; its native program configuration enables FMA contraction.
 Checkpoint 44 includes the frame-slot zero-extension change imported at
 `b6f4998b7c` and executes its native regression.
+Checkpoint 48 includes the vector-result home forwarding and high-multiply value
+numbering imported at `a7cc628dd5`; its C++ suite covers both new regressions.
 
 A new SmallVector regression first exposed a leaked live prefix when copy
 construction failed. The repair cleans partial construction and raw allocations,

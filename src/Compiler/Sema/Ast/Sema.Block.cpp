@@ -203,9 +203,8 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
 
 Result AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
 {
-    SmallVector<TokenRef> namesRef;
-    sema.ast().appendTokens(namesRef, spanNameRef);
-    for (size_t i = 0; i < namesRef.size(); ++i)
+    const size_t count = sema.ast().spanSize(spanNameRef);
+    for (size_t i = 0; i < count; ++i)
         sema.frame().popNs();
     return Result::Continue;
 }

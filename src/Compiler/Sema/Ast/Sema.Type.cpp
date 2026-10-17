@@ -640,31 +640,33 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
     if (sema.frame().currentAttributes().declaredCallConvKind)
         symFunc->setCallConvKind(*sema.frame().currentAttributes().declaredCallConvKind);
 
-    SmallVector<AstNodeRef> params;
-    sema.ast().appendNodes(params, spanParamsRef);
+    const auto params = sema.ast().nodeSpan(spanParamsRef);
 
-    for (const auto& paramRef : params)
+    for (auto chunk = params.chunksBegin(); chunk != params.chunksEnd(); ++chunk)
     {
-        const AstLambdaParam& param        = sema.node(paramRef).cast<AstLambdaParam>();
-        TypeRef               paramTypeRef = TypeRef::invalid();
-        if (param.nodeTypeRef.isValid())
-            paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
-        else if (param.nodeDefaultValueRef.isValid())
-            SWC_RESULT(SemaHelpers::deduceDefaultValueType(sema, param.nodeDefaultValueRef, paramTypeRef));
+        for (const AstNodeRef& paramRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+        {
+            const AstLambdaParam& param        = sema.node(paramRef).cast<AstLambdaParam>();
+            TypeRef               paramTypeRef = TypeRef::invalid();
+            if (param.nodeTypeRef.isValid())
+                paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
+            else if (param.nodeDefaultValueRef.isValid())
+                SWC_RESULT(SemaHelpers::deduceDefaultValueType(sema, param.nodeDefaultValueRef, paramTypeRef));
 
-        SWC_ASSERT(paramTypeRef.isValid());
+            SWC_ASSERT(paramTypeRef.isValid());
 
-        IdentifierRef idRef = IdentifierRef::invalid();
-        if (param.hasFlag(AstLambdaParamFlagsE::Named) && sema.token(param.codeRef()).id != TokenId::KwdUnnamed)
-            idRef = sema.idMgr().addIdentifier(ctx, param.codeRef());
+            IdentifierRef idRef = IdentifierRef::invalid();
+            if (param.hasFlag(AstLambdaParamFlagsE::Named) && sema.token(param.codeRef()).id != TokenId::KwdUnnamed)
+                idRef = sema.idMgr().addIdentifier(ctx, param.codeRef());
 
-        auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
-        symVar->setTypeRef(paramTypeRef);
-        SWC_RESULT(SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, *symVar));
+            auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
+            symVar->setTypeRef(paramTypeRef);
+            SWC_RESULT(SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, *symVar));
 
-        symFunc->addParameter(symVar);
-        if (idRef.isValid())
-            symFunc->addSymbol(ctx, symVar, false);
+            symFunc->addParameter(symVar);
+            if (idRef.isValid())
+                symFunc->addSymbol(ctx, symVar, false);
+        }
     }
 
     symFunc->setVariadicParamFlag(ctx);

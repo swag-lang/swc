@@ -65,6 +65,8 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Reuse the register-slot count in wide argument offsets | A second numArgRegisterSlots call after the wide-argument scan | The scan and offset calculation use the same immutable convention. Non-wide and independent-bank paths retain their decisions. The offset function loses the duplicate call with the same frame; stack-reservation code retains its original generated shape. |
 | Write only argument classes for sanitizer register selection | Rewriting argument widths and home flags, plus an unused default-width selection | The register-index query reads only each argument's floating/integer class. All type normalization, null checks, hidden arguments and register decisions remain unchanged. The generated helper has a smaller body with the same frame. |
 | Retain immutable token lists when cloning within one AST | A temporary token-reference vector, its fill, and a second AST span allocation/copy for same-owner clones | The resolved owner must equal the destination AST. Token lists are immutable and live for that AST's lifetime; cross-owner clones retain their copies. The ownership regression covers empty, single-name and multi-page lists across three ASTs after page growth. Object inspection confirms the same-owner return precedes vector initialization and copying, with an unchanged frame. |
+| Keep fresh reflection descriptors at their allocated defaults | Rewriting zero runtime fields and fresh struct-cache fields; looking up and resetting every empty attribute slice | A cache miss supplies a new entry and a fully zeroed concrete payload before its sole initialization. Attribute slices belong to those payloads or fresh TypeValue arrays, and wiring runs once before Done. Nonzero fields, relocations and capacities are unchanged. All affected reflection helpers retain their frames; generated initialization bodies shrink and empty attribute lists return before their storage lookup. |
+| Walk lambda-type parameters from AST chunks | A temporary parameter-reference vector before constructing a lambda's function type | The same immutable references produce parameters, defaults, names and diagnostics in the same order. AST pages remain retained across semantic work. The generated function has a smaller body and frame. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -126,6 +128,7 @@ filesystem cases requiring `--dev-full`.
 | 55 | 1,458 | Native SIMD selection: 51 |
 | 56 | 1,459 | Full sanity suite: 85 |
 | 57 | 1,459 | Full native: 3,892; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
+| 58 | 1,459 | Full native: 3,892; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -212,3 +215,4 @@ Borrowing intrinsic arguments in parser rewriting and the vector-intrinsic dispa
 Chunk iteration in the generated-operator attribute predicate was left aside because its generated body grew; that predicate retains its original temporary.
 Chunk iteration in closure declaration and escape analysis was also left aside because those bodies grew. Only capture-identifier collection retains that change.
 Sharing the register-slot count in stack-reservation calculation was left aside because its generated frame grew. Only wide argument offsets retain that reuse.
+Omitting the function cache-entry resets was left aside because its frame grew; those resets remain. Borrowing partial-lambda binding parameters was also left aside because its generated code grew.

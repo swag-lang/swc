@@ -40,6 +40,7 @@ class MicroDeadCodeEliminationPass;
 class MicroBranchSimplifyPass;
 class MicroLoopUnrollPass;
 class MicroSlpVectorizePass;
+class MicroStoreForwardSplitPass;
 class MicroWebRenamePass;
 class MicroVecLoopPromotePass;
 
@@ -119,6 +120,7 @@ private:
     std::unique_ptr<MicroBranchSimplifyPass>          lateBranchSimplifyPass_;
     std::unique_ptr<MicroLoopUnrollPass>              loopUnrollPass_;
     std::unique_ptr<MicroSlpVectorizePass>            slpVectorizePass_;
+    std::unique_ptr<MicroStoreForwardSplitPass>       storeForwardSplitPass_;
     std::unique_ptr<MicroWebRenamePass>               webRenamePass_;
     std::unique_ptr<MicroVecLoopPromotePass>          vecLoopPromotePass_;
 

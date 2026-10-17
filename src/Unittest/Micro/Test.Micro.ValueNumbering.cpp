@@ -57,6 +57,69 @@ SWC_TEST_BEGIN(ValueNumbering_DedupIdenticalCompute)
 }
 SWC_TEST_END()
 
+// `n % k` then `n / k`: one high multiply of `n`, its result overwritten in place
+// before the second. The first result is kept in a register of its own and the
+// second multiply becomes a copy of it. A cheap operation in the same position
+// stays: keeping it would cost a register for nothing.
+SWC_TEST_BEGIN(ValueNumbering_KeepsAnOverwrittenHighMultiplyForItsRepeat)
+{
+    for (const MicroOp op : {MicroOp::MultiplyHighUnsigned, MicroOp::Add})
+    {
+        const MicroReg vN  = MicroReg::virtualIntReg(10);
+        const MicroReg vC1 = MicroReg::virtualIntReg(11);
+        const MicroReg vC2 = MicroReg::virtualIntReg(12);
+        const MicroReg v1  = MicroReg::virtualIntReg(13);
+        const MicroReg v2  = MicroReg::virtualIntReg(14);
+        MicroBuilder   builder(ctx);
+
+        builder.emitLoadRegMem(vN, MicroReg::intReg(1), 0, MicroOpBits::B64);
+        builder.emitLoadRegImm(vC1, ApInt(0x4EC4EC4EC4EC4EC5, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(v1, vN, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(v1, vC1, op, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(v1, ApInt(3, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(1), 8, v1, MicroOpBits::B64);
+        builder.emitLoadRegImm(vC2, ApInt(0x4EC4EC4EC4EC4EC5, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(v2, vN, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(v2, vC2, op, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(v2, ApInt(3, 64), MicroOp::ShiftRight, MicroOpBits::B64);
+        builder.emitLoadMemReg(MicroReg::intReg(1), 16, v2, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(runValueNumberingPass(builder));
+
+        const bool kept = op == MicroOp::MultiplyHighUnsigned;
+        if (Backend::Unittest::countBinaryRegRegOp(builder, op) != (kept ? 1u : 2u))
+            return Result::Error;
+        if (!kept)
+            continue;
+
+        // The kept copy follows the multiply directly, and the repeat reads it.
+        MicroReg keptReg;
+        bool     afterMultiply = false;
+        bool     repeatReads   = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const MicroInstrOperand* ops = inst.ops(builder.operands());
+            if (afterMultiply)
+            {
+                if (inst.op != MicroInstrOpcode::LoadRegReg || ops[1].reg != v1)
+                    return Result::Error;
+                keptReg       = ops[0].reg;
+                afterMultiply = false;
+            }
+            else if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[3].microOp == op)
+                afterMultiply = true;
+            else if (inst.op == MicroInstrOpcode::LoadRegReg && ops[0].reg == v2 && keptReg.isValid() && ops[1].reg == keptReg)
+                repeatReads = true;
+        }
+        if (!repeatReads)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // Different right-hand values: both adds must stay.
 SWC_TEST_BEGIN(ValueNumbering_KeepsDifferentInputs)
 {

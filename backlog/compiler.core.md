@@ -352,6 +352,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   context-sensitive cases. Restoring methods' declaration contexts is insufficient by itself:
   delayed `ConcatBuffer.addBytes` and `reserveInPlace` can remain unresolved when native/JIT
   preparation waits on their semantic completion through allocation-failure reporting.
+  Repeated closure application remains a local lead: a per-consumer capture set improves
+  a 1,000-file shared dependency, but a standard eight-root graph was about 2.7% slower
+  overall in Release despite neutral setup timing.
 - Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
   work separately from consumer sources on a small consumer, a large module graph, and a
   diamond dependency. Compare cold and warm imports with both compiler executables. Use
@@ -359,6 +362,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   declarations; retain the source import path for unsupported declarations while expanding
   coverage. Before widening lazy imported methods, close body materialization across cyclic
   method/free-function calls, then verify both compile-time execution and native presolve.
+  Account for whole-command effects before adopting per-capture closure deduplication.
 - Interface contract: preserve namespace and overload membership, exported and supporting
   symbols, canonical type identity, layouts, constants and default arguments, attributes
   including safety/borrow contracts, interface implementations, ABI/link identities, and

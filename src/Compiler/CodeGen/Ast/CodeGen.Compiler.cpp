@@ -26,27 +26,31 @@ namespace
         const ConstantRef switchCstRef = codeGen.viewConstant(node.nodeExprRef).cstRef();
         SWC_ASSERT(switchCstRef.isValid());
 
-        AstNodeRef   defaultBodyRef = AstNodeRef::invalid();
-        const Ast&   ast            = codeGen.ast();
-        const size_t count          = ast.spanSize(node.spanCasesRef);
-        for (size_t i = 0; i < count; ++i)
+        AstNodeRef defaultBodyRef = AstNodeRef::invalid();
+        const Ast& ast            = codeGen.ast();
+        const auto cases          = ast.nodeSpan(node.spanCasesRef);
+        for (auto chunk = cases.chunksBegin(); chunk != cases.chunksEnd(); ++chunk)
         {
-            const AstNodeRef caseRef  = ast.nthNode(node.spanCasesRef, i);
-            const auto&      caseNode = codeGen.node(caseRef).cast<AstCompilerSwitchCase>();
-            if (caseNode.spanExprRef.isInvalid())
+            for (const AstNodeRef caseRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
             {
-                defaultBodyRef = caseNode.nodeBodyRef;
-                continue;
-            }
+                const auto& caseNode = codeGen.node(caseRef).cast<AstCompilerSwitchCase>();
+                if (caseNode.spanExprRef.isInvalid())
+                {
+                    defaultBodyRef = caseNode.nodeBodyRef;
+                    continue;
+                }
 
-            const size_t exprCount = ast.spanSize(caseNode.spanExprRef);
-            for (size_t exprIndex = 0; exprIndex < exprCount; ++exprIndex)
-            {
-                const AstNodeRef  exprRef    = ast.nthNode(caseNode.spanExprRef, exprIndex);
-                const ConstantRef caseCstRef = codeGen.viewConstant(exprRef).cstRef();
-                SWC_ASSERT(caseCstRef.isValid());
-                if (caseCstRef == switchCstRef)
-                    return caseNode.nodeBodyRef;
+                const auto expressions = ast.nodeSpan(caseNode.spanExprRef);
+                for (auto expressionChunk = expressions.chunksBegin(); expressionChunk != expressions.chunksEnd(); ++expressionChunk)
+                {
+                    for (const AstNodeRef exprRef : std::span(static_cast<const AstNodeRef*>(expressionChunk->ptr), expressionChunk->count))
+                    {
+                        const ConstantRef caseCstRef = codeGen.viewConstant(exprRef).cstRef();
+                        SWC_ASSERT(caseCstRef.isValid());
+                        if (caseCstRef == switchCstRef)
+                            return caseNode.nodeBodyRef;
+                    }
+                }
             }
         }
 

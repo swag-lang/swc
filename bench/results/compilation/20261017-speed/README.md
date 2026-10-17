@@ -38,6 +38,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Check multiply-to-shift eligibility once | A repeated operand-width check, power-of-two check and integer-logarithm scan after checking CPU flags | The sole caller already rejects every ineligible nontrivial immediate before the flags walk. Zero and one keep their existing reductions; the remaining case emits the same shift and shift amount. Width-boundary and live-flag C++ cases protect both decisions. |
 | Walk static-switch cases by chunks | Repeated span setup, header reads and prefix walks during case lookup and semantic child collection | Searches retain their first matching case. Child collection keeps the selector, all case values, all bodies and the case-label nodes in their original separate phases, without a new buffer. A C++ case checks that flattened order including a default section. |
 | Construct a reserved forward assignment directly | A capacity comparison for every assigned element | The forward range supplies its complete distance before reservation. Direct construction retains the same values, order, size publication and capacity policy; input iterators keep their incremental growth path. |
+| Traverse switch selections and duplicate checks by chunks | Per-case and per-value span setup, header reads and prefix walks | Semantic selection still visits every value and retains the first matching body and first default; code generation keeps its first-match return. Duplicate checks retain their range exclusion, order and first diagnostic. No new buffer or lookup table is introduced. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -71,6 +72,7 @@ filesystem cases requiring `--dev-full`.
 | 25 | 1,428 | New direct/mutual-recursion and incoming-wrapper assertions |
 | 26 | 1,429 | Two normal attribute sources and eight expected-error attribute sources, plus runtime |
 | 28 | 1,432 | Full native: 3,891; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
+| 30 | 1,446 | Native `static_control.swg`: 1; semantic `switch` selection: 35 normal and 38 expected-error inputs, including runtime |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -95,6 +97,8 @@ to the SmallVector defect repair below.
 Checkpoint 28 includes the prompt-2 immutable-parameter loop-read change imported
 at `205ac08ff3`. SmallVector checks also include the later immutable-field-address
 propagation imported at `a21d518c77`.
+Checkpoint 30 additionally exercises the memory-flags and TLS-context changes
+imported at `b5cba4d47a`.
 
 A new SmallVector regression first exposed a leaked live prefix when copy
 construction failed. The repair cleans partial construction and raw allocations,
@@ -127,3 +131,4 @@ an extra test on valid candidate definitions.
 Packing entry-escape bytes into frame ranges was discarded: eager state initialization
 and strided writes would require measurement to establish a CPU saving.
 Lazy default-value insertion was discarded: object inspection showed an additional large insertion specialization, leaving a code-footprint tradeoff for measurement.
+Reusing unique dense-index lists for access scores was discarded because the original use/definition lists intentionally retain repeated occurrences.

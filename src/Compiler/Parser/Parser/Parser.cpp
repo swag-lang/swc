@@ -984,7 +984,7 @@ TokenRef Parser::expectAndConsume(TokenId id, DiagnosticId diagId)
     return TokenRef::invalid();
 }
 
-TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, const SmallVector<TokenId>& skipIds, bool skipToEol)
+TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, std::initializer_list<TokenId> skipIds, bool skipToEol)
 {
     if (is(closeId))
         return consume();
@@ -1002,7 +1002,7 @@ TokenRef Parser::expectAndConsumeClosing(TokenId closeId, TokenRef openRef, cons
         diag.report(*ctx_);
     }
 
-    SmallVector skip{skipIds};
+    SmallVector<TokenId> skip(skipIds);
     if (skip.empty())
     {
         skip.push_back(TokenId::SymSemiColon);

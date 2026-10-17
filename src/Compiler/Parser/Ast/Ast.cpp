@@ -112,8 +112,12 @@ AstNodeRef Ast::nthNode(SpanRef spanRef, size_t index) const
 
 AstNodeRef Ast::oneNode(SpanRef spanRef) const
 {
-    SWC_ASSERT(spanSize(spanRef) == 1);
-    return nthNode(spanRef, 0);
+    const PagedStore::SpanView view = nodeSpan(spanRef);
+    SWC_ASSERT(view.size() == 1);
+    const auto first = view.chunksBegin();
+    if (first != view.chunksEnd())
+        return static_cast<const AstNodeRef*>(first->ptr)[0];
+    return AstNodeRef::invalid();
 }
 
 std::optional<size_t> Ast::findNodeIndex(SpanRef spanRef, AstNodeRef nodeRef) const

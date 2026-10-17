@@ -755,14 +755,16 @@ namespace
             return Result::Continue;
         }
 
-        const size_t exprCount = switchSpanNodeCount(sema.ast(), caseStmt.spanExprRef);
-        for (size_t i = 0; i < exprCount; ++i)
+        const auto expressions = sema.ast().nodeSpan(caseStmt.spanExprRef);
+        for (auto chunk = expressions.chunksBegin(); chunk != expressions.chunksEnd(); ++chunk)
         {
-            const AstNodeRef exprRef = sema.ast().nthNode(caseStmt.spanExprRef, i);
-            if (sema.node(exprRef).is(AstNodeId::RangeExpr))
-                continue;
+            for (const AstNodeRef exprRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (sema.node(exprRef).is(AstNodeId::RangeExpr))
+                    continue;
 
-            SWC_RESULT(checkDuplicateConstCaseValue(sema, switchRef, exprRef, caseStmt.nodeWhereRef));
+                SWC_RESULT(checkDuplicateConstCaseValue(sema, switchRef, exprRef, caseStmt.nodeWhereRef));
+            }
         }
 
         return Result::Continue;

@@ -127,7 +127,7 @@ private:
     TokenRef consumeAssert(TokenId id);
     TokenRef consume();
     TokenRef consumeIf(TokenId id);
-    TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, const SmallVector<TokenId>& skipIds = {}, bool skipToEol = true);
+    TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, std::initializer_list<TokenId> skipIds = {}, bool skipToEol = true);
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
     bool     prepareNextArgument();
     void     expectEndStatement();

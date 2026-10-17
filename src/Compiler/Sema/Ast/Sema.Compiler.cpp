@@ -115,37 +115,41 @@ namespace
         const ConstantRef switchCstRef = sema.viewConstant(node.nodeExprRef).cstRef();
         SWC_ASSERT(switchCstRef.isValid());
 
-        AstNodeRef   defaultCaseRef = AstNodeRef::invalid();
-        AstNodeRef   defaultBodyRef = AstNodeRef::invalid();
-        const size_t count          = sema.ast().spanSize(node.spanCasesRef);
-        for (size_t i = 0; i < count; ++i)
+        AstNodeRef defaultCaseRef = AstNodeRef::invalid();
+        AstNodeRef defaultBodyRef = AstNodeRef::invalid();
+        const auto cases          = sema.ast().nodeSpan(node.spanCasesRef);
+        for (auto chunk = cases.chunksBegin(); chunk != cases.chunksEnd(); ++chunk)
         {
-            const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
-            const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
-            if (caseNode.spanExprRef.isInvalid())
+            for (const AstNodeRef caseRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
             {
-                if (defaultCaseRef.isInvalid())
+                const auto& caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
+                if (caseNode.spanExprRef.isInvalid())
                 {
-                    defaultCaseRef = caseRef;
-                    defaultBodyRef = caseNode.nodeBodyRef;
-                    continue;
+                    if (defaultCaseRef.isInvalid())
+                    {
+                        defaultCaseRef = caseRef;
+                        defaultBodyRef = caseNode.nodeBodyRef;
+                        continue;
+                    }
+
+                    auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_multiple_default, caseRef);
+                    diag.addNote(DiagnosticId::sema_note_previous_default_case);
+                    diag.last().addSpan(sema.node(defaultCaseRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
+                    diag.report(sema.ctx());
+                    return Result::Error;
                 }
 
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_multiple_default, caseRef);
-                diag.addNote(DiagnosticId::sema_note_previous_default_case);
-                diag.last().addSpan(sema.node(defaultCaseRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
-                diag.report(sema.ctx());
-                return Result::Error;
-            }
-
-            const size_t exprCount = sema.ast().spanSize(caseNode.spanExprRef);
-            for (size_t exprIndex = 0; exprIndex < exprCount; ++exprIndex)
-            {
-                const AstNodeRef  exprRef    = sema.ast().nthNode(caseNode.spanExprRef, exprIndex);
-                const ConstantRef caseCstRef = sema.viewConstant(exprRef).cstRef();
-                SWC_ASSERT(caseCstRef.isValid());
-                if (payload.selectedBodyRef.isInvalid() && caseCstRef == switchCstRef)
-                    payload.selectedBodyRef = caseNode.nodeBodyRef;
+                const auto expressions = sema.ast().nodeSpan(caseNode.spanExprRef);
+                for (auto expressionChunk = expressions.chunksBegin(); expressionChunk != expressions.chunksEnd(); ++expressionChunk)
+                {
+                    for (const AstNodeRef exprRef : std::span(static_cast<const AstNodeRef*>(expressionChunk->ptr), expressionChunk->count))
+                    {
+                        const ConstantRef caseCstRef = sema.viewConstant(exprRef).cstRef();
+                        SWC_ASSERT(caseCstRef.isValid());
+                        if (payload.selectedBodyRef.isInvalid() && caseCstRef == switchCstRef)
+                            payload.selectedBodyRef = caseNode.nodeBodyRef;
+                    }
+                }
             }
         }
 

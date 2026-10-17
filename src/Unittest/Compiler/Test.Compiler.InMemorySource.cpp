@@ -937,6 +937,8 @@ SWC_TEST_BEGIN(Compiler_AstNodeSpanPreservesOrderAcrossPagesAndGrowth)
         ast.pushSpan(std::span<const AstNodeRef>(refs));
         if (view.size() != count)
             return Result::Error;
+        if (count == 1 && ast.oneNode(ref) != refs.front())
+            return Result::Error;
         size_t next = 0;
         for (auto chunk = view.chunksBegin(); chunk != view.chunksEnd(); ++chunk)
         {

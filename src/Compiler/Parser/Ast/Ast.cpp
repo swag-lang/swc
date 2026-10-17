@@ -134,9 +134,9 @@ AstNodeRef Ast::nthNode(SpanRef spanRef, size_t index) const
 
 AstNodeRef Ast::oneNode(SpanRef spanRef) const
 {
-    const PagedStore::SpanView view = nodeSpan(spanRef);
-    SWC_ASSERT(view.size() == 1);
-    const auto first = view.chunksBegin();
+    const PagedStore::SpanView view  = nodeSpan(spanRef);
+    const auto                 first = view.chunksBegin();
+    SWC_ASSERT(first.total == 1);
     if (first != view.chunksEnd())
         return static_cast<const AstNodeRef*>(first->ptr)[0];
     return AstNodeRef::invalid();

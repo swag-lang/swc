@@ -558,13 +558,13 @@ std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef
     const Shard*      shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
     const auto spanView = shard->store.span<const Symbol*>(info.ref);
+    const auto it       = spanView.chunksBegin();
 
-    if (spanView.empty())
+    if (!it.total)
         return {};
 
-    const auto  it    = spanView.chunksBegin();
     const auto& chunk = *it;
-    SWC_ASSERT(chunk.count == spanView.size());
+    SWC_ASSERT(chunk.count == it.total);
     return std::span{static_cast<const Symbol* const*>(chunk.ptr), chunk.count};
 }
 
@@ -966,12 +966,12 @@ std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& i
     }
 
     const auto spanView = shard->store.span<const Symbol*>(info.ref);
-    if (spanView.empty())
+    const auto it       = spanView.chunksBegin();
+    if (!it.total)
         return {};
 
-    const auto  it    = spanView.chunksBegin();
     const auto& chunk = *it;
-    SWC_ASSERT(chunk.count == spanView.size());
+    SWC_ASSERT(chunk.count == it.total);
     return std::span{static_cast<const Symbol* const*>(chunk.ptr), chunk.count};
 }
 

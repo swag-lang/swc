@@ -76,9 +76,9 @@ namespace
         return result;
     }
 
-    bool hasWideStackArg(const CallConv& conv, std::span<const ABICall::ArgLayout> argLayouts)
+    bool hasWideStackArg(const CallConv& conv, std::span<const ABICall::ArgLayout> argLayouts, uint32_t firstStackIndex)
     {
-        for (uint32_t i = conv.numArgRegisterSlots(); i < argLayouts.size(); ++i)
+        for (uint32_t i = firstStackIndex; i < argLayouts.size(); ++i)
         {
             const ABICall::ArgLayout& arg = argLayouts[i];
             if (arg.isFloat && arg.numBits == 128 && !conv.canPassArgInRegister(i, arg.isFloat))
@@ -94,20 +94,20 @@ namespace
         if (args.empty())
             return;
 
-        const auto numArgs    = static_cast<uint32_t>(args.size());
-        const auto argLayouts = collectArgLayouts(args);
+        const auto numArgs = static_cast<uint32_t>(args.size());
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
 
         ABICall::ArgRegisterState registerState;
+        ABICall::ArgStackState    stackState;
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg = args[i];
-            if (registerState.next(conv, i, argLayouts[i].isFloat) != K_NO_ARG_REGISTER)
+            if (registerState.next(conv, i, arg.isFloat) != K_NO_ARG_REGISTER)
                 continue;
 
             const uint64_t    argAddr     = static_cast<uint64_t>(i) * sizeof(ABICall::Arg);
             const MicroOpBits argBits     = arg.isFloat ? microOpBitsFromBitWidth(arg.numBits) : MicroOpBits::B64;
-            const uint64_t    stackOffset = ABICall::callArgStackOffset(conv, argLayouts, i);
+            const uint64_t    stackOffset = stackState.next(conv, arg.numBits ? arg.numBits : 64);
             if (argBits == MicroOpBits::B128)
             {
                 builder.emitLoadRegMem(conv.floatReturn, regBase, argAddr, argBits);
@@ -123,7 +123,7 @@ namespace
         for (uint32_t i = 0; i < numArgs; ++i)
         {
             const ABICall::Arg& arg      = args[i];
-            const uint32_t      regIndex = registerState.next(conv, i, argLayouts[i].isFloat);
+            const uint32_t      regIndex = registerState.next(conv, i, arg.isFloat);
             if (regIndex == K_NO_ARG_REGISTER)
                 continue;
 
@@ -373,11 +373,11 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
         return stackBytes + homeBytes;
     }
 
-    if (!hasWideStackArg(conv, argLayouts))
+    const uint32_t numRegArgs = conv.numArgRegisterSlots();
+    if (!hasWideStackArg(conv, argLayouts, numRegArgs))
         return callArgStackOffset(conv, argIndex);
 
     const uint32_t stackSlotSize = conv.stackSlotSize();
-    const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     if (conv.canPassArgInRegister(argIndex, argLayouts[argIndex].isFloat))
         return static_cast<uint64_t>(argIndex) * stackSlotSize;
 
@@ -461,7 +461,7 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
         return static_cast<uint32_t>(frameBaseSize + alignPad);
     }
 
-    if (!hasWideStackArg(conv, argLayouts))
+    if (!hasWideStackArg(conv, argLayouts, conv.numArgRegisterSlots()))
         return computeCallStackAdjust(callConvKind, static_cast<uint32_t>(argLayouts.size()));
 
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();

@@ -169,6 +169,60 @@ namespace
     }
 }
 
+SWC_TEST_BEGIN(ABI_AddressCallStackStoresMatchLayoutQueries)
+{
+    constexpr std::array<uint8_t, 3> floatWidths = {32, 64, 128};
+    for (uint32_t pattern : {0u, 1u, 2u})
+    {
+        std::array<ABICall::Arg, 30>       args;
+        std::array<ABICall::ArgLayout, 30> layouts;
+        for (size_t index = 0; index < args.size(); ++index)
+        {
+            const bool    isFloat = pattern == 1 || (pattern == 0 && index % 3 != 0);
+            const uint8_t bits    = isFloat ? floatWidths[index % floatWidths.size()] : index % 2 ? 0
+                                                                                                  : 64;
+            args[index]           = {.isFloat = isFloat, .numBits = bits};
+            layouts[index]        = {.numBits = static_cast<uint8_t>(bits ? bits : 64), .isFloat = isFloat};
+        }
+
+        for (const CallConvKind kind : {CallConvKind::Swag, CallConvKind::WindowsX64, CallConvKind::C})
+        {
+            const CallConv& conv = CallConv::get(kind);
+            for (const size_t count : {0u, 1u, 4u, 7u, 16u, 30u})
+            {
+                const std::span<const ABICall::Arg>           input(args.data(), count);
+                const std::span<const ABICall::ArgLayout>     layout(layouts.data(), count);
+                std::vector<std::pair<uint64_t, MicroOpBits>> expected;
+                for (uint32_t index = 0; index < count; ++index)
+                {
+                    if (ABICall::argumentRegisterIndex(conv, layout, index) != UINT32_MAX)
+                        continue;
+                    const MicroOpBits bits = input[index].isFloat ? microOpBitsFromBitWidth(input[index].numBits) : MicroOpBits::B64;
+                    expected.emplace_back(ABICall::callArgStackOffset(conv, layout, index), bits);
+                }
+
+                MicroBuilder builder(ctx);
+                ABICall::callAddress(builder, kind, 0x1234, input, {});
+                size_t next = 0;
+                for (const MicroInstr& inst : builder.instructions().view())
+                {
+                    if (inst.op != MicroInstrOpcode::LoadMemReg)
+                        continue;
+                    const MicroInstrOperand* ops = inst.ops(builder.operands());
+                    if (ops[0].reg != conv.stackPointer)
+                        continue;
+                    if (next >= expected.size() || ops[3].valueU64 != expected[next].first || ops[2].opBits != expected[next].second)
+                        return Result::Error;
+                    ++next;
+                }
+                if (next != expected.size())
+                    return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 // A callee moves a narrow result into the return register without extending
 // it: every call site canonicalizes it again. Bytes and words move as a whole
 // register, dwords with their zero-extending move.

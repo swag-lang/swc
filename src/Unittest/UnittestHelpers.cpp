@@ -104,7 +104,10 @@ namespace Backend::Unittest
 
         if (size != expected.size())
         {
-            Logger::print(ctx, std::format("[encode-case] '{}' produced {} bytes, expected {}\n", name, size, expected.size()));
+            std::string produced;
+            for (uint32_t i = 0; i < size; ++i)
+                produced += std::format(" {:02X}", encoder.byteAt(i));
+            Logger::print(ctx, std::format("[encode-case] '{}' produced {} bytes ({}), expected {}\n", name, size, produced, expected.size()));
             return Result::Error;
         }
 

@@ -18,6 +18,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Skip impossible frame-base candidate probes | Looking up physical or floating-point bases and preferred registers in a table containing only virtual integer registers | The existing validity predicates become candidate-kind predicates. The table contents, iteration order, and selection rule are unchanged. |
 | Avoid unread byte-swap provenance initialization and copies | Clearing arrays that every successful trace overwrites, copying those arrays before overwriting them again, and materializing a root result used only for immediate comparison | Successful traces still fill all 64 positions; failed traces are never read. Leaf metadata, bit-combination order, near-miss rejection, and emitted swaps are unchanged. |
 | Omit the unqualified type-info self-dependency | Appending and subsequently ignoring the current type when it has no qualifiers | The existing qualifier branch appends a dependency only when normalization is needed. Qualified types keep the same dependency and traversal position. |
+| Initialize blocked-call flags only with their final target value | Zero-filling the flag array immediately before assigning every entry | Names and graph rows are appended together. Every target flag is assigned before the edge walk adds caller flags; one owned array replaces the single-use vector without widening its storage. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -75,6 +76,11 @@ the DevMode compiler in program configuration `devmode`. The byte-swap cases cov
 32- and 64-bit inputs, reordered terms, and near misses. The metadata cases cover
 qualified and recursive types. The three latest local changes were validated
 together before retention; all builds and commands exited zero.
+
+The blocked-call initialization batch passed 1,423 C++ tests and the native
+`inline_auto_relaxed_constructs.swg` test. Existing C++ inlining checks cover
+recursive components, blocked direct calls, nested functions, and separate ASTs.
+The incremental DevMode build and both test commands exited zero.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

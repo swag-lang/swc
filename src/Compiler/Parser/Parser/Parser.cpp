@@ -133,16 +133,16 @@ namespace
 
         void findBlockedCalls(const AutoInlineNameSet& metaNames, const AutoInlineNameSet* unsupportedNames)
         {
-            blockedCalls_.clear();
-            if (metaNames.empty() && (!unsupportedNames || unsupportedNames->empty()))
+            blockedCalls_.reset();
+            if (edges_.empty() || (metaNames.empty() && (!unsupportedNames || unsupportedNames->empty())))
                 return;
 
-            blockedCalls_.resize(edges_.size(), 0);
+            // Every name owns one graph row and receives its final target flag below.
+            blockedCalls_ = std::make_unique_for_overwrite<uint8_t[]>(edges_.size());
             for (size_t index = 0; index < names_.size(); ++index)
             {
                 const AutoInlineName& name = names_[index];
-                if (metaNames.contains(name) || (unsupportedNames && unsupportedNames->contains(name)))
-                    blockedCalls_[index] = BLOCKED_TARGET;
+                blockedCalls_[index]       = metaNames.contains(name) || (unsupportedNames && unsupportedNames->contains(name)) ? BLOCKED_TARGET : 0;
             }
 
             for (size_t source = 0; source < edges_.size(); ++source)
@@ -176,7 +176,7 @@ namespace
             if (!index)
                 return InlineConstraint::None;
             // A blocked call leaves the existing flags alone, even when its caller is cyclic.
-            if (!blockedCalls_.empty() && (blockedCalls_[*index] & BLOCKED_CALLER))
+            if (blockedCalls_ && (blockedCalls_[*index] & BLOCKED_CALLER))
                 return InlineConstraint::BlockedCall;
             return cyclic_[*index] ? InlineConstraint::Cycle : InlineConstraint::None;
         }
@@ -256,7 +256,7 @@ namespace
         std::vector<uint32_t>              lowLinks_;
         std::vector<bool>                  onStack_;
         std::vector<bool>                  cyclic_;
-        std::vector<uint8_t>               blockedCalls_;
+        std::unique_ptr<uint8_t[]>         blockedCalls_;
         bool                               constraintsPrepared_ = false;
         SmallVector<uint32_t>              stack_;
         uint32_t                           nextIndex_ = 0;

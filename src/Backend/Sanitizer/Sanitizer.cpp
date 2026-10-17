@@ -864,7 +864,8 @@ bool Sanitizer::callParameterRegister(MicroReg& outReg, const SymbolFunction& fn
         if (!params[i])
             return false;
         const ABITypeNormalize::NormalizedType type = ABITypeNormalize::normalize(ctx(), callConv, ctx().typeMgr().get(params[i]->typeRef()), ABITypeNormalize::Usage::Argument);
-        argLayouts[i + abiIndex - paramIndex]       = {.numBits = static_cast<uint8_t>(type.numBits ? type.numBits : 64), .isFloat = type.isFloat};
+        // Register selection only reads the floating/integer class.
+        argLayouts[i + abiIndex - paramIndex].isFloat = type.isFloat;
     }
 
     if (argLayouts[abiIndex].isFloat)

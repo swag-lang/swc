@@ -63,6 +63,10 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Test floating call-argument presence directly | Constructing and indexing a lane-mask table for a boolean use/definition query | A register is present exactly when its two width bits are nonzero. Register bounds, order, all three present widths and missing-operand defaults are unchanged. The generated use/definition collector loses the table store and lookup, with a smaller body and the same frame. |
 | Advance JIT bridge stack offsets in one ordered pass | A second argument-layout vector and repeated prefix searches for each stack-passed argument | Bridge arguments have no register homes. The existing ABI stack cursor visits only stack arguments in declaration order, with identical default widths, shadow space and wide-value alignment. A C++ oracle compares emitted stores against the existing layout queries for three conventions, three argument patterns and six list sizes. The generated helper is smaller with a smaller frame; its callAddress caller is unchanged. |
 | Reuse the register-slot count in wide argument offsets | A second numArgRegisterSlots call after the wide-argument scan | The scan and offset calculation use the same immutable convention. Non-wide and independent-bank paths retain their decisions. The offset function loses the duplicate call with the same frame; stack-reservation code retains its original generated shape. |
+| Write only argument classes for sanitizer register selection | Rewriting argument widths and home flags, plus an unused default-width selection | The register-index query reads only each argument's floating/integer class. All type normalization, null checks, hidden arguments and register decisions remain unchanged. The generated helper has a smaller body with the same frame. |
+| Retain immutable token lists when cloning within one AST | A temporary token-reference vector, its fill, and a second AST span allocation/copy for same-owner clones | The resolved owner must equal the destination AST. Token lists are immutable and live for that AST's lifetime; cross-owner clones retain their copies. The ownership regression covers empty, single-name and multi-page lists across three ASTs after page growth. Object inspection confirms the same-owner return precedes vector initialization and copying, with an unchanged frame. |
+| Keep fresh reflection descriptors at their allocated defaults | Rewriting zero runtime fields and fresh struct-cache fields; looking up and resetting every empty attribute slice | A cache miss supplies a new entry and a fully zeroed concrete payload before its sole initialization. Attribute slices belong to those payloads or fresh TypeValue arrays, and wiring runs once before Done. Nonzero fields, relocations and capacities are unchanged. All affected reflection helpers retain their frames; generated initialization bodies shrink and empty attribute lists return before their storage lookup. |
+| Walk lambda-type parameters from AST chunks | A temporary parameter-reference vector before constructing a lambda's function type | The same immutable references produce parameters, defaults, names and diagnostics in the same order. AST pages remain retained across semantic work. The generated function has a smaller body and frame. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -122,6 +126,9 @@ filesystem cases requiring `--dev-full`.
 | 53 | 1,457 | Native `call_float_arg` selection: 4 |
 | 54 | 1,458 | Full JIT: 1,539; C++ coverage includes the new address-call stack-layout oracle |
 | 55 | 1,458 | Native SIMD selection: 51 |
+| 56 | 1,459 | Full sanity suite: 85 |
+| 57 | 1,459 | Full native: 3,892; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
+| 58 | 1,459 | Full native: 3,892; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -156,6 +163,8 @@ Checkpoint 44 includes the frame-slot zero-extension change imported at
 `b6f4998b7c` and executes its native regression.
 Checkpoint 48 includes the vector-result home forwarding and high-multiply value
 numbering imported at `a7cc628dd5`; its C++ suite covers both new regressions.
+Checkpoint 56 includes the imported-API documentation-trivia change imported at
+`a3c9a0a290`; its C++ suite covers the new documentation regression.
 
 A new SmallVector regression first exposed a leaked live prefix when copy
 construction failed. The repair cleans partial construction and raw allocations,
@@ -206,3 +215,4 @@ Borrowing intrinsic arguments in parser rewriting and the vector-intrinsic dispa
 Chunk iteration in the generated-operator attribute predicate was left aside because its generated body grew; that predicate retains its original temporary.
 Chunk iteration in closure declaration and escape analysis was also left aside because those bodies grew. Only capture-identifier collection retains that change.
 Sharing the register-slot count in stack-reservation calculation was left aside because its generated frame grew. Only wide argument offsets retain that reuse.
+Omitting the function cache-entry resets was left aside because its frame grew; those resets remain. Borrowing partial-lambda binding parameters was also left aside because its generated code grew.

@@ -129,6 +129,37 @@ SWC_TEST_BEGIN(NodePayload_RecloneReadsOwningAstWithBorrowedSourceLocation)
     if (originalSema.viewSymbol(decoyRef).sym() != &decoy)
         return Result::Error;
     SWC_UNUSED(decoyNode);
+
+    for (const size_t count : {0u, 1u, 2'049u})
+    {
+        std::vector<TokenRef> names;
+        for (size_t index = 0; index < count; ++index)
+            names.push_back(TokenRef{static_cast<uint32_t>(index % 2)});
+        const auto [declRef, decl]   = original.ast().makeNode<AstNodeId::MultiVarDecl>(TokenRef{0});
+        decl->spanNamesRef           = original.ast().pushSpan(std::span<const TokenRef>(names));
+        const AstNodeRef sameDeclRef = SemaClone::cloneAst(originalSema, declRef, firstContext);
+
+        // Different contents at local indices catch a span borrowed from another owner.
+        const std::vector<TokenRef> padding(count + 17, TokenRef{1});
+        middle.ast().pushSpan(std::span<const TokenRef>(padding));
+        const AstNodeRef middleDeclRef = SemaClone::cloneAst(middleSema, sameDeclRef, firstContext);
+        original.ast().pushSpan(std::span<const TokenRef>(padding));
+        target.ast().pushSpan(std::span<const TokenRef>(padding));
+        const AstNodeRef targetDeclRef = SemaClone::cloneAst(targetSema, middleDeclRef, secondContext);
+        middle.ast().pushSpan(std::span<const TokenRef>(padding));
+
+        const std::array clones = {std::pair{&original.ast(), sameDeclRef}, std::pair{&middle.ast(), middleDeclRef}, std::pair{&target.ast(), targetDeclRef}};
+        for (const auto& [ast, cloneRef] : clones)
+        {
+            if (cloneRef.isInvalid())
+                return Result::Error;
+            const auto&           clone = ast->node(cloneRef).cast<AstMultiVarDecl>();
+            SmallVector<TokenRef> actual;
+            ast->appendTokens(actual, clone.spanNamesRef);
+            if (!std::ranges::equal(actual, names))
+                return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

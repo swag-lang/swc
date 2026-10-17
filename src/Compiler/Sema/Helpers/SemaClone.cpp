@@ -930,6 +930,9 @@ namespace
         const Ast* spanAst = resolveCloneSpanAst(sema, spanRef, cloneContext);
         if (!spanAst)
             return SpanRef::invalid();
+        // Token lists are immutable and can retain their span within the same owner.
+        if (spanAst == &sema.ast())
+            return spanRef;
 
         SmallVector<TokenRef> tokens;
         spanAst->appendTokens(tokens, spanRef);

@@ -326,7 +326,6 @@ namespace
         // allocator-dependent interning hash here.
         rtType.crc = type.runtimeHash(ctx);
 
-        rtType.flags = Runtime::TypeInfoFlags::Zero;
         if (type.isConst())
             addFlag(rtType, Runtime::TypeInfoFlags::Const);
         if (type.isNullable())
@@ -436,11 +435,7 @@ namespace
     {
         const auto& dims = type.payloadArrayDims();
         if (dims.empty())
-        {
-            rtType.count      = 0;
-            rtType.totalCount = 0;
             return;
-        }
 
         rtType.count      = dims[0];
         rtType.totalCount = type.arrayTotalElementCount();
@@ -562,12 +557,12 @@ namespace
 
     void exportAttributes(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t ownerOffset, uint32_t attributesFieldOffset, const AttributeList& attributes)
     {
-        auto* attrsSlice  = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
-        attrsSlice->ptr   = nullptr;
-        attrsSlice->count = attributes.attributes.size();
+        // Each owner is fresh zeroed storage, so an empty slice needs no writes.
         if (attributes.attributes.empty())
             return;
 
+        auto* attrsSlice                   = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
+        attrsSlice->count                  = attributes.attributes.size();
         const auto [attrsOffset, attrsPtr] = storage.reserveSpan<Runtime::Attribute>(static_cast<uint32_t>(attributes.attributes.size()));
         attrsSlice->ptr                    = attrsPtr;
         storage.addRelocation(ownerOffset + attributesFieldOffset + offsetof(Runtime::Slice<Runtime::Attribute>, ptr), attrsOffset);
@@ -599,13 +594,8 @@ namespace
         const TypeRef     rawTypeRef = symEnum.underlyingTypeRef();
         const auto        values     = collectEnumValues(symEnum);
 
-        rtType.values.ptr       = nullptr;
-        rtType.values.count     = values.size();
-        rtType.rawType          = nullptr;
-        rtType.attributes.ptr   = nullptr;
-        rtType.attributes.count = 0;
-        entry.enumValuesOffset  = 0;
-        entry.enumValuesCount   = static_cast<uint32_t>(values.size());
+        rtType.values.count   = values.size();
+        entry.enumValuesCount = static_cast<uint32_t>(values.size());
 
         if (values.empty())
             return;
@@ -656,39 +646,8 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
-        const Utf8 name                = type.toName(ctx);
-        rtType.opInit                  = nullptr;
-        rtType.opDrop                  = nullptr;
-        rtType.opPostCopy              = nullptr;
-        rtType.opPostMove              = nullptr;
-        rtType.structName.length       = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
-        rtType.fromGeneric             = nullptr;
-        rtType.generics.ptr            = nullptr;
-        rtType.generics.count          = 0;
-        rtType.fields.ptr              = nullptr;
-        rtType.fields.count            = 0;
-        rtType.usingFields.ptr         = nullptr;
-        rtType.usingFields.count       = 0;
-        rtType.methods.ptr             = nullptr;
-        rtType.methods.count           = 0;
-        rtType.interfaces.ptr          = nullptr;
-        rtType.interfaces.count        = 0;
-        rtType.attributes.ptr          = nullptr;
-        rtType.attributes.count        = 0;
-        rtType.dynamicSlots.ptr        = nullptr;
-        rtType.dynamicSlots.count      = 0;
-        entry.structFromGenericTypeRef = TypeRef::invalid();
-        entry.structGenericsOffset     = 0;
-        entry.structGenericsCount      = 0;
-        entry.structGenericTypes.clear();
-        entry.structMethodsOffset = 0;
-        entry.structMethodsCount  = 0;
-        entry.structMethodTypes.clear();
-        entry.structMethods.clear();
-        entry.structInterfacesOffset = 0;
-        entry.structInterfacesCount  = 0;
-        entry.structInterfaceTypes.clear();
-        entry.structInterfaces.clear();
+        const Utf8 name          = type.toName(ctx);
+        rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
 
         if (type.isStruct())
         {
@@ -736,10 +695,8 @@ namespace
 
         if (type.isAggregateStruct())
         {
-            const auto& aggregate    = type.payloadAggregate();
-            rtType.fields.count      = aggregate.types.size();
-            rtType.usingFields.ptr   = nullptr;
-            rtType.usingFields.count = 0;
+            const auto& aggregate = type.payloadAggregate();
+            rtType.fields.count   = aggregate.types.size();
 
             entry.structFieldsCount = static_cast<uint32_t>(aggregate.types.size());
             entry.structFieldTypes.clear();
@@ -749,7 +706,6 @@ namespace
 
             if (aggregate.types.empty())
             {
-                rtType.fields.ptr        = nullptr;
                 entry.structFieldsOffset = 0;
                 return;
             }
@@ -830,8 +786,6 @@ namespace
 
         if (fields.empty())
         {
-            rtType.fields.ptr        = nullptr;
-            rtType.usingFields.ptr   = nullptr;
             entry.structFieldsOffset = 0;
             entry.usingFieldsOffset  = 0;
         }
@@ -856,7 +810,6 @@ namespace
             else
             {
                 entry.usingFieldsOffset = 0;
-                rtType.usingFields.ptr  = nullptr;
             }
 
             uint32_t usingIndex = 0;
@@ -916,7 +869,6 @@ namespace
 
         if (methods.empty())
         {
-            rtType.methods.ptr        = nullptr;
             entry.structMethodsOffset = 0;
         }
         else
@@ -943,7 +895,6 @@ namespace
 
         if (interfaces.empty())
         {
-            rtType.interfaces.ptr        = nullptr;
             entry.structInterfacesOffset = 0;
         }
         else
@@ -1009,14 +960,6 @@ namespace
         TaskContext&          ctx        = sema.ctx();
         const SymbolFunction& symFunc    = type.payloadSymFunction();
         const auto&           parameters = symFunc.parameters();
-
-        rtType.generics.ptr     = nullptr;
-        rtType.generics.count   = 0;
-        rtType.parameters.ptr   = nullptr;
-        rtType.parameters.count = 0;
-        rtType.returnType       = nullptr;
-        rtType.attributes.ptr   = nullptr;
-        rtType.attributes.count = 0;
 
         entry.funcParamsOffset = 0;
         entry.funcParamsCount  = static_cast<uint32_t>(parameters.size());
@@ -1095,6 +1038,7 @@ TypeRef TypeGen::owningDropTypeRef(TaskContext& ctx, const TypeRef typeRef)
 
 void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry)
 {
+    // The cache miss supplies a fresh Entry and zeroed storage for every layout.
     initCommon(sema, storage, rtType, offset, typeRef, type);
 
     switch (kind)

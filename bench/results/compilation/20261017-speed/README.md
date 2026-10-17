@@ -20,6 +20,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Omit the unqualified type-info self-dependency | Appending and subsequently ignoring the current type when it has no qualifiers | The existing qualifier branch appends a dependency only when normalization is needed. Qualified types keep the same dependency and traversal position. |
 | Initialize blocked-call flags only with their final target value | Zero-filling the flag array immediately before assigning every entry | Names and graph rows are appended together. Every target flag is assigned before the edge walk adds caller flags; one owned array replaces the single-use vector without widening its storage. |
 | Queue incomplete return summaries only on their state transition | Reading and writing queue-membership bytes during completeness propagation | A summary changes from complete to incomplete once. The transition itself prevents duplicate queue entries; the later growing-mask fixpoint retains its membership array and existing queue order. |
+| Materialize completeness dependencies only when propagation is needed | Prefix summation, a second dependency walk, and the reverse-edge and cursor allocations when no dependency is missing; a separate seed scan in every case | Missing dependencies seed the same caller-order queue during the existing count walk. Without a seed, completeness cannot fall; with one, the same reverse edges and queue propagate it as before. Temporary storage is released before the mask phase. |
 
 The changes preserve traversal order, promotion choices, virtual-register assignment,
 instruction rewriting, and graph storage. Existing C++ shape checks cover record
@@ -87,6 +88,10 @@ The return-summary queue batch passed 1,423 C++ tests, including guarded aliases
 recursive summaries and unresolved dependencies, and all 85 sanity tests. Its
 incremental DevMode build and both commands exited zero. The first two admissions
 were deferred for CPU load; neither deferred test was started.
+
+The completeness-graph batch passed 1,423 C++ tests and all 85 sanity tests after
+an incremental DevMode build. All commands exited zero. Guarded-summary coverage
+includes both fully resolved graphs and a dependency that completes on a later call.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

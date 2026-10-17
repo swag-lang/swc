@@ -5616,79 +5616,78 @@ namespace SemaEscape
 
             // Completeness only falls. Record reverse dependencies once, seed callers whose
             // dependency is outside this completed set, then invalidate their dependents by queue.
-            std::vector<size_t> completionOffsets(returnEntries.size() + 1, 0);
-            for (size_t callerIndex = 0; callerIndex < returnEntries.size(); ++callerIndex)
             {
-                ReturnEntry& caller = returnEntries[callerIndex];
-                if (!caller.summary.hasRelevantEdges)
-                    continue;
-
-                for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
+                std::vector<size_t> completionOffsets(returnEntries.size() + 1, 0);
+                std::vector<size_t> incompleteWorklist;
+                incompleteWorklist.reserve(returnEntries.size());
+                for (size_t callerIndex = 0; callerIndex < returnEntries.size(); ++callerIndex)
                 {
-                    const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
-                    if (edge.callerIndirect || edge.calleeIndirect)
+                    ReturnEntry& caller = returnEntries[callerIndex];
+                    if (!caller.summary.hasRelevantEdges)
                         continue;
-                    visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
-                        if (const ReturnEntry* dependency = returns.find(function))
-                            ++completionOffsets[static_cast<size_t>(dependency - returnEntries.data()) + 1];
-                        else
-                            caller.summary.complete = false;
-                    });
-                }
-            }
-            for (size_t i = 1; i < completionOffsets.size(); ++i)
-                completionOffsets[i] += completionOffsets[i - 1];
 
-            std::vector<size_t> completionDependents(completionOffsets.back());
-            std::vector<size_t> completionCursor(completionOffsets.begin(), completionOffsets.end() - 1);
-            for (size_t callerIndex = 0; callerIndex < returnEntries.size(); ++callerIndex)
-            {
-                const ReturnEntry& caller = returnEntries[callerIndex];
-                if (!caller.summary.hasRelevantEdges)
-                    continue;
-
-                for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
-                {
-                    const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
-                    if (edge.callerIndirect || edge.calleeIndirect)
-                        continue;
-                    visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
-                        if (const ReturnEntry* dependency = returns.find(function))
-                        {
-                            const size_t dependencyIndex                              = static_cast<size_t>(dependency - returnEntries.data());
-                            completionDependents[completionCursor[dependencyIndex]++] = callerIndex;
-                        }
-                    });
-                }
-            }
-
-            std::vector<size_t> incompleteWorklist;
-            incompleteWorklist.reserve(returnEntries.size());
-            for (size_t i = 0; i < returnEntries.size(); ++i)
-            {
-                if (!returnEntries[i].summary.complete)
-                    incompleteWorklist.push_back(i);
-            }
-            size_t incompleteCursor = 0;
-            while (incompleteCursor < incompleteWorklist.size())
-            {
-                const size_t dependencyIndex = incompleteWorklist[incompleteCursor++];
-                for (size_t dependentIndex = completionOffsets[dependencyIndex]; dependentIndex < completionOffsets[dependencyIndex + 1]; ++dependentIndex)
-                {
-                    const size_t   callerIndex = completionDependents[dependentIndex];
-                    ReturnSummary& caller      = returnEntries[callerIndex].summary;
-                    if (caller.complete)
+                    for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
                     {
-                        caller.complete = false;
-                        // Only the transition to incomplete enqueues a caller, so it enters once.
+                        const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
+                        if (edge.callerIndirect || edge.calleeIndirect)
+                            continue;
+                        visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
+                            if (const ReturnEntry* dependency = returns.find(function))
+                                ++completionOffsets[static_cast<size_t>(dependency - returnEntries.data()) + 1];
+                            else
+                                caller.summary.complete = false;
+                        });
+                    }
+                    if (!caller.summary.complete)
                         incompleteWorklist.push_back(callerIndex);
+                }
+                // With no missing dependency, every summary is complete already.
+                if (!incompleteWorklist.empty())
+                {
+                    for (size_t i = 1; i < completionOffsets.size(); ++i)
+                        completionOffsets[i] += completionOffsets[i - 1];
+
+                    std::vector<size_t> completionDependents(completionOffsets.back());
+                    std::vector<size_t> completionCursor(completionOffsets.begin(), completionOffsets.end() - 1);
+                    for (size_t callerIndex = 0; callerIndex < returnEntries.size(); ++callerIndex)
+                    {
+                        const ReturnEntry& caller = returnEntries[callerIndex];
+                        if (!caller.summary.hasRelevantEdges)
+                            continue;
+
+                        for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
+                        {
+                            const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
+                            if (edge.callerIndirect || edge.calleeIndirect)
+                                continue;
+                            visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
+                                if (const ReturnEntry* dependency = returns.find(function))
+                                {
+                                    const size_t dependencyIndex                              = static_cast<size_t>(dependency - returnEntries.data());
+                                    completionDependents[completionCursor[dependencyIndex]++] = callerIndex;
+                                }
+                            });
+                        }
+                    }
+
+                    size_t incompleteCursor = 0;
+                    while (incompleteCursor < incompleteWorklist.size())
+                    {
+                        const size_t dependencyIndex = incompleteWorklist[incompleteCursor++];
+                        for (size_t dependentIndex = completionOffsets[dependencyIndex]; dependentIndex < completionOffsets[dependencyIndex + 1]; ++dependentIndex)
+                        {
+                            const size_t   callerIndex = completionDependents[dependentIndex];
+                            ReturnSummary& caller      = returnEntries[callerIndex].summary;
+                            if (caller.complete)
+                            {
+                                caller.complete = false;
+                                // Only the transition to incomplete enqueues a caller, so it enters once.
+                                incompleteWorklist.push_back(callerIndex);
+                            }
+                        }
                     }
                 }
             }
-            std::vector<size_t>().swap(completionOffsets);
-            std::vector<size_t>().swap(completionDependents);
-            std::vector<size_t>().swap(completionCursor);
-            std::vector<size_t>().swap(incompleteWorklist);
 
             struct DependentReturnEdge
             {

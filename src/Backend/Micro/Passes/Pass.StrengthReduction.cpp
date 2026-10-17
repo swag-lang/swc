@@ -205,6 +205,8 @@ namespace
         if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || ops[3].hasWideImmediateValue() || divisor < 2 ||
             !Math::isPowerOfTwo(divisor) || !ops[0].reg.isVirtualInt())
             return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
+            return false;
 
         MicroInstrRef cmpRef;
         if (!isOnlyTestedAgainstZero(context, storage, operands, ssaState, localSsaState, instRef, ops[0].reg, opBits, cmpRef))
@@ -1199,7 +1201,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
 
             case MicroOp::DivideSigned:
             case MicroOp::ModuloSigned:
-                if (microOp == MicroOp::ModuloSigned && MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder) &&
+                if (microOp == MicroOp::ModuloSigned &&
                     tryReduceSignedModuloPow2Equality(context, storage, operands, ssaState, ssaScratch, instRef, ops))
                 {
                     changed = true;

@@ -634,6 +634,49 @@ SWC_TEST_BEGIN(StrengthReduction_LoopInstanceDefersSignedDivision)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(StrengthReduction_SignedDivisionAndRemainderRespectFlagsAndDeferral)
+{
+    constexpr std::array cases = {
+        std::pair{MicroOp::DivideSigned, uint64_t{3}},
+        std::pair{MicroOp::DivideSigned, uint64_t{8}},
+        std::pair{MicroOp::ModuloSigned, uint64_t{3}},
+        std::pair{MicroOp::ModuloSigned, uint64_t{8}},
+    };
+    for (const auto [operation, divisor] : cases)
+    {
+        for (const bool deferred : {false, true})
+        {
+            for (const bool liveFlags : {false, true})
+            {
+                constexpr MicroReg value     = MicroReg::virtualIntReg(1);
+                constexpr MicroReg condition = MicroReg::virtualIntReg(2);
+                constexpr MicroReg base      = MicroReg::virtualIntReg(3);
+                MicroBuilder       builder(ctx);
+                builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                builder.emitOpBinaryRegImm(value, ApInt(divisor, 64), operation, MicroOpBits::B64);
+                if (liveFlags)
+                {
+                    builder.emitSetCondReg(condition, MicroCond::Equal);
+                    builder.emitLoadMemReg(base, 8, condition, MicroOpBits::B8);
+                }
+                builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+                builder.emitRet();
+
+                MicroStrengthReductionPass pass(deferred);
+                MicroPassManager           passManager;
+                passManager.addStartPass(pass);
+                MicroPassContext passContext;
+                passContext.callConvKind = CallConvKind::Swag;
+                SWC_RESULT(builder.runPasses(passManager, nullptr, passContext));
+
+                if (countBinaryRegImmOp(builder, operation) != (deferred || liveFlags ? 1u : 0u))
+                    return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 // A signed remainder by a power of two that is only tested for zero reads
 // the low bits, whatever the sign. One that is read as a value keeps its sign.
 SWC_TEST_BEGIN(StrengthReduction_SignedRemainderZeroTestBecomesMask)

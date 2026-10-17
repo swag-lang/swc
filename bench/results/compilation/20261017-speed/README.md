@@ -44,6 +44,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Keep fresh attribute records at their allocated zero defaults | Resetting attribute type pointers, parameter-slice pointers and inline Any values after reserveSpan already zeroed them | Both the paged and large-block allocation paths zero the entire fresh span. These private helpers have only that fresh-array call chain; absent types, parameters and null values retain identical empty fields. Object inspection confirms the removed Any zero store with the same stack reservation. |
 | Decode single-node spans once | A second span setup, another header-size read and the indexed lookup loop for a one-element query | The writer guarantees nonempty chunks for a nonempty span. The existing one-element assertion remains; empty/invalid spans retain the invalid result when assertions are disabled. The page-growth regression checks the query, and the DevMode object has fewer calls and a smaller body and stack frame. |
 | Trust masked signed-remainder divisor widths | Rechecking the width and power-of-two predicate and computing a logarithm solely to confirm the width | The divisor has already been masked to the accepted 32/64-bit width. A remaining nonzero power of two necessarily has a shift below that width. New C++ cases cover the highest bit and discarded high stored bits; the object loses the redundant logarithm loop with the same stack reservation. |
+| Check signed-remainder eligibility before flag analysis | A suffix walk for candidates already excluded by width, immediate, divisor or register kind | The same cheap eligibility guard now precedes the same dead-flags requirement inside the private fold. Rewriting and fallback decisions remain identical. The original shared dispatch is retained; object inspection shows a smaller body with the same frame. A C++ matrix covers division/remainder, divisors 3/8, live/dead flags and deferred/immediate expansion. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -83,6 +84,7 @@ filesystem cases requiring `--dev-full`.
 | 33 | 1,446 | Native `typeinfo_attribute` selection: 7; JIT `typeinfo_attribute_param.swg`: 1 |
 | 34 | 1,446 | Full native: 3,891; full JIT: 1,539 |
 | 35 | 1,447 | Native optimizer selection: 302 |
+| 36 | 1,448 | Native optimizer selection: 302 |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -144,3 +146,4 @@ Packing entry-escape bytes into frame ranges was discarded: eager state initiali
 and strided writes would require measurement to establish a CPU saving.
 Lazy default-value insertion was discarded: object inspection showed an additional large insertion specialization, leaving a code-footprint tradeoff for measurement.
 Reusing unique dense-index lists for access scores was discarded because the original use/definition lists intentionally retain repeated occurrences.
+Splitting the signed-operation dispatch was discarded because of generated stack/code growth; the retained eligibility guard keeps the original shared dispatch.

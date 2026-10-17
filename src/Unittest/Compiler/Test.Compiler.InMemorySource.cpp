@@ -154,6 +154,26 @@ SWC_TEST_BEGIN(Compiler_ParserWorkersKeepFileDiagnosticsIsolated)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_ImportedApisDoNotRetainDocumentationTrivia)
+{
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Doc;
+    CompilerInstance                 compiler(ctx.global(), cmdLine);
+    TaskContext                      compilerCtx(compiler);
+    constexpr std::string_view       source   = "// Function documentation.\nfunc parsed()->s32 => 42\n";
+    SourceFile&                      current  = Unittest::addTestSource(compilerCtx, "Compiler", "CurrentDocumentation", source);
+    SourceFile&                      imported = Unittest::addTestSource(compilerCtx, "Compiler", "ImportedDocumentation", source, FileFlagsE::ImportedApi);
+    const std::array<SourceFile*, 2> files    = {&current, &imported};
+    parseSourceFiles(compilerCtx, files, {.emitTrivia = true});
+
+    if (current.ast().srcView().trivia().empty() || !imported.ast().srcView().trivia().empty())
+        return Result::Error;
+    const AstFunctionDecl* declaration = findFunctionDecl(imported.ast(), "parsed");
+    if (!declaration || imported.ast().srcView().tokenCodeRange(compilerCtx, declaration->tokNameRef).line != 2)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_EofDiagnosticsKeepFileAndTaskState)
 {
     for (const bool oneLine : {false, true})

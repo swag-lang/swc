@@ -49,14 +49,17 @@ is the current scorecard.
   native small-argument and block-sum calls with only `.ValueBorrow` toggled. The
   [focused measurements](../bench/results/safety/20261016-value-borrow.md) retain all samples
   and compiler rebuild CPU/memory controls, but shared-machine drift prevents a tight bound.
-  Own stack accumulator writes no longer incur a check merely because an incoming value
-  parameter is borrowed; aliasable writes and concurrent registry checks remain covered.
-  An [empty-registry fast path](../bench/results/safety/20261016-empty-registry.md) also
-  reduces the focused idle-registry pointer-write cost in reversed-order samples;
-  active-list exact checks and cross-module sharing remain covered.
-- Next: repeat the paired fixture on a quiet machine with an unchanged A/A control, then
-  measure a representative application. Separate fixed registration cost, write checking,
-  and concurrent contention; tiny-call ratios must not stand in for application overhead.
+  On the twelve `bench/` programs in `devmode` the guard first cost up to 24x (chacha), because
+  every guarded write called the runtime. Writes proved to land in the function's own frame
+  now lose their check while the function has no borrow of its own open, and the other checks
+  call the runtime only for a write inside the address extent of the open borrows. Against the
+  same programs built without `.ValueBorrow`, nbody still costs about 1.9x, fannkuch 1.4x and
+  dijkstra 1.3x; the rest measure within the machine's noise.
+- Next: in hot loops the extent loads repeat on every write; hoisting them where no borrow can
+  open or close in the loop, and the per-call registration nbody pays for its slice parameter,
+  are the remaining levers. Repeat the paired fixture on a quiet machine with an unchanged A/A
+  control, then measure a representative application; tiny-call ratios must not stand in for
+  application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,
   guard settings and variability, and give a bounded assessment of the runtime overhead.
 - Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,

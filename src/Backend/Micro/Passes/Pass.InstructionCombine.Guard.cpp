@@ -191,12 +191,14 @@ namespace InstructionCombine
     //     rcx = %address          (erased)
     //     rdx = %size             (erased)
     //     r8  = %location         (erased)
+    //     r9  = %extentCache      (erased)
     //     call __valueBorrowWrite (erased)
     //
     // Code generation marks a write guard emitted while the function had no borrow of its own
     // open. Only such a borrow could cover this frame, so a fixed-size write whose address is
     // proved to lie in the frame cannot meet one. A write of a computed size keeps its check:
-    // nothing bounds it to the frame.
+    // nothing bounds it to the frame. The extent test in front of the calls that stay is added
+    // later, so nothing of it is left behind.
     bool tryDropFrameWriteGuard(Context& ctx, MicroInstrRef callRef, const MicroInstr& callInst)
     {
         if (!callInst.frameWriteGuard || callInst.op != MicroInstrOpcode::CallLocal || !ctx.ssa)
@@ -204,8 +206,10 @@ namespace InstructionCombine
         const MicroInstrOperand* callOps = callInst.ops(*ctx.operands);
         if (!callOps)
             return false;
-        const CallConv& conv = CallConv::get(callOps[0].callConv);
-        if (conv.intArgRegs.size() < 3)
+        // Address, size, source location and the module's extent cache.
+        constexpr uint32_t K_GUARD_ARGS = 4;
+        const CallConv&    conv         = CallConv::get(callOps[0].callConv);
+        if (conv.intArgRegs.size() < K_GUARD_ARGS)
             return false;
 
         // A call made at an unaligned stack depth is wrapped in an adjustment of the stack pointer.
@@ -232,8 +236,8 @@ namespace InstructionCombine
         }
 
         // The arguments are copied into the convention's registers just before the call.
-        MicroInstrRef argRefs[3] = {MicroInstrRef::invalid(), MicroInstrRef::invalid(), MicroInstrRef::invalid()};
-        for (uint32_t step = 0; step < 3; ++step)
+        MicroInstrRef argRefs[K_GUARD_ARGS] = {MicroInstrRef::invalid(), MicroInstrRef::invalid(), MicroInstrRef::invalid(), MicroInstrRef::invalid()};
+        for (uint32_t step = 0; step < K_GUARD_ARGS; ++step)
         {
             ref                          = ctx.previousRef(ref);
             const MicroInstr*        def = ref.isValid() ? ctx.instruction(ref) : nullptr;
@@ -243,8 +247,8 @@ namespace InstructionCombine
             if (def->op != MicroInstrOpcode::LoadRegReg && def->op != MicroInstrOpcode::LoadRegImm && def->op != MicroInstrOpcode::LoadRegPtrReloc &&
                 def->op != MicroInstrOpcode::LoadAddrRegMem && def->op != MicroInstrOpcode::LoadAddrAmcRegMem)
                 return false;
-            const auto slot = std::ranges::find(conv.intArgRegs.begin(), conv.intArgRegs.begin() + 3, ops[0].reg);
-            if (slot == conv.intArgRegs.begin() + 3)
+            const auto slot = std::ranges::find(conv.intArgRegs.begin(), conv.intArgRegs.begin() + K_GUARD_ARGS, ops[0].reg);
+            if (slot == conv.intArgRegs.begin() + K_GUARD_ARGS)
                 return false;
             const size_t index = static_cast<size_t>(slot - conv.intArgRegs.begin());
             if (argRefs[index].isValid())
@@ -269,8 +273,8 @@ namespace InstructionCombine
         else if (sizeDef->op != MicroInstrOpcode::LoadRegImm)
             return false;
 
-        const bool claimed = subRef.isValid() ? ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], subRef, callRef, addRef}, true)
-                                              : ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], callRef}, true);
+        const bool claimed = subRef.isValid() ? ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], argRefs[3], subRef, callRef, addRef}, true)
+                                              : ctx.claimAll({argRefs[0], argRefs[1], argRefs[2], argRefs[3], callRef}, true);
         if (!claimed)
             return false;
         for (const MicroInstrRef argRef : argRefs)

@@ -290,8 +290,8 @@ namespace
             return;
         // The host allocator is outside generated code. Re-enter its compiled guard before
         // invalidating storage, so JIT execution uses the same registry and panic catch.
-        using Guard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*);
-        reinterpret_cast<Guard>(function->jitEntryAddress())(address, size, &location);
+        using Guard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
+        reinterpret_cast<Guard>(function->jitEntryAddress())(address, size, &location, nullptr);
     }
 
     void runtimeAllocatorRealloc(const CompilerInstance*, Runtime::AllocatorRequest* request)
@@ -729,6 +729,20 @@ uint32_t CompilerInstance::nativeProcessInfoOffset()
 
     SWC_ASSERT(nativeProcessInfoOffset_ != UINT32_MAX);
     return nativeProcessInfoOffset_;
+}
+
+// The module's copy of the value-borrow extent address. It starts null; the runtime write check
+// stores the extent it resolves there, and generated guards read it back.
+uint32_t CompilerInstance::valueBorrowExtentCacheOffset()
+{
+    std::call_once(valueBorrowExtentCacheOffsetOnce_, [this] {
+        const auto [offset, storage]  = globalZeroSegment_.reserve<uint64_t>();
+        valueBorrowExtentCacheOffset_ = offset;
+        *storage                      = 0;
+    });
+
+    SWC_ASSERT(valueBorrowExtentCacheOffset_ != UINT32_MAX);
+    return valueBorrowExtentCacheOffset_;
 }
 
 // Populate 'Swag.processInfo().args' for a JIT-hosted program run. A native executable fills this

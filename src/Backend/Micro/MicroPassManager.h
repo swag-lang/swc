@@ -18,6 +18,7 @@ class MicroSanityPass;
 class MicroStackAdjustNormalizePass;
 class MicroMemToRegPass;
 class MicroFrameCompactPass;
+class MicroValueBorrowFastPathPass;
 class MicroLegalizePass;
 class MicroRegisterAllocationPass;
 class MicroPrologEpilogPass;
@@ -96,6 +97,7 @@ private:
     std::unique_ptr<MicroStackAdjustNormalizePass> stackAdjustNormalizePass_;
     std::unique_ptr<MicroMemToRegPass>             memToRegPass_;
     std::unique_ptr<MicroFrameCompactPass>         frameCompactPass_;
+    std::unique_ptr<MicroValueBorrowFastPathPass>  valueBorrowFastPathPass_;
     std::unique_ptr<MicroLegalizePass>             legalizePass_;
     std::unique_ptr<MicroRegisterAllocationPass>   regAllocPass_;
     std::unique_ptr<MicroPrologEpilogPass>         prologEpilogPass_;

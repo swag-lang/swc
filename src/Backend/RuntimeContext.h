@@ -45,6 +45,14 @@ namespace Runtime
         const SourceCodeLocation* location;
     };
 
+    // The runtime's private 'ValueBorrowExtent': the address range every open borrow lies in.
+    // Generated write guards skip the runtime call for a write outside it.
+    struct ValueBorrowExtent
+    {
+        uint64_t low;
+        uint64_t high; // Zero while no borrow is open
+    };
+
     struct Context
     {
         Interface          allocator;

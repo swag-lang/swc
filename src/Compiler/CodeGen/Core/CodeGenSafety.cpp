@@ -449,7 +449,7 @@ Result CodeGenSafety::prepareValueBorrowSafety(CodeGen& codeGen)
 
 namespace
 {
-    Result emitValueBorrowRuntimeCall(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, SmallVector<MicroReg>& args, bool withLocation, bool frameWriteGuard = false)
+    Result emitValueBorrowRuntimeCall(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, SmallVector<MicroReg>& args, bool withLocation, bool frameWriteGuard = false, MicroReg trailingArg = MicroReg{})
     {
         const auto* function = codeGen.compiler().runtimeFunctionSymbol(codeGen.idMgr().runtimeFunction(kind));
         SWC_ASSERT(function);
@@ -459,6 +459,8 @@ namespace
             SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), location, codeGen.curNode()));
             args.push_back(CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, location).reg);
         }
+        if (trailingArg.isValid())
+            args.push_back(trailingArg);
         auto&               instructions = codeGen.builder().instructions();
         const MicroInstrRef previous     = instructions.lastInstructionRef();
         SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *function, args.span()));
@@ -504,6 +506,12 @@ Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, M
 {
     if (!hasValueBorrowSafety(codeGen))
         return Result::Continue;
+
+    // The module's cache of the value-borrow extent address, which the backend's extent test reads
+    // in front of the call and the runtime fills on the first one.
+    const MicroReg cacheReg = codeGen.nextVirtualIntRegister();
+    codeGen.builder().emitLoadRegDataSegmentReloc(cacheReg, DataSegmentKind::GlobalZero, codeGen.compiler().valueBorrowExtentCacheOffset());
+
     SmallVector<MicroReg> args;
     args.push_back(address);
     args.push_back(size);
@@ -511,7 +519,7 @@ Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, M
     // or an inline binding and closed when that call returns: a caller's borrow covers storage
     // older than the frame, and a callee's ends before the callee returns. While none of the
     // function's own is open, the backend drops the check of a write it proves lands in the frame.
-    return emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite, args, true, !codeGen.hasOpenLocalValueBorrow());
+    return emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite, args, true, !codeGen.hasOpenLocalValueBorrow(), cacheReg);
 }
 
 Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, uint64_t size)

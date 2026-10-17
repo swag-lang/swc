@@ -20,7 +20,20 @@ private struct ValueBorrowRegistry
     cells: [4096] u64
 }
 
+// The address range every open borrow lies in, widened by each borrow and emptied with the list.
+// It has a process-wide storage of its own, so the view generated guards read stays fixed: they
+// skip the call for a write outside it. The compiler mirrors this layout.
+private struct ValueBorrowExtent
+{
+    low:  u64
+    high: u64     // Zero while no borrow is open
+}
+
+private const ValueBorrowRegistryKey = 2'u32
+private const ValueBorrowExtentKey   = 3'u32
+
 private var g_ValueBorrowRegistryAddress: u64
+private var g_ValueBorrowExtentAddress:   u64
 
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
 private func valueBorrowRegistry()->*ValueBorrowRegistry
@@ -30,11 +43,25 @@ private func valueBorrowRegistry()->*ValueBorrowRegistry
         return cast(*ValueBorrowRegistry, known)
 
     // Mapped storage survives a JIT compiler instance and a native artifact unloading.
-    let shared = __hostProcessStorage(2, #sizeof(ValueBorrowRegistry))
+    let shared = __hostProcessStorage(ValueBorrowRegistryKey, #sizeof(ValueBorrowRegistry))
     if not shared do
         __exitError()
     discard Swag.atomicExchange(&g_ValueBorrowRegistryAddress, cast(u64, shared))
     return cast(*ValueBorrowRegistry, shared)
+}
+
+#[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
+private func valueBorrowExtent()->*ValueBorrowExtent
+{
+    let known = Swag.atomicLoad(&g_ValueBorrowExtentAddress)
+    if known != 0 do
+        return cast(*ValueBorrowExtent, known)
+
+    let shared = __hostProcessStorage(ValueBorrowExtentKey, #sizeof(ValueBorrowExtent))
+    if not shared do
+        __exitError()
+    discard Swag.atomicExchange(&g_ValueBorrowExtentAddress, cast(u64, shared))
+    return cast(*ValueBorrowExtent, shared)
 }
 
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
@@ -120,6 +147,14 @@ private func valueBorrowRemove(registry: *ValueBorrowRegistry, record: *ValueBor
         record.next.previous = record.previous
     valueBorrowFilterChange(registry, record.address, record.size, ~0'u64)
     record.size = 0
+
+    // The extent only widens while borrows stay open, and empties with the list.
+    if not registry.head
+    {
+        let extent = valueBorrowExtent()
+        Swag.atomicStore(&extent.high, 0)
+        Swag.atomicStore(&extent.low, 0)
+    }
 }
 
 // Both native artifacts and JIT calls share their registry with their callees.
@@ -134,6 +169,22 @@ func __valueBorrowEnter(storage: *void, address: *void, size: u64, location: con
     let registry = valueBorrowRegistry()
     valueBorrowLock(registry)
     valueBorrowFilterChange(registry, address, size, 1)
+
+    // An extent that wraps the address space ends at its top.
+    let start  = cast(u64, address)
+    let end    = size > ~start ? ~0'u64 : start + size
+    let extent = valueBorrowExtent()
+    if registry.head and Swag.atomicLoad(&extent.high) != 0
+    {
+        Swag.atomicStore(&extent.low, Swag.min(Swag.atomicLoad(&extent.low), start))
+        Swag.atomicStore(&extent.high, Swag.max(Swag.atomicLoad(&extent.high), end))
+    }
+    else
+    {
+        Swag.atomicStore(&extent.low, start)
+        Swag.atomicStore(&extent.high, end)
+    }
+
     record.previous = null
     record.next     = registry.head
     if registry.head do
@@ -176,13 +227,17 @@ func __valueBorrowReset(checkpoint: u64 = 0)
     valueBorrowUnlock(registry)
 }
 
+// Generated guards pass their module's cache of the extent address: they read the extent through
+// it and call here only while the cache is still empty or the write falls inside the extent.
 #[Swag.Safety(.All, false), Swag.Sanity(.All, false), Swag.NoInline]
-func __valueBorrowWrite(address: *void, size: u64, location: const *SourceCodeLocation)
+func __valueBorrowWrite(address: *void, size: u64, location: const *SourceCodeLocation, cache: *u64? = null)
 {
+    if cache do
+        Swag.atomicStore(cache, cast(u64, valueBorrowExtent()))
+    let registry = valueBorrowRegistry()
     if size == 0 do
         return
-    let start    = cast(u64, address)
-    let registry = valueBorrowRegistry()
+    let start = cast(u64, address)
 
     // A published empty list has no overlap to inspect. Head changes remain atomic
     // under the writer lock; this read only bypasses work while no record is active.

@@ -294,6 +294,7 @@
         <ClCompile Include="src\Backend\Micro\Passes\Pass.RegisterAllocation.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.RegisterAllocation.Interval.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.FrameCompact.cpp"/>
+        <ClCompile Include="src\Backend\Micro\Passes\Pass.ValueBorrowFastPath.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.MemToReg.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.LoopInvariantCodeMotion.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.LoopUnroll.cpp"/>
@@ -644,6 +645,7 @@
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PostRALoopRotate.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.PrologEpilog.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.FrameCompact.h"/>
+        <ClInclude Include="src\Backend\Micro\Passes\Pass.ValueBorrowFastPath.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.MemToReg.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.LoopInvariantCodeMotion.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.LoopUnroll.h"/>

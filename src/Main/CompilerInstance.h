@@ -196,6 +196,7 @@ public:
     static void                     setRuntimeContextForCurrentThread(Runtime::Context* context);
     uint32_t                        nativeRuntimeContextTlsIdOffset();
     uint32_t                        nativeProcessInfoOffset();
+    uint32_t                        valueBorrowExtentCacheOffset();
     void                            ensureProcessInfoRunArgs();
     const Runtime::ProcessInfo&     processInfo();
     void                            markImportedNativeExecution() { importedNativeExecuted_.store(true, std::memory_order_release); }
@@ -719,8 +720,10 @@ private:
     std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_ = false;
     std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
     std::once_flag                                        nativeProcessInfoOffsetOnce_;
+    std::once_flag                                        valueBorrowExtentCacheOffsetOnce_;
     uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     uint32_t                                              nativeProcessInfoOffset_         = UINT32_MAX;
+    uint32_t                                              valueBorrowExtentCacheOffset_    = UINT32_MAX;
     bool                                                  processInfoRunArgsReady_         = false;
     std::vector<SymbolFunction*>                          nativeCodeSegment_;
     PointerSet<SymbolFunction>                            nativeCodeSegmentSet_;

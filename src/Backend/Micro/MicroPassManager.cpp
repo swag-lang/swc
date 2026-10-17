@@ -32,6 +32,7 @@
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StoreForwardSplit.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
+#include "Backend/Micro/Passes/Pass.ValueBorrowFastPath.h"
 #include "Backend/Micro/Passes/Pass.ValueNumbering.h"
 #include "Backend/Micro/Passes/Pass.VecLoopPromote.h"
 #include "Backend/Micro/Passes/Pass.WebRename.h"
@@ -498,6 +499,7 @@ MicroPassManager::MicroPassManager()
     stackAdjustNormalizePass_ = std::make_unique<MicroStackAdjustNormalizePass>();
     memToRegPass_             = std::make_unique<MicroMemToRegPass>();
     frameCompactPass_         = std::make_unique<MicroFrameCompactPass>();
+    valueBorrowFastPathPass_  = std::make_unique<MicroValueBorrowFastPathPass>();
     legalizePass_             = std::make_unique<MicroLegalizePass>();
     regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
     prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();
@@ -563,6 +565,10 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
     // pre-RA optimization passes work on unconstrained virtual-register IR and
     // shouldn't see encoder-specific rewrites.
     addStartPass(*stackAdjustNormalizePass_);
+
+    // The value-borrow extent test goes in front of the write checks the optimization loop kept,
+    // first among the passes that run once on the converged pre-RA IR.
+    addPreRaFinalPass(*valueBorrowFastPathPass_);
 
     // Phase 2 - Pre-RA optimization loop (operates on virtual registers only).
     // Iterates until fixed point before touching register allocation.

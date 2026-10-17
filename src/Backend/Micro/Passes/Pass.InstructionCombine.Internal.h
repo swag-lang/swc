@@ -117,6 +117,13 @@ namespace InstructionCombine
         bool       loopSlotsAll   = false;
         FlatKeySet loopSlots;
 
+        // Whether the register is the base of storage the call cannot change: a value
+        // parameter's incoming address. Collected on the first question.
+        bool isImmutableStorageBase(MicroReg reg);
+
+        bool       immutableBasesReady = false;
+        FlatKeySet immutableBases;
+
         // Whether nothing reads the CPU flags left after `ref`. The rules anchored on one
         // instruction ask it about that instruction in turn, each answer scanning ahead.
         bool areCpuFlagsDeadAfter(MicroInstrRef ref) const;

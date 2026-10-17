@@ -85,22 +85,18 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.130 — A loop-invariant read of immutable storage folded into an operand stays in the loop
+### compiler.optimization.130 — A struct parameter's field read in a loop stays in the loop
 
-- Evidence: a string, slice or struct parameter is immutable storage for the call, and LICM hoists
-  a `load_reg_mem` through it out of a loop that stores through another pointer (the `data` pointer
-  of a struct `{ data: const [*] s64, count: u64 }` read on every trip leaves the loop). A field
-  with one use in the body is folded by the instruction combine into a memory operand first,
-  `op_binary_reg_mem add, rax, [rdx + 0x8]`, and LICM hoists loads only, so `total += text.count`
-  and `total += scale.limit` re-read memory on every trip at `-bc release`, although the value
-  cannot change. The combine runs before LICM in every pre-RA sweep, so the fold always wins.
-- Next: in the combine, keep a load from an immutable base that sits in a loop as a `load_reg_mem`
-  when its one user is in the same loop, or let LICM unfold such an operand into a hoisted load and
-  a register operand; measure with the raytrace and n-body tasks, whose struct and slice fields are
-  read in loops that store.
-- Done when: a single-use field of a value parameter read inside a loop that stores through a
-  pointer is loaded once before the loop at `-bc release`, with a C++ micro test and no loss on
-  the benchmark tasks.
+- Evidence: a string or slice parameter's field read in a loop that stores through another
+  pointer now stays a load and leaves the loop (`immutable_field_in_loop.swg`). The fields of a
+  struct parameter `scale: Scale` read the same way are still folded into the loop's operations
+  (`add rax, [r8 + 0x8]`, `imul r9, [r8]`): the parameter's register is not marked as immutable
+  storage, presumably because reading its fields gives it addressable storage
+  (`isImmutableIndirectParameter`).
+- Next: check which flag excludes the struct parameter in that test, and whether a field read
+  needs addressable storage at all; mark it when only reads reach it.
+- Done when: the struct fields of `immutable_field_in_loop.swg` are read once before the loop at
+  `-bc release`, with no generated-code loss on the benchmark tasks.
 
 ### compiler.optimization.126 — Preserve nullable value-pointer types in automatic inline bindings
 

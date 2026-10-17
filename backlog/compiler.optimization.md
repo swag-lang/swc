@@ -91,10 +91,14 @@ new language syntax.
   pointer now stays a load and leaves the loop (`immutable_field_in_loop.swg`). The fields of a
   struct parameter `scale: Scale` read the same way are still folded into the loop's operations
   (`add rax, [r8 + 0x8]`, `imul r9, [r8]`): the parameter's register is not marked as immutable
-  storage, presumably because reading its fields gives it addressable storage
-  (`isImmutableIndirectParameter`).
-- Next: check which flag excludes the struct parameter in that test, and whether a field read
-  needs addressable storage at all; mark it when only reads reach it.
+  storage. Code generation marks it (`isImmutableIndirectParameter` accepts the indirect
+  struct), but `MicroPassHelpers::collectImmutableStorageBases` rejects it: its fields are
+  addressed through `LoadAddrRegMem` (`lea %22, [%8 + 0x8]`), which is neither a read through
+  the base nor a copy into another marked base.
+- Next: accept a single-definition `LoadAddrRegMem` of a marked base as a derived base that
+  stands or falls with it (every use a read or another derived address), and report the derived
+  registers too. This widens the frozen-struct assumption of language.design.037 to every field
+  read: validate with the complete standard library in release before integrating.
 - Done when: the struct fields of `immutable_field_in_loop.swg` are read once before the loop at
   `-bc release`, with no generated-code loss on the benchmark tasks.
 

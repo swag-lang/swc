@@ -954,6 +954,36 @@ SWC_TEST_BEGIN(Compiler_AstNodeSpanPreservesOrderAcrossPagesAndGrowth)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_StaticSwitchVisitsAllValuesBeforeBodiesAndCaseLabels)
+{
+    CommandLine               cmdLine;
+    CompilerInstance          compiler(ctx.global(), cmdLine);
+    TaskContext               compilerCtx(compiler);
+    SourceFile&               source = Unittest::addTestSource(compilerCtx, "Compiler", "StaticSwitchChildOrder", "");
+    Ast&                      ast    = source.ast();
+    std::array<AstNodeRef, 7> values;
+    for (auto& ref : values)
+        ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
+    std::array<AstNodeRef, 3> cases;
+    for (auto& ref : cases)
+        ref = ast.makeNode<AstNodeId::CompilerSwitchCase>(TokenRef::invalid()).first;
+    ast.node<AstNodeId::CompilerSwitchCase>(cases[0])->spanExprRef = ast.pushSpan(std::span<const AstNodeRef>(&values[1], 2));
+    // The middle case is a default, with no value expression.
+    ast.node<AstNodeId::CompilerSwitchCase>(cases[2])->spanExprRef = ast.pushSpan(std::span<const AstNodeRef>(&values[3], 1));
+    for (size_t i = 0; i < cases.size(); ++i)
+        ast.node<AstNodeId::CompilerSwitchCase>(cases[i])->nodeBodyRef = values[4 + i];
+
+    const auto [switchRef, node] = ast.makeNode<AstNodeId::CompilerSwitch>(TokenRef::invalid());
+    node->nodeExprRef            = values[0];
+    node->spanCasesRef           = ast.pushSpan(std::span<const AstNodeRef>(cases));
+    SmallVector<AstNodeRef> children;
+    ast.node(switchRef).collectChildrenFromAst(children, ast);
+    const std::array expected = {values[0], values[1], values[2], values[3], values[4], values[5], values[6], cases[0], cases[1], cases[2]};
+    if (!std::ranges::equal(children, expected))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_AstVisitPreservesSiblingsAcrossPauseSkipAndRestart)
 {
     CommandLine      cmdLine;

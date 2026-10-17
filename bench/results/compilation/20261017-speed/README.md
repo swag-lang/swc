@@ -34,6 +34,7 @@ of Micro analysis work; no timing, profiling, or benchmark campaign was run.
 | Return Tarjan low links from the recursive walk | The low-link array allocation, its initial fill and per-edge element loads and stores | Each low link is consumed only by its own activation and its parent immediately after recursion. Discovery indices, stack membership, SCC popping and graph visitation retain their order. The DevMode object reserves the same 72 bytes per recursive call; the graph object loses one vector. |
 | Traverse attribute spans by chunks | Repeated span setup, header reads and prefix-chunk walks for each attribute | A borrowed AST span exposes the existing ordered chunks without copying references or allocating. Meta-function discovery keeps its first-match exit; semantic attribute validation preserves its first-error exit. Existing AST span helpers share the same shard decoding. |
 | Check multiply-to-shift eligibility once | A repeated operand-width check, power-of-two check and integer-logarithm scan after checking CPU flags | The sole caller already rejects every ineligible nontrivial immediate before the flags walk. Zero and one keep their existing reductions; the remaining case emits the same shift and shift amount. Width-boundary and live-flag C++ cases protect both decisions. |
+| Walk static-switch cases by chunks | Repeated span setup, header reads and prefix walks during case lookup and semantic child collection | Searches retain their first matching case. Child collection keeps the selector, all case values, all bodies and the case-label nodes in their original separate phases, without a new buffer. A C++ case checks that flattened order including a default section. |
 
 The retained changes preserve traversal order, promotion choices, virtual-register
 assignment and instruction rewriting. The dominator oracle checks reachability
@@ -66,6 +67,7 @@ filesystem cases requiring `--dev-full`.
 | 24 | 1,427 | Native positional aggregate case; named-member semantic source; sanity: 85 |
 | 25 | 1,428 | New direct/mutual-recursion and incoming-wrapper assertions |
 | 26 | 1,429 | Two normal attribute sources and eight expected-error attribute sources, plus runtime |
+| 28 | 1,432 | Full native: 3,891; full JIT: 1,539; full semantic suites: 295 normal and 347 expected-error inputs, including runtime |
 
 Full native runs include the expected idle, pending and hardware recovery probes.
 Semantic suites check source and compile-time assertions without executing
@@ -85,6 +87,10 @@ the corrected full JIT run passed. The initial Tarjan regression fixture omitted
 four Swag statement separators; it was corrected before retention and now checks
 parsing errors before its graph assertions. Formatting and `git diff --check`
 passed for retained changes. No Release-compiler build or benchmark was run.
+
+Checkpoint 28 includes the prompt-2 immutable-parameter loop-read change imported
+at `205ac08ff3`. The following SmallVector regression source was not yet compiled
+in that checkpoint; its later checks are recorded separately.
 
 The compilation-time targets remain unverified. This is not a claim that the speed
 campaign has exhausted every possible structural saving.

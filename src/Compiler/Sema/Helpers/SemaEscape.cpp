@@ -3084,10 +3084,10 @@ namespace
             // was created in: a shallower destination outlives it. Inline expansions
             // materialize into the enclosing statement and open their own scopes, so
             // their depths do not compare.
-            if (info.isMaterializedBorrow() && info.sourceScopeDepth && !SemaHelpers::effectiveInlinePayload(sema))
+            if (info.isMaterializedBorrow() && info.sourceScopeDepth)
             {
                 const uint32_t dstDepth = sema.variableScopeDepth(dstVar);
-                if (dstDepth && info.sourceScopeDepth > dstDepth)
+                if (dstDepth && info.sourceScopeDepth > dstDepth && !SemaHelpers::effectiveInlinePayload(sema))
                     return reportBorrowEscape(sema, atNodeRef, info, what);
             }
 

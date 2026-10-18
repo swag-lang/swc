@@ -785,22 +785,23 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
             return Result::Continue;
     }
 
-    const bool   isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
-    SemaNodeView constView         = isConstantBinding ? codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant) : codeGen.curViewTypeConstant();
-
-    // A conversion that runs an operator keeps no constant form, so the cast substituted for
-    // this identifier carries none and the resolved view describes that cast instead of what
-    // this node yields. The constant a named 'const' carries is then the only value there is
-    // to materialize; a cast that did fold keeps its own folded result, read above.
-    if (!isConstantBinding && !constView.hasConstant() && codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
-        constView = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-
-    if (constView.hasConstant())
+    // CodeGen::postNode emits a node whose live view folds to a constant itself and hands the
+    // others to this hook, so only a stored constant can be left here: the one a named 'const'
+    // binds, or the one under a substituted conversion. A conversion that runs an operator keeps
+    // no constant form, so the cast substituted for this identifier carries none and the
+    // resolved view describes that cast instead of what this node yields. The constant a named
+    // 'const' carries is then the only value there is to materialize.
+    const bool isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
+    if (isConstantBinding || codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
     {
-        CodeGenNodePayload constantPayload;
-        SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, constantPayload, constView.typeRef(), constView.cstRef()));
-        codeGen.setNodePayload<CodeGenNodePayload>(codeGen.curNodeRef(), constantPayload);
-        return Result::Continue;
+        const SemaNodeView constView = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (constView.hasConstant())
+        {
+            CodeGenNodePayload constantPayload;
+            SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, constantPayload, constView.typeRef(), constView.cstRef()));
+            codeGen.setNodePayload<CodeGenNodePayload>(codeGen.curNodeRef(), constantPayload);
+            return Result::Continue;
+        }
     }
 
     if (!view.sym())

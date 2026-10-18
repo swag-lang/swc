@@ -52,11 +52,36 @@ namespace
     // the high half is non-zero, `imul` when the signed product does not fit.
     // The arithmetic-overflow safety check reads exactly that, so the rewrite
     // only applies where the flags provably die first.
-    bool tryUseSignedMultiply(MicroPassContext& context, MicroInstrRef instRef, MicroInstrOperand* ops, const uint8_t microOpSlot)
+    // Whether the flags an instruction defines die before anything reads them. Several rules ask
+    // it of the same instruction, and none rewrites the instructions after it before asking, so
+    // the first answer stands for the others.
+    class CpuFlagsDeadAfter
+    {
+    public:
+        CpuFlagsDeadAfter(MicroPassContext& context, MicroInstrRef instRef) :
+            context_(context),
+            instRef_(instRef)
+        {
+        }
+
+        bool operator()()
+        {
+            if (!answer_)
+                answer_ = MicroPassHelpers::areCpuFlagsDeadAfter(*context_.instructions, *context_.operands, instRef_, context_.builder);
+            return *answer_;
+        }
+
+    private:
+        MicroPassContext&   context_;
+        MicroInstrRef       instRef_;
+        std::optional<bool> answer_;
+    };
+
+    bool tryUseSignedMultiply(CpuFlagsDeadAfter& flagsDead, MicroInstrOperand* ops, const uint8_t microOpSlot)
     {
         if (ops[microOpSlot].microOp != MicroOp::MultiplyUnsigned)
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(*context.instructions, *context.operands, instRef, context.builder))
+        if (!flagsDead())
             return false;
 
         ops[microOpSlot].microOp = MicroOp::MultiplySigned;
@@ -197,7 +222,7 @@ namespace
     // A signed remainder by a power of two is zero exactly when the low bits
     // of the dividend are, whatever its sign: `x % 8 == 0` tests `x & 7`.
     // The sign correction only matters to a reader of the remainder's value.
-    bool tryReduceSignedModuloPow2Equality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState*& ssaState, MicroSsaState& localSsaState, MicroInstrRef instRef, MicroInstrOperand* ops)
+    bool tryReduceSignedModuloPow2Equality(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const MicroSsaState*& ssaState, MicroSsaState& localSsaState, MicroInstrRef instRef, MicroInstrOperand* ops, CpuFlagsDeadAfter& flagsDead)
     {
         const MicroOpBits opBits  = ops[1].opBits;
         const uint64_t    divisor = ops[3].valueU64 & getBitsMask(opBits);
@@ -205,7 +230,7 @@ namespace
         if ((opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64) || ops[3].hasWideImmediateValue() || divisor < 2 ||
             !Math::isPowerOfTwo(divisor) || !ops[0].reg.isVirtualInt())
             return false;
-        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
+        if (!flagsDead())
             return false;
 
         MicroInstrRef cmpRef;
@@ -1141,8 +1166,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         // Changing signedness is safe only when nobody observes the multiply's flags.
         // Test the operation before scanning the flags: only unsigned multiply
         // has a signed replacement. RegImm keeps the operation in slot 2, RegReg in 3.
-        const bool usedSignedMultiply = tryUseSignedMultiply(context, instRef, ops, isRegImm ? 2 : 3);
-        if (usedSignedMultiply)
+        CpuFlagsDeadAfter flagsDead(context, instRef);
+        if (tryUseSignedMultiply(flagsDead, ops, isRegImm ? 2 : 3))
             context.passChanged = true;
 
         if (!isRegImm)
@@ -1158,9 +1183,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
             case MicroOp::MultiplyUnsigned:
                 if (immediate > 1 && !canRewriteShift(opBits, immediate))
                     break;
-                // A successful signed rewrite already proved the flags dead
-                // in this unchanged suffix, including across CFG edges.
-                if (!usedSignedMultiply && !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
+                if (!flagsDead())
                     break;
                 // The guard above already checked every nontrivial shift candidate.
                 if (!tryReduceMultiplyByZero(ops, immediate) && !tryReduceMultiplyByOne(ops, immediate))
@@ -1172,7 +1195,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
             case MicroOp::Subtract:
                 if (immediate == 0)
                 {
-                    if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
+                    if (!flagsDead())
                         break;
                     if (!ssaState)
                         ssaState = MicroSsaState::ensureFor(context, ssaScratch);
@@ -1182,14 +1205,14 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                 break;
 
             case MicroOp::DivideUnsigned:
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
+                if (!flagsDead())
                     break;
                 changed = tryReduceUnsignedDivideToShift(ops, opBits, immediate) ||
                           tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;
 
             case MicroOp::ModuloUnsigned:
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
+                if (!flagsDead())
                     break;
                 if (tryReduceUnsignedModuloToMask(ops, opBits, immediate))
                 {
@@ -1203,14 +1226,14 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
             case MicroOp::DivideSigned:
             case MicroOp::ModuloSigned:
                 if (microOp == MicroOp::ModuloSigned &&
-                    tryReduceSignedModuloPow2Equality(context, storage, operands, ssaState, ssaScratch, instRef, ops))
+                    tryReduceSignedModuloPow2Equality(context, storage, operands, ssaState, ssaScratch, instRef, ops, flagsDead))
                 {
                     changed = true;
                     break;
                 }
                 if (deferSignedDivision_)
                     break;
-                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef, context.builder))
+                if (!flagsDead())
                     break;
                 changed = tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
                 break;

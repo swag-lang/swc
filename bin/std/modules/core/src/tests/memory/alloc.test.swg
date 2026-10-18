@@ -123,31 +123,35 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     Swag.assert(runtime.stats().countAlloc == 0)
 }
 
-// A warm page cannot bypass filling or tracking when those modes are enabled later.
-#test
+// Filling and tracking are allocator diagnostics: only a runtime built with them can enable them.
+#static if #hastag("Swag.AllocatorDiagnostics")
 {
-    for tracked in [false, true]
+    // A warm page cannot bypass filling or tracking when those modes are enabled later.
+    #test
     {
-        var runtime: Swag.Allocator
-        runtime.setup()
-        defer runtime.releaseAll()
-        let allocator: Swag.IAllocator = &runtime
-        let warm = Memory.alloc(32, allocator)
-        Memory.free(warm, 32, allocator)
-        runtime.configure(false, true, false, tracked, true)
-
-        let loc   = #curlocation
-        let block = cast([*] u8, Memory.alloc(32, allocator, hint: "tracked fast allocation", loc: loc))
-        for i in 32 do
-            Swag.assert(block[i] == Swag.Allocator.AllocByte)
-        if tracked
+        for tracked in [false, true]
         {
-            let tracking = runtime.firstAlloc!.tracking!
-            Swag.assert(tracking.hint == "tracked fast allocation")
-            Swag.assert(tracking.loc.lineStart == loc.lineStart)
-        }
+            var runtime: Swag.Allocator
+            runtime.setup()
+            defer runtime.releaseAll()
+            let allocator: Swag.IAllocator = &runtime
+            let warm = Memory.alloc(32, allocator)
+            Memory.free(warm, 32, allocator)
+            runtime.configure(false, true, false, tracked, true)
 
-        Memory.free(block, 32, allocator)
-        Swag.assert(runtime.stats().countAlloc == 0)
+            let loc   = #curlocation
+            let block = cast([*] u8, Memory.alloc(32, allocator, hint: "tracked fast allocation", loc: loc))
+            for i in 32 do
+                Swag.assert(block[i] == Swag.Allocator.AllocByte)
+            if tracked
+            {
+                let tracking = runtime.firstAlloc!.tracking!
+                Swag.assert(tracking.hint == "tracked fast allocation")
+                Swag.assert(tracking.loc.lineStart == loc.lineStart)
+            }
+
+            Memory.free(block, 32, allocator)
+            Swag.assert(runtime.stats().countAlloc == 0)
+        }
     }
 }

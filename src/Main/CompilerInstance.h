@@ -685,6 +685,9 @@ private:
     std::unordered_map<Utf8, Utf8>                                                                               inMemoryFiles_;
     mutable std::shared_mutex                                                                                    pendingImplRegistrationsMutex_;
     std::unordered_map<IdentifierRef, uint32_t>                                                                  pendingImplRegistrations_;
+    // Number of names in 'pendingImplRegistrations_', written inside the same exclusive section,
+    // so the usual "nothing pending" answer needs neither the lock nor a lookup.
+    std::atomic<uint32_t> pendingImplRegistrationNames_{0};
     std::mutex                                                                                                   reportedDiagnosticsMutex_;
     std::atomic<bool>                                                                                            hasErrorDiagnostic_ = false;
     std::unordered_set<Utf8>                                                                                     reportedDiagnostics_;

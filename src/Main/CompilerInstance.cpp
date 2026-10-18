@@ -564,6 +564,8 @@ uint32_t CompilerInstance::pendingImplRegistrations(const IdentifierRef idRef) c
 {
     if (!idRef.isValid())
         return 0;
+    if (!pendingImplRegistrationNames_.load(std::memory_order_acquire))
+        return 0;
 
     const std::shared_lock lock(pendingImplRegistrationsMutex_);
     const auto             it = pendingImplRegistrations_.find(idRef);
@@ -578,6 +580,7 @@ void CompilerInstance::incPendingImplRegistrations(const IdentifierRef idRef)
     SWC_ASSERT(idRef.isValid());
     const std::unique_lock lock(pendingImplRegistrationsMutex_);
     pendingImplRegistrations_[idRef]++;
+    pendingImplRegistrationNames_.store(static_cast<uint32_t>(pendingImplRegistrations_.size()), std::memory_order_release);
 }
 
 void CompilerInstance::decPendingImplRegistrations(const IdentifierRef idRef)
@@ -594,6 +597,7 @@ void CompilerInstance::decPendingImplRegistrations(const IdentifierRef idRef)
         if (!it->second)
         {
             pendingImplRegistrations_.erase(it);
+            pendingImplRegistrationNames_.store(static_cast<uint32_t>(pendingImplRegistrations_.size()), std::memory_order_release);
             notify = true;
         }
     }

@@ -425,7 +425,7 @@ bool MicroSsaState::isRegUsedAfter(const MicroReg reg, const MicroInstrRef after
     if (!defValue(reg, afterInstRef, valueId))
         return false;
 
-    return isValueTransitivelyUsed(valueId);
+    return transitiveInstructionUseCount(valueId, 1) != 0;
 }
 
 const MicroInstrUseDef* MicroSsaState::instrUseDef(const MicroInstrRef instRef) const
@@ -1271,72 +1271,6 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
     }
 
     return count;
-}
-
-bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
-{
-    if (valueId >= valueInfoCount_)
-        return false;
-
-    const auto& uses = valueInfos_[valueId].uses;
-    if (uses.empty())
-        return false;
-    if (std::ranges::any_of(uses, [](const UseSite& use) { return use.kind == UseSite::Kind::Instruction; }))
-        return true;
-
-    if (useVisitStamps_.size() < valueInfoCount_)
-        useVisitStamps_.resize(valueInfoCount_, 0);
-    if (useVisitStamp_ == std::numeric_limits<uint32_t>::max())
-    {
-        std::ranges::fill(useVisitStamps_, 0);
-        useVisitStamp_ = 1;
-    }
-
-    const uint32_t visitStamp = useVisitStamp_++;
-    useVisitStack_.clear();
-    // The root has only phi uses: the direct-use search above ruled out every
-    // instruction use. Its successors start the same depth-first traversal.
-    useVisitStamps_[valueId] = visitStamp;
-    for (const UseSite& use : uses)
-    {
-        SWC_ASSERT(use.kind == UseSite::Kind::Phi);
-        SWC_ASSERT(use.phiIndex < phiInfoCount_);
-        const uint32_t nextValueId = phiInfos_[use.phiIndex].resultValueId;
-        if (nextValueId != K_INVALID_VALUE)
-        {
-            SWC_ASSERT(nextValueId < valueInfoCount_);
-            useVisitStack_.push_back(nextValueId);
-        }
-    }
-
-    while (!useVisitStack_.empty())
-    {
-        const uint32_t currentValueId = useVisitStack_.back();
-        useVisitStack_.pop_back();
-
-        SWC_ASSERT(currentValueId < valueInfoCount_);
-        if (useVisitStamps_[currentValueId] == visitStamp)
-            continue;
-        useVisitStamps_[currentValueId] = visitStamp;
-
-        const ValueInfo& info = valueInfos_[currentValueId];
-        for (const UseSite& useSite : info.uses)
-        {
-            if (useSite.kind == UseSite::Kind::Instruction)
-                return true;
-
-            SWC_ASSERT(useSite.kind == UseSite::Kind::Phi);
-            SWC_ASSERT(useSite.phiIndex < phiInfoCount_);
-            const uint32_t nextValueId = phiInfos_[useSite.phiIndex].resultValueId;
-            if (nextValueId == K_INVALID_VALUE)
-                continue;
-
-            SWC_ASSERT(nextValueId < valueInfoCount_);
-            useVisitStack_.push_back(nextValueId);
-        }
-    }
-
-    return false;
 }
 
 SWC_END_NAMESPACE();

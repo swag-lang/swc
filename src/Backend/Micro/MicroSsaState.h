@@ -186,7 +186,6 @@ private:
     uint32_t        createValue(MicroReg reg, uint32_t blockIndex, MicroInstrRef instRef, uint32_t phiIndex);
     uint32_t        createPhi(uint32_t blockIndex, MicroReg reg, uint32_t regIndex);
     void            appendValueUse(uint32_t valueId, const UseSite& useSite);
-    bool            isValueTransitivelyUsed(uint32_t valueId) const;
 
     MicroStorage*              storage_ = nullptr;
     MicroDenseRegIndex         trackedRegs_;

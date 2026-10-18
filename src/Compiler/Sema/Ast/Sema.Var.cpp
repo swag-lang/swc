@@ -1256,6 +1256,19 @@ namespace
         symVar.setMemberAccess(spec.access);
         symVar.setMemberReadOnly(spec.readOnly);
     }
+
+    // What a variable symbol inherits from the declaration that introduces it.
+    template<typename T>
+    void stampDeclaredVariable(const Sema& sema, const T& decl, SymbolVariable& symVar)
+    {
+        if (decl.hasFlag(AstVarDeclFlagsE::Let))
+            symVar.addExtraFlag(SymbolVariableFlagsE::Let);
+        if (decl.hasStorageFlag(AstVarStorageFlagsE::Late))
+            symVar.addExtraFlag(SymbolVariableFlagsE::LateInit);
+        symVar.setDeclaredGlobal(decl.hasStorageFlag(AstVarStorageFlagsE::Global));
+        symVar.setDeclaredThreadLocal(decl.hasStorageFlag(AstVarStorageFlagsE::Tls));
+        stampMemberAccess(sema, symVar);
+    }
 }
 
 Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
@@ -1265,14 +1278,7 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
     else
     {
         auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef, forcedIdentRef);
-        if (hasFlag(AstVarDeclFlagsE::Let))
-            symVar.addExtraFlag(SymbolVariableFlagsE::Let);
-        if (hasStorageFlag(AstVarStorageFlagsE::Late))
-            symVar.addExtraFlag(SymbolVariableFlagsE::LateInit);
-        symVar.setDeclaredGlobal(hasStorageFlag(AstVarStorageFlagsE::Global));
-        symVar.setDeclaredThreadLocal(hasStorageFlag(AstVarStorageFlagsE::Tls));
-
-        stampMemberAccess(sema, symVar);
+        stampDeclaredVariable(sema, *this, symVar);
     }
 
     return Result::SkipChildren;
@@ -1381,13 +1387,7 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
         {
             auto& symVar = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
             symbols.push_back(&symVar);
-            if (hasFlag(AstVarDeclFlagsE::Let))
-                symVar.addExtraFlag(SymbolVariableFlagsE::Let);
-            if (hasStorageFlag(AstVarStorageFlagsE::Late))
-                symVar.addExtraFlag(SymbolVariableFlagsE::LateInit);
-            symVar.setDeclaredGlobal(hasStorageFlag(AstVarStorageFlagsE::Global));
-            symVar.setDeclaredThreadLocal(hasStorageFlag(AstVarStorageFlagsE::Tls));
-            stampMemberAccess(sema, symVar);
+            stampDeclaredVariable(sema, *this, symVar);
         }
     }
 

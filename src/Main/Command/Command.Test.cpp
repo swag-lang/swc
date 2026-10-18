@@ -13,6 +13,7 @@
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -119,8 +120,8 @@ namespace
 
     bool shouldSkipFunctionForTests(const CompilerInstance& compiler, const SymbolFunction& root)
     {
-        SmallVector<const SymbolFunction*>        stack;
-        std::unordered_set<const SymbolFunction*> visited;
+        SmallVector<const SymbolFunction*> stack;
+        PointerSet<const SymbolFunction>   visited;
         stack.push_back(&root);
 
         while (!stack.empty())
@@ -129,7 +130,7 @@ namespace
             stack.pop_back();
             if (!function)
                 continue;
-            if (!visited.insert(function).second)
+            if (!visited.insert(function))
                 continue;
 
             if (function->isIgnored() || functionHasSourceError(compiler, *function) || functionHasUnmatchedSanityErrorDirective(compiler, *function))
@@ -322,13 +323,15 @@ namespace
 
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
-        if (shouldSkipFunctionForTests(compiler, function))
-            return false;
+        // The cheap predicates first: the skip test walks every transitive callee.
         if (!isRuntimeTestFunction(compiler, function))
             return false;
 
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
-        return !file || file->ast().srcView().runsNativeArtifact();
+        if (file && !file->ast().srcView().runsNativeArtifact())
+            return false;
+
+        return !shouldSkipFunctionForTests(compiler, function);
     }
 
     bool hasRunnableNativeArtifactFunction(const CompilerInstance& compiler, const std::vector<SymbolFunction*>& functions)

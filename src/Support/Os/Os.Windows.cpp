@@ -561,6 +561,20 @@ namespace
         return hasInfo;
     }
 
+    // The NUL-terminated path of the module loaded at modBase; false when there is none.
+    bool windowsModulePath(char (&outPath)[MAX_PATH + 1], const uintptr_t modBase)
+    {
+        if (!modBase)
+            return false;
+
+        const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), outPath, MAX_PATH);
+        if (!len)
+            return false;
+
+        outPath[len] = 0;
+        return true;
+    }
+
     void appendWindowsAddress(Utf8& outMsg, const TaskContext* ctx, const uint64_t address)
     {
         outMsg += std::format("0x{:016X}", address);
@@ -572,29 +586,17 @@ namespace
             return;
 
         const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
-        if (modBase)
+        char       modulePath[MAX_PATH + 1]{};
+        const bool hasModulePath = windowsModulePath(modulePath, modBase);
+        if (hasModulePath)
         {
-            char        modulePath[MAX_PATH + 1]{};
-            const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-            if (len)
-            {
-                modulePath[len]       = 0;
-                const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
-                outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
-            }
+            const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+            outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
         }
 
         outMsg += "\n";
-        if (modBase)
-        {
-            char        modulePath[MAX_PATH + 1]{};
-            const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-            if (len)
-            {
-                modulePath[len] = 0;
-                appendOsField(outMsg, "module path", modulePath);
-            }
-        }
+        if (hasModulePath)
+            appendOsField(outMsg, "module path", modulePath);
 
         appendWindowsAddressSymbol(outMsg, ctx, address);
         appendOsField(outMsg, "memory", std::format("state={}, type={}, protect={}", windowsStateToString(mbi.State), windowsTypeToString(mbi.Type), windowsProtectToString(mbi.Protect)));
@@ -608,16 +610,11 @@ namespace
         if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
         {
             const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
-            if (modBase)
+            char       modulePath[MAX_PATH + 1]{};
+            if (windowsModulePath(modulePath, modBase))
             {
-                char        modulePath[MAX_PATH + 1]{};
-                const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-                if (len)
-                {
-                    modulePath[len]       = 0;
-                    const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
-                    outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
-                }
+                const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+                outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
             }
         }
 
@@ -699,17 +696,11 @@ namespace
         MEMORY_BASIC_INFORMATION mbi{};
         if (VirtualQuery(reinterpret_cast<LPCVOID>(address), &mbi, sizeof(mbi)))
         {
-            const auto modBase = reinterpret_cast<uintptr_t>(mbi.AllocationBase);
-            if (modBase)
+            char modulePath[MAX_PATH + 1]{};
+            if (windowsModulePath(modulePath, reinterpret_cast<uintptr_t>(mbi.AllocationBase)))
             {
-                char        modulePath[MAX_PATH + 1]{};
-                const DWORD len = GetModuleFileNameA(reinterpret_cast<HMODULE>(modBase), modulePath, MAX_PATH);
-                if (len)
-                {
-                    modulePath[len]       = 0;
-                    outAddress.moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
-                    hasInfo               = true;
-                }
+                outAddress.moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+                hasInfo               = true;
             }
         }
 

@@ -214,9 +214,13 @@ namespace
     }
 
     // Every member lookup on a struct comes through here, and most structs have no `using` field:
-    // the set of structs already walked is only filled once there is one to follow.
+    // those return before walking their fields, and the set of structs already walked is only
+    // filled once there is one to follow.
     Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, PointerSet<const SymbolStruct>& visited)
     {
+        if (!symStruct.mayHaveUsingField())
+            return Result::Continue;
+
         for (const Symbol* field : symStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();
@@ -354,12 +358,18 @@ namespace
             }
         }
 
+        // Outside any namespace the path of a root is the root itself: adding it again at the
+        // root priority, with its `using` directives, would only find every map already there.
+        const bool          atNamespaceRoot = sema.frame().nsPath().empty();
         const MatchPriority filePathPriority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::FileNamespace};
         addNamespacePathSymMap(sema, lookUpCxt, fileNamespace, filePathPriority);
 
-        const MatchPriority fileRootPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 1), .visibility = VisibilityTier::FileNamespace};
-        addSymMap(lookUpCxt, fileNamespace, fileRootPriority);
-        addPersistedUsingSymMaps(sema, lookUpCxt, fileNamespace, fileRootPriority);
+        if (!atNamespaceRoot)
+        {
+            const MatchPriority fileRootPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 1), .visibility = VisibilityTier::FileNamespace};
+            addSymMap(lookUpCxt, fileNamespace, fileRootPriority);
+            addPersistedUsingSymMaps(sema, lookUpCxt, fileNamespace, fileRootPriority);
+        }
 
         // Symbols imported from other modules live under the empty-named import-root namespace
         // (as siblings of this module's namespace) so they keep their own hierarchy (e.g. `Lib`,
@@ -383,16 +393,19 @@ namespace
             addPersistedUsingSymMaps(sema, lookUpCxt, importedModuleRoot, importedModuleRootPriority);
         }
 
-        const MatchPriority moduleRootPriority{.scopeDepth = moduleRootDepth, .visibility = VisibilityTier::ModuleNamespace};
-        addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
-        addPersistedUsingSymMaps(sema, lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
+        if (!atNamespaceRoot)
+        {
+            const MatchPriority moduleRootPriority{.scopeDepth = moduleRootDepth, .visibility = VisibilityTier::ModuleNamespace};
+            addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
+            addPersistedUsingSymMaps(sema, lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
 
-        // Expose the imported module namespaces (Lib, Os, ...) as siblings. Do NOT pull in
-        // importRoot's persisted `using` directives: those accumulate every imported file's usings
-        // (e.g. `using Os`) and would flood unqualified lookups with unrelated symbols
-        // (e.g. `Os.Rectangle` shadowing `Lib.Math.Rectangle`).
-        if (importRoot)
-            addSymMap(lookUpCxt, importRoot, moduleRootPriority);
+            // Expose the imported module namespaces (Lib, Os, ...) as siblings. Do NOT pull in
+            // importRoot's persisted `using` directives: those accumulate every imported file's usings
+            // (e.g. `using Os`) and would flood unqualified lookups with unrelated symbols
+            // (e.g. `Os.Rectangle` shadowing `Lib.Math.Rectangle`).
+            if (importRoot)
+                addSymMap(lookUpCxt, importRoot, moduleRootPriority);
+        }
 
         addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(moduleRootDepth + 1));
         return Result::Continue;

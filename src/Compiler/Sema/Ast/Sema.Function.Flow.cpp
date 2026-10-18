@@ -326,7 +326,13 @@ namespace
     // Only the body's own analysis reports it, not each inline expansion of that body.
     void reportRedundantTry(Sema& sema)
     {
-        if (SemaHelpers::effectiveInlinePayload(sema) || !propagatesImplicitly(sema))
+        if (SemaHelpers::effectiveInlinePayload(sema))
+            return;
+
+        // Outside every inline context the error-handling owner is the current function: ask it
+        // directly instead of searching the visit path for an inline context a second time.
+        const SymbolFunction* owner = sema.currentFunction();
+        if (!owner || !owner->attributes().hasRtFlag(RtAttributeFlagsE::Propagate))
             return;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_warn_redundant_try, sema.curNode().codeRef());

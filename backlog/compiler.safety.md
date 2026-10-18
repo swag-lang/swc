@@ -305,7 +305,7 @@ is the current scorecard.
   pointer conversions, while releases of local borrows stored in those containers
   remain diagnosed by focused sanity tests.
 
-### compiler.safety.031 ? Partial reinitialization clears the entire moved-from proof
+### compiler.safety.031 — Partial reinitialization clears the entire moved-from proof
 
 - Evidence: after `var target = #move source` on a two-s32 struct, `source.first = 23`
   makes `return source.second` compile without `sanity_err_use_after_move`, although

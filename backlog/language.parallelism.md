@@ -92,7 +92,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   constraint and points at a valid partition or ownership alternative; semantic tests reject
   hidden aliases, escaped borrows and cross-module global writes without optional analysis.
   Until then the capture list states intent rather than proving race freedom.
-- Related: compiler.safety.005, compiler.safety.006, compiler.safety.007, compiler.safety.014,
+- Related: compiler.safety.006, compiler.safety.007, compiler.safety.014,
   language.parallelism.001.
 
 ### language.parallelism.001 — The shipped model, and the promises it does not yet make
@@ -110,7 +110,7 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
   Do not advertise race freedom in the reference or in the runtime documentation until .005 holds.
 - Done when: those four foundational entries are closed and the language reference states one contract for
   ownership, suspension, cancellation, failure and memory access that the compiler enforces.
-- Related: std.core.025, language.parallelism.011, std.core.028, compiler.safety.005, compiler.safety.006,
+- Related: std.core.025, language.parallelism.011, std.core.028, compiler.safety.006,
   compiler.safety.007, compiler.safety.014, platform.portability.035.
 
 #### Progress and memory-model boundaries that already apply

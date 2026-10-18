@@ -595,15 +595,18 @@ func __ensureRuntimeAllocator()
 
 func __resetRuntimeContext()
 {
-    let cxt       = Swag.getContext()
-    let allocator = __runtimeAllocator()
+    let cxt          = Swag.getContext()
+    let allocator    = __runtimeAllocator()
+    let tlsIdPlusOne = cxt.runtimeTlsIdPlusOne
 
     cxt.tempAllocator.release()
     __releaseErrContext(cxt)
 
+    // Module hooks adopt this slot; clearing it would split the process's runtime contexts.
     Swag.memset(cxt, 0, #sizeof(Swag.Context))
-    cxt.allocator        = allocator
-    cxt.defaultAllocator = allocator
+    cxt.allocator           = allocator
+    cxt.defaultAllocator    = allocator
+    cxt.runtimeTlsIdPlusOne = tlsIdPlusOne
 }
 
 // Every artifact is x86-64-v3 code: the backend emits VEX-encoded forms unconditionally, so a

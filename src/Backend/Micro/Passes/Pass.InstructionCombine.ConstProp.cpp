@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
-#include "Backend/RuntimeBuildConfig.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"

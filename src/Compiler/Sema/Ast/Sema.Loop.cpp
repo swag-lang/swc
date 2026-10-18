@@ -16,7 +16,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
-#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

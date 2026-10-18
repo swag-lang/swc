@@ -107,18 +107,26 @@ namespace
         }
     }
 
+    // The function-local variable a symbol names, or null: only those carry move-elision state.
+    const SymbolVariable* trackedLocalVariable(const Symbol* sym)
+    {
+        if (!sym || !sym->isVariable())
+            return nullptr;
+
+        const auto& symVar = sym->cast<SymbolVariable>();
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar.hasGlobalStorage())
+            return nullptr;
+        return &symVar;
+    }
+
     void recordDeclaredSymbols(CodeGen& codeGen, const AstVisit& walker, const AstNodeRef blockRef)
     {
         if (blockRef.isInvalid())
             return;
 
         const auto record = [&](const Symbol* sym) {
-            if (!sym || !sym->isVariable())
-                return;
-            const auto& symVar = sym->cast<SymbolVariable>();
-            if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar.hasGlobalStorage())
-                return;
-            codeGen.moveElisionVar(symVar).declBlockRef = blockRef;
+            if (const SymbolVariable* symVar = trackedLocalVariable(sym))
+                codeGen.moveElisionVar(*symVar).declBlockRef = blockRef;
         };
 
         const SemaNodeView view = codeGen.sema().viewStored(walker.currentNodeRef(), SemaNodeViewPartE::Symbol);
@@ -133,15 +141,11 @@ namespace
 
     void recordUse(CodeGen& codeGen, const AstVisit& walker, const int escapeDepth)
     {
-        const Symbol* sym = codeGen.sema().viewStored(walker.currentNodeRef(), SemaNodeViewPartE::Symbol).sym();
-        if (!sym || !sym->isVariable())
+        const SymbolVariable* symVar = trackedLocalVariable(codeGen.sema().viewStored(walker.currentNodeRef(), SemaNodeViewPartE::Symbol).sym());
+        if (!symVar)
             return;
 
-        const auto& symVar = sym->cast<SymbolVariable>();
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar.hasGlobalStorage())
-            return;
-
-        CodeGenMoveElisionVar& info = codeGen.moveElisionVar(symVar);
+        CodeGenMoveElisionVar& info = codeGen.moveElisionVar(*symVar);
         info.lastUseRef             = walker.currentNodeRef();
         if (escapeDepth > 0)
         {

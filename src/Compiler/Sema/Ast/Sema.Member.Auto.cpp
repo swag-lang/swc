@@ -579,13 +579,6 @@ namespace
         if (selected.plane != AutoMemberPlane::Subject || selected.typeRef.isInvalid())
             return Result::Continue;
 
-        // Inside an inlined body or an expanded macro two functions' subjects are live at once, and
-        // which of them is nearer is a property of the expansion rather than of anything a reader
-        // wrote. The rule is enforced on the source as written: the same body is analyzed with its
-        // own receiver innermost and no caller in scope.
-        if (nearestInlineReceiverPayload(sema))
-            return Result::Continue;
-
         const AutoMemberCandidate* innermost = nullptr;
         for (const auto& candidate : candidates)
         {
@@ -596,6 +589,14 @@ namespace
         }
 
         if (!innermost || innermost->precedence == selected.precedence || innermost->typeRef.isInvalid())
+            return Result::Continue;
+
+        // Inside an inlined body or an expanded macro two functions' subjects are live at once, and
+        // which of them is nearer is a property of the expansion rather than of anything a reader
+        // wrote. The rule is enforced on the source as written: the same body is analyzed with its
+        // own receiver innermost and no caller in scope. Asked last: finding the expansion walks
+        // the visit path, and an innermost selection never needs it.
+        if (nearestInlineReceiverPayload(sema))
             return Result::Continue;
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_not_innermost, nodeRef);

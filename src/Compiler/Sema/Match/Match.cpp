@@ -90,19 +90,14 @@ namespace
 
         if (symMap->isStruct())
         {
-            const auto& structSym = symMap->cast<SymbolStruct>();
-            for (const SymbolImpl* impl : structSym.impls())
-            {
-                if (!impl || impl->isIgnored())
-                    continue;
-                addSymMap(lookUpCxt, impl, priority);
-            }
+            symMap->cast<SymbolStruct>().forEachImpl([&](const SymbolImpl* impl) {
+                if (impl && !impl->isIgnored())
+                    addSymMap(lookUpCxt, impl, priority);
+            });
         }
         else if (symMap->isEnum())
         {
-            const auto& enumSym = symMap->cast<SymbolEnum>();
-            for (const SymbolImpl* impl : enumSym.impls())
-                addSymMap(lookUpCxt, impl, priority);
+            symMap->cast<SymbolEnum>().forEachImpl([&](const SymbolImpl* impl) { addSymMap(lookUpCxt, impl, priority); });
         }
         else if (symMap->isImpl())
         {

@@ -9,21 +9,8 @@ SWC_BEGIN_NAMESPACE();
 
 void SymbolEnum::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
-    const std::unique_lock lk(mutexImpls_);
-    if (!implsSet_.insert(&symImpl))
-    {
-        symImpl.setSymEnum(this);
-        return;
-    }
-
-    symImpl.setSymEnum(this);
-    impls_.push_back(&symImpl);
-    sema.compiler().notifyAlive();
-}
-
-SymbolImplList SymbolEnum::impls() const
-{
-    return snapshotImpls(mutexImpls_, impls_);
+    if (impls_.append(sema.ctx(), symImpl, [&] { symImpl.setSymEnum(this); }))
+        sema.compiler().notifyAlive();
 }
 
 bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)

@@ -1,5 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 
@@ -9,10 +10,53 @@ class MatchContext;
 class SymbolImpl;
 class CompilerInstance;
 class SourceFile;
+class TaskContext;
 
 // A snapshot of the impl blocks of a struct or an enum. Every lookup that reaches a struct asks
 // for one, and few types have more impl blocks than this holds inline.
 using SymbolImplList = SmallVector<SymbolImpl*, 8>;
+
+// The impl blocks of a struct or an enum. They are only ever appended, and a link is complete
+// before it is published, so a lookup walks them in registration order without taking the
+// writers' lock or copying the list.
+class SymbolImplChain
+{
+public:
+    // 'bind' runs under the writers' lock for every registration, repeated ones included.
+    template<typename F>
+    bool append(TaskContext& ctx, SymbolImpl& symImpl, const F& bind)
+    {
+        const std::scoped_lock lk(mutex_);
+        bind();
+        if (!set_.insert(&symImpl))
+            return false;
+        publish(ctx, symImpl);
+        return true;
+    }
+
+    template<typename F>
+    void forEach(const F& fn) const
+    {
+        for (const Link* link = head_.load(std::memory_order_acquire); link; link = link->next.load(std::memory_order_acquire))
+            fn(link->impl);
+    }
+
+    SymbolImplList snapshot() const;
+
+private:
+    struct Link
+    {
+        SymbolImpl*              impl = nullptr;
+        std::atomic<const Link*> next = nullptr;
+    };
+
+    void publish(TaskContext& ctx, SymbolImpl& symImpl);
+
+    std::atomic<const Link*> head_ = nullptr;
+    Link*                    tail_ = nullptr;
+    PointerSet<SymbolImpl>   set_;
+    std::mutex               mutex_;
+};
 
 class SymbolMap : public Symbol
 {
@@ -55,8 +99,6 @@ public:
     uint32_t count() const noexcept { return count_.load(std::memory_order_relaxed); }
 
 protected:
-    static SymbolImplList snapshotImpls(std::shared_mutex& mutex, const std::vector<SymbolImpl*>& impls);
-
     // A small entry is written once, before 'smallSize_' publishes it, so readers scan the
     // published prefix without a lock. Only its head moves, to another symbol of the same name.
     struct Entry

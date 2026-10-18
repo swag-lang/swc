@@ -72,8 +72,13 @@ public:
     bool                                tryGetFieldIndexByName(size_t& outIndex, IdentifierRef name) const noexcept;
     const SymbolVariable*               findFieldByName(IdentifierRef name) const noexcept;
 
-    void                         addImpl(Sema& sema, SymbolImpl& symImpl);
-    SymbolImplList               impls() const;
+    void           addImpl(Sema& sema, SymbolImpl& symImpl);
+    SymbolImplList impls() const { return impls_.snapshot(); }
+    template<typename F>
+    void forEachImpl(const F& fn) const
+    {
+        impls_.forEach(fn);
+    }
     std::vector<SymbolFunction*> declaredMethods() const;
     Result                       waitPendingImplMembers(Sema& sema, const SourceCodeRef& codeRef) const;
     std::vector<SymbolFunction*> methods() const;
@@ -188,9 +193,7 @@ private:
     std::vector<SymbolVariable*>                      fields_;
     std::vector<uint32_t>                             dynamicSlotOffsets_;
     std::unordered_map<const SymbolVariable*, size_t> fieldIndexMap_;
-    mutable std::shared_mutex                         mutexImpls_;
-    std::vector<SymbolImpl*>                          impls_;
-    PointerSet<SymbolImpl>                            implsSet_;
+    SymbolImplChain                                   impls_;
     mutable std::shared_mutex                         mutexInterfaces_;
     std::vector<SymbolImpl*>                          interfaces_;
     PointerSet<SymbolImpl>                            interfacesSet_;

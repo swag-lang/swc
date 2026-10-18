@@ -354,10 +354,24 @@ class HarnessTests(unittest.TestCase):
                 self.assertIn("build speedup vs fastest rival", rendered)
                 self.assertIn("fastest non-Swag build time / swc build time", readme.read_text(encoding="utf-8"))
                 self.assertNotIn("build MSVC / swc", rendered)
-                self.assertEqual(rendered.count('<table class="performance">'), 4)
+                self.assertEqual(rendered.count('<table class="performance">'), 3)
+                self.assertIn('<h3>Relative speed by task &mdash; JIT</h3>', rendered)
+                self.assertIn('<h3>Build speed by task, including hello</h3>', rendered)
+                self.assertNotIn('<summary>Per-task', rendered)
+                execution = rendered.split('<section id="execution">', 1)[1].split('</section>', 1)[0]
+                self.assertNotIn('Interpreted', execution)
+                for runtime in ("lua", "py", "php", "ruby"):
+                    self.assertNotIn('class="l-%s"' % runtime, execution)
                 self.assertIn("SW native progress", rendered)
                 self.assertIn("SJ JIT progress", rendered)
                 self.assertIn("Progress score v1", rendered)
+                headline = rendered.split('<div class="stats">', 1)[1].split('</div>\n', 1)[0]
+                for label in ("Native speedup", "JIT speedup", "Build speedup"):
+                    self.assertIn(label, headline)
+                self.assertEqual(headline.count("<em>&times;</em>"), 3)
+                self.assertNotIn("pts", headline)
+                self.assertIn("vs fastest non-Swag native / AOT rival", headline)
+                self.assertIn("vs fastest non-Swag JIT rival", headline)
                 self.assertNotIn("The Swag column gives the rank", rendered)
                 self.assertIn('<section id="allocateur">', rendered)
                 if extended:

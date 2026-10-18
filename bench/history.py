@@ -407,11 +407,19 @@ def ratios_to_best(tasks, task_ids, family, key, reference_exclusions=()):
     return {rt: geo([value(rt, t) / best[t] for t in task_ids]) for rt in present}
 
 
-def execution_ratios(tasks, task_ids, group):
+def execution_ratios(tasks, task_ids, group, reference_exclusions=()):
     """Compare execution only within one execution model, including its reference."""
     selected = {task: {rt: rec for rt, rec in tasks[task].items() if rt in RUN_GROUPS[group]}
                 for task in task_ids}
-    return ratios_to_best(selected, task_ids, "run", "ms")
+    return ratios_to_best(selected, task_ids, "run", "ms", reference_exclusions)
+
+
+def execution_speedup(tasks, task_ids, group):
+    """Geometric mean of fastest non-Swag time / Swag time in one execution model."""
+    lead = {"native": "swag-release", "jit": "swc-jit-release"}[group]
+    ratios = execution_ratios(tasks, task_ids, group, reference_exclusions=TRACKED)
+    swag = ratios.get(lead)
+    return 1.0 / swag if swag else None
 
 
 def build_speedup(tasks, task_ids):

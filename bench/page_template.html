@@ -11,9 +11,7 @@
     color-scheme: light dark;
 
     --volt:  #F7F900;
-    --swag-jit: #FFB300;
     --swag-dev: #AAFFC3;
-    --swag-dev-jit: #FFFFFF;
     --alloc-mimalloc: #1769FF;
     --alloc-crt: #727E91;
     --arc:   #38BDF8;
@@ -264,11 +262,9 @@ h3 {
 .row .rv { padding-left: 10px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .74rem; white-space: nowrap; }
 .row .rv em { font-style: normal; color: var(--faint); margin-left: 3px; font-size: .9em; }
 
-/* Prioritise distinct hues and luminance within each execution group, not family tints. */
-.l-swag       { --c: var(--volt); }
-.l-swagjit    { --c: var(--swag-jit); }
-.l-swagdev    { --c: var(--swag-dev); }
-.l-swagdevjit { --c: var(--swag-dev-jit); }
+/* Keep colours consistent across execution modes; codes identify each configuration. */
+.l-swag, .l-swagjit       { --c: var(--volt); }
+.l-swagdev, .l-swagdevjit { --c: var(--swag-dev); }
 .l-clang      { --c: #E6194B; }
 .l-msvc       { --c: #4363D8; }
 .l-rust       { --c: #B77928; }
@@ -276,16 +272,13 @@ h3 {
 .l-d          { --c: #D7B5FF; }
 .l-odin       { --c: #42D4F4; }
 .l-swift      { --c: #F032E6; }
-.l-csaot      { --c: #FF8B49; }
-.l-csjit      { --c: #BFEF45; }
+.l-csaot, .l-csjit { --c: #FF8B49; }
 .l-js         { --c: #5FC700; }
-.l-lua        { --c: #A9A9A9; }
-.l-luajit     { --c: #FABED4; }
+.l-lua, .l-luajit { --c: #FABED4; }
 .l-py         { --c: #FFE1A3; }
 .l-go         { --c: #00A878; }
-.l-java       { --c: #E0937C; }
-.l-php        { --c: #C48FD0; }
-.l-phpjit     { --c: #74AAE0; }
+.l-java       { --c: #438AFF; }
+.l-php, .l-phpjit { --c: #C48FD0; }
 .l-ruby       { --c: #FF6666; }
 .l-clang, .l-msvc, .l-zig { --badge-ink: #FFFFFF; }
 
@@ -437,14 +430,11 @@ summary:hover { color: var(--fg); }
 .hunit { font-size: 9px; letter-spacing: .1em; }
 .hband { fill: var(--faint); opacity: .16; stroke: none; }
 .hline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.hline.h-a { stroke: var(--volt); }
-.hline.h-b { stroke: var(--swag-jit); stroke-dasharray: 5 4; }
-.hline.h-c { stroke: var(--swag-dev); }
-.hline.h-d { stroke: var(--swag-dev-jit); stroke-dasharray: 5 4; }
-.hdot.h-a { fill: var(--volt); }
-.hdot.h-b { fill: var(--swag-jit); }
-.hdot.h-c { fill: var(--swag-dev); }
-.hdot.h-d { fill: var(--swag-dev-jit); }
+.hline.h-a, .hline.h-b { stroke: var(--volt); }
+.hline.h-c, .hline.h-d { stroke: var(--swag-dev); }
+.hline.h-b, .hline.h-d { stroke-dasharray: 5 4; }
+.hdot.h-a, .hdot.h-b { fill: var(--volt); }
+.hdot.h-c, .hdot.h-d { fill: var(--swag-dev); }
 .alloc-history .hline.h-a, .alloc-history .hline.h-b { stroke: var(--alloc-mimalloc); }
 .alloc-history .hline.h-c, .alloc-history .hline.h-d { stroke: var(--alloc-crt); }
 .alloc-history .hdot.h-a, .alloc-history .hdot.h-b { fill: var(--alloc-mimalloc); }
@@ -499,9 +489,9 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <h1>Swag performance</h1>
         <p>{{ntasks}} matching workloads &middot; {{nruntimes}} runtime configurations &middot; identical checksums</p>
         <div class="stats">{{stats}}</div>
-        <p class="cap">Progress score v{{progress_version}}: {{progress_tasks}} fixed workloads, each with equal weight,
-        corrected for machine variation. 100 = reference campaign; 200 = half the elapsed time; higher is faster.
-        Native, JIT and build scores each track their own evolution, not their speed relative to one another.
+        <p class="cap">Speedup against the fastest non-Swag rival on each of {{ntasks}} workloads, with equal weight.
+        1&times; = parity; 2&times; = half the elapsed time; below 1&times; = slower.
+        Native / AOT, JIT and compilation use separate competitors. Progress since a fixed reference is shown in <a href="#historique">History</a>.
         Execution {{run_date}} &middot; compilation {{build_date}}.</p>
     </div>
 </div>
@@ -524,7 +514,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <section id="execution">
     <div class="sh"><h2>Execution</h2></div>
     <p class="section-meta">Measured {{run_date}} &middot; <code>{{run_commit}}</code></p>
-    <p class="cap">Native / AOT, JIT and interpreted execution have independent references and scores.
+    <p class="cap">Native / AOT and JIT execution have independent references and scores.
     100% means matching the best time on each task <strong>within that group</strong>.
     A native 95% and a JIT 95% do not describe the same absolute speed.
     Aggregate scores are geometric means; each task has equal weight.</p>
@@ -544,14 +534,11 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     Hover a badge or value for the full name and times.
     Small differences can fall within sample variation; nearby values do not establish statistical ties.</p>
     {{ex_native_performance}}
-    <details><summary>Per-task results &mdash; JIT</summary>
+    <h3>Relative speed by task &mdash; JIT</h3>
     <p class="cap">Reference: the best JIT time on each task. The Swag column refers to SJ, Swag release JIT.
     Swag JIT compiles its kernel before the timer; other JITs can compile inside the timed kernel.
     These measurements describe this harness, not warmed server throughput.</p>
-    {{ex_jit_performance}}</details>
-    <details><summary>Interpreted runtimes &mdash; separate reference</summary>
-    <p class="cap">100% = best interpreted time on each task. These scores do not share the native or JIT reference.</p>
-    {{ex_interpreted_chart}}{{ex_interpreted_performance}}</details>
+    {{ex_jit_performance}}
     <details>
         <summary>Raw times (ms)</summary>
         {{ex_matrix}}
@@ -567,19 +554,19 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <p class="cap">These compare build recipes, including different library work, rather than isolating
     compiler front-end speed. Java and C# CoreCLR produce bytecode; native recipes produce executables.</p>
     <p class="cap">Swag release build speedup vs the fastest rival recipe: <b>{{build_speedup}}&times;</b>.
-    This comparison describes the current campaign; the progress score above tracks Swag over time.</p>
+    This comparison describes the current campaign; <a href="#historique">History</a> tracks Swag over time.</p>
     {{bu_chart}}
     <details><summary>Direct comparisons with Swag release</summary>
     <p class="cap">Geometric mean of competitor build time / Swag release build time across the same tasks.
     0.5&times; means the competitor builds twice as fast as Swag release; 2&times; means twice as slow.
     Compilers are ordered from fastest to slowest.</p>
     {{bu_comparison}}</details>
-    <details><summary>Per-task build speeds, including hello</summary>
+    <h3>Build speed by task, including hello</h3>
     <p class="cap">Best in each row = 100%. Bar length and percentage show best build time / build time,
     on the same linear scale as execution. Each row orders compilers from fastest to slowest.
     The Swag column shows additional time vs the best; hover for time and gap to the best.
     Missing measurements have no bar.</p>
-    {{bu_performance}}</details>
+    {{bu_performance}}
     <details>
         <summary>Raw times (ms)</summary>
         {{bu_matrix}}
@@ -633,7 +620,8 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <section id="historique">
     <div class="sh"><h2>Progress over time</h2></div>
-    <p class="cap">Progress score v{{progress_version}} uses the same {{progress_tasks}} fixed workloads as the headline.
+    <p class="cap">Progress score v{{progress_version}} uses {{progress_tasks}} fixed workloads to track Swag's own evolution,
+    independently of its current lead over competitors.
     Each score is 100 at the first reproducible campaign covering that complete panel, and uses
     machine-corrected times. Missing times or correction factors produce no score.
     Progress plots share the same score axis and mark the 100 reference.
@@ -652,11 +640,14 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <li><b>Samples</b>Swag: {{budget_ms}} ms per task, {{min_reps}} to {{max_reps}} samples; fewer for controls. Rotating round-robin, minimum retained. Allocator results use medians.</li>
         <li><b>Calibration</b>{{calib_start}} ms then {{calib_end}} ms; spread {{machine_spread}}%. Rejected above {{drift_limit}}%; build controls rejected above {{build_control_limit}}%.</li>
         <li><b>Bounds checks</b>Rust, Swift and C# retain their checks; Swag release and C++ do not. Build recipes differ; see <code>bench/README.md</code>.</li>
-        <li><b>Reference</b>Speed = best time / measured time within the same execution group. Native / AOT, JIT and interpreted scores are independent. Aggregate speed is the geometric mean of those ratios; the winner can change by task. Small gaps do not imply statistical significance.</li>
+        <li><b>Reference</b>Speed = best time / measured time within the same execution group. Native / AOT and JIT scores are independent. Aggregate speed is the geometric mean of those ratios; the winner can change by task. Small gaps do not imply statistical significance.</li>
         <li><b>Progress score</b>100 / geometric mean of corrected task time / corrected reference task time.
         Version {{progress_version}} freezes {{progress_tasks}} workloads. The baseline is the first clean, complete campaign;
         incomplete campaigns have no score. New tasks do not silently enter this index.</li>
-        <li><b>Headline build</b>Geometric mean of fastest non-Swag build time / Swag release build time. 2&times; means twice as fast; below 1&times; means slower. Bytecode recipes participate.</li>
+        <li><b>Headline speedups</b>Geometric mean of fastest non-Swag time / Swag release time on each workload.
+        Competitors must have valid times for the complete panel. Native / AOT and JIT references stay separate;
+        compilation includes bytecode recipes. 2&times; means twice as fast; below 1&times; means slower.
+        These ratios measure competitive standing, not improvement since a historical baseline.</li>
         <li><b>Protocol</b>{{protocol}}. Raw campaigns, toolchains and measurement rules: <code>bench/README.md</code>.</li>
     </ul>
 </section>

@@ -65,11 +65,16 @@ public:
     bool hasUntouchedErrorDirectiveInLineRange(uint32_t lineStart, uint32_t lineEnd, std::string_view matchPrefix) const;
     bool hasExpectedDirectives() const;
 
+    // A false '#global if' removes the whole file from the build, so its directives can no
+    // longer be raised. Record that verdict so the file is not reported for them.
+    void markExcludedByGlobalIf() const { excludedByGlobalIf_.store(true, std::memory_order_relaxed); }
+
 private:
     SourceFile*                  file_    = nullptr;
     SourceView*                  srcView_ = nullptr;
     std::vector<VerifyDirective> directives_;
     mutable std::mutex           directivesMutex_;
+    mutable std::atomic<bool>    excludedByGlobalIf_ = false;
 
     void tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia, std::string_view comment);
 };

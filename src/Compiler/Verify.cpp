@@ -251,6 +251,9 @@ bool Verify::hasExpectedDirectives() const
 
 void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
 {
+    if (excludedByGlobalIf_.load(std::memory_order_relaxed))
+        return;
+
     std::vector<SourceCodeRange> missingRanges;
     {
         const std::scoped_lock lk(directivesMutex_);

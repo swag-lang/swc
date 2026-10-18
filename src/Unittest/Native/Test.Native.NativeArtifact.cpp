@@ -574,6 +574,11 @@ struct SecondOwner
     cmdLine.name        = "large_sparse_struct_defaults";
     cmdLine.directories.clear();
     cmdLine.files.insert(sourcePath);
+    // The bound measures how the defaults compose, and the runtime shares the same rdata. Keep
+    // the allocator capabilities, which DevMode enables by default, out of the artifact: one more
+    // materialized leaf (32 KiB) must still exceed the remaining headroom.
+    cmdLine.tags.emplace_back("Swag.AllocatorSafety=false");
+    cmdLine.tags.emplace_back("Swag.AllocatorDiagnostics=false");
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();

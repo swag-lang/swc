@@ -523,6 +523,33 @@ namespace
         }
     }
 
+    // What the symbol engine knows about one code address: its symbol and displacement, its line.
+    struct WindowsSymbolLookup
+    {
+        std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
+        DWORD64                                                 displacement = 0;
+        IMAGEHLP_LINE64                                         lineInfo{};
+        DWORD                                                   lineDisp  = 0;
+        bool                                                    hasSymbol = false;
+        bool                                                    hasLine   = false;
+
+        SYMBOL_INFO* symbol() { return reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data()); }
+    };
+
+    // Caller holds state.mutex.
+    void lookupWindowsSymbol(WindowsSymbolLookup& outLookup, SymbolEngineState& state, const uint64_t address)
+    {
+        const HANDLE process = GetCurrentProcess();
+
+        SYMBOL_INFO* symbol  = outLookup.symbol();
+        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbol->MaxNameLen   = MAX_SYM_NAME;
+        outLookup.hasSymbol  = state.symFromAddr(process, address, &outLookup.displacement, symbol) != FALSE;
+
+        outLookup.lineInfo.SizeOfStruct = sizeof(outLookup.lineInfo);
+        outLookup.hasLine               = state.symGetLineFromAddr64(process, address, &outLookup.lineDisp, &outLookup.lineInfo) != FALSE;
+    }
+
     bool appendWindowsAddressSymbol(Utf8& outMsg, const TaskContext* ctx, const uint64_t address, const uint32_t leftPadding = 0)
     {
         if (!address)
@@ -532,33 +559,19 @@ namespace
 
         SymbolEngineState&     state = symbolEngineState();
         const std::scoped_lock lock(state.mutex);
-        bool                   hasInfo = false;
+        WindowsSymbolLookup    lookup;
+        lookupWindowsSymbol(lookup, state, address);
 
-        const HANDLE                                            process = GetCurrentProcess();
-        std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
+        if (lookup.hasSymbol)
+            appendOsField(outMsg, "symbol", std::format("{} + 0x{:X}", lookup.symbol()->Name, static_cast<uint64_t>(lookup.displacement)), leftPadding);
 
-        auto* symbol         = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
-        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen   = MAX_SYM_NAME;
-
-        DWORD64 displacement = 0;
-        if (state.symFromAddr(process, address, &displacement, symbol))
+        if (lookup.hasLine)
         {
-            appendOsField(outMsg, "symbol", std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement)), leftPadding);
-            hasInfo = true;
+            const Utf8 fileLoc = FileSystem::formatFileLocation(ctx, fs::path(lookup.lineInfo.FileName), lookup.lineInfo.LineNumber);
+            appendOsField(outMsg, "source", std::format("{} (+{})", fileLoc, lookup.lineDisp), leftPadding);
         }
 
-        IMAGEHLP_LINE64 lineInfo{};
-        lineInfo.SizeOfStruct = sizeof(lineInfo);
-        DWORD lineDisp        = 0;
-        if (state.symGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
-        {
-            const Utf8 fileLoc = FileSystem::formatFileLocation(ctx, fs::path(lineInfo.FileName), lineInfo.LineNumber);
-            appendOsField(outMsg, "source", std::format("{} (+{})", fileLoc, lineDisp), leftPadding);
-            hasInfo = true;
-        }
-
-        return hasInfo;
+        return lookup.hasSymbol || lookup.hasLine;
     }
 
     // The NUL-terminated path of the module loaded at modBase; false when there is none.
@@ -709,29 +722,21 @@ namespace
 
         SymbolEngineState&     state = symbolEngineState();
         const std::scoped_lock lock(state.mutex);
+        WindowsSymbolLookup    lookup;
+        lookupWindowsSymbol(lookup, state, address);
 
-        const HANDLE                                            process = GetCurrentProcess();
-        std::array<uint8_t, sizeof(SYMBOL_INFO) + MAX_SYM_NAME> symbolBuffer{};
-
-        auto* symbol         = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer.data());
-        symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-        symbol->MaxNameLen   = MAX_SYM_NAME;
-
-        DWORD64 displacement = 0;
-        if (state.symFromAddr(process, address, &displacement, symbol))
+        if (lookup.hasSymbol)
         {
-            outAddress.symbolName = displacement ? Utf8(std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement))) : Utf8(symbol->Name);
-            hasInfo               = true;
+            const SYMBOL_INFO* symbol = lookup.symbol();
+            outAddress.symbolName     = lookup.displacement ? Utf8(std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(lookup.displacement))) : Utf8(symbol->Name);
+            hasInfo                   = true;
         }
 
-        IMAGEHLP_LINE64 lineInfo{};
-        lineInfo.SizeOfStruct = sizeof(lineInfo);
-        DWORD lineDisp        = 0;
-        if (state.symGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
+        if (lookup.hasLine)
         {
-            outAddress.sourceLocation = FileSystem::formatFileLocation(ctx, fs::path(lineInfo.FileName), lineInfo.LineNumber);
-            if (lineDisp)
-                outAddress.sourceLocation += std::format(" (+{})", lineDisp);
+            outAddress.sourceLocation = FileSystem::formatFileLocation(ctx, fs::path(lookup.lineInfo.FileName), lookup.lineInfo.LineNumber);
+            if (lookup.lineDisp)
+                outAddress.sourceLocation += std::format(" (+{})", lookup.lineDisp);
             hasInfo = true;
         }
 

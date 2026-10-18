@@ -310,7 +310,7 @@ Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
 {
     Utf8 because;
     if (resolveExistingFile(file, because) != Result::Continue)
-        return reportPathError(ctx, DiagnosticId::cmdline_err_invalid_file, file, because);
+        return reportPathError(ctx, DiagnosticId::cmd_err_invalid_file, file, because);
 
     return Result::Continue;
 }
@@ -328,7 +328,7 @@ Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 
 Result FileSystem::reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because)
 {
-    return reportPathError(ctx, DiagnosticId::cmdline_err_invalid_folder, path, because);
+    return reportPathError(ctx, DiagnosticId::cmd_err_invalid_folder, path, because);
 }
 
 Result FileSystem::reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path)

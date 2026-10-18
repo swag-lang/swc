@@ -174,7 +174,8 @@ func freeOne(itf: IAllocator, address: *void?)
 
     let header = cast(*AllocatorHeader, (cast([*] u8, address) - #sizeof(AllocatorHeader)))
     Swag.assert(header.blockSize >= big)
-    Swag.assert(header.magic == Allocator.MagicAlloc)
+    #static if #hastag("Swag.AllocatorSafety") or #hastag("Swag.AllocatorDiagnostics") do
+        Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(alloc.stats().countAlloc == 1)
 
     freeOne(itf, address)
@@ -266,7 +267,7 @@ func freeOne(itf: IAllocator, address: *void?)
     let first  = allocOne(itf, 64)!
     let second = allocOne(itf, 64)!
     let page   = allocatorPageOf(cast(u64, first))!
-    Swag.assert(page.key % 2 == 1)
+    Swag.assert(page.key % 2 == cast(u64, #hastag("Swag.AllocatorSafety")))
 
     freeOne(itf, first)
     freeOne(itf, second)
@@ -274,7 +275,7 @@ func freeOne(itf: IAllocator, address: *void?)
     // 'second' is now the head and its stored link must decode to 'first'.
     Swag.assert(page.freeList == cast(u64, second))
     let storedLink = cast(const *u64, second)[]
-    Swag.assert(storedLink != cast(u64, first))
+    Swag.assert((storedLink != cast(u64, first)) == #hastag("Swag.AllocatorSafety"))
     Swag.assert(page.decode(storedLink) == cast(u64, first))
 
     alloc.releaseAll()
@@ -319,28 +320,31 @@ func freeOne(itf: IAllocator, address: *void?)
 // The diagnostic quarantine keeps freed blocks so a later double free is
 // reported, and stays inside its byte budget.
 // ----------------------------------------------------------------------------
-#test
+#static if #hastag("Swag.AllocatorDiagnostics")
 {
-    var alloc: Allocator
-    let itf = makeAllocator(&alloc, trackAllocations: true)
-    alloc.maxQuarantineBytes = 32 * 1024
-
-    const Count = 64
-    var addresses: [Count] (*void?)
-    for i in Count
+    #test
     {
-        addresses[i] = allocOne(itf, 128)
-        Swag.assert(addresses[i] != null)
+        var alloc: Allocator
+        let itf = makeAllocator(&alloc, trackAllocations: true)
+        alloc.maxQuarantineBytes = 32 * 1024
+
+        const Count = 64
+        var addresses: [Count] (*void?)
+        for i in Count
+        {
+            addresses[i] = allocOne(itf, 128)
+            Swag.assert(addresses[i] != null)
+        }
+
+        for i in Count do
+            freeOne(itf, addresses[i])
+
+        Swag.assert(alloc.quarantineBytes <= alloc.maxQuarantineBytes)
+        Swag.assert(alloc.firstQuarantine != null)
+        alloc.checkAllMemory()
+        alloc.releaseAll()
+        Swag.assert(alloc.firstQuarantine == null)
     }
-
-    for i in Count do
-        freeOne(itf, addresses[i])
-
-    Swag.assert(alloc.quarantineBytes <= alloc.maxQuarantineBytes)
-    Swag.assert(alloc.firstQuarantine != null)
-    alloc.checkAllMemory()
-    alloc.releaseAll()
-    Swag.assert(alloc.firstQuarantine == null)
 }
 
 // ----------------------------------------------------------------------------
@@ -440,16 +444,19 @@ func freeOne(itf: IAllocator, address: *void?)
 // ----------------------------------------------------------------------------
 // AssertIsAllocated on a null address is a no-op (must not panic).
 // ----------------------------------------------------------------------------
-#test
+#static if #hastag("Swag.AllocatorDiagnostics")
 {
-    var alloc: Allocator
-    let itf = makeAllocator(&alloc, trackAllocations: true)
+    #test
+    {
+        var alloc: Allocator
+        let itf = makeAllocator(&alloc, trackAllocations: true)
 
-    var req: AllocatorRequest
-    req.address = null
-    itf.assertAllocated(&req)
+        var req: AllocatorRequest
+        req.address = null
+        itf.assertAllocated(&req)
 
-    alloc.releaseAll()
+        alloc.releaseAll()
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -836,7 +843,7 @@ func freeAddress(itf: IAllocator, address: u64)
 {
     // Without memory safety the allocator does not check, and freeing a block twice or
     // writing into a freed one is undefined.
-    #static if #safety(Swag.SafetyWhat.Memory)
+    #static if #hastag("Swag.AllocatorSafety")
     {
         var alloc: Allocator
         let itf = makeAllocator(&alloc, fillMemory: false)
@@ -978,7 +985,7 @@ func writeAt(address: u64, value: u64)
 {
     // Without memory safety the allocator does not check, and freeing a block twice or
     // writing into a freed one is undefined.
-    #static if #safety(Swag.SafetyWhat.Memory)
+    #static if #hastag("Swag.AllocatorSafety")
     {
         var alloc: Allocator
         let itf = makeAllocator(&alloc, fillMemory: false)

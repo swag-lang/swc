@@ -1,5 +1,11 @@
 #import("gui", location: "swag@std")
 
+#static if not #hastag("Swag.AllocatorDiagnostics") and
+           (#hastag("capture.track-memory") or #hastag("capture.electric-memory") or #hastag("capture.fill-memory"))
+{
+    #error("Swag Capture memory diagnostics need '--tag Swag.AllocatorDiagnostics'")
+}
+
 #run
 {
     with let cfg = Swag.compiler().getBuildCfg()!
@@ -10,13 +16,14 @@
         .backendKind    = .Executable
         .backendSubKind = .Default
 
-        // Leak reporting stays on in every build; the heavier allocator
-        // instrumentation is opt-in through a build tag.
-        .allocatorLeaks            = true
-        .allocatorCaptureStack     = false
-        .allocatorTrackAllocations = #hastag("capture.track-memory")
-        .allocatorElectricMode     = #hastag("capture.electric-memory")
-        .allocatorFillMemory       = #hastag("capture.fill-memory")
+        #static if #hastag("Swag.AllocatorDiagnostics")
+        {
+            .allocatorLeaks            = true
+            .allocatorCaptureStack     = false
+            .allocatorTrackAllocations = #hastag("capture.track-memory")
+            .allocatorElectricMode     = #hastag("capture.electric-memory")
+            .allocatorFillMemory       = #hastag("capture.fill-memory")
+        }
 
         .name              = "swagcapture"
         .resAppName        = "Swag Capture"

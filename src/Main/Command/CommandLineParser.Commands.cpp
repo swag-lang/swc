@@ -147,7 +147,7 @@ void CommandLineParser::registerCommands()
         "Set the maximum CPU core count; use 0 to detect it automatically");
     add(HelpOptionGroup::Compiler, "sema service doc test build run smoke", "--tag", nullptr,
         &cmdLine_->tags,
-        "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value");
+        "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value; use false to remove an allocator capability tag");
     add(HelpOptionGroup::Compiler, "test run smoke", "--run-arg", nullptr,
         &cmdLine_->runArgs,
         "Append one argument to every emitted executable launched by test, run, or smoke; repeat the option to append more");

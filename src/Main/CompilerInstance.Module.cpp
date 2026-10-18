@@ -3222,7 +3222,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     {
         if (ec)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_folder);
             FileSystem::setDiagnosticPathAndBecause(diag, &ctx, modulesPath, FileSystem::normalizeSystemMessage(ec));
             diag.report(ctx);
             return ExitCode::CompileError;
@@ -4029,6 +4029,18 @@ std::string_view CompilerInstance::runtimeImportLinkName(const std::string_view 
     return moduleName;
 }
 
+Result CompilerInstance::validateAllocatorConfig(TaskContext& ctx) const
+{
+    if (findCompilerTag("Swag.AllocatorDiagnostics"))
+        return Result::Continue;
+    if (!buildCfg_.allocatorCaptureStack && !buildCfg_.allocatorLeaks && !buildCfg_.allocatorTrackAllocations &&
+        !buildCfg_.allocatorElectricMode && !buildCfg_.allocatorFillMemory)
+        return Result::Continue;
+
+    Diagnostic::get(DiagnosticId::cmd_err_allocator_diagnostics_tag).report(ctx);
+    return Result::Error;
+}
+
 void CompilerInstance::adoptBuildCfg(const Runtime::BuildCfg& buildCfg)
 {
     buildCfg_ = buildCfg;
@@ -4222,6 +4234,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
         SWC_RESULT(setupCompiler.collectModuleSetupLoadedFiles(setupCtx, semaDone, files));
     }
 
+    SWC_RESULT(setupCompiler.validateAllocatorConfig(setupCtx));
     captureSnapshot();
     return Result::Continue;
 }

@@ -221,6 +221,8 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
 {
     for electric in [false, true]
     {
+        if electric and not #hastag("Swag.AllocatorDiagnostics") do
+            continue
         var allocator: Allocator
         let itf    = failureAllocator(&allocator, electric)
         let before = allocator.stats()

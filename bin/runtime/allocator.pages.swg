@@ -1,4 +1,5 @@
 #global namespace Swag
+#global #[Swag.Safety(.All, #hastag("Swag.AllocatorSafety"))]
 
 // The page supplier under the runtime allocator.
 //
@@ -56,7 +57,8 @@ enum AllocatorPageState: u8
 struct AllocatorPage
 {
     // Heads of the owner's and the remote free lists, as plain block addresses, zero when empty.
-    // The link a free block stores is obfuscated with 'key', the end of a list included. A stray
+    // With 'Swag.AllocatorSafety', a free block's link is obfuscated with 'key', including
+    // the end of the list. Without that tag, links are raw addresses. A stray
     // write into a freed block therefore yields an address the pop-time check rejects instead of
     // the address the writer chose, and a free block is recognizable from its first word alone,
     // which is what makes a double free cheap to detect.
@@ -160,7 +162,6 @@ struct AllocatorArena
 
 private var g_AllocatorArenas:     [AllocatorMaxArenas] AllocatorArena
 private var g_AllocatorArenaCount: u32
-private var g_AllocatorKeySeed:    u64
 
 // The emptied segments waiting for reuse, under the arena mutex.
 var g_AllocatorArenaMutex:  MutexRW
@@ -247,35 +248,40 @@ func allocatorOsDecommit(address: u64, size: u64)
     atomicAddU64(&g_AllocatorOsDecommitCount, 1)
 }
 
-// Mixes the segment address, which carries the loader's randomization, with a running counter so
-// two pages never share a free-list key. Every step is modular arithmetic by construction: the
-// wrap-around is what spreads the bits.
-#[Swag.Safety(.Overflow, false)]
-private func allocatorNextKey(seed: u64)->u64
+#static if #hastag("Swag.AllocatorSafety")
 {
-    var value = seed ^ (Swag.atomicAdd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15'u64) + 0x9E37_79B9_7F4A_7C15'u64)
-    value ^= value >> 30
-    value *= 0xBF58_476D_1CE4_E5B9'u64
-    value ^= value >> 27
-    value *= 0x94D0_49BB_1331_11EB'u64
-    value ^= value >> 31
+    private var g_AllocatorKeySeed: u64
 
-    // An odd key keeps an encoded link non-zero for every aligned block address, which is what lets
-    // zero stand for "list empty" with no extra flag.
-    return value | 1
-}
+    // Mixes the segment address, which carries the loader's randomization, with a running counter so
+    // two pages never share a free-list key. Every step is modular arithmetic by construction: the
+    // wrap-around is what spreads the bits.
+    #[Swag.Safety(.Overflow, false)]
+    private func allocatorNextKey(seed: u64)->u64
+    {
+        var value = seed ^ (Swag.atomicAdd(&g_AllocatorKeySeed, 0x9E37_79B9_7F4A_7C15'u64) + 0x9E37_79B9_7F4A_7C15'u64)
+        value ^= value >> 30
+        value *= 0xBF58_476D_1CE4_E5B9'u64
+        value ^= value >> 27
+        value *= 0x94D0_49BB_1331_11EB'u64
+        value ^= value >> 31
 
-// Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their own frames.
-#[Swag.NoInline, Swag.NoReturn]
-func allocatorCorruptedFreeList()
-{
-    Swag.panic("allocator free list is corrupted", #curlocation)
-}
+        // An odd key keeps an encoded link non-zero for every aligned block address, which is what lets
+        // zero stand for "list empty" with no extra flag.
+        return value | 1
+    }
 
-#[Swag.NoInline, Swag.NoReturn]
-func allocatorFreedBlockWritten()
-{
-    Swag.panic("memory block was written after being freed", #curlocation)
+    // Out of line, so the fast paths that can detect a corrupted list do not carry the panic's arguments in their own frames.
+    #[Swag.NoInline, Swag.NoReturn]
+    func allocatorCorruptedFreeList()
+    {
+        Swag.panic("allocator free list is corrupted", #curlocation)
+    }
+
+    #[Swag.NoInline, Swag.NoReturn]
+    func allocatorFreedBlockWritten()
+    {
+        Swag.panic("memory block was written after being freed", #curlocation)
+    }
 }
 
 impl AllocatorPage
@@ -289,8 +295,17 @@ impl AllocatorPage
 
         .freeList   = 0
         .remoteFree = 0
-        .key        = allocatorNextKey(cast(u64, me))
-        .remoteKey  = .key
+        #static if #hastag("Swag.AllocatorSafety")
+        {
+            .key       = allocatorNextKey(cast(u64, me))
+            .remoteKey = .key
+        }
+        else
+        {
+            .key       = 0
+            .remoteKey = 0
+        }
+
         .areaStart  = start
         .areaEnd    = start + blocks * cast(u64, blockSize)
         .carved     = start
@@ -341,10 +356,22 @@ impl AllocatorPage
     }
 
     #[Swag.Inline]
-    mtd encode(address: u64)->u64 => address ^ .key
+    mtd encode(address: u64)->u64
+    {
+        #static if #hastag("Swag.AllocatorSafety") do
+            return address ^ .key
+        else do
+            return address
+    }
 
     #[Swag.Inline]
-    mtd decode(link: u64)->u64 => link ^ .key
+    mtd decode(link: u64)->u64
+    {
+        #static if #hastag("Swag.AllocatorSafety") do
+            return link ^ .key
+        else do
+            return link
+    }
 
     // Blocks pushed by other threads and not yet collected.
     //
@@ -457,7 +484,10 @@ impl AllocatorPage
         var head = atomicGet(&.remoteFree)
         while true
         {
-            cast(*u64, address)[] = head ^ .remoteKey
+            #static if #hastag("Swag.AllocatorSafety") do
+                cast(*u64, address)[] = head ^ .remoteKey
+            else do
+                cast(*u64, address)[] = head
             let seen = Swag.atomicCompareExchange(&.remoteFree, head, address)
             if seen == head
             {
@@ -488,7 +518,7 @@ impl AllocatorPage
             // Under memory safety, a block handed out must not keep reading as free, or freeing
             // it before its first word is written would look like a double free and cost a walk
             // of the lists.
-            #static if #safety(Swag.SafetyWhat.Memory)
+            #static if #hastag("Swag.AllocatorSafety")
             {
                 cast(*u64, block)[] = 0
             }
@@ -557,7 +587,7 @@ impl AllocatorPage
     mtd nextFree(block: u64)->u64
     {
         let next = .decode(cast(const *u64, block)[])
-        #static if #safety(Swag.SafetyWhat.Memory)
+        #static if #hastag("Swag.AllocatorSafety")
         {
             if next != 0 and not .isBlockAddress(next) do
                 allocatorCorruptedFreeList()
@@ -589,7 +619,7 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd markFree(address: u64)
     {
-        #static if #safety(Swag.SafetyWhat.Memory)
+        #static if #hastag("Swag.AllocatorSafety")
         {
             if .blockSize >= 16 do
                 cast(*u64, (address + 8))[] = ~.key
@@ -599,7 +629,7 @@ impl AllocatorPage
     #[Swag.Inline]
     mtd checkStillFree(block: u64)
     {
-        #static if #safety(Swag.SafetyWhat.Memory)
+        #static if #hastag("Swag.AllocatorSafety")
         {
             if .blockSize >= 16 and cast(const *u64, (block + 8))[] != ~.key do
                 allocatorFreedBlockWritten()
@@ -985,7 +1015,7 @@ func allocatorPageInSegment(address: u64)->*AllocatorPage?
 
     // The arena publishes only initialized headers and never unmaps them. A different magic
     // therefore means corrupted metadata, checked by the guarded configuration.
-    #static if #safety(Swag.SafetyWhat.Memory)
+    #static if #hastag("Swag.AllocatorSafety")
     {
         if segment.magic != AllocatorSegmentMagic do
             return null

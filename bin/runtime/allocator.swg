@@ -1,4 +1,8 @@
 #global namespace Swag
+#global #[Swag.Safety(.All, #hastag("Swag.AllocatorSafety"))]
+
+private const AllocatorHasSafety      = #hastag("Swag.AllocatorSafety")
+private const AllocatorHasDiagnostics = #hastag("Swag.AllocatorDiagnostics")
 
 // The runtime allocator.
 //
@@ -10,16 +14,16 @@
 //     masking the address down to its page. Cached allocation and local free avoid locks and
 //     atomics; remote handoff and page acquisition synchronize separately.
 //   - The header path serves larger blocks, over-aligned blocks, and every allocation made while a
-//     diagnostic mode is on. It keeps a header, a footer, and optional tracking, which is what
+//     diagnostic mode is on. It keeps a header, an optional safety footer and tracking, which is what
 //     leak reports, electric mode, and the double-free diagnostic need.
 //
 // What the allocator guarantees about a misuse depends on the configuration:
 //
-//   - In every configuration, a free block's links are keyed, so a stray write into a freed block
+//   - With 'Swag.AllocatorSafety', a free block's links are keyed, so a stray write into a freed block
 //     cannot aim a free list at chosen memory, and a corrupted link is rejected when it is followed.
 //     This is mitigation, not detection: the write itself is not reported.
-//   - Under memory safety ('Swag.SafetyWhat.Memory', on in devmode and off in release unless the
-//     build adds it), a free of an address that starts no block, of a block already on a free list,
+//   - With 'Swag.AllocatorSafety' (on in devmode and absent in release unless requested), a free
+//     of an address that starts no block, of a block already on a free list,
 //     and of a header-path block already freed is reported, as is a write into the first sixteen
 //     bytes of a freed page block of sixteen bytes or more, when that block is handed out again. A
 //     write further into a freed page block or into a freed 8-byte block, a write past the requested
@@ -36,8 +40,10 @@
 //     at the access, whatever the offset. Freed regions keep their reservation and their header page
 //     for the life of the allocator: electric mode trades address space for detection.
 //
-// The diagnostic modes keep their checks in every configuration; the ordinary path only checks
-// under memory safety.
+// Allocator checks, including compiler-inserted guards, use the early 'Swag.AllocatorSafety' tag.
+// Diagnostic modes need 'Swag.AllocatorDiagnostics'. Both tags are present in devmode and absent in release
+// unless explicitly requested with '--tag'. Use '=false' to remove either default tag;
+// module setup cannot change the selection.
 
 const AllocatorClassCount   = 45'u32
 const AllocatorInvalidClass = 0xFFFF_FFFF'u32
@@ -153,6 +159,8 @@ struct AllocatorFooter
     magic: u32
 }
 
+private const AllocatorFooterSize = (AllocatorHasSafety or AllocatorHasDiagnostics) ? #sizeof(AllocatorFooter) : 0
+
 // An electric header and its tracking record share the first page of their region.
 #assert(#sizeof(AllocatorTracking) + #sizeof(AllocatorHeader) <= AllocatorCommitGranularity)
 
@@ -242,6 +250,10 @@ private var g_AllocatorThreadHeapTlsId = AllocatorInvalidTlsId
 // size, or an operating-system allocation failure sets the request address to null. A failed
 // reallocation leaves the original block live; retain its address before submitting the request.
 // Bulk release and teardown require all users to have stopped accessing this allocator's blocks.
+// Diagnostic options need compiler tag 'Swag.AllocatorDiagnostics'; requesting them without
+// it panics. Diagnostic fields retain their layout across configurations, but their values are
+// ignored when the capability is absent. Explicit memory checks are then disabled too unless
+// 'Swag.AllocatorSafety' is present.
 struct Allocator
 {
     // Guards the diagnostic quarantine and the tracked-allocation list.
@@ -506,56 +518,78 @@ impl Allocator
 
     func printDisplaySize(value: u64)
     {
-        var size = value
-        if size < 1024
+        #static if AllocatorHasDiagnostics
         {
-            Swag.print(size, " bytes")
-            return
-        }
+            var size = value
+            if size < 1024
+            {
+                Swag.print(size, " bytes")
+                return
+            }
 
-        size /= 1024
-        if size < 1024
-        {
-            Swag.print(size, " KB")
-            return
-        }
+            size /= 1024
+            if size < 1024
+            {
+                Swag.print(size, " KB")
+                return
+            }
 
-        size /= 1024
-        if size < 1024
-        {
-            Swag.print(size, " MB")
-            return
-        }
+            size /= 1024
+            if size < 1024
+            {
+                Swag.print(size, " MB")
+                return
+            }
 
-        size /= 1024
-        Swag.print(size, " GB")
+            size /= 1024
+            Swag.print(size, " GB")
+        }
     }
 
+    // Initializes an allocator, with leak reporting enabled when diagnostics are compiled.
     mtd setup()
     {
         Swag.init(me, 1)
         .installMagic = InstalledMagic
-        .configure(false, true, false, false, false)
+        .configure(false, AllocatorHasDiagnostics, false, false, false)
     }
 
+    // Selects diagnostic modes already compiled through 'Swag.AllocatorDiagnostics'.
+    //
+    // Without that compiler tag, all arguments need to be false; another value panics.
+    // Tags are fixed before module setup and cannot be changed by this method.
     mtd configure(electricMode: bool, detectLeaks: bool, captureStack: bool, trackAllocations: bool, fillMemory: bool)
     {
-        .maxQuarantineBytes = 16 * 1024 * 1024
-        .showMaxLeaks       = 100
-        .breakOnAllocId     = 0
-        .captureAllocStack  = captureStack
-        .detectLeaks        = detectLeaks
-        .trackAllocations   = trackAllocations
-        .fillAlloc          = fillMemory
-        .fillFree           = fillMemory
-        .electricMode       = electricMode
-        .slowPath           = .diagnosticMode() or fillMemory
+        #static if AllocatorHasDiagnostics
+        {
+            .maxQuarantineBytes = 16 * 1024 * 1024
+            .showMaxLeaks       = 100
+            .breakOnAllocId     = 0
+            .captureAllocStack  = captureStack
+            .detectLeaks        = detectLeaks
+            .trackAllocations   = trackAllocations
+            .fillAlloc          = fillMemory
+            .fillFree           = fillMemory
+            .electricMode       = electricMode
+            .slowPath           = .diagnosticMode() or fillMemory
+        }
+        else
+        {
+            if electricMode or detectLeaks or captureStack or trackAllocations or fillMemory do
+                Swag.panic("allocator diagnostics need compiler tag 'Swag.AllocatorDiagnostics'; add '--tag Swag.AllocatorDiagnostics' before compiling", #curlocation)
+        }
     }
 
     mtd installed()->bool => .installMagic == InstalledMagic
 
     #[Swag.Inline]
-    mtd diagnosticMode()->bool => .trackAllocations or .captureAllocStack or .electricMode or .breakOnAllocId != 0
+    mtd diagnosticMode()->bool
+    {
+        #static if AllocatorHasDiagnostics do
+            return .trackAllocations or .captureAllocStack or .electricMode or .breakOnAllocId != 0
+        else do
+            return false
+    }
 
     // ###################################################################################
     // Operating system blocks, used by the header path and by the thread-heap records
@@ -592,9 +626,14 @@ impl Allocator
     // alignment.
     mtd osAllocGuarded(commitBytes: u64)->[*] u8?
     {
-        if commitBytes == 0 or commitBytes > Swag.U64.Max - AllocatorCommitGranularity do
-            return null
-        return .osAllocPartial(commitBytes + AllocatorCommitGranularity, commitBytes)
+        #static if AllocatorHasDiagnostics
+        {
+            if commitBytes == 0 or commitBytes > Swag.U64.Max - AllocatorCommitGranularity do
+                return null
+            return .osAllocPartial(commitBytes + AllocatorCommitGranularity, commitBytes)
+        }
+
+        return null
     }
 
     mtd osFree(address: *void?, size: u64)
@@ -1102,7 +1141,7 @@ impl Allocator
     // inaccessible, so nothing next to it is read before such a region has been ruled out.
     mtd headerOf(address: u64)->*AllocatorHeader
     {
-        if .hasElectricBlocks
+        if AllocatorHasDiagnostics and .hasElectricBlocks
         {
             let header = .electricHeaderOf(address)
             if header do
@@ -1117,16 +1156,21 @@ impl Allocator
     // The electric header of the region holding 'address', or null when no such region holds it.
     mtd electricHeaderOf(address: u64)->*AllocatorHeader?
     {
-        let base = __hostPageAllocationBase(address)
-        if base == 0 do
-            return null
+        #static if AllocatorHasDiagnostics
+        {
+            let base = __hostPageAllocationBase(address)
+            if base == 0 do
+                return null
 
-        let header = cast(*AllocatorHeader, (base + #sizeof(AllocatorTracking)))
-        if (header.magic != MagicAlloc and header.magic != MagicFree) or
-           not header.isElectric or
-           header.userAddr != address do
-            return null
-        return header
+            let header = cast(*AllocatorHeader, (base + #sizeof(AllocatorTracking)))
+            if (header.magic != MagicAlloc and header.magic != MagicFree) or
+               not header.isElectric or
+               header.userAddr != address do
+                return null
+            return header
+        }
+
+        return null
     }
 
     mtd userAddress(header: *AllocatorHeader)->[*] u8 => cast([*] u8, header.userAddr)
@@ -1134,20 +1178,34 @@ impl Allocator
     mtd footer(header: *AllocatorHeader)->*AllocatorFooter => cast(*AllocatorFooter, (.userAddress(header) + header.userSize))
 
     // An electric block has no footer: only alignment slack separates its payload from the guard.
-    mtd footerMagic(header: *AllocatorHeader)->u32 => header.isElectric ? header.magic : .footer(header).magic
+    mtd footerMagic(header: *AllocatorHeader)->u32
+    {
+        #static if AllocatorHasSafety or AllocatorHasDiagnostics do
+            return (AllocatorHasDiagnostics and header.isElectric) ? header.magic : .footer(header).magic
+        else do
+            return 0
+    }
 
+    #[Swag.Inline]
     mtd setFooterMagic(header: *AllocatorHeader, value: u32)
     {
-        if not header.isElectric do
-            .footer(header).magic = value
+        #static if (AllocatorHasSafety or AllocatorHasDiagnostics)
+        {
+            if not (AllocatorHasDiagnostics and header.isElectric) do
+                .footer(header).magic = value
+        }
     }
 
     // The location a diagnostic reports for a freed block: where it was freed, when that is known.
     mtd reportLocation(header: *AllocatorHeader, callerLoc: SourceCodeLocation)->SourceCodeLocation
     {
-        let tracking = header.tracking
-        if tracking and tracking.loc.fileName do
-            return tracking.loc
+        #static if AllocatorHasDiagnostics
+        {
+            let tracking = header.tracking
+            if tracking and tracking.loc.fileName do
+                return tracking.loc
+        }
+
         return callerLoc
     }
 
@@ -1157,39 +1215,48 @@ impl Allocator
     // electric payload is inaccessible, so a write into it has already faulted.
     mtd checkFree(header: *AllocatorHeader, callerLoc = #callerlocation)
     {
-        if header.magic != MagicFree or .footerMagic(header) != MagicFree do
-            Swag.panic("memory block corruption", callerLoc)
-        if not .fillFree or header.isElectric do
-            return
-
-        let payload = .userAddress(header)
-        for i in header.userSize
+        #static if AllocatorHasDiagnostics
         {
-            if payload[i] != FreeByte do
-                Swag.panic("memory block was written after being freed", .reportLocation(header, callerLoc))
+            if header.magic != MagicFree or .footerMagic(header) != MagicFree do
+                Swag.panic("memory block corruption", callerLoc)
+            if not .fillFree or header.isElectric do
+                return
+
+            let payload = .userAddress(header)
+            for i in header.userSize
+            {
+                if payload[i] != FreeByte do
+                    Swag.panic("memory block was written after being freed", .reportLocation(header, callerLoc))
+            }
         }
     }
 
     mtd checkAllocated(header: *AllocatorHeader, callerLoc = #callerlocation)
     {
-        let footMagic = .footerMagic(header)
-        if (header.magic != MagicAlloc and header.magic != MagicFree) or
-           (footMagic != MagicAlloc and footMagic != MagicFree) do
-            Swag.panic("memory block corruption", callerLoc)
+        #static if (AllocatorHasSafety or AllocatorHasDiagnostics)
+        {
+            let footMagic = .footerMagic(header)
+            if (header.magic != MagicAlloc and header.magic != MagicFree) or
+               (footMagic != MagicAlloc and footMagic != MagicFree) do
+                Swag.panic("memory block corruption", callerLoc)
 
-        if header.magic == MagicFree do
-            Swag.panic("memory block is freed twice", .reportLocation(header, callerLoc))
+            if header.magic == MagicFree do
+                Swag.panic("memory block is freed twice", .reportLocation(header, callerLoc))
+        }
     }
 
     // Reports a write into the slack between an electric payload and its guard page.
     mtd checkSlack(header: *AllocatorHeader, callerLoc: SourceCodeLocation)
     {
-        let slack = cast([*] u8, (header.userAddr + header.userSize))
-        let count = cast(u64, header.allocAddr) + header.allocSize - header.userAddr - header.userSize
-        for i in count
+        #static if AllocatorHasDiagnostics
         {
-            if slack[i] != SlackByte do
-                Swag.panic("memory block was written past its end", callerLoc)
+            let slack = cast([*] u8, (header.userAddr + header.userSize))
+            let count = cast(u64, header.allocAddr) + header.allocSize - header.userAddr - header.userSize
+            for i in count
+            {
+                if slack[i] != SlackByte do
+                    Swag.panic("memory block was written past its end", callerLoc)
+            }
         }
     }
 
@@ -1199,10 +1266,13 @@ impl Allocator
     // is never reused, so any later access faults.
     mtd retireElectricPayload(header: *AllocatorHeader)
     {
-        let base  = cast(u64, header.allocAddr)
-        let start = base + AllocatorCommitGranularity
-        allocatorOsDecommit(start, base + header.commitSize - start)
-        header.commitSize = AllocatorCommitGranularity
+        #static if AllocatorHasDiagnostics
+        {
+            let base  = cast(u64, header.allocAddr)
+            let start = base + AllocatorCommitGranularity
+            allocatorOsDecommit(start, base + header.commitSize - start)
+            header.commitSize = AllocatorCommitGranularity
+        }
     }
 
     // Header regions are page-aligned, so the page number spreads them over the shards.
@@ -1211,8 +1281,8 @@ impl Allocator
 
     mtd linkAllocated(header: *AllocatorHeader)
     {
-        let mutex = header.isTracked ? &.headerMutex : &.shardOf(header).mutex
-        let first = header.isTracked ? &.firstAlloc : &.shardOf(header).first
+        let mutex = (AllocatorHasDiagnostics and header.isTracked) ? &.headerMutex : &.shardOf(header).mutex
+        let first = (AllocatorHasDiagnostics and header.isTracked) ? &.firstAlloc : &.shardOf(header).first
         mutex.lock()
         defer mutex.unlock()
         header.prev = null
@@ -1224,8 +1294,8 @@ impl Allocator
 
     mtd unlinkAllocated(header: *AllocatorHeader)
     {
-        let mutex = header.isTracked ? &.headerMutex : &.shardOf(header).mutex
-        let first = header.isTracked ? &.firstAlloc : &.shardOf(header).first
+        let mutex = (AllocatorHasDiagnostics and header.isTracked) ? &.headerMutex : &.shardOf(header).mutex
+        let first = (AllocatorHasDiagnostics and header.isTracked) ? &.firstAlloc : &.shardOf(header).first
         mutex.lock()
         defer mutex.unlock()
         if not header.prev do
@@ -1246,31 +1316,34 @@ impl Allocator
     // footer always, the payload pattern too when memory filling is on.
     mtd quarantine(header: *AllocatorHeader)
     {
-        header.prev = .lastQuarantine
-        header.next = null
-        if .lastQuarantine do
-            .lastQuarantine.next = header
-        else do
-            .firstQuarantine = header
-        .lastQuarantine  = header
-        .quarantineBytes += header.allocSize
-        .quarantineCount += 1
-
-        // Electric mode never evicts: an address it handed out is never handed out again, so a
-        // pointer kept past its free can never reach a different, live allocation.
-        while not .electricMode and .firstQuarantine and .quarantineBytes > .maxQuarantineBytes
+        #static if AllocatorHasDiagnostics
         {
-            let oldest = .firstQuarantine
-            .checkFree(oldest)
-            .firstQuarantine = oldest.next
-            if .firstQuarantine do
-                .firstQuarantine.prev = null
+            header.prev = .lastQuarantine
+            header.next = null
+            if .lastQuarantine do
+                .lastQuarantine.next = header
             else do
-                .lastQuarantine = null
-            Swag.assert(.quarantineBytes >= oldest.allocSize)
-            .quarantineBytes -= oldest.allocSize
-            .quarantineCount -= 1
-            .osFree(oldest.allocAddr, oldest.commitSize)
+                .firstQuarantine = header
+            .lastQuarantine  = header
+            .quarantineBytes += header.allocSize
+            .quarantineCount += 1
+
+            // Electric mode never evicts: an address it handed out is never handed out again, so a
+            // pointer kept past its free can never reach a different, live allocation.
+            while not .electricMode and .firstQuarantine and .quarantineBytes > .maxQuarantineBytes
+            {
+                let oldest = .firstQuarantine
+                .checkFree(oldest)
+                .firstQuarantine = oldest.next
+                if .firstQuarantine do
+                    .firstQuarantine.prev = null
+                else do
+                    .lastQuarantine = null
+                Swag.assert(.quarantineBytes >= oldest.allocSize)
+                .quarantineBytes -= oldest.allocSize
+                .quarantineCount -= 1
+                .osFree(oldest.allocAddr, oldest.commitSize)
+            }
         }
     }
 
@@ -1483,11 +1556,11 @@ impl Allocator
 
         // An electric header takes a page of its own in front of the payload pages, so that it stays
         // readable once they are gone.
-        let prefixAlign = .electricMode ? Swag.max(alignment, cast(u32, AllocatorCommitGranularity)) : alignment
+        let prefixAlign = (AllocatorHasDiagnostics and .electricMode) ? Swag.max(alignment, cast(u32, AllocatorCommitGranularity)) : alignment
         let prefix      = memAlign(trackingSize + #sizeof(AllocatorHeader), prefixAlign)
         let blockSize   = classIndex == AllocatorInvalidClass ? request.size : classSize(classIndex)
-        let payloadSize = .electricMode ? request.size : blockSize
-        let overhead    = prefix + cast(u64, alignment) + (.electricMode ? 0'u64 : #sizeof(AllocatorFooter))
+        let payloadSize = (AllocatorHasDiagnostics and .electricMode) ? request.size : blockSize
+        let overhead    = prefix + cast(u64, alignment) + ((AllocatorHasDiagnostics and .electricMode) ? 0'u64 : AllocatorFooterSize)
         if payloadSize > Swag.U64.Max - overhead
         {
             request.address = null
@@ -1505,7 +1578,7 @@ impl Allocator
         var userAddr:   u64
         var commitSize: u64 = allocSize
 
-        if .electricMode
+        if AllocatorHasDiagnostics and .electricMode
         {
             // Round the payload address down to preserve alignment without entering the guard.
             base = .osAllocGuarded(allocSize)
@@ -1561,49 +1634,62 @@ impl Allocator
             return
         }
 
-        let header = .electricMode ? cast(*AllocatorHeader, (cast(u64, base) + trackingSize)) : adjacentHeaderOf(userAddr)
+        let header = (AllocatorHasDiagnostics and .electricMode) ? cast(*AllocatorHeader, (cast(u64, base) + trackingSize)) : adjacentHeaderOf(userAddr)
         header.allocAddr  = cast([*] void, base)
         header.allocSize  = allocSize
         header.commitSize = commitSize
         header.userAddr   = userAddr
         header.userSize   = request.size
         header.blockSize  = blockSize
-        header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking, base) : null
         header.alignment  = alignment
-        header.isTracked  = .trackAllocations
-        header.isElectric = .electricMode
-        header.magic      = MagicAlloc
         header.prev       = null
         header.next       = null
 
-        .setFooterMagic(header, MagicAlloc)
+        #static if AllocatorHasDiagnostics
+        {
+            header.tracking   = .diagnosticMode() ? cast(*AllocatorTracking, base) : null
+            header.isTracked  = .trackAllocations
+            header.isElectric = .electricMode
+        }
+
+        #static if AllocatorHasSafety or AllocatorHasDiagnostics
+        {
+            header.magic = MagicAlloc
+            .setFooterMagic(header, MagicAlloc)
+        }
 
         // The slack between an electric payload and its guard page holds a pattern the free checks.
-        if .electricMode
+        if AllocatorHasDiagnostics and .electricMode
         {
             let slackStart = userAddr + request.size
             Swag.memset(cast(*void, slackStart), SlackByte, cast(u64, base) + allocSize - slackStart)
             .hasElectricBlocks = true
         }
 
-        if .fillAlloc do
+        if AllocatorHasDiagnostics and .fillAlloc do
             Swag.memset(cast(*void, userAddr), AllocByte, request.size)
 
-        let tracking = header.tracking
-        if tracking
+        #static if AllocatorHasDiagnostics
         {
-            tracking.loc        = request.callerLoc
-            tracking.hint       = request.hint
-            tracking.stackCount = .captureAllocStack ? __captureStack(2, Swag.makeSlice(&tracking.stack[0], tracking.stack.count)) : 0
-            tracking.allocId    = Swag.atomicAdd(&.nextId, 1) + 1
-            if tracking.allocId == .breakOnAllocId do
-                Swag.assert(false)
+            let tracking = header.tracking
+            if tracking
+            {
+                tracking.loc        = request.callerLoc
+                tracking.hint       = request.hint
+                tracking.stackCount = .captureAllocStack ? __captureStack(2, Swag.makeSlice(&tracking.stack[0], tracking.stack.count)) : 0
+                tracking.allocId    = Swag.atomicAdd(&.nextId, 1) + 1
+                #[Swag.Safety(.Assert, true)]
+                {
+                    if tracking.allocId == .breakOnAllocId do
+                        Swag.assert(false)
+                }
+            }
         }
 
         // Outside the diagnostic modes the whole committed block past the header is usable, so
         // a later reallocation that still fits only moves the footer.
-        if not .diagnosticMode() and not .electricMode do
-            header.blockSize = cast(u64, base) + commitSize - #sizeof(AllocatorFooter) - userAddr
+        if not .diagnosticMode() and not (AllocatorHasDiagnostics and .electricMode) do
+            header.blockSize = cast(u64, base) + commitSize - AllocatorFooterSize - userAddr
 
         atomicAddU64(&.headerBytes, header.blockSize)
         .linkAllocated(header)
@@ -1619,16 +1705,21 @@ impl Allocator
         let base     = cast(u64, header.allocAddr)
         let userAddr = cast(u64, .userAddress(header))
         let room     = base + header.allocSize - userAddr
-        if size > room or room - size < #sizeof(AllocatorFooter) do
+        if size > room do
             return
+        #static if AllocatorFooterSize != 0
+        {
+            if room - size < AllocatorFooterSize do
+                return
+        }
 
-        let commitEnd = memAlign(userAddr + size + #sizeof(AllocatorFooter) - base, cast(u32, AllocatorCommitGranularity))
+        let commitEnd = memAlign(userAddr + size + AllocatorFooterSize - base, cast(u32, AllocatorCommitGranularity))
         if commitEnd <= header.commitSize do
             return
         if not allocatorOsCommit(base + header.commitSize, commitEnd - header.commitSize) do
             return
 
-        let blockSize = base + commitEnd - #sizeof(AllocatorFooter) - userAddr
+        let blockSize = base + commitEnd - AllocatorFooterSize - userAddr
         atomicAddU64(&.headerBytes, blockSize - header.blockSize)
         header.commitSize = commitEnd
         header.blockSize  = blockSize
@@ -1638,29 +1729,36 @@ impl Allocator
     {
         let header = .headerOf(address)
 
-        // The diagnostic modes always diagnose a misuse; the ordinary path only under memory safety.
-        if .diagnosticMode() or #safety(Swag.SafetyWhat.Memory) do
+        // Compiled diagnostic modes diagnose a misuse; ordinary checks need allocator safety.
+        if .diagnosticMode() or AllocatorHasSafety do
             .checkAllocated(header, callerLoc)
-        if header.isElectric do
+        if AllocatorHasDiagnostics and header.isElectric do
             .checkSlack(header, callerLoc)
 
-        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+        #static if AllocatorHasSafety do
             __valueBorrowWrite(cast(*void, address), header.userSize, &callerLoc)
 
         .unlinkAllocated(header)
 
         atomicSubU64(&.headerBytes, header.blockSize)
 
-        if .fillFree do
+        if AllocatorHasDiagnostics and .fillFree do
             Swag.memset(cast(*void, address), FreeByte, header.userSize)
 
-        header.magic = MagicFree
-        .setFooterMagic(header, MagicFree)
-        if header.tracking do
-            header.tracking.loc = callerLoc
+        #static if AllocatorHasSafety or AllocatorHasDiagnostics
+        {
+            header.magic = MagicFree
+            .setFooterMagic(header, MagicFree)
+        }
+
+        #static if AllocatorHasDiagnostics
+        {
+            if header.tracking do
+                header.tracking.loc = callerLoc
+        }
 
         // An electric block is never reused, whatever the mode at the time of its free.
-        if header.isElectric
+        if AllocatorHasDiagnostics and header.isElectric
         {
             .retireElectricPayload(header)
             .quarantine(header)
@@ -1692,7 +1790,7 @@ impl Allocator
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd allocateFast(size: u64, alignment: u32)->u64
     {
-        if .slowPath do
+        if AllocatorHasDiagnostics and .slowPath do
             return 0
         if size - 1 >= AllocatorMaxClassSize do
             return 0
@@ -1740,7 +1838,7 @@ impl Allocator
         // goes to the general path, which diagnoses it. Every free block reads as one, so a block
         // that does not cannot be a double free; one that does may still be live, and the general
         // path walks the lists to tell.
-        #static if #safety(Swag.SafetyWhat.Memory)
+        #static if AllocatorHasSafety
         {
             if not page.isBlockAddress(address) do
                 return false
@@ -1748,7 +1846,7 @@ impl Allocator
                 return false
         }
 
-        #static if #safety(Swag.SafetyWhat.ValueBorrow)
+        #static if AllocatorHasSafety
         {
             let location = #curlocation
             __valueBorrowWrite(cast(*void, address), page.blockSize, &location)
@@ -1840,7 +1938,7 @@ impl Allocator
 
         // Fill the whole block, not only the request: the page path keeps no user size, so a later
         // reallocation inside the same class must find the pattern everywhere it can now reach.
-        if .fillAlloc do
+        if AllocatorHasDiagnostics and .fillAlloc do
             Swag.memset(cast(*void, block), AllocByte, classSize(classIndex))
 
         request.address = cast(*void, block)
@@ -1873,7 +1971,7 @@ impl Allocator
         var oldCopySize:  u64
         if oldPage
         {
-            #static if #safety(Swag.SafetyWhat.Memory)
+            #static if AllocatorHasSafety
             {
                 .checkPageAddress(oldPage, oldAddress, request.callerLoc)
             }
@@ -1884,7 +1982,7 @@ impl Allocator
         else
         {
             let oldHeader = .headerOf(oldAddress)
-            #static if #safety(Swag.SafetyWhat.Memory)
+            #static if AllocatorHasSafety
             {
                 .checkAllocated(oldHeader, request.callerLoc)
             }
@@ -1897,16 +1995,16 @@ impl Allocator
             if request.size > oldHeader.blockSize and
                request.alignment <= oldHeader.alignment and
                not .diagnosticMode() and
-               not oldHeader.isElectric do
+               not (AllocatorHasDiagnostics and oldHeader.isElectric) do
                 .growHeaderBlock(oldHeader, request.size)
 
             // Growing inside the block the header already covers only moves the footer.
             if request.size <= oldHeader.blockSize and
                request.alignment <= oldHeader.alignment and
-               not oldHeader.isElectric
+               not (AllocatorHasDiagnostics and oldHeader.isElectric)
             {
                 let oldSize = oldHeader.userSize
-                #static if #safety(Swag.SafetyWhat.ValueBorrow)
+                #static if AllocatorHasSafety
                 {
                     if request.size < oldSize do
                         __valueBorrowWrite(cast(*void, oldAddress + request.size), oldSize - request.size, &request.callerLoc)
@@ -1916,7 +2014,7 @@ impl Allocator
                 oldHeader.userSize = request.size
                 .setFooterMagic(oldHeader, MagicAlloc)
 
-                if .fillAlloc and oldSize < request.size do
+                if (AllocatorHasDiagnostics and .fillAlloc) and oldSize < request.size do
                     Swag.memset(.userAddress(oldHeader) + oldSize, AllocByte, request.size - oldSize)
 
                 return
@@ -1931,7 +2029,7 @@ impl Allocator
            (request.alignment == 0 or (oldAddress & (cast(u64, request.alignment) - 1)) == 0) and
            not .diagnosticMode()
         {
-            #static if #safety(Swag.SafetyWhat.ValueBorrow)
+            #static if AllocatorHasSafety
             {
                 if request.size < oldBlockSize do
                     __valueBorrowWrite(cast(*void, oldAddress + request.size), oldBlockSize - request.size, &request.callerLoc)
@@ -1941,7 +2039,7 @@ impl Allocator
             return
         }
 
-        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+        #static if AllocatorHasSafety do
             __valueBorrowWrite(cast(*void, oldAddress), oldCopySize, &request.callerLoc)
 
         var allocReq = request[]
@@ -1969,10 +2067,13 @@ impl Allocator
     #[Swag.Inline]
     mtd checkPageAddress(page: *AllocatorPage, address: u64, callerLoc: SourceCodeLocation)
     {
-        if page.state == AllocatorPageState.Free do
-            Swag.panic("memory block is not allocated", callerLoc)
-        if not page.isBlockAddress(address) do
-            Swag.panic("memory block address is not the start of an allocation", callerLoc)
+        #static if (AllocatorHasSafety or AllocatorHasDiagnostics)
+        {
+            if page.state == AllocatorPageState.Free do
+                Swag.panic("memory block is not allocated", callerLoc)
+            if not page.isBlockAddress(address) do
+                Swag.panic("memory block address is not the start of an allocation", callerLoc)
+        }
     }
 
     mtd freeBlock(request: *AllocatorRequest)
@@ -1996,17 +2097,17 @@ impl Allocator
         // lists the caller may walk: the owner sees both, another thread only the remote list.
         let heap  = currentAllocatorThreadHeap()
         let owned = heap != null and page.ownerHeap == heap
-        #static if #safety(Swag.SafetyWhat.Memory)
+        #static if AllocatorHasSafety
         {
             .checkPageAddress(page, address, request.callerLoc)
             if page.looksFree(address) and ((owned and page.holdsOwnFreeBlock(address)) or page.holdsRemoteFreeBlock(address)) do
                 Swag.panic("memory block is freed twice", request.callerLoc)
         }
 
-        #static if #safety(Swag.SafetyWhat.ValueBorrow) do
+        #static if AllocatorHasSafety do
             __valueBorrowWrite(cast(*void, address), page.blockSize, &request.callerLoc)
 
-        if .fillFree do
+        if AllocatorHasDiagnostics and .fillFree do
             Swag.memset(cast(*void, address), FreeByte, page.blockSize)
 
         if owned
@@ -2025,24 +2126,27 @@ impl Allocator
 
     mtd assertIsAllocated(addr: *void?, callerLoc = #callerlocation)
     {
-        if not addr do
-            return
-
-        let address = cast(u64, addr)
-        let page    = allocatorPageOf(address)
-        if page
+        #static if (AllocatorHasSafety or AllocatorHasDiagnostics)
         {
-            .checkPageAddress(page, address, callerLoc)
+            if not addr do
+                return
 
-            // Being a block of the page is not enough: a freed block still looks like one. Walking
-            // the free list is what separates the two, and only a caller that asked for the check
-            // pays for it.
-            if page.holdsFreeBlock(address) do
-                Swag.panic("memory block is not allocated", callerLoc)
-            return
+            let address = cast(u64, addr)
+            let page    = allocatorPageOf(address)
+            if page
+            {
+                .checkPageAddress(page, address, callerLoc)
+
+                // Being a block of the page is not enough: a freed block still looks like one. Walking
+                // the free list is what separates the two, and only a caller that asked for the check
+                // pays for it.
+                if page.holdsFreeBlock(address) do
+                    Swag.panic("memory block is not allocated", callerLoc)
+                return
+            }
+
+            .checkAllocated(.headerOf(address), callerLoc)
         }
-
-        .checkAllocated(.headerOf(address), callerLoc)
     }
 
     // ###################################################################################
@@ -2053,15 +2157,19 @@ impl Allocator
     mtd liveHeaderCount()->u64
     {
         var count = 0'u64
-        .headerMutex.lock()
-        var tracked = .firstAlloc
-        while tracked
+        #static if AllocatorHasDiagnostics
         {
-            count   += 1
-            tracked = tracked.next
+            .headerMutex.lock()
+            var tracked = .firstAlloc
+            while tracked
+            {
+                count   += 1
+                tracked = tracked.next
+            }
+
+            .headerMutex.unlock()
         }
 
-        .headerMutex.unlock()
         for &shard in .shards
         {
             shard.mutex.lock()
@@ -2115,8 +2223,11 @@ impl Allocator
 
         result.countAlloc += .liveHeaderCount()
         result.sizeAlloc  += atomicGet(&.headerBytes)
-        result.countFree  += .quarantineCount
-        result.sizeCached += .quarantineBytes
+        #static if AllocatorHasDiagnostics
+        {
+            result.countFree  += .quarantineCount
+            result.sizeCached += .quarantineBytes
+        }
 
         result.sizeCommitted   = atomicGet(&g_AllocatorCommittedBytes)
         result.countOsCommit   = atomicGet(&g_AllocatorOsCommitCount)
@@ -2279,22 +2390,25 @@ impl Allocator
         .firstAbandoned = null
         .segmentMutex.unlock()
 
-        while .firstQuarantine
+        #static if AllocatorHasDiagnostics
         {
-            let header = .firstQuarantine
-            .firstQuarantine = header.next
-            .osFree(header.allocAddr, header.commitSize)
-        }
+            while .firstQuarantine
+            {
+                let header = .firstQuarantine
+                .firstQuarantine = header.next
+                .osFree(header.allocAddr, header.commitSize)
+            }
 
-        .lastQuarantine  = null
-        .quarantineBytes = 0
-        .quarantineCount = 0
+            .lastQuarantine  = null
+            .quarantineBytes = 0
+            .quarantineCount = 0
 
-        while .firstAlloc
-        {
-            let header = .firstAlloc
-            .unlinkAllocated(header)
-            .osFree(header.allocAddr, header.commitSize)
+            while .firstAlloc
+            {
+                let header = .firstAlloc
+                .unlinkAllocated(header)
+                .osFree(header.allocAddr, header.commitSize)
+            }
         }
 
         for &shard in .shards
@@ -2307,7 +2421,8 @@ impl Allocator
             }
         }
 
-        .hasElectricBlocks = false
+        #static if AllocatorHasDiagnostics do
+            .hasElectricBlocks = false
 
         // The callers hold the mutex.
         .drainBlockCache()
@@ -2317,71 +2432,77 @@ impl Allocator
 
     mtd checkAllMemory()
     {
-        var header = .firstAlloc
-        while header
+        #static if AllocatorHasDiagnostics
         {
-            .checkAllocated(header)
-            header = header.next
-        }
+            var header = .firstAlloc
+            while header
+            {
+                .checkAllocated(header)
+                header = header.next
+            }
 
-        header = .firstQuarantine
-        while header
-        {
-            .checkFree(header)
-            header = header.next
+            header = .firstQuarantine
+            while header
+            {
+                .checkFree(header)
+                header = header.next
+            }
         }
     }
 
     mtd printLeaks()
     {
-        if not .detectLeaks do
-            return
-
-        let snapshot = .stats()
-        let live     = snapshot.countAlloc
-        if live == 0 do
-            return
-
-        Swag.print("\nSwag allocator: memory remains allocated\n")
-        Swag.print("---------------------------------------\n")
-        Swag.print(live)
-        if live == 1 do
-            Swag.print(" allocation, totaling ")
-        else do
-            Swag.print(" allocations, totaling ")
-
-        printDisplaySize(snapshot.sizeAlloc)
-        Swag.print("\n")
-        Swag.print("---------------------------------------\n")
-
-        var scan = .firstAlloc
-        var cpt  = 0
-        while scan
+        #static if AllocatorHasDiagnostics
         {
-            .checkAllocated(scan)
-            let tracking = scan.tracking!
+            if not .detectLeaks do
+                return
 
-            Swag.print("\x1b[91m")
-            Swag.print("allocation #", tracking.allocId, ": size ")
-            printDisplaySize(scan.userSize)
-            if tracking.hint do
-                Swag.print(", hint ", tracking.hint)
+            let snapshot = .stats()
+            let live     = snapshot.countAlloc
+            if live == 0 do
+                return
+
+            Swag.print("\nSwag allocator: memory remains allocated\n")
+            Swag.print("---------------------------------------\n")
+            Swag.print(live)
+            if live == 1 do
+                Swag.print(" allocation, totaling ")
+            else do
+                Swag.print(" allocations, totaling ")
+
+            printDisplaySize(snapshot.sizeAlloc)
             Swag.print("\n")
-            Swag.print("\x1b[36m")
-            Swag.print("source: ")
-            Swag.print(tracking.loc.fileName, ":", tracking.loc.lineStart, "\n")
-            if tracking.stackCount do
-                __logStackTrace(Swag.makeSlice(&tracking.stack[0], tracking.stackCount), &tracking.loc, false)
             Swag.print("---------------------------------------\n")
 
-            scan = scan.next
-            cpt  += 1
-            if .showMaxLeaks and cpt >= .showMaxLeaks
+            var scan = .firstAlloc
+            var cpt  = 0
+            while scan
             {
+                .checkAllocated(scan)
+                let tracking = scan.tracking!
+
                 Swag.print("\x1b[91m")
-                Swag.print("remaining allocation details omitted\n")
-                Swag.print("\x1b[97m")
-                break
+                Swag.print("allocation #", tracking.allocId, ": size ")
+                printDisplaySize(scan.userSize)
+                if tracking.hint do
+                    Swag.print(", hint ", tracking.hint)
+                Swag.print("\n")
+                Swag.print("\x1b[36m")
+                Swag.print("source: ")
+                Swag.print(tracking.loc.fileName, ":", tracking.loc.lineStart, "\n")
+                if tracking.stackCount do
+                    __logStackTrace(Swag.makeSlice(&tracking.stack[0], tracking.stackCount), &tracking.loc, false)
+                Swag.print("---------------------------------------\n")
+
+                scan = scan.next
+                cpt  += 1
+                if .showMaxLeaks and cpt >= .showMaxLeaks
+                {
+                    Swag.print("\x1b[91m")
+                    Swag.print("remaining allocation details omitted\n")
+                    Swag.print("\x1b[97m")
+                    break
+                }
             }
         }
     }
@@ -2392,7 +2513,8 @@ impl Allocator
             return
 
         .mutex.lock()
-        .printLeaks()
+        #static if AllocatorHasDiagnostics do
+            .printLeaks()
         .releaseAll()
         .mutex.unlock()
 
@@ -2410,7 +2532,8 @@ impl Allocator
         .mutex.lock()
         defer .mutex.unlock()
 
-        .printLeaks()
+        #static if AllocatorHasDiagnostics do
+            .printLeaks()
         .releaseAll()
     }
 }
@@ -2466,7 +2589,7 @@ impl IAllocator for Allocator
 
     mtd impl free(request: *AllocatorRequest)
     {
-        if not .slowPath and .freeFast(cast(u64, request.address))
+        if not (AllocatorHasDiagnostics and .slowPath) and .freeFast(cast(u64, request.address))
         {
             request.address = null
             return
@@ -2516,6 +2639,10 @@ func releaseAllocatorThreadCache()
 
 // Configures the runtime allocator and, by default, installs it in the current context.
 //
+// Diagnostic options need compiler tag 'Swag.AllocatorDiagnostics', fixed before module setup.
+// Requesting a diagnostic mode without that tag panics. Leak detection defaults to whether
+// the tag is present; a default release allocator has no diagnostic mode.
+//
 // 'electricMode' gives every block its own region ending at a guard page and makes a freed payload
 // inaccessible, so an access past the alignment slack and any access to a freed block fault at the
 // access; a write into the slack is reported at the free, and freed addresses are never reused.
@@ -2527,7 +2654,7 @@ func releaseAllocatorThreadCache()
 // allocation and free pair costs a reservation, a commit, a decommit and two host queries, about
 // eight microseconds against four before freed payloads were made inaccessible.
 func installAllocator(electricMode: bool = false,
-                      detectLeaks: bool = true,
+                      detectLeaks: bool = #hastag("Swag.AllocatorDiagnostics"),
                       captureStack: bool = false,
                       trackAllocations: bool = false,
                       fillMemory: bool = false,

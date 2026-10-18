@@ -45,7 +45,7 @@ namespace
         rawValue = Utf8Helper::trim(rawValue);
         if (rawValue.empty())
         {
-            outError.id = DiagnosticId::cmdline_err_tag_int_missing_value;
+            outError.id = DiagnosticId::cmd_err_tag_int_missing_value;
             return false;
         }
 
@@ -57,7 +57,7 @@ namespace
 
         if (rawValue.empty())
         {
-            outError.id = DiagnosticId::cmdline_err_tag_int_missing_digits;
+            outError.id = DiagnosticId::cmd_err_tag_int_missing_digits;
             return false;
         }
 
@@ -75,7 +75,7 @@ namespace
 
         if (rawValue.empty())
         {
-            outError.id = DiagnosticId::cmdline_err_tag_int_missing_digits;
+            outError.id = DiagnosticId::cmd_err_tag_int_missing_digits;
             return false;
         }
 
@@ -95,20 +95,20 @@ namespace
                 digit = 10u + static_cast<uint32_t>(c - 'A');
             else
             {
-                outError.id = DiagnosticId::cmdline_err_tag_int_invalid_literal;
+                outError.id = DiagnosticId::cmd_err_tag_int_invalid_literal;
                 return false;
             }
 
             if (digit >= base)
             {
-                outError.id = DiagnosticId::cmdline_err_tag_int_invalid_digit_base;
+                outError.id = DiagnosticId::cmd_err_tag_int_invalid_digit_base;
                 return false;
             }
 
             hasDigit = true;
             if (value > (std::numeric_limits<uint64_t>::max() - digit) / base)
             {
-                outError.id = DiagnosticId::cmdline_err_tag_int_too_large;
+                outError.id = DiagnosticId::cmd_err_tag_int_too_large;
                 return false;
             }
 
@@ -117,7 +117,7 @@ namespace
 
         if (!hasDigit)
         {
-            outError.id = DiagnosticId::cmdline_err_tag_int_missing_digits;
+            outError.id = DiagnosticId::cmd_err_tag_int_missing_digits;
             return false;
         }
 
@@ -142,14 +142,14 @@ namespace
         {
             if (literal.negative)
             {
-                outError.id   = DiagnosticId::cmdline_err_tag_int_negative_unsigned;
+                outError.id   = DiagnosticId::cmd_err_tag_int_negative_unsigned;
                 outError.type = type.toName(ctx);
                 return Result::Error;
             }
 
             if (bits && bits < 64 && literal.magnitude > ((uint64_t{1} << bits) - 1))
             {
-                outError.id   = DiagnosticId::cmdline_err_tag_int_out_of_range;
+                outError.id   = DiagnosticId::cmd_err_tag_int_out_of_range;
                 outError.type = type.toName(ctx);
                 return Result::Error;
             }
@@ -165,7 +165,7 @@ namespace
             constexpr uint64_t minMagnitude = uint64_t{1} << 63;
             if (literal.magnitude > minMagnitude)
             {
-                outError.id = DiagnosticId::cmdline_err_tag_int_too_large;
+                outError.id = DiagnosticId::cmd_err_tag_int_too_large;
                 return Result::Error;
             }
 
@@ -175,7 +175,7 @@ namespace
         {
             if (literal.magnitude > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
             {
-                outError.id = DiagnosticId::cmdline_err_tag_int_too_large;
+                outError.id = DiagnosticId::cmd_err_tag_int_too_large;
                 return Result::Error;
             }
 
@@ -188,7 +188,7 @@ namespace
             const int64_t maxValue = (int64_t{1} << (bits - 1)) - 1;
             if (signedValue < minValue || signedValue > maxValue)
             {
-                outError.id   = DiagnosticId::cmdline_err_tag_int_out_of_range;
+                outError.id   = DiagnosticId::cmd_err_tag_int_out_of_range;
                 outError.type = type.toName(ctx);
                 return Result::Error;
             }
@@ -207,7 +207,7 @@ namespace
         rawValue = Utf8Helper::trim(rawValue);
         if (rawValue.empty())
         {
-            outError.id = DiagnosticId::cmdline_err_tag_float_missing_value;
+            outError.id = DiagnosticId::cmd_err_tag_float_missing_value;
             return Result::Error;
         }
 
@@ -221,7 +221,7 @@ namespace
 
         if (normalized.empty())
         {
-            outError.id = DiagnosticId::cmdline_err_tag_float_missing_value;
+            outError.id = DiagnosticId::cmd_err_tag_float_missing_value;
             return Result::Error;
         }
 
@@ -232,13 +232,13 @@ namespace
             const float value = std::strtof(normalized.c_str(), &endPtr);
             if (endPtr != normalized.data() + normalized.size() || errno == ERANGE)
             {
-                outError.id = DiagnosticId::cmdline_err_tag_float_invalid_literal;
+                outError.id = DiagnosticId::cmd_err_tag_float_invalid_literal;
                 return Result::Error;
             }
 
             if (!std::isfinite(value))
             {
-                outError.id = DiagnosticId::cmdline_err_tag_float_non_finite;
+                outError.id = DiagnosticId::cmd_err_tag_float_non_finite;
                 return Result::Error;
             }
 
@@ -249,13 +249,13 @@ namespace
         const double value = std::strtod(normalized.c_str(), &endPtr);
         if (endPtr != normalized.data() + normalized.size() || errno == ERANGE)
         {
-            outError.id = DiagnosticId::cmdline_err_tag_float_invalid_literal;
+            outError.id = DiagnosticId::cmd_err_tag_float_invalid_literal;
             return Result::Error;
         }
 
         if (!std::isfinite(value))
         {
-            outError.id = DiagnosticId::cmdline_err_tag_float_non_finite;
+            outError.id = DiagnosticId::cmd_err_tag_float_non_finite;
             return Result::Error;
         }
 
@@ -284,7 +284,7 @@ namespace
                 return Result::Continue;
             }
 
-            outError.id = DiagnosticId::cmdline_err_tag_bool_invalid;
+            outError.id = DiagnosticId::cmd_err_tag_bool_invalid;
             return Result::Error;
         }
 
@@ -299,7 +299,7 @@ namespace
         if (type.isFloat())
             return makeCompilerTagFloat(ctx, typeRef, rawValue, outCstRef, outError);
 
-        outError.id   = DiagnosticId::cmdline_err_tag_type_unsupported;
+        outError.id   = DiagnosticId::cmd_err_tag_type_unsupported;
         outError.type = type.toName(ctx);
         return Result::Error;
     }
@@ -310,7 +310,7 @@ namespace
         if (rawTag.empty())
         {
             CompilerTagError error;
-            error.id = DiagnosticId::cmdline_err_tag_missing_name;
+            error.id = DiagnosticId::cmd_err_tag_missing_name;
             return reportCompilerTagError(ctx, rawTag, error);
         }
 
@@ -324,7 +324,7 @@ namespace
             if (name.empty())
             {
                 CompilerTagError error;
-                error.id = DiagnosticId::cmdline_err_tag_missing_name;
+                error.id = DiagnosticId::cmd_err_tag_missing_name;
                 return reportCompilerTagError(ctx, rawTag, error);
             }
 
@@ -338,14 +338,14 @@ namespace
         if (leftPart.empty())
         {
             CompilerTagError error;
-            error.id = DiagnosticId::cmdline_err_tag_missing_name;
+            error.id = DiagnosticId::cmd_err_tag_missing_name;
             return reportCompilerTagError(ctx, rawTag, error);
         }
 
         if (rightPart.empty())
         {
             CompilerTagError error;
-            error.id = DiagnosticId::cmdline_err_tag_missing_value;
+            error.id = DiagnosticId::cmd_err_tag_missing_value;
             return reportCompilerTagError(ctx, rawTag, error);
         }
 
@@ -361,7 +361,7 @@ namespace
         if (namePart.empty())
         {
             CompilerTagError error;
-            error.id = DiagnosticId::cmdline_err_tag_missing_name;
+            error.id = DiagnosticId::cmd_err_tag_missing_name;
             return reportCompilerTagError(ctx, rawTag, error);
         }
 
@@ -385,12 +385,12 @@ namespace
             ConstantRef      cstRef = ConstantRef::invalid();
             if (makeCompilerTagInteger(ctx, ctx.typeMgr().typeS32(), rightPart, cstRef, error) != Result::Continue)
             {
-                if (error.id == DiagnosticId::cmdline_err_tag_int_missing_value ||
-                    error.id == DiagnosticId::cmdline_err_tag_int_missing_digits ||
-                    error.id == DiagnosticId::cmdline_err_tag_int_invalid_literal ||
-                    error.id == DiagnosticId::cmdline_err_tag_int_invalid_digit_base)
+                if (error.id == DiagnosticId::cmd_err_tag_int_missing_value ||
+                    error.id == DiagnosticId::cmd_err_tag_int_missing_digits ||
+                    error.id == DiagnosticId::cmd_err_tag_int_invalid_literal ||
+                    error.id == DiagnosticId::cmd_err_tag_int_invalid_digit_base)
                 {
-                    error.id = DiagnosticId::cmdline_err_tag_untyped_value_invalid;
+                    error.id = DiagnosticId::cmd_err_tag_untyped_value_invalid;
                 }
                 return reportCompilerTagError(ctx, rawTag, error);
             }
@@ -432,7 +432,7 @@ namespace
         if (typeRef.isInvalid())
         {
             CompilerTagError error;
-            error.id   = DiagnosticId::cmdline_err_tag_type_unsupported;
+            error.id   = DiagnosticId::cmd_err_tag_type_unsupported;
             error.type = typePart;
             return reportCompilerTagError(ctx, rawTag, error);
         }
@@ -471,19 +471,60 @@ namespace
             testTag.cstRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeBool(ctx, true));
             outTags.push_back(std::move(testTag));
         }
+
+        // These capabilities are fixed before the module setup executes. In particular,
+        // mutating BuildCfg from '#run' cannot change the runtime that executes it.
+        for (const auto name : {"Swag.AllocatorSafety", "Swag.AllocatorDiagnostics"})
+        {
+            if (CompilerTagRegistry::hasAllocatorCapability(ctx.cmdLine(), name))
+            {
+                CompilerTag capability;
+                capability.name   = name;
+                capability.source = "<internal>";
+                capability.cstRef = ctx.cstMgr().cstTrue();
+                outTags.push_back(std::move(capability));
+            }
+        }
     }
+}
+
+bool CompilerTagRegistry::hasAllocatorCapability(const CommandLine& cmdLine, const std::string_view name)
+{
+    bool enabled = cmdLine.buildCfg == "devmode";
+    for (const Utf8& rawTag : cmdLine.tags)
+    {
+        const std::string_view text     = Utf8Helper::trim(rawTag.view());
+        const size_t           equalPos = text.find('=');
+        const std::string_view left     = Utf8Helper::trim(text.substr(0, equalPos));
+        const std::string_view tagName  = equalPos == std::string_view::npos ? left : Utf8Helper::trim(left.substr(0, left.find(':')));
+        if (tagName == name)
+            enabled = equalPos == std::string_view::npos || Utf8Helper::trim(text.substr(equalPos + 1)) != "false";
+    }
+    return enabled;
 }
 
 Result CompilerTagRegistry::setup(TaskContext& ctx)
 {
     tags_.clear();
-    tags_.reserve(2 + ctx.cmdLine().tags.size());
+    tags_.reserve(4 + ctx.cmdLine().tags.size());
     addInternalCompilerTags(ctx, tags_);
 
     for (const Utf8& rawTag : ctx.cmdLine().tags)
     {
         CompilerTag tag;
         SWC_RESULT(parseOneCompilerTag(ctx, rawTag.view(), tag));
+        if (tag.name == "Swag.AllocatorSafety" || tag.name == "Swag.AllocatorDiagnostics")
+        {
+            const ConstantValue& value = ctx.cstMgr().get(tag.cstRef);
+            if (!value.isBool())
+            {
+                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_tag_capability_value);
+                diag.addArgument(Diagnostic::ARG_ARG, rawTag);
+                diag.report(ctx);
+                return Result::Error;
+            }
+            continue;
+        }
         tags_.push_back(std::move(tag));
     }
 

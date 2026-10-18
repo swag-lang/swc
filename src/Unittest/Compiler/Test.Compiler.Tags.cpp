@@ -55,6 +55,83 @@ SWC_TEST_BEGIN(Compiler_CommandLineTagsReachSema)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AllocatorCapabilitiesAreFixedBeforeModuleSetup)
+{
+    for (const auto configuration : {"devmode", "release"})
+    {
+        CommandLine cmdLine;
+        cmdLine.command  = CommandKind::Sema;
+        cmdLine.buildCfg = configuration;
+        CommandLineParser::refreshBuildCfg(cmdLine);
+
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      localCtx(compiler);
+        SWC_RESULT(compiler.setupSema(localCtx));
+        for (const auto name : {"Swag.AllocatorSafety", "Swag.AllocatorDiagnostics"})
+        {
+            const auto* tag = compiler.findCompilerTag(name);
+            if ((tag != nullptr) != (cmdLine.buildCfg == "devmode"))
+                return Result::Error;
+            if (tag && !compiler.cstMgr().get(tag->cstRef).getBool())
+                return Result::Error;
+        }
+
+        compiler.buildCfg().safetyGuards   = Runtime::SafetyWhat::All;
+        compiler.buildCfg().allocatorLeaks = true;
+        if (cmdLine.buildCfg == "release" && compiler.findCompilerTag("Swag.AllocatorDiagnostics"))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ReleaseAllocatorCapabilitiesNeedExplicitTags)
+{
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.buildCfg = "release";
+    cmdLine.tags.emplace_back("Swag.AllocatorSafety");
+    cmdLine.tags.emplace_back("Swag.AllocatorDiagnostics: bool = true");
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      localCtx(compiler);
+    SWC_RESULT(compiler.setupSema(localCtx));
+    for (const auto name : {"Swag.AllocatorSafety", "Swag.AllocatorDiagnostics"})
+    {
+        const auto* tag = compiler.findCompilerTag(name);
+        if (!tag || !compiler.cstMgr().get(tag->cstRef).getBool())
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AllocatorCapabilityOverridesUseLastValue)
+{
+    for (const auto configuration : {"devmode", "release"})
+    {
+        CommandLine cmdLine;
+        cmdLine.command  = CommandKind::Sema;
+        cmdLine.buildCfg = configuration;
+        cmdLine.tags.emplace_back("Swag.AllocatorDiagnostics");
+        cmdLine.tags.emplace_back("Swag.AllocatorDiagnostics: bool = false");
+        cmdLine.tags.emplace_back("Swag.AllocatorSafety=false");
+        cmdLine.tags.emplace_back("Swag.AllocatorSafety=true");
+        CommandLineParser::refreshBuildCfg(cmdLine);
+        if (cmdLine.defaultBuildCfg.allocatorLeaks)
+            return Result::Error;
+
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      localCtx(compiler);
+        SWC_RESULT(compiler.setupSema(localCtx));
+        if (compiler.findCompilerTag("Swag.AllocatorDiagnostics"))
+            return Result::Error;
+        const auto* safety = compiler.findCompilerTag("Swag.AllocatorSafety");
+        if (!safety || !compiler.cstMgr().get(safety->cstRef).getBool())
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_InternalTagPrecedesUserOverride)
 {
     static constexpr std::string_view SOURCE     = R"(#global private

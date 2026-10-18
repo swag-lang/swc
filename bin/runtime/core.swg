@@ -643,7 +643,10 @@ func __setupRuntime(flags: RuntimeFlags)
     if not (flags & .FromCompiler) do
         Swag.processInfo().args = __osCommandLine()
 
-    discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: not (flags & .FromCompiler))
+    #static if #hastag("Swag.AllocatorDiagnostics") do
+        discard installAllocator(electricMode: __buildCfg.allocatorElectricMode, detectLeaks: __buildCfg.allocatorLeaks, captureStack: __buildCfg.allocatorCaptureStack, trackAllocations: __buildCfg.allocatorTrackAllocations, fillMemory: __buildCfg.allocatorFillMemory, installInContext: not (flags & .FromCompiler))
+    else do
+        discard installAllocator(installInContext: not (flags & .FromCompiler))
 
     let allocator = __runtimeAllocator()
 

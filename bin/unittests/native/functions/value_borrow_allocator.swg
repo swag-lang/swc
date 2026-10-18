@@ -1,8 +1,7 @@
 #global private
-// The runtime allocators check a free or a move against live borrows only when the program is
-// built with the guard: an attribute on the test enables it in the test code, not in the
-// allocator. The release preset leaves it off.
-#global if #safety(Swag.SafetyWhat.ValueBorrow)
+// The caller needs value-borrow guards and the allocator needs its early safety capability.
+// An attribute on a test cannot add allocator instrumentation after bootstrap.
+#global if #hastag("Swag.AllocatorSafety") and #safety(Swag.SafetyWhat.ValueBorrow)
 
 struct Thing { value, padding1, padding2: u64 }
 

@@ -284,6 +284,7 @@ public:
     const std::vector<CompilerTag>&      compilerTags() const { return compilerTags_.all(); }
     void                                 registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*                      runtimeFunctionSymbol(IdentifierRef idRef) const;
+    SymbolFunction*                      runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind kind) const;
     bool                                 tryRegisterReportedDiagnostic(std::string_view message);
     bool                                 hasErrorDiagnostic() const { return hasErrorDiagnostic_.load(std::memory_order_acquire); }
     void                                 recordErrorDiagnostic() { hasErrorDiagnostic_.store(true, std::memory_order_release); }

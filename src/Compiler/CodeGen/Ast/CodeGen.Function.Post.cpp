@@ -194,11 +194,7 @@ namespace
 
     SymbolFunction* runtimeFunctionByKind(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind)
     {
-        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(kind);
-        if (idRef.isInvalid())
-            return nullptr;
-
-        return codeGen.compiler().runtimeFunctionSymbol(idRef);
+        return codeGen.compiler().runtimeFunctionSymbol(kind);
     }
 
     FallibleHandlerKind fallibleHandlerKind(TokenId tokenId)

@@ -85,11 +85,7 @@ namespace
         if (payload && payload->runtimeFunctionSymbol != nullptr)
             return payload->runtimeFunctionSymbol;
 
-        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
-        if (idRef.isInvalid())
-            return nullptr;
-
-        return codeGen.compiler().runtimeFunctionSymbol(idRef);
+        return codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
     }
 
     Result emitRuntimePanicCall(CodeGen& codeGen, SymbolFunction& runtimeFunction, const AstNode& node, std::string_view message)

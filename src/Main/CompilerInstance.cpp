@@ -1440,6 +1440,13 @@ SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRe
     if (kind == IdentifierManager::RuntimeFunctionKind::Count)
         return nullptr;
 
+    return runtimeFunctionSymbol(kind);
+}
+
+// Runtime function names are distinct, so a kind names the same slot its identifier finds.
+SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierManager::RuntimeFunctionKind kind) const
+{
+    SWC_ASSERT(kind < IdentifierManager::RuntimeFunctionKind::Count);
     return runtimeFunctionSymbols_[static_cast<size_t>(kind)].load(std::memory_order_acquire);
 }
 

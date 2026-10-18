@@ -795,9 +795,7 @@ namespace
         const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
         if (lowering && lowering->fallibleDynamicCast)
             return CodeGenCallHelpers::emitFallibleCastFailure(codeGen);
-        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
-        SWC_ASSERT(idRef.isValid());
-        SymbolFunction* panicFn = codeGen.compiler().runtimeFunctionSymbol(idRef);
+        SymbolFunction* panicFn = codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
         SWC_ASSERT(panicFn != nullptr);
         return CodeGenSafety::emitDynCastCheck(codeGen, *panicFn, node);
     }

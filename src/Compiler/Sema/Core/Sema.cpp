@@ -1267,12 +1267,13 @@ Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typ
 
 Result Sema::waitRuntimeFunction(const IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef)
 {
-    const IdentifierRef idRef = idMgr().runtimeFunction(kind);
-    SWC_ASSERT(idRef.isValid());
-
-    symbol = compiler().runtimeFunctionSymbol(idRef);
+    symbol = compiler().runtimeFunctionSymbol(kind);
     if (!symbol)
+    {
+        const IdentifierRef idRef = idMgr().runtimeFunction(kind);
+        SWC_ASSERT(idRef.isValid());
         return waitIdentifier(idRef, codeRef);
+    }
 
     SWC_RESULT(waitDeclared(symbol, codeRef));
     SWC_RESULT(waitTyped(symbol, codeRef));

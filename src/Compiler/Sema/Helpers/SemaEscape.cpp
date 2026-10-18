@@ -5467,6 +5467,48 @@ namespace SemaEscape
         return Result::Error;
     }
 
+    // Hands each ready release on to its caller until nothing moves. The edges still waiting on a
+    // completion are compacted at the front, and their count is returned.
+    size_t applyFreesForwardings(std::span<SemaEscapeFreesForwarding> forwardings)
+    {
+        bool   changed      = true;
+        size_t pendingCount = forwardings.size();
+        while (changed)
+        {
+            changed                 = false;
+            size_t nextPendingCount = 0;
+            for (size_t i = 0; i < pendingCount; ++i)
+            {
+                const SemaEscapeFreesForwarding edge = forwardings[i];
+
+                // Completion may still advance on another worker. Keep this live readiness
+                // check inside the fixpoint, as before filtering the edges.
+                bool applied = false;
+                if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
+                {
+                    const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
+                    if ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit)
+                    {
+                        const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
+                        const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
+                        if (!(callerMask & callerBit))
+                        {
+                            edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
+                            changed = true;
+                        }
+                        applied = true;
+                    }
+                }
+
+                if (!applied)
+                    forwardings[nextPendingCount++] = edge;
+            }
+            pendingCount = nextPendingCount;
+        }
+
+        return pendingCount;
+    }
+
     void propagateCompletedFreesSummaries(TaskContext& ctx, std::span<SymbolFunction* const> completedFunctions, const uint64_t orderFingerprint)
     {
         if (ctx.compiler().freeForwardingEdgeCount() == 0)
@@ -5501,44 +5543,7 @@ namespace SemaEscape
         // an edge that has already handed its release on is never looked at again.
         if (!needsReturnSummaries)
         {
-            ctx.compiler().withFreesForwardings([](std::span<SemaEscapeFreesForwarding> forwardings) {
-                bool   changed      = true;
-                size_t pendingCount = forwardings.size();
-                while (changed)
-                {
-                    changed                 = false;
-                    size_t nextPendingCount = 0;
-                    for (size_t i = 0; i < pendingCount; ++i)
-                    {
-                        const SemaEscapeFreesForwarding edge = forwardings[i];
-
-                        // Completion may still advance on another worker. Keep this live readiness
-                        // check inside the fixpoint, as before filtering the edges.
-                        bool applied = false;
-                        if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
-                        {
-                            const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
-                            if ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit)
-                            {
-                                const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
-                                const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
-                                if (!(callerMask & callerBit))
-                                {
-                                    edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
-                                    changed = true;
-                                }
-                                applied = true;
-                            }
-                        }
-
-                        if (!applied)
-                            forwardings[nextPendingCount++] = edge;
-                    }
-                    pendingCount = nextPendingCount;
-                }
-
-                return pendingCount;
-            });
+            ctx.compiler().withFreesForwardings(applyFreesForwardings);
 
             ctx.compiler().noteFreesPropagationDone(signature);
             return;
@@ -5546,17 +5551,7 @@ namespace SemaEscape
 
         // A guarded forwarding is judged against the call graph this pass was handed, so its
         // eligible set is local to the call.
-        struct ForwardingEdge
-        {
-            SymbolFunction*       caller           = nullptr;
-            const SymbolFunction* callee           = nullptr;
-            uint32_t              callerParamIndex = 0;
-            uint32_t              calleeParamIndex = 0;
-            bool                  callerIndirect   = false;
-            bool                  calleeIndirect   = false;
-        };
-
-        std::vector<ForwardingEdge> forwardings;
+        std::vector<SemaEscapeFreesForwarding> forwardings;
 
         struct ReturnSummary
         {
@@ -5838,45 +5833,7 @@ namespace SemaEscape
                 forwardings.push_back({edge.caller, edge.callee, edge.callerParamIndex, edge.calleeParamIndex, edge.callerIndirect, edge.calleeIndirect});
         });
 
-        size_t pendingCount = forwardings.size();
-        bool   changed      = pendingCount != 0;
-        while (changed)
-        {
-            changed                 = false;
-            size_t nextPendingCount = 0;
-            for (size_t i = 0; i < pendingCount; ++i)
-            {
-                const ForwardingEdge& edge = forwardings[i];
-
-                // Completion may still advance on another worker. Keep this live
-                // readiness check inside the fixpoint, as before filtering the edges.
-                bool applied = false;
-                if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
-                {
-                    const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
-                    if ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit)
-                    {
-                        const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
-                        const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
-                        if (!(callerMask & callerBit))
-                        {
-                            edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
-                            changed = true;
-                        }
-                        applied = true;
-                    }
-                }
-
-                if (!applied)
-                {
-                    if (nextPendingCount != i)
-                        forwardings[nextPendingCount] = edge;
-                    ++nextPendingCount;
-                }
-            }
-            pendingCount = nextPendingCount;
-        }
-
+        applyFreesForwardings(forwardings);
         ctx.compiler().noteFreesPropagationDone(signature);
     }
 

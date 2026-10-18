@@ -261,20 +261,21 @@ public:
     const SymbolFunction*           currentFunction() const { return frame().currentFunction(); }
     bool                            isCurrentFunction() const { return currentFunction() != nullptr; }
 
-    // The runtime functions this Sema already made call dependencies of 'owner'. Every runtime
-    // safety check of a function asks for the same panic function again.
-    bool knowsRuntimeCallDependency(const SymbolFunction& owner, IdentifierManager::RuntimeFunctionKind kind) const
+    // Call dependencies this Sema already added to 'owner', cached by callee address. A function
+    // calls the same callees again and again (every runtime safety check asks for the same panic
+    // function), and adding one again changes nothing but takes the function's lock to find out.
+    bool knowsCallDependency(const SymbolFunction& owner, const SymbolFunction& callee) const
     {
-        return runtimeCallDependencyOwner_ == &owner && (runtimeCallDependencies_ & runtimeCallDependencyBit(kind)) != 0;
+        return knownCallDependencyOwner_ == &owner && knownCallDependencies_[knownCallDependencySlot(callee)] == &callee;
     }
-    void noteRuntimeCallDependency(const SymbolFunction& owner, IdentifierManager::RuntimeFunctionKind kind)
+    void noteCallDependency(const SymbolFunction& owner, const SymbolFunction& callee)
     {
-        if (runtimeCallDependencyOwner_ != &owner)
+        if (knownCallDependencyOwner_ != &owner)
         {
-            runtimeCallDependencyOwner_ = &owner;
-            runtimeCallDependencies_    = 0;
+            knownCallDependencyOwner_ = &owner;
+            knownCallDependencies_.fill(nullptr);
         }
-        runtimeCallDependencies_ |= runtimeCallDependencyBit(kind);
+        knownCallDependencies_[knownCallDependencySlot(callee)] = &callee;
     }
     bool                            isGlobalScope() const { return !isCurrentFunction(); }
     bool                            isOptimizeEnabled() const { return buildCfgBackend().optimizes(); }
@@ -780,10 +781,9 @@ private:
     bool                      rootVisitDone_         = false;
     bool                      hasInitFlowCandidates_ = false;
 
-    static_assert(static_cast<uint32_t>(IdentifierManager::RuntimeFunctionKind::Count) <= 64);
-    static uint64_t       runtimeCallDependencyBit(IdentifierManager::RuntimeFunctionKind kind) { return 1ull << static_cast<uint32_t>(kind); }
-    const SymbolFunction* runtimeCallDependencyOwner_ = nullptr;
-    uint64_t              runtimeCallDependencies_    = 0;
+    static size_t                         knownCallDependencySlot(const SymbolFunction& callee) { return (reinterpret_cast<uintptr_t>(&callee) * 0x9E3779B97F4A7C15ull) >> 60; }
+    const SymbolFunction*                 knownCallDependencyOwner_ = nullptr;
+    std::array<const SymbolFunction*, 16> knownCallDependencies_    = {};
 
     std::vector<SemaFrame> frames_;
 

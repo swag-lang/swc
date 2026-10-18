@@ -197,14 +197,7 @@ Result SemaHelpers::requireRuntimeFunctionDependency(SymbolFunction*& outRuntime
     outRuntimeFn = nullptr;
     SWC_RESULT(sema.waitRuntimeFunction(kind, outRuntimeFn, codeRef));
     SWC_ASSERT(outRuntimeFn != nullptr);
-
-    // Adding a dependency again changes nothing, but takes the function's lock to find that out.
-    const SymbolFunction* owner = sema.currentFunction();
-    if (owner && sema.knowsRuntimeCallDependency(*owner, kind))
-        return Result::Continue;
     addCurrentFunctionCallDependency(sema, outRuntimeFn);
-    if (owner)
-        sema.noteRuntimeCallDependency(*owner, kind);
     return Result::Continue;
 }
 
@@ -584,10 +577,15 @@ SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
 void SemaHelpers::addCurrentFunctionCallDependency(Sema& sema, const SymbolFunction* calleeSym)
 {
     SWC_ASSERT(calleeSym);
-    if (!sema.isCurrentFunction())
+    SymbolFunction* owner = sema.currentFunction();
+    if (!owner || sema.knowsCallDependency(*owner, *calleeSym))
         return;
 
-    sema.currentFunction()->addCallDependency(calleeSym);
+    owner->addCallDependency(calleeSym);
+
+    // Only an edge the function now holds is remembered: its dependency set never shrinks.
+    if (calleeSym != owner && !calleeSym->isForeignOrEmptyOrAttribute() && !calleeSym->attributes().hasMacroOrMixin())
+        sema.noteCallDependency(*owner, *calleeSym);
 }
 
 namespace

@@ -222,6 +222,12 @@ namespace
         if (!symVar.isFrameVariable())
             return nullptr;
 
+        // Every answer short of an outer function is "no boundary", and a variable of the
+        // current function ends the walk below on its first step: answer it before the visit
+        // path is searched for an inline context.
+        if (currentFn.ownsVariable(symVar))
+            return nullptr;
+
         const SymbolFunction*    fn                 = &currentFn;
         const SemaInlinePayload* frameInlinePayload = sema.frame().currentInlinePayload();
         if (inlinePayloadBindsSourceVariable(frameInlinePayload, symVar))
@@ -770,8 +776,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         const bool            isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
         const bool            isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (inlinePayloadUsesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));
         const bool            isImplicitReceiver          = symVar.idRef() == meId;
-        const bool            isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
+        const bool            isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined);
         const SymbolFunction* localFnBoundary             = !isMacroInjectClosureCapture && !isCallerScopeClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(sema, *sema.currentFunction(), symVar) : nullptr;
+
+        // A name only asked for its type ('#typeof(x)') crosses no boundary either. That test
+        // walks the visit path to its root, so it is asked only of a name that would cross one.
+        if (localFnBoundary && isTypeOnlyCompilerIdentifierUse(sema))
+            localFnBoundary = nullptr;
         if (localFnBoundary)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, sema.curNodeRef());

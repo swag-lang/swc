@@ -2006,7 +2006,7 @@ namespace
         // A macro or a mixin is a different matter: it is expanded from source before this
         // point, and its parameters are code rather than values, so there is no summary to
         // pair them against.
-        if (fn->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        if (fn->attributes().hasMacroOrMixin())
             return false;
 
         const auto& params = fn->parameters();
@@ -2991,7 +2991,7 @@ namespace
         {
             const SymbolFunction* sourceFunction = payload->sourceFunction;
             if (!sourceFunction ||
-                sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin) ||
+                sourceFunction->attributes().hasMacroOrMixin() ||
                 sourceVar.isFunctionLocalVariable(*sourceFunction) ||
                 sourceFunction->containsLocalVariable(sourceVar))
                 return false;
@@ -5610,6 +5610,16 @@ namespace SemaEscape
                 returnEntry.edgeEnd = returnEdges.size();
             }
 
+            // Visits the edges of one caller's snapshot range that a summary propagates through.
+            const auto forEachDirectEdge = [&returnEdges](const ReturnEntry& caller, auto&& visit) {
+                for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
+                {
+                    const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
+                    if (!edge.callerIndirect && !edge.calleeIndirect)
+                        visit(edgeIndex, edge);
+                }
+            };
+
             const auto visitCompletionDependencies = [](const SemaEscapeSummaryEdge& edge, auto&& visit) {
                 visit(edge.callee);
                 for (const SemaEscapeDeferredGuard& guard : edge.returnGuards)
@@ -5628,18 +5638,14 @@ namespace SemaEscape
                     if (!caller.summary.hasRelevantEdges)
                         continue;
 
-                    for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
-                    {
-                        const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
-                        if (edge.callerIndirect || edge.calleeIndirect)
-                            continue;
+                    forEachDirectEdge(caller, [&](size_t, const SemaEscapeSummaryEdge& edge) {
                         visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
                             if (const ReturnEntry* dependency = returns.find(function))
                                 ++completionOffsets[static_cast<size_t>(dependency - returnEntries.data()) + 1];
                             else
                                 caller.summary.complete = false;
                         });
-                    }
+                    });
                     if (!caller.summary.complete)
                         incompleteWorklist.push_back(callerIndex);
                 }
@@ -5657,11 +5663,7 @@ namespace SemaEscape
                         if (!caller.summary.hasRelevantEdges)
                             continue;
 
-                        for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
-                        {
-                            const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
-                            if (edge.callerIndirect || edge.calleeIndirect)
-                                continue;
+                        forEachDirectEdge(caller, [&](size_t, const SemaEscapeSummaryEdge& edge) {
                             visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
                                 if (const ReturnEntry* dependency = returns.find(function))
                                 {
@@ -5669,7 +5671,7 @@ namespace SemaEscape
                                     completionDependents[completionCursor[dependencyIndex]++] = callerIndex;
                                 }
                             });
-                        }
+                        });
                     }
 
                     size_t incompleteCursor = 0;
@@ -5718,13 +5720,9 @@ namespace SemaEscape
                 if (!caller.summary.complete || !caller.summary.hasRelevantEdges)
                     continue;
 
-                for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
-                {
-                    const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
-                    if (edge.callerIndirect || edge.calleeIndirect)
-                        continue;
+                forEachDirectEdge(caller, [&](size_t, const SemaEscapeSummaryEdge& edge) {
                     visitDependencies(edge, [&](size_t dependencyIndex) { ++dependentOffsets[dependencyIndex + 1]; });
-                }
+                });
             }
             for (size_t i = 1; i < dependentOffsets.size(); ++i)
                 dependentOffsets[i] += dependentOffsets[i - 1];
@@ -5738,15 +5736,11 @@ namespace SemaEscape
                     if (!caller.summary.complete || !caller.summary.hasRelevantEdges)
                         continue;
 
-                    for (size_t edgeIndex = caller.edgeBegin; edgeIndex < caller.edgeEnd; ++edgeIndex)
-                    {
-                        const SemaEscapeSummaryEdge& edge = *returnEdges[edgeIndex];
-                        if (edge.callerIndirect || edge.calleeIndirect)
-                            continue;
+                    forEachDirectEdge(caller, [&](size_t edgeIndex, const SemaEscapeSummaryEdge& edge) {
                         visitDependencies(edge, [&](size_t dependencyIndex) {
                             dependentEdges[dependentCursor[dependencyIndex]++] = {edgeIndex, callerIndex};
                         });
-                    }
+                    });
                 }
             }
 

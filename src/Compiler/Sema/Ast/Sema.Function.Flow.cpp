@@ -245,7 +245,7 @@ namespace
         for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
         {
             const auto* sourceFunction = payload->sourceFunction;
-            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+            if (sourceFunction && !sourceFunction->attributes().hasMacroOrMixin())
                 return false;
         }
 
@@ -294,7 +294,7 @@ namespace
         for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
         {
             const auto* sourceFunction = payload->sourceFunction;
-            if (sourceFunction && !sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+            if (sourceFunction && !sourceFunction->attributes().hasMacroOrMixin())
                 return sourceFunction;
         }
 
@@ -722,7 +722,7 @@ namespace
             return false;
 
         const AttributeList& attributes = fn.attributes();
-        if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
+        if (attributes.hasMacroOrMixin())
             return true;
 
         return SemaInline::canInlineCall(sema, fn);

@@ -702,7 +702,7 @@ bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
     if (const SymbolImpl* symImpl = declImplContext(); symImpl && !symImpl->isForStruct() && !symImpl->isForEnum())
         return false;
 
-    if (attrs.hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (attrs.hasMacroOrMixin())
         return true;
 
     if (!returnTypeRef().isValid())
@@ -720,7 +720,7 @@ bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
 bool SymbolFunction::supportsPublicApiForeignExport() const noexcept
 {
     return supportsGeneratedModuleApiExport() &&
-           !attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin) &&
+           !attributes().hasMacroOrMixin() &&
            decl()->safeCast<AstFunctionDecl>();
 }
 
@@ -1033,7 +1033,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
         return;
     if (sym->isForeignOrEmptyOrAttribute())
         return;
-    if (sym->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (sym->attributes().hasMacroOrMixin())
         return;
 
     auto* const            mutableSym = const_cast<SymbolFunction*>(sym);

@@ -140,6 +140,7 @@ struct AttributeList
     }
 
     bool hasRtFlag(RtAttributeFlags fl) const { return rtFlags.has(fl); }
+    bool hasMacroOrMixin() const { return hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
     bool hasGeneratedOperators() const { return generatedOperators.any(); }
     void addGeneratedOperator(GeneratedOperatorFlags fl, const SourceCodeRef& codeRef)

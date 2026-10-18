@@ -121,7 +121,7 @@ JobResult CodeGenJob::execImpl()
         return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
     if (symbolFunc_->isCodeGenCompleted())
         return JobResult::Done;
-    if (symbolFunc_->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (symbolFunc_->attributes().hasMacroOrMixin())
     {
         symbolFunc_->setCodeGenPreSolved(ctx());
         symbolFunc_->setCodeGenCompleted(ctx());

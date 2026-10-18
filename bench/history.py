@@ -55,6 +55,46 @@ TRACKED = ["swag-release", "swc-jit-release", "swag-fast-debug", "swc-jit-fast-d
 BUILT = ["swag-release", "swag-fast-debug"]
 MIN_CONTROLS = 3
 FAMILIES = (("run", "ms"), ("build", "wall_ms"))
+RUN_GROUPS = {
+    "native": ("swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc", "rust",
+               "zig", "d-ldc", "odin", "go", "swift", "csharp-aot"),
+    "jit": ("swc-jit-release", "swc-jit-fast-debug", "csharp-jit", "java-hotspot",
+            "node20", "luajit2.1", "php-jit"),
+    "interpreted": ("lua5.4", "python3.12", "php", "ruby"),
+}
+
+# Versioned, fixed panel: adding a benchmark must not silently change a progress score.
+PROGRESS_VERSION = 1
+PROGRESS_TASKS = ("wordfreq", "csvagg", "sha256", "dijkstra", "raytrace", "leven", "chacha",
+                  "nbody", "fannkuch", "binarytrees", "lz77", "sort")
+
+
+def progress_series(entries, runtime, family, tasks=PROGRESS_TASKS):
+    """Base-100 speed against the first clean, complete, machine-corrected campaign.
+
+    Every task has equal weight. Incomplete times or missing correction factors produce
+    no score. The index does not use the fastest competitor as its denominator, and an
+    added workload cannot silently enter its fixed panel.
+    """
+    def times(entry):
+        values = entry.get("runtimes", {}).get(runtime, {}).get(family + "_adjusted_ms") or {}
+        factors = entry.get("context", {}).get(family + "_task_factors") or {}
+        if not tasks or any(not values.get(t) or not math.isfinite(values[t]) or values[t] <= 0
+                            or not factors.get(t) or not math.isfinite(factors[t]) or factors[t] <= 0
+                            for t in tasks):
+            return None
+        return values
+
+    available = sorted(((entry, times(entry)) for entry in entries), key=lambda pair: pair[0]["meta"]["date"])
+    baseline = next(((entry, values) for entry, values in available
+                     if values and not entry.get("meta", {}).get("dirty")), None)
+    if baseline is None:
+        return {"baseline": None, "scores": {}}
+    reference, before = baseline
+    scores = {entry["meta"]["stamp"]: 100 / geo([values[t] / before[t] for t in tasks])
+              if values else None for entry, values in available}
+    return {"baseline": reference["meta"], "scores": scores}
+
 
 # Every program times itself, and a run's result is its fastest sample, so one clock
 # that reads short becomes the fastest runtime on that task. Go's time.Now once read
@@ -356,7 +396,8 @@ def ratios_to_best(tasks, task_ids, family, key, reference_exclusions=()):
     def value(runtime, task):
         measurement = tasks[task].get(runtime, {}).get(family) or {}
         elapsed = measurement.get(key)
-        return elapsed if not measurement.get("error") and elapsed and elapsed > 0 else None
+        return elapsed if (not measurement.get("error") and elapsed
+                           and math.isfinite(elapsed) and elapsed > 0) else None
 
     present = [rt for rt in tasks[task_ids[0]] if all(value(rt, t) for t in task_ids)]
     references = [rt for rt in present if rt not in reference_exclusions]
@@ -364,6 +405,13 @@ def ratios_to_best(tasks, task_ids, family, key, reference_exclusions=()):
         return {}
     best = {t: min(value(rt, t) for rt in references) for t in task_ids}
     return {rt: geo([value(rt, t) / best[t] for t in task_ids]) for rt in present}
+
+
+def execution_ratios(tasks, task_ids, group):
+    """Compare execution only within one execution model, including its reference."""
+    selected = {task: {rt: rec for rt, rec in tasks[task].items() if rt in RUN_GROUPS[group]}
+                for task in task_ids}
+    return ratios_to_best(selected, task_ids, "run", "ms")
 
 
 def build_speedup(tasks, task_ids):
@@ -384,12 +432,14 @@ def _headline(results, panel):
     tasks = results["tasks"]
     run_tasks = [t for t in tasks if t in panel["run"]] or list(tasks)
     build_tasks = [t for t in tasks if t in panel["build"]] or list(tasks)
-    run_geo = ratios_to_best(tasks, run_tasks, "run", "ms")
-    native = run_geo.get("swag-release")
+    native = execution_ratios(tasks, run_tasks, "native")
+    jit = execution_ratios(tasks, run_tasks, "jit")
     return {
         "tasks": len(run_tasks),
-        "exec_vs_best": native,
-        "exec_fastest": min(run_geo, key=lambda rt: run_geo[rt]) if run_geo else None,
+        "exec_native_vs_best": native.get("swag-release"),
+        "exec_jit_vs_best": jit.get("swc-jit-release"),
+        "exec_native_fastest": min(native, key=native.get) if native else None,
+        "exec_jit_fastest": min(jit, key=jit.get) if jit else None,
         "build_speedup": build_speedup(tasks, build_tasks),
         "build_tasks": len(build_tasks),
     }

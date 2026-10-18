@@ -1,6 +1,9 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Banc swc</title>
+<title>Swag performance benchmark</title>
 
 <style>
 /* ------------------------------------------------------------------ tokens */
@@ -8,6 +11,11 @@
     color-scheme: light dark;
 
     --volt:  #F7F900;
+    --swag-jit: #FFB300;
+    --swag-dev: #AAFFC3;
+    --swag-dev-jit: #FFFFFF;
+    --alloc-mimalloc: #1769FF;
+    --alloc-crt: #727E91;
     --arc:   #38BDF8;
     --ink:   #0B0B0D;
     --active: var(--ink);
@@ -20,7 +28,7 @@
     --faint: #83838D;
     --line:  #E2E2DF;
 
-    --g-swag:    #0B0B0D;
+    --g-swag:    #F7F900;
     --g-native:  #6B6B62;
     --g-managed: #9A9A90;
     --g-dynamic: #C6C6BB;
@@ -32,38 +40,42 @@
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-        --bg:    #0B0B0D;
-        --panel: #131317;
+        --bg:    #17171D;
+        --header-bg: #0B0B0D;
+        --panel: #1E1E26;
         --fg:    #E6E6EA;
-        --soft:  #A9A9B4;
-        --faint: #7D7D89;
-        --line:  #26262E;
+        --soft:  #B8B8C4;
+        --faint: #91919F;
+        --line:  #32323D;
 
         --g-swag:    #F7F900;
         --g-native:  #7E7E8E;
         --g-managed: #56565F;
         --g-dynamic: #3B3B44;
-        --track:     #17171C;
+        --track:     #2A2A34;
         --active:    var(--volt);
         --selection: #2A2A30;
     }
 }
 
 :root[data-theme="dark"] {
-    --bg:    #0B0B0D;
-    --panel: #131317;
+    color-scheme: dark;
+    --bg:    #17171D;
+    --header-bg: #0B0B0D;
+    --panel: #1E1E26;
     --fg:    #E6E6EA;
-    --soft:  #A9A9B4;
-    --faint: #7D7D89;
-    --line:  #26262E;
+    --soft:  #B8B8C4;
+    --faint: #91919F;
+    --line:  #32323D;
     --g-swag:    #F7F900;
     --g-native:  #7E7E8E;
     --g-managed: #56565F;
     --g-dynamic: #3B3B44;
-    --track:     #17171C;
+    --track:     #2A2A34;
     --active:    var(--volt);
     --selection: #2A2A30;
 }
+:root[data-theme="light"] { color-scheme: light; }
 
 /* ------------------------------------------------------------------- base */
 ::selection { background: var(--selection); }
@@ -79,7 +91,7 @@ body {
     -webkit-text-size-adjust: 100%;
 }
 
-.wrap { max-width: 1600px; margin: 0 auto; padding: 0 28px; }
+.wrap { max-width: 1440px; margin: 0 auto; padding: 0 28px; }
 
 p { margin: 0 0 12px; max-width: 72ch; }
 a { color: inherit; }
@@ -97,10 +109,10 @@ code { font-size: .88em; color: var(--soft); }
 }
 
 /* ----------------------------------------------------------------- header */
-.top { border-bottom: 1px solid var(--line); background: var(--bg); }
+.top { border-bottom: 1px solid var(--line); background: var(--header-bg, var(--bg)); }
 .top .wrap { display: flex; align-items: center; gap: 14px; height: 56px; }
 .top svg { display: block; width: 24px; height: 24px; }
-.top .mark path { fill: var(--g-swag); }
+.top .mark path { fill: var(--fg); }
 .wordmark { font-weight: 800; letter-spacing: .2em; font-size: .84rem; }
 .top .sep { flex: 1; }
 .top .meta { font-family: var(--mono); font-size: .72rem; color: var(--faint); }
@@ -108,6 +120,8 @@ code { font-size: .88em; color: var(--soft); }
 /* ------------------------------------------------------------------- hero */
 .hero { background: var(--ink); color: #E6E6EA; padding: 34px 0 30px; }
 .hero .eyebrow { color: #7D7D89; }
+.hero h1 { font-size: clamp(1.8rem, 4vw, 2.7rem); letter-spacing: -.04em; margin: 0 0 8px; line-height: 1.15; }
+.hero p { color: #A9A9B4; margin: 0; font-size: .88rem; }
 .hero .rule {
     width: 44px;
     height: 4px;
@@ -118,7 +132,7 @@ code { font-size: .88em; color: var(--soft); }
 
 .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1px;
     margin-top: 18px;
     background: #26262E;
@@ -134,7 +148,7 @@ code { font-size: .88em; color: var(--soft); }
     font-size: 2rem;
     line-height: 1;
     letter-spacing: -.03em;
-    color: var(--volt);
+    color: var(--c, var(--volt));
 }
 
 .stat .sv em { font-style: normal; font-size: .9rem; margin-left: 3px; color: #7D7D89; }
@@ -147,11 +161,23 @@ code { font-size: .88em; color: var(--soft); }
     font-family: var(--mono);
     color: #A9A9B4;
 }
+.stat .sn { margin-top: 6px; color: #A9A9B4; font: .65rem/1.5 var(--mono); }
+.stat .sn:empty { display: none; }
+.page-nav { position: sticky; top: 0; z-index: 3; background: var(--bg); border-bottom: 1px solid var(--line); }
+.page-nav .wrap { display: flex; gap: 24px; overflow-x: auto; }
+.page-nav a { padding: 13px 0; white-space: nowrap; text-decoration: none; font-size: .78rem; color: var(--soft); }
+.page-nav a:hover { color: var(--fg); }
+.reading-key { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; padding: 22px 0 6px; font-size: .8rem; color: var(--soft); }
+.reading-key > span { display: grid; grid-template-columns: 118px 96px; gap: 8px; align-items: center; }
+.reading-key i { display: block; height: 7px; background: var(--track); }
+.reading-key i b { display: block; height: 100%; background: var(--volt); }
+.reading-key strong { font-size: .75rem; color: var(--fg); }
+.section-meta { margin: 7px 0 15px; font: .68rem var(--mono); color: var(--faint); }
 
 /* ---------------------------------------------------------------- sections */
 main { padding: 0 0 32px; }
 
-section { padding: 34px 0 4px; border-top: 1px solid var(--line); }
+section { padding: 34px 0 26px; border-top: 1px solid var(--line); scroll-margin-top: 64px; }
 section:first-of-type { border-top: 0; }
 
 .sh { position: relative; padding-top: 16px; margin-bottom: 4px; }
@@ -169,7 +195,7 @@ section:first-of-type { border-top: 0; }
 
 h2 { margin: 0; font-size: 1.4rem; font-weight: 700; letter-spacing: -.016em; line-height: 1.2; }
 
-.cap { margin: 4px 0 0; font-size: .78rem; color: var(--faint); line-height: 1.5; }
+.cap { margin: 6px 0 12px; font-size: .8rem; color: var(--soft); line-height: 1.6; max-width: 100ch; }
 
 h3 {
     margin: 26px 0 6px;
@@ -183,13 +209,13 @@ h3 {
 
 .grid2 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 36px;
     align-items: start;
 }
 
 /* ------------------------------------------------------------------ chart */
-.chart { --lw: 170px; --vw: 80px; position: relative; margin: 10px 0 4px; padding-top: 20px; }
+.chart { --lw: 206px; --vw: 76px; position: relative; margin: 18px 0 16px; padding-top: 24px; }
 
 .axis { position: absolute; top: 0; bottom: 0; left: var(--lw); right: var(--vw); pointer-events: none; }
 .tick { position: absolute; top: 0; bottom: 0; }
@@ -206,9 +232,13 @@ h3 {
     color: var(--faint);
 }
 
-.row { display: grid; grid-template-columns: var(--lw) 1fr var(--vw); align-items: center; min-height: 22px; }
+.row { display: grid; grid-template-columns: var(--lw) 1fr var(--vw); align-items: center; min-height: 30px; }
 
 .row .rl {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
     padding-right: 12px;
     font-size: .78rem;
     text-align: right;
@@ -217,6 +247,7 @@ h3 {
     text-overflow: ellipsis;
     border-right: 2px solid transparent;
 }
+.runtime-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 .mode { font-family: var(--mono); font-size: .64rem; letter-spacing: .04em; color: var(--faint); }
 
@@ -228,39 +259,37 @@ h3 {
     top: 0;
     bottom: 0;
     background: var(--g-native);
-    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 0 100%);
 }
 
 .row .rv { padding-left: 10px; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .74rem; white-space: nowrap; }
 .row .rv em { font-style: normal; color: var(--faint); margin-left: 3px; font-size: .9em; }
 
-/* One colour per runtime, from a maximum-contrast set (Kelly). swag release keeps the
-   signature yellow; every other runtime, swag's other variants included, has its own. */
-.l-swag       { --c: #F7F900; }
-.l-swagjit    { --c: #FFB300; }
-.l-swagdev    { --c: #AAFFC3; }
-.l-swagdevjit { --c: #DCBEFF; }
+/* Prioritise distinct hues and luminance within each execution group, not family tints. */
+.l-swag       { --c: var(--volt); }
+.l-swagjit    { --c: var(--swag-jit); }
+.l-swagdev    { --c: var(--swag-dev); }
+.l-swagdevjit { --c: var(--swag-dev-jit); }
 .l-clang      { --c: #E6194B; }
 .l-msvc       { --c: #4363D8; }
-.l-rust       { --c: #9A6324; }
+.l-rust       { --c: #B77928; }
 .l-zig        { --c: #911EB4; }
-.l-d          { --c: #800000; }
+.l-d          { --c: #D7B5FF; }
 .l-odin       { --c: #42D4F4; }
 .l-swift      { --c: #F032E6; }
-.l-csaot      { --c: #3CB44B; }
+.l-csaot      { --c: #FF8B49; }
 .l-csjit      { --c: #BFEF45; }
-.l-js         { --c: #469990; }
+.l-js         { --c: #5FC700; }
 .l-lua        { --c: #A9A9A9; }
 .l-luajit     { --c: #FABED4; }
-.l-py         { --c: #808000; }
-.l-go         { --c: #56C2B3; }
+.l-py         { --c: #FFE1A3; }
+.l-go         { --c: #00A878; }
 .l-java       { --c: #E0937C; }
 .l-php        { --c: #C48FD0; }
 .l-phpjit     { --c: #74AAE0; }
 .l-ruby       { --c: #FF6666; }
+.l-clang, .l-msvc, .l-zig { --badge-ink: #FFFFFF; }
 
 .row .bar { background: var(--c, var(--g-native)); }
-.row.l-swag .bar { background: var(--g-swag); }
 
 .row:hover .rl { color: var(--fg); border-right-color: var(--active); }
 
@@ -281,16 +310,16 @@ h3 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
+    width: 28px;
     height: 22px;
-    flex: 0 0 22px;
+    flex: 0 0 28px;
     background: var(--c);
     color: var(--badge-ink, #0B0B0D);
-    font: 700 .75rem/1 var(--mono);
+    font: 700 .65rem/1 var(--mono);
     letter-spacing: 0;
     clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 0 100%);
 }
-.l-clang, .l-msvc, .l-rust, .l-zig, .l-d { --badge-ink: #FFFFFF; }
+.row .runtime-badge { vertical-align: middle; margin: 0; }
 
 .legend {
     display: flex;
@@ -346,7 +375,33 @@ table.matrix td.best { color: var(--fg); font-weight: 700; }
 table.matrix .sw { background: color-mix(in srgb, var(--volt) 26%, transparent); color: var(--fg); }
 table.matrix .gap { border-left: 1px solid var(--line); }
 
-/* Rankings: one line per task, every runtime in order, swag marked where it lands. */
+/* Sorted runtimes preserve position; equal-width tracks show the actual speed gaps. */
+table.performance { font-size: .7rem; }
+table.performance th:first-child { position: sticky; left: 0; background: var(--bg); z-index: 1; }
+table.performance thead th:last-child { text-align: left; }
+table.performance td { padding: 5px 6px; }
+table.performance td:last-child { width: 100%; }
+table.performance .swag-gap { color: var(--fg); font-weight: 700; }
+table.performance ol { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+table.performance li { flex: 0 0 82px; padding: 3px 4px; }
+table.performance li.l-swag, table.performance li.l-swagjit { background: var(--panel); outline: 1px solid var(--line); }
+.speed-label { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 5px; }
+.speed-value { color: var(--soft); }
+table.performance li.l-swag .speed-value, table.performance li.l-swagjit .speed-value { color: var(--fg); font-weight: 700; }
+.speed-track { display: block; height: 5px; background: var(--track); }
+.speed-track > span { display: block; height: 100%; background: var(--c); }
+.alloc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 12px 30px; }
+.alloc-workload { border-top: 1px solid var(--line); padding: 0 0 12px; }
+.alloc-workload h3 { margin-top: 12px; }
+.alloc-row { display: grid; grid-template-columns: 72px 1fr 62px; align-items: center; gap: 10px; min-height: 27px; font-size: .75rem; color: var(--soft); }
+.alloc-row .num { text-align: right; }
+.alloc-swag { --c: var(--volt); }
+.alloc-mimalloc { --c: var(--alloc-mimalloc); }
+.alloc-crt { --c: var(--alloc-crt); }
+.alloc-track { height: 7px; background: var(--track); }
+.alloc-track i { display: block; height: 100%; background: var(--c); }
+
+/* Aggregate comparisons are sorted by time, with no ordinal rank. */
 table.ranked td { text-align: left; }
 table.ranked td:nth-child(2) { text-align: right; color: var(--fg); font-weight: 700; }
 table.ranked td:last-child { width: 100%; }
@@ -363,12 +418,11 @@ table.ranked li {
     color: var(--fg);
     white-space: nowrap;
 }
-table.ranked li b { font-family: var(--mono); font-size: .62rem; font-weight: 400; color: var(--faint); }
 table.ranked li i { font-style: normal; font-family: var(--mono); color: var(--soft); }
 table.ranked li.l-swag, table.ranked li.l-swagjit { border-color: var(--c); }
 
-details { margin: 10px 0 0; }
-summary { cursor: pointer; font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+details { margin: 18px 0 0; }
+summary { cursor: pointer; padding: 8px 0; font-family: var(--mono); font-size: .72rem; letter-spacing: .04em; color: var(--soft); }
 summary:hover { color: var(--fg); }
 
 .spark { display: block; width: 140px; height: 22px; }
@@ -378,20 +432,27 @@ summary:hover { color: var(--fg); }
 /* ---------------------------------------------------------------- history */
 .hchart { width: 100%; height: auto; margin: 8px 0 4px; overflow: visible; }
 .hgrid { stroke: var(--line); stroke-width: 1; }
+.hreference { stroke: var(--soft); stroke-width: 1; stroke-dasharray: 3 4; }
 .hlab, .hunit, .hend { font-family: var(--mono); font-size: 10px; fill: var(--faint); }
 .hunit { font-size: 9px; letter-spacing: .1em; }
 .hband { fill: var(--faint); opacity: .16; stroke: none; }
 .hline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.hline.h-a { stroke: var(--g-swag); }
-.hline.h-b { stroke: var(--g-swag); stroke-dasharray: 5 4; }
-.hline.h-c { stroke: var(--g-native); }
-.hline.h-d { stroke: var(--g-native); stroke-dasharray: 5 4; }
-.hdot.h-a, .hdot.h-b { fill: var(--g-swag); }
-.hdot.h-c, .hdot.h-d { fill: var(--g-native); }
+.hline.h-a { stroke: var(--volt); }
+.hline.h-b { stroke: var(--swag-jit); stroke-dasharray: 5 4; }
+.hline.h-c { stroke: var(--swag-dev); }
+.hline.h-d { stroke: var(--swag-dev-jit); stroke-dasharray: 5 4; }
+.hdot.h-a { fill: var(--volt); }
+.hdot.h-b { fill: var(--swag-jit); }
+.hdot.h-c { fill: var(--swag-dev); }
+.hdot.h-d { fill: var(--swag-dev-jit); }
+.alloc-history .hline.h-a, .alloc-history .hline.h-b { stroke: var(--alloc-mimalloc); }
+.alloc-history .hline.h-c, .alloc-history .hline.h-d { stroke: var(--alloc-crt); }
+.alloc-history .hdot.h-a, .alloc-history .hdot.h-b { fill: var(--alloc-mimalloc); }
+.alloc-history .hdot.h-c, .alloc-history .hdot.h-d { fill: var(--alloc-crt); }
 .hend.h-a, .hend.h-b { fill: var(--fg); }
 .hend.h-c, .hend.h-d { fill: var(--faint); }
 
-.small-mult { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 4px 26px; }
+.small-mult { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 26px; }
 .sm { border-top: 1px solid var(--line); padding-top: 6px; }
 .sm b { display: block; font-family: var(--mono); font-size: .68rem; color: var(--soft); font-weight: 400; }
 
@@ -402,50 +463,95 @@ summary:hover { color: var(--fg); }
 
 footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--faint); font-size: .74rem; font-family: var(--mono); }
 
+@media (max-width: 1100px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+    .grid2, .small-mult { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 720px) {
     .wrap { padding: 0 16px; }
-    .chart { --lw: 116px; --vw: 66px; }
+    .chart { --lw: 152px; --vw: 64px; }
     .row .rl { font-size: .72rem; }
     .row .mode { display: none; }
+    .top .meta { font-size: .6rem; }
+    .page-nav .wrap { gap: 20px; }
+}
+@media (max-width: 540px) {
+    .stats { grid-template-columns: minmax(0, 1fr); }
 }
 </style>
+</head>
+<body>
 
 <header class="top">
     <div class="wrap">
         <svg class="mark" viewBox="0 0 114 116" role="img" aria-label="Swag"><path d="M17.8 38L52 8L94 8L104.32 20L95.2 28L47.2 28L38.08 36L37.52 40L44.4 48L92.4 48L99.28 56L96.2 78L62 108L20 108L9.68 96L18.8 88L66.8 88L75.92 80L76.48 76L69.6 68L21.6 68L14.72 60L17.8 38Z"/></svg>
         <span class="wordmark">SWAG</span>
         <span class="sep"></span>
-        <span class="meta">{{date}} &middot; <code>{{commit}}</code> &middot; campagne nº{{campaigns}}</span>
+        <span class="meta">{{campaigns}} accepted campaigns &middot; protocol {{protocol}}</span>
     </div>
 </header>
 
 <div class="hero">
     <div class="wrap">
         <div class="rule"></div>
-        <span class="eyebrow">{{ntasks}} t&acirc;ches &middot; {{nruntimes}} runtimes &middot; checksums identiques</span>
+        <h1>Swag performance</h1>
+        <p>{{ntasks}} matching workloads &middot; {{nruntimes}} runtime configurations &middot; identical checksums</p>
         <div class="stats">{{stats}}</div>
+        <p class="cap">Progress score v{{progress_version}}: {{progress_tasks}} fixed workloads, each with equal weight,
+        corrected for machine variation. 100 = reference campaign; 200 = half the elapsed time; higher is faster.
+        Native, JIT and build scores each track their own evolution, not their speed relative to one another.
+        Execution {{run_date}} &middot; compilation {{build_date}}.</p>
     </div>
 </div>
 
-<main class="wrap">
+<nav class="page-nav" aria-label="Report sections"><div class="wrap">
+    <a href="#execution">Execution</a><a href="#compilation">Compilation</a>
+    <a href="#allocateur">Allocator</a><a href="#ressources">Resources</a>
+    <a href="#historique">History</a><a href="#methode">Method</a>
+</div></nav>
 
-{{runtime_legend}}
+<main class="wrap">
+<div class="reading-key" aria-label="Relative speed examples">
+    <strong>Speed bars &middot; longer is faster</strong>
+    <span>Best: 100%<i aria-hidden="true"><b style="width:100%"></b></i></span>
+    <span>1.03&times; time: 97.1%<i aria-hidden="true"><b style="width:97.0874%"></b></i></span>
+    <span>2&times; time: 50%<i aria-hidden="true"><b style="width:50%"></b></i></span>
+</div>
+<details class="code-key"><summary>Compiler codes and modes</summary>{{runtime_legend}}</details>
 
 <section id="execution">
-    <div class="sh"><h2>Ex&eacute;cution</h2></div>
-    <p class="cap">Moyenne g&eacute;om&eacute;trique du rapport au meilleur de chaque t&acirc;che, &eacute;chelle logarithmique.</p>
-    {{ex_chart}}
-    <h3>Swag release face &agrave; chaque runtime</h3>
-    <p class="cap">Moyenne g&eacute;om&eacute;trique, sur les m&ecirc;mes t&acirc;ches, du temps du runtime divis&eacute; par celui de Swag release. Chaque ligne est rang&eacute;e du runtime le plus rapide au plus lent&nbsp;: 0,5&times; signifie que le runtime est deux fois plus rapide que Swag release&nbsp;; 2&times; signifie qu'il est deux fois plus lent.</p>
-    {{ex_comparison}}
-    <h3>Classement par t&acirc;che &mdash; natif et AOT</h3>
-    <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
-    the others show time / best time for that row. 2 means twice as slow.
-    Letters identify languages; colours distinguish their modes.
-    The Swag column gives the rank of Swag release.</p>
-    {{ex_native_rank}}
-    <h3>Classement par t&acirc;che &mdash; JIT et interpr&eacute;t&eacute;s</h3>
-    {{ex_jit_rank}}
+    <div class="sh"><h2>Execution</h2></div>
+    <p class="section-meta">Measured {{run_date}} &middot; <code>{{run_commit}}</code></p>
+    <p class="cap">Native / AOT, JIT and interpreted execution have independent references and scores.
+    100% means matching the best time on each task <strong>within that group</strong>.
+    A native 95% and a JIT 95% do not describe the same absolute speed.
+    Aggregate scores are geometric means; each task has equal weight.</p>
+    <div class="grid2"><div><h3>Native / AOT &middot; SW</h3>
+    <p class="cap">{{ex_native_summary}}</p>{{ex_native_chart}}</div>
+    <div><h3>JIT &middot; SJ</h3><p class="cap">Reference: JIT runtimes only.
+    Swag compiles its kernel before the timer; other JITs can compile during it.</p>{{ex_jit_chart}}</div></div>
+    <p class="cap">SJ within JIT: {{ex_jit_summary}}</p>
+    <details><summary>Direct comparisons &mdash; native vs SW, JIT vs SJ</summary>
+    <p class="cap">Geometric mean of competitor time / Swag time within the same execution group.
+    0.5&times; means the competitor is twice as fast; 2&times; means twice as slow.
+    Native uses SW; JIT uses SJ.</p>
+    {{ex_native_comparison}}{{ex_jit_comparison}}</details>
+    <h3>Relative speed by task &mdash; native and AOT</h3>
+    <p class="cap">Each row is sorted faster &rarr; slower. Codes identify compilers; bar lengths show the gaps.
+    The Swag column shows SW's additional time vs the best native / AOT result.
+    Hover a badge or value for the full name and times.
+    Small differences can fall within sample variation; nearby values do not establish statistical ties.</p>
+    {{ex_native_performance}}
+    <details><summary>Per-task results &mdash; JIT</summary>
+    <p class="cap">Reference: the best JIT time on each task. The Swag column refers to SJ, Swag release JIT.
+    Swag JIT compiles its kernel before the timer; other JITs can compile inside the timed kernel.
+    These measurements describe this harness, not warmed server throughput.</p>
+    {{ex_jit_performance}}</details>
+    <details><summary>Interpreted runtimes &mdash; separate reference</summary>
+    <p class="cap">100% = best interpreted time on each task. These scores do not share the native or JIT reference.</p>
+    {{ex_interpreted_chart}}{{ex_interpreted_performance}}</details>
     <details>
         <summary>Raw times (ms)</summary>
         {{ex_matrix}}
@@ -454,81 +560,104 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <section id="compilation">
     <div class="sh"><h2>Compilation</h2></div>
-    <p class="cap">Complete cold build, from source to a runnable artifact, geometric mean across tasks.
-    Each recipe includes its required libraries and headers. Java produces bytecode for HotSpot.
-    The headline speedup is the geometric mean of fastest non-Swag build time / Swag release build time
-    for each task: 2&times; means Swag builds twice as fast on average; below 1&times; means slower.
-    All non-Swag build configurations, including bytecode generation, can be the reference.
-    Each task has equal weight; hello is excluded.</p>
+    <p class="section-meta">Measured {{build_date}} &middot; <code>{{build_commit}}</code></p>
+    <p class="cap">Complete cold build, including each port's required imports, optimization and linking
+    or bytecode generation. Bars show relative build speed: 100% = best build time on every task.
+    Each task has equal weight; hello is excluded from aggregates.</p>
+    <p class="cap">These compare build recipes, including different library work, rather than isolating
+    compiler front-end speed. Java and C# CoreCLR produce bytecode; native recipes produce executables.</p>
+    <p class="cap">Swag release build speedup vs the fastest rival recipe: <b>{{build_speedup}}&times;</b>.
+    This comparison describes the current campaign; the progress score above tracks Swag over time.</p>
     {{bu_chart}}
-    <h3>Swag release face &agrave; chaque compilateur</h3>
-    <p class="cap">Moyenne g&eacute;om&eacute;trique, sur les m&ecirc;mes t&acirc;ches, du temps de compilation du concurrent divis&eacute; par celui de Swag release. Rang&eacute; du compilateur le plus rapide au plus lent&nbsp;: 0,5&times; signifie que le compilateur est deux fois plus rapide que Swag release&nbsp;; 2&times; signifie qu'il est deux fois plus lent.</p>
-    {{bu_comparison}}
-    <h3>Classement par t&acirc;che</h3>
-    <p class="cap">Fastest to slowest: the first entry gives the best time in milliseconds;
-    the others show time / best time for that row. 2 means twice as slow.</p>
-    {{bu_rank}}
+    <details><summary>Direct comparisons with Swag release</summary>
+    <p class="cap">Geometric mean of competitor build time / Swag release build time across the same tasks.
+    0.5&times; means the competitor builds twice as fast as Swag release; 2&times; means twice as slow.
+    Compilers are ordered from fastest to slowest.</p>
+    {{bu_comparison}}</details>
+    <details><summary>Per-task build speeds, including hello</summary>
+    <p class="cap">Best in each row = 100%. Bar length and percentage show best build time / build time,
+    on the same linear scale as execution. Each row orders compilers from fastest to slowest.
+    The Swag column shows additional time vs the best; hover for time and gap to the best.
+    Missing measurements have no bar.</p>
+    {{bu_performance}}</details>
     <details>
         <summary>Raw times (ms)</summary>
         {{bu_matrix}}
     </details>
-    <h3>Boucle d'&eacute;dition</h3>
+    <h3>The edit-build loop</h3>
+    <p class="cap">Swag on this repository's own sources. Raw time describes this campaign;
+    adjusted time and the baseline index describe movement across campaigns. Lower is better.</p>
     {{loop_table}}
 </section>
 
 <section id="allocateur">
-    <div class="sh"><h2>Allocateur</h2></div>
-    <p class="cap">L&rsquo;allocateur du runtime Swag contre mimalloc (vendoris&eacute;, compil&eacute; avec MSVC /O2)
-    et le tas du runtime C, sur les m&ecirc;mes charges&nbsp;: <code>bench/allocator</code>. Chaque charge tourne dans
-    un processus neuf, &eacute;pingl&eacute;, les trois allocateurs en alternance&nbsp;; m&eacute;diane des tours, en
-    nanosecondes par op&eacute;ration. Le programme Swag alloue par <code>Memory.alloc</code>/<code>Memory.free</code>,
-    le chemin du code ordinaire, et le pic de working set inclut le module <code>core</code> qu&rsquo;il importe.</p>
+    <div class="sh"><h2>Allocator</h2></div>
+    <p class="section-meta">Execution campaign &middot; {{run_date}} &middot; <code>{{run_commit}}</code></p>
+    <p class="cap">Swag's runtime allocator, vendored mimalloc built with MSVC /O2, and the C runtime heap.
+    Each workload runs in a fresh, pinned process; allocators alternate between rounds.
+    Speed bars use median nanoseconds per operation, with the best allocator on each workload at 100%.
+    Swag uses <code>Memory.alloc</code>/<code>Memory.free</code>; its peak working set includes <code>core</code>.</p>
     {{allocator}}
 </section>
 
 <section id="ressources">
-    <div class="sh"><h2>M&eacute;moire, latence, taille</h2></div>
+    <div class="sh"><h2>Memory, startup and size</h2></div>
+    <p class="cap">These are costs: <strong>shorter bars are better</strong>.
+    All axes are linear and start at zero. Values remain visible when a small bar is hard to distinguish.
+    Memory and artifact size use binary units (MiB and KiB).</p>
     <div class="grid2">
         <div>
-            <h3>Pic m&eacute;moire du compilateur</h3>
-            <p class="cap">Maximum sur les t&acirc;ches, arbre de processus complet.</p>
+            <h3>Peak compiler memory</h3>
+            <p class="cap">Maximum across tasks, complete process tree. Build campaign {{build_date}}.</p>
             {{me_chart}}
         </div>
         <div>
-            <h3>Pic m&eacute;moire du programme</h3>
-            <p class="cap">Maximum sur les t&acirc;ches.</p>
+            <h3>Peak program memory</h3>
+            <p class="cap">Maximum across tasks. Execution campaign {{run_date}}.</p>
             {{rm_chart}}
         </div>
         <div>
-            <h3>Premi&egrave;re sortie d'un hello world</h3>
-            <p class="cap">Runtimes qui compilent au lancement.</p>
+            <h3>Hello-world startup</h3>
+            <p class="cap">Time to first output, or process wall time when first-output timing is unavailable.
+            Execution campaign {{run_date}}.</p>
             {{st_chart}}
         </div>
         <div>
             <h3>Artifact size</h3>
-            <p class="cap">Geometric mean. C# CoreCLR: IL assembly; Java: all class files. Both need their runtime.</p>
+            <p class="cap">Geometric mean, build campaign {{build_date}}. C# CoreCLR: IL assembly;
+            Java: all class files. Both need their installed runtime, excluded here.</p>
             {{sz_chart}}
         </div>
     </div>
 </section>
 
 <section id="historique">
-    <div class="sh"><h2>Historique</h2></div>
-    <p class="cap">Historical ratios use the fixed baseline task panel and each campaign's own competitors.
-    Swag time and index curves are corrected for machine variation using the median movement of control runtimes.
-    Grey bands show the harness resolution; a movement inside that band has not been measured.</p>
+    <div class="sh"><h2>Progress over time</h2></div>
+    <p class="cap">Progress score v{{progress_version}} uses the same {{progress_tasks}} fixed workloads as the headline.
+    Each score is 100 at the first reproducible campaign covering that complete panel, and uses
+    machine-corrected times. Missing times or correction factors produce no score.
+    Progress plots share the same score axis and mark the 100 reference.
+    These are estimates: small movements, particularly in build time, can be measurement noise.</p>
+    <p class="cap">SW / SJ: release native / JIT. SD / JD: devmode native / JIT.
+    Each execution model has its own reference. Expand the legacy views for competitor ratios and
+    the original smaller-panel indices, with their control-resolution bands.</p>
     {{history}}
 </section>
 
 <section id="methode">
-    <div class="sh"><h2>M&eacute;thode</h2></div>
+    <div class="sh"><h2>How to read the measurements</h2></div>
     <ul class="method">
-        <li><b>Machine</b>Intel Core Ultra 9 185H, Windows 11, sur secteur. x86-64 de base partout, ni <code>-march=native</code> ni LTO.</li>
-        <li><b>&Eacute;pinglage</b>Ex&eacute;cutions sur les c&oelig;urs performants ({{pin_mask}}, {{pin_cores}} c&oelig;urs)&nbsp;; builds non &eacute;pingl&eacute;s.</li>
-        <li><b>&Eacute;chantillons</b>swag&nbsp;: {{budget_ms}}&nbsp;ms par t&acirc;che, {{min_reps}} &agrave; {{max_reps}} passes&nbsp;; t&eacute;moins moins&nbsp;; round-robin tournant, minimum retenu.</li>
-        <li><b>Calibration</b>{{calib_start}}&nbsp;ms puis {{calib_end}}&nbsp;ms, &eacute;cart {{machine_spread}}&nbsp;% (rejet au-del&agrave; de {{drift_limit}}&nbsp;%, t&eacute;moins de build au-del&agrave; de {{build_control_limit}}&nbsp;%).</li>
-        <li><b>Bornes</b>Rust, Swift et C# gardent leurs v&eacute;rifications de bornes&nbsp;; swag release et C++ non.</li>
-        <li><b>Protocole</b>nº{{protocol}}. D&eacute;tails et r&egrave;gles&nbsp;: <code>bench/README.md</code>.</li>
+        <li><b>Machine</b>Intel Core Ultra 9 185H, Windows 11, AC power. Baseline x86-64, no <code>-march=native</code> or LTO.</li>
+        <li><b>Affinity</b>Execution on performance cores ({{pin_mask}}, {{pin_cores}} cores); builds are not pinned.</li>
+        <li><b>Samples</b>Swag: {{budget_ms}} ms per task, {{min_reps}} to {{max_reps}} samples; fewer for controls. Rotating round-robin, minimum retained. Allocator results use medians.</li>
+        <li><b>Calibration</b>{{calib_start}} ms then {{calib_end}} ms; spread {{machine_spread}}%. Rejected above {{drift_limit}}%; build controls rejected above {{build_control_limit}}%.</li>
+        <li><b>Bounds checks</b>Rust, Swift and C# retain their checks; Swag release and C++ do not. Build recipes differ; see <code>bench/README.md</code>.</li>
+        <li><b>Reference</b>Speed = best time / measured time within the same execution group. Native / AOT, JIT and interpreted scores are independent. Aggregate speed is the geometric mean of those ratios; the winner can change by task. Small gaps do not imply statistical significance.</li>
+        <li><b>Progress score</b>100 / geometric mean of corrected task time / corrected reference task time.
+        Version {{progress_version}} freezes {{progress_tasks}} workloads. The baseline is the first clean, complete campaign;
+        incomplete campaigns have no score. New tasks do not silently enter this index.</li>
+        <li><b>Headline build</b>Geometric mean of fastest non-Swag build time / Swag release build time. 2&times; means twice as fast; below 1&times; means slower. Bytecode recipes participate.</li>
+        <li><b>Protocol</b>{{protocol}}. Raw campaigns, toolchains and measurement rules: <code>bench/README.md</code>.</li>
     </ul>
 </section>
 
@@ -536,5 +665,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <footer class="wrap">
     <code>{{commit}}</code> &mdash; {{subject}}<br>
-    {{provenance}} &middot; toolchains absentes&nbsp;: {{skipped}}
+    Execution provenance: {{provenance}} &middot; missing toolchains: {{skipped}}
 </footer>
+</body>
+</html>

@@ -71,24 +71,51 @@ equal weight, regardless of its duration. A value of 2x means Swag builds twice 
 average; 1x means parity; below 1x means Swag is slower. Every Swag mode is excluded from the
 reference, and the fastest competitor can differ by task. All other build configurations,
 including bytecode generation, participate if they have valid times for every displayed task.
-The headline uses the latest accepted build campaign and all displayed tasks. The execution
+This comparison uses the latest accepted build campaign and all displayed tasks. The execution
 and compilation sections also compare Swag release with each runtime or compiler separately:
 the geometric mean of competitor time / Swag release time across the same tasks. 2x means
 Swag release is twice as fast; 0.5x means it is twice as slow. A competitor appears only when
-it has a valid measurement for every displayed task. Rankings show the winner's time in
-milliseconds, followed by each other runtime's time / winner time; 2 means twice as slow.
-Execution rankings use the same display within each runtime group. Charts and the detailed
-raw-time matrices keep milliseconds. The separate `hello` workload is excluded from the
+it has a valid measurement for every displayed task. Per-task tables order runtime badges
+from fastest to slowest and show relative speed as `100 * best time / runtime time`, with linear
+bars starting at zero. The best is 100%; a runtime taking 1.03 times as long retains 97.1%
+of its speed, and twice the time gives 50%. Native/AOT, JIT and interpreted execution
+have separate references: the fastest time within that group on each task.
+Swag native and Swag JIT have distinct headline metrics and direct comparisons with
+their own competitors. A native 95% and a JIT 95% do not represent the same absolute
+speed. Interpreters have their own view without a Swag headline.
+The aggregate speed charts use the geometric mean of those per-task speeds, also on
+a linear 0–100% scale. No artificial minimum width inflates a small value.
+Hover a value for milliseconds, the time ratio
+and the percentage of additional time; missing or non-positive measurements have no bar
+and cannot be the reference. The Swag summary shows additional time vs the best, rather than
+an ordinal rank, so a sixth-place result only 3% behind stays visibly close. Aggregate
+comparisons are also sorted from fastest to slowest without ordinal ranks.
+The detailed raw-time matrices retain milliseconds. The separate `hello` workload is excluded from the
 aggregate.
 The `hello` column is a separate small program with a different import set; it is useful as a
 second data point, but subtracting it from a task does not remove library overhead reliably.
 It measures both Swag configurations and both C++ compilers. Older campaigns omitted Swag
 devmode and clang-cl for `hello`; their empty cells mean no measurement was taken, not a build
-failure. The `C` badge denotes C++, with MSVC and clang-cl distinguished by color and tooltip.
+failure. Two-character badges identify every compiler and mode: `SW` is Swag release,
+`SD` Swag devmode, `SJ` Swag release JIT, `JD` Swag devmode JIT, `CL` clang-cl and `VC` MSVC.
+Codes remain distinct independently of colour; the expandable legend names every mode.
+The report selects the dark theme by default for contrast with Swag's electric yellow.
+Its header and headline band keep the deep ink; the body uses a lighter near-black ground.
+Swag release uses the same signature yellow in both palettes. Colours prioritise hue and
+luminance separation within each execution group rather than similar tints for related modes.
+Every chart, badge and history line uses the same mapping. Chart labels place the name before
+the badge so the badges share a fixed edge beside the bars; the left-aligned legend keeps badges first.
+The report separates summary charts, sorted per-task results and expandable raw tables.
+Resource bars show absolute costs on linear zero-based axes, with smaller values better.
+Execution and build sections identify their own campaign dates and commits; they need not
+come from the same campaign. The presentation never triggers new measurements.
+History rebuilds derive separate legacy `exec_native_vs_best` and `exec_jit_vs_best` ratios
+from the archived raw campaigns, on the unchanged baseline task panel. Neither category
+can set the other's best time; changing the display does not change raw measurements.
 The C++ hello includes only `<cstdio>` and links the installed CRT; it does not parse the shared
 task header. Swag collects `bin/runtime/*.swg` even for hello. On such a small input, compiler
 startup, runtime processing and linking account for much of the work.
-Rankings use the minimum recorded time and do not establish a meaningful lead when the gap is
+Comparisons use the minimum recorded time and do not establish a meaningful lead when the gap is
 smaller than the sample variation.
 For a compiler improvement claim, `py -3 bench/compile.py --against <external-baseline-swc>` compares two compiler
 binaries back to back on the same checkout. Both receive identical sources and imports, and the
@@ -372,12 +399,34 @@ itself *inside* one campaign; the band is what separates two campaigns. A quiet 
 wide band means the bench is blunt; a noisy campaign means the machine was not quiet, and its
 point deserves less trust than its neighbours.
 
-## A task added after the baseline
+## A Stable Progress Score
+
+The three primary metrics track Swag native execution, Swag JIT execution and Swag build
+speed over time, independently of the current competitor winners. Score version 1 freezes
+twelve workloads in `history.PROGRESS_TASKS`. Each task has equal weight:
+
+`score = 100 / geometric_mean(corrected_time / corrected_reference_time)`
+
+Each metric uses its first clean campaign with all twelve times and their machine correction
+factors as its reference. The baseline date and commit are printed beside the score.
+100 is the reference; 200 means half the elapsed time across the fixed panel. This measures
+progress on this workload panel, not every possible application. An incomplete campaign or a
+missing correction factor produces no score, rather than silently dropping a workload.
+New tasks do not enter version 1; changing the score panel requires an explicit new version.
+All twelve tasks participate, including the five added after the original seven-task history.
+
+The current gap to the best is a different metric. The execution section shows its geometric
+mean together with the largest per-task gap and the count of lowest recorded times. For example,
+eight best times and four small-to-moderate gaps can yield only 2.2% overall even when one task
+is 22.6% behind. That gap is useful for current competition, but is not the progress headline.
+Corrections remain estimates; small score movements, particularly for builds, can be noise.
+
+## A task added after the original baseline
 
 The baseline is fixed, so a task added later has no baseline value and cannot be indexed against
 it. It is indexed instead against the first reproducible campaign that measured it, which reads
 1.00, and the page names that campaign under the task. History aggregates and history headline
-ratios retain the baseline's fixed task panel. The current report's matrices and headline ratios
+ratios retain the original baseline's fixed task panel. The current report's comparative matrices and ratios
 instead cover the tasks measured by both selected latest build and execution campaigns.
 
 The files under `results/` are authoritative. `history.py` rebuilds every compact entry from

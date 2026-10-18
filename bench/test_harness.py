@@ -2,6 +2,7 @@
 import contextlib
 import copy
 import io
+from html.parser import HTMLParser
 import os
 from pathlib import Path
 import tempfile
@@ -15,6 +16,75 @@ import toolchains as tc
 
 
 class HarnessTests(unittest.TestCase):
+    def test_relative_speed_shows_proximity_even_with_five_faster_runtimes(self):
+        runtimes = ["swag-release", "cpp-clang-cl", "cpp-msvc", "rust", "zig", "d-ldc", "odin"]
+        times = dict(zip(runtimes, [103, 100, 100.5, 101, 101.5, 102, 200]))
+        rows = []
+
+        class Cells(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                if tag == "tr":
+                    rows.append([])
+                elif tag == "li":
+                    rows[-1].append(dict(attrs))
+
+        rendered = mkpage.performance_table(
+            ["first", "second"], runtimes,
+            lambda rt, task: times[rt] if task == "first" else 300 - times[rt], mkpage.ms_text)
+        Cells().feed(rendered)
+        # Position remains visible: Swag is sixth, while its bar remains close to full length.
+        ordered = sorted(runtimes, key=times.get)
+        self.assertEqual([cell["class"] for cell in rows[1]], [mkpage.lang_class(rt) for rt in ordered])
+        self.assertEqual([cell["class"] for cell in rows[2]], [mkpage.lang_class(rt) for rt in reversed(ordered)])
+        self.assertIn('class="speed-value">97.1%</span>', rendered)
+        self.assertIn('style="width:97.0874%"', rendered)
+        self.assertIn('class="speed-value">50.0%</span>', rendered)
+        self.assertIn('+3% time vs best', rows[1][5]["title"])
+        self.assertIn('<td class="swag-gap">+3.0%</td>', rendered)
+        self.assertIn('title="C++ / clang-cl (native)"', rendered)
+
+    def test_relative_speed_excludes_unusable_times_and_preserves_ties(self):
+        runtimes = ["swag-release", "cpp-msvc", "rust", "zig", "d-ldc", "odin", "go", "swift"]
+        for times, count in (([100, 100, None, 0, -1, float("nan"), float("inf"), 1e6], 2),
+                             ([None] * len(runtimes), 0)):
+            with self.subTest(times=times):
+                rendered = mkpage.performance_table(
+                    ["hello"], runtimes, lambda rt, task: times[runtimes.index(rt)], mkpage.ms_text)
+                self.assertEqual(rendered.count('class="speed-value">100%</span>'), count)
+                self.assertEqual(rendered.count('title="No measurement"'), 5 if count else len(runtimes))
+                if count:
+                    self.assertIn('&lt;0.1%', rendered)
+
+    def test_aggregate_comparison_orders_competitors_without_ordinal_ranks(self):
+        runtimes = ["swag-release", "rust", "cpp-msvc"]
+        times = {"swag-release": 100, "rust": 200, "cpp-msvc": 50}
+        rendered = mkpage.comparison_table(
+            ["task"], [("native", runtimes)], lambda rt, task: times[rt], "swag-release")
+        self.assertLess(rendered.index('class="l-msvc"'), rendered.index('class="l-rust"'))
+        self.assertIn('2.00&nbsp;&times;', rendered)
+        self.assertIn('0.50&nbsp;&times;', rendered)
+        self.assertNotIn('<b>', rendered)
+
+    def test_execution_groups_have_independent_best_time_references(self):
+        times = {"swag-release": 100, "swc-jit-release": 200, "node20": 400}
+        rendered = mkpage.performance_table(
+            ["task"], ["swc-jit-release", "node20"], lambda rt, task: times[rt],
+            mkpage.ms_text)
+        self.assertIn('<td class="swag-gap">best</td>', rendered)
+        self.assertIn('class="speed-value">50.0%</span>', rendered)
+        self.assertIn('class="speed-value">100%</span>', rendered)
+        self.assertNotIn('class="speed-value">25.0%</span>', rendered)
+
+    def test_compiler_codes_are_distinct_and_speed_rounding_preserves_small_gaps(self):
+        self.assertEqual(len(set(mkpage.CODES.values())), len(mkpage.RUNTIMES))
+        self.assertTrue(all(len(code) == 2 for code in mkpage.CODES.values()))
+        grouped = [rt for group in history.RUN_GROUPS.values() for rt in group]
+        self.assertEqual(set(grouped), set(mkpage.CODES))
+        self.assertEqual(len(grouped), len(mkpage.CODES))
+        self.assertIn('>SW</span>', mkpage.runtime_badge('swag-release'))
+        self.assertEqual(mkpage.speed_text(99.999), '&lt;100')
+        self.assertEqual(mkpage.linw(0.01, 100), 0.01)
+
     def test_hello_covers_every_build_configuration(self):
         with patch.object(tc, "resolve", return_value="cl.exe"):
             tools = {"clang_cl": "clang-cl.exe"}
@@ -277,21 +347,27 @@ class HarnessTests(unittest.TestCase):
                     mkpage.main()
                 self.assertNotIn("{{", page.read_text(encoding="utf-8"))
                 rendered = page.read_text(encoding="utf-8")
+                self.assertIn('<html lang="en" data-theme="dark">', rendered)
                 self.assertLess(rendered.index('aria-label="Language legend"'), rendered.index('<section id="execution">'))
                 self.assertIn('scope="col"', rendered)
                 self.assertIn('title="C++ / clang-cl (native)"', rendered)
                 self.assertIn("build speedup vs fastest rival", rendered)
                 self.assertIn("fastest non-Swag build time / swc build time", readme.read_text(encoding="utf-8"))
                 self.assertNotIn("build MSVC / swc", rendered)
+                self.assertEqual(rendered.count('<table class="performance">'), 4)
+                self.assertIn("SW native progress", rendered)
+                self.assertIn("SJ JIT progress", rendered)
+                self.assertIn("Progress score v1", rendered)
+                self.assertNotIn("The Swag column gives the rank", rendered)
                 self.assertIn('<section id="allocateur">', rendered)
                 if extended:
                     self.assertIn("swag / mimalloc", rendered)
-                    self.assertIn("temps / mimalloc", rendered)
+                    self.assertIn("time / mimalloc", rendered)
                 elif not original.get("allocator"):
-                    self.assertIn("Aucune mesure de l&rsquo;allocateur", rendered)
+                    self.assertIn("No allocator measurement", rendered)
                 if extended:
                     # The page names D alone; the README table keeps its compiler.
-                    for shown, tabled in (("Zig", "Zig"), ('class="rl">D <span', "D (LDC)"),
+                    for shown, tabled in (("Zig", "Zig"), ('D <span', "D (LDC)"),
                                           ("Odin", "Odin"), ("Go", "Go"), ("Java HotSpot", "Java HotSpot"),
                                           ("PHP", "PHP"), ("Ruby", "Ruby")):
                         self.assertIn(shown, page.read_text(encoding="utf-8"))

@@ -244,8 +244,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.4603471759244522,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.4603471759244522,
+      "exec_jit_vs_best": 1.0248618935741198,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 3.0468120789836908,
       "build_tasks": 7
     },
@@ -587,8 +589,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.4744838683364485,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.4744838683364485,
+      "exec_jit_vs_best": 1.0294843350552603,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.7169228013298823,
       "build_tasks": 7
     },
@@ -930,8 +934,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.4539259649099328,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.4539259649099328,
+      "exec_jit_vs_best": 1.0248023276685228,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.7675481684879193,
       "build_tasks": 7
     },
@@ -1273,8 +1279,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.4067665378644512,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.4067665378644512,
+      "exec_jit_vs_best": 1.034497425029914,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.5658888699938815,
       "build_tasks": 7
     },
@@ -1617,8 +1625,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1678991260330356,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1678991260330356,
+      "exec_jit_vs_best": 1.1540013058849872,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.49900748273178,
       "build_tasks": 7
     },
@@ -2006,8 +2016,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.133907845299677,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.133907845299677,
+      "exec_jit_vs_best": 1.0903900280566057,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8556979193403655,
       "build_tasks": 7
     },
@@ -2395,8 +2407,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1418120018921298,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1418120018921298,
+      "exec_jit_vs_best": 1.0862715557527916,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.2573359959542985,
       "build_tasks": 7
     },
@@ -2784,8 +2798,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1630026475021993,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1630026475021993,
+      "exec_jit_vs_best": 1.0966476785666344,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.231686019044864,
       "build_tasks": 7
     },
@@ -3173,8 +3189,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1700575705240341,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1700575705240341,
+      "exec_jit_vs_best": 1.106362330632274,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.2560876519883735,
       "build_tasks": 7
     },
@@ -3562,8 +3580,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1191105080966357,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1191105080966357,
+      "exec_jit_vs_best": 1.0710532218253523,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.44937824228693,
       "build_tasks": 7
     },
@@ -3951,8 +3971,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1061879578168161,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1061879578168161,
+      "exec_jit_vs_best": 1.072210223527102,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.6077778493908776,
       "build_tasks": 7
     },
@@ -4340,8 +4362,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1252069370500946,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1252069370500946,
+      "exec_jit_vs_best": 1.0717272460036418,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.7924054010809432,
       "build_tasks": 7
     },
@@ -4723,8 +4747,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": null,
-      "exec_fastest": null,
+      "exec_native_vs_best": null,
+      "exec_jit_vs_best": null,
+      "exec_native_fastest": null,
+      "exec_jit_fastest": null,
       "build_speedup": 1.7994936301364997,
       "build_tasks": 7
     },
@@ -5083,8 +5109,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1514277574627345,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1514277574627345,
+      "exec_jit_vs_best": 1.0706275468805864,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.852806794574804,
       "build_tasks": 7
     },
@@ -5475,8 +5503,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.094168223913449,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.094168223913449,
+      "exec_jit_vs_best": 1.0521602467800684,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.6087484729459158,
       "build_tasks": 7
     },
@@ -5867,8 +5897,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.1243880546091194,
-      "exec_fastest": "cpp-clang-cl",
+      "exec_native_vs_best": 1.1243880546091194,
+      "exec_jit_vs_best": 1.0646203424821128,
+      "exec_native_fastest": "cpp-clang-cl",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.6413596481375219,
       "build_tasks": 7
     },
@@ -6259,8 +6291,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0752527926166773,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0682590563368166,
+      "exec_jit_vs_best": 1.0553826441364529,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8094760288491356,
       "build_tasks": 7
     },
@@ -6642,8 +6676,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.071663127219873,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.071663127219873,
+      "exec_jit_vs_best": 1.0674745282694371,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": null,
       "build_tasks": 7
     },
@@ -6947,8 +6983,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0957438332974192,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0957438332974192,
+      "exec_jit_vs_best": 1.0651640891409315,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8626530919517028,
       "build_tasks": 7
     },
@@ -7339,8 +7377,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0558853851325642,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0558853851325642,
+      "exec_jit_vs_best": 1.0660476554626872,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.025244235760348,
       "build_tasks": 7
     },
@@ -7731,8 +7771,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0293239151540832,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0293239151540832,
+      "exec_jit_vs_best": 1.0587062311543196,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.797750561334661,
       "build_tasks": 7
     },
@@ -8123,8 +8165,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0283066232629299,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0280105879639785,
+      "exec_jit_vs_best": 1.0528183537970208,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8186413190766098,
       "build_tasks": 7
     },
@@ -8515,8 +8559,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0308771953527693,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0308771953527693,
+      "exec_jit_vs_best": 1.0612628603127914,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.829363155657312,
       "build_tasks": 7
     },
@@ -8907,8 +8953,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0239847858635687,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0239847858635687,
+      "exec_jit_vs_best": 1.0551288396227252,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.855466922067849,
       "build_tasks": 7
     },
@@ -9299,8 +9347,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0636211425612647,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0636211425612647,
+      "exec_jit_vs_best": 1.0548773678576113,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.7892258695447192,
       "build_tasks": 7
     },
@@ -9691,8 +9741,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.063426208782435,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.063426208782435,
+      "exec_jit_vs_best": 1.0592375898731168,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8507226797501313,
       "build_tasks": 7
     },
@@ -10083,8 +10135,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0267776179563408,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0267776179563408,
+      "exec_jit_vs_best": 1.0575344681512677,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8367046408946333,
       "build_tasks": 7
     },
@@ -10581,8 +10635,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0254794744677653,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0242935663057415,
+      "exec_jit_vs_best": 1.0392763209306803,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.794728387128708,
       "build_tasks": 7
     },
@@ -11119,8 +11175,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.010799105735724,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.010799105735724,
+      "exec_jit_vs_best": 1.0631536550457965,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.629472041982401,
       "build_tasks": 7
     },
@@ -11657,8 +11715,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.02385285392299,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0130123530172734,
+      "exec_jit_vs_best": 1.0525315956117425,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.9152786088413662,
       "build_tasks": 7
     },
@@ -12195,8 +12255,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.032705159748857,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.030827627524746,
+      "exec_jit_vs_best": 1.0408401738726125,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8695262557739856,
       "build_tasks": 7
     },
@@ -12733,8 +12795,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0011103985577914,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0,
+      "exec_jit_vs_best": 1.0411831751085856,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.1688785478619472,
       "build_tasks": 7
     },
@@ -13271,8 +13335,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.003408094631037,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0030498181149907,
+      "exec_jit_vs_best": 1.0395649692567681,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.9572367194461195,
       "build_tasks": 7
     },
@@ -13809,8 +13875,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.019337868801909,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0110418701566655,
+      "exec_jit_vs_best": 1.0471917011426206,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.5535628761170392,
       "build_tasks": 7
     },
@@ -14347,8 +14415,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0031545547801055,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0031545547801055,
+      "exec_jit_vs_best": 1.0534358358097449,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.940637047910315,
       "build_tasks": 7
     },
@@ -14885,8 +14955,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0244462042406914,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0193046752110233,
+      "exec_jit_vs_best": 1.0485228271555487,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8314153937893538,
       "build_tasks": 7
     },
@@ -15409,8 +15481,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0137904582468287,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0014692801468543,
+      "exec_jit_vs_best": 1.054699748638937,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": null,
       "build_tasks": 7
     },
@@ -15840,8 +15914,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0266352737527333,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.022373084878737,
+      "exec_jit_vs_best": 1.0476763375305478,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.7951102871862548,
       "build_tasks": 7
     },
@@ -16597,8 +16673,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0045633915025005,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0005766624578527,
+      "exec_jit_vs_best": 1.0351923361944195,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8521607912669518,
       "build_tasks": 7
     },
@@ -17354,8 +17432,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0223402007695335,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0200913951599582,
+      "exec_jit_vs_best": 1.0456755816685257,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.9447545117933525,
       "build_tasks": 7
     },
@@ -18111,8 +18191,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.009458333881961,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0038910141153976,
+      "exec_jit_vs_best": 1.0527878579580132,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.798251265527192,
       "build_tasks": 7
     },
@@ -18868,8 +18950,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0185035061970296,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0022230576166302,
+      "exec_jit_vs_best": 1.0464158522110711,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.7419850744574499,
       "build_tasks": 7
     },
@@ -19625,8 +19709,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0196076990252818,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0194432658844834,
+      "exec_jit_vs_best": 1.0425973782421805,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.119762312070255,
       "build_tasks": 7
     },
@@ -20382,8 +20468,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0331217471186533,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0331217471186533,
+      "exec_jit_vs_best": 1.0634900037014705,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.92189634576558,
       "build_tasks": 7
     },
@@ -21139,8 +21227,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0156395923209816,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0156395923209816,
+      "exec_jit_vs_best": 1.0481236509976664,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.9685392179223271,
       "build_tasks": 7
     },
@@ -21896,8 +21986,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0009708291465198,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0009708291465198,
+      "exec_jit_vs_best": 1.034137018855098,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.0739651582955587,
       "build_tasks": 7
     },
@@ -22653,8 +22745,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0063633846283193,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0,
+      "exec_jit_vs_best": 1.0550594244535707,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.9475470002768216,
       "build_tasks": 7
     },
@@ -23410,8 +23504,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0229019022585746,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.010445781226259,
+      "exec_jit_vs_best": 1.0533779672566748,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 2.1694396082505105,
       "build_tasks": 7
     },
@@ -24167,8 +24263,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0296054397312042,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0296054397312042,
+      "exec_jit_vs_best": 1.049486865340713,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.881497057649428,
       "build_tasks": 7
     },
@@ -24924,8 +25022,10 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_vs_best": 1.0026431374999591,
-      "exec_fastest": "swag-release",
+      "exec_native_vs_best": 1.0026431374999591,
+      "exec_jit_vs_best": 1.055120667987813,
+      "exec_native_fastest": "swag-release",
+      "exec_jit_fastest": "swc-jit-release",
       "build_speedup": 1.8248607892452289,
       "build_tasks": 7
     },

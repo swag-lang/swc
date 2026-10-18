@@ -60,6 +60,86 @@ def add_task(result, task, swag_run=100.0, run_scale=1.0):
 
 
 class HistoryAdjustmentTests(unittest.TestCase):
+    def test_progress_removes_machine_scale_and_keeps_execution_models_separate(self):
+        baseline = campaign("run-01", False)
+        scaled = campaign("run-02", False, run_scale=1.5, build_scale=0.8)
+        improved = campaign("run-03", False, run_scale=1.5, build_scale=0.8, swag_build=25)
+        for task in TASKS:
+            improved["tasks"][task]["swag-release"]["run"]["ms"] = 75
+        entries = history.build_entries([baseline, scaled, improved])
+        native = history.progress_series(entries, "swag-release", "run", TASKS)
+        jit = history.progress_series(entries, "swc-jit-release", "run", TASKS)
+        self.assertAlmostEqual(native["scores"]["run-01"], 100)
+        self.assertAlmostEqual(native["scores"]["run-02"], 100)
+        self.assertAlmostEqual(native["scores"]["run-03"], 200)
+        self.assertAlmostEqual(jit["scores"]["run-03"], 100)
+        builds = history.progress_series(entries, "swag-release", "build", TASKS)
+        self.assertAlmostEqual(builds["scores"]["run-02"], 100)
+        self.assertAlmostEqual(builds["scores"]["run-03"], 200)
+
+    def test_progress_has_fixed_equal_task_weights_and_ignores_added_workloads(self):
+        baseline = campaign("run-01", False)
+        improved = add_task(campaign("run-02", False), "third", swag_run=0.01)
+        improved["tasks"]["first"]["swag-release"]["run"]["ms"] = 50
+        improved["tasks"]["second"]["swag-release"]["run"]["ms"] = 25
+        for scale in (1, 1000):
+            with self.subTest(scale=scale):
+                for result in (baseline, improved):
+                    for rec in result["tasks"]["first"].values():
+                        rec["run"]["ms"] *= scale
+                entries = history.build_entries([baseline, improved])
+                progress = history.progress_series(entries, "swag-release", "run", TASKS)
+                self.assertAlmostEqual(progress["scores"]["run-02"], 100 * 8 ** 0.5)
+
+    def test_progress_uses_the_first_clean_complete_reference_in_date_order(self):
+        entries = history.build_entries([campaign("run-01", True), campaign("run-02", False),
+                                         campaign("run-03", False)])
+        progress = history.progress_series(list(reversed(entries)), "swag-release", "run", TASKS)
+        self.assertEqual(progress["baseline"]["stamp"], "run-02")
+        self.assertEqual(progress["scores"]["run-02"], 100)
+        self.assertIsNone(history.progress_series(entries[:1], "swag-release", "run", TASKS)["baseline"])
+
+    def test_progress_omits_incomplete_times_and_missing_machine_correction(self):
+        source = history.build_entries([campaign("run-01", False), campaign("run-02", False)])
+        for invalid in (None, 0, -1, float("nan"), float("inf")):
+            for target in ("time", "correction"):
+                with self.subTest(invalid=invalid, target=target):
+                    entries = copy.deepcopy(source)
+                    values = (entries[1]["runtimes"]["swag-release"]["run_adjusted_ms"] if target == "time"
+                              else entries[1]["context"]["run_task_factors"])
+                    values["second"] = invalid
+                    progress = history.progress_series(entries, "swag-release", "run", TASKS)
+                    self.assertIsNone(progress["scores"]["run-02"])
+
+    def test_execution_headlines_never_compare_different_execution_models(self):
+        result = campaign("run-01", False)
+        for task, scale in zip(TASKS, (1, 100)):
+            result["tasks"][task] = {rt: {"run": {"ms": elapsed * scale}}
+                                     for rt, elapsed in (("swag-release", 103), ("cpp-msvc", 100),
+                                                         ("swc-jit-release", 200), ("node20", 100),
+                                                         ("lua5.4", 1))}
+        panel = {"run": TASKS, "build": TASKS}
+        headline = history._headline(result, panel)
+        self.assertAlmostEqual(headline["exec_native_vs_best"], 1.03)
+        self.assertAlmostEqual(headline["exec_jit_vs_best"], 2)
+        for model, runtime, unaffected in (("native", "cpp-msvc", "exec_jit_vs_best"),
+                                            ("jit", "node20", "exec_native_vs_best")):
+            with self.subTest(model=model):
+                faster = copy.deepcopy(result)
+                for task in TASKS:
+                    faster["tasks"][task][runtime]["run"]["ms"] *= 0.001
+                    faster["tasks"][task]["lua5.4"]["run"]["ms"] *= 0.00001
+                self.assertAlmostEqual(history._headline(faster, panel)[unaffected], headline[unaffected])
+        self.assertNotIn("exec_vs_best", headline)
+
+    def test_execution_group_reference_needs_complete_valid_measurements(self):
+        for invalid in (None, 0, -1, float("inf"), float("nan")):
+            with self.subTest(invalid=invalid):
+                tasks = {task: {"swc-jit-release": {"run": {"ms": 100}},
+                                "node20": {"run": {"ms": 1 if task == "first" else invalid}},
+                                "cpp-msvc": {"run": {"ms": 0.0001}}} for task in TASKS}
+                self.assertEqual(history.execution_ratios(tasks, TASKS, "jit"), {"swc-jit-release": 1.0})
+
     def test_split_build_controls_reject_a_false_compiler_speedup(self):
         baseline = campaign("run-01", False)
         for task in TASKS:
@@ -217,8 +297,8 @@ class LateTaskTests(unittest.TestCase):
 
         self.assertAlmostEqual(without["runtimes"]["swag-release"]["run_geo_index"],
                                with_task["runtimes"]["swag-release"]["run_geo_index"])
-        self.assertAlmostEqual(without["headline"]["exec_vs_best"],
-                               with_task["headline"]["exec_vs_best"])
+        self.assertAlmostEqual(without["headline"]["exec_native_vs_best"],
+                               with_task["headline"]["exec_native_vs_best"])
         joined["tasks"]["third"]["swag-release"]["build"]["wall_ms"] = 1.0
         with_task = history.build_entries([baseline, joined])[1]
         self.assertAlmostEqual(without["headline"]["build_speedup"],

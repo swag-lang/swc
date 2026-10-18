@@ -285,18 +285,19 @@ private struct Parser
     // Shapes defined inside `defs`, by id, instantiated by `use` elements. The
     // ranges index the drawing's shape array: defs shapes are parsed in place and
     // withheld from painting.
-    defs:      HashTable'(String, { first: u64, count: u64 })
-    clipPaths: HashTable'(String, { first: u64, count: u64 })
-    symbols:   HashTable'(String, SymbolViewport)
-    markers:   HashTable'(String, MarkerDefinition)
-    gradients: HashTable'(String, Gradient)
-    patterns:  HashTable'(String, Pattern)
-    filters:   HashTable'(String, SvgFilter)
-    styles:    Array'StyleRule
-    options:   ParseOptions
-    typeFaces: [FontFamilyKind.count] (*TypeFace?)
-    svgDepth:  u32
-    inDefs:    bool     // Whether parsing currently sits inside a `defs` element.
+    defs:           HashTable'(String, { first: u64, count: u64 })
+    clipPaths:      HashTable'(String, { first: u64, count: u64 })
+    symbols:        HashTable'(String, SymbolViewport)
+    markers:        HashTable'(String, MarkerDefinition)
+    gradients:      HashTable'(String, Gradient)
+    patterns:       HashTable'(String, Pattern)
+    filters:        HashTable'(String, SvgFilter)
+    styles:         Array'StyleRule
+    options:        ParseOptions
+    typeFaces:      [FontFamilyKind.count] (*TypeFace?)
+    svgDepth:       u32
+    inDefs:         bool     // Whether parsing currently sits inside a `defs` element.
+    dimensionsOnly: bool
 }
 
 private struct StyleRule
@@ -2663,6 +2664,9 @@ private impl Parser
                         .drawing.width  = .geoNumber(&geo, "width", 0)
                         .drawing.height = .geoNumber(&geo, "height", 0)
                     }
+
+                    if .dimensionsOnly do
+                        return
                 }
                 else
                 {
@@ -3563,6 +3567,22 @@ internal impl Shape
 
         return result
     }
+}
+
+// Parses the root viewport's natural image size in CSS pixels without decoding its contents.
+//
+// The same width, height and view-box rules as [[Pixel.Svg.Drawing.naturalSize]] apply.
+// Missing or nonpositive viewport dimensions fail. Child elements and their resources are
+// deliberately not validated; use [[Pixel.Svg.Drawing.parse]] to prepare the complete drawing.
+func parseImageSize(text: string)->Vector2 fail
+{
+    var drawing: Drawing
+    var parser = Parser{text: text, drawing: &drawing, dimensionsOnly: true}
+    var root:    GroupState
+    try parser.parseContent(root)
+    if drawing.width <= 0 or drawing.height <= 0 do
+        fail Swag.SystemError{"SVG document has no valid dimensions"}
+    return drawing.naturalSize()
 }
 
 impl Drawing

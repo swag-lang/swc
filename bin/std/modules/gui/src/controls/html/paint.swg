@@ -14,6 +14,7 @@ struct HtmlPainter
     late painter: *Painter
     images:       *HtmlImageCache?
     renderer:     IRenderer?
+    loadingWnd:   *Wnd?
 
     visible: Math.Rectangle
     scrollY: f32
@@ -888,6 +889,13 @@ impl HtmlPainter
                 .painter.setInterpolationMode(.Linear)
                 defer .painter.setInterpolationMode(interpolation)
                 .painter.drawTexture(frame, texture[], HtmlPainter.withAlpha(Color.fromArgb(Argb.White), alpha))
+                return
+            }
+            elif .images.asynchronous and
+                 .loadingWnd and
+                 .images.fetch(.layout.document.attribute(node, "src")) != null
+            {
+                .images.paintLoading(.loadingWnd, .painter, frame)
                 return
             }
         }

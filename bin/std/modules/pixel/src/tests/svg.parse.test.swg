@@ -2,6 +2,28 @@
 
 using Swag, Core
 
+// Layout can reserve the final image box without parsing paths or decoding embedded images.
+#test
+{
+    for source in [
+        "<svg width='464' height='464px' viewBox='40 40 928 928'/>",
+        "<svg width='200' viewBox='0 0 400 100'/>",
+        "<svg height='50' viewBox='0 0 400 100'/>",
+        "<svg width='100%' height='auto' viewBox='0 0 400 100'/>",
+        "<svg width='20' height='10'/>"]
+    {
+        let drawing = expect Svg.Drawing.parse(source)
+        Swag.assert((expect Svg.parseImageSize(source)) == drawing.naturalSize())
+    }
+
+    const Deferred = "<?xml version='1.0'?><svg width='120' height='60'><image width='120' height='60' href='unavailable.png'/></svg>"
+    Swag.assert((expect Svg.parseImageSize(Deferred)) == Math.Vector2{120, 60})
+    discard catch Svg.Drawing.parse(Deferred) as contentError
+    Swag.assert(contentError != null)
+    discard catch Svg.parseImageSize("<svg/>") as sizeError
+    Swag.assert(sizeError != null)
+}
+
 // Image dimensions and drawing coordinates are separate, including offset view boxes.
 #test
 {

@@ -1533,7 +1533,8 @@ internal impl HtmlView
         result.embedded = true
         if preparedImages do
             result.images = #move preparedImages[]
-        result.images.basePath = basePath
+        result.images.basePath     = basePath
+        result.images.asynchronous = not result.app().deterministicStreaming
 
         // Embedded content is a fragment: it is placed inside a document that already has a body,
         // and a second one would put a page's margins inside somebody else's box.
@@ -1643,7 +1644,9 @@ internal impl IWnd for HtmlCanvas
             return
 
         var painter = owner.painter()
-        painter.painter = evt.paintContext.painter
+        painter.painter           = evt.paintContext.painter
+        painter.loadingWnd        = me
+        owner.images.loadingPhase = Math.fract(owner.images.loadingPhase + .timing().deltaSeconds * .themeMetrics().spinner_Speed)
         painter.paint()
     }
 

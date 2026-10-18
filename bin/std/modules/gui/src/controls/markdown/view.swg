@@ -538,6 +538,7 @@ private impl View
         let inline      = InlineView.create(me, .body, displayText.toString(), block.kind)
         if .pendingImageIndex == .pendingIndex do
             inline.images = #move .pendingImages
+        inline.images.asynchronous = not .app().deterministicStreaming
         visual.wnd    = inline
         visual.inline = inline
         if not .documentThemeColors.isEmpty() do
@@ -698,15 +699,16 @@ private impl View
         return not .pendingBlocks.isEmpty()
     }
 
-    // Decode only the next block's images on a worker, before that block acquires any geometry.
-    // Publishing the final dimensions together avoids placeholders shifting the reading position.
+    // Read image dimensions on a worker before the next block acquires geometry. Expensive SVG
+    // contents remain deferred until paint, where each visible image can show its own spinner.
     mtd prepareImages()->bool
     {
         if .pendingImageIndex == .pendingIndex do
             return not .imageTask.isPending()
 
         .pendingImages.clear()
-        .pendingImages.basePath = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
+        .pendingImages.basePath     = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
+        .pendingImages.asynchronous = not .app().deterministicStreaming
         .pendingImageSources.clear()
         .pendingImageIndex = .pendingIndex
         let block = &.pendingBlocks[.pendingIndex]

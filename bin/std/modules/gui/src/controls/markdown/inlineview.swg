@@ -1305,10 +1305,11 @@ impl InlineView
     func create(owner: *View, parent: *Wnd, source: string, kind: BlockKind)->*InlineView
     {
         let result = Wnd.create'InlineView(parent, "gui.markdown.inline")
-        result.owner           = owner
-        result.images.basePath = owner.fileName.isEmpty() ? "" : (Path.directoryName(owner.fileName.toString()) orelse "")
-        result.kind            = kind
-        result.backgroundStyle = .View
+        result.owner               = owner
+        result.images.basePath     = owner.fileName.isEmpty() ? "" : (Path.directoryName(owner.fileName.toString()) orelse "")
+        result.images.asynchronous = not owner.app().deterministicStreaming
+        result.kind                = kind
+        result.backgroundStyle     = .View
 
         // Views are created in reading order — a block after the block before it, a table cell
         // after the cell to its left — so registering here is what puts the document in order.
@@ -1335,6 +1336,7 @@ impl IWnd for InlineView
     {
         let rect    = .clientRect()
         let painter = evt.paintContext.painter
+        .images.loadingPhase = Math.fract(.images.loadingPhase + .timing().deltaSeconds * .themeMetrics().spinner_Speed)
         discard .layout(rect.width)
 
         let transform   = painter.transform()
@@ -1465,6 +1467,14 @@ impl IWnd for InlineView
                     painter.setInterpolationMode(.Linear)
                     defer painter.setInterpolationMode(interpolation)
                     painter.drawTexture(atom.position, texture[], Color.fromArgb(Argb.White))
+                }
+                elif .images.asynchronous and .images.fetch(atom.imageSource.toString()) != null
+                {
+                    .images.paintLoading(me, painter, atom.position)
+                }
+                else
+                {
+                    painter.drawRect(atom.position, .themeColors().edit_Border, 1)
                 }
             }
             elif atom.isMath

@@ -1953,10 +1953,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         const bool              forwardOnly = !cfg.hasLoop();
         const uint32_t          sweepLimit  = forwardOnly ? 1 : 64;
         SmallVector<RecordWord> kept;
+        FlatKeyMap<RecordState> writeEffects;
         for (RecordWord& record : records)
         {
-            const uint8_t                             all = static_cast<uint8_t>((1u << record.bytes) - 1);
-            std::unordered_map<uint32_t, RecordState> writeEffects;
+            const uint8_t all = static_cast<uint8_t>((1u << record.bytes) - 1);
+            writeEffects.clear();
             for (const SlotAccess& acc : record.accesses)
             {
                 if (!acc.isWrite)
@@ -1976,15 +1977,15 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                             effect.zero |= static_cast<uint8_t>(1u << (rel + b));
                     }
                 }
-                writeEffects[acc.ref.get()] = effect;
+                writeEffects.getOrInsert(acc.ref.get()) = effect;
             }
 
             // Store effects do not depend on the incoming state or graph sweep.
             const auto transfer = [&](const uint32_t index, RecordState state) {
-                const auto found = writeEffects.find(refs[index].get());
-                if (found == writeEffects.end())
+                const RecordState* found = writeEffects.find(refs[index].get());
+                if (!found)
                     return state;
-                const RecordState effect = found->second;
+                const RecordState effect = *found;
                 state.defined |= effect.defined;
                 state.zero = static_cast<uint8_t>((state.zero & ~effect.defined) | effect.zero);
                 return state;

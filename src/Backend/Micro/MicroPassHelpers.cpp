@@ -1598,7 +1598,11 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
 
     // A field of the storage is addressed through an address operation on its base: that
     // address names the same storage and stands or falls with the base.
-    std::unordered_set<MicroReg> tracked = marked;
+    // Asked about every register operand below: a flat table by packed form.
+    FlatKeySet tracked;
+    tracked.reserve(marked.size());
+    for (const MicroReg reg : marked)
+        tracked.insert(reg.packed);
     for (bool grew = true; grew;)
     {
         grew = false;
@@ -1607,8 +1611,8 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
             if (inst.op != MicroInstrOpcode::LoadAddrRegMem)
                 continue;
             const MicroInstrOperand* ops = inst.ops(operands);
-            if (ops && ops[2].opBits == MicroOpBits::B64 && ops[0].reg.isVirtualInt() && tracked.contains(ops[1].reg))
-                grew |= tracked.insert(ops[0].reg).second;
+            if (ops && ops[2].opBits == MicroOpBits::B64 && ops[0].reg.isVirtualInt() && tracked.contains(ops[1].reg.packed))
+                grew |= tracked.insert(ops[0].reg.packed);
         }
     }
 
@@ -1635,7 +1639,7 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
             if (mode == MicroInstrRegMode::None)
                 continue;
             const MicroReg reg = ops[operandIndex].reg;
-            if (!reg.isValid() || reg.isNoBase() || !tracked.contains(reg))
+            if (!reg.isValid() || reg.isNoBase() || !tracked.contains(reg.packed))
                 continue;
 
             const bool derivesAddress = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64;
@@ -1650,7 +1654,7 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
                                            (inst.op == MicroInstrOpcode::LoadRegMem && ops[2].opBits == MicroOpBits::B64 &&
                                             !ops[1].reg.isVirtual()));
                 const bool fromBase = mode == MicroInstrRegMode::Def && operandIndex == 0 && !marked.contains(reg) && derivesAddress &&
-                                      tracked.contains(ops[1].reg);
+                                      tracked.contains(ops[1].reg.packed);
                 if ((!fromArgument && !fromBase) || !defined.insert(reg.packed))
                 {
                     if (rejected.insert(reg.packed) && rejected.size() == tracked.size())
@@ -1663,7 +1667,7 @@ void MicroPassHelpers::collectImmutableStorageBases(FlatKeySet& out, const Micro
                 continue;
             }
 
-            if (derivesAddress && operandIndex == 1 && ops[0].reg != reg && tracked.contains(ops[0].reg))
+            if (derivesAddress && operandIndex == 1 && ops[0].reg != reg && tracked.contains(ops[0].reg.packed))
             {
                 copies.push_back({reg, ops[0].reg});
                 continue;

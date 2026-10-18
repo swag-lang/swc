@@ -76,8 +76,7 @@ CODES = {
     "php": "PH", "php-jit": "PJ", "ruby": "RB",
 }
 
-# One colour per runtime, shared by every chart bar and ranking entry; no two runtimes share
-# one, swag's four variants included.
+# Runtime classes identify configurations; the stylesheet shares colours across execution modes.
 LANG = {
     "swag-release": "swag", "swc-jit-release": "swagjit",
     "swag-fast-debug": "swagdev", "swc-jit-fast-debug": "swagdevjit",
@@ -772,28 +771,21 @@ def main():
                 '<div class="sl">%s</div><div class="sn">%s</div></div>'
                 % (lang_class(runtime), value, unit, name, note))
 
-    def progress_stat(runtime, family, campaign, name):
-        progress = history.progress_series(entries, runtime, family)
-        value = progress["scores"].get(campaign["meta"]["stamp"])
-        baseline = progress["baseline"]
-        note = ("100 at %s &middot; %s" % (baseline["date"][:10], baseline.get("commit") or "?")
-                if baseline else "Waiting for a complete, reproducible reference")
-        return stat(fmt(value, 1), "pts", name, runtime, note)
-
     stats = "".join([
-        progress_stat("swag-release", "run", R, "SW native progress"),
-        progress_stat("swc-jit-release", "run", R, "SJ JIT progress"),
-        progress_stat("swag-release", "build", B, "Build progress"),
+        stat(fmt(history.execution_speedup(T, TASK_IDS, "native")), "&times;", "Native speedup",
+             note="vs fastest non-Swag native / AOT rival"),
+        stat(fmt(history.execution_speedup(T, TASK_IDS, "jit")), "&times;", "JIT speedup",
+             "swc-jit-release", "vs fastest non-Swag JIT rival"),
+        stat(fmt(build_speedup), "&times;", "Build speedup",
+             note="vs fastest non-Swag build recipe"),
         stat("%d" % round(bmem["swag-release"]), "MiB", "peak compiler memory"),
     ])
 
     native_run = [rt for rt in present if rt in execution["native"]]
     jit_run = [rt for rt in present if rt in execution["jit"]]
-    interpreted_run = [rt for rt in present if rt in execution["interpreted"]]
     ex_matrix = "\n".join('<h3>%s</h3>%s' % (name, matrix(
         TASK_IDS, runtimes, ms, ms_text, ("geo time / group best", gm, lambda v: fmt(v))))
-        for name, runtimes in (("Native / AOT", native_run), ("JIT", jit_run),
-                               ("Interpreted", interpreted_run)) if runtimes)
+        for name, runtimes in (("Native / AOT", native_run), ("JIT", jit_run)) if runtimes)
     def speed_chart(runtimes, ratios):
         return chart([(rt, 100 / ratios[rt], speed_text(100 / ratios[rt]))
                       for rt in sorted(runtimes, key=ratios.get)],
@@ -801,10 +793,8 @@ def main():
 
     ex_native_chart = speed_chart(native_run, gm)
     ex_jit_chart = speed_chart(jit_run, gm)
-    ex_interpreted_chart = speed_chart(interpreted_run, gm)
     ex_native_performance = performance_table(TASK_IDS, native_run, ms, ms_text)
     ex_jit_performance = performance_table(TASK_IDS, jit_run, ms, ms_text)
-    ex_interpreted_performance = performance_table(TASK_IDS, interpreted_run, ms, ms_text)
     ex_native_comparison = comparison_table(TASK_IDS, [("native / AOT", native_run)], ms, "swag-release")
     ex_jit_comparison = comparison_table(TASK_IDS, [("JIT", jit_run)], ms, "swc-jit-release")
 
@@ -947,10 +937,8 @@ def main():
         "{{build_speedup}}": fmt(build_speedup),
         "{{runtime_legend}}": runtime_legend([r[0] for r in RUNTIMES if r[0] in set(present + aot)]),
         "{{ex_native_chart}}": ex_native_chart, "{{ex_jit_chart}}": ex_jit_chart,
-        "{{ex_interpreted_chart}}": ex_interpreted_chart,
         "{{ex_matrix}}": ex_matrix,
         "{{ex_native_performance}}": ex_native_performance, "{{ex_jit_performance}}": ex_jit_performance,
-        "{{ex_interpreted_performance}}": ex_interpreted_performance,
         "{{ex_native_comparison}}": ex_native_comparison, "{{ex_jit_comparison}}": ex_jit_comparison,
         "{{bu_chart}}": bu_chart, "{{bu_matrix}}": bu_matrix, "{{bu_performance}}": bu_performance,
         "{{bu_comparison}}": bu_comparison,

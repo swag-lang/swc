@@ -41,6 +41,7 @@ enum class SymbolStructFlagsE : uint16_t
     Anonymous           = 1 << 9, // declared without a name, so its members are reached through the enclosing type
     OwnDynamicSlot      = 1 << 10,
     DynamicStorage      = 1 << 11,
+    UsingField          = 1 << 12, // at least one field was declared with `using`; a removed field leaves it set
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
@@ -66,6 +67,7 @@ public:
     void                                removeIgnoredFields();
     std::vector<SymbolVariable*>&       fields() { return fields_; }
     const std::vector<SymbolVariable*>& fields() const { return fields_; }
+    bool                                mayHaveUsingField() const noexcept { return hasExtraFlag(SymbolStructFlagsE::UsingField); }
     bool                                tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym) const noexcept;
     bool                                tryGetFieldIndexByName(size_t& outIndex, IdentifierRef name) const noexcept;
     const SymbolVariable*               findFieldByName(IdentifierRef name) const noexcept;

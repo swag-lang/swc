@@ -78,11 +78,12 @@ Swag release is twice as fast; 0.5x means it is twice as slow. A competitor appe
 it has a valid measurement for every displayed task. Per-task tables order runtime badges
 from fastest to slowest and show relative speed as `100 * best time / runtime time`, with linear
 bars starting at zero. The best is 100%; a runtime taking 1.03 times as long retains 97.1%
-of its speed, and twice the time gives 50%. Native/AOT, JIT and interpreted execution
+of its speed, and twice the time gives 50%. Native/AOT and JIT execution
 have separate references: the fastest time within that group on each task.
 Swag native and Swag JIT have distinct headline metrics and direct comparisons with
 their own competitors. A native 95% and a JIT 95% do not represent the same absolute
-speed. Interpreters have their own view without a Swag headline.
+speed. The execution report omits comparisons between interpreters, which have no Swag
+reference. Their measurements remain in the raw campaigns and resource charts that include Swag.
 The aggregate speed charts use the geometric mean of those per-task speeds, also on
 a linear 0–100% scale. No artificial minimum width inflates a small value.
 Hover a value for milliseconds, the time ratio
@@ -101,11 +102,13 @@ failure. Two-character badges identify every compiler and mode: `SW` is Swag rel
 Codes remain distinct independently of colour; the expandable legend names every mode.
 The report selects the dark theme by default for contrast with Swag's electric yellow.
 Its header and headline band keep the deep ink; the body uses a lighter near-black ground.
-Swag release uses the same signature yellow in both palettes. Colours prioritise hue and
-luminance separation within each execution group rather than similar tints for related modes.
+Swag release uses the same signature yellow in both themes and execution modes; devmode
+uses light green in native and JIT views. C#, Lua and PHP also share their colour across modes.
+Codes and labels identify the execution mode; history uses dashed lines for JIT.
 Every chart, badge and history line uses the same mapping. Chart labels place the name before
 the badge so the badges share a fixed edge beside the bars; the left-aligned legend keeps badges first.
-The report separates summary charts, sorted per-task results and expandable raw tables.
+Summary charts and sorted per-task native, JIT and build results are always visible.
+Raw tables and supplementary direct comparisons can be expanded separately.
 Resource bars show absolute costs on linear zero-based axes, with smaller values better.
 Execution and build sections identify their own campaign dates and commits; they need not
 come from the same campaign. The presentation never triggers new measurements.
@@ -364,8 +367,11 @@ the controls ran faster than at baseline, so the raw Swag value is raised before
 
 Compiler memory is the exception. It does not drift with machine state, so it is plotted raw.
 The execution and build headline ratios compare runtimes within one accepted campaign. Both
-use geometric means, but execution reports Swag time / fastest time (lower is better), while
-compilation reports fastest non-Swag time / Swag time (higher is better). Neither is an index
+use the same rule: geometric mean of fastest non-Swag time / Swag release time on each task
+(higher is better). Native / AOT and JIT have separate competitors; compilation includes bytecode
+recipes. The reference winner can change by task, but only competitors measured successfully on
+the complete panel participate. 1x means parity, 2x means half the elapsed time, and below 1x
+means slower. These are not indices
 against a historical compiler baseline. Machine correction remains in the history's time and
 index curves. A cross-language build ratio can still move with machine effects on different
 compilers; read compiler progress from those corrected curves and their resolution bands.
@@ -401,8 +407,11 @@ point deserves less trust than its neighbours.
 
 ## A Stable Progress Score
 
-The three primary metrics track Swag native execution, Swag JIT execution and Swag build
-speed over time, independently of the current competitor winners. Score version 1 freezes
+The history section tracks Swag native execution, Swag JIT execution and Swag build
+speed over time, independently of the current competitor winners. These points measure change
+since a reference, whereas the headline speedups measure the current advantage over rivals.
+A larger progress score in one category does not imply a larger competitive lead there.
+Score version 1 freezes
 twelve workloads in `history.PROGRESS_TASKS`. Each task has equal weight:
 
 `score = 100 / geometric_mean(corrected_time / corrected_reference_time)`
@@ -418,7 +427,8 @@ All twelve tasks participate, including the five added after the original seven-
 The current gap to the best is a different metric. The execution section shows its geometric
 mean together with the largest per-task gap and the count of lowest recorded times. For example,
 eight best times and four small-to-moderate gaps can yield only 2.2% overall even when one task
-is 22.6% behind. That gap is useful for current competition, but is not the progress headline.
+is 22.6% behind. That gap includes Swag in its reference and therefore counts only deficits;
+the headline speedup excludes Swag from its reference and counts both advantages and deficits.
 Corrections remain estimates; small score movements, particularly for builds, can be noise.
 
 ## A task added after the original baseline
@@ -463,10 +473,9 @@ should not be edited by hand.
 charts for the aggregates, and one history row per task. A new task adds a row everywhere and
 nothing else; explanations belong in this file.
 
-The legend at the top defines the coloured letter badges used in matrix headers and rankings.
-A language keeps its letter across modes; each runtime configuration keeps a distinct colour.
-Letters prefer the language's initial, with stable alternatives where initials collide. Full
-names and modes remain available as tooltips and accessible labels. Only runtimes measured in
+The legend at the top defines the coloured two-character badges used in matrix headers and rankings.
+Each runtime configuration has a distinct code; execution modes share the same language colour.
+Full names and modes remain available as tooltips and accessible labels. Only runtimes measured in
 the selected campaigns appear: adding support never inserts invented values into old results.
 
 ## Extending it

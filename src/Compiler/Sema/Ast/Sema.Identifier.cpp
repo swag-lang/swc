@@ -134,8 +134,9 @@ namespace
 
         // A name used only to ask the compiler about its type -- '#decltype(x)', '#typeof(x)' --
         // reads no storage, so the closure has nothing to capture. Requiring a capture there
-        // would force a value into the closure only to name its type.
-        if (node.hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema))
+        // would force a value into the closure only to name its type. The '#typeof' test walks
+        // the visit path to its root, so it is asked only of a name that would need a capture.
+        if (node.hasFlag(AstIdentifierFlagsE::InCompilerDefined))
             return false;
 
         if (!symbol.isVariable())
@@ -145,7 +146,7 @@ namespace
         if (symVar.ownerSymMap() == currentFn)
             return false;
         if (!explicitList)
-            return symVar.isClosureCapture();
+            return symVar.isClosureCapture() && !isTypeOnlyCompilerIdentifierUse(sema);
         if (symVar.hasGlobalStorage())
             return false;
 
@@ -161,7 +162,7 @@ namespace
         if (symVar.isFunctionLocalVariable(*currentFn))
             return false;
 
-        return symVar.isFrameVariable();
+        return symVar.isFrameVariable() && !isTypeOnlyCompilerIdentifierUse(sema);
     }
 
     bool inlinePayloadOwnsVariable(const SemaInlinePayload* inlinePayload, const SymbolFunction& function, const SymbolVariable& symVar)
@@ -220,6 +221,12 @@ namespace
             return nullptr;
 
         if (!symVar.isFrameVariable())
+            return nullptr;
+
+        // Every answer short of an outer function is "no boundary", and a variable of the
+        // current function ends the walk below on its first step: answer it before the visit
+        // path is searched for an inline context.
+        if (currentFn.ownsVariable(symVar))
             return nullptr;
 
         const SymbolFunction*    fn                 = &currentFn;
@@ -770,8 +777,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         const bool            isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
         const bool            isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (inlinePayloadUsesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));
         const bool            isImplicitReceiver          = symVar.idRef() == meId;
-        const bool            isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
+        const bool            isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined);
         const SymbolFunction* localFnBoundary             = !isMacroInjectClosureCapture && !isCallerScopeClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(sema, *sema.currentFunction(), symVar) : nullptr;
+
+        // A name only asked for its type ('#typeof(x)') crosses no boundary either. That test
+        // walks the visit path to its root, so it is asked only of a name that would cross one.
+        if (localFnBoundary && isTypeOnlyCompilerIdentifierUse(sema))
+            localFnBoundary = nullptr;
         if (localFnBoundary)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, sema.curNodeRef());

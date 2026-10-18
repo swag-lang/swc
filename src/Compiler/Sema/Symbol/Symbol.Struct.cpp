@@ -1104,6 +1104,8 @@ const SymbolImpl* SymbolStruct::findInterfaceImplOrUsingFields(const TaskContext
 {
     if (const SymbolImpl* impl = findInterfaceImpl(itf.idRef()))
         return impl;
+    if (!mayHaveUsingField())
+        return nullptr;
 
     for (const Symbol* field : fields_)
     {
@@ -1235,6 +1237,9 @@ void SymbolStruct::addField(SymbolVariable* sym)
 {
     SWC_ASSERT(sym != nullptr);
     SWC_ASSERT(!fieldIndexMap_.contains(sym));
+    // Published before the field so a reader that sees the field also sees the flag.
+    if (sym->isUsingField())
+        addExtraFlag(SymbolStructFlagsE::UsingField);
     fieldIndexMap_.emplace(sym, fields_.size());
     fields_.push_back(sym);
 }

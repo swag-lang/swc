@@ -140,6 +140,34 @@ class HistoryAdjustmentTests(unittest.TestCase):
                                 "cpp-msvc": {"run": {"ms": 0.0001}}} for task in TASKS}
                 self.assertEqual(history.execution_ratios(tasks, TASKS, "jit"), {"swc-jit-release": 1.0})
 
+    def test_execution_speedup_counts_advantages_with_separate_non_swag_references(self):
+        tasks = {task: {rt: {"run": {"ms": elapsed * scale}}
+                        for rt, elapsed in (("swag-release", 100), ("swag-fast-debug", 0.001),
+                                            ("swc-jit-release", 10), ("swc-jit-fast-debug", 0.001),
+                                            ("cpp-msvc", native), ("rust", rust),
+                                            ("node20", jit), ("lua5.4", 0.001))}
+                 for task, scale, native, rust, jit in (("first", 1, 200, 400, 40),
+                                                        ("second", 1000, 400, 100, 10))}
+        # The fastest native rival switches by task: sqrt(2 * 1), not a fixed rival.
+        self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "native"), 2 ** 0.5)
+        self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "jit"), 2)
+        for task in TASKS:
+            tasks[task]["swc-jit-release"]["run"]["ms"] *= 0.001
+        self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "native"), 2 ** 0.5)
+
+    def test_execution_speedup_needs_a_complete_valid_non_swag_rival(self):
+        for invalid in (None, 0, -1, float("inf"), float("nan")):
+            with self.subTest(invalid=invalid):
+                tasks = {task: {"swag-release": {"run": {"ms": 100}},
+                                "swag-fast-debug": {"run": {"ms": 1}},
+                                "cpp-msvc": {"run": {"ms": 1 if task == "first" else invalid}},
+                                "rust": {"run": {"ms": 1, "error": "failed"}},
+                                "node20": {"run": {"ms": 1}}} for task in TASKS}
+                self.assertIsNone(history.execution_speedup(tasks, TASKS, "native"))
+                for task in TASKS:
+                    tasks[task]["rust"]["run"] = {"ms": 50}
+                self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "native"), 0.5)
+
     def test_split_build_controls_reject_a_false_compiler_speedup(self):
         baseline = campaign("run-01", False)
         for task in TASKS:

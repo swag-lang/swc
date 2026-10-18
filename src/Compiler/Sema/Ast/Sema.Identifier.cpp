@@ -88,6 +88,9 @@ namespace
         const Symbol* const targetSymbol = resolveAliasedBaseSymbol(&preResolvedSymbol);
         for (const SemaScope* scope = sema.lookupScope(); scope; scope = scope->lookupParent())
         {
+            if (!scope->mayHaveSymbolNamed(idRef))
+                continue;
+
             for (const Symbol* symbol : scope->symbols())
             {
                 if (!symbol || sema.frame().isLookupSymbolHidden(symbol) || symbol->idRef() != idRef)

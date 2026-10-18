@@ -661,10 +661,13 @@ void SemaHelpers::ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym)
     if (!scope->symbols().empty() && scope->symbols().back() == sym)
         return;
 
-    for (const Symbol* existing : scope->symbols())
+    if (scope->mayHaveSymbolNamed(sym->idRef()))
     {
-        if (existing == sym)
-            return;
+        for (const Symbol* existing : scope->symbols())
+        {
+            if (existing == sym)
+                return;
+        }
     }
 
     scope->addSymbol(sym);

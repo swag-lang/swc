@@ -22,6 +22,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
+#include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -925,7 +926,10 @@ namespace
         const SemaNodeView condView = sema.viewConstant(node.nodeModeRef);
         SWC_ASSERT(condView.cst() && condView.cst()->isBool());
 
-        sema.frame().setGlobalCompilerIfEnabled(condView.cst()->getBool());
+        const bool enabled = condView.cst()->getBool();
+        sema.frame().setGlobalCompilerIfEnabled(enabled);
+        if (!enabled && sema.file())
+            sema.file()->unitTest().markExcludedByGlobalIf();
         return Result::SkipChildren;
     }
 }

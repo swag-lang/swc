@@ -189,36 +189,17 @@ namespace
         return node.nodeBodyRef.isValid();
     }
 
-    bool canDelayImportedFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    bool canDelayImportedOrRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
         if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
         const SourceFile* file = sema.file();
-        if (!file || !file->isImportedApi())
+        if (!file)
             return false;
         // Imported methods need the receiver binding created while walking their declaration
         // scope. Replaying only the function body cannot currently reconstruct that binding.
-        if (sym.isMethod())
-            return false;
-        if (declImpl && declImpl->isForInterface())
-            return false;
-        if (sym.isEmpty() || sym.specOpKind() != SpecOpKind::None)
-            return false;
-        if (sym.attributes().hasMacroOrMixin())
-            return false;
-        if (isImplicitGeneratedLifecycleWrapper(sema, sym))
-            return false;
-        if (functionSignatureNeedsBody(node))
-            return false;
-        return node.nodeBodyRef.isValid();
-    }
-
-    bool canDelayRuntimeFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
-    {
-        if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
-            return false;
-        const SourceFile* file = sema.file();
-        if (!file || !file->isRuntime())
+        const bool delayImported = file->isImportedApi() && !sym.isMethod();
+        if (!delayImported && !file->isRuntime())
             return false;
         if (declImpl && declImpl->isForInterface())
             return false;
@@ -241,8 +222,7 @@ namespace
             return false;
 
         return canDelayGenericInstanceFunctionBody(sema, node, sym, declImpl) ||
-               canDelayImportedFunctionBody(sema, node, sym, declImpl) ||
-               canDelayRuntimeFunctionBody(sema, node, sym, declImpl);
+               canDelayImportedOrRuntimeFunctionBody(sema, node, sym, declImpl);
     }
 
     struct LazyBodyRun

@@ -60,7 +60,6 @@ struct EnumFlags
     constexpr Self mask(T fl) const { return Self{static_cast<T>(flags & static_cast<U>(fl))}; }
     constexpr Self maskInvert(Self fl) const { return Self{static_cast<T>(flags & ~fl.flags)}; }
     constexpr Self maskInvert(T fl) const { return Self{static_cast<T>(flags & ~static_cast<U>(fl))}; }
-    constexpr void clearMask(T fl) { flags &= ~static_cast<U>(fl); }
     constexpr void add(Self fl) { flags |= fl.flags; }
     constexpr void add(T fl) { flags |= static_cast<U>(fl); }
     constexpr void remove(Self fl) { flags &= ~fl.flags; }
@@ -235,11 +234,6 @@ struct AtomicEnumFlags
     void clear(std::memory_order mo = std::memory_order_acq_rel) noexcept
     {
         flags.store(0, mo);
-    }
-
-    void clearMask(T fl, std::memory_order mo = std::memory_order_acq_rel) noexcept
-    {
-        flags.fetch_and(static_cast<U>(~static_cast<U>(fl)), mo);
     }
 
     EnumFlags<T> with(EnumFlags<T> fl, std::memory_order mo = std::memory_order_acq_rel) noexcept

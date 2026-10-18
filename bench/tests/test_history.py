@@ -111,7 +111,7 @@ class HistoryAdjustmentTests(unittest.TestCase):
                     progress = history.progress_series(entries, "swag-release", "run", TASKS)
                     self.assertIsNone(progress["scores"]["run-02"])
 
-    def test_execution_headlines_never_compare_different_execution_models(self):
+    def test_execution_headlines_separate_native_from_jit_and_interpreted(self):
         result = campaign("run-01", False)
         for task, scale in zip(TASKS, (1, 100)):
             result["tasks"][task] = {rt: {"run": {"ms": elapsed * scale}}
@@ -121,14 +121,15 @@ class HistoryAdjustmentTests(unittest.TestCase):
         panel = {"run": TASKS, "build": TASKS}
         headline = history._headline(result, panel)
         self.assertAlmostEqual(headline["exec_native_vs_best"], 1.03)
-        self.assertAlmostEqual(headline["exec_jit_vs_best"], 2)
+        self.assertAlmostEqual(headline["exec_jit_vs_best"], 200)
+        self.assertEqual(headline["exec_jit_fastest"], "lua5.4")
         for model, runtime, unaffected in (("native", "cpp-msvc", "exec_jit_vs_best"),
-                                            ("jit", "node20", "exec_native_vs_best")):
+                                            ("jit", "node20", "exec_native_vs_best"),
+                                            ("jit", "lua5.4", "exec_native_vs_best")):
             with self.subTest(model=model):
                 faster = copy.deepcopy(result)
                 for task in TASKS:
                     faster["tasks"][task][runtime]["run"]["ms"] *= 0.001
-                    faster["tasks"][task]["lua5.4"]["run"]["ms"] *= 0.00001
                 self.assertAlmostEqual(history._headline(faster, panel)[unaffected], headline[unaffected])
         self.assertNotIn("exec_vs_best", headline)
 
@@ -150,7 +151,7 @@ class HistoryAdjustmentTests(unittest.TestCase):
                                                         ("second", 1000, 400, 100, 10))}
         # The fastest native rival switches by task: sqrt(2 * 1), not a fixed rival.
         self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "native"), 2 ** 0.5)
-        self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "jit"), 2)
+        self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "jit"), 0.0001)
         for task in TASKS:
             tasks[task]["swc-jit-release"]["run"]["ms"] *= 0.001
         self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "native"), 2 ** 0.5)

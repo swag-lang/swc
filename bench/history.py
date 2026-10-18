@@ -59,8 +59,7 @@ RUN_GROUPS = {
     "native": ("swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc", "rust",
                "zig", "d-ldc", "odin", "go", "swift", "csharp-aot"),
     "jit": ("swc-jit-release", "swc-jit-fast-debug", "csharp-jit", "java-hotspot",
-            "node20", "luajit2.1", "php-jit"),
-    "interpreted": ("lua5.4", "python3.12", "php", "ruby"),
+            "node20", "luajit2.1", "php-jit", "lua5.4", "python3.12", "php", "ruby"),
 }
 
 # Versioned, fixed panel: adding a benchmark must not silently change a progress score.

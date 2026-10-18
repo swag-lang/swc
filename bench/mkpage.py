@@ -186,13 +186,13 @@ def total_time_gap(summary):
     return time_saved(summary["saved_ms"]) if summary else "No complete comparison"
 
 
-def trend(change):
+def trend(change, show_previous=True):
     if change is None:
         return ('<span class="trend unavailable" aria-label="No comparable earlier campaign">'
                 '&mdash;</span>', 'No comparable earlier campaign')
     if "saved_ms" in change:
-        previous = signed_duration(change["previous_saved_ms"])
-        current = signed_duration(change["current_saved_ms"])
+        previous = signed_duration(-change["previous_saved_ms"])
+        current = signed_duration(-change["current_saved_ms"])
         if current == previous:
             state, arrow, label = "unchanged", "&rarr;", "Unchanged"
         elif change["saved_ms"] > 0:
@@ -210,16 +210,19 @@ def trend(change):
         else:
             state, arrow, label = "regressed", "&darr;", "Regressed"
         detail = "%s: %s before, %s now" % (label, previous, current)
+    if not show_previous:
+        detail = label
     reference = change["reference"]
     note = '%s vs %s' % (detail, reference["date"][:10])
     title = "%s; reference %s (%s); %d tasks" % (
         detail, reference["date"], reference["stamp"], change["tasks"])
     markup = ('<span class="trend %s" role="img" aria-label="%s" title="%s">%s</span>'
               % (state, html.escape(detail, quote=True), html.escape(title, quote=True), arrow))
-    previous_title = "Previous measured value, %s (%s): %s" % (
-        reference["date"], reference["stamp"], previous)
-    markup = ('<span class="trend-pair">%s<small class="previous-value" title="%s">%s</small></span>'
-              % (markup, html.escape(previous_title, quote=True), previous))
+    if show_previous:
+        previous_title = "Previous measured value, %s (%s): %s" % (
+            reference["date"], reference["stamp"], previous)
+        markup = ('<span class="trend-pair">%s<small class="previous-value" title="%s">%s</small></span>'
+                  % (markup, html.escape(previous_title, quote=True), previous))
     return markup, note
 
 
@@ -232,7 +235,7 @@ def competitive_stat(campaign, campaigns, tasks, lead, family, group, name):
     if summary is None:
         value, description, note = "&mdash;", "No complete comparison", ""
     else:
-        amount, unit = signed_duration(summary["saved_ms"]).split(" ", 1)
+        amount, unit = signed_duration(-summary["saved_ms"]).split(" ", 1)
         value = "%s<em>%s</em>" % (amount, unit)
         description = "Total time difference across %d workloads" % len(tasks)
         note = ('<b>%d ahead &middot; %d close &middot; %d behind</b><br>'
@@ -305,107 +308,76 @@ def simple_table(headers, rows):
     return "\n".join(out)
 
 
-def _cell_class(rt, previous, *extra):
-    cls = [c for c in extra if c]
-    if rt == "swag-release":
-        cls.append("sw")
-    if previous and META[rt][3] != META[previous][3]:
-        cls.append("gap")
-    return ' class="%s"' % " ".join(cls) if cls else ""
-
-
-def matrix(tasks, runtimes, value, show, footer=None):
-    """One task per row, one runtime per column; the best of each row in bold.
-
-    Tasks grow downwards, so adding one adds a row and moves nothing else."""
-    out = ['<div class="table-wrap"><table class="matrix"><thead><tr><th>task</th>']
-    for i, rt in enumerate(runtimes):
-        out.append('<th scope="col"%s>%s</th>'
-                   % (_cell_class(rt, runtimes[i - 1] if i else None), runtime_badge(rt)))
-    out.append("</tr></thead><tbody>")
-    for task in tasks:
-        values = [value(rt, task) for rt in runtimes]
-        best = min((v for v in values if v is not None), default=None)
-        info = TASK_INFO.get(task)
-        title = ' title="%s"' % html.escape(html.unescape(info), quote=True) if info else ""
-        out.append("<tr><th%s><code>%s</code></th>" % (title, task))
-        for i, (rt, v) in enumerate(zip(runtimes, values)):
-            best_cls = "best" if v is not None and v == best else ""
-            out.append("<td%s>%s</td>"
-                       % (_cell_class(rt, runtimes[i - 1] if i else None, best_cls), show(v)))
-        out.append("</tr>")
-    out.append("</tbody>")
-    if footer:
-        label, values, show_footer = footer
-        out.append("<tfoot><tr><th>%s</th>" % label)
-        for i, rt in enumerate(runtimes):
-            out.append("<td%s>%s</td>" % (_cell_class(rt, runtimes[i - 1] if i else None),
-                                          show_footer(values.get(rt))))
-        out.append("</tr></tfoot>")
-    out.append("</table></div>")
-    return "\n".join(out)
-
-
-def performance_table(tasks, runtimes, value, reference_runtime):
-    """Show each measured duration and time saved against the shared rival reference."""
+def performance_table(tasks, runtimes, value):
+    """Keep each example's sorted times on one compact horizontal line."""
     out = ['<div class="table-wrap"><table class="performance"><thead><tr><th scope="col">task</th>']
-    out.append('<th scope="col">non-Swag reference</th>')
-    out.append('<th scope="col">Faster &rarr; slower &middot; measured time / saved or lost</th></tr></thead><tbody>')
+    out.append('<th scope="col">Fastest &rarr; slowest &middot; measured time</th></tr></thead><tbody>')
     for task in tasks:
         values = [value(rt, task) for rt in runtimes]
         values = [v if v is not None and math.isfinite(v) and v > 0 else None for v in values]
         measured = sorted(zip(runtimes, values), key=lambda item: item[1] if item[1] is not None else math.inf)
-        reference = dict(measured).get(reference_runtime)
         info = TASK_INFO.get(task)
-        title = ' title="%s"' % html.escape(html.unescape(info), quote=True) if info else ""
+        description = html.unescape(info) if info else task
+        title = ' title="%s"' % html.escape(description, quote=True)
         out.append('<tr><th scope="row"%s><code>%s</code></th>' % (title, task))
-        reference_label = ('%s %s' % (runtime_badge(reference_runtime), duration(reference))
-                           if reference_runtime else "&mdash;")
-        out.append('<td class="rival-reference">%s</td>' % reference_label)
         out.append('<td><ol>')
         for rt, result in measured:
+            label = '<span class="speed-label">%s</span>' % runtime_badge(rt)
+            name = html.escape(runtime_label(rt), quote=True)
             if result is None:
-                out.append('<li class="%s" title="No measurement"><span class="speed-label">'
-                           '%s<span>&mdash;</span></span></li>' % (lang_class(rt), runtime_badge(rt)))
+                out.append('<li class="%s" title="No measurement: %s">%s<span class="speed-value">&mdash;</span></li>'
+                           % (lang_class(rt), name, label))
                 continue
-            gap = signed_duration(reference - result) if reference is not None else "&mdash;"
-            detail = html.escape(html.unescape("%s: %s; saved or lost vs %s: %s"
-                                % (runtime_label(rt), duration(result),
-                                   runtime_label(reference_runtime) if reference_runtime else "unavailable reference",
-                                   gap)), quote=True)
-            out.append('<li class="%s" title="%s"><span class="speed-label">%s'
-                       '<span class="speed-value">%s</span></span>'
-                       '<span class="time-gap">%s</span></li>'
-                       % (lang_class(rt), detail, runtime_badge(rt), duration(result), gap))
+            out.append('<li class="%s" title="%s">%s<span class="speed-value">%s</span></li>'
+                       % (lang_class(rt), name, label, duration(result)))
         out.append("</ol></td></tr>")
     out.append("</tbody></table></div>")
     return "\n".join(out)
 
 
-def comparison_table(campaign, tasks, runtimes, family, group=None):
-    """Use the headline's shared rival panel for every runtime, with absolute peaks."""
+def swag_comparison_table(campaign, tasks, family, campaigns=()):
+    """Compare every competitor directly with Swag on the complete displayed panel."""
     key = "ms" if family == "run" else "wall_ms"
-    competitors = report_metrics.rivals(campaign, tasks, family, key, group)
-    reference = report_metrics.reference_runtime(campaign, tasks, family, key, competitors)
-    caption = ('<p class="cap">Shared reference: %s &middot; total %s.</p>' % (
-        html.escape(runtime_label(reference)),
-        duration(sum(report_metrics.measurements(campaign, tasks, reference, family, key))))
-        if reference else '<p class="cap">No complete non-Swag reference.</p>')
+    leads = ["swag-release", "swag-fast-debug"]
+    if family == "run":
+        leads += ["swc-jit-release", "swc-jit-fast-debug"]
+    headers = ["language / mode", "competitor total"]
+    for lead in leads:
+        values = report_metrics.measurements(campaign, tasks, lead, family, key)
+        headers.append('%s %s<br><span class="comparison-total">total %s</span>' % (
+            runtime_badge(lead), html.escape(runtime_label(lead)), duration(sum(values)) if values else "&mdash;"))
+
     rows = []
-    for rt in runtimes:
-        times = report_metrics.measurements(campaign, tasks, rt, family, key)
-        peak = report_metrics.measurements(campaign, tasks, rt, family, "peak_bytes")
-        summary = report_metrics.comparison(campaign, tasks, rt, family, key, competitors)
-        rows.append((sum(times) if times else math.inf, [
-            '%s %s' % (runtime_badge(rt), html.escape(runtime_label(rt))),
-            duration(sum(times)) if times else "&mdash;",
-            signed_duration(summary["saved_ms"]) if summary else "&mdash;",
-            "%d / %d / %d" % (summary["ahead"], summary["close"], summary["behind"]) if summary else "&mdash;",
-            "%s MiB" % fmt(max(peak) / 1048576, 1) if peak else "&mdash;",
-        ]))
-    return caption + simple_table(["language / mode", "total time", "saved / lost", "ahead / close / behind",
-                         "peak compiler memory" if family == "build" else "peak program memory"],
-                        [row for _, row in sorted(rows, key=lambda item: item[0])])
+    for runtime, *_ in RUNTIMES:
+        if runtime in history.TRACKED or not any(
+                family in (campaign.get("tasks", {}).get(task, {}).get(runtime) or {}) for task in tasks):
+            continue
+        values = report_metrics.measurements(campaign, tasks, runtime, family, key)
+        row = ['%s %s' % (runtime_badge(runtime), html.escape(runtime_label(runtime))),
+               duration(sum(values)) if values else "&mdash;"]
+        for lead in leads:
+            summary = report_metrics.comparison(campaign, tasks, lead, family, key, [runtime])
+            if summary is None:
+                row.append("&mdash;")
+                continue
+            saved = summary["saved_ms"]
+            state = "won" if saved > 0 else "lost" if saved < 0 else "tied"
+            change = report_metrics.previous_change(campaign, campaigns, tasks, lead, family, key,
+                                                     competitor=runtime)
+            arrow, _ = trend(change, show_previous=False)
+            row.append('<span class="comparison-gap %s">%s</span> %s' % (state, signed_duration(-saved), arrow))
+        rows.append(row)
+    return simple_table(headers, rows)
+
+
+def execution_tables(tasks, runtimes, value):
+    """Keep native and JIT/interpreted rankings separate."""
+    parts = []
+    for group, title in (("native", "Native / AOT"), ("jit", "JIT / interpreted")):
+        selected = [rt for rt in runtimes if rt in history.RUN_GROUPS[group]]
+        if selected:
+            parts.append('<h3>%s</h3>%s' % (title, performance_table(tasks, selected, value)))
+    return "\n".join(parts)
 
 
 def spark(values):
@@ -670,7 +642,7 @@ def history_section(entries):
     parts.append('<div class="small-mult">')
     for field, name, nd, unit, cls in (
             ("exec_native_vs_best", "SW native time / native per-task best (lower is better)", 2, "&times;", "h-a"),
-            ("exec_jit_vs_best", "SJ JIT time / JIT per-task best (lower is better)", 2, "&times;", "h-b"),
+            ("exec_jit_vs_best", "SJ JIT time / JIT + interpreted per-task best (lower is better)", 2, "&times;", "h-b"),
             ("build_speedup", "build speedup vs fastest rival (higher is better)", 2, "&times;", "h-a")):
         vals = [e.get("headline", {}).get(field) for e in entries]
         parts.append('<div class="sm"><b>%s</b>%s</div>'
@@ -832,7 +804,7 @@ def main():
     execution_stats = "".join([
         competitive_stat(R, campaigns, TASK_IDS, "swag-release", "run", "native", "Native execution &middot; release"),
         competitive_stat(R, campaigns, TASK_IDS, "swag-fast-debug", "run", "native", "Native execution &middot; devmode"),
-        competitive_stat(R, campaigns, TASK_IDS, "swc-jit-release", "run", "jit", "JIT execution"),
+        competitive_stat(R, campaigns, TASK_IDS, "swc-jit-release", "run", "jit", "JIT / interpreted execution"),
     ])
     build_stats = "".join([
         competitive_stat(B, campaigns, TASK_IDS, "swag-release", "build", None, "Compilation"),
@@ -842,88 +814,23 @@ def main():
          % (memory_value, memory_arrow)),
     ])
 
-    native_run = [rt for rt in present if rt in execution["native"]]
-    jit_run = [rt for rt in present if rt in execution["jit"]]
-    interpreted_run = [rt for rt in present if rt in execution["interpreted"]]
-    def totals(campaign, runtimes, family, key):
-        return {rt: sum(values) for rt in runtimes
-                if (values := report_metrics.measurements(campaign, TASK_IDS, rt, family, key))}
+    run_totals = {rt: sum(values) for rt in present
+                  if (values := report_metrics.measurements(R, TASK_IDS, rt, "run", "ms"))}
+    # Include partial runtimes in per-example rankings; only their missing cells are blank.
+    run_runtimes = [rt for rt, *_ in RUNTIMES if any("run" in (T[t].get(rt) or {}) for t in TASK_IDS)]
+    build_runtimes = [rt for rt, *_ in RUNTIMES if any("build" in (BT[t].get(rt) or {}) for t in TASK_IDS)]
+    ex_performance = execution_tables(TASK_IDS, run_runtimes, ms)
 
-    run_totals = totals(R, present, "run", "ms")
-    build_totals = totals(B, aot, "build", "wall_ms")
-    ex_matrix = "\n".join('<h3>%s</h3>%s' % (name, matrix(
-        TASK_IDS, runtimes, ms, ms_text, ("total time", run_totals, duration)))
-        for name, runtimes in (("Native / AOT", native_run), ("JIT", jit_run),
-                               ("Interpreted", interpreted_run)) if runtimes)
-    def time_chart(runtimes, measured_totals):
-        hi, ticks = lin_axis([measured_totals[rt] for rt in runtimes])
-        return chart([(rt, measured_totals[rt], duration(measured_totals[rt]))
-                      for rt in sorted(runtimes, key=measured_totals.get)], hi, ticks, "", duration)
-
-    ex_native_chart = time_chart(native_run, run_totals)
-    ex_jit_chart = time_chart(jit_run, run_totals)
-    ex_interpreted_chart = time_chart(interpreted_run, run_totals)
-    native_rivals = report_metrics.rivals(R, TASK_IDS, "run", "ms", "native")
-    jit_rivals = report_metrics.rivals(R, TASK_IDS, "run", "ms", "jit")
-    interpreted_rivals = report_metrics.rivals(R, TASK_IDS, "run", "ms", "interpreted")
-    ex_native_performance = performance_table(TASK_IDS, native_run, ms,
-        report_metrics.reference_runtime(R, TASK_IDS, "run", "ms", native_rivals))
-    ex_jit_performance = performance_table(TASK_IDS, jit_run, ms,
-        report_metrics.reference_runtime(R, TASK_IDS, "run", "ms", jit_rivals))
-    ex_interpreted_performance = performance_table(TASK_IDS, interpreted_run, ms,
-        report_metrics.reference_runtime(R, TASK_IDS, "run", "ms", interpreted_rivals))
-    ex_native_comparison = comparison_table(R, TASK_IDS, native_run, "run", "native")
-    ex_jit_comparison = comparison_table(R, TASK_IDS, jit_run, "run", "jit")
-    ex_interpreted_comparison = comparison_table(R, TASK_IDS, interpreted_run, "run", "interpreted")
-
-    def competitive_summary(runtimes, lead):
-        competitors = [rt for rt in runtimes if rt not in history.TRACKED]
-        summary = report_metrics.comparison(R, TASK_IDS, lead, "run", "ms", competitors)
-        if not summary:
-            return "No complete comparison."
-        return ('%s: <b>%s</b>; %s: <b>%s</b>; <b>%s</b>.' % (
-                    html.escape(runtime_label(lead)),
-                    duration(summary["total_ms"]), html.escape(runtime_label(summary["reference_runtime"])),
-                    duration(summary["rival_total_ms"]), total_time_gap(summary)))
-
-    ex_native_summary = competitive_summary(native_run, "swag-release")
-    ex_jit_summary = (competitive_summary(jit_run, "swc-jit-release")
-                      if "swc-jit-release" in gm else "No complete Swag JIT measurement.")
-
-    bu_chart = time_chart(aot, build_totals)
     def build_ms(r, t):
         if t != "hello":
             return build(r, t, "wall_ms")
         rec = B["hello_build"].get(r) or {}
         return rec.get("wall_ms") if not rec.get("error") else None
 
-    bu_matrix = matrix(TASK_IDS + ["hello"], aot, build_ms,
-                       lambda v: fmt(v, 0) if v is not None else "&mdash;",
-                       ("total excluding hello", build_totals, duration))
-    bu_performance = performance_table(TASK_IDS + ["hello"], aot, build_ms,
-        report_metrics.reference_runtime(B, TASK_IDS, "build", "wall_ms",
-                                        report_metrics.rivals(B, TASK_IDS, "build", "wall_ms")))
-    bu_comparison = comparison_table(B, TASK_IDS, aot, "build")
+    bu_performance = performance_table(TASK_IDS + ["hello"], build_runtimes, build_ms)
 
-    # The edit-build loop of this campaign, from its condensed entry: that is where the
-    # correction and the index live, and the raw file only holds what was measured.
-    current = next((e for e in entries if e["meta"].get("stamp") == B["meta"].get("stamp")),
-                   entries[-1] if entries else {})
-    loop = current.get("loop") or {}
-    loop_rows = []
-    for wid, name, what in LOOP:
-        rec = loop.get(wid)
-        if not rec:
-            continue
-        loop_rows.append(['%s <span class="mode">%s</span>' % (name, what),
-                          fmt(rec.get("wall_ms"), 0), fmt(rec.get("adjusted_ms"), 0),
-                          fmt(rec.get("peak_mb"), 0), fmt(rec.get("index"))])
     run_entry = next((e for e in entries if e["meta"].get("stamp") == R["meta"].get("stamp")), None)
     allocator = allocator_section(entries, run_entry)
-
-    loop_table = (simple_table(["workload", "raw (ms)", "adjusted (ms)", "MiB", "index"],
-                               loop_rows)
-                  if loop_rows else '<p class="cap">No measured edit-build workload.</p>')
 
     me_hi, me_ticks = lin_axis(list(bmem.values()))
     me_chart = chart(sorted(((r, v, fmt(v, 1)) for r, v in bmem.items()), key=lambda x: x[1]),
@@ -1012,21 +919,12 @@ def main():
 
     subs = {
         "{{execution_stats}}": execution_stats, "{{build_stats}}": build_stats,
+        "{{swag_execution_comparison}}": swag_comparison_table(R, TASK_IDS, "run", campaigns),
+        "{{swag_build_comparison}}": swag_comparison_table(B, TASK_IDS, "build", campaigns),
         "{{progress_version}}": str(history.PROGRESS_VERSION),
         "{{progress_tasks}}": str(len(history.PROGRESS_TASKS)),
-        "{{ex_native_summary}}": ex_native_summary, "{{ex_jit_summary}}": ex_jit_summary,
-        "{{build_gap}}": build_gap,
-        "{{runtime_legend}}": runtime_legend([r[0] for r in RUNTIMES if r[0] in set(present + aot)]),
-        "{{ex_native_chart}}": ex_native_chart, "{{ex_jit_chart}}": ex_jit_chart,
-        "{{ex_interpreted_chart}}": ex_interpreted_chart,
-        "{{ex_matrix}}": ex_matrix,
-        "{{ex_native_performance}}": ex_native_performance, "{{ex_jit_performance}}": ex_jit_performance,
-        "{{ex_native_comparison}}": ex_native_comparison, "{{ex_jit_comparison}}": ex_jit_comparison,
-        "{{ex_interpreted_performance}}": ex_interpreted_performance,
-        "{{ex_interpreted_comparison}}": ex_interpreted_comparison,
-        "{{bu_chart}}": bu_chart, "{{bu_matrix}}": bu_matrix, "{{bu_performance}}": bu_performance,
-        "{{bu_comparison}}": bu_comparison,
-        "{{loop_table}}": loop_table,
+        "{{runtime_legend}}": runtime_legend([r[0] for r in RUNTIMES if r[0] in set(run_runtimes + build_runtimes)]),
+        "{{ex_performance}}": ex_performance, "{{bu_performance}}": bu_performance,
         "{{allocator}}": allocator,
         "{{me_chart}}": me_chart, "{{rm_chart}}": rm_chart,
         "{{st_chart}}": st_chart, "{{sz_chart}}": sz_chart,

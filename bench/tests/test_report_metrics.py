@@ -1,6 +1,8 @@
 import os
+import re
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -17,7 +19,7 @@ def campaign(day, own=(50, 99, 101, 200), rival=(100, 100, 100, 100)):
         tasks[task] = {}
         for runtime, value in (("swag-release", sw), ("cpp-clang-cl", other),
                                ("swc-jit-release", sw), ("node20", other),
-                               ("swag-fast-debug", 0.01), ("python3.12", 0.01)):
+                               ("swag-fast-debug", 0.01), ("python3.12", other)):
             tasks[task][runtime] = {"run": {"ms": value},
                                    "build": {"wall_ms": value, "peak_bytes": value * 1024}}
     return {"meta": {"date": "2026-10-%02dT00:00:00+00:00" % day,
@@ -40,7 +42,7 @@ class ReportMetricsTests(unittest.TestCase):
 
     def test_group_references_and_all_swag_modes_stay_separate(self):
         current = campaign(2)
-        self.assertEqual(metrics.rivals(current, TASKS, "run", "ms", "jit"), ["node20"])
+        self.assertEqual(metrics.rivals(current, TASKS, "run", "ms", "jit"), ["node20", "python3.12"])
         builds = metrics.rivals(current, TASKS, "build", "wall_ms")
         self.assertNotIn("swag-fast-debug", builds)
         self.assertIn("python3.12", builds)  # Only the recorded build contract matters here.
@@ -89,7 +91,7 @@ class ReportMetricsTests(unittest.TestCase):
         self.assertIn('class="previous-value"', markup)
         self.assertIn(">0.0 ms</small>", markup)
         self.assertIn("Previous measured value, 2026-10-01", markup)
-        self.assertIn("+470.0 ms now", note)
+        self.assertIn("-470.0 ms now", note)
         self.assertNotIn("%", note)
 
     def test_larger_displayed_savings_get_an_up_arrow_even_when_time_ratios_regress(self):
@@ -100,7 +102,7 @@ class ReportMetricsTests(unittest.TestCase):
         self.assertEqual(change["current_saved_ms"], 1620)
         markup, note = mkpage.trend(change)
         self.assertIn("trend improved", markup)
-        self.assertIn("+1.54 s before, +1.62 s now", note)
+        self.assertIn("-1.54 s before, -1.62 s now", note)
         for previous, current, state in ((1620, 1540, "regressed"), (-50, -20, "improved"),
                                           (-20, -50, "regressed"), (1540.1, 1540.2, "unchanged")):
             with self.subTest(previous=previous, current=current):
@@ -151,7 +153,7 @@ class ReportMetricsTests(unittest.TestCase):
         before = campaign(1, own=(100,) * 4)
         current = campaign(2, own=(50,) * 4)
         markup = mkpage.competitive_stat(current, [before], TASKS, "swag-release", "run", "native", "Native execution")
-        self.assertIn("+200.0<em>ms</em>", markup)
+        self.assertIn("-200.0<em>ms</em>", markup)
         self.assertIn("4 ahead", markup)
         self.assertIn("Swag total: 200.0 ms", markup)
         self.assertIn("Non-Swag rival total: 400.0 ms", markup)
@@ -159,8 +161,8 @@ class ReportMetricsTests(unittest.TestCase):
         self.assertNotIn("&times;", markup)
 
     def test_total_headline_handles_losses_parity_and_seconds(self):
-        for own, expected in ((200, "-400.0<em>ms</em>"), (100, "0.0<em>ms</em>"),
-                              (1000, "-3.60<em>s</em>")):
+        for own, expected in ((200, "+400.0<em>ms</em>"), (100, "0.0<em>ms</em>"),
+                              (1000, "+3.60<em>s</em>")):
             with self.subTest(own=own):
                 current = campaign(2, own=(own,) * 4)
                 markup = mkpage.competitive_stat(current, [], TASKS, "swag-release", "run", "native", "Native execution")
@@ -173,7 +175,7 @@ class ReportMetricsTests(unittest.TestCase):
             current["tasks"][task]["swc-jit-fast-debug"] = {"run": {"ms": 80}}
             current["tasks"][task]["csharp-jit"] = {"run": {"ms": 80 if i < 2 else 140}}
         markup = mkpage.competitive_stat(current, [], TASKS, "swc-jit-release", "run", "jit", "JIT execution")
-        self.assertIn("+200.0<em>ms</em>", markup)
+        self.assertIn("-200.0<em>ms</em>", markup)
         self.assertIn("Swag total: 200.0 ms", markup)
         self.assertIn("Non-Swag rival total: 400.0 ms", markup)
         self.assertIn("Reference: JavaScript / Node V8 (JIT)", markup)
@@ -198,76 +200,159 @@ class ReportMetricsTests(unittest.TestCase):
 
 
 class ReportTableTests(unittest.TestCase):
-    def test_totals_use_elapsed_sums_and_the_headlines_shared_rivals(self):
-        current = campaign(2, own=(1, 2, 3, 1000), rival=(100, 100, 100, 100))
-        markup = mkpage.comparison_table(current, TASKS,
-                                         ["swag-release", "swag-fast-debug", "cpp-clang-cl"], "run", "native")
-        # Uneven task lengths must not turn this into a mean of per-task ratios.
-        self.assertIn("1.01 s", markup)
-        self.assertIn("-606.0 ms", markup)
-        self.assertIn("3 / 0 / 1", markup)
-        # Devmode's much smaller times cannot set the shared non-Swag reference.
-        self.assertIn("+400.0 ms", markup)
-        self.assertIn("4 / 0 / 0", markup)
-        self.assertIn("0.0 ms", markup)  # A rival winning every task saves zero vs itself.
-        self.assertNotIn("%", markup)
-        self.assertNotIn("&times;", markup)
+    @staticmethod
+    def comparison_values(row):
+        return [row[1]] + [re.search(r'class="comparison-gap [^"]+">([^<]+)', cell).group(1)
+                           if 'class="comparison-gap' in cell else cell for cell in row[2:]]
 
-    def test_missing_times_and_peaks_are_independent_and_never_partial(self):
-        for family, key, group in (("run", "ms", "native"), ("build", "wall_ms", None)):
-            with self.subTest(family=family):
-                current = campaign(2, own=(50,) * 4)
-                for task in TASKS:
-                    current["tasks"][task]["swag-release"][family]["peak_bytes"] = 8 * 1048576
-                complete = mkpage.comparison_table(current, TASKS, ["swag-release"], family, group)
-                self.assertIn("8.0 MiB", complete)  # Four process peaks must not sum to 32 MiB.
-                del current["tasks"]["four"]["swag-release"][family][key]
-                missing_time = mkpage.comparison_table(current, TASKS, ["swag-release"], family, group)
-                self.assertEqual(missing_time.count("&mdash;"), 3)
-                self.assertIn("8.0 MiB", missing_time)
-                current["tasks"]["four"]["swag-release"][family][key] = 50
-                del current["tasks"]["four"]["swag-release"][family]["peak_bytes"]
-                missing_peak = mkpage.comparison_table(current, TASKS, ["swag-release"], family, group)
-                self.assertEqual(missing_peak.count("&mdash;"), 1)
-                self.assertIn("200.0 ms", missing_peak)
-                self.assertNotIn("MiB</td>", missing_peak)
-
-    def test_jit_totals_ignore_native_rivals(self):
-        current = campaign(2, own=(50,) * 4, rival=(100,) * 4)
+    def test_direct_comparisons_use_each_competitors_total_against_every_swag_mode(self):
+        current = campaign(2, own=(1, 2, 3, 1000), rival=(100,) * 4)
         for task in TASKS:
-            current["tasks"][task]["cpp-clang-cl"]["run"]["ms"] = 0.001
-        markup = mkpage.comparison_table(current, TASKS, ["swc-jit-release"], "run", "jit")
-        self.assertIn("200.0 ms", markup)
-        self.assertIn("+200.0 ms", markup)
+            current["tasks"][task]["swc-jit-fast-debug"] = {"run": {"ms": 500}}
+            current["tasks"][task]["python3.12"]["run"]["ms"] = 0.01
+        current["tasks"]["hello"] = {"cpp-clang-cl": {"run": {"ms": 999999}}}
+        with mock.patch.object(mkpage, "simple_table", side_effect=lambda headers, rows: (headers, rows)):
+            headers, rows = mkpage.swag_comparison_table(current, TASKS, "run")
+        self.assertEqual(len(headers), 6)
+        self.assertIn("total 1.01 s", headers[2])
+        self.assertIn("total 0.04 ms", headers[3])
+        self.assertIn("total 2.00 s", headers[5])
+        # All competitors appear, including JIT and interpreted runtimes; Swag only heads columns.
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(self.comparison_values(rows[0]), ["400.0 ms", "+606.0 ms", "-400.0 ms", "+606.0 ms", "+1.60 s"])
+        self.assertEqual(rows[1][1:], rows[0][1:])
+        self.assertIn("Node", rows[1][0])
+        self.assertIn("CPython", rows[2][0])
+        self.assertEqual(self.comparison_values(rows[2]), ["0.04 ms", "+1.01 s", "0.0 ms", "+1.01 s", "+2.00 s"])
 
-    def test_task_rows_show_measured_durations_and_signed_time_differences(self):
-        times = {"swag-release": 50, "cpp-clang-cl": 100, "rust": 150, "go": float("nan")}
-        markup = mkpage.performance_table(["one"], list(times), lambda rt, task: times[rt],
-                                          "cpp-clang-cl")
+    def test_direct_comparisons_never_sum_an_incomplete_or_invalid_panel(self):
+        for record in ({}, {"ms": 0}, {"ms": float("nan")}, {"ms": 50, "error": "failed"}):
+            with self.subTest(record=record):
+                current = campaign(2)
+                current["tasks"]["four"]["cpp-clang-cl"]["run"] = record
+                del current["tasks"]["four"]["swag-release"]["run"]
+                with mock.patch.object(mkpage, "simple_table", side_effect=lambda headers, rows: (headers, rows)):
+                    headers, rows = mkpage.swag_comparison_table(current, TASKS, "run")
+                self.assertIn("total &mdash;", headers[2])
+                self.assertEqual(rows[0][1:], ["&mdash;"] * 5)
+                self.assertEqual(rows[1][1], "400.0 ms")
+                self.assertEqual(rows[1][2], "&mdash;")
+                self.assertIn('class="comparison-gap won">-400.0 ms', rows[1][3])
+
+    def test_direct_build_comparisons_use_build_records_and_both_native_configurations(self):
+        current = campaign(2, own=(10,) * 4)
+        # An interpreted runtime without a build recipe has no compilation row.
+        for task in TASKS:
+            del current["tasks"][task]["python3.12"]["build"]
+            current["tasks"][task]["cpp-clang-cl"]["build"]["wall_ms"] = 500
+            current["tasks"][task]["swag-fast-debug"]["build"]["wall_ms"] = 100
+        with mock.patch.object(mkpage, "simple_table", side_effect=lambda headers, rows: (headers, rows)):
+            headers, rows = mkpage.swag_comparison_table(current, TASKS, "build")
+        self.assertEqual(len(headers), 4)
+        self.assertEqual(len(rows), 2)
+        self.assertIn("total 40.0 ms", headers[2])
+        self.assertIn("total 400.0 ms", headers[3])
+        self.assertEqual(self.comparison_values(rows[0]), ["2.00 s", "-1.96 s", "-1.60 s"])
+        self.assertEqual(self.comparison_values(rows[1]), ["400.0 ms", "-360.0 ms", "0.0 ms"])
+
+    def test_direct_comparison_colours_and_arrows_use_the_same_rival_without_old_values(self):
+        before = campaign(1, own=(100,) * 4, rival=(200,) * 4)
+        current = campaign(3, own=(50,) * 4, rival=(200,) * 4)
+        for task in TASKS:
+            before["tasks"][task]["python3.12"]["run"]["ms"] = 25
+            current["tasks"][task]["python3.12"]["run"]["ms"] = 10
+        incomplete = campaign(2)
+        del incomplete["tasks"]["four"]
+        with mock.patch.object(mkpage, "simple_table", side_effect=lambda headers, rows: (headers, rows)):
+            _, rows = mkpage.swag_comparison_table(current, TASKS, "run", [before, incomplete])
+        self.assertIn('class="comparison-gap won">-600.0 ms', rows[0][2])
+        self.assertIn('class="trend improved"', rows[0][2])
+        self.assertIn('class="comparison-gap lost">+160.0 ms', rows[2][2])
+        self.assertIn('class="trend improved"', rows[2][2])  # A loss can still improve.
+        self.assertIn("campaign-01", rows[0][2])
+        self.assertNotIn("previous-value", rows[0][2])
+        self.assertNotIn("400.0 ms", rows[0][2])
+        # The interpreter is the fastest rival, but cannot replace clang in clang's arrow.
+        self.assertNotIn('class="trend regressed"', rows[0][2])
+
+    def test_compact_trend_keeps_direction_without_the_previous_number(self):
+        base = {"reference": campaign(1)["meta"], "tasks": 4, "previous_saved_ms": 100}
+        for current, state, arrow in ((200, "improved", "&uarr;"), (50, "regressed", "&darr;"),
+                                       (100.01, "unchanged", "&rarr;")):
+            markup, _ = mkpage.trend(dict(base, current_saved_ms=current, saved_ms=current - 100),
+                                     show_previous=False)
+            self.assertIn('class="trend %s"' % state, markup)
+            self.assertIn(arrow, markup)
+            self.assertNotIn("100.0 ms", markup)
+            self.assertNotIn("previous-value", markup)
+
+    def test_jit_and_interpreters_share_one_reference_in_headlines_totals_and_history(self):
+        before = campaign(1, own=(100,) * 4)
+        current = campaign(2, own=(50,) * 4)
+        for item in (before, current):
+            for task in TASKS:
+                item["tasks"][task]["python3.12"]["run"]["ms"] = 25
+        summary = metrics.comparison(current, TASKS, "swc-jit-release", "run", "ms",
+                                     metrics.rivals(current, TASKS, "run", "ms", "jit"))
+        self.assertEqual(summary["reference_runtime"], "python3.12")
+        self.assertEqual(summary["saved_ms"], -100)
+        headline = mkpage.competitive_stat(current, [before], TASKS, "swc-jit-release", "run", "jit", "JIT")
+        self.assertIn("Reference: CPython (interpreted)", headline)
+        self.assertIn("+100.0<em>ms</em>", headline)
+        self.assertIn("trend improved", headline)
+    def test_task_ranking_orders_all_modes_and_shows_only_measured_times(self):
+        times = {"swag-fast-debug": 200, "rust": 150, "node20": 125,
+                 "swag-release": 50, "cpp-clang-cl": 100, "go": float("nan")}
+        markup = mkpage.performance_table(["one"], list(times), lambda rt, task: times[rt])
+        order = [markup.index('<li class="l-%s"' % cls)
+                 for cls in ("swag", "clang", "js", "rust", "swagdev", "go")]
+        self.assertEqual(order, sorted(order))
         self.assertIn('class="speed-value">50.0 ms', markup)
-        self.assertIn('class="time-gap">+50.0 ms', markup)
-        self.assertIn('class="time-gap">0.0 ms', markup)
-        self.assertIn('class="time-gap">-50.0 ms', markup)
+        self.assertNotIn('comparison-gap', markup)
+        self.assertNotIn('Swag delta', markup)
+        self.assertIn('title="JavaScript / Node V8 (JIT)"', markup)
+        self.assertNotIn('class="speed-name"', markup)
+        self.assertNotIn('<br>', markup)
+        self.assertEqual(markup.count('<tr><th scope="row"'), 1)
         self.assertIn("No measurement", markup)
-        self.assertNotIn("%", markup)
         self.assertNotIn("nan", markup)
+        self.assertNotIn("non-Swag reference</th>", markup)
+        self.assertEqual(markup.count("<table "), 1)
 
-    def test_jit_task_reference_stays_the_same_when_another_rival_wins_a_task(self):
-        current = campaign(2, own=(1,) * 4)
-        for i, task in enumerate(TASKS):
-            current["tasks"][task]["csharp-jit"] = {"run": {"ms": 20 if i % 2 else 40}}
-            current["tasks"][task]["java-hotspot"] = {"run": {"ms": 40 if i % 2 else 20}}
-        runtimes = ["swc-jit-release", "swc-jit-fast-debug", "csharp-jit", "java-hotspot"]
-        rivals = metrics.rivals(current, TASKS, "run", "ms", "jit")
-        reference = metrics.reference_runtime(current, TASKS, "run", "ms", rivals)
-        self.assertEqual(reference, "csharp-jit")
-        markup = mkpage.performance_table(
-            TASKS, runtimes, lambda rt, task: current["tasks"][task].get(rt, {}).get("run", {}).get("ms"), reference)
-        for elapsed in ("20.0", "40.0"):
-            expected = '<td class="rival-reference">%s %s ms</td>' % (mkpage.runtime_badge(reference), elapsed)
-            self.assertEqual(markup.count(expected), 2)
-        self.assertIn('class="time-gap">+19.0 ms', markup)
-        self.assertIn('class="time-gap">+39.0 ms', markup)
+    def test_each_example_is_sorted_independently(self):
+        times = {"one": {"swc-jit-release": 10, "csharp-jit": 20, "java-hotspot": 40},
+                 "two": {"swc-jit-release": 50, "csharp-jit": 40, "java-hotspot": 20}}
+        markup = mkpage.performance_table(times, list(times["one"]), lambda rt, task: times[task][rt])
+        rows = markup.split('<tr><th scope="row"')[1:]
+        first, second = (row.split('</tr>')[0] for row in rows)
+        self.assertLess(first.index('class="l-swagjit"'), first.index('class="l-csjit"'))
+        self.assertLess(first.index('class="l-csjit"'), first.index('class="l-java"'))
+        self.assertLess(second.index('class="l-java"'), second.index('class="l-csjit"'))
+        self.assertLess(second.index('class="l-csjit"'), second.index('class="l-swagjit"'))
+
+    def test_missing_time_stays_blank_beside_measured_times(self):
+        markup = mkpage.performance_table(["one"], ["swag-release", "rust"],
+                                          lambda rt, task: 50 if rt == "swag-release" else None)
+        self.assertIn('class="speed-value">50.0 ms', markup)
+        self.assertIn("No measurement", markup)
+        self.assertNotIn('class="time-gap', markup)
+
+    def test_execution_tables_separate_families(self):
+        times = {"swag-release": 50, "cpp-clang-cl": 100,
+                 "swc-jit-release": 10, "node20": 20, "python3.12": 5}
+        markup = mkpage.execution_tables(["one"], list(times), lambda rt, task: times[rt])
+        native, jit = markup.split('<h3>JIT / interpreted</h3>')
+        self.assertIn('<h3>Native / AOT</h3>', native)
+        self.assertEqual(markup.count('<table class="performance"'), 2)
+        for table in (native, jit):
+            self.assertEqual(table.count('<tr><th scope="row"'), 1)
+            self.assertNotIn('<br>', table)
+        self.assertNotIn('comparison-gap', markup)
+        self.assertIn('class="speed-value">50.0 ms', native)
+        self.assertIn('class="speed-value">5.0 ms', jit)
+        self.assertNotIn('Node', native)
+        self.assertNotIn('CPython', native)
+        self.assertNotIn('clang-cl', jit)
 
 
 if __name__ == "__main__":

@@ -65,89 +65,74 @@ C++ consumes the installed CRT binaries while parsing its headers. These are dif
 states, so the current table does not describe a common warm-dependency edit-build loop either.
 Java and C# IL builds produce bytecode, whereas the native rows include machine-code generation
 and linking. Keep those output contracts in mind when reading the combined ranking.
-The headline cards report **total time saved or lost**, in milliseconds or seconds:
-current and previous values show only a signed number and its unit. Positive means time saved;
-negative means extra time. In the headline band,
-the first row shows native release, native devmode and JIT release execution; the second
-shows compilation and peak compiler memory.
-`smallest non-Swag total - Swag total`. Each total represents one measured run or build
-of every displayed workload. For example, a Swag total of 200 ms against a rival total of
-350 ms is displayed as **+150 ms**. The cards show both totals and count tasks ahead,
-close (within 1%), and behind. The rival is one real runtime: the non-Swag competitor with
-the smallest sum across the complete panel. Longer tasks weigh more, so a large gain on one task can
-outweigh small losses on several others. The task counts make that distribution visible.
-Each time card names its non-Swag reference, including the JIT card. The same competitor is
-used for every table row and per-task difference in that group; no Swag configuration can be the reference.
-Compiler memory remains the largest working set in MiB: separate processes' peaks are not added.
-All Swag modes are excluded from the rival reference. Only competitors with valid measurements
-for every displayed task participate. Native / AOT and JIT use separate rivals; compilation
-includes bytecode recipes. The cards use each section's latest accepted campaign.
+All signed time differences use **measured time minus reference time**: negative means
+less time, positive means extra time. Lower is better for execution and compilation alike.
+The headline cards show `Swag total - smallest non-Swag total`, in milliseconds or seconds.
+For example, Swag at 200 ms against a competitor at 350 ms displays **-150 ms**.
+Totals sum one measured run or build of every displayed workload, excluding `hello`.
+Longer workloads weigh more. Ahead / close / behind counts expose the distribution;
+close is a 1% display band, not a statistical tie.
 
-The four time arrows compare the current and previous displayed values directly. More time
-saved or less time lost gives a green up arrow; less saved or more lost gives a red down arrow.
-The neutral right arrow means the displayed values are equal at their printed precision.
-For example, 1.54 s saved before and 1.62 s saved now always gives a green up arrow.
-A dash means no comparable earlier campaign. Both campaigns must use the same protocol
-and measure the complete displayed task panel. Each value uses the non-Swag runtime with the
-smallest total in that campaign. No machine correction or normalized ratio can reverse the displayed direction;
-changes in the machine or competitor set can affect these raw savings. Use corrected history
-for compiler progress claims. Peak compiler memory compares the two measured Swag peaks directly;
-a smaller peak is better. Beside every arrow, the previous value appears as a small number and
-unit, including MiB for peak memory. Its tooltip gives the date and campaign identifier.
+The headline band shows native release, native devmode and JIT release execution, then
+compilation and peak compiler memory. Each time card names its non-Swag reference and
+shows both totals. Only competitors with valid measurements for the complete panel can
+set the reference. Native / AOT and JIT / interpreted use separate headline references;
+JIT and pure interpreters form one family. Compilation includes bytecode recipes.
+Memory is the largest working set in MiB; separate process peaks are never added.
 
-These choices keep the distribution visible alongside the summary, as in the
-[Benchmarks Game](https://benchmarksgame-team.pages.debian.net/benchmarksgame/box-plot-summary-charts.html).
-The execution and compilation tables use the headline's definitions for every language and
-mode: total measured time, signed time saved or lost, ahead / close / behind task counts,
-and the largest measured working set in MiB. All rows in a group share one real non-Swag
-reference: the runtime with the smallest total. Its own row has zero saved time.
-Native / AOT, JIT and interpreted execution have separate rival panels. Missing or invalid measurements produce
-a dash, never a partial total or a zero peak.
+Time arrows compare the displayed differences directly: a lower difference is a green
+up arrow (improvement), a higher difference is a red down arrow (regression), and equal
+values at printed precision use a neutral right arrow. For example, -1.54 s followed by
+-1.62 s improves. Both campaigns need the same protocol and complete task panel.
+Each headline uses its campaign's fastest complete non-Swag competitor. Changes in the
+machine or competitor set can affect these raw differences; corrected history tracks
+compiler progress. Headline arrows show the previous value beside them. Memory arrows
+compare the two displayed peaks; lower is better.
 
-Summary bars show total durations on linear axes starting at zero, with shorter bars better.
-Charts, tables and headlines format the same duration identically in ms or s.
-Per-task tables order runtime badges from fastest to slowest and show the actual duration
-in ms or s, followed by signed time saved or lost against that task's rival reference.
-The reference column names that same non-Swag runtime and its time for each task. Execution summaries
-also name the reference and give its total.
-Hover for the full compiler and mode name. The detailed raw-time matrices retain milliseconds;
-their footers sum the task durations and use ms or s. The separate `hello` workload is
-excluded from every aggregate. No relative-speed percentage or multiplier replaces a measured
-duration in these current-campaign tables. Archived history fields keep their existing definitions,
-including the geometric ratios also used by [SPEC CPU](https://www.spec.org/cpu2017/Docs/overview.html).
-The `hello` column is a separate small program with a different import set; it is useful as a
-second data point, but subtracting it from a task does not remove library overhead reliably.
-It measures both Swag configurations and both C++ compilers. Older campaigns omitted Swag
-devmode and clang-cl for `hello`; their empty cells mean no measurement was taken, not a build
-failure. Two-character badges identify every compiler and mode: `SW` is Swag release,
-`SD` Swag devmode, `SJ` Swag release JIT, `JD` Swag devmode JIT, `CL` clang-cl and `VC` MSVC.
-Codes remain distinct independently of colour; the expandable legend names every mode.
-The report selects the dark theme by default for contrast with Swag's electric yellow.
-Its header and headline band keep the deep ink; the body uses a lighter near-black ground.
-Swag release uses the same signature yellow in both themes and execution modes; devmode
-uses light green in native and JIT views. C#, Lua and PHP also share their colour across modes.
-Codes and labels identify the execution mode; history uses dashed lines for JIT.
-Every chart, badge and history line uses the same mapping. Chart labels place the name before
-the badge so the badges share a fixed edge beside the bars; the left-aligned legend keeps badges first.
-Summary charts and sorted per-task native, JIT and build results are always visible.
-Raw matrices can be expanded separately; the totals and memory tables stay visible.
-Resource bars show absolute costs on linear zero-based axes, with smaller values better.
-Execution and build sections identify their own campaign dates and commits; they need not
-come from the same campaign. The presentation never triggers new measurements.
-History rebuilds derive separate legacy `exec_native_vs_best` and `exec_jit_vs_best` ratios
-from the archived raw campaigns, on the unchanged baseline task panel. Neither category
-can set the other's best time; changing the display does not change raw measurements.
-The C++ hello includes only `<cstdio>` and links the installed CRT; it does not parse the shared
-task header. Swag collects `bin/runtime/*.swg` even for hello. On such a small input, compiler
-startup, runtime processing and linking account for much of the work.
-Comparisons use the minimum recorded time and do not establish a meaningful lead when the gap is
-smaller than the sample variation.
-For a compiler improvement claim, `py -3 bench/compile.py --against <external-baseline-swc>` compares two compiler
-binaries back to back on the same checkout. Both receive identical sources and imports, and the
-order alternates each round. This is a tighter comparison than a cross-language build ratio.
-Keep preserved compiler binaries outside the checkout and configure each one's runtime and
-standard-library resources explicitly. A baseline comparison needs the intended source and
-resource versions as well as the executable.
+The **Swag vs each language** section compares every measured competitor directly with
+Swag. Execution columns cover native release, native devmode, JIT release and JIT devmode;
+compilation columns cover release and devmode. Headings show Swag's total, rows show each
+competitor's total, and cells show `Swag total - competitor total`. Negative differences
+are green (Swag wins); positive differences are red (Swag loses). Each arrow compares the
+same competitor across the latest earlier complete campaign of the same protocol and
+panel, without displaying the previous value. Hover for the reference date. A dash means
+no comparable previous campaign or an incomplete measurement panel.
+
+**Execution** contains two tables, native / AOT and JIT / interpreted; **Compilation** keeps
+one table. Each example ranks the table's measured modes from fastest to slowest. Language
+codes and actual durations stay on one compact line per example, with no wrapping.
+Hover a code for its full language and mode name. Compact badges and spacing keep each execution family within the report width.
+Every ranking cell has the same width, with the code on the left and its measured time
+aligned on the right. These tables show no signed gaps or win/loss colours.
+Missing measurements appear last with a dash.
+The sections contain no duplicate duration charts, group totals or raw-time matrices.
+
+Execution and compilation keep their own campaign dates and commits; the presentation
+never triggers a measurement. `hello` is shown separately in the compilation table and
+excluded from every aggregate. It measures both Swag configurations and both C++ compilers.
+Older campaigns omitted Swag devmode and clang-cl for `hello`; an empty cell means no
+measurement was taken. The C++ hello includes only `<cstdio>` and links the installed CRT;
+Swag collects `bin/runtime/*.swg` even for hello. Subtracting hello does not isolate library
+overhead reliably. No current-campaign time table replaces durations with speed ratios.
+Archived history retains geometric ratios, as also used by
+[SPEC CPU](https://www.spec.org/cpu2017/Docs/overview.html).
+
+Two-character badges identify every compiler and mode: `SW` is Swag release, `SD` Swag
+devmode, `SJ` Swag release JIT, `JD` Swag devmode JIT, `CL` clang-cl and `VC` MSVC.
+The expandable legend names every mode. The report defaults to the dark theme, with
+light-theme support. Swag release uses signature yellow and devmode uses light green;
+C#, Lua and PHP retain the same colour across execution modes. Labels identify modes,
+and history uses dashed lines for JIT. Resource charts show absolute costs on zero-based
+linear axes, with smaller values better.
+
+History rebuilds derive separate legacy `exec_native_vs_best` and `exec_jit_vs_best`
+ratios on the unchanged baseline task panel. The JIT family includes pure interpreters;
+neither family can set the other's best time. Raw measurements remain unchanged.
+Small gaps do not establish significant differences. For a compiler improvement claim,
+`py -3 bench/compile.py --against <external-baseline-swc>` compares compiler binaries back
+to back on the same checkout, with identical sources and imports and alternating order.
+Preserve baseline binaries outside the checkout and configure their runtime and library
+resources explicitly.
 
 Twenty-two runtime configurations in total: Swag native and JIT in both configurations, two C++
 compilers, Rust, Zig, D through LDC, Odin, Go, Swift, C# ahead-of-time and jitted, Java HotSpot,
@@ -445,11 +430,10 @@ missing correction factor produces no score, rather than silently dropping a wor
 New tasks do not enter version 1; changing the score panel requires an explicit new version.
 All twelve tasks participate, including the five added after the original seven-task history.
 
-The current gap to the best is a different metric. The execution section shows the total time
-saved or lost against non-Swag rivals together with the smallest and largest per-task gaps. The headline
-counts show how many tasks are ahead, close or behind. For example, a small total advantage
-can coexist with a task that takes 22.6% more time. The detailed speed charts include Swag in
-their reference; the headline gaps exclude it and count both advantages and deficits.
+The current gap to competitors is a different metric. Global tables show signed total time
+differences against each rival, and per-example rankings show the measured times alone.
+Headline counts show how many tasks are ahead, close or
+behind. A small total advantage can coexist with a substantial loss on one task.
 Corrections remain estimates; small score movements, particularly for builds, can be noise.
 
 ## A task added after the original baseline
@@ -457,7 +441,7 @@ Corrections remain estimates; small score movements, particularly for builds, ca
 The baseline is fixed, so a task added later has no baseline value and cannot be indexed against
 it. It is indexed instead against the first reproducible campaign that measured it, which reads
 1.00, and the page names that campaign under the task. History aggregates and history headline
-ratios retain the original baseline's fixed task panel. The current report's comparative matrices and ratios
+ratios retain the original baseline's fixed task panel. The current report's totals and rankings
 instead cover the tasks measured by both selected latest build and execution campaigns.
 
 The files under `results/` are authoritative. `history.py` rebuilds every compact entry from
@@ -490,11 +474,11 @@ an asterisk in the report, because its commit alone will not reproduce it.
 and `bench:end` markers, using the same campaign as the report. That block is generated and
 should not be edited by hand.
 
-`bench.html` carries measurements, not commentary: one matrix per measure with a task per row,
-charts for the aggregates, and one history row per task. A new task adds a row everywhere and
-nothing else; explanations belong in this file.
+`bench.html` shows global Swag comparisons, two execution ranking tables, one compilation
+ranking table, resource charts and the accumulated history. A new task adds a ranking row;
+methodological explanations belong in this file.
 
-The legend at the top defines the coloured two-character badges used in matrix headers and rankings.
+The legend at the top defines the coloured two-character badges used in comparison headers and rankings.
 Each runtime configuration has a distinct code; execution modes share the same language colour.
 Full names and modes remain available as tooltips and accessible labels. Only runtimes measured in
 the selected campaigns appear: adding support never inserts invented values into old results.

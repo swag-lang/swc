@@ -55,13 +55,14 @@ def comparison(campaign, tasks, lead, family, key, competitors):
             "rival_total_ms": sum(best), "saved_ms": sum(best) - sum(own)}
 
 
-def previous_change(current, campaigns, tasks, lead, family, key, group=None, peak=False):
+def previous_change(current, campaigns, tasks, lead, family, key, group=None, peak=False, competitor=None):
     """Compare displayed time savings directly on the same task panel.
 
     Each time value uses that campaign's complete rivals, just like its headline.
-    Peak memory compares the two measured Swag peaks directly.
+    A named competitor keeps both campaigns on that same rival. Peak memory compares
+    the two measured Swag peaks directly.
     """
-    current_rivals = set(rivals(current, tasks, family, key, group))
+    current_rivals = {competitor} if competitor else set(rivals(current, tasks, family, key, group))
     for before in sorted(campaigns, key=lambda c: c["meta"]["date"], reverse=True):
         if before["meta"]["date"] >= current["meta"]["date"]:
             continue
@@ -74,7 +75,7 @@ def previous_change(current, campaigns, tasks, lead, family, key, group=None, pe
                 continue
             return {"reference": before["meta"], "tasks": len(tasks),
                     "previous_peak_bytes": max(old_peak), "current_peak_bytes": max(now_peak)}
-        before_rivals = rivals(before, tasks, family, key, group)
+        before_rivals = [competitor] if competitor else rivals(before, tasks, family, key, group)
         now = comparison(current, tasks, lead, family, key, sorted(current_rivals))
         old = comparison(before, tasks, lead, family, key, before_rivals)
         if not now or not old:

@@ -1192,7 +1192,7 @@ namespace
             // A detached, typed argument must keep that result: rechecking shadowing in
             // the callee can bind its initializer to its own not-yet-typed argument home.
             if (sema.viewType(sourceRef).typeRef().isValid())
-                identifier.flags().clearMask(AstIdentifierFlagsE::MacroInjectCallerBinding);
+                identifier.flags().remove(AstIdentifierFlagsE::MacroInjectCallerBinding);
         }
 
         if (!shouldReexpand &&

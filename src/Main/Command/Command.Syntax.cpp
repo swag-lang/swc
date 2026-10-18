@@ -5,11 +5,8 @@
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Report/ScopedTimedLog.h"
-#include "Support/Thread/Job.h"
-#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

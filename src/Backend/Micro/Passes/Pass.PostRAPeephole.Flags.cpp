@@ -1,23 +1,14 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
-    using MicroPassHelpers::RegTouch;
-
     constexpr uint32_t K_MAX_CARRY_PATTERN_WINDOW = 4;
-
-    namespace
-    {
-        RegTouch instructionRegTouch(const Context& ctx, const MicroInstr& inst, MicroReg reg)
-        {
-            return MicroPassHelpers::regTouch(inst, *ctx.operands, reg, ctx.encoder);
-        }
-    }
 
     // An unsigned modular sum is at least its original left operand exactly
     // when the addition did not carry. Keep the ADD flags across a fallback
@@ -199,8 +190,8 @@ namespace PostRaPeephole
                 instructionActuallyDefinesCpuFlags(*previous, previousOperands))
                 return false;
 
-            if (instructionRegTouch(ctx, *previous, cmp[0].reg).def ||
-                instructionRegTouch(ctx, *previous, cmp[1].reg).def)
+            if (regTouch(ctx, *previous, cmp[0].reg).def ||
+                regTouch(ctx, *previous, cmp[1].reg).def)
                 return false;
         }
         return false;
@@ -307,7 +298,7 @@ namespace PostRaPeephole
             if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
                 flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*current, currentOps))
                 return false;
-            if (instructionRegTouch(ctx, *current, carry).any())
+            if (regTouch(ctx, *current, carry).any())
                 return false;
             cursor = ctx.previousRef(cursor);
         }
@@ -1344,7 +1335,7 @@ namespace PostRaPeephole
         // The copy or existing addend supplies every result bit now. Retain
         // the old clear only if the comparison itself reads that zero value.
         const MicroInstr* compare = ctx.instruction(value.compareRef);
-        if (!instructionRegTouch(ctx, *compare, value.reg).use)
+        if (!regTouch(ctx, *compare, value.reg).use)
             ctx.emitErase(value.clearRef);
         return true;
     }
@@ -1670,7 +1661,7 @@ namespace PostRaPeephole
                 for (const MicroReg reg : {result, other})
                 {
                     const bool pending = reg == result ? !resultLoad.isValid() : !otherLoad.isValid();
-                    if (pending && instructionRegTouch(ctx, *current, reg).any())
+                    if (pending && regTouch(ctx, *current, reg).any())
                         return false;
                 }
             }
@@ -2284,11 +2275,11 @@ namespace PostRaPeephole
             firstCmp->numOperands > Action::K_MAX_OPS || secondCmp->numOperands > Action::K_MAX_OPS)
             return false;
 
-        if (instructionRegTouch(ctx, *firstCmp, result).use ||
-            instructionRegTouch(ctx, *secondCmp, result).use ||
-            instructionRegTouch(ctx, *secondCmp, firstBool).use ||
-            instructionRegTouch(ctx, *initial, firstBool).use ||
-            instructionRegTouch(ctx, *initial, secondBool).use)
+        if (regTouch(ctx, *firstCmp, result).use ||
+            regTouch(ctx, *secondCmp, result).use ||
+            regTouch(ctx, *secondCmp, firstBool).use ||
+            regTouch(ctx, *initial, firstBool).use ||
+            regTouch(ctx, *initial, secondBool).use)
             return false;
         if ((firstBool != result && !ctx.isRegDeadAfterCurrent(firstBool)) ||
             (secondBool != result && !ctx.isRegDeadAfterCurrent(secondBool)) ||
@@ -2358,7 +2349,7 @@ namespace PostRaPeephole
         const MicroInstr*   cmp    = ctx.instruction(cmpRef);
         if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
-        if (instructionRegTouch(ctx, *cmp, zero[0].reg).any())
+        if (regTouch(ctx, *cmp, zero[0].reg).any())
             return false;
 
         const MicroInstrRef selectRef = ctx.nextRef(zeroRef);
@@ -2406,7 +2397,7 @@ namespace PostRaPeephole
         }
         if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
-        if (instructionRegTouch(ctx, *cmp, copy[0].reg).use)
+        if (regTouch(ctx, *cmp, copy[0].reg).use)
             return false;
         const MicroInstrRef zeroRef = ctx.nextRef(compareFirst ? ref : cmpRef);
         const MicroInstr*   zero    = ctx.instruction(zeroRef);
@@ -2475,7 +2466,7 @@ namespace PostRaPeephole
         const MicroInstr*   cmp    = ctx.instruction(cmpRef);
         if (!cmp || !canMoveComparisonForSelect(*cmp, cmp->ops(*ctx.operands)))
             return false;
-        if (instructionRegTouch(ctx, *cmp, copy[0].reg).use)
+        if (regTouch(ctx, *cmp, copy[0].reg).use)
             return false;
         if (!ctx.claimAll({cmpRef, zeroRef, selectRef, copyRef}))
             return false;
@@ -2827,7 +2818,7 @@ namespace PostRaPeephole
             if (!flagSettingResultDef(*cmp, cmpOps, resultReg, resultBits))
                 return false;
         }
-        if (instructionRegTouch(ctx, *cmp, ext[0].reg).use)
+        if (regTouch(ctx, *cmp, ext[0].reg).use)
             return false;
         if (!ctx.claimAll({cmpRef, setRef, ref}))
             return false;

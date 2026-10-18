@@ -79,6 +79,7 @@ const AllocatorBlockCacheMaxCount = 256'u64
 // next requests without taking the block-cache lock.
 const AllocatorBlockFrontCount    = 16'u32
 const AllocatorBlockFrontMaxBytes = 2'u64 * 1024 * 1024
+#assert(AllocatorBlockFrontMaxBytes <= AllocatorBlockCacheMinBytes)
 
 // Number of address-based shards in the list of ordinary live headers.
 //
@@ -1275,14 +1276,22 @@ impl Allocator
         }
     }
 
-    // Header regions are page-aligned, so the page number spreads them over the shards.
+    // Multiplicative mixing reaches changing address bits even for strongly aligned reservations.
+    // The golden-ratio product wraps on purpose; scale its high word into the shard count.
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd shardOf(header: *AllocatorHeader)->*AllocatorHeaderShard
-        => &.shards[(cast(u64, header) >> 12) % AllocatorHeaderShardCount]
+    {
+        let pageNumber = cast(u64, header) / AllocatorCommitGranularity
+        let mixed      = pageNumber * 0x9E37_79B9_7F4A_7C15'u64
+        let index      = ((mixed >> 32) * AllocatorHeaderShardCount) >> 32
+        return &.shards[index]
+    }
 
     mtd linkAllocated(header: *AllocatorHeader)
     {
-        let mutex = (AllocatorHasDiagnostics and header.isTracked) ? &.headerMutex : &.shardOf(header).mutex
-        let first = (AllocatorHasDiagnostics and header.isTracked) ? &.firstAlloc : &.shardOf(header).first
+        let shard = .shardOf(header)
+        let mutex = (AllocatorHasDiagnostics and header.isTracked) ? &.headerMutex : &shard.mutex
+        let first = (AllocatorHasDiagnostics and header.isTracked) ? &.firstAlloc : &shard.first
         mutex.lock()
         defer mutex.unlock()
         header.prev = null
@@ -1294,8 +1303,9 @@ impl Allocator
 
     mtd unlinkAllocated(header: *AllocatorHeader)
     {
-        let mutex = (AllocatorHasDiagnostics and header.isTracked) ? &.headerMutex : &.shardOf(header).mutex
-        let first = (AllocatorHasDiagnostics and header.isTracked) ? &.firstAlloc : &.shardOf(header).first
+        let shard = .shardOf(header)
+        let mutex = (AllocatorHasDiagnostics and header.isTracked) ? &.headerMutex : &shard.mutex
+        let first = (AllocatorHasDiagnostics and header.isTracked) ? &.firstAlloc : &shard.first
         mutex.lock()
         defer mutex.unlock()
         if not header.prev do
@@ -1432,6 +1442,27 @@ impl Allocator
         if not address do
             return
 
+        // Front-sized blocks always fit the minimum cache budget. Keep their local frees
+        // independent of the live-byte counter shared by all allocating threads.
+        if committed <= AllocatorBlockFrontMaxBytes
+        {
+            let heap = currentAllocatorThreadHeap()
+            if heap and
+               heap.allocator == me and
+               heap.retired == 0 and
+               heap.frontCount < AllocatorBlockFrontCount
+            {
+                let entry = &heap.front[heap.frontCount]
+                entry.address   = cast(u64, address)
+                entry.reserved  = size
+                entry.committed = committed
+                entry.stamp     = 0
+                entry.freedAt   = __hostMonotonicTicks()
+                heap.frontCount += 1
+                return
+            }
+        }
+
         // A program cycling one buffer bigger than everything else it holds, a decoder with its
         // frame for instance, would otherwise reserve, fault in and release that buffer on every
         // cycle: one block above the budget may wait in the cache alone.
@@ -1444,25 +1475,6 @@ impl Allocator
 
         // Read before taking the lock, which every thread cycling large blocks contends for.
         let now = __hostMonotonicTicks()
-
-        // A block under the front's size waits in the freeing thread's own front while it has room.
-        let heap = currentAllocatorThreadHeap()
-        if committed <= AllocatorBlockFrontMaxBytes and
-           heap and
-           heap.allocator == me and
-           heap.retired == 0 and
-           heap.frontCount < AllocatorBlockFrontCount
-        {
-            let entry = &heap.front[heap.frontCount]
-            entry.address   = cast(u64, address)
-            entry.reserved  = size
-            entry.committed = committed
-            entry.stamp     = 0
-            entry.freedAt   = now
-            heap.frontCount += 1
-            return
-        }
-
         .mutex.lock()
         while .cachedBlockCount != 0 and
               (.cachedBlockCount >= AllocatorBlockCacheMaxCount or .cachedBlockBytes + committed > budget)
@@ -1505,6 +1517,8 @@ impl Allocator
             {
                 best      = i
                 bestSlack = slack
+                if slack == 0 do
+                    break
             }
         }
 

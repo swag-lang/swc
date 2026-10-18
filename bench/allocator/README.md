@@ -76,3 +76,8 @@ Peak working sets: within 4 MB of mimalloc's on the other workloads, about 2.5 M
 `core` module the Swag program imports, and lower on the large-block ones (`large` 44 MB against
 71 MB, `large:4` 119 MB against 235 MB, with the C heap lowest). These are one session's numbers, not a campaign; the campaign history is the
 record.
+
+The [2026-10-18 controlled comparison](../results/allocator/20261018/README.md) records the
+header-shard and local-front-cache changes, raw samples, identical-binary controls, retention,
+and allocator validation. Its `large:4` result is 1 041 to 842 ns/op, against mimalloc's 867 ns/op;
+interference on other workloads prevents an aggregate parity claim.

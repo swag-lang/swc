@@ -26,10 +26,12 @@ replace the allocator; a similar architecture alone does not establish comparabl
   Allocation and free each read the context, and the page path also reads its thread-local
   heap slot.
 - Next: reduce the request, dispatch, and thread-local lookup work, attributing each gain from
-  the emitted common path. Compare `freeFast`'s TLS lookup with mimalloc's page-local thread
-  token (`mi_free_ex`, `_mi_prim_thread_id`). A token must live in the page, preserve
-  retirement publication, and never let a remote free dereference an owner heap that another
-  thread can destroy.
+  the emitted common path. A cold `Memory.alloc` request helper, dense current-page pointers,
+  and a page-local Windows owner token with a direct native thread-id load did not improve
+  mixed-size and concurrent workloads consistently. Attribute `Memory.free`'s request stores,
+  dispatch, and code/data placement before retrying those shapes. Any owner token must live in
+  the page, preserve retirement publication, and never let a remote free dereference an owner
+  heap that another thread can destroy.
 - Rejected shapes, not to be retried without new evidence: an out-of-line scalar
   `Memory.free`, which helped only `pair`; an outlined 32/64-byte fast allocation, which made
   the ordinary pair about 11% slower (inspect the default-alignment caller's code and layout
@@ -68,11 +70,11 @@ replace the allocator; a similar architecture alone does not establish comparabl
   blocks under 2 MiB, with live headers sharded eight ways. On a front miss, each operation
   still pays the live-byte atomic, the shard lock, the clock read on free, the global cache
   lock with its linear best-fit scan, and page faults on blocks fresh from the system.
-  `large:4` lies around the 1.25 gate but has been measured only on a shared machine, at
-  about half mimalloc's peak working set.
-- Next: repeat `large:4` on a quiet machine to place it against the gate, then measure a front
-  keyed by size class instead of best-fit, and the cache lock taken only when the front has no
-  candidate, with rotating runs and the application check.
+  `large:4` reaches the throughput gate in the
+  [controlled comparison](../bench/results/allocator/20261018/README.md), but the machine is
+  shared and mixed-workload retention after `trim()` remains above mimalloc.
+- Next: separate retained current-page bytes from header-cache bytes, then repeat `large:4`
+  and representative application traces on a quiet machine before changing the front policy.
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.
 - Related: runtime.allocator.001

@@ -383,6 +383,16 @@ namespace
         return compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable && !compiler.cmdLine().scriptMode;
     }
 
+    // Two import requests share one dependency binding when they name the same module the same way.
+    bool isSameImportRequest(const CompilerInstance::ModuleSetupImport& lhs, const CompilerInstance::ModuleSetupImport& rhs)
+    {
+        return lhs.moduleName == rhs.moduleName &&
+               lhs.location == rhs.location &&
+               lhs.version == rhs.version &&
+               FileSystem::pathEquals(lhs.baseDir, rhs.baseDir) &&
+               lhs.linkBackendKind == rhs.linkBackendKind;
+    }
+
     Utf8 resolveDependencyLinkModuleName(const fs::path& linkDir, const std::string_view fallbackStem)
     {
         Utf8 result;
@@ -2400,11 +2410,7 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
         const CompilerInstance::ResolvedDependencyBinding* binding = nullptr;
         for (const CompilerInstance::ResolvedDependencyBinding& candidate : dependencyPlan.bindings)
         {
-            if (candidate.request.moduleName == importRequest.moduleName &&
-                candidate.request.location == importRequest.location &&
-                candidate.request.version == importRequest.version &&
-                FileSystem::pathEquals(candidate.request.baseDir, importRequest.baseDir) &&
-                candidate.request.linkBackendKind == importRequest.linkBackendKind)
+            if (isSameImportRequest(candidate.request, importRequest))
             {
                 binding = &candidate;
                 break;
@@ -2955,11 +2961,7 @@ Result DependencyPlanBuilder::build(CompilerInstance::DependencyPlan& outPlan, c
         bool alreadyBound = false;
         for (const CompilerInstance::ResolvedDependencyBinding& binding : outPlan.bindings)
         {
-            if (binding.request.moduleName == importRequest.moduleName &&
-                binding.request.location == importRequest.location &&
-                binding.request.version == importRequest.version &&
-                FileSystem::pathEquals(binding.request.baseDir, importRequest.baseDir) &&
-                binding.request.linkBackendKind == importRequest.linkBackendKind)
+            if (isSameImportRequest(binding.request, importRequest))
             {
                 alreadyBound = true;
                 break;
@@ -3137,11 +3139,7 @@ Result CompilerInstance::collectWorkspaceModuleDependencyDirs(TaskContext& ctx, 
         const ResolvedDependencyBinding* binding      = nullptr;
         for (const ResolvedDependencyBinding& candidate : dependencyPlan.bindings)
         {
-            if (candidate.request.moduleName == importRequest.moduleName &&
-                candidate.request.location == importRequest.location &&
-                candidate.request.version == importRequest.version &&
-                FileSystem::pathEquals(candidate.request.baseDir, importRequest.baseDir) &&
-                candidate.request.linkBackendKind == importRequest.linkBackendKind)
+            if (isSameImportRequest(candidate.request, importRequest))
             {
                 binding = &candidate;
                 break;

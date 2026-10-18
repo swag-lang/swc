@@ -97,6 +97,25 @@ namespace
         map.set(nodeRef, payload);
         count.store(static_cast<uint32_t>(map.size()), std::memory_order_release);
     }
+
+    // Node references are aligned, so the shard counts above stay nonzero on nearly every node of
+    // a tree with one entry. The node's own bit tells the rest apart: it is set once an entry is
+    // added and never cleared. A reference that names no node of this tree keeps the lookup.
+    constexpr uint8_t SIDE_TABLE_LOWERING        = 1 << 0;
+    constexpr uint8_t SIDE_TABLE_INLINE          = 1 << 1;
+    constexpr uint8_t SIDE_TABLE_INLINE_OVERRIDE = 1 << 2;
+    constexpr uint8_t SIDE_TABLE_SEMA            = 1 << 3;
+
+    void markSideTable(Ast& ast, AstNodeRef nodeRef, uint8_t table)
+    {
+        if (ast.hasNode(nodeRef))
+            ast.node(nodeRef).markSideTable(table);
+    }
+
+    bool maySideTable(const Ast& ast, AstNodeRef nodeRef, uint8_t table)
+    {
+        return !ast.hasNode(nodeRef) || ast.node(nodeRef).maySideTable(table);
+    }
 }
 
 NodePayload::~NodePayload()
@@ -722,6 +741,7 @@ void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef, payload, false);
+    markSideTable(ast(), nodeRef, SIDE_TABLE_LOWERING);
 }
 
 void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
@@ -729,7 +749,9 @@ void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return nullptr;
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    return shard ? findSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef) : nullptr;
+    if (!shard || !shard->loweringPayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_LOWERING))
+        return nullptr;
+    return findSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef);
 }
 
 bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
@@ -749,6 +771,7 @@ void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef, payload, true);
+    markSideTable(ast(), nodeRef, SIDE_TABLE_INLINE);
 }
 
 void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
@@ -756,7 +779,9 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return nullptr;
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    return shard ? findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef) : nullptr;
+    if (!shard || !shard->inlinePayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE))
+        return nullptr;
+    return findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef);
 }
 
 bool NodePayload::hasInlineContextOverride(AstNodeRef nodeRef) const
@@ -771,6 +796,7 @@ void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef, payload, true);
+    markSideTable(ast(), nodeRef, SIDE_TABLE_INLINE_OVERRIDE);
 }
 
 void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
@@ -778,7 +804,9 @@ void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return nullptr;
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    return shard ? findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef) : nullptr;
+    if (!shard || !shard->inlineContextOverridesCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE_OVERRIDE))
+        return nullptr;
+    return findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef);
 }
 
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
@@ -788,6 +816,7 @@ void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef, payload, true);
+    markSideTable(ast(), nodeRef, SIDE_TABLE_SEMA);
 }
 
 void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
@@ -795,7 +824,9 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
     if (nodeRef.isInvalid())
         return nullptr;
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    return shard ? findSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef) : nullptr;
+    if (!shard || !shard->semaPayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_SEMA))
+        return nullptr;
+    return findSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef);
 }
 
 void NodePayload::clearSemaPayload(AstNodeRef nodeRef)

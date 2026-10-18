@@ -55,6 +55,7 @@ struct AstNode
         codeRef_(other.codeRef_)
     {
         payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        sideTables_.store(other.sideTables_.load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
 
     AstNode& operator=(const AstNode& other)
@@ -62,6 +63,8 @@ struct AstNode
         if (this != &other)
         {
             payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            // The side tables keep the entries they hold under this node's reference.
+            sideTables_.fetch_or(other.sideTables_.load(std::memory_order_relaxed), std::memory_order_relaxed);
             id_          = other.id_;
             parserFlags_ = other.parserFlags_;
             codeRef_     = other.codeRef_;
@@ -258,6 +261,12 @@ struct AstNode
     uint16_t payloadBits() const { return payloadBitsFromState(payloadState()); }
     uint32_t payloadRef() const { return payloadRefFromState(payloadState()); }
 
+    // One bit per semantic side table that may hold an entry under this node. A table sets its
+    // bit once the entry is added and never clears it, so a lookup for any other node can answer
+    // from the node alone.
+    void markSideTable(uint8_t table) { sideTables_.fetch_or(table, std::memory_order_release); }
+    bool maySideTable(uint8_t table) const { return (sideTables_.load(std::memory_order_acquire) & table) != 0; }
+
     ParserFlags parserFlags() const { return parserFlags_; }
 
     AstNodeId id() const { return id_; }
@@ -315,6 +324,7 @@ protected:
     std::atomic<uint64_t> payloadStorage_{0};
     AstNodeId             id_ = AstNodeId::Invalid;
     ParserFlags           parserFlags_{};
+    std::atomic<uint8_t>  sideTables_{0}; // Fills padding before codeRef_.
     SourceCodeRef         codeRef_;
 };
 

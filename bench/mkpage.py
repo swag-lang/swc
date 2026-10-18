@@ -10,6 +10,7 @@ import math
 import os
 
 import history
+import report_metrics
 import toolchains as tc
 
 BENCH = tc.BENCH
@@ -161,6 +162,93 @@ def fmt(v, nd=2):
 
 def signed_pct(v):
     return "&mdash;" if v is None else "%+.1f" % ((v - 1.0) * 100.0)
+
+
+def time_gap(gap):
+    if gap is None:
+        return "No complete comparison"
+    if abs(gap) < 0.05:
+        return "Same elapsed time"
+    return "%s%% %s time" % (fmt(abs(gap), 1), "less" if gap < 0 else "more")
+
+
+def duration(ms):
+    return "%s s" % fmt(ms / 1000, 2) if ms >= 1000 else "%s ms" % fmt(ms, 1 if ms >= 1 else 2)
+
+
+def signed_duration(ms):
+    if math.isclose(ms, 0, abs_tol=1e-9):
+        return "0.0 ms"
+    return ("+" if ms > 0 else "-") + duration(abs(ms))
+
+
+def time_saved(saved_ms):
+    if math.isclose(saved_ms, 0, abs_tol=1e-9):
+        return "0.0 ms difference"
+    return "%s %s" % (duration(abs(saved_ms)), "saved" if saved_ms > 0 else "lost")
+
+
+def total_time_gap(summary):
+    return time_saved(summary["saved_ms"]) if summary else "No complete comparison"
+
+
+def trend(change):
+    if change is None:
+        return ('<span class="trend unavailable" aria-label="No comparable earlier campaign">'
+                '&mdash;</span>', 'No comparable earlier campaign')
+    if "saved_ms" in change:
+        previous = signed_duration(change["previous_saved_ms"])
+        current = signed_duration(change["current_saved_ms"])
+        if current == previous:
+            state, arrow, label = "unchanged", "&rarr;", "Unchanged"
+        elif change["saved_ms"] > 0:
+            state, arrow, label = "improved", "&uarr;", "Improved"
+        else:
+            state, arrow, label = "regressed", "&darr;", "Regressed"
+        detail = "%s: %s before, %s now" % (label, previous, current)
+    else:
+        previous = "%d MiB" % round(change["previous_peak_bytes"] / 1048576)
+        current = "%d MiB" % round(change["current_peak_bytes"] / 1048576)
+        if current == previous:
+            state, arrow, label = "unchanged", "&rarr;", "Unchanged"
+        elif change["current_peak_bytes"] < change["previous_peak_bytes"]:
+            state, arrow, label = "improved", "&uarr;", "Improved"
+        else:
+            state, arrow, label = "regressed", "&darr;", "Regressed"
+        detail = "%s: %s before, %s now" % (label, previous, current)
+    reference = change["reference"]
+    note = '%s vs %s' % (detail, reference["date"][:10])
+    title = "%s; reference %s (%s); %d tasks" % (
+        detail, reference["date"], reference["stamp"], change["tasks"])
+    markup = ('<span class="trend %s" role="img" aria-label="%s" title="%s">%s</span>'
+              % (state, html.escape(detail, quote=True), html.escape(title, quote=True), arrow))
+    previous_title = "Previous measured value, %s (%s): %s" % (
+        reference["date"], reference["stamp"], previous)
+    markup = ('<span class="trend-pair">%s<small class="previous-value" title="%s">%s</small></span>'
+              % (markup, html.escape(previous_title, quote=True), previous))
+    return markup, note
+
+
+def competitive_stat(campaign, campaigns, tasks, lead, family, group, name):
+    key = "ms" if family == "run" else "wall_ms"
+    competitors = report_metrics.rivals(campaign, tasks, family, key, group)
+    summary = report_metrics.comparison(campaign, tasks, lead, family, key, competitors)
+    change = report_metrics.previous_change(campaign, campaigns, tasks, lead, family, key, group)
+    arrow, _ = trend(change)
+    if summary is None:
+        value, description, note = "&mdash;", "No complete comparison", ""
+    else:
+        amount, unit = signed_duration(summary["saved_ms"]).split(" ", 1)
+        value = "%s<em>%s</em>" % (amount, unit)
+        description = "Total time difference across %d workloads" % len(tasks)
+        note = ('<b>%d ahead &middot; %d close &middot; %d behind</b><br>'
+                'Swag total: %s<br>Rival total: %s' % (
+                    summary["ahead"], summary["close"], summary["behind"],
+                    duration(summary["total_ms"]),
+                    duration(summary["rival_total_ms"])))
+    return ('<div class="stat %s"><div class="sl">%s</div><div class="sv">%s%s</div>'
+            '<div class="sn">%s</div><div class="sn">%s</div></div>' % (
+                lang_class(lead), name, value, arrow, description, note))
 
 
 def geo(values):
@@ -764,21 +852,22 @@ def main():
     rmem = {r: max(((T[t].get(r) or {}).get("run") or {}).get("peak_bytes") or 0
                    for t in TASK_IDS) for r in present}
 
-    build_speedup = history.build_speedup(BT, TASK_IDS)
-
-    def stat(value, unit, name, runtime="swag-release", note=""):
-        return ('<div class="stat %s"><div class="sv">%s<em>%s</em></div>'
-                '<div class="sl">%s</div><div class="sn">%s</div></div>'
-                % (lang_class(runtime), value, unit, name, note))
-
+    campaigns = history.load_results()
+    build_summary = report_metrics.comparison(
+        B, TASK_IDS, "swag-release", "build", "wall_ms",
+        report_metrics.rivals(B, TASK_IDS, "build", "wall_ms"))
+    build_gap = total_time_gap(build_summary)
+    memory_change = report_metrics.previous_change(
+        B, campaigns, TASK_IDS, "swag-release", "build", "peak_bytes", peak=True)
+    memory_arrow, _ = trend(memory_change)
     stats = "".join([
-        stat(fmt(history.execution_speedup(T, TASK_IDS, "native")), "&times;", "Native speedup",
-             note="vs fastest non-Swag native / AOT rival"),
-        stat(fmt(history.execution_speedup(T, TASK_IDS, "jit")), "&times;", "JIT speedup",
-             "swc-jit-release", "vs fastest non-Swag JIT rival"),
-        stat(fmt(build_speedup), "&times;", "Build speedup",
-             note="vs fastest non-Swag build recipe"),
-        stat("%d" % round(bmem["swag-release"]), "MiB", "peak compiler memory"),
+        competitive_stat(R, campaigns, TASK_IDS, "swag-release", "run", "native", "Native execution"),
+        competitive_stat(R, campaigns, TASK_IDS, "swc-jit-release", "run", "jit", "JIT execution"),
+        competitive_stat(B, campaigns, TASK_IDS, "swag-release", "build", None, "Compilation"),
+        ('<div class="stat l-swag"><div class="sl">Peak compiler memory</div>'
+         '<div class="sv">%d<em>MiB</em>%s</div>'
+         '<div class="sn">Largest Swag release build working set</div></div>'
+         % (round(bmem["swag-release"]), memory_arrow)),
     ])
 
     native_run = [rt for rt in present if rt in execution["native"]]
@@ -799,10 +888,14 @@ def main():
     ex_jit_comparison = comparison_table(TASK_IDS, [("JIT", jit_run)], ms, "swc-jit-release")
 
     def competitive_summary(runtimes, lead):
-        ratios = [ms(lead, t) / min(ms(rt, t) for rt in runtimes) for t in TASK_IDS]
-        return ('Geometric time gap: <b>+%s%%</b>. Lowest recorded time on <b>%d / %d</b> tasks. '
-                'Largest gap: <b>+%s%%</b>.' % (fmt((geo(ratios) - 1) * 100, 1),
-                sum(r == 1 for r in ratios), len(ratios), fmt((max(ratios) - 1) * 100, 1)))
+        summary = report_metrics.comparison(R, TASK_IDS, lead, "run", "ms",
+                                            [rt for rt in runtimes if rt not in history.TRACKED])
+        if not summary:
+            return "No complete comparison."
+        return ('Total time vs fastest non-Swag rival per task: <b>%s</b>. '
+                'Per-task gaps range from <b>%s</b> to <b>%s</b>.' % (
+                    total_time_gap(summary), time_gap(summary["min_gap_pct"]),
+                    time_gap(summary["max_gap_pct"])))
 
     ex_native_summary = competitive_summary(native_run, "swag-release")
     ex_jit_summary = (competitive_summary(jit_run, "swc-jit-release")
@@ -910,9 +1003,9 @@ def main():
         "Native code runs within about **%sx of clang-cl** on those %s programs (geometric "
         "mean), while" % (fmt(gm["swag-release"] / gm["cpp-clang-cl"], 1),
                               spelled(len(TASK_IDS)).lower()),
-        "the geometric mean of fastest non-Swag build time / swc build time per task is "
-        "**%sx** (higher is better; 2x means swc builds twice as fast on average). The raw table "
-        "above includes each recipe's imports and linking or bytecode generation." % fmt(build_speedup),
+        "the total build-time difference vs the fastest non-Swag recipe per task is "
+        "**%s**. The raw table above includes each recipe's imports and linking or bytecode generation."
+        % build_gap,
         "A hello world compiles and links in %s ms."
         % fmt((B["hello_build"].get("swag-release") or {}).get("wall_ms"), 0),
         "",
@@ -934,7 +1027,7 @@ def main():
         "{{progress_version}}": str(history.PROGRESS_VERSION),
         "{{progress_tasks}}": str(len(history.PROGRESS_TASKS)),
         "{{ex_native_summary}}": ex_native_summary, "{{ex_jit_summary}}": ex_jit_summary,
-        "{{build_speedup}}": fmt(build_speedup),
+        "{{build_gap}}": build_gap,
         "{{runtime_legend}}": runtime_legend([r[0] for r in RUNTIMES if r[0] in set(present + aot)]),
         "{{ex_native_chart}}": ex_native_chart, "{{ex_jit_chart}}": ex_jit_chart,
         "{{ex_matrix}}": ex_matrix,

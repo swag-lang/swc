@@ -141,6 +141,11 @@ code { font-size: .88em; color: var(--soft); }
 .stat { background: var(--ink); padding: 16px 18px 14px; }
 
 .stat .sv {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
     font-family: var(--mono);
     font-variant-numeric: tabular-nums;
     font-size: 2rem;
@@ -149,7 +154,15 @@ code { font-size: .88em; color: var(--soft); }
     color: var(--c, var(--volt));
 }
 
-.stat .sv em { font-style: normal; font-size: .9rem; margin-left: 3px; color: #7D7D89; }
+.stat .sv em { font-style: normal; font-size: .8rem; color: #A9A9B4; letter-spacing: 0; }
+.stat .trend { margin-left: auto; font-size: 1.8rem; line-height: 1; }
+.stat .trend-pair { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.stat .trend-pair .trend { margin-left: 0; }
+.stat .previous-value { color: #A9A9B4; font-size: .65rem; letter-spacing: 0; white-space: nowrap; }
+.stat .trend.improved { color: #AAFFC3; }
+.stat .trend.regressed { color: #FF7777; }
+.stat .trend.unchanged, .stat .trend.unavailable { color: #A9A9B4; }
+.stat .movement { margin-top: 12px; }
 
 .stat .sl {
     margin-top: 8px;
@@ -159,7 +172,7 @@ code { font-size: .88em; color: var(--soft); }
     font-family: var(--mono);
     color: #A9A9B4;
 }
-.stat .sn { margin-top: 6px; color: #A9A9B4; font: .65rem/1.5 var(--mono); }
+.stat .sn { margin-top: 6px; color: #A9A9B4; font: .72rem/1.6 var(--mono); }
 .stat .sn:empty { display: none; }
 .page-nav { position: sticky; top: 0; z-index: 3; background: var(--bg); border-bottom: 1px solid var(--line); }
 .page-nav .wrap { display: flex; gap: 24px; overflow-x: auto; }
@@ -488,10 +501,14 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <div class="rule"></div>
         <h1>Swag performance</h1>
         <p>12 matching workloads &middot; 22 runtime configurations &middot; identical checksums</p>
-        <div class="stats"><div class="stat l-swag"><div class="sv">1.03<em>&times;</em></div><div class="sl">Native speedup</div><div class="sn">vs fastest non-Swag native / AOT rival</div></div><div class="stat l-swagjit"><div class="sv">1.56<em>&times;</em></div><div class="sl">JIT speedup</div><div class="sn">vs fastest non-Swag JIT rival</div></div><div class="stat l-swag"><div class="sv">1.78<em>&times;</em></div><div class="sl">Build speedup</div><div class="sn">vs fastest non-Swag build recipe</div></div><div class="stat l-swag"><div class="sv">106<em>MiB</em></div><div class="sl">peak compiler memory</div><div class="sn"></div></div></div>
-        <p class="cap">Speedup against the fastest non-Swag rival on each of 12 workloads, with equal weight.
-        1&times; = parity; 2&times; = half the elapsed time; below 1&times; = slower.
-        Native / AOT, JIT and compilation use separate competitors. Progress since a fixed reference is shown in <a href="#historique">History</a>.
+        <div class="stats"><div class="stat l-swag"><div class="sl">Native execution</div><div class="sv">+11.4<em>ms</em><span class="trend-pair"><span class="trend improved" role="img" aria-label="Improved: -0.75 ms before, +11.4 ms now" title="Improved: -0.75 ms before, +11.4 ms now; reference 2026-10-12T16:53:20+00:00 (20261012-165320); 12 tasks">&uarr;</span><small class="previous-value" title="Previous measured value, 2026-10-12T16:53:20+00:00 (20261012-165320): -0.75 ms">-0.75 ms</small></span></div><div class="sn">Total time difference across 12 workloads</div><div class="sn"><b>7 ahead &middot; 2 close &middot; 3 behind</b><br>Swag total: 261.7 ms<br>Rival total: 273.1 ms</div></div><div class="stat l-swagjit"><div class="sl">JIT execution</div><div class="sv">+221.7<em>ms</em><span class="trend-pair"><span class="trend regressed" role="img" aria-label="Regressed: +247.9 ms before, +221.7 ms now" title="Regressed: +247.9 ms before, +221.7 ms now; reference 2026-10-12T16:53:20+00:00 (20261012-165320); 12 tasks">&darr;</span><small class="previous-value" title="Previous measured value, 2026-10-12T16:53:20+00:00 (20261012-165320): +247.9 ms">+247.9 ms</small></span></div><div class="sn">Total time difference across 12 workloads</div><div class="sn"><b>10 ahead &middot; 0 close &middot; 2 behind</b><br>Swag total: 337.9 ms<br>Rival total: 559.6 ms</div></div><div class="stat l-swag"><div class="sl">Compilation</div><div class="sv">+1.62<em>s</em><span class="trend-pair"><span class="trend improved" role="img" aria-label="Improved: +1.54 s before, +1.62 s now" title="Improved: +1.54 s before, +1.62 s now; reference 2026-10-12T16:53:20+00:00 (20261012-165320); 12 tasks">&uarr;</span><small class="previous-value" title="Previous measured value, 2026-10-12T16:53:20+00:00 (20261012-165320): +1.54 s">+1.54 s</small></span></div><div class="sn">Total time difference across 12 workloads</div><div class="sn"><b>12 ahead &middot; 0 close &middot; 0 behind</b><br>Swag total: 2.08 s<br>Rival total: 3.70 s</div></div><div class="stat l-swag"><div class="sl">Peak compiler memory</div><div class="sv">106<em>MiB</em><span class="trend-pair"><span class="trend regressed" role="img" aria-label="Regressed: 100 MiB before, 106 MiB now" title="Regressed: 100 MiB before, 106 MiB now; reference 2026-10-12T16:53:20+00:00 (20261012-165320); 12 tasks">&darr;</span><small class="previous-value" title="Previous measured value, 2026-10-12T16:53:20+00:00 (20261012-165320): 100 MiB">100 MiB</small></span></div><div class="sn">Largest Swag release build working set</div></div></div>
+        <p class="cap">Time saved or lost is the sum of the differences across 12 workloads, one run or build each.
+        Positive = time saved; negative = extra time. The smaller value beside each arrow is the previous value.
+        Rival totals combine the fastest non-Swag rival on each task within its group. Longer tasks weigh more.
+        Close = within 1% on a task. Memory shows the largest working set, not a sum of separate peaks.
+        Time arrows compare the two displayed values directly:
+        &uarr; more time saved or less time lost, &darr; less saved or more lost, &rarr; unchanged at displayed precision.
+        A dash means no earlier comparison. Fixed-reference progress is in <a href="#historique">History</a>.
         Execution 2026-10-17 &middot; compilation 2026-10-17.</p>
     </div>
 </div>
@@ -519,7 +536,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     A native 95% and a JIT 95% do not describe the same absolute speed.
     Aggregate scores are geometric means; each task has equal weight.</p>
     <div class="grid2"><div><h3>Native / AOT &middot; SW</h3>
-    <p class="cap">Geometric time gap: <b>+2.2%</b>. Lowest recorded time on <b>8 / 12</b> tasks. Largest gap: <b>+22.6%</b>.</p><figure class="chart">
+    <p class="cap">Total time vs fastest non-Swag rival per task: <b>11.4 ms saved</b>. Per-task gaps range from <b>15.0% less time</b> to <b>22.6% more time</b>.</p><figure class="chart">
 <div class="axis" aria-hidden="true">
 <span class="tick" style="left:0.000%"><i></i><b>0</b></span>
 <span class="tick" style="left:25.000%"><i></i><b>25</b></span>
@@ -556,7 +573,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 <div class="row l-luajit"><div class="rl"><span class="runtime-name">LuaJIT <span class="mode">JIT</span></span><span class="runtime-badge l-luajit" role="img" title="LuaJIT (JIT)" aria-label="LuaJIT (JIT)">LJ</span></div><div class="track"><span class="bar" style="width:19.845%"></span></div><div class="rv">19.8<em>%</em></div></div>
 <div class="row l-phpjit"><div class="rl"><span class="runtime-name">PHP <span class="mode">JIT</span></span><span class="runtime-badge l-phpjit" role="img" title="PHP (JIT)" aria-label="PHP (JIT)">PJ</span></div><div class="track"><span class="bar" style="width:6.669%"></span></div><div class="rv">6.7<em>%</em></div></div>
 </figure></div></div>
-    <p class="cap">SJ within JIT: Geometric time gap: <b>+13.9%</b>. Lowest recorded time on <b>10 / 12</b> tasks. Largest gap: <b>+226.3%</b>.</p>
+    <p class="cap">SJ within JIT: Total time vs fastest non-Swag rival per task: <b>221.7 ms saved</b>. Per-task gaps range from <b>71.1% less time</b> to <b>226.3% more time</b>.</p>
     <details><summary>Direct comparisons &mdash; native vs SW, JIT vs SJ</summary>
     <p class="cap">Geometric mean of competitor time / Swag time within the same execution group.
     0.5&times; means the competitor is twice as fast; 2&times; means twice as slow.
@@ -1238,7 +1255,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     Each task has equal weight; hello is excluded from aggregates.</p>
     <p class="cap">These compare build recipes, including different library work, rather than isolating
     compiler front-end speed. Java and C# CoreCLR produce bytecode; native recipes produce executables.</p>
-    <p class="cap">Swag release build speedup vs the fastest rival recipe: <b>1.78&times;</b>.
+    <p class="cap">Total Swag release build-time difference vs the fastest rival recipe per task: <b>1.62 s saved</b>.
     This comparison describes the current campaign; <a href="#historique">History</a> tracks Swag over time.</p>
     <figure class="chart">
 <div class="axis" aria-hidden="true">
@@ -2288,10 +2305,22 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <li><b>Progress score</b>100 / geometric mean of corrected task time / corrected reference task time.
         Version 1 freezes 12 workloads. The baseline is the first clean, complete campaign;
         incomplete campaigns have no score. New tasks do not silently enter this index.</li>
-        <li><b>Headline speedups</b>Geometric mean of fastest non-Swag time / Swag release time on each workload.
+        <li><b>Headline times</b>Sum of (fastest non-Swag time &minus; Swag time) across all displayed workloads.
         Competitors must have valid times for the complete panel. Native / AOT and JIT references stay separate;
-        compilation includes bytecode recipes. 2&times; means twice as fast; below 1&times; means slower.
-        These ratios measure competitive standing, not improvement since a historical baseline.</li>
+        compilation includes bytecode recipes. Positive differences are time saved; negative differences are time lost.
+        Totals sum each measured workload once; longer tasks weigh more. The rival can be a different language on each task.
+        Ahead / close / behind counts use a &plusmn;1% display band. Memory remains the peak in MiB.</li>
+        <li><b>Trend arrows</b>Compare the previous accepted campaign with complete measurements on the displayed panel,
+        under the same protocol. Each time value uses its own campaign's fastest complete non-Swag rivals.
+        Compare the displayed savings directly: green up = more time saved or less time lost;
+        red down = less saved or more lost; neutral right = the same value at displayed precision.
+        No machine correction or ratio changes that direction. The small value is the previous measured value.
+        Memory arrows compare the two displayed peaks directly; a smaller peak is better.
+        Hover an arrow for the reference campaign and matched panel. These are observed changes, not significance tests.</li>
+        <li><b>Other benchmarks</b><a href="https://www.spec.org/cpu2017/Docs/overview.html">SPEC CPU</a>
+        aggregates normalized ratios geometrically; the detailed charts here retain that convention.
+        The <a href="https://benchmarksgame-team.pages.debian.net/benchmarksgame/box-plot-summary-charts.html">Benchmarks Game</a>
+        also shows distributions. The task counts complement the headline total by showing how broadly a gap applies.</li>
         <li><b>Protocol</b>2. Raw campaigns, toolchains and measurement rules: <code>bench/README.md</code>.</li>
     </ul>
 </section>

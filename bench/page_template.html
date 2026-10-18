@@ -141,6 +141,11 @@ code { font-size: .88em; color: var(--soft); }
 .stat { background: var(--ink); padding: 16px 18px 14px; }
 
 .stat .sv {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
     font-family: var(--mono);
     font-variant-numeric: tabular-nums;
     font-size: 2rem;
@@ -149,7 +154,15 @@ code { font-size: .88em; color: var(--soft); }
     color: var(--c, var(--volt));
 }
 
-.stat .sv em { font-style: normal; font-size: .9rem; margin-left: 3px; color: #7D7D89; }
+.stat .sv em { font-style: normal; font-size: .8rem; color: #A9A9B4; letter-spacing: 0; }
+.stat .trend { margin-left: auto; font-size: 1.8rem; line-height: 1; }
+.stat .trend-pair { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.stat .trend-pair .trend { margin-left: 0; }
+.stat .previous-value { color: #A9A9B4; font-size: .65rem; letter-spacing: 0; white-space: nowrap; }
+.stat .trend.improved { color: #AAFFC3; }
+.stat .trend.regressed { color: #FF7777; }
+.stat .trend.unchanged, .stat .trend.unavailable { color: #A9A9B4; }
+.stat .movement { margin-top: 12px; }
 
 .stat .sl {
     margin-top: 8px;
@@ -159,7 +172,7 @@ code { font-size: .88em; color: var(--soft); }
     font-family: var(--mono);
     color: #A9A9B4;
 }
-.stat .sn { margin-top: 6px; color: #A9A9B4; font: .65rem/1.5 var(--mono); }
+.stat .sn { margin-top: 6px; color: #A9A9B4; font: .72rem/1.6 var(--mono); }
 .stat .sn:empty { display: none; }
 .page-nav { position: sticky; top: 0; z-index: 3; background: var(--bg); border-bottom: 1px solid var(--line); }
 .page-nav .wrap { display: flex; gap: 24px; overflow-x: auto; }
@@ -489,9 +502,13 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <h1>Swag performance</h1>
         <p>{{ntasks}} matching workloads &middot; {{nruntimes}} runtime configurations &middot; identical checksums</p>
         <div class="stats">{{stats}}</div>
-        <p class="cap">Speedup against the fastest non-Swag rival on each of {{ntasks}} workloads, with equal weight.
-        1&times; = parity; 2&times; = half the elapsed time; below 1&times; = slower.
-        Native / AOT, JIT and compilation use separate competitors. Progress since a fixed reference is shown in <a href="#historique">History</a>.
+        <p class="cap">Time saved or lost is the sum of the differences across {{ntasks}} workloads, one run or build each.
+        Positive = time saved; negative = extra time. The smaller value beside each arrow is the previous value.
+        Rival totals combine the fastest non-Swag rival on each task within its group. Longer tasks weigh more.
+        Close = within 1% on a task. Memory shows the largest working set, not a sum of separate peaks.
+        Time arrows compare the two displayed values directly:
+        &uarr; more time saved or less time lost, &darr; less saved or more lost, &rarr; unchanged at displayed precision.
+        A dash means no earlier comparison. Fixed-reference progress is in <a href="#historique">History</a>.
         Execution {{run_date}} &middot; compilation {{build_date}}.</p>
     </div>
 </div>
@@ -553,7 +570,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     Each task has equal weight; hello is excluded from aggregates.</p>
     <p class="cap">These compare build recipes, including different library work, rather than isolating
     compiler front-end speed. Java and C# CoreCLR produce bytecode; native recipes produce executables.</p>
-    <p class="cap">Swag release build speedup vs the fastest rival recipe: <b>{{build_speedup}}&times;</b>.
+    <p class="cap">Total Swag release build-time difference vs the fastest rival recipe per task: <b>{{build_gap}}</b>.
     This comparison describes the current campaign; <a href="#historique">History</a> tracks Swag over time.</p>
     {{bu_chart}}
     <details><summary>Direct comparisons with Swag release</summary>
@@ -644,10 +661,22 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <li><b>Progress score</b>100 / geometric mean of corrected task time / corrected reference task time.
         Version {{progress_version}} freezes {{progress_tasks}} workloads. The baseline is the first clean, complete campaign;
         incomplete campaigns have no score. New tasks do not silently enter this index.</li>
-        <li><b>Headline speedups</b>Geometric mean of fastest non-Swag time / Swag release time on each workload.
+        <li><b>Headline times</b>Sum of (fastest non-Swag time &minus; Swag time) across all displayed workloads.
         Competitors must have valid times for the complete panel. Native / AOT and JIT references stay separate;
-        compilation includes bytecode recipes. 2&times; means twice as fast; below 1&times; means slower.
-        These ratios measure competitive standing, not improvement since a historical baseline.</li>
+        compilation includes bytecode recipes. Positive differences are time saved; negative differences are time lost.
+        Totals sum each measured workload once; longer tasks weigh more. The rival can be a different language on each task.
+        Ahead / close / behind counts use a &plusmn;1% display band. Memory remains the peak in MiB.</li>
+        <li><b>Trend arrows</b>Compare the previous accepted campaign with complete measurements on the displayed panel,
+        under the same protocol. Each time value uses its own campaign's fastest complete non-Swag rivals.
+        Compare the displayed savings directly: green up = more time saved or less time lost;
+        red down = less saved or more lost; neutral right = the same value at displayed precision.
+        No machine correction or ratio changes that direction. The small value is the previous measured value.
+        Memory arrows compare the two displayed peaks directly; a smaller peak is better.
+        Hover an arrow for the reference campaign and matched panel. These are observed changes, not significance tests.</li>
+        <li><b>Other benchmarks</b><a href="https://www.spec.org/cpu2017/Docs/overview.html">SPEC CPU</a>
+        aggregates normalized ratios geometrically; the detailed charts here retain that convention.
+        The <a href="https://benchmarksgame-team.pages.debian.net/benchmarksgame/box-plot-summary-charts.html">Benchmarks Game</a>
+        also shows distributions. The task counts complement the headline total by showing how broadly a gap applies.</li>
         <li><b>Protocol</b>{{protocol}}. Raw campaigns, toolchains and measurement rules: <code>bench/README.md</code>.</li>
     </ul>
 </section>

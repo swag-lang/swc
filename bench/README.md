@@ -65,14 +65,38 @@ C++ consumes the installed CRT binaries while parsing its headers. These are dif
 states, so the current table does not describe a common warm-dependency edit-build loop either.
 Java and C# IL builds produce bytecode, whereas the native rows include machine-code generation
 and linking. Keep those output contracts in mind when reading the combined ranking.
-The report's compilation speedup takes the fastest non-Swag build time for each task, divides
-it by Swag release build time, then takes the geometric mean of those ratios. Every task has
-equal weight, regardless of its duration. A value of 2x means Swag builds twice as fast on
-average; 1x means parity; below 1x means Swag is slower. Every Swag mode is excluded from the
-reference, and the fastest competitor can differ by task. All other build configurations,
-including bytecode generation, participate if they have valid times for every displayed task.
-This comparison uses the latest accepted build campaign and all displayed tasks. The execution
-and compilation sections also compare Swag release with each runtime or compiler separately:
+The headline cards report **total time saved or lost**, in milliseconds or seconds:
+current and previous values show only a signed number and its unit. Positive means time saved;
+negative means extra time.
+`sum(fastest non-Swag time - Swag time)`. Each total represents one measured run or build
+of every displayed workload. For example, a Swag total of 200 ms against a rival total of
+350 ms is displayed as **+150 ms**. The cards show both totals and count tasks ahead,
+close (within 1%), and behind. The rival total sums the fastest non-Swag time on each task;
+it can combine several languages. Longer tasks weigh more, so a large gain on one task can
+outweigh small losses on several others. The task counts make that distribution visible.
+Compiler memory remains the largest working set in MiB: separate processes' peaks are not added.
+All Swag modes are excluded from the rival reference. Only competitors with valid measurements
+for every displayed task participate. Native / AOT and JIT use separate rivals; compilation
+includes bytecode recipes. The cards use each section's latest accepted campaign.
+
+The three time arrows compare the current and previous displayed values directly. More time
+saved or less time lost gives a green up arrow; less saved or more lost gives a red down arrow.
+The neutral right arrow means the displayed values are equal at their printed precision.
+For example, 1.54 s saved before and 1.62 s saved now always gives a green up arrow.
+A dash means no comparable earlier campaign. Both campaigns must use the same protocol
+and measure the complete displayed task panel. Each value uses that campaign's complete
+non-Swag rivals. No machine correction or normalized ratio can reverse the displayed direction;
+changes in the machine or competitor set can affect these raw savings. Use corrected history
+for compiler progress claims. Peak compiler memory compares the two measured Swag peaks directly;
+a smaller peak is better. Beside every arrow, the previous value appears as a small number and
+unit, including MiB for peak memory. Its tooltip gives the date and campaign identifier.
+
+These choices keep the distribution visible alongside the summary, as in the
+[Benchmarks Game](https://benchmarksgame-team.pages.debian.net/benchmarksgame/box-plot-summary-charts.html).
+The detailed aggregate speed charts retain the geometric mean of normalized ratios used by
+[SPEC CPU](https://www.spec.org/cpu2017/Docs/overview.html); archived history fields keep their
+existing definitions. The execution and compilation sections also compare Swag release with
+each runtime or compiler separately:
 the geometric mean of competitor time / Swag release time across the same tasks. 2x means
 Swag release is twice as fast; 0.5x means it is twice as slow. A competitor appears only when
 it has a valid measurement for every displayed task. Per-task tables order runtime badges
@@ -365,16 +389,13 @@ or one independently upgraded toolchain. `history.json` records the factors, con
 and median dispersion so the correction remains auditable. A context factor below one means
 the controls ran faster than at baseline, so the raw Swag value is raised before comparison.
 
-Compiler memory is the exception. It does not drift with machine state, so it is plotted raw.
-The execution and build headline ratios compare runtimes within one accepted campaign. Both
-use the same rule: geometric mean of fastest non-Swag time / Swag release time on each task
-(higher is better). Native / AOT and JIT have separate competitors; compilation includes bytecode
-recipes. The reference winner can change by task, but only competitors measured successfully on
-the complete panel participate. 1x means parity, 2x means half the elapsed time, and below 1x
-means slower. These are not indices
-against a historical compiler baseline. Machine correction remains in the history's time and
-index curves. A cross-language build ratio can still move with machine effects on different
-compilers; read compiler progress from those corrected curves and their resolution bands.
+Compiler memory is plotted raw in history. Its headline arrow compares the measured peaks,
+as described above. The headline time gaps describe the latest campaign; their arrows compare
+it with the preceding comparable campaign. Neither is a fixed historical compiler index.
+The archived `headline` fields in `history.json` retain their earlier geometric-ratio definitions
+for the supplementary history charts. Machine correction remains in the history's time and
+index curves. Cross-language gaps and arrows can still move with machine effects on different
+compilers; read compiler progress from the corrected curves and their resolution bands.
 
 ## What the bench can actually see
 
@@ -409,7 +430,7 @@ point deserves less trust than its neighbours.
 
 The history section tracks Swag native execution, Swag JIT execution and Swag build
 speed over time, independently of the current competitor winners. These points measure change
-since a reference, whereas the headline speedups measure the current advantage over rivals.
+since a reference, whereas the headline gaps describe the current advantage over rivals.
 A larger progress score in one category does not imply a larger competitive lead there.
 Score version 1 freezes
 twelve workloads in `history.PROGRESS_TASKS`. Each task has equal weight:
@@ -424,11 +445,11 @@ missing correction factor produces no score, rather than silently dropping a wor
 New tasks do not enter version 1; changing the score panel requires an explicit new version.
 All twelve tasks participate, including the five added after the original seven-task history.
 
-The current gap to the best is a different metric. The execution section shows its geometric
-mean together with the largest per-task gap and the count of lowest recorded times. For example,
-eight best times and four small-to-moderate gaps can yield only 2.2% overall even when one task
-is 22.6% behind. That gap includes Swag in its reference and therefore counts only deficits;
-the headline speedup excludes Swag from its reference and counts both advantages and deficits.
+The current gap to the best is a different metric. The execution section shows the total time
+saved or lost against non-Swag rivals together with the smallest and largest per-task gaps. The headline
+counts show how many tasks are ahead, close or behind. For example, a small total advantage
+can coexist with a task that takes 22.6% more time. The detailed speed charts include Swag in
+their reference; the headline gaps exclude it and count both advantages and deficits.
 Corrections remain estimates; small score movements, particularly for builds, can be noise.
 
 ## A task added after the original baseline

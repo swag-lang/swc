@@ -462,7 +462,7 @@ public:
     void                         setMoveElisionAnalyzed() { moveElisionAnalyzed_ = true; }
     CodeGenMoveElisionVar&       moveElisionVar(const SymbolVariable& symVar);
     const CodeGenMoveElisionVar* findMoveElisionVar(const SymbolVariable& symVar) const;
-    void                         clearMoveElisionVars() { moveElisionVars_.reset(); }
+    void                         clearMoveElisionVars() { moveElisionVars_.clear(); }
     void                         markImplicitDropElided(const SymbolVariable& symVar) { elidedImplicitDrops_.insert(&symVar); }
     bool                         isImplicitDropElided(const SymbolVariable& symVar) const { return elidedImplicitDrops_.contains(&symVar); }
 
@@ -521,33 +521,33 @@ private:
     SmallVector<std::unique_ptr<VariablePayloadState[]>, 4> variablePayloadChunks_;
     uint32_t                                                variablePayloadCount_ = 0;
     // Filled only when a move asks whether it can be elided; most functions never do.
-    std::optional<std::unordered_map<const SymbolVariable*, CodeGenMoveElisionVar>> moveElisionVars_;
-    PointerSet<const SymbolVariable>                                                elidedImplicitDrops_;
-    const SymbolVariable*                                                           returnMoveOutVar_    = nullptr;
-    bool                                                                            moveElisionAnalyzed_ = false;
-    SymbolFunction*                                                                 function_            = nullptr;
-    MicroBuilder*                                                                   builder_             = nullptr;
-    uint32_t                                                                        nextVirtualRegister_ = 1;
-    uint32_t                                                                        localStackFrameSize_ = 0;
-    MicroReg                                                                        localStackBaseReg_;
-    MicroReg                                                                        vectorZeroReg_;
-    MicroInstrRef                                                                   bodyEntryRef_;
-    uint32_t                                                                        currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
-    MicroReg                                                                        currentFunctionIndirectReturnReg_;
-    MicroReg                                                                        currentFunctionClosureContextReg_;
-    SmallVector<CodeGenDeferScope, 32>                                              deferScopes_;
-    SmallVector<CodeGenDeferredEmissionCursor>                                      deferredEmissionCursors_;
-    uint32_t                                                                        deferredEmitDepth_                = 0;
-    uint32_t                                                                        currentDeferredAddressGeneration_ = 0;
-    uint32_t                                                                        nextDeferredAddressGeneration_    = 1;
-    bool                                                                            hasDeferredStatements_            = false;
-    uint32_t                                                                        globalsToDropScratchOffset_       = 0;
-    uint32_t                                                                        globalsToDropScratchSize_         = 0;
-    SmallVector<CodeGenGlobalToDropEntry>                                           globalsToDropScratchEntries_;
-    SmallVector<CodeGenTemporaryDrop, 4>                                            temporaryDrops_;
-    AstNodeRef                                                                      root_      = AstNodeRef::invalid();
-    bool                                                                            started_   = false;
-    bool                                                                            completed_ = false;
+    FlatKeyMap<CodeGenMoveElisionVar, uint64_t> moveElisionVars_;
+    PointerSet<const SymbolVariable>            elidedImplicitDrops_;
+    const SymbolVariable*                       returnMoveOutVar_    = nullptr;
+    bool                                        moveElisionAnalyzed_ = false;
+    SymbolFunction*                             function_            = nullptr;
+    MicroBuilder*                               builder_             = nullptr;
+    uint32_t                                    nextVirtualRegister_ = 1;
+    uint32_t                                    localStackFrameSize_ = 0;
+    MicroReg                                    localStackBaseReg_;
+    MicroReg                                    vectorZeroReg_;
+    MicroInstrRef                               bodyEntryRef_;
+    uint32_t                                    currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
+    MicroReg                                    currentFunctionIndirectReturnReg_;
+    MicroReg                                    currentFunctionClosureContextReg_;
+    SmallVector<CodeGenDeferScope, 32>          deferScopes_;
+    SmallVector<CodeGenDeferredEmissionCursor>  deferredEmissionCursors_;
+    uint32_t                                    deferredEmitDepth_                = 0;
+    uint32_t                                    currentDeferredAddressGeneration_ = 0;
+    uint32_t                                    nextDeferredAddressGeneration_    = 1;
+    bool                                        hasDeferredStatements_            = false;
+    uint32_t                                    globalsToDropScratchOffset_       = 0;
+    uint32_t                                    globalsToDropScratchSize_         = 0;
+    SmallVector<CodeGenGlobalToDropEntry>       globalsToDropScratchEntries_;
+    SmallVector<CodeGenTemporaryDrop, 4>        temporaryDrops_;
+    AstNodeRef                                  root_      = AstNodeRef::invalid();
+    bool                                        started_   = false;
+    bool                                        completed_ = false;
 };
 
 SWC_END_NAMESPACE();

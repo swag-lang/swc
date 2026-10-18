@@ -1835,7 +1835,9 @@ namespace
         }
     }
 
-    bool localStorageOutlivesBorrow(Sema& sema, const SymbolVariable& destination, const SymbolVariable& source)
+    // 'outsideInline' is set by a caller that has just found no inline context, so the visit
+    // path is not searched for one a second time.
+    bool localStorageOutlivesBorrow(Sema& sema, const SymbolVariable& destination, const SymbolVariable& source, bool outsideInline = false)
     {
         const uint32_t sourceDepth      = sema.variableScopeDepth(source);
         const uint32_t destinationDepth = sema.variableScopeDepth(destination);
@@ -1843,7 +1845,7 @@ namespace
         // A destructor can observe its fields after a later declaration was destroyed.
         // Trivial carriers have no such reader at block exit. Inline expansions have
         // their own local ordering, which does not compare with the enclosing function.
-        if (sourceDepth == destinationDepth && (SemaHelpers::effectiveInlinePayload(sema) || !TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), destination.typeRef()).hasDrop))
+        if (sourceDepth == destinationDepth && ((!outsideInline && SemaHelpers::effectiveInlinePayload(sema)) || !TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), destination.typeRef()).hasDrop))
             return false;
         return sema.localStorageOutlives(destination, source);
     }
@@ -1890,7 +1892,7 @@ namespace
             return false;
 
         if (storedInfo.isLocalBorrow())
-            return localStorageOutlivesBorrow(sema, *intoInfo.sourceVar, *storedInfo.sourceVar);
+            return localStorageOutlivesBorrow(sema, *intoInfo.sourceVar, *storedInfo.sourceVar, true);
 
         const uint32_t storedDepth = storedInfo.isMaterializedBorrow() ? storedInfo.sourceScopeDepth : (storedInfo.sourceVar ? sema.variableScopeDepth(*storedInfo.sourceVar) : 0);
         return storedDepth && storedDepth > intoDepth;

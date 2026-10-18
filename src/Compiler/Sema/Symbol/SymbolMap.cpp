@@ -148,12 +148,21 @@ namespace
 
 }
 
-SymbolImplList SymbolMap::snapshotImpls(std::shared_mutex& mutex, const std::vector<SymbolImpl*>& impls)
+void SymbolImplChain::publish(TaskContext& ctx, SymbolImpl& symImpl)
 {
-    // A vector reference lets us acquire the lock before reading even its size.
-    const std::shared_lock lock(mutex);
-    SymbolImplList         result;
-    result.assign(impls.begin(), impls.end());
+    auto* link = ctx.allocate<Link>();
+    link->impl = &symImpl;
+    if (tail_)
+        tail_->next.store(link, std::memory_order_release);
+    else
+        head_.store(link, std::memory_order_release);
+    tail_ = link;
+}
+
+SymbolImplList SymbolImplChain::snapshot() const
+{
+    SymbolImplList result;
+    forEach([&](SymbolImpl* symImpl) { result.push_back(symImpl); });
     return result;
 }
 

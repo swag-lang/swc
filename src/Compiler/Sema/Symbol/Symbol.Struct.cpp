@@ -644,21 +644,8 @@ namespace
 
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
-    const std::unique_lock lk(mutexImpls_);
-    if (!implsSet_.insert(&symImpl))
-    {
-        symImpl.setSymStruct(this);
-        return;
-    }
-
-    symImpl.setSymStruct(this);
-    impls_.push_back(&symImpl);
-    sema.compiler().notifyAlive();
-}
-
-SymbolImplList SymbolStruct::impls() const
-{
-    return snapshotImpls(mutexImpls_, impls_);
+    if (impls_.append(sema.ctx(), symImpl, [&] { symImpl.setSymStruct(this); }))
+        sema.compiler().notifyAlive();
 }
 
 std::vector<SymbolFunction*> SymbolStruct::declaredMethods() const
@@ -774,7 +761,10 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
 SymbolImplList SymbolStruct::interfaces() const
 {
-    return snapshotImpls(mutexInterfaces_, interfaces_);
+    const std::shared_lock lock(mutexInterfaces_);
+    SymbolImplList         result;
+    result.assign(interfaces_.begin(), interfaces_.end());
+    return result;
 }
 
 void SymbolStruct::removeIgnoredFields()

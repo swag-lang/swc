@@ -56,17 +56,20 @@ public:
     bool          computeNextValue(Sema& sema, const SourceCodeRef& codeRef);
 
     void           addImpl(Sema& sema, SymbolImpl& symImpl);
-    SymbolImplList impls() const;
-    bool           isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
-    uint64_t       sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
+    SymbolImplList impls() const { return impls_.snapshot(); }
+    template<typename F>
+    void forEachImpl(const F& fn) const
+    {
+        impls_.forEach(fn);
+    }
+    bool     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
+    uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 
 private:
     TypeRef underlyingTypeRef_ = TypeRef::invalid();
     ApsInt  nextValue_;
 
-    mutable std::shared_mutex mutexImpls_;
-    std::vector<SymbolImpl*>  impls_;
-    PointerSet<SymbolImpl>    implsSet_;
+    SymbolImplChain impls_;
 };
 
 SWC_END_NAMESPACE();

@@ -1374,11 +1374,11 @@ namespace
         if (outSymbol)
             return Result::Continue;
 
-        if (!SemaHelpers::effectiveInlinePayload(sema))
-            return Result::Continue;
-
         const auto* identifier = sema.node(identifierRef).safeCast<AstIdentifier>();
         if (!identifier || !identifier->hasFlag(AstIdentifierFlagsE::InClosureCapture) || !identifier->codeRef().isValid())
+            return Result::Continue;
+
+        if (!SemaHelpers::effectiveInlinePayload(sema))
             return Result::Continue;
 
         MatchContext lookupContext;

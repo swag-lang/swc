@@ -172,7 +172,7 @@ namespace
             return false;
         if (sym.isEmpty())
             return false;
-        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        if (sym.attributes().hasMacroOrMixin())
             return false;
         if (sym.specOpKind() != SpecOpKind::None)
             return false;
@@ -204,7 +204,7 @@ namespace
             return false;
         if (sym.isEmpty() || sym.specOpKind() != SpecOpKind::None)
             return false;
-        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        if (sym.attributes().hasMacroOrMixin())
             return false;
         if (isImplicitGeneratedLifecycleWrapper(sema, sym))
             return false;
@@ -224,7 +224,7 @@ namespace
             return false;
         if (sym.isEmpty() || sym.specOpKind() != SpecOpKind::None)
             return false;
-        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        if (sym.attributes().hasMacroOrMixin())
             return false;
         if (isImplicitGeneratedLifecycleWrapper(sema, sym))
             return false;
@@ -889,7 +889,7 @@ namespace
     {
         return payload &&
                payload->sourceFunction &&
-               payload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
+               payload->sourceFunction->attributes().hasMacroOrMixin();
     }
 
     const SemaInlinePayload* resolveReturnContextPayload(const SemaInlinePayload* payload, const bool directInlineBody)
@@ -1702,7 +1702,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (sym.isSemaCompleted())
             return Result::SkipChildren;
 
-        const bool deferInlineBodySema = sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin | RtAttributeFlagsE::Macro);
+        const bool deferInlineBodySema = sym.attributes().hasMacroOrMixin();
         if (deferInlineBodySema)
         {
             const bool shortWithoutExplicitReturnType = hasFlag(AstFunctionFlagsE::Short) && nodeReturnTypeRef.isInvalid();
@@ -2033,7 +2033,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBody);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
     sym.setSemaCompleted(sema.ctx());
-    if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (!sym.attributes().hasMacroOrMixin())
         sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;
 }
@@ -2058,7 +2058,7 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
-    if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (!sym.attributes().hasMacroOrMixin())
         sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;
 }
@@ -2083,7 +2083,7 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
-    if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (!sym.attributes().hasMacroOrMixin())
         sema.compiler().registerNativeCodeFunction(&sym);
     return Result::Continue;
 }

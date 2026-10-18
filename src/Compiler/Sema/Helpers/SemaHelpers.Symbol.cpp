@@ -236,7 +236,7 @@ bool SemaHelpers::nullabilityValidatedBeforeInlining(const Sema& sema)
         return false;
 
     const AttributeList& attributes = inlinePayload->sourceFunction->attributes();
-    return !attributes.hasRtFlag(RtAttributeFlagsE::Macro) && !attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
+    return !attributes.hasMacroOrMixin();
 }
 
 const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)

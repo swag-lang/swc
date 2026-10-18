@@ -1016,7 +1016,7 @@ Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRe
 
     // A macro or a mixin has no frame of its own: its body is spliced into the caller, which
     // is where the flow question belongs.
-    if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (sym.attributes().hasMacroOrMixin())
         return Result::Continue;
 
     if (sym.attributes().hasRtFlag(RtAttributeFlagsE::NoReturn))
@@ -1122,7 +1122,7 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
     // expands.
     if (sym.isEmpty() || sym.isForeign() || isInGenericInstance(sema, sym))
         return Result::Continue;
-    if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (sym.attributes().hasMacroOrMixin())
         return Result::Continue;
     if (!SemaError::isCurrentModuleSymbol(sema, sym))
         return Result::Continue;

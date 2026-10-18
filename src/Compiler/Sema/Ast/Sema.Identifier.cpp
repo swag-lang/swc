@@ -199,14 +199,14 @@ namespace
     {
         return inlinePayload &&
                inlinePayload->sourceFunction &&
-               inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
+               inlinePayload->sourceFunction->attributes().hasMacroOrMixin();
     }
 
     bool functionOrLexicalParentUsesCallerScope(const SymbolFunction* function)
     {
         while (function)
         {
-            if (function->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+            if (function->attributes().hasMacroOrMixin())
                 return true;
 
             function = function->parentLexicalFunction();

@@ -363,7 +363,7 @@ namespace
 
     bool isNativeArtifactFunction(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
-        if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        if (symbol.attributes().hasMacroOrMixin())
             return false;
         if (symbol.hasUnmaterializedGenericBody())
             return false;
@@ -417,7 +417,7 @@ namespace
             return false;
         if (fn.isForeign() || fn.isEmpty() || fn.isAttribute())
             return false;
-        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        if (fn.attributes().hasMacroOrMixin())
             return false;
         return shouldPrepareSymbol(builder, fn) && (fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody));
     }

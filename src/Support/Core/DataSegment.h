@@ -1,7 +1,9 @@
 #pragma once
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/SmallVector.h"
+#include "Support/Core/StringMap.h"
 #include "Support/Core/Utf8.h"
+#include "Support/Memory/Arena.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -170,10 +172,11 @@ public:
     }
 
 private:
-    struct StringHash
+    struct InternedString
     {
-        using is_transparent = void;
-        size_t operator()(std::string_view value) const noexcept { return std::hash<std::string_view>{}(value); }
+        const char* data   = nullptr;
+        uint32_t    size   = 0;
+        Ref         offset = INVALID_REF;
     };
 
     uint32_t                        currentExtentLocked() const noexcept;
@@ -192,7 +195,9 @@ private:
     PagedStore                                                                                          store_;
     std::vector<LargeBlock>                                                                             largeBlocks_;
     std::map<uintptr_t, LargeBlockRange>                                                                largeBlockRanges_;
-    std::unordered_map<std::string, std::pair<std::string_view, uint32_t>, StringHash, std::equal_to<>> stringMap_;
+    // Keys are copied into their own arena: segment bytes can be restored by test snapshots.
+    StringMap<InternedString> stringMap_;
+    Arena                     stringKeys_{4 * 1024 - 64};
     static inline std::atomic<uint64_t>                                                                 s_nextId{1};
     const uint64_t                                                                                      id_ = s_nextId.fetch_add(1, std::memory_order_relaxed);
     std::atomic<uint64_t>                                                                               relocationVersion_{0};

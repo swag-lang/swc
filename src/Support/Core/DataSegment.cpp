@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
@@ -66,10 +67,10 @@ std::pair<std::span<const std::byte>, Ref> DataSegment::addSpan(std::span<const 
 
 std::pair<std::string_view, Ref> DataSegment::addString(const std::string_view value)
 {
+    const uint32_t         hash = Math::hash(value);
     const std::unique_lock lock(mutex_);
-    const auto             it = stringMap_.find(value);
-    if (it != stringMap_.end())
-        return it->second;
+    if (const InternedString* found = stringMap_.find(value, hash))
+        return {std::string_view{found->data, found->size}, found->offset};
 
     SWC_ASSERT(value.size() < std::numeric_limits<uint32_t>::max());
     const uint32_t size      = static_cast<uint32_t>(value.size()) + 1;
@@ -79,8 +80,15 @@ std::pair<std::string_view, Ref> DataSegment::addString(const std::string_view v
     ptr[value.size()] = std::byte{0};
     recordAllocation(offset, size, alignof(std::byte));
     const std::string_view view{reinterpret_cast<const char*>(ptr), value.size()};
+
     // The key stays independently owned: segment bytes can be restored by test snapshots.
-    stringMap_.emplace(std::string(value), std::pair{view, offset});
+    char* key = nullptr;
+    if (!value.empty())
+    {
+        key = static_cast<char*>(stringKeys_.allocate(value.size(), alignof(char)));
+        std::memcpy(key, value.data(), value.size());
+    }
+    stringMap_.insert_or_assign(std::string_view{key, value.size()}, hash, InternedString{.data = view.data(), .size = static_cast<uint32_t>(view.size()), .offset = offset});
 
     return {view, offset};
 }

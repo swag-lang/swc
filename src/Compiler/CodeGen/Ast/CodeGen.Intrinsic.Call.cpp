@@ -96,7 +96,7 @@ namespace
         ConstantRef interfaceTableCstRef = ConstantRef::invalid();
     };
 
-    void collectRuntimeInterfaceSymbolsRec(const SymbolMap& symbolMap, SmallVector<const SymbolInterface*>& outSymbols, std::unordered_set<const SymbolInterface*>& seenSymbols)
+    void collectRuntimeInterfaceSymbolsRec(const SymbolMap& symbolMap, SmallVector<const SymbolInterface*>& outSymbols, PointerSet<const SymbolInterface>& seenSymbols)
     {
         std::vector<const Symbol*> symbols;
         symbolMap.getAllSymbols(symbols);
@@ -107,7 +107,7 @@ namespace
             if (symbol->isInterface())
             {
                 const auto* symInterface = &symbol->cast<SymbolInterface>();
-                if (seenSymbols.insert(symInterface).second)
+                if (seenSymbols.insert(symInterface))
                     outSymbols.push_back(symInterface);
             }
 
@@ -1005,10 +1005,10 @@ namespace
 
         const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
 
-        SmallVector<const SymbolInterface*>        interfaces;
-        std::unordered_set<const SymbolInterface*> seenInterfaces;
-        const SymbolModule*                        rootModule = codeGen.compiler().symModule();
-        const SymbolNamespace*                     importRoot = codeGen.compiler().importRootNamespace();
+        SmallVector<const SymbolInterface*> interfaces;
+        PointerSet<const SymbolInterface>   seenInterfaces;
+        const SymbolModule*                 rootModule = codeGen.compiler().symModule();
+        const SymbolNamespace*              importRoot = codeGen.compiler().importRootNamespace();
         if (rootModule)
             collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces, seenInterfaces);
         if (importRoot)

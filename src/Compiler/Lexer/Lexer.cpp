@@ -860,8 +860,11 @@ void Lexer::lexIdentifier()
             srcView_->identifiers().push_back({.crc = hash32, .byteStart = token_.byteStart});
             token_.byteStart = idx;
         }
-
-        checkGlobalCompilerIfSkip();
+        else
+        {
+            // Only a keyword can be '#global'.
+            checkGlobalCompilerIfSkip();
+        }
     }
 
     pushToken();

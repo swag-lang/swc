@@ -104,13 +104,16 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 - Evidence: `NodePayload` selects its shard with `nodeRef.get() % NODE_PAYLOAD_SHARD_NUM`
   (16 shards, 25 selectors in `NodePayload.cpp`). The reference is an AST byte offset aligned
-  to at least eight bytes, so only two shards receive payload storage or side-table entries,
-  and sparse side-table readers lose most of their empty-shard early exits.
+  to at least eight bytes, so only two shards receive payload storage or side-table entries.
+  Side-table readers answer an absent entry from a per-node bit instead of their shard count
+  (folded source symbols excepted). Payload storage writes (`storeMutex`, taken by every stored
+  symbol, symbol list and substitute) and every side-table write still contend on those two
+  shards.
 - Failed attempt: hashing every selector kept generated code identical, but it raised peak
   committed memory (median +17% on `core`, +3% on `gui`) by spreading small payloads over more
   16 KiB pages, with no clear compile-time win.
-- Next: separate sparse side-table distribution from payload-page allocation, or reduce
-  initial storage without reducing the supported contiguous symbol-list size. Compare
+- Next: separate payload-page allocation from the shard choice, or reduce initial storage
+  without reducing the supported contiguous symbol-list size. Compare
   one-worker and parallel rebuilds on both modules under stable load.
 - Done when: the partitioning improvement has concurrent read/write coverage and a measured
   compilation-time benefit with its memory cost explicitly bounded.

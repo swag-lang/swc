@@ -105,6 +105,8 @@ namespace
     constexpr uint8_t SIDE_TABLE_INLINE          = 1 << 1;
     constexpr uint8_t SIDE_TABLE_INLINE_OVERRIDE = 1 << 2;
     constexpr uint8_t SIDE_TABLE_SEMA            = 1 << 3;
+    constexpr uint8_t SIDE_TABLE_CALL_ARGS       = 1 << 4;
+    constexpr uint8_t SIDE_TABLE_CONST_ASSIGN    = 1 << 5;
 
     void markSideTable(Ast& ast, AstNodeRef nodeRef, uint8_t table)
     {
@@ -650,7 +652,7 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
         // to erase if the shard holds any: the count says so without taking the lock, as it
         // does for every reader.
         Shard* shard = tryGetShard(shardIdx);
-        if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire))
+        if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_CALL_ARGS))
             return;
 
         const std::unique_lock lock(shard->resolvedCallArgsMutex);
@@ -663,6 +665,7 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
     const std::unique_lock lock(shard->resolvedCallArgsMutex);
     shard->resolvedCallArgsByNode[nodeRef].assign(args.begin(), args.end());
     shard->resolvedCallArgsCount.store(static_cast<uint32_t>(shard->resolvedCallArgsByNode.size()), std::memory_order_release);
+    markSideTable(ast(), nodeRef, SIDE_TABLE_CALL_ARGS);
 }
 
 bool NodePayload::hasResolvedCallArguments(AstNodeRef nodeRef) const
@@ -674,7 +677,7 @@ bool NodePayload::hasResolvedCallArguments(AstNodeRef nodeRef) const
     if (!shard)
         return false;
 
-    if (!shard->resolvedCallArgsCount.load(std::memory_order_acquire))
+    if (!shard->resolvedCallArgsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_CALL_ARGS))
         return false;
 
     const std::shared_lock lock(shard->resolvedCallArgsMutex);
@@ -690,7 +693,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     if (!shard)
         return;
 
-    if (!shard->resolvedCallArgsCount.load(std::memory_order_acquire))
+    if (!shard->resolvedCallArgsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_CALL_ARGS))
         return;
 
     const std::shared_lock lock(shard->resolvedCallArgsMutex);
@@ -719,7 +722,7 @@ std::optional<ResolvedCallArgument> NodePayload::tryGetResolvedCallArgument(AstN
     if (nodeRef.isInvalid())
         return std::nullopt;
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire))
+    if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_CALL_ARGS))
         return std::nullopt;
 
     const std::shared_lock lock(shard->resolvedCallArgsMutex);
@@ -852,6 +855,7 @@ void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const Symbol
     const std::unique_lock lock(shard->constAssignSourceParametersMutex);
     shard->constAssignSourceParameters.set(nodeRef, sourceParam);
     shard->constAssignSourceParametersCount.store(static_cast<uint32_t>(shard->constAssignSourceParameters.size()), std::memory_order_release);
+    markSideTable(ast(), nodeRef, SIDE_TABLE_CONST_ASSIGN);
 }
 
 void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& node)
@@ -912,7 +916,7 @@ const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef node
     if (!shard)
         return nullptr;
 
-    if (!shard->constAssignSourceParametersCount.load(std::memory_order_acquire))
+    if (!shard->constAssignSourceParametersCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_CONST_ASSIGN))
         return nullptr;
 
     const std::shared_lock lock(shard->constAssignSourceParametersMutex);

@@ -812,6 +812,30 @@ void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
     return findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef);
 }
 
+// Both inline tables of one node, from a single test of the node: walks along the visit path ask
+// for the two together at every step.
+void NodePayload::getInlineContext(AstNodeRef nodeRef, void*& outPayload, void*& outOverride) const
+{
+    outPayload  = nullptr;
+    outOverride = nullptr;
+    if (nodeRef.isInvalid())
+        return;
+    const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
+    if (!shard)
+        return;
+
+    const bool anyPayload  = shard->inlinePayloadsCount.load(std::memory_order_acquire) != 0;
+    const bool anyOverride = shard->inlineContextOverridesCount.load(std::memory_order_acquire) != 0;
+    if (!anyPayload && !anyOverride)
+        return;
+
+    const AstNode* node = ast().hasNode(nodeRef) ? &ast().node(nodeRef) : nullptr;
+    if (anyPayload && (!node || node->maySideTable(SIDE_TABLE_INLINE)))
+        outPayload = findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef);
+    if (anyOverride && (!node || node->maySideTable(SIDE_TABLE_INLINE_OVERRIDE)))
+        outOverride = findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef);
+}
+
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());

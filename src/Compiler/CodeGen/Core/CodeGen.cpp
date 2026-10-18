@@ -2083,9 +2083,13 @@ Result CodeGen::preNode(AstNode& node)
     }
     SWC_RESULT(info.codeGenPreNode(*this, node));
 
-    const AstNodeRef currentNodeRef = curNodeRef();
-    if (const SemaInlinePayload* inlinePayload = sema().inlinePayload(currentNodeRef);
-        inlinePayload && inlinePayload->inlineRootRef == currentNodeRef)
+    const AstNodeRef currentNodeRef  = curNodeRef();
+    void*            rawInlinePayload = nullptr;
+    void*            rawOverride      = nullptr;
+    sema().inlineContext(currentNodeRef, rawInlinePayload, rawOverride);
+    const auto* inlinePayload  = static_cast<const SemaInlinePayload*>(rawInlinePayload);
+    const auto* inlineOverride = static_cast<const SemaInlineContextOverride*>(rawOverride);
+    if (inlinePayload && inlinePayload->inlineRootRef == currentNodeRef)
     {
         CodeGenFrame frame = this->frame();
         frame.setCurrentInlineContext(currentNodeRef, inlinePayload, MicroLabelRef::invalid());
@@ -2101,7 +2105,7 @@ Result CodeGen::preNode(AstNode& node)
         }
         pushFrame(frame);
     }
-    else if (const auto* inlineOverride = sema().inlineContextOverride<SemaInlineContextOverride>(currentNodeRef))
+    else if (inlineOverride)
     {
         CodeGenFrame frame = this->frame();
         if (const SemaInlinePayload* targetInlinePayload = inlineOverride->targetInlinePayload)

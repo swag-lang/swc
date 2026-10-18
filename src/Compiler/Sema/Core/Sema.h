@@ -476,6 +476,9 @@ public:
         nodePayloadContext().setInlineContextOverride(n, payload);
     }
 
+    // A node's inline payload and inline-context override, read together.
+    void inlineContext(AstNodeRef n, void*& outPayload, void*& outOverride) const { nodePayloadContext().getInlineContext(n, outPayload, outOverride); }
+
     template<typename T>
     T* inlineContextOverride(AstNodeRef n) const
     {

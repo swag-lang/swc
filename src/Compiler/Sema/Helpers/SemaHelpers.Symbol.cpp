@@ -253,10 +253,13 @@ const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)
         const AstNodeRef nodeRef = (i == 0) ? sema.curNodeRef() : sema.visit().parentNodeRef(i - 1);
         if (nodeRef.isInvalid())
             break;
-        if (const auto* overridePayload = sema.inlineContextOverride<SemaInlineContextOverride>(nodeRef))
-            return overridePayload->targetInlinePayload;
-        if (const auto* inlinePayload = sema.inlinePayload(nodeRef))
-            return inlinePayload;
+        void* inlinePayload   = nullptr;
+        void* overridePayload = nullptr;
+        sema.inlineContext(nodeRef, inlinePayload, overridePayload);
+        if (overridePayload)
+            return static_cast<const SemaInlineContextOverride*>(overridePayload)->targetInlinePayload;
+        if (inlinePayload)
+            return static_cast<const SemaInlinePayload*>(inlinePayload);
     }
 
     if (const auto* inlinePayload = sema.frame().currentInlinePayload())

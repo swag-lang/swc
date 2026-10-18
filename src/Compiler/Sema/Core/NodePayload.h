@@ -200,6 +200,7 @@ protected:
     bool                                hasInlineContextOverride(AstNodeRef nodeRef) const;
     void                                setInlineContextOverride(AstNodeRef nodeRef, void* payload);
     void*                               getInlineContextOverride(AstNodeRef nodeRef) const;
+    void                                getInlineContext(AstNodeRef nodeRef, void*& outPayload, void*& outOverride) const;
     bool                                hasSemaPayload(AstNodeRef nodeRef) const;
     void                                setSemaPayload(AstNodeRef nodeRef, void* payload);
     void*                               getSemaPayload(AstNodeRef nodeRef) const;

@@ -352,13 +352,13 @@ namespace
         return Result::Continue;
     }
 
-    Result addCandidateFromInlineReceiver(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence)
+    Result addCandidateFromInlineReceiver(Sema& sema, const SemaInlinePayload* effectiveInlinePayload, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence)
     {
         // Walk the inline payload chain. A macro expanded inside an inlined method gets its own
         // payload, which has no `me` binding; an injected #code argument written in the method body
         // (e.g. `index < .count`) must still resolve its auto-member against the enclosing method's
         // receiver, which lives in a parent payload. Use the nearest payload that binds `me`.
-        for (const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        for (const SemaInlinePayload* inlinePayload = effectiveInlinePayload;
              inlinePayload;
              inlinePayload = inlinePayload->parentInlinePayload)
         {
@@ -374,10 +374,10 @@ namespace
     // The nearest inline payload that binds `me`. Its `callerBindingVars` are the binding vars that
     // already existed in the caller when this method body was materialized inline — i.e. bindings
     // the inlined method does not own and that its receiver `me` should outrank.
-    const SemaInlinePayload* nearestInlineReceiverPayload(Sema& sema)
+    const SemaInlinePayload* nearestInlineReceiverPayload(Sema& sema, const SemaInlinePayload* effectiveInlinePayload)
     {
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
-        for (const SemaInlinePayload* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
+        for (const SemaInlinePayload* payload = effectiveInlinePayload; payload; payload = payload->parentInlinePayload)
         {
             for (const SemaClone::ParamBinding& binding : payload->argMappings)
                 if (binding.idRef == meId && binding.exprRef.isValid())
@@ -385,6 +385,11 @@ namespace
         }
 
         return nullptr;
+    }
+
+    const SemaInlinePayload* nearestInlineReceiverPayload(Sema& sema)
+    {
+        return nearestInlineReceiverPayload(sema, SemaHelpers::effectiveInlinePayload(sema));
     }
 
     bool isCallerInheritedBindingVar(const SemaInlinePayload* inlineReceiverPayload, const SymbolVariable* bindingVar)
@@ -485,7 +490,10 @@ namespace
         // method. So the body's own subjects come first, then `me`, then everything the caller owns.
         // In a non-inlined body there is no inline payload, so every subject counts as "own" and
         // `me` is one of the binding vars, preserving the original ordering exactly.
-        const SemaInlinePayload* inlineReceiverPayload = nearestInlineReceiverPayload(sema);
+        // The visit path does not move while the candidates are collected: search it for the
+        // inline context once, for the receiver ranking and for the receiver candidate.
+        const SemaInlinePayload* effectiveInlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        const SemaInlinePayload* inlineReceiverPayload  = nearestInlineReceiverPayload(sema, effectiveInlinePayload);
 
         // Every `with` subject is an auto-member binding, ranked by how deeply it nests, so this
         // list is the subject stack from innermost outward. It comes before the binding vars
@@ -503,7 +511,7 @@ namespace
                 SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Subject));
         }
 
-        SWC_RESULT(addCandidateFromInlineReceiver(sema, outCandidates, precedence));
+        SWC_RESULT(addCandidateFromInlineReceiver(sema, effectiveInlinePayload, outCandidates, precedence));
 
         const size_t callerCandidateStart = outCandidates.size();
         if (!bindingTypesFirst)

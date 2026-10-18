@@ -80,18 +80,3 @@ in their viewer, and the readouts report measured compilation and frame renderin
 - Done when: Release previews omit both allocator capability tags throughout their runtime,
   devmode previews include them by default, cold and warm preview builds meet the existing
   timeout, and compilation, native loading and unload tests preserve one runtime per process.
-
-### app.prism.009 — Finish native compilation tests without a process crash
-
-- Evidence: `compilation.test.swg` exits with `0xC0000005` before reporting completed tests,
-  including when run alone with the checkout-local DevMode compiler and six compiler workers.
-  A preceding run reported `Compilation exceeded 60 seconds` at the shared Pixel preview test.
-- Next: isolate preview compilation, host loading and failure cleanup through
-  `tools/apps.swgs dm test swagprism --test-file compilation.test.swg`, with the checkout-local
-  DevMode compiler selected through an absolute `--run-arg=--compiler=<path>` and both outer and
-  child compilers limited to six workers (`--num-cores 6`, `--run-arg=--compiler-workers=6`).
-  The failure persists without per-preview allocator tag overrides; establish its cause before
-  attributing it to capability selection or changing the timeout.
-- Done when: the focused tests finish successfully with cold and warm dependency caches, and
-  a failed preview compilation shuts down its jobs, host and window without an access violation.
-- Related: app.prism.008

@@ -181,6 +181,9 @@ namespace
 
     bool inlinePayloadBindsSourceVariable(const SemaInlinePayload* inlinePayload, const SymbolVariable& symVar)
     {
+        if (!symVar.isInlineBound())
+            return false;
+
         while (inlinePayload)
         {
             for (const auto& binding : inlinePayload->argMappings)
@@ -707,7 +710,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     {
         const SymbolVariable& symVar = sym->cast<SymbolVariable>();
         symVar.markReferenced();
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && symVar.isInlineBound())
         {
             // A read that '#ast' produced after the body was cloned resolves, by name, to the
             // callee's own parameter through the inline scope's symbol map. Bind THIS node to

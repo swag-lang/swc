@@ -3139,7 +3139,11 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             inlinePayload->codeParamVarMask |= 1u << paramIndex;
     }
     for (const SemaClone::ParamBinding& binding : bindings)
+    {
+        if (binding.sourceParam)
+            binding.sourceParam->markInlineBound();
         inlinePayload->argMappings.push_back(binding);
+    }
     for (SymbolVariable* bindingVar : frame.bindingVars())
         inlinePayload->callerBindingVars.push_back(bindingVar);
     for (TypeRef bindingType : frame.bindingTypes())

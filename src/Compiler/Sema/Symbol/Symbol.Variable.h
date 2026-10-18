@@ -91,6 +91,10 @@ public:
     // report a local, a parameter, or a capture that nothing refers to.
     void markReferenced() const noexcept { std::atomic_ref(const_cast<bool&>(referenced_)).store(true, std::memory_order_relaxed); }
     bool isReferenced() const noexcept { return std::atomic_ref(const_cast<bool&>(referenced_)).load(std::memory_order_relaxed); }
+    // Set on a parameter before the first inline payload that binds it is published: only then
+    // can a reference to it find a binding in an inline payload of its visit path.
+    void markInlineBound() const noexcept { std::atomic_ref(const_cast<bool&>(inlineBound_)).store(true, std::memory_order_release); }
+    bool isInlineBound() const noexcept { return std::atomic_ref(const_cast<bool&>(inlineBound_)).load(std::memory_order_acquire); }
     // A '?' parameter: it holds a hidden name for the symbol tables, and no name anywhere else.
     bool isUnnamed() const noexcept { return unnamed_; }
     void setUnnamed() noexcept { unnamed_ = true; }
@@ -159,6 +163,7 @@ private:
     SourceCodeRef   callerNameRef_;
     MemberAccess    memberAccess_   = MemberAccess::Internal;
     bool            memberReadOnly_ = false;
+    bool            inlineBound_    = false;
 };
 
 SWC_END_NAMESPACE();

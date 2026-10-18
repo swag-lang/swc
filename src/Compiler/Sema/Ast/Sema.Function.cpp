@@ -1975,6 +1975,29 @@ namespace
         diag.report(sema.ctx());
         return Result::Error;
     }
+
+    // The checks every function body runs once its walk is complete, shared by
+    // declarations, function expressions and closures.
+    Result checkCompletedFunctionBody(Sema& sema, SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract)
+    {
+        if (SemaInitFlow::wantsCheck(sema, sym))
+            SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, bodyRef, checkReturnContract));
+
+        SWC_RESULT(SemaCheck::missingReturn(sema, sym, bodyRef));
+        SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
+        SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
+        SemaEscape::finalizeBorrowStores(sema, sym, bodyRef);
+        SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
+        SemaPurity::computePurityFlag(sema, sym);
+        return Result::Continue;
+    }
+
+    void publishCompletedFunction(Sema& sema, SymbolFunction& sym)
+    {
+        sym.setSemaCompleted(sema.ctx());
+        if (!sym.attributes().hasMacroOrMixin())
+            sema.compiler().registerNativeCodeFunction(&sym);
+    }
 }
 
 Result AstFunctionDecl::semaPostNode(Sema& sema)
@@ -2014,27 +2037,16 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 
     const auto& declNode = sema.curNode().cast<AstFunctionDecl>();
     SWC_RESULT(validateInterfaceImplMethod(sema, declNode, sym));
-    if (SemaInitFlow::wantsCheck(sema, sym))
-    {
-        // The return contract only binds a signature the function owns: interface
-        // impls conform to the interface, and a fallible function's 'catch' error
-        // path synthesizes a zero (null) result.
-        const bool checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isFallible();
-        SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, declNode.nodeBodyRef, checkReturnContract));
-    }
 
-    SWC_RESULT(SemaCheck::missingReturn(sema, sym, declNode.nodeBodyRef));
-    SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
-    SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
-    SemaEscape::finalizeBorrowStores(sema, sym, declNode.nodeBodyRef);
-    SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
+    // The return contract only binds a signature the function owns: interface
+    // impls conform to the interface, and a fallible function's 'catch' error
+    // path synthesizes a zero (null) result.
+    const bool checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isFallible();
+    SWC_RESULT(checkCompletedFunctionBody(sema, sym, declNode.nodeBodyRef, checkReturnContract));
 
-    SemaPurity::computePurityFlag(sema, sym);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBody);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
-    sym.setSemaCompleted(sema.ctx());
-    if (!sym.attributes().hasMacroOrMixin())
-        sema.compiler().registerNativeCodeFunction(&sym);
+    publishCompletedFunction(sema, sym);
     return Result::Continue;
 }
 
@@ -2046,20 +2058,8 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
-    if (SemaInitFlow::wantsCheck(sema, sym))
-        SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
-
-    SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
-    SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
-    SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
-    SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
-
-    SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
-
-    SemaPurity::computePurityFlag(sema, sym);
-    sym.setSemaCompleted(sema.ctx());
-    if (!sym.attributes().hasMacroOrMixin())
-        sema.compiler().registerNativeCodeFunction(&sym);
+    SWC_RESULT(checkCompletedFunctionBody(sema, sym, nodeBodyRef, false));
+    publishCompletedFunction(sema, sym);
     return Result::Continue;
 }
 
@@ -2072,20 +2072,8 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
     SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
-
-    if (SemaInitFlow::wantsCheck(sema, sym))
-        SWC_RESULT(SemaInitFlow::checkFunction(sema, sym, nodeBodyRef));
-
-    SWC_RESULT(SemaCheck::missingReturn(sema, sym, nodeBodyRef));
-    SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
-    SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
-    SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
-    SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
-
-    SemaPurity::computePurityFlag(sema, sym);
-    sym.setSemaCompleted(sema.ctx());
-    if (!sym.attributes().hasMacroOrMixin())
-        sema.compiler().registerNativeCodeFunction(&sym);
+    SWC_RESULT(checkCompletedFunctionBody(sema, sym, nodeBodyRef, false));
+    publishCompletedFunction(sema, sym);
     return Result::Continue;
 }
 

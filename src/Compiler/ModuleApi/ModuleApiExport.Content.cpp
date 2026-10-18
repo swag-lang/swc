@@ -749,15 +749,15 @@ namespace
         outContent += "#global public";
         outContent += eol;
 
-        std::vector<ModuleApiOrderedEntry>    orderedEntries;
-        std::unordered_set<Utf8>              emittedUsingKeys;
-        std::unordered_set<const SourceFile*> usingFiles;
+        std::vector<ModuleApiOrderedEntry> orderedEntries;
+        std::unordered_set<Utf8>           emittedUsingKeys;
+        PointerSet<const SourceFile>       usingFiles;
 
         for (size_t rootIndex = 0; rootIndex < roots.size(); ++rootIndex)
         {
             const ModuleApiGeneratedRoot& root             = roots[rootIndex];
             Utf8&                         sanitizedSnippet = snippets[rootIndex];
-            if (root.file && usingFiles.insert(root.file).second)
+            if (root.file && usingFiles.insert(root.file))
             {
                 std::vector<ModuleApiUsingSnippet> usingSnippets;
                 SWC_RESULT(collectFileUsingSnippets(ctx, *root.file, moduleNamespace, eol, usingSnippets));

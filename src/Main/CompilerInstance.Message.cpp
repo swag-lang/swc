@@ -269,9 +269,9 @@ namespace
         return true;
     }
 
-    void collectCompilerMessageBacklogRec(const CompilerInstance& compiler, const SymbolMap& symMap, std::unordered_set<const SymbolMap*>& visited, uint64_t activationMask, std::vector<CompilerMessageBacklogEntry>& out)
+    void collectCompilerMessageBacklogRec(const CompilerInstance& compiler, const SymbolMap& symMap, PointerSet<const SymbolMap>& visited, uint64_t activationMask, std::vector<CompilerMessageBacklogEntry>& out)
     {
-        if (!visited.insert(&symMap).second)
+        if (!visited.insert(&symMap))
             return;
 
         std::vector<const Symbol*> symbols;
@@ -292,7 +292,7 @@ namespace
 
     void appendCompilerMessageBacklog(const CompilerInstance& compiler, uint64_t activationMask, std::vector<CompilerInstance::CompilerMessageEvent>& out)
     {
-        std::unordered_set<const SymbolMap*>     visited;
+        PointerSet<const SymbolMap>              visited;
         std::vector<CompilerMessageBacklogEntry> entries;
         for (const SourceFile* file : compiler.filesSnapshot())
         {

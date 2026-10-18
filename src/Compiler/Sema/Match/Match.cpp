@@ -319,13 +319,16 @@ namespace
                 }
             }
 
-            for (const Symbol* symbol : scope->symbols())
+            if (scope->mayHaveSymbolNamed(idRef))
             {
-                if (symbol->idRef() != idRef || sema.frame().isLookupSymbolHidden(symbol))
-                    continue;
+                for (const Symbol* symbol : scope->symbols())
+                {
+                    if (symbol->idRef() != idRef || sema.frame().isLookupSymbolHidden(symbol))
+                        continue;
 
-                const MatchPriority priority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::LocalScope};
-                lookUpCxt.localSymbols.push_back({.symbol = symbol, .priority = priority});
+                    const MatchPriority priority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::LocalScope};
+                    lookUpCxt.localSymbols.push_back({.symbol = symbol, .priority = priority});
+                }
             }
 
             // Namespaces imported via "using" in this scope:

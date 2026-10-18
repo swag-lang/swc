@@ -93,8 +93,17 @@ public:
     }
     const SmallVector<SymbolMap*>& usingSymMaps() const { return usingSymMaps_; }
 
-    void                        addSymbol(Symbol* symbol) { symbols_.push_back(symbol); }
+    // Every symbol sets one bit of a name filter, so a lookup passes over a scope that cannot
+    // hold its name without reading any of its symbols. An impl is renamed after it is declared,
+    // so it sets every bit.
+    template<typename S>
+    void addSymbol(S* symbol)
+    {
+        symbols_.push_back(symbol);
+        symbolNames_ |= symbol->isImpl() ? ~0ull : nameBit(symbol->idRef());
+    }
     const SmallVector<Symbol*>& symbols() const { return symbols_; }
+    bool                        mayHaveSymbolNamed(IdentifierRef idRef) const { return (symbolNames_ & nameBit(idRef)) != 0; }
 
     void addAutoMemberBinding(const AutoMemberBinding& binding)
     {
@@ -117,6 +126,8 @@ public:
     }
 
 private:
+    static uint64_t nameBit(IdentifierRef idRef) { return 1ull << ((static_cast<uint64_t>(idRef.get()) * 0x9E3779B97F4A7C15ull) >> 58); }
+
     SemaScope*                            parent_       = nullptr;
     SemaScope*                            lookupParent_ = nullptr;
     SemaScopeFlags                        flags_        = SemaScopeFlagsE::Zero;
@@ -124,6 +135,7 @@ private:
     SymbolMap*                            symMap_       = nullptr;
     SmallVector<SymbolMap*>               usingSymMaps_;
     SmallVector<Symbol*>                  symbols_;
+    uint64_t                              symbolNames_ = 0;
     std::vector<AutoMemberBinding>        autoMemberBindings_;
     std::array<IdentifierRef, UNIQ_COUNT> uniqIdentifiers_ = {};
 };

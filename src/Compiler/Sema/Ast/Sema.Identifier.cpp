@@ -134,8 +134,9 @@ namespace
 
         // A name used only to ask the compiler about its type -- '#decltype(x)', '#typeof(x)' --
         // reads no storage, so the closure has nothing to capture. Requiring a capture there
-        // would force a value into the closure only to name its type.
-        if (node.hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema))
+        // would force a value into the closure only to name its type. The '#typeof' test walks
+        // the visit path to its root, so it is asked only of a name that would need a capture.
+        if (node.hasFlag(AstIdentifierFlagsE::InCompilerDefined))
             return false;
 
         if (!symbol.isVariable())
@@ -145,7 +146,7 @@ namespace
         if (symVar.ownerSymMap() == currentFn)
             return false;
         if (!explicitList)
-            return symVar.isClosureCapture();
+            return symVar.isClosureCapture() && !isTypeOnlyCompilerIdentifierUse(sema);
         if (symVar.hasGlobalStorage())
             return false;
 
@@ -161,7 +162,7 @@ namespace
         if (symVar.isFunctionLocalVariable(*currentFn))
             return false;
 
-        return symVar.isFrameVariable();
+        return symVar.isFrameVariable() && !isTypeOnlyCompilerIdentifierUse(sema);
     }
 
     bool inlinePayloadOwnsVariable(const SemaInlinePayload* inlinePayload, const SymbolFunction& function, const SymbolVariable& symVar)

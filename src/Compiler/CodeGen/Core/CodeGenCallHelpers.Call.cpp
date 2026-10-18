@@ -1105,6 +1105,58 @@ namespace
             ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
     }
 
+    // 'baseReg + offset' in a fresh register, or 'baseReg' itself when the offset is zero.
+    MicroReg emitOffsetAddressReg(CodeGen& codeGen, MicroReg baseReg, uint64_t offset)
+    {
+        if (!offset)
+            return baseReg;
+
+        MicroBuilder&  builder = codeGen.builder();
+        const MicroReg addrReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(addrReg, baseReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(addrReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
+        return addrReg;
+    }
+
+    void setDirectVariadicArg(ABICall::PreparedArg& outPreparedArg, const ABITypeNormalize::NormalizedType& normalizedVariadic, MicroReg srcReg, bool isAddressed)
+    {
+        outPreparedArg.srcReg      = srcReg;
+        outPreparedArg.kind        = ABICall::PreparedArgKind::Direct;
+        outPreparedArg.isFloat     = normalizedVariadic.isFloat;
+        outPreparedArg.isSigned    = normalizedVariadic.isSigned;
+        outPreparedArg.numBits     = normalizedVariadic.numBits;
+        outPreparedArg.isAddressed = isAddressed;
+    }
+
+    // Reserves the transient stack frame that holds a packed variadic slice and its storage,
+    // and returns a register addressing its base.
+    MicroReg emitTransientVariadicFrame(CodeGen& codeGen, const CallConv& callConv, uint64_t totalFrameSize, uint32_t& outTransientStackSize)
+    {
+        const uint32_t frameSize    = alignTransientCallStackSize(callConv, totalFrameSize);
+        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        if (frameSize)
+        {
+            outTransientStackSize += frameSize;
+            CodeGenFunctionHelpers::emitStackPointerSubtract(codeGen, callConv, frameSize, frameBaseReg);
+        }
+
+        codeGen.builder().emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+        return frameBaseReg;
+    }
+
+    // Writes the slice header at 'frameBaseReg + sliceOffset' and passes its address.
+    void emitVariadicSliceArg(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const ABITypeNormalize::NormalizedType& normalizedVariadic, MicroReg frameBaseReg, uint64_t sliceOffset, MicroReg dataReg, uint64_t variadicCount)
+    {
+        MicroBuilder&  builder      = codeGen.builder();
+        const MicroReg sliceAddrReg = emitOffsetAddressReg(codeGen, frameBaseReg, sliceOffset);
+
+        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, ptr), dataReg, MicroOpBits::B64);
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegImm(countReg, ApInt(variadicCount, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
+        setDirectVariadicArg(outPreparedArg, normalizedVariadic, sliceAddrReg, false);
+    }
+
     void storeTypedVariadicElement(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, uint32_t elemSize)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -1140,19 +1192,13 @@ namespace
 
     void packTypedVariadicArgument(ABICall::PreparedArg& outPreparedArg, uint32_t& outTransientStackSize, CodeGen& codeGen, const CallConv& callConv, std::span<const ResolvedCallArgument> args, TypeRef variadicElemTypeRef, const ABITypeNormalize::NormalizedType& normalizedVariadic)
     {
-        MicroBuilder& builder = codeGen.builder();
         SWC_ASSERT(normalizedVariadic.numBits == 64);
         SWC_ASSERT(!normalizedVariadic.isIndirect);
 
         if (args.size() == 1 && isMatchingTypedVariadicForwardingArg(codeGen, args[0], variadicElemTypeRef))
         {
             const CodeGenNodePayload& argPayload = codeGen.payload(args[0].argRef);
-            outPreparedArg.srcReg                = argPayload.reg;
-            outPreparedArg.kind                  = ABICall::PreparedArgKind::Direct;
-            outPreparedArg.isFloat               = normalizedVariadic.isFloat;
-            outPreparedArg.isSigned              = normalizedVariadic.isSigned;
-            outPreparedArg.numBits               = normalizedVariadic.numBits;
-            outPreparedArg.isAddressed           = argPayload.isAddress();
+            setDirectVariadicArg(outPreparedArg, normalizedVariadic, argPayload.reg, argPayload.isAddress());
             return;
         }
 
@@ -1178,15 +1224,7 @@ namespace
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
-        const uint32_t frameSize    = alignTransientCallStackSize(callConv, totalFrameSize);
-        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
-        if (frameSize)
-        {
-            outTransientStackSize += frameSize;
-            CodeGenFunctionHelpers::emitStackPointerSubtract(codeGen, callConv, frameSize, frameBaseReg);
-        }
-
-        builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
+        const MicroReg frameBaseReg = emitTransientVariadicFrame(codeGen, callConv, totalFrameSize, outTransientStackSize);
 
         uint64_t offset = 0;
         for (uint64_t i = 0; i < variadicCount; ++i)
@@ -1196,36 +1234,12 @@ namespace
                 continue;
 
             const CodeGenNodePayload& argPayload    = codeGen.payload(argRef);
-            MicroReg                  dstAddressReg = frameBaseReg;
-            if (offset)
-            {
-                dstAddressReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(dstAddressReg, frameBaseReg, MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(dstAddressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
-            }
+            const MicroReg            dstAddressReg = emitOffsetAddressReg(codeGen, frameBaseReg, offset);
             storeTypedVariadicElement(codeGen, dstAddressReg, argPayload, elemSize);
             offset += elemStride;
         }
 
-        MicroReg sliceAddrReg = frameBaseReg;
-        if (sliceOffset)
-        {
-            sliceAddrReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(sliceAddrReg, frameBaseReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(sliceAddrReg, ApInt(sliceOffset, 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, ptr), frameBaseReg, MicroOpBits::B64);
-        const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(countReg, ApInt(variadicCount, 64), MicroOpBits::B64);
-        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
-
-        outPreparedArg.srcReg      = sliceAddrReg;
-        outPreparedArg.kind        = ABICall::PreparedArgKind::Direct;
-        outPreparedArg.isFloat     = normalizedVariadic.isFloat;
-        outPreparedArg.isSigned    = normalizedVariadic.isSigned;
-        outPreparedArg.numBits     = normalizedVariadic.numBits;
-        outPreparedArg.isAddressed = false;
+        emitVariadicSliceArg(outPreparedArg, codeGen, normalizedVariadic, frameBaseReg, sliceOffset, frameBaseReg, variadicCount);
     }
 
     struct UntypedVariadicArgInfo
@@ -1257,12 +1271,7 @@ namespace
             if (argView.type() && argView.type()->isVariadic())
             {
                 const CodeGenNodePayload& argPayload = codeGen.payload(args[0].argRef);
-                outPreparedArg.srcReg                = argPayload.reg;
-                outPreparedArg.kind                  = ABICall::PreparedArgKind::Direct;
-                outPreparedArg.isFloat               = normalizedVariadic.isFloat;
-                outPreparedArg.isSigned              = normalizedVariadic.isSigned;
-                outPreparedArg.numBits               = normalizedVariadic.numBits;
-                outPreparedArg.isAddressed           = argPayload.isAddress();
+                setDirectVariadicArg(outPreparedArg, normalizedVariadic, argPayload.reg, argPayload.isAddress());
                 return;
             }
         }
@@ -1351,46 +1360,20 @@ namespace
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
-        const uint32_t frameSize    = alignTransientCallStackSize(callConv, totalFrameSize);
-        const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
-        if (frameSize)
-        {
-            outTransientStackSize += frameSize;
-            CodeGenFunctionHelpers::emitStackPointerSubtract(codeGen, callConv, frameSize, frameBaseReg);
-        }
+        const MicroReg frameBaseReg = emitTransientVariadicFrame(codeGen, callConv, totalFrameSize, outTransientStackSize);
 
-        builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
-
-        MicroReg anyBaseReg = frameBaseReg;
-        if (anyOffset)
-        {
-            anyBaseReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(anyBaseReg, frameBaseReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(anyBaseReg, ApInt(anyOffset, 64), MicroOp::Add, MicroOpBits::B64);
-        }
+        const MicroReg anyBaseReg = emitOffsetAddressReg(codeGen, frameBaseReg, anyOffset);
 
         for (uint64_t i = 0; i < variadicCount; ++i)
         {
             const UntypedVariadicArgInfo& info = variadicInfos[i];
 
-            MicroReg anyEntryReg = anyBaseReg;
-            if (i)
-            {
-                anyEntryReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(anyEntryReg, anyBaseReg, MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(anyEntryReg, ApInt(i * sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
-            }
+            const MicroReg anyEntryReg = emitOffsetAddressReg(codeGen, anyBaseReg, i * sizeof(Runtime::Any));
 
             MicroReg valuePtrReg;
             if (info.needsSpill)
             {
-                valuePtrReg = frameBaseReg;
-                if (info.spillOffset)
-                {
-                    valuePtrReg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegReg(valuePtrReg, frameBaseReg, MicroOpBits::B64);
-                    builder.emitOpBinaryRegImm(valuePtrReg, ApInt(info.spillOffset, 64), MicroOp::Add, MicroOpBits::B64);
-                }
+                valuePtrReg = emitOffsetAddressReg(codeGen, frameBaseReg, info.spillOffset);
                 storeTypedVariadicElement(codeGen, valuePtrReg, info.argPayload, info.valueSize);
             }
             else if (info.argPayload.isAddress())
@@ -1428,25 +1411,7 @@ namespace
             builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, type), typeInfoReg, MicroOpBits::B64);
         }
 
-        MicroReg sliceAddrReg = frameBaseReg;
-        if (sliceOffset)
-        {
-            sliceAddrReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(sliceAddrReg, frameBaseReg, MicroOpBits::B64);
-            builder.emitOpBinaryRegImm(sliceAddrReg, ApInt(sliceOffset, 64), MicroOp::Add, MicroOpBits::B64);
-        }
-
-        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, ptr), anyBaseReg, MicroOpBits::B64);
-        const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegImm(countReg, ApInt(variadicCount, 64), MicroOpBits::B64);
-        builder.emitLoadMemReg(sliceAddrReg, offsetof(Runtime::Slice<std::byte>, count), countReg, MicroOpBits::B64);
-
-        outPreparedArg.srcReg      = sliceAddrReg;
-        outPreparedArg.kind        = ABICall::PreparedArgKind::Direct;
-        outPreparedArg.isFloat     = normalizedVariadic.isFloat;
-        outPreparedArg.isSigned    = normalizedVariadic.isSigned;
-        outPreparedArg.numBits     = normalizedVariadic.numBits;
-        outPreparedArg.isAddressed = false;
+        emitVariadicSliceArg(outPreparedArg, codeGen, normalizedVariadic, frameBaseReg, sliceOffset, anyBaseReg, variadicCount);
     }
 
     Result buildPreparedABIArguments(PreparedCallArguments& out, CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, MicroReg closureContextReg, std::span<const ResolvedCallArgument> args)

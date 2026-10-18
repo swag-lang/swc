@@ -507,7 +507,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     and the time difference in each row: Swag total minus competitor total. Negative means less time; positive means extra time.
     Green means Swag wins; red means Swag loses. Arrows show whether the time saved improved (&uarr;),
     regressed (&darr;) since the previous comparable campaign against that same competitor.
-    A neutral arrow (&rarr;) means equal printed values or a direction unresolved by the repeated samples.
+    A neutral arrow (&rarr;) means equal printed values.
     Hover for the reference date and sensitivity check; a dash means no earlier comparison.
     Longer workloads weigh more. Hello is excluded; an incomplete panel produces a dash.</p>
     <h3>Total execution time</h3>
@@ -625,8 +625,9 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <li><b>Trend arrows</b>Compare the previous accepted campaign with complete measurements on the displayed panel,
         under the same protocol. Each time value uses its own campaign's non-Swag runtime with the smallest total.
         Compare the displayed differences directly: green up = a lower difference;
-        red down = a higher difference. A direction needs to survive replacing each selected minimum with its next observed sample.
-        Neutral right = equal printed values, overlapping sensitivity ranges, or missing repeat evidence.
+        red down = a higher difference. Neutral right = equal printed values.
+        The tooltip reports sensitivity to replacing each selected minimum with its next observed sample;
+        overlapping ranges or missing repeat evidence do not change the observed arrow direction.
         This leave-one-out check is not a confidence interval and cannot detect every systematic bias.
         A competitive gap can widen even when Swag itself runs faster. The small value is the previous measured value.
         Memory arrows compare the two displayed peaks directly; a smaller peak is better.

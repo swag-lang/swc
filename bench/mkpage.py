@@ -195,13 +195,9 @@ def trend(change, show_previous=True):
         previous = signed_duration(-change["previous_saved_ms"])
         current = signed_duration(-change["current_saved_ms"])
         sensitivity = change.get("sensitivity_ms")
-        unresolved = ("sensitivity_ms" in change and
-                      (sensitivity is None or sensitivity[0] <= 0 <= sensitivity[1]))
         if current == previous:
             state, arrow, label = "unchanged", "&rarr;", "Unchanged"
-        elif unresolved:
-            state, arrow, label = "unchanged", "&rarr;", "Change unresolved by repeated samples"
-        elif change["saved_ms"] > 0:
+        elif change["current_saved_ms"] > change["previous_saved_ms"]:
             state, arrow, label = "improved", "&uarr;", "Time gap decreased"
         else:
             state, arrow, label = "regressed", "&darr;", "Time gap increased"

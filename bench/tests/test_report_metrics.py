@@ -110,7 +110,7 @@ class ReportMetricsTests(unittest.TestCase):
                 change.pop("sensitivity_ms", None)
                 self.assertIn("trend " + state, mkpage.trend(change)[0])
 
-    def test_a_minimum_sensitive_change_keeps_the_measured_gap_without_claiming_a_direction(self):
+    def test_a_minimum_sensitive_change_shows_the_measured_direction_and_sensitivity(self):
         before = campaign(1, own=(100,) * 4)
         current = campaign(2, own=(101,) * 4)
         for task in TASKS:
@@ -119,18 +119,36 @@ class ReportMetricsTests(unittest.TestCase):
         self.assertEqual(change["saved_ms"], -4)
         self.assertEqual(change["sensitivity_ms"], [-4, 36])
         markup, note = mkpage.trend(change)
-        self.assertIn("trend unchanged", markup)
-        self.assertIn("Change unresolved by repeated samples", note)
+        self.assertIn("trend regressed", markup)
+        self.assertIn("Time gap increased", note)
+        self.assertIn("change from -4.0 ms to +36.0 ms", note)
         self.assertIn("+4.0 ms now", note)
-        self.assertNotIn("Regressed", markup)
 
-    def test_one_observation_cannot_establish_a_time_trend(self):
+    def test_one_observation_shows_the_measured_direction_and_missing_repeat_evidence(self):
         before = campaign(1, own=(100,) * 4)
         current = campaign(2, own=(50,) * 4)
         current["tasks"]["one"]["swag-release"]["run"]["samples"] = [50]
         change = metrics.previous_change(current, [before], TASKS, "swag-release", "run", "ms", "native")
         self.assertIsNone(change["sensitivity_ms"])
-        self.assertIn("trend unchanged", mkpage.trend(change)[0])
+        markup, note = mkpage.trend(change)
+        self.assertIn("trend improved", markup)
+        self.assertIn("repeated samples are missing", note)
+
+    def test_headline_arrows_follow_printed_gaps_despite_overlapping_sample_ranges(self):
+        before = campaign(1, own=(99,) * 4)
+        for family, group in (("run", "native"), ("build", None)):
+            for own, state, arrow in ((98, "improved", "&uarr;"), (100, "regressed", "&darr;"),
+                                      (99.001, "unchanged", "&rarr;")):
+                with self.subTest(family=family, own=own):
+                    current = campaign(2, own=(own,) * 4)
+                    for task in TASKS:
+                        current["tasks"][task]["swag-release"][family]["samples"] = [own, own + 10]
+                        current["tasks"][task]["cpp-clang-cl"][family]["samples"] = [100, 110]
+                    markup = mkpage.competitive_stat(current, [before], TASKS, "swag-release",
+                                                     family, group, "Time")
+                    self.assertIn('class="trend %s"' % state, markup)
+                    self.assertIn(arrow, markup)
+                    self.assertIn("removing each selected minimum", markup)
 
     def test_timer_faults_do_not_inflate_the_sensitivity_range(self):
         current = campaign(2, own=(50,) * 4)

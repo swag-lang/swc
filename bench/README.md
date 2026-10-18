@@ -81,12 +81,14 @@ set the reference. Native / AOT and JIT / interpreted use separate headline refe
 JIT and pure interpreters form one family. Compilation includes bytecode recipes.
 Memory is the largest working set in MiB; separate process peaks are never added.
 
-Time arrows compare the displayed differences directly, with a minimum-sensitivity check.
+Time arrows compare the displayed differences directly: green up for a lower difference,
+red down for a higher difference, and neutral right for equal values at printed precision.
+The tooltip also reports a minimum-sensitivity check.
 For each task and runtime, replace the selected minimum with its next observed sample.
 The resulting ranges for Swag and its rival give a range of possible gap changes between
-campaigns. A green up or red down arrow needs that entire range to have the same direction.
-A range crossing zero, missing repeat evidence, or equal values at printed precision uses a
-neutral right arrow. Hover for the sensitivity range and measured before/after values.
+campaigns. A range crossing zero or missing repeat evidence does not change the arrow's
+observed direction. Hover for the sensitivity range and measured before/after values;
+the arrow alone does not establish a repeatable improvement or regression.
 This is a leave-one-out sensitivity check, not a statistical confidence interval; it cannot
 bound an unobserved systematic bias. Both campaigns need the same protocol and complete panel.
 Each headline uses its campaign's fastest complete non-Swag competitor. Changes in the

@@ -537,10 +537,10 @@ namespace InstructionCombine
                 out = {.offset = *found};
                 return true;
             }
-            const auto found = ctx.frameAddresses.find(reg.packed);
-            if (found == ctx.frameAddresses.end())
+            const FrameAddress* found = ctx.frameAddresses.find(reg.packed);
+            if (!found)
                 return false;
-            out = found->second;
+            out = *found;
             return true;
         }
 
@@ -639,9 +639,9 @@ namespace InstructionCombine
             if (objects.empty())
                 return;
 
-            std::unordered_map<uint32_t, uint32_t> definitions;
-            MicroInstrRef                          frameBaseRef = MicroInstrRef::invalid();
-            uint64_t                               frameBaseSp  = 0;
+            FlatKeyMap<uint32_t> definitions;
+            MicroInstrRef        frameBaseRef = MicroInstrRef::invalid();
+            uint64_t             frameBaseSp  = 0;
             for (auto it = ctx.storage->view().begin(), end = ctx.storage->view().end(); it != end; ++it)
             {
                 const MicroInstrOperand* ops = it->ops(*ctx.operands);
@@ -651,7 +651,7 @@ namespace InstructionCombine
                 for (size_t i = 0; i < modes.size(); ++i)
                 {
                     if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtualInt())
-                        ++definitions[ops[i].reg.packed];
+                        ++definitions.getOrInsert(ops[i].reg.packed);
                 }
                 if ((it->op == MicroInstrOpcode::LoadRegReg || it->op == MicroInstrOpcode::LoadAddrRegMem) &&
                     ops[0].reg == frameBase && ops[1].reg == ctx.stackPointer && ops[2].opBits == MicroOpBits::B64)
@@ -660,10 +660,15 @@ namespace InstructionCombine
                     frameBaseSp  = it->op == MicroInstrOpcode::LoadAddrRegMem ? ops[3].valueU64 : 0;
                 }
             }
-            if (frameBaseRef.isInvalid() || definitions[frameBase.packed] != 1)
+            // A register with no definition has no entry: only a count of one qualifies.
+            const auto definedOnce = [&](const MicroReg reg) {
+                const uint32_t* count = definitions.find(reg.packed);
+                return count && *count == 1;
+            };
+            if (frameBaseRef.isInvalid() || !definedOnce(frameBase))
                 return;
-            ctx.frameStackPointerOffsets         = MicroPassHelpers::collectStackPointerOffsets(context, frameBaseRef, frameBaseSp);
-            ctx.frameAddresses[frameBase.packed] = {};
+            ctx.frameStackPointerOffsets                     = MicroPassHelpers::collectStackPointerOffsets(context, frameBaseRef, frameBaseSp);
+            ctx.frameAddresses.getOrInsert(frameBase.packed) = {};
 
             // Single-definition copies, `lea`s and indexed `lea`s of known frame addresses, in
             // any order. The base of an indexed `lea` names the object; its index only steps
@@ -700,11 +705,11 @@ namespace InstructionCombine
                 {
                     const MicroInstrOperand* ops = it->ops(*ctx.operands);
                     FrameAddress             address;
-                    if (!ops || !ops[0].reg.isVirtualInt() || ops[0].reg == frameBase || definitions[ops[0].reg.packed] != 1 ||
-                        ctx.frameAddresses.contains(ops[0].reg.packed) || !derivation(address, *it, ops, it.current))
+                    if (!ops || !ops[0].reg.isVirtualInt() || ops[0].reg == frameBase || !definedOnce(ops[0].reg) ||
+                        ctx.frameAddresses.find(ops[0].reg.packed) || !derivation(address, *it, ops, it.current))
                         continue;
-                    ctx.frameAddresses[ops[0].reg.packed] = address;
-                    changed                               = true;
+                    ctx.frameAddresses.getOrInsert(ops[0].reg.packed) = address;
+                    changed                                           = true;
                 }
             }
 
@@ -722,7 +727,7 @@ namespace InstructionCombine
                 return true;
             };
             const auto isFrameAddress = [&](const MicroReg reg) {
-                return reg == frameBase || reg == ctx.stackPointer || ctx.frameAddresses.contains(reg.packed) || derived.contains(reg.packed);
+                return reg == frameBase || reg == ctx.stackPointer || ctx.frameAddresses.find(reg.packed) || derived.contains(reg.packed);
             };
 
             for (auto it = ctx.storage->view().begin(), end = ctx.storage->view().end(); it != end; ++it)
@@ -734,7 +739,7 @@ namespace InstructionCombine
                 const MicroInstrDef& info      = MicroInstr::info(inst.op);
                 uint8_t              baseIndex = 0;
                 const bool           hasBase   = MicroPassHelpers::dereferenceBaseOperandIndex(baseIndex, inst.op, info);
-                const bool           recorded  = ops[0].reg != frameBase && ctx.frameAddresses.contains(ops[0].reg.packed) &&
+                const bool           recorded  = ops[0].reg != frameBase && ctx.frameAddresses.find(ops[0].reg.packed) &&
                                       (inst.op == MicroInstrOpcode::LoadRegReg || inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem);
 
                 // Every other appearance of a frame address is an escape.

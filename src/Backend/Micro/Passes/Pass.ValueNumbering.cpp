@@ -758,10 +758,10 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
     // The copies that keep an overwritten result for a repeat, by the index of its
     // numbered instruction, and the next free integer register for them.
-    std::unordered_map<uint32_t, MicroReg> preservedByIndex;
-    std::vector<PlannedPreservation>       preservations;
-    uint32_t                               nextIntIndex   = 0;
-    uint32_t                               nextFloatIndex = 0;
+    FlatKeyMap<MicroReg>             preservedByIndex;
+    std::vector<PlannedPreservation> preservations;
+    uint32_t                         nextIntIndex   = 0;
+    uint32_t                         nextFloatIndex = 0;
 
     // The epoch in force at each instruction. Epochs are never reused: a label
     // that resumes its single predecessor's epoch shares it only with the
@@ -1039,7 +1039,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
             MicroReg source = cand.defReg;
             if (overwritten)
             {
-                MicroReg& kept = preservedByIndex[cand.index];
+                MicroReg& kept = preservedByIndex.getOrInsert(cand.index);
                 if (!kept.isValid())
                 {
                     if (!nextIntIndex)

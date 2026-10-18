@@ -851,14 +851,15 @@ namespace
 
     bool isUsedOnlyThroughLowBits(const MicroSsaState& ssa, const MicroStorage& storage, const MicroOperandStorage& operands, const uint32_t firstValueId, const uint32_t maxObservedBits)
     {
-        std::vector<uint32_t>        pending{firstValueId};
-        std::unordered_set<uint32_t> visited;
-        bool                         hasNarrowUse = false;
+        SmallVector<uint32_t> pending;
+        FlatKeySet            visited;
+        bool                  hasNarrowUse = false;
+        pending.push_back(firstValueId);
         while (!pending.empty())
         {
             const uint32_t valueId = pending.back();
             pending.pop_back();
-            if (!visited.insert(valueId).second)
+            if (!visited.insert(valueId))
                 continue;
             const MicroSsaState::ValueInfo* value = ssa.valueInfo(valueId);
             if (!value || value->uses.empty())

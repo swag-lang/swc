@@ -327,19 +327,15 @@ bool CodeGenMoveElision::canMoveOutAtReturn(CodeGen& codeGen, const SymbolVariab
     return !info.deferEscaped && info.declBlockRef.isValid();
 }
 
+// The reference is used before the next insertion, which can move it.
 CodeGenMoveElisionVar& CodeGen::moveElisionVar(const SymbolVariable& symVar)
 {
-    if (!moveElisionVars_)
-        moveElisionVars_.emplace();
-    return (*moveElisionVars_)[&symVar];
+    return moveElisionVars_.getOrInsert(reinterpret_cast<uintptr_t>(&symVar));
 }
 
 const CodeGenMoveElisionVar* CodeGen::findMoveElisionVar(const SymbolVariable& symVar) const
 {
-    if (!moveElisionVars_)
-        return nullptr;
-    const auto it = moveElisionVars_->find(&symVar);
-    return it == moveElisionVars_->end() ? nullptr : &it->second;
+    return moveElisionVars_.find(reinterpret_cast<uintptr_t>(&symVar));
 }
 
 SWC_END_NAMESPACE();

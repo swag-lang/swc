@@ -5,6 +5,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
+#include "Support/Core/PointerSet.h"
 #include "Support/Core/StringMap.h"
 #include "Support/Math/Hash.h"
 
@@ -116,7 +117,8 @@ bool SymbolTable::read(std::vector<Entry>& outEntries, const std::span<const std
     if (HEADER_SIZE + static_cast<uint64_t>(count) * ENTRY_SIZE > blobBase || blobBase > bytes.size())
         return false;
 
-    std::unordered_map<uint32_t, const Utf8*> targets;
+    // Only looked up by entry offset: one flat table instead of a node per relocation.
+    FlatKeyMap<const Utf8*> targets;
     targets.reserve(relocations.size());
     for (const Relocation& relocation : relocations)
         targets.emplace(relocation.offset, &relocation.symbolName);
@@ -125,13 +127,13 @@ bool SymbolTable::read(std::vector<Entry>& outEntries, const std::span<const std
     entries.reserve(count);
     for (uint32_t i = 0; i < count; ++i)
     {
-        const uint32_t entryOffset = HEADER_SIZE + i * ENTRY_SIZE;
-        const auto     target      = targets.find(entryOffset + ENTRY_START_RVA);
-        if (target == targets.end())
+        const uint32_t     entryOffset = HEADER_SIZE + i * ENTRY_SIZE;
+        const Utf8* const* target      = targets.find(entryOffset + ENTRY_START_RVA);
+        if (!target)
             return false;
 
         Entry entry;
-        entry.symbolName = *target->second;
+        entry.symbolName = **target;
         entry.size       = BinaryPatch::readU32(bytes, entryOffset + K_ENTRY_SIZE);
         entry.name       = readString(bytes, BinaryPatch::readU32(bytes, entryOffset + K_ENTRY_NAME));
         entry.file       = readString(bytes, BinaryPatch::readU32(bytes, entryOffset + K_ENTRY_FILE));

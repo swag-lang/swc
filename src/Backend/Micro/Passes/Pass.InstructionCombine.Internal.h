@@ -141,7 +141,7 @@ namespace InstructionCombine
             uint64_t stride = 0;
             uint64_t anchor = K_NO_ANCHOR;
         };
-        mutable std::unordered_map<uint32_t, FrameAddress> frameAddresses;
+        mutable FlatKeyMap<FrameAddress>                   frameAddresses;
         mutable std::optional<FlatKeyMap<uint64_t>>        frameStackPointerOffsets;
         mutable std::vector<std::pair<uint64_t, uint64_t>> zeroExtendedFrameObjects;
 

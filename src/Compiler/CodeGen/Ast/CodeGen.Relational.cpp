@@ -155,32 +155,7 @@ namespace
         const MicroOpBits srcBits = CodeGenTypeHelpers::compareBits(srcType, codeGen.ctx());
         const MicroOpBits dstBits = CodeGenTypeHelpers::compareBits(dstType, codeGen.ctx());
 
-        MicroBuilder& builder = codeGen.builder();
-
-        if (srcType.isIntLike() && dstType.isIntLike())
-        {
-            CodeGenIntegerConversion::convertOperand(codeGen, outReg, srcType, srcBits, dstBits);
-            return;
-        }
-
-        if (srcType.isIntLike() && dstType.isFloat())
-        {
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
-            CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstReg, outReg, srcBits, dstBits, !srcType.isIntSigned());
-            outReg = dstReg;
-            return;
-        }
-
-        if (srcType.isFloat() && dstType.isFloat())
-        {
-            if (srcBits == dstBits)
-                return;
-
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstTypeRef, dstType);
-            builder.emitClearReg(dstReg, dstBits);
-            builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
-            outReg = dstReg;
-        }
+        CodeGenIntegerConversion::tryConvertScalarOperand(codeGen, outReg, {&srcType, srcBits}, {&dstType, dstBits}, dstTypeRef);
     }
 
     void materializeCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef compareTypeRef)

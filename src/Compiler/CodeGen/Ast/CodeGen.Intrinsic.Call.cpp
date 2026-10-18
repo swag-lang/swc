@@ -147,35 +147,8 @@ namespace
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
 
-        MicroBuilder& builder = codeGen.builder();
-
-        if (srcType.isIntLike() && dstType.isIntLike())
-        {
-            CodeGenIntegerConversion::convertOperand(codeGen, outReg, srcType, srcBits, dstBits);
-            return;
-        }
-
-        if (srcType.isIntLike() && dstType.isFloat())
-        {
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstStorageTypeRef, dstType);
-            CodeGenMemoryHelpers::emitConvertIntToFloat(codeGen, dstReg, outReg, srcBits, dstBits, !srcType.isIntSigned());
-            outReg = dstReg;
-            return;
-        }
-
-        if (srcType.isFloat() && dstType.isFloat())
-        {
-            if (srcBits == dstBits)
-                return;
-
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(dstStorageTypeRef, dstType);
-            builder.emitClearReg(dstReg, dstBits);
-            builder.emitOpBinaryRegReg(dstReg, outReg, MicroOp::ConvertFloatToFloat, srcBits);
-            outReg = dstReg;
-            return;
-        }
-
-        SWC_INTERNAL_ERROR();
+        if (!CodeGenIntegerConversion::tryConvertScalarOperand(codeGen, outReg, {&srcType, srcBits}, {&dstType, dstBits}, dstStorageTypeRef))
+            SWC_INTERNAL_ERROR();
     }
 
     void materializeIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef)

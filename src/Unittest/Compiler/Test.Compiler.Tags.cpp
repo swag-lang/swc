@@ -67,6 +67,8 @@ SWC_TEST_BEGIN(Compiler_AllocatorCapabilitiesAreFixedBeforeModuleSetup)
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      localCtx(compiler);
         SWC_RESULT(compiler.setupSema(localCtx));
+        if (compiler.runtimeAllocatorSafety() != (cmdLine.buildCfg == "devmode"))
+            return Result::Error;
         for (const auto name : {"Swag.AllocatorSafety", "Swag.AllocatorDiagnostics"})
         {
             const auto* tag = compiler.findCompilerTag(name);
@@ -96,6 +98,8 @@ SWC_TEST_BEGIN(Compiler_ReleaseAllocatorCapabilitiesNeedExplicitTags)
     CompilerInstance compiler(ctx.global(), cmdLine);
     TaskContext      localCtx(compiler);
     SWC_RESULT(compiler.setupSema(localCtx));
+    if (!compiler.runtimeAllocatorSafety())
+        return Result::Error;
     for (const auto name : {"Swag.AllocatorSafety", "Swag.AllocatorDiagnostics"})
     {
         const auto* tag = compiler.findCompilerTag(name);
@@ -123,6 +127,8 @@ SWC_TEST_BEGIN(Compiler_AllocatorCapabilityOverridesUseLastValue)
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      localCtx(compiler);
         SWC_RESULT(compiler.setupSema(localCtx));
+        if (!compiler.runtimeAllocatorSafety())
+            return Result::Error;
         if (compiler.findCompilerTag("Swag.AllocatorDiagnostics"))
             return Result::Error;
         const auto* safety = compiler.findCompilerTag("Swag.AllocatorSafety");

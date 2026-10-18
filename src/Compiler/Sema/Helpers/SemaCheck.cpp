@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaAccess.h"
@@ -458,6 +459,17 @@ namespace
     bool inCompileTimeExecutedFunction(const Sema& sema)
     {
         const SymbolFunction* symFn = sema.currentFunction();
+        // Ordinary inlining retains the callee's storage contract. A runtime helper cloned
+        // into #run must not move its globals after other callers already lowered them.
+        // Macros and mixins expand in their caller's execution context instead.
+        for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
+        {
+            if (payload->sourceFunction && !payload->sourceFunction->attributes().hasMacroOrMixin())
+            {
+                symFn = payload->sourceFunction;
+                break;
+            }
+        }
         if (!symFn)
             return false;
 

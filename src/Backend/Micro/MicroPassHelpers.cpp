@@ -174,6 +174,9 @@ FlatKeySet MicroPassHelpers::collectReadOnlyCallRefs(const MicroBuilder& builder
 
 FlatKeySet MicroPassHelpers::collectReportCallRefs(const MicroBuilder& builder)
 {
+    // Compiler-owned thunks have no runtime symbols and can be lowered before sema setup.
+    if (builder.codeRelocations().empty())
+        return {};
     const IdentifierManager& idMgr = builder.ctx().idMgr();
     const std::array         names = {
         idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic),

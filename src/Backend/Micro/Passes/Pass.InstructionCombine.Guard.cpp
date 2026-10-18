@@ -346,7 +346,7 @@ namespace InstructionCombine
     // other threads are not the guard's to detect.
     void runDropUnobservedBorrows(Context& ctx)
     {
-        if (!ctx.builder || !ctx.passContext || !ctx.passContext->taskContext || !ctx.passContext->taskContext->hasCompiler())
+        if (!ctx.builder || ctx.builder->codeRelocations().empty() || !ctx.passContext || !ctx.passContext->taskContext || !ctx.passContext->taskContext->hasCompiler())
             return;
 
         const IdentifierManager& idMgr   = ctx.passContext->taskContext->idMgr();

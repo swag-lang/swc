@@ -182,6 +182,7 @@ public:
     Runtime::ICompiler&             runtimeCompiler() { return runtimeCompiler_; }
     const Runtime::ICompiler&       runtimeCompiler() const { return runtimeCompiler_; }
     const Runtime::IAllocator&      runtimeAllocator() const { return runtimeAllocator_; }
+    bool                            runtimeAllocatorSafety() const { return runtimeAllocatorSafety_; }
     Runtime::CompilerMessage&       runtimeCompilerMessage() { return runtimeCompilerMessage_; }
     const Runtime::CompilerMessage& runtimeCompilerMessage() const { return runtimeCompilerMessage_; }
     JITMemoryManager&               jitMemMgr();
@@ -649,6 +650,7 @@ private:
     WorkspaceBuildLogState                                                                        workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>                                                        workspaceModuleLogState_;
     bool                                                                                          suppressBuildConfigurationLog_ = false;
+    bool                                                                                          runtimeAllocatorSafety_        = false;
     uint64_t                                                                                      commandWallTimeNs_             = 0;
     Runtime::ICompiler                                                                            runtimeCompiler_{};
     Runtime::IAllocator                                                                           runtimeAllocator_{};

@@ -275,24 +275,31 @@ namespace
     // object does not name: imported DLL globals keep the allocator interface of whichever JIT
     // run first filled them, and that module's CompilerInstance can be destroyed by the time
     // another module's code reaches them. A thread with no compiler task has no registry to check.
+    using RuntimeAllocatorBorrowGuard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
+
+    RuntimeAllocatorBorrowGuard runtimeAllocatorBorrowGuard()
+    {
+        const TaskContext* task = TaskContext::current();
+        if (!task || !task->hasCompiler())
+            return nullptr;
+        const CompilerInstance& compiler = task->compiler();
+        if (!compiler.runtimeAllocatorSafety())
+            return nullptr;
+        const auto  id       = compiler.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
+        const auto* function = compiler.runtimeFunctionSymbol(id);
+        if (!function || !function->jitEntryAddress())
+            return nullptr;
+        return reinterpret_cast<RuntimeAllocatorBorrowGuard>(function->jitEntryAddress());
+    }
+
     void checkRuntimeAllocatorBorrow(const void* address, size_t size, const Runtime::SourceCodeLocation& location)
     {
         if (!address || !size)
             return;
-        const TaskContext* task = TaskContext::current();
-        if (!task || !task->hasCompiler())
-            return;
-        const CompilerInstance& compiler = task->compiler();
-        if (!compiler.findCompilerTag("Swag.AllocatorSafety"))
-            return;
-        const auto  id       = compiler.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
-        const auto* function = compiler.runtimeFunctionSymbol(id);
-        if (!function || !function->jitEntryAddress())
-            return;
         // The host allocator is outside generated code. Re-enter its compiled guard before
         // invalidating storage, so JIT execution uses the same registry and panic catch.
-        using Guard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
-        reinterpret_cast<Guard>(function->jitEntryAddress())(address, size, &location, nullptr);
+        if (const auto guard = runtimeAllocatorBorrowGuard())
+            guard(address, size, &location, nullptr);
     }
 
     void runtimeAllocatorRealloc(const CompilerInstance*, Runtime::AllocatorRequest* request)
@@ -326,7 +333,11 @@ namespace
         if (!request)
             return;
 
-        checkRuntimeAllocatorBorrow(request->address, mi_usable_size(request->address), request->callerLoc);
+        // Unguarded evaluations need neither a tag lookup nor the allocation's usable size.
+        // Resolve the guard from the active task: imported modules can retain an older interface.
+        const auto guard = runtimeAllocatorBorrowGuard();
+        if (guard && request->address)
+            guard(request->address, mi_usable_size(request->address), &request->callerLoc, nullptr);
         mi_free(request->address);
         request->address = nullptr;
     }
@@ -524,6 +535,7 @@ Result CompilerInstance::setupSema(TaskContext& ctx)
     typeMgr_->setup(ctx);
     cstMgr_->setup(ctx);
     SWC_RESULT(compilerTags_.setup(ctx));
+    runtimeAllocatorSafety_ = findCompilerTag("Swag.AllocatorSafety") != nullptr;
     return Result::Continue;
 }
 

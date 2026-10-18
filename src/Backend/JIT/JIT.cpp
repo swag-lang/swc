@@ -1479,6 +1479,11 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
     // native ABI's shadow space. An explicit native call owns that space independently of the
     // caller's optimized frame. The pointer result stays in the common return register.
     MicroBuilder builder(ctx);
+    // These process-owned bridges outlive compiler instances and configuration changes.
+    // Optimize them independently of the configuration of their first caller.
+    Runtime::BuildCfgBackend backendCfg{};
+    backendCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O1;
+    builder.setBackendBuildCfg(backendCfg);
     builder.setRetUsesAbiRegs(true, false);
     const MicroReg targetReg = MicroReg::virtualIntReg(1);
     builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(targetFn));

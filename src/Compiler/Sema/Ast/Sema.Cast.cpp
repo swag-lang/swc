@@ -41,8 +41,9 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
     // Swag.minusLiteralSuffix
+    // A detached inline argument can be analyzed as the root of its own visit.
     const auto* parentNode = sema.visit().parentNode();
-    if (parentNode->is(AstNodeId::UnaryExpr))
+    if (parentNode && parentNode->is(AstNodeId::UnaryExpr))
     {
         const Token& tok = sema.token(parentNode->codeRef());
         if (tok.is(TokenId::SymMinus))

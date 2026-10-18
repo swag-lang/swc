@@ -57,6 +57,24 @@ namespace
     {
         return values + index;
     }
+
+    uint64_t nativeInterfaceConstant() { return 42; }
+
+    uint64_t nativeInterfaceIncrement(uint64_t value)
+    {
+        volatile uint64_t* home = &value;
+        *home                   = *home + 1;
+        return *home;
+    }
+
+    uint64_t nativeInterfaceParameterHomes(uint64_t first, uint64_t second)
+    {
+        volatile uint64_t* firstHome  = &first;
+        volatile uint64_t* secondHome = &second;
+        *firstHome                    = *firstHome + 1;
+        *secondHome                   = *secondHome + 2;
+        return *firstHome + *secondHome;
+    }
 }
 
 SWC_TEST_BEGIN(ABI_NativeInterfaceAdapterSurvivesCompilerInstance)
@@ -81,6 +99,30 @@ SWC_TEST_BEGIN(ABI_NativeInterfaceAdapterSurvivesCompilerInstance)
     uint64_t* result = nullptr;
     SWC_RESULT(JIT::emitAndCall(ctx, adapter, args, {.typeRef = typeMgr.typeValuePtrVoid(), .valuePtr = &result}, CallConvKind::Swag));
     SWC_ASSERT(result == &values[2]);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ABI_NativeInterfaceAdaptersReserveParameterHomes)
+{
+    const std::array targets = {
+        reinterpret_cast<void*>(&nativeInterfaceConstant),
+        reinterpret_cast<void*>(&nativeInterfaceIncrement),
+        reinterpret_cast<void*>(&nativeInterfaceParameterHomes),
+    };
+    std::array<uint64_t, 2> values = {17, 22};
+    const std::array        args   = {
+        JITArgument{.typeRef = ctx.typeMgr().typeU64(), .valuePtr = &values[0]},
+        JITArgument{.typeRef = ctx.typeMgr().typeU64(), .valuePtr = &values[1]},
+    };
+    constexpr std::array<uint64_t, 3> expected = {42, 18, 42};
+    for (uint32_t arity = 0; arity < targets.size(); ++arity)
+    {
+        void*    adapter = JIT::getNativeInterfaceAdapter(ctx, targets[arity], arity);
+        uint64_t result  = 0;
+        SWC_RESULT(JIT::emitAndCall(ctx, adapter, std::span(args.data(), arity), {.typeRef = ctx.typeMgr().typeU64(), .valuePtr = &result}, CallConvKind::Swag));
+        SWC_ASSERT(result == expected[arity]);
+        SWC_ASSERT(values[0] == 17 && values[1] == 22);
+    }
 }
 SWC_TEST_END()
 

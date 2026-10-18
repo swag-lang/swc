@@ -2691,13 +2691,6 @@ namespace
         if (!fn.isTyped())
             return false;
 
-        // Automatic inlining optimizes emitted runtime code. In #run/compiler-evaluation frames
-        // it can instead change which synthetic function owns a global write, or make JIT-only
-        // nodes re-enter ordinary inline materialization concurrently. Explicit inline, macro,
-        // and mixin expansion remain available in those contexts.
-        if (!SemaRuntime::isRuntimeArtifactContext(sema))
-            return false;
-
         // A typed variadic (`T...`) callee packs its trailing call-site args into a typed slice.
         // Auto-inlining it materializes that packing into the caller and drops the per-argument
         // coercion (e.g. a `null` arg to a `*void...` is no longer coerced to `*void`, leaving an

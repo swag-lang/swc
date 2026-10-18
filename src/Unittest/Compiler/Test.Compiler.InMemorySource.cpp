@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -12,6 +13,7 @@
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
@@ -645,6 +647,109 @@ func useMix(value: u64)->u64 => mix(value) + mix(value + 1)
     }
 
     return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AutoInlineCompileTimeCallsKeepTheirExecutionContext)
+{
+    static constexpr std::string_view SOURCE     = R"(#global private
+var initialized: u32
+var expandedGlobal: u32
+var calledGlobal: u32
+
+func rotate(value, count: u64)->u64 => ((value >> count) | (value << (32 - count))) & 0xFFFFFFFF
+func identity(value: u32)->u32 => value
+func setExpanded(value: u32) { expandedGlobal = value }
+
+#[Swag.NoInline]
+func setCalled(value: u32) { calledGlobal = value }
+
+func compute(value: u32)->u32
+{
+    var result = value + 1
+    result *= 3
+    return result
+}
+
+#[Swag.Compiler]
+func initialize(value: u32) { initialized = value }
+
+#run
+{
+    var value = 0x12345678'u64
+    Swag.assert(rotate(value, 8) == 0x78123456)
+    var input = 13'u32
+    Swag.assert(compute(input) == 42)
+    initialize(42)
+    Swag.assert(initialized == 42)
+    setExpanded(42)
+    setCalled(42)
+    Swag.assert(expandedGlobal == calledGlobal)
+}
+
+const copied = #run identity(42'u32)
+#assert(copied == 42)
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "AutoInlineCompileTimeContext");
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_auto_inline_compile_time";
+    cmdLine.silent   = true;
+    cmdLine.numCores = 6;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    TaskContext compilerCtx(compiler);
+    // Inlining a runtime helper into #run must keep the same segment as an ordinary call.
+    std::optional<DataSegmentKind> expandedStorage;
+    std::optional<DataSegmentKind> calledStorage;
+    for (SourceFile* file : compiler.files())
+    {
+        if (!FileSystem::pathEquals(file->path(), sourcePath))
+            continue;
+        Sema sema(compilerCtx, file->nodePayloadContext(), false);
+        Ast::visit(file->ast(), file->ast().root(), [&](AstNodeRef ref, const AstNode& node) {
+            if (!node.is(AstNodeId::SingleVarDecl))
+                return Ast::VisitResult::Continue;
+            const Symbol* symbol = sema.viewSymbol(ref).sym();
+            if (!symbol || !symbol->isVariable())
+                return Ast::VisitResult::Continue;
+            if (symbol->name(compilerCtx) == "expandedGlobal")
+                expandedStorage = symbol->cast<SymbolVariable>().globalStorageKind();
+            if (symbol->name(compilerCtx) == "calledGlobal")
+                calledStorage = symbol->cast<SymbolVariable>().globalStorageKind();
+            return Ast::VisitResult::Continue;
+        });
+    }
+    if (!expandedStorage || !calledStorage || expandedStorage != calledStorage)
+        return Result::Error;
+
+    bool checkedRun = false;
+    for (const SymbolFunction* function : compiler.jitPreparedFunctionsSnapshot())
+    {
+        const SourceFile* file = compiler.sourceViewFile(*function);
+        if (!file || !FileSystem::pathEquals(file->path(), sourcePath) || !function->name(compilerCtx).starts_with("__run"))
+            continue;
+        checkedRun = true;
+        for (const MicroRelocation& relocation : function->loweredCode().codeRelocations)
+        {
+            if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress || !relocation.targetSymbol)
+                continue;
+            const auto name = relocation.targetSymbol->name(compilerCtx);
+            if (name == "rotate" || name == "compute" || name == "initialize" || name == "identity" || name == "setExpanded")
+                return Result::Error;
+        }
+    }
+    return checkedRun ? Result::Continue : Result::Error;
 }
 SWC_TEST_END()
 

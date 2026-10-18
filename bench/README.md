@@ -67,25 +67,29 @@ Java and C# IL builds produce bytecode, whereas the native rows include machine-
 and linking. Keep those output contracts in mind when reading the combined ranking.
 The headline cards report **total time saved or lost**, in milliseconds or seconds:
 current and previous values show only a signed number and its unit. Positive means time saved;
-negative means extra time.
-`sum(fastest non-Swag time - Swag time)`. Each total represents one measured run or build
+negative means extra time. In the headline band,
+the first row shows native release, native devmode and JIT release execution; the second
+shows compilation and peak compiler memory.
+`smallest non-Swag total - Swag total`. Each total represents one measured run or build
 of every displayed workload. For example, a Swag total of 200 ms against a rival total of
 350 ms is displayed as **+150 ms**. The cards show both totals and count tasks ahead,
-close (within 1%), and behind. The rival total sums the fastest non-Swag time on each task;
-it can combine several languages. Longer tasks weigh more, so a large gain on one task can
+close (within 1%), and behind. The rival is one real runtime: the non-Swag competitor with
+the smallest sum across the complete panel. Longer tasks weigh more, so a large gain on one task can
 outweigh small losses on several others. The task counts make that distribution visible.
+Each time card names its non-Swag reference, including the JIT card. The same competitor is
+used for every table row and per-task difference in that group; no Swag configuration can be the reference.
 Compiler memory remains the largest working set in MiB: separate processes' peaks are not added.
 All Swag modes are excluded from the rival reference. Only competitors with valid measurements
 for every displayed task participate. Native / AOT and JIT use separate rivals; compilation
 includes bytecode recipes. The cards use each section's latest accepted campaign.
 
-The three time arrows compare the current and previous displayed values directly. More time
+The four time arrows compare the current and previous displayed values directly. More time
 saved or less time lost gives a green up arrow; less saved or more lost gives a red down arrow.
 The neutral right arrow means the displayed values are equal at their printed precision.
 For example, 1.54 s saved before and 1.62 s saved now always gives a green up arrow.
 A dash means no comparable earlier campaign. Both campaigns must use the same protocol
-and measure the complete displayed task panel. Each value uses that campaign's complete
-non-Swag rivals. No machine correction or normalized ratio can reverse the displayed direction;
+and measure the complete displayed task panel. Each value uses the non-Swag runtime with the
+smallest total in that campaign. No machine correction or normalized ratio can reverse the displayed direction;
 changes in the machine or competitor set can affect these raw savings. Use corrected history
 for compiler progress claims. Peak compiler memory compares the two measured Swag peaks directly;
 a smaller peak is better. Beside every arrow, the previous value appears as a small number and
@@ -93,30 +97,24 @@ unit, including MiB for peak memory. Its tooltip gives the date and campaign ide
 
 These choices keep the distribution visible alongside the summary, as in the
 [Benchmarks Game](https://benchmarksgame-team.pages.debian.net/benchmarksgame/box-plot-summary-charts.html).
-The detailed aggregate speed charts retain the geometric mean of normalized ratios used by
-[SPEC CPU](https://www.spec.org/cpu2017/Docs/overview.html); archived history fields keep their
-existing definitions. The execution and compilation sections also compare Swag release with
-each runtime or compiler separately:
-the geometric mean of competitor time / Swag release time across the same tasks. 2x means
-Swag release is twice as fast; 0.5x means it is twice as slow. A competitor appears only when
-it has a valid measurement for every displayed task. Per-task tables order runtime badges
-from fastest to slowest and show relative speed as `100 * best time / runtime time`, with linear
-bars starting at zero. The best is 100%; a runtime taking 1.03 times as long retains 97.1%
-of its speed, and twice the time gives 50%. Native/AOT and JIT execution
-have separate references: the fastest time within that group on each task.
-Swag native and Swag JIT have distinct headline metrics and direct comparisons with
-their own competitors. A native 95% and a JIT 95% do not represent the same absolute
-speed. The execution report omits comparisons between interpreters, which have no Swag
-reference. Their measurements remain in the raw campaigns and resource charts that include Swag.
-The aggregate speed charts use the geometric mean of those per-task speeds, also on
-a linear 0–100% scale. No artificial minimum width inflates a small value.
-Hover a value for milliseconds, the time ratio
-and the percentage of additional time; missing or non-positive measurements have no bar
-and cannot be the reference. The Swag summary shows additional time vs the best, rather than
-an ordinal rank, so a sixth-place result only 3% behind stays visibly close. Aggregate
-comparisons are also sorted from fastest to slowest without ordinal ranks.
-The detailed raw-time matrices retain milliseconds. The separate `hello` workload is excluded from the
-aggregate.
+The execution and compilation tables use the headline's definitions for every language and
+mode: total measured time, signed time saved or lost, ahead / close / behind task counts,
+and the largest measured working set in MiB. All rows in a group share one real non-Swag
+reference: the runtime with the smallest total. Its own row has zero saved time.
+Native / AOT, JIT and interpreted execution have separate rival panels. Missing or invalid measurements produce
+a dash, never a partial total or a zero peak.
+
+Summary bars show total durations on linear axes starting at zero, with shorter bars better.
+Charts, tables and headlines format the same duration identically in ms or s.
+Per-task tables order runtime badges from fastest to slowest and show the actual duration
+in ms or s, followed by signed time saved or lost against that task's rival reference.
+The reference column names that same non-Swag runtime and its time for each task. Execution summaries
+also name the reference and give its total.
+Hover for the full compiler and mode name. The detailed raw-time matrices retain milliseconds;
+their footers sum the task durations and use ms or s. The separate `hello` workload is
+excluded from every aggregate. No relative-speed percentage or multiplier replaces a measured
+duration in these current-campaign tables. Archived history fields keep their existing definitions,
+including the geometric ratios also used by [SPEC CPU](https://www.spec.org/cpu2017/Docs/overview.html).
 The `hello` column is a separate small program with a different import set; it is useful as a
 second data point, but subtracting it from a task does not remove library overhead reliably.
 It measures both Swag configurations and both C++ compilers. Older campaigns omitted Swag
@@ -132,7 +130,7 @@ Codes and labels identify the execution mode; history uses dashed lines for JIT.
 Every chart, badge and history line uses the same mapping. Chart labels place the name before
 the badge so the badges share a fixed edge beside the bars; the left-aligned legend keeps badges first.
 Summary charts and sorted per-task native, JIT and build results are always visible.
-Raw tables and supplementary direct comparisons can be expanded separately.
+Raw matrices can be expanded separately; the totals and memory tables stay visible.
 Resource bars show absolute costs on linear zero-based axes, with smaller values better.
 Execution and build sections identify their own campaign dates and commits; they need not
 come from the same campaign. The presentation never triggers new measurements.
@@ -254,7 +252,9 @@ context lookup and the interface call; its peak working set includes the `core` 
 imports.
 
 Each workload runs in a fresh process pinned to the performance cores, five rounds with the
-three executables in rotating order, and the section keeps the median of each. The
+three executables in rotating order, and the section keeps the median of each.
+Current results show ns/op and each allocator's peak working set in MiB; shorter bars mean
+less time per operation. The
 competitors are measured in the same rounds, so Swag's ratio to each needs no machine
 correction: the history follows the geometric mean of those ratios, for time and for peak
 working set, and the page draws how they move from campaign to campaign. A workload that one

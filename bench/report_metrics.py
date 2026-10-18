@@ -27,18 +27,26 @@ def rivals(campaign, tasks, family, key, group=None):
                   and measurements(campaign, tasks, runtime, family, key))
 
 
-def comparison(campaign, tasks, lead, family, key, competitors):
-    own = measurements(campaign, tasks, lead, family, key)
-    if not own or not competitors:
+def reference_runtime(campaign, tasks, family, key, competitors):
+    """Select one real competitor by its total time over the complete task panel."""
+    if not competitors:
         return None
     controls = [measurements(campaign, tasks, rt, family, key) for rt in competitors]
     if any(values is None for values in controls):
         return None
-    best = [min(values) for values in zip(*controls)]
+    return min(zip(competitors, controls), key=lambda item: (sum(item[1]), item[0]))[0]
+
+
+def comparison(campaign, tasks, lead, family, key, competitors):
+    own = measurements(campaign, tasks, lead, family, key)
+    reference = reference_runtime(campaign, tasks, family, key, competitors)
+    if not own or reference is None:
+        return None
+    best = measurements(campaign, tasks, reference, family, key)
     ratios = [value / reference for value, reference in zip(own, best)]
     gaps = [(ratio - 1) * 100 for ratio in ratios]
     low, high = 1 - DISPLAY_BAND_PCT / 100, 1 + DISPLAY_BAND_PCT / 100
-    return {"ratios": ratios, "gap_pct": statistics.median(gaps),
+    return {"reference_runtime": reference, "ratios": ratios, "gap_pct": statistics.median(gaps),
             "ahead": sum(ratio < low for ratio in ratios),
             "close": sum(low <= ratio <= high for ratio in ratios),
             "behind": sum(ratio > high for ratio in ratios),

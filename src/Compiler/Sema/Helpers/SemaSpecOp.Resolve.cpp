@@ -472,6 +472,9 @@ namespace
     // own the target storage and are skipped.
     Result collectUsingTargets(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<const SymbolStruct*>& outTargets)
     {
+        if (!ownerStruct.mayHaveUsingField())
+            return Result::Continue;
+
         for (const Symbol* field : ownerStruct.fields())
         {
             const auto& symVar = field->cast<SymbolVariable>();

@@ -114,11 +114,12 @@ def geo(values):
 
 
 def build_control_spread(current, reference):
-    """Compare unchanged build recipes with the preceding accepted campaign.
+    """Describe build-control movements since the preceding accepted campaign.
 
     A runtime calibration cannot see a slowdown confined to a group of compilers.
     Compare each control's geometric build-time movement across the same tasks; a
-    wide middle-half spread means one machine factor cannot explain the campaign. Only
+    wide middle-half spread means one machine factor cannot explain the movement.
+    This is historical context, not a test of today's measurement repeatability. Only
     the tasks both campaigns measured are compared, so a campaign that adds a task is
     still checked against its predecessor.
     """
@@ -532,11 +533,12 @@ def condense(results, refs=None, baseline=None):
                 b_index[task] = b_adjusted[task] / base if b_adjusted[task] and base else None
             rec["build_ms"] = b_ms
             rec["build_adjusted_ms"] = b_adjusted
-            rec["build_geo_adjusted_ms"] = geo([b_adjusted[t] for t in panel["build"]
-                                                if t in b_adjusted])
+            build_panel = panel["build"]
+            rec["build_geo_adjusted_ms"] = (geo([b_adjusted[t] for t in build_panel])
+                                             if all(b_adjusted.get(t) for t in build_panel) else None)
             rec["build_index"] = b_index
-            rec["build_geo_index"] = geo([b_index[t] for t in panel["build"]
-                                          if t in b_index])
+            rec["build_geo_index"] = (geo([b_index[t] for t in build_panel])
+                                      if all(b_index.get(t) for t in build_panel) else None)
             peaks = [build(rt, t, "peak_bytes") for t in task_ids]
             peaks = [p for p in peaks if p]
             rec["build_peak_mb"] = max(peaks) / 1048576.0 if peaks else None

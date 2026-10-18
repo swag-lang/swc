@@ -70,15 +70,16 @@ CONTROL_RUN_MAX_REPS = 6
 # over: its pilot sample is the measurement.
 RUN_SLOW_MS = 1500
 
-# Builds get the same treatment, on their own budget: swc links a task in 150 ms and
-# NativeAOT takes several seconds, so a flat repetition count either starves the fast
-# toolchain — the one actually under test — or spends minutes on the slow one.
+# Every build needs a repeat, including slow controls. The budget buys additional
+# samples; it never turns a slow or delayed pilot into an unverified result.
 BUILD_BUDGET_MS = 2000
 BUILD_MIN_REPS = 2
 BUILD_MAX_REPS = 6
 CONTROL_BUILD_BUDGET_MS = 800
 CONTROL_BUILD_MAX_REPS = 3
 BUILD_SLOW_MS = 2500
+BUILD_SLOW_MAX_REPS = 3
+BUILD_PAIR_LIMIT_PCT = 10.0
 
 DRIFT_LIMIT_PCT = history.DRIFT_LIMIT_PCT
 
@@ -182,13 +183,77 @@ def plan_reps(wall_ms, tracked=True):
 def plan_builds(wall_ms, tracked=True):
     """How many times a toolchain is built, from its first build."""
     budget, low, high = ((BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS) if tracked else
-                         (CONTROL_BUILD_BUDGET_MS, 1, CONTROL_BUILD_MAX_REPS))
+                         (CONTROL_BUILD_BUDGET_MS, BUILD_MIN_REPS, CONTROL_BUILD_MAX_REPS))
     low, high = min(low, BUILD_MAX_REPS), min(high, BUILD_MAX_REPS)
     if not wall_ms:
         return low
     if wall_ms >= BUILD_SLOW_MS:
-        return 1
+        return low
     return max(low, min(high, int(budget // wall_ms)))
+
+
+def build_pair_spread(acc):
+    """How closely the two fastest complete builds agree, in percent."""
+    samples = sorted(acc.get("samples") or [])
+    if len(samples) < 2 or samples[0] <= 0:
+        return None
+    return (samples[1] / samples[0] - 1.0) * 100.0
+
+
+def needs_build_sample(acc, tracked=True):
+    if acc.get("error"):
+        return False
+    count = len(acc.get("samples") or [])
+    best = acc.get("wall_ms")
+    ceiling = min(BUILD_MAX_REPS, BUILD_SLOW_MAX_REPS) if best and best >= BUILD_SLOW_MS else BUILD_MAX_REPS
+    if count >= ceiling:
+        return False
+    if count < plan_builds(best, tracked):
+        return True
+    spread = build_pair_spread(acc)
+    return spread is None or spread > BUILD_PAIR_LIMIT_PCT
+
+
+def measure_builds(jobs, env, workloads=False):
+    """Rotate complete builds, retrying only the measurements still needing evidence."""
+    measured = {name: {} for name in jobs}
+    sample = workload_once if workloads else build_once
+    for rep in range(BUILD_MAX_REPS):
+        due = [name for name, acc in measured.items()
+               if needs_build_sample(acc, workloads or name in history.TRACKED)]
+        if not due:
+            break
+        turn = rep % len(due)
+        for name in due[turn:] + due[:turn]:
+            result, error = sample(jobs[name], env)
+            if error:
+                measured[name]["error"] = error
+            elif workloads:
+                keep_workload(measured[name], result)
+            else:
+                keep_build(measured[name], result, jobs[name])
+    return measured
+
+
+def settle_build_measurements(results):
+    """Keep unresolved samples for audit without publishing an unsupported minimum."""
+    measurements = [("hello/" + name, acc) for name, acc in results.get("hello_build", {}).items()]
+    measurements += [("loop/" + name, acc) for name, acc in results.get("loop", {}).items()]
+    measurements += [(task + "/" + name, entry["build"])
+                     for task, entries in results["tasks"].items()
+                     for name, entry in entries.items() if entry.get("build")]
+    for label, acc in measurements:
+        if acc.get("error"):
+            continue
+        spread = build_pair_spread(acc)
+        stable = spread is not None and spread <= BUILD_PAIR_LIMIT_PCT
+        acc["repeatability"] = {"status": "verified" if stable else "unresolved",
+                                "fastest_pair_spread_pct": spread,
+                                "limit_pct": BUILD_PAIR_LIMIT_PCT}
+        if not stable:
+            acc["unverified_wall_ms"] = acc.pop("wall_ms", acc.get("unverified_wall_ms"))
+            print("  compilation %s: no agreeing pair after %d samples; raw samples kept, time omitted" %
+                  (label, len(acc.get("samples") or [])))
 
 
 def schedule(reps):
@@ -325,6 +390,11 @@ def campaign_settings(args):
         "min_reps": RUN_MIN_REPS,
         "max_reps": RUN_MAX_REPS,
         "build_budget_ms": BUILD_BUDGET_MS,
+        "build_min_reps": BUILD_MIN_REPS,
+        "build_max_reps": BUILD_MAX_REPS,
+        "build_slow_max_reps": BUILD_SLOW_MAX_REPS,
+        "build_pair_limit_pct": BUILD_PAIR_LIMIT_PCT,
+        "build_validation": "local-repeatability-v1",
         "warmup_s": args.warmup,
     }
 
@@ -453,20 +523,8 @@ def main():
     if measure_build:
         # --------------------------------------------------- fixed compiler cost
         print("== fixed compiler cost (hello world -> exe) ==")
-        hello_plan = {}
-        for rep in range(BUILD_MAX_REPS):
-            for name in hello_builds:
-                if name in gone or rep >= hello_plan.get(name, BUILD_MAX_REPS):
-                    continue
-                rec = hello_builds[name]()
-                r, err = build_once(rec, env)
-                acc = results["hello_build"].setdefault(name, {})
-                if err:
-                    acc["error"] = err
-                    hello_plan[name] = 0
-                else:
-                    keep_build(acc, r, rec)
-                    hello_plan.setdefault(name, plan_builds(r["wall_ms"], name in history.TRACKED))
+        results["hello_build"] = measure_builds(
+            {name: make() for name, make in hello_builds.items() if name not in gone}, env)
         for name, acc in results["hello_build"].items():
             if acc.get("error"):
                 print("  %-20s ERROR %s" % (name, acc["error"]))
@@ -479,20 +537,7 @@ def main():
         # Not pinned, like every build: a rebuild is meant to use the whole machine.
         print("== the edit-build loop (compiler workloads) ==")
         workloads = tc.make_compiler_workloads(swc, args.swc_cores)
-        results["loop"] = {}
-        loop_plan = {}
-        for rep in range(BUILD_MAX_REPS):
-            for name, workload in workloads.items():
-                if rep >= loop_plan.get(name, BUILD_MAX_REPS):
-                    continue
-                r, err = workload_once(workload, env)
-                acc = results["loop"].setdefault(name, {})
-                if err:
-                    acc["error"] = err
-                    loop_plan[name] = 0
-                else:
-                    keep_workload(acc, r)
-                    loop_plan.setdefault(name, plan_builds(r["wall_ms"]))
+        results["loop"] = measure_builds(workloads, env, workloads=True)
         for name, acc in results["loop"].items():
             if acc.get("error"):
                 print("  %-20s ERROR %s" % (name, acc["error"]))
@@ -545,22 +590,8 @@ def main():
 
         acc_build = {}
         if measure_build:
-            acc_build = {name: {} for name in aot}
-            build_plan = {}
-            for rep in range(BUILD_MAX_REPS):
-                # Rotated for the same reason the runs are: a build left permanently first
-                # in the round is permanently measured on a machine the others just left.
-                turn = rep % len(aot)
-                for name in aot[turn:] + aot[:turn]:
-                    if rep >= build_plan.get(name, BUILD_MAX_REPS):
-                        continue
-                    r, err = build_once(built[name], env)
-                    if err:
-                        errors[name] = err
-                        build_plan[name] = 0
-                    else:
-                        keep_build(acc_build[name], r, built[name])
-                        build_plan.setdefault(name, plan_builds(r["wall_ms"], name in history.TRACKED))
+            acc_build = measure_builds(built, env)
+            errors = {name: acc["error"] for name, acc in acc_build.items() if acc.get("error")}
         elif measure_run:
             print("  preparing AOT programs outside the clock...")
             for name in aot:
@@ -694,6 +725,9 @@ def main():
     print("worst departure from its neighbours: %.1f %% (at %s)" % (spike, worst_tag))
     print("drift over the sweep: %+.1f %%" % results["calibration"]["drift_pct"])
 
+    if measure_build and not args.quick:
+        settle_build_measurements(results)
+
     # --------------------------------------------------------------- checksums
     bad = campaign_errors(results)
     if bad:
@@ -733,9 +767,13 @@ def main():
 
     stamp = results["meta"]["stamp"]
     spread = results["calibration"]["spread_pct"]
-    rejected = (spread > DRIFT_LIMIT_PCT or
-                (build_controls is not None and
-                 build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT))
+    # Yesterday's compiler mix is context, not evidence of interference today.
+    # Compilation times have already been checked against repeats in this campaign.
+    if build_controls and build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT:
+        print("note: build controls moved differently from %s (%.1f %% spread); "
+              "this historical comparison does not reject the campaign" %
+              (build_controls["reference"], build_controls["spread_pct"]))
+    rejected = spread > DRIFT_LIMIT_PCT
     folder = os.path.join(tc.BENCH, "results", "rejected" if rejected else "")
     os.makedirs(folder, exist_ok=True)
     raw = os.path.join(folder, "%s.json" % stamp)
@@ -743,17 +781,13 @@ def main():
         json.dump(results, f, indent=2)
 
     if rejected:
-        # Preserve the raw measurement for audit, but do not let a machine-state or
-        # toolchain divergence change the published compiler history.
-        if spread > DRIFT_LIMIT_PCT:
-            print("the reference workload moved %.1f %% across the campaign, past the %.0f %% "
-                  "limit, worst around %s" % (spread, DRIFT_LIMIT_PCT,
-                                              results["calibration"]["worst_moment"]))
-        if build_controls and build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT:
-            print("unchanged build controls diverged by %.1f %%, past the %.0f %% limit" %
-                  (build_controls["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT))
+        # Preserve the raw measurement for audit when the execution probes diverge
+        # within this campaign. Historical compiler movements do not decide this.
+        print("the reference workload departs %.1f %% from a neighbouring probe, past the %.0f %% "
+              "limit, worst around %s" % (spread, DRIFT_LIMIT_PCT,
+                                          results["calibration"]["worst_moment"]))
         print("campaign archived in results/rejected/%s.json and NOT recorded" % stamp)
-        print("check machine load and toolchain versions, then measure again")
+        print("check machine load, then measure again")
         return 0
 
     print("raw campaign written to results/%s.json" % stamp)

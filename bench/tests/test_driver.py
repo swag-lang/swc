@@ -1,4 +1,7 @@
+import contextlib
+import copy
 import ctypes
+import io
 import json
 import os
 import subprocess
@@ -14,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import campaign
 import driver
 import history
+import mkpage
 import toolchains
 import winproc
 
@@ -132,7 +136,13 @@ class SampleBudgetTests(unittest.TestCase):
         for tracked in (True, False):
             self.assertEqual(driver.plan_reps(driver.RUN_SLOW_MS, tracked), 1)
             self.assertEqual(driver.plan_reps(driver.RUN_SLOW_MS * 4, tracked), 1)
-        self.assertEqual(driver.plan_builds(driver.BUILD_SLOW_MS, False), 1)
+        self.assertEqual(driver.plan_builds(driver.BUILD_SLOW_MS, False), driver.BUILD_MIN_REPS)
+
+    def test_even_a_delayed_build_pilot_gets_a_repeat(self):
+        for tracked in (False, True):
+            for duration in (400, 800, 2400, 2500, 30000):
+                with self.subTest(duration=duration, tracked=tracked):
+                    self.assertGreaterEqual(driver.plan_builds(duration, tracked), 2)
 
     def test_controls_get_fewer_samples_than_the_compiler_under_test(self):
         for duration in (1, 10, 100):
@@ -163,6 +173,156 @@ class ScheduleTests(unittest.TestCase):
             gaps = [b - a for a, b in zip(cycles, cycles[1:])]
             self.assertLessEqual(max(gaps) - min(gaps), 1, cycles)
             self.assertGreaterEqual(cycles[-1], driver.RUN_MAX_REPS - reps)
+
+
+class BuildRepeatabilityTests(unittest.TestCase):
+    def measure(self, samples, quick=False):
+        calls = []
+        pending = {name: iter(values) for name, values in samples.items()}
+        with tempfile.TemporaryDirectory() as directory:
+            exe = Path(directory, "artifact.exe")
+            exe.write_bytes(b"artifact")
+            jobs = {name: {"exe": str(exe), "name": name} for name in samples}
+
+            def sample(job, env):
+                name = job["name"]
+                calls.append(name)
+                wall = next(pending[name])
+                if isinstance(wall, str):
+                    return None, wall
+                return {"wall_ms": wall, "peak_job_bytes": 10, "peak_working_set_bytes": 5}, None
+
+            with (
+                mock.patch.object(driver, "build_once", side_effect=sample),
+                mock.patch.object(driver, "CONTROL_BUILD_BUDGET_MS", 0),
+                mock.patch.object(driver, "BUILD_BUDGET_MS", 0),
+                mock.patch.object(driver, "BUILD_MIN_REPS", 1 if quick else 2),
+                mock.patch.object(driver, "BUILD_MAX_REPS", 1 if quick else 6),
+            ):
+                measured = driver.measure_builds(jobs, {})
+        return measured, calls
+
+    def test_only_a_noisy_measurement_is_retried_and_a_cold_pilot_is_preserved(self):
+        measured, calls = self.measure({"stable": [100, 102], "cold": [800, 400, 405]})
+        self.assertEqual(calls, ["stable", "cold", "cold", "stable", "cold"])
+        self.assertEqual(measured["stable"]["samples"], [100, 102])
+        self.assertEqual(measured["cold"]["samples"], [800, 400, 405])
+        self.assertEqual(measured["cold"]["wall_ms"], 400)
+
+    def test_a_single_low_outlier_needs_confirmation_instead_of_becoming_the_result(self):
+        measured, _ = self.measure({"compiler": [100, 400, 405, 410, 415, 420]})
+        result = {"tasks": {"task": {"compiler": {"build": measured["compiler"],
+                                                    "run": {"ms": 12, "check": 42}}}}}
+        driver.settle_build_measurements(result)
+        acc = result["tasks"]["task"]["compiler"]["build"]
+        self.assertNotIn("wall_ms", acc)
+        self.assertEqual(acc["unverified_wall_ms"], 100)
+        self.assertEqual(acc["repeatability"]["status"], "unresolved")
+        self.assertEqual(len(acc["samples"]), 6)
+        self.assertEqual(result["tasks"]["task"]["compiler"]["run"]["ms"], 12)
+        self.assertFalse(driver.campaign_errors(result))
+        self.assertFalse(history.ratios_to_best(result["tasks"], ["task"], "build", "wall_ms"))
+
+    def test_slow_controls_get_two_samples_and_at_most_one_targeted_retry(self):
+        for samples, expected in (([5000, 5100], "verified"),
+                                  ([10000, 5000, 5100], "verified"),
+                                  ([5000, 7000, 9000], "unresolved")):
+            with self.subTest(samples=samples):
+                measured, _ = self.measure({"slow": samples})
+                driver.settle_build_measurements({"tasks": {}, "hello_build": measured})
+                self.assertEqual(measured["slow"]["repeatability"]["status"], expected)
+                self.assertEqual(measured["slow"]["samples"], samples)
+
+    def test_quick_keeps_one_sample_and_a_compiler_error_is_not_retried(self):
+        measured, calls = self.measure({"compiler": [500]}, quick=True)
+        self.assertEqual(calls, ["compiler"])
+        self.assertEqual(measured["compiler"]["wall_ms"], 500)
+        measured, calls = self.measure({"broken": ["exit=3"]})
+        self.assertEqual(calls, ["broken"])
+        self.assertEqual(measured["broken"]["error"], "exit=3")
+
+    def test_budget_is_recomputed_after_a_delayed_pilot(self):
+        acc = {"wall_ms": 5000, "samples": [5000]}
+        self.assertTrue(driver.needs_build_sample(acc, tracked=True))
+        acc.update(wall_ms=100, samples=[5000, 100, 101])
+        self.assertTrue(driver.needs_build_sample(acc, tracked=True))
+
+
+class CampaignPublicationTests(unittest.TestCase):
+    def test_report_renders_unresolved_compilations_without_losing_execution(self):
+        result = copy.deepcopy(mkpage.latest_campaign("build"))
+        task = next(iter(result["tasks"]))
+        build = result["tasks"][task]["swag-release"]["build"]
+        build["unverified_wall_ms"] = build.pop("wall_ms")
+        build["repeatability"] = {"status": "unresolved"}
+        hello = result["hello_build"]["swag-release"]
+        hello["unverified_wall_ms"] = hello.pop("wall_ms")
+        with tempfile.TemporaryDirectory() as directory:
+            page = Path(directory, "bench.html")
+            readme = Path(directory, "README.md")
+            readme.write_text(mkpage.README_BEGIN + "\n" + mkpage.README_END)
+            with (
+                mock.patch.object(mkpage, "latest_campaign", return_value=result),
+                mock.patch.object(history, "load_results", return_value=[result]),
+                mock.patch.object(history, "rebuild", return_value=history.build_entries([result])),
+                mock.patch.object(mkpage, "OUTFILE", str(page)),
+                mock.patch.object(mkpage, "REPO_README", str(readme)),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                mkpage.main()
+            rendered = page.read_text(encoding="utf-8")
+            self.assertNotIn("{{", rendered)
+            self.assertIn('title="No measurement: swag release (native)"', rendered)
+            self.assertIn("Swag release", readme.read_text(encoding="utf-8"))
+
+    def test_historical_split_does_not_discard_a_quiet_campaign(self):
+        for end_probe, rejected in ((100, False), (200, True)):
+            with self.subTest(end_probe=end_probe), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                exe = root / "compiler.exe"
+                exe.write_bytes(b"fixture")
+                args = driver.parse_args(["--build", "--warmup", "0", "--swc-cores", "6"])
+                samples = iter([100] * 18 + [end_probe] * 12)
+                metadata = {"stamp": "fixture", "date": "2026-10-18T17:18:40+00:00"}
+                build = {"wall_ms": 500, "peak_bytes": 10, "samples": [500, 505]}
+                controls = {"reference": "yesterday", "controls": {"cpp": 1.5}, "spread_pct": 62.8}
+                appended = [{"meta": metadata, "context": {"build_factor": 1, "build_controls": 11}}]
+                with contextlib.ExitStack() as stack:
+                    patches = [
+                        mock.patch.object(driver, "parse_args", return_value=args),
+                        mock.patch.object(driver.tc, "TASKS", ["fixture"]),
+                        mock.patch.object(driver.tc, "BENCH", str(root)),
+                        mock.patch.object(driver.tc, "OUT", str(root / "out")),
+                        mock.patch.object(driver.tc, "discover", return_value={}),
+                        mock.patch.object(driver.tc, "missing", return_value=[]),
+                        mock.patch.object(driver.tc, "swc_path", return_value=str(exe)),
+                        mock.patch.object(driver.tc, "build_env", return_value={}),
+                        mock.patch.object(driver.tc, "make_recipes", return_value={
+                            "cpp-clang-cl": lambda *args: {"exe": str(exe)}}),
+                        mock.patch.object(driver.tc, "make_hello_builds", return_value={}),
+                        mock.patch.object(driver.tc, "make_compiler_workloads", return_value={}),
+                        mock.patch.object(driver, "AOT_ORDER", ["cpp-clang-cl"]),
+                        mock.patch.object(driver, "JIT_ORDER", []),
+                        mock.patch.object(driver, "prepare_swag_dependencies", return_value=None),
+                        mock.patch.object(driver, "wait_for_quiet", return_value=2),
+                        mock.patch.object(driver, "build_once", return_value=({}, None)),
+                        mock.patch.object(driver, "measure_builds", side_effect=[{}, {}, {"cpp-clang-cl": build}]),
+                        mock.patch.object(driver, "run_once", side_effect=lambda *args: ((42, next(samples)), None, {})),
+                        mock.patch.object(driver.history, "describe", return_value=metadata),
+                        mock.patch.object(driver.history, "load_results", return_value=[]),
+                        mock.patch.object(driver.history, "build_control_spread", return_value=controls),
+                    ]
+                    for patch in patches:
+                        stack.enter_context(patch)
+                    append = stack.enter_context(mock.patch.object(driver.history, "append", return_value=appended))
+                    stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+                    self.assertEqual(driver.main(), 0)
+                archive = root / "results" / ("rejected" if rejected else "") / "fixture.json"
+                self.assertTrue(archive.exists())
+                raw = json.loads(archive.read_text())
+                self.assertEqual(raw["calibration"]["build_controls"]["spread_pct"], 62.8)
+                self.assertEqual(raw["tasks"]["fixture"]["cpp-clang-cl"]["build"]["repeatability"]["status"], "verified")
+                self.assertEqual(append.call_count, 0 if rejected else 1)
 
 
 class TimerFaultTests(unittest.TestCase):

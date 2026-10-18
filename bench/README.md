@@ -29,10 +29,11 @@ from this checkout's `bin/` through `SWAG_PATH`.
 | `py -3 bench/compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
 
 Most of a campaign is spent on the controls, not on swc: the NativeAOT, Swift and Zig
-builds, and CPython and Lua on the longer tasks. Those are measured once or a few times; swc
-gets the samples. Before a recorded measurement, the driver waits for three consecutive CPU
-samples below 15%, then performs the normal 30-second reference warm-up. Reference and
-build-control checks reject campaigns with detected interference; they cannot prove that no
+builds, and CPython and Lua on the longer tasks. Long executions keep their pilot sample;
+every compilation is repeated, with extra samples concentrated on fast or unstable builds.
+Before a recorded measurement, the driver waits for three consecutive CPU
+samples below 15%, then performs the normal 30-second reference warm-up. Reference
+checks reject campaigns with large execution-probe departures within the sweep; they cannot prove that no
 other process ran. Use a quiet machine and leave it undisturbed for the sweep. `--quick` skips
 the idle gate and reference warm-up and writes no benchmark history.
 
@@ -281,13 +282,29 @@ feeds the machine correction, a median over more than a dozen controls, so it ge
 `CONTROL_RUN_BUDGET_MS`, between 2 and 6 samples. A run longer than `RUN_SLOW_MS` keeps its
 pilot sample alone: CPython and Lua on the long tasks are measured once. Builds follow the
 same split, and a build longer than `BUILD_SLOW_MS` (NativeAOT, Swift, the documentation) is
-done once. The samples of a runtime are spread evenly over the whole window rather than
+limited to two samples plus at most one repeatability retry. The samples of a runtime are
+spread evenly over the whole window rather than
 bunched at one end, so every runtime covers the same minutes whatever its sample count. Five
 fixed repetitions gave a ratio spread of 10 %; a budget gives 2 %, and costs less.
 
 **Every sample is kept**, including each compiler build, not only the minimum that becomes the
 result. Earlier campaigns recorded only build minima, so their within-campaign build spread
 cannot be reconstructed.
+
+**Compilation is verified locally.** Every toolchain gets at least two complete builds per
+task, including `hello` and the compiler edit-build workloads. The two fastest samples need
+to agree within 10%. A delayed pilot no longer reduces a control to one sample: the budget is
+recomputed from the best time, and only measurements still needing evidence receive retries.
+Fast builds have at most six samples; builds taking at least 2.5 seconds have at most three.
+The order rotates between rounds. The minimum remains the reported result when a second
+sample confirms it; a cold or interrupted build stays in the raw sample list.
+
+When the limit is reached without an agreeing pair, only that compilation time is omitted
+from comparisons. The raw samples, memory, artifact size and `unverified_wall_ms` remain in
+the campaign with an `unresolved` repeatability status. Other compilation times and execution
+results remain usable. The settings record `build_validation: local-repeatability-v1` and
+the sample limits, so the stronger verification is distinguishable from older campaigns.
+This checks observed repeatability, not freedom from a systematic bias shared by all repeats.
 
 **The machine has to belong to the campaign.** Two gates, because the first one alone was not
 enough:
@@ -306,18 +323,25 @@ its neighbours by more than 40 % the campaign goes to `results/rejected/` and ne
 history, kept because deleting a measurement one dislikes is how a benchmark starts lying, but
 not published.
 
-That execution probe cannot detect interference limited to compilers. Before publication, the
-driver also compares each unchanged compiler control's geometric build-time movement with the
-previous accepted build campaign, over the tasks both campaigns measured. If the upper and lower quartiles
-differ by more than 25 %, the campaign is archived under `results/rejected/`. On 2026-09-25,
+That execution probe cannot detect interference limited to compilers. Compilation repeats now
+check each measurement directly. The driver also records each compiler control's geometric
+build-time movement since the previous accepted build campaign, over the tasks both measured.
+If the upper and lower quartiles differ by more than 25%, it prints a note and keeps the
+comparison in `calibration.build_controls`; this historical comparison does not reject a campaign.
+A toolchain-specific change in scheduling, startup or cache state between two dates cannot
+establish that today's quiet, repeatable measurements were interrupted. The context correction
+remains an estimate when different compiler groups move differently.
+
+The historical check used to reject campaigns. On 2026-09-25,
 MSVC, clang-cl, Rust, D and Odin slowed by 40–65 % between two unchanged-code campaigns while
 Zig and .NET stayed near their previous times; the old execution probe accepted this split and
-the displayed MSVC/Swag build ratio jumped from 2.3 to 3.9. The build control check catches it.
+the displayed MSVC/Swag build ratio jumped from 2.3 to 3.9. The historical diagnostic exposes this split.
 The two split campaigns measure about 54 % by this check; adjacent accepted nine-control
 campaigns around them stay below 10 %.
 The split campaigns `20260924-172317` and `20260925-055026` are preserved in
 `results/rejected/`; neither contributes to the published history. The first campaign and
-campaigns with fewer than six matching controls have no such comparison.
+campaigns with fewer than six matching controls have no such comparison. Those archived results
+retain their original classification; changing the rule does not retroactively verify their samples.
 
 Endpoints alone were not enough, and that is not hypothetical: a build launched from another
 window multiplied *every* compilation of `raytrace` by ten — clang-cl went from 408 ms to
@@ -355,6 +379,8 @@ machine is ±10 % and ±27 % — they were measuring the machine. Both were scal
 which changes their checksum and therefore resets their history; that is the price of the two
 tasks meaning anything at all. **Raise the protocol number whenever a change makes new
 campaigns incomparable with old ones**, and move the old campaigns aside in the same commit.
+The local compilation repeatability check retains protocol 2's recipes, affinity and minimum
+estimator; its extra verification is recorded in settings without resetting the history.
 
 ## How machine variation is removed
 

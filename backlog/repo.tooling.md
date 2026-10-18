@@ -5,6 +5,17 @@ being compiled by it.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### repo.tooling.012 — Legacy benchmark report tests target removed rendering APIs
+
+- Evidence: `bench/test_harness.py` has one failing assertion and six errors on `HEAD`:
+  it calls removed `mkpage.comparison_table` and `speed_text` functions, supplies the old
+  four-argument `performance_table` signature, and expects obsolete headline wording.
+  The focused checks under `bench/tests` do not discover this legacy file.
+- Next: migrate the legacy assertions to the current report contract and consolidate discovery
+  so one documented command runs the measurement, history and report tests.
+- Done when: the documented benchmark test command discovers all maintained checks and passes
+  without depending on removed rendering APIs or obsolete headline text.
+
 ### repo.tooling.011 — No validation step compiles the Swag benchmark modules
 
 - Evidence: `tools/build.swgs` covers std, examples, apps, the Vault integration, the

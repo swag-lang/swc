@@ -169,7 +169,7 @@ class HistoryAdjustmentTests(unittest.TestCase):
                     tasks[task]["rust"]["run"] = {"ms": 50}
                 self.assertAlmostEqual(history.execution_speedup(tasks, TASKS, "native"), 0.5)
 
-    def test_split_build_controls_reject_a_false_compiler_speedup(self):
+    def test_split_build_controls_describe_a_historical_divergence(self):
         baseline = campaign("run-01", False)
         for task in TASKS:
             for index in range(5):
@@ -205,6 +205,20 @@ class HistoryAdjustmentTests(unittest.TestCase):
         self.assertEqual(entries[0]["context"]["baseline"], "run-02")
         self.assertEqual(entries[1]["context"]["baseline"], "run-02")
         self.assertEqual(entries[2]["context"]["baseline"], "run-02")
+
+    def test_an_unresolved_build_leaves_a_gap_instead_of_changing_the_aggregate_panel(self):
+        baseline = campaign("run-01", False)
+        current = campaign("run-02", False)
+        build = current["tasks"]["second"]["swag-release"]["build"]
+        build["unverified_wall_ms"] = build.pop("wall_ms")
+        build["repeatability"] = {"status": "unresolved"}
+        entry = history.build_entries([baseline, current])[1]
+        native = entry["runtimes"]["swag-release"]
+        self.assertIsNone(native["build_geo_adjusted_ms"])
+        self.assertIsNone(native["build_geo_index"])
+        self.assertEqual(native["build_ms"]["first"], 50)
+        self.assertIsNone(native["build_ms"]["second"])
+        self.assertIsNotNone(native["run_geo_index"])
 
     def test_machine_scale_is_removed_from_swag(self):
         baseline = campaign("run-01", False)

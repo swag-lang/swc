@@ -539,9 +539,9 @@ namespace
 
         // The search widens one using-level at a time, so a comparison can stop as soon as a level
         // answers instead of merging every level into one overload set.
-        const bool                                             stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
-        std::optional<std::unordered_set<const SymbolStruct*>> visited;
-        SmallVector<const SymbolStruct*>                       level{&ownerStruct};
+        const bool                       stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
+        PointerSet<const SymbolStruct>   visited;
+        SmallVector<const SymbolStruct*> level{&ownerStruct};
 
         while (!level.empty())
         {
@@ -555,12 +555,12 @@ namespace
             if ((stopAtAnsweringLevel && !outCandidates.empty()) || nextLevel.empty())
                 return Result::Continue;
 
-            if (!visited)
-                visited.emplace(std::initializer_list<const SymbolStruct*>{&ownerStruct});
+            if (visited.empty())
+                visited.insert(&ownerStruct);
             level.clear();
             for (const SymbolStruct* target : nextLevel)
             {
-                if (visited->insert(target).second)
+                if (visited.insert(target))
                     level.push_back(target);
             }
         }

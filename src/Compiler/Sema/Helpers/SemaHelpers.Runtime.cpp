@@ -197,7 +197,14 @@ Result SemaHelpers::requireRuntimeFunctionDependency(SymbolFunction*& outRuntime
     outRuntimeFn = nullptr;
     SWC_RESULT(sema.waitRuntimeFunction(kind, outRuntimeFn, codeRef));
     SWC_ASSERT(outRuntimeFn != nullptr);
+
+    // Adding a dependency again changes nothing, but takes the function's lock to find that out.
+    const SymbolFunction* owner = sema.currentFunction();
+    if (owner && sema.knowsRuntimeCallDependency(*owner, kind))
+        return Result::Continue;
     addCurrentFunctionCallDependency(sema, outRuntimeFn);
+    if (owner)
+        sema.noteRuntimeCallDependency(*owner, kind);
     return Result::Continue;
 }
 

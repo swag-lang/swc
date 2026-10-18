@@ -260,6 +260,22 @@ public:
     SymbolFunction*                 currentFunction() { return frame().currentFunction(); }
     const SymbolFunction*           currentFunction() const { return frame().currentFunction(); }
     bool                            isCurrentFunction() const { return currentFunction() != nullptr; }
+
+    // The runtime functions this Sema already made call dependencies of 'owner'. Every runtime
+    // safety check of a function asks for the same panic function again.
+    bool knowsRuntimeCallDependency(const SymbolFunction& owner, IdentifierManager::RuntimeFunctionKind kind) const
+    {
+        return runtimeCallDependencyOwner_ == &owner && (runtimeCallDependencies_ & runtimeCallDependencyBit(kind)) != 0;
+    }
+    void noteRuntimeCallDependency(const SymbolFunction& owner, IdentifierManager::RuntimeFunctionKind kind)
+    {
+        if (runtimeCallDependencyOwner_ != &owner)
+        {
+            runtimeCallDependencyOwner_ = &owner;
+            runtimeCallDependencies_    = 0;
+        }
+        runtimeCallDependencies_ |= runtimeCallDependencyBit(kind);
+    }
     bool                            isGlobalScope() const { return !isCurrentFunction(); }
     bool                            isOptimizeEnabled() const { return buildCfgBackend().optimizes(); }
     bool                            isConstExprRequired() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr); }
@@ -763,6 +779,11 @@ private:
     bool                      declPass_              = false;
     bool                      rootVisitDone_         = false;
     bool                      hasInitFlowCandidates_ = false;
+
+    static_assert(static_cast<uint32_t>(IdentifierManager::RuntimeFunctionKind::Count) <= 64);
+    static uint64_t       runtimeCallDependencyBit(IdentifierManager::RuntimeFunctionKind kind) { return 1ull << static_cast<uint32_t>(kind); }
+    const SymbolFunction* runtimeCallDependencyOwner_ = nullptr;
+    uint64_t              runtimeCallDependencies_    = 0;
 
     std::vector<SemaFrame> frames_;
 

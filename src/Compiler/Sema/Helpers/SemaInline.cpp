@@ -2863,7 +2863,7 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     // Macros and mixins are not ordinary functions: they must always be expanded, regardless
     // of the inline mode. A macro's `global` is one storage per expansion by construction, which
     // is what splicing means; the guard below is about a function that is CALLED.
-    if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (attributes.hasMacroOrMixin())
         return true;
 
     // A body declaring `global` or `tls` owns one storage for the whole program, and inlining
@@ -2908,7 +2908,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Keep an ordinary function call instead of shifting every written argument by one.
     if (ufcsArg.isValid() &&
         (resolvedArgs.empty() || !resolvedArgs[0].isUfcsReceiver) &&
-        !fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        !fn.attributes().hasMacroOrMixin())
         return Result::Continue;
 
     // A flow-proven argument - a nullable-declared place the caller's flow narrowed
@@ -2920,7 +2920,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // A method receiver is the exception: it gets a home typed as `me`, initialized in
     // the caller's frame where the proof still holds (materializeInlineReceiverBinding).
     bool narrowedReceiver = false;
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (!fn.attributes().hasMacroOrMixin())
     {
         narrowedReceiver             = ufcsArg.isValid() && inlineBindingCarriesFlowProvenNonNull(sema, ufcsArg);
         bool        carriesFlowProof = narrowedReceiver && !hasPointerReceiverParam(sema, fn);
@@ -2945,7 +2945,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // carries the guard is never lowered and the body runs on a null receiver. The
     // real call keeps the short circuit. Macros and mixins cannot fall back to one and
     // expand as before.
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+    if (!fn.attributes().hasMacroOrMixin())
     {
         const AstNodeRef guardedRef         = sema.node(callRef).is(AstNodeId::CallExpr) ? sema.node(callRef).cast<AstCallExpr>().nodeExprRef : AstNodeRef::invalid();
         const AstNodeRef resolvedGuardedRef = guardedRef.isValid() ? sema.resolvedNodeRef(guardedRef) : AstNodeRef::invalid();
@@ -2974,7 +2974,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             const bool bindsCopyToMove = resolvedArg.bindsReferenceToValue && params[i]->type(sema.ctx()).isMoveReference();
             if (!bindsCopyToMove && !resolvedArg.movesValueToParam)
                 continue;
-            if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+            if (fn.attributes().hasMacroOrMixin())
                 return SemaError::raise(sema, bindsCopyToMove ? DiagnosticId::sema_err_move_arg_macro : DiagnosticId::sema_err_move_arg_macro_value, resolvedArg.argRef);
             return Result::Continue;
         }

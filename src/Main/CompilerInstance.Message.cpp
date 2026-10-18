@@ -40,8 +40,7 @@ namespace
                !symbol.isForeign() &&
                !symbol.hasUnmaterializedGenericBody() &&
                !symbol.isAttribute() &&
-               !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
-               !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) &&
+               !symbol.attributes().hasMacroOrMixin() &&
                !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
     }
 

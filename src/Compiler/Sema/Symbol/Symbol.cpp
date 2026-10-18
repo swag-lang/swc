@@ -307,7 +307,7 @@ void Symbol::setAttributes(TaskContext& ctx, const AttributeList& attrs)
         const AttributeList* current = isFunction() ? attributes_.load(std::memory_order_acquire) : nullptr;
         attributes_.store(nullptr, std::memory_order_release);
 
-        if (current && current->hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin))
+        if (current && current->hasMacroOrMixin())
         {
             safeCast<SymbolFunction>()->noteOwnCallGraphChanged();
             SymbolFunction::noteCallGraphChanged();
@@ -320,9 +320,7 @@ void Symbol::setAttributes(TaskContext& ctx, const AttributeList& attrs)
     if (current && (current == &attrs || *current == attrs))
         return;
 
-    const bool changesJitOrder = isFunction() &&
-                                 (current && current->hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin)) !=
-                                     attrs.hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
+    const bool changesJitOrder = isFunction() && (current && current->hasMacroOrMixin()) != attrs.hasMacroOrMixin();
 
     // Signature preparation and later contextual walks may publish different attributes.
     // Arena ownership keeps every earlier snapshot alive for concurrent readers.

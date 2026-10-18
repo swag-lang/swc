@@ -166,7 +166,7 @@ namespace
     bool needsSyntacticWalk(const Symbol& symbol)
     {
         if (const auto* function = symbol.safeCast<SymbolFunction>())
-            return function->hasUnmaterializedGenericBody() || function->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
+            return function->hasUnmaterializedGenericBody() || function->attributes().hasMacroOrMixin();
         if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
             return symbolStruct->isGenericRoot() && !symbolStruct->isGenericInstance();
         return false;

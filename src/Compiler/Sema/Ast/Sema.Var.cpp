@@ -842,7 +842,7 @@ namespace
         if (finalType.isCodeBlock())
         {
             const auto* currentFn        = sema.currentFunction();
-            const bool  allowedCodeParam = isParameter && currentFn && currentFn->attributes().hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin);
+            const bool  allowedCodeParam = isParameter && currentFn && currentFn->attributes().hasMacroOrMixin();
             if (!allowedCodeParam)
             {
                 const SourceCodeRef errorRef = context.nodeTypeRef.isValid() ? sema.node(context.nodeTypeRef).codeRef() : sema.node(context.nodeInitRef).codeRef();

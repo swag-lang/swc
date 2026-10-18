@@ -417,7 +417,7 @@ namespace
                 return false;
 
             const AttributeList& attributes = inlinePayload->sourceFunction->attributes();
-            if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
+            if (attributes.hasMacroOrMixin())
                 return false;
 
             return true;

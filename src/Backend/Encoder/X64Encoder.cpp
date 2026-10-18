@@ -583,8 +583,11 @@ namespace
         emitModRm(store, memOffset, encodeReg(reg), memReg);
     }
 
-    // A RIP-relative operand, the segment slot of a global, gets a zero 32-bit displacement;
-    // it precedes an immediate where the instruction has one.
+    // An instruction-pointer-relative operand addresses a constant, or a global living in the
+    // proximity arena. Its displacement is left at zero and a Relative32 relocation fills in the
+    // distance once both the code and the target have addresses; ModRM mode 00 with rm 101 is
+    // what selects it, so the four bytes are mandatory even when the distance ends up small.
+    // They precede an immediate where the instruction has one.
     void emitMemoryOperand(PagedStore& store, uint64_t memOffset, uint8_t reg, MicroReg memReg)
     {
         if (memReg.isInstructionPointer())
@@ -1745,43 +1748,19 @@ void X64Encoder::encodeLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOff
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
-    // Instruction-pointer-relative form: a constant, or a global living in
-    // the proximity arena. The displacement is left at zero and a Relative32
-    // relocation fills in the distance once both the code and the target have
-    // addresses; ModRM mode 00 with rm 101 is what selects it, so the four
-    // bytes are mandatory even when the distance ends up small.
-    if (memReg.isInstructionPointer())
-    {
-        SWC_ASSERT(memOffset == 0);
-        if (reg.isFloat())
-        {
-            const uint8_t prefix = scalarFloatMovePrefix(opBits);
-            emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
-            emitCpuOp(store_, 0x10);
-        }
-        else
-        {
-            emitRex(store_, opBits, reg, memReg);
-            emitSpecCpuOp(store_, MicroOp::Move, opBits);
-        }
-        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
-        store_.pushU32(0);
-        return;
-    }
-
     if (reg.isFloat())
     {
         const uint8_t prefix = scalarFloatMovePrefix(opBits);
         emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
         emitCpuOp(store_, 0x10);
-        emitModRm(store_, memOffset, reg, memReg);
     }
     else
     {
         emitRex(store_, opBits, reg, memReg);
         emitSpecCpuOp(store_, MicroOp::Move, opBits);
-        emitModRm(store_, memOffset, reg, memReg);
     }
+
+    emitMemoryOperand(store_, memOffset, reg, memReg);
 }
 
 void X64Encoder::encodeLoadZeroExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
@@ -1983,28 +1962,47 @@ void X64Encoder::encodeLoadAddressRegMem(MicroReg reg, MicroReg memReg, uint64_t
     SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
-    if (memReg.isInstructionPointer())
-    {
-        SWC_ASSERT(memOffset == 0);
-        emitRex(store_, opBits, reg, memReg);
-        emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
-        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
-        store_.pushU32(0);
-    }
-    else if (memOffset == 0)
+    if (!memReg.isInstructionPointer() && memOffset == 0)
     {
         encodeLoadRegReg(reg, memReg, opBits);
+        return;
     }
-    else
-    {
-        emitRex(store_, opBits, reg, memReg);
-        emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
-        emitModRm(store_, memOffset, reg, memReg);
-    }
+
+    emitRex(store_, opBits, reg, memReg);
+    emitCpuOp(store_, MicroOp::LoadEffectiveAddress);
+    emitMemoryOperand(store_, memOffset, reg, memReg);
 }
 
 namespace
 {
+    // The [base + index*scale + disp] operand that follows the opcode: a ModRM selecting a
+    // SIB byte, the SIB, then the displacement. rbp/r13 cannot be a bare base with mod=00.
+    void emitAmcAddress(PagedStore& store, uint8_t modRmReg, X64Reg baseX64, X64Reg mulX64, bool baseIsNoBase, uint64_t mulValue, uint64_t addValue)
+    {
+        const bool needsForcedDisplacement = !baseIsNoBase && (baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp);
+
+        // ModRM
+        if (!needsForcedDisplacement && (addValue == 0 || baseIsNoBase))
+            emitModRm(store, ModRmMode::Memory, modRmReg, MODRM_RM_SIB);
+        else
+            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, modRmReg, MODRM_RM_SIB);
+
+        // SIB
+        SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
+        const auto scale = static_cast<uint8_t>(log2(mulValue));
+        if (baseIsNoBase)
+        {
+            emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
+            emitValue(store, addValue, MicroOpBits::B32);
+        }
+        else
+        {
+            emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
+            if (needsForcedDisplacement || addValue != 0)
+                emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
+        }
+    }
+
     void encodeAmcImm(PagedStore& store, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, const ApInt& value, MicroOpBits opBitsValue)
     {
         SWC_UNUSED(opBitsBaseMul);
@@ -2038,30 +2036,7 @@ namespace
         // OpCode
         emitSpecCpuOp(store, 0xC7, opBitsValue);
 
-        const bool needsForcedDisplacement = !baseIsNoBase && (baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp);
-
-        // ModRM
-        if (needsForcedDisplacement)
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, MODRM_REG_0, MODRM_RM_SIB);
-        else if (addValue == 0 || baseIsNoBase)
-            emitModRm(store, ModRmMode::Memory, MODRM_REG_0, MODRM_RM_SIB);
-        else
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, MODRM_REG_0, MODRM_RM_SIB);
-
-        // SIB
-        SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-        const auto scale = static_cast<uint8_t>(log2(mulValue));
-        if (baseIsNoBase)
-        {
-            emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
-            emitValue(store, addValue, MicroOpBits::B32);
-        }
-        else
-        {
-            emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
-            if (needsForcedDisplacement || addValue != 0)
-                emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
-        }
+        emitAmcAddress(store, MODRM_REG_0, baseX64, mulX64, baseIsNoBase, mulValue, addValue);
 
         // Value
         emitValue(store, valueU64, std::min(opBitsValue, MicroOpBits::B32));
@@ -2143,30 +2118,7 @@ namespace
             SWC_INTERNAL_ERROR();
         }
 
-        const bool needsForcedDisplacement = !baseIsNoBase && (baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp);
-
-        // ModRM
-        if (needsForcedDisplacement)
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, group, MODRM_RM_SIB);
-        else if (addValue == 0 || baseIsNoBase)
-            emitModRm(store, ModRmMode::Memory, group, MODRM_RM_SIB);
-        else
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, group, MODRM_RM_SIB);
-
-        // SIB
-        SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-        const auto scale = static_cast<uint8_t>(log2(mulValue));
-        if (baseIsNoBase)
-        {
-            emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
-            emitValue(store, addValue, MicroOpBits::B32);
-        }
-        else
-        {
-            emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
-            if (needsForcedDisplacement || addValue != 0)
-                emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
-        }
+        emitAmcAddress(store, group, baseX64, mulX64, baseIsNoBase, mulValue, addValue);
 
         // Value. Group-2 has no immediate byte for the dedicated count-one
         // opcode; other counts are masked by the operand width as on x64.
@@ -2321,30 +2273,7 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        const bool needsForcedDisplacement = !baseIsNoBase && (baseX64 == X64Reg::R13 || baseX64 == X64Reg::Rbp);
-
-        // ModRM
-        if (needsForcedDisplacement)
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, modRmReg, MODRM_RM_SIB);
-        else if (addValue == 0 || baseIsNoBase)
-            emitModRm(store, ModRmMode::Memory, modRmReg, MODRM_RM_SIB);
-        else
-            emitModRm(store, canEncodeSigned8(addValue) ? ModRmMode::Displacement8 : ModRmMode::Displacement32, modRmReg, MODRM_RM_SIB);
-
-        // SIB
-        SWC_ASSERT(mulValue == 1 || mulValue == 2 || mulValue == 4 || mulValue == 8);
-        const auto scale = static_cast<uint8_t>(log2(mulValue));
-        if (baseIsNoBase)
-        {
-            emitSib(store, scale, encodeReg(mulX64) & 0b111, SIB_NO_BASE);
-            emitValue(store, addValue, MicroOpBits::B32);
-        }
-        else
-        {
-            emitSib(store, scale, encodeReg(mulX64) & 0b111, encodeReg(baseX64) & 0b111);
-            if (needsForcedDisplacement || addValue != 0)
-                emitValue(store, addValue, canEncodeSigned8(addValue) ? MicroOpBits::B8 : MicroOpBits::B32);
-        }
+        emitAmcAddress(store, modRmReg, baseX64, mulX64, baseIsNoBase, mulValue, addValue);
     }
 }
 
@@ -2568,41 +2497,19 @@ void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg 
     SWC_ASSERT(!memReg.isFloat());
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
-    // Instruction-pointer-relative store, to a global living in the proximity
-    // arena. Same shape as the RIP-relative load: zero displacement patched by
-    // a Relative32 relocation, and the four bytes are the instruction's tail.
-    if (memReg.isInstructionPointer())
-    {
-        SWC_ASSERT(memOffset == 0);
-        if (reg.isFloat())
-        {
-            const uint8_t prefix = scalarFloatMovePrefix(opBits);
-            emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
-            emitCpuOp(store_, 0x11);
-        }
-        else
-        {
-            emitRex(store_, opBits, reg, memReg);
-            emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
-        }
-        emitModRm(store_, ModRmMode::Memory, reg, MODRM_RM_RIP);
-        store_.pushU32(0);
-        return;
-    }
-
     if (reg.isFloat())
     {
         const uint8_t prefix = scalarFloatMovePrefix(opBits);
         emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(reg), X64Reg::Rax, microRegToX64Reg(memReg));
         emitCpuOp(store_, 0x11);
-        emitModRm(store_, memOffset, reg, memReg);
     }
     else
     {
         emitRex(store_, opBits, reg, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(MicroOp::Move), opBits);
-        emitModRm(store_, memOffset, reg, memReg);
     }
+
+    emitMemoryOperand(store_, memOffset, reg, memReg);
 }
 
 void X64Encoder::encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)

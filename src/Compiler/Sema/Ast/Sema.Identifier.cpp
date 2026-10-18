@@ -581,7 +581,10 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         }
     }
 
-    const Symbol* const storedSymbol = sema.curViewSymbol().sym();
+    // Nothing below mutates this node's payload before the lookup binds it, so the one view
+    // serves every symbol test up to there.
+    const SemaNodeView  symbolView   = sema.curViewSymbol();
+    const Symbol* const storedSymbol = symbolView.sym();
     if (!codeRef().isValid() && storedSymbol)
         return Result::Continue;
 
@@ -604,8 +607,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             macroInjectStoredSymbol = storedSymbol;
     }
 
-    const AstNodeRef   parentRef  = sema.visit().parentNodeRef();
-    const SemaNodeView symbolView = sema.curViewSymbol();
+    const AstNodeRef parentRef = sema.visit().parentNodeRef();
     if (!symbolView.sym() &&
         !symbolView.hasSymbolList() &&
         codeRef().isValid() &&
@@ -644,8 +646,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
                 structInit && structInit->nodeWhatRef == sema.curNodeRef())
                 return Result::Continue;
 
-            const SemaNodeView typedSymbolView = sema.curViewSymbol();
-            if (!typedSymbolView.sym() && !typedSymbolView.hasSymbolList())
+            if (!symbolView.sym() && !symbolView.hasSymbolList())
             {
                 // An inline clone carries the resolved destination type across scopes,
                 // including aliases that are private to the function's namespace.
@@ -654,7 +655,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             }
             if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
             {
-                if (typedSymbolView.sym() || typedSymbolView.hasSymbolList())
+                if (symbolView.sym() || symbolView.hasSymbolList())
                     return Result::Continue;
             }
 
@@ -662,7 +663,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             // pre-seed its resolved type (for example in `#sizeof(T)`). Only skip lookup in
             // compiler intrinsics that accept a type-only operand; declaration identifiers
             // still need normal symbol binding even if their final type has already been set.
-            if (!typedSymbolView.sym() && !typedSymbolView.hasSymbolList())
+            if (!symbolView.sym() && !symbolView.hasSymbolList())
             {
                 if (hasFlag(AstIdentifierFlagsE::GenericTypeBinding))
                     return Result::Continue;

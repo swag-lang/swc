@@ -2080,6 +2080,7 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
     SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
     SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
     SemaEscape::finalizeBorrowStores(sema, sym, nodeBodyRef);
+    SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());

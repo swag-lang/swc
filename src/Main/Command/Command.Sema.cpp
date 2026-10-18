@@ -117,6 +117,8 @@ namespace Command
 
         if (compiler.setupSema(ctx) == Result::Error)
             return;
+        if (compiler.validateAllocatorConfig(ctx) == Result::Error)
+            return;
 
         SymbolNamespace* moduleNamespace = compiler.moduleNamespace();
         if (!moduleNamespace)
@@ -161,6 +163,9 @@ namespace Command
 
             Sema::waitDone(ctx, clientId);
         }
+
+        if (compiler.validateAllocatorConfig(ctx) == Result::Error)
+            return;
 
         if (isEditorServiceCommand(compiler.cmdLine().command))
         {

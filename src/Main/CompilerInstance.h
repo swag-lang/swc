@@ -415,6 +415,7 @@ public:
 
     Result                   collectFiles(TaskContext& ctx);
     Result                   runModuleSetup(TaskContext& ctx);
+    Result                   validateAllocatorConfig(TaskContext& ctx) const;
     Result                   prepareModuleBuildConfig(TaskContext& ctx);
     static Result            exportModuleApi(TaskContext& ctx);
     std::vector<SourceFile*> files() const;

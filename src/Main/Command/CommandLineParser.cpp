@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerTagRegistry.h"
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -176,7 +177,7 @@ namespace
 
     Result reportConflictingArgument(TaskContext& ctx, const std::string_view arg, const std::string_view otherArg)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_conflicting_arg);
         diag.addArgument(Diagnostic::ARG_ARG, arg);
         diag.addArgument(Diagnostic::ARG_VALUE, otherArg);
         diag.report(ctx);
@@ -276,6 +277,9 @@ namespace
 
         SWC_ASSERT(hasRegisteredBuildCfg(buildCfg, cmdLine.buildCfg.view()));
         SWC_INTERNAL_CHECK(applyBuildCfgPreset(buildCfg, cmdLine.buildCfg.view()));
+
+        if (!CompilerTagRegistry::hasAllocatorCapability(cmdLine, "Swag.AllocatorDiagnostics"))
+            buildCfg.allocatorLeaks = false;
 
         if (cmdLine.optimLevelExplicit)
             buildCfg.backend.optimLevel = cmdLine.optimLevel;
@@ -421,21 +425,21 @@ Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path
 {
     const fs::path normalizedPath = FileSystem::normalizePath(path);
     if (depth >= RSP_MAX_DEPTH)
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_depth, normalizedPath);
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_rsp_file_depth, normalizedPath);
 
     const fs::path& canonical = normalizedPath;
 
     if (!visited.insert(canonical).second)
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_cycle, canonical);
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_rsp_file_cycle, canonical);
 
     std::string             content;
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::readTextFile(canonical, content, ioError) != Result::Continue)
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_failed, canonical, FileSystem::describeIoFailure(ioError));
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_rsp_file_failed, canonical, FileSystem::describeIoFailure(ioError));
 
     std::vector<Utf8> tokens;
     if (!tokenizeResponseFile(content, tokens))
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_rsp_file_unterminated, canonical);
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_rsp_file_unterminated, canonical);
 
     for (const Utf8& token : tokens)
     {
@@ -466,7 +470,7 @@ bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, const Ut
 
     if (index + 1 >= args.size())
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_arg_val);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_missing_arg_val);
         setReportArguments(diag, arg);
         diag.report(ctx);
         return false;
@@ -499,7 +503,7 @@ Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Ut
         fs::path path = value.c_str();
         Utf8     because;
         if (FileSystem::resolveExistingFile(path, because) != Result::Continue)
-            return FileSystem::reportPathError(ctx, DiagnosticId::cmdline_err_invalid_file, path, because);
+            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_invalid_file, path, because);
 
         configPath = std::move(path);
     }
@@ -574,7 +578,7 @@ bool CommandLineParser::parseEnumInt(TaskContext& ctx, const ArgInfo& info, cons
 
 bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
 {
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_enum);
+    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_enum);
     setReportArguments(diag, info, arg);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
     diag.addDidYouMeanNote(Utf8Helper::bestMatch(value, info.choices));
@@ -584,7 +588,7 @@ bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, c
 
 bool CommandLineParser::reportIntError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
 {
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_int);
+    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_int);
     setReportArguments(diag, info, arg);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
     diag.report(ctx);
@@ -685,7 +689,7 @@ const ArgInfo* CommandLineParser::findNegatedArgument(TaskContext& ctx, const Ut
 
     if (!info->isBoolLike())
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_bool);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_bool);
         setReportArguments(diag, *info, arg);
         diag.report(ctx);
         return nullptr;
@@ -697,7 +701,7 @@ const ArgInfo* CommandLineParser::findNegatedArgument(TaskContext& ctx, const Ut
 
 void CommandLineParser::reportInvalidArgument(TaskContext& ctx, const Utf8& arg)
 {
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_arg);
+    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_arg);
     setReportArguments(diag, arg);
     diag.addDidYouMeanNote(suggestArgument(arg));
     diag.report(ctx);
@@ -705,7 +709,7 @@ void CommandLineParser::reportInvalidArgument(TaskContext& ctx, const Utf8& arg)
 
 Result CommandLineParser::reportInvalidCommand(TaskContext& ctx, const Utf8& command)
 {
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
+    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_command);
     setReportArguments(diag, command);
     diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
     diag.addDidYouMeanNote(suggestCommand(command));
@@ -759,7 +763,7 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     {
         if (inlineValue)
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_unexpected_value);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_unexpected_value);
             setReportArguments(diag, info, arg);
             diag.report(ctx);
             return false;
@@ -908,13 +912,13 @@ Result CommandLineParser::parse(int argc, char* argv[])
     }
     else
     {
-        return reportCommandLineError(ctx, DiagnosticId::cmdline_err_missing_command);
+        return reportCommandLineError(ctx, DiagnosticId::cmd_err_missing_command);
     }
 
     if (cmdLine_->command == CommandKind::New)
     {
         if (argStartIndex >= args.size() || (!args[argStartIndex].empty() && args[argStartIndex][0] == '-'))
-            return reportCommandLineError(ctx, DiagnosticId::cmdline_err_new_kind_missing);
+            return reportCommandLineError(ctx, DiagnosticId::cmd_err_new_kind_missing);
 
         const Utf8& projectKind = args[argStartIndex++];
         if (projectKind == "script")
@@ -927,13 +931,13 @@ Result CommandLineParser::parse(int argc, char* argv[])
         {
             cmdLine_->newProjectKind = NewProjectKind::Module;
             if (argStartIndex >= args.size() || (!args[argStartIndex].empty() && args[argStartIndex][0] == '-'))
-                return reportCommandLineError(ctx, DiagnosticId::cmdline_err_new_module_name_missing);
+                return reportCommandLineError(ctx, DiagnosticId::cmd_err_new_module_name_missing);
 
             cmdLine_->newProjectName = args[argStartIndex++];
         }
         else
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_new_kind_invalid);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_new_kind_invalid);
             diag.addArgument(Diagnostic::ARG_VALUE, projectKind);
             diag.addDidYouMeanNote(Utf8Helper::bestMatch(projectKind, std::vector<Utf8>{"script", "module"}));
             diag.report(ctx);
@@ -947,7 +951,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         const Utf8& raw = args[i];
 
         if (cmdLine_->command == CommandKind::New && (raw.empty() || raw[0] != '-'))
-            return reportArgumentError(ctx, DiagnosticId::cmdline_err_new_unexpected_positional, raw);
+            return reportArgumentError(ctx, DiagnosticId::cmd_err_new_unexpected_positional, raw);
 
         // `--` stops option processing. Anything after is positional, which we do not accept.
         if (!endOfOptions && raw == END_OF_OPTIONS)
@@ -957,7 +961,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         }
 
         if (endOfOptions)
-            return reportArgumentError(ctx, DiagnosticId::cmdline_err_unexpected_positional, raw);
+            return reportArgumentError(ctx, DiagnosticId::cmd_err_unexpected_positional, raw);
 
         // Support `--long=value` and `-s=value`. Split once on the first '='.
         Utf8                lookup = raw;
@@ -975,7 +979,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
         if (!commandMatches(info->commands))
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_cmd_arg);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_cmd_arg);
             setReportArguments(diag, *info, raw);
             diag.report(ctx);
             return Result::Error;
@@ -1015,7 +1019,7 @@ Result CommandLineParser::buildWarningPolicy(TaskContext& ctx) const
             if (!unknown.has_value())
                 continue;
 
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_unknown_warning);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_unknown_warning);
             diag.addArgument(Diagnostic::ARG_ARG, option.longForm);
             diag.addArgument(Diagnostic::ARG_VALUE, unknown.value());
             diag.addDidYouMeanNote(Utf8Helper::bestMatch(unknown.value(), WarningPolicy::allIdNames()));
@@ -1032,7 +1036,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     if (cmdLine_->command == CommandKind::New)
     {
         if (cmdLine_->newProjectKind == NewProjectKind::Script && !cmdLine_->workspacePath.empty())
-            return reportCommandLineError(ctx, DiagnosticId::cmdline_err_new_script_workspace);
+            return reportCommandLineError(ctx, DiagnosticId::cmd_err_new_script_workspace);
 
         return Result::Continue;
     }
@@ -1074,7 +1078,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         const std::string_view stage = colon == std::string_view::npos ? std::string_view{} : value.substr(colon + 1);
         if (value.substr(0, colon).empty() || (colon != std::string_view::npos && !stage.starts_with("pre-") && !stage.starts_with("post-")))
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_print_micro_value);
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_print_micro_value);
             diag.addArgument(Diagnostic::ARG_ARG, "--print-micro");
             diag.addArgument(Diagnostic::ARG_VALUE, request);
             diag.report(ctx);
@@ -1143,7 +1147,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     if (!cmdLine_->workspaceModuleFilter.empty() && cmdLine_->workspacePath.empty())
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_workspace_module_requires_workspace);
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_requires_workspace);
         diag.addArgument(Diagnostic::ARG_ARG, "--workspace-module");
         diag.report(ctx);
         return Result::Error;
@@ -1223,7 +1227,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->workspacePath.empty() &&
         cmdLine_->modulePath.empty() &&
         !cmdLine_->cleanCache)
-        return reportCommandLineError(ctx, DiagnosticId::cmdline_err_clean_no_target);
+        return reportCommandLineError(ctx, DiagnosticId::cmd_err_clean_no_target);
 
     updateDefaultBuildCfg(*cmdLine_);
 

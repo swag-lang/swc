@@ -3,8 +3,8 @@
 
 using Core
 
-// The compiler configuration a snippet is built in: `Release` as shipped, `Devmode` with the
-// runtime checks of development builds.
+// The compilation settings applied to a snippet during module setup.
+// Allocator capabilities follow the compiler's initial tags.
 enum BuildPreset
 {
     Release
@@ -36,7 +36,8 @@ impl BuildSettings
                 with let cfg = Swag.compiler().getBuildCfg()!
                 {
                     .safetyGuards = .None
-                    .allocatorLeaks = false
+                    #static if #hastag("Swag.AllocatorDiagnostics") do
+                        .allocatorLeaks = false
                     .errorStackTrace = false
                     .backend.vectorize = true
                     .backend.fpMathFma = true

@@ -167,7 +167,7 @@ namespace
         fs::path resolvedPath = includePath;
         Utf8     because;
         if (FileSystem::resolveExistingFile(resolvedPath, because) != Result::Continue)
-            return SemaFileError::reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, resolvedPath, because);
+            return SemaFileError::reportCompilerFileError(sema, DiagnosticId::cmd_err_invalid_file, nodeRef, resolvedPath, because);
 
         outPath = std::move(resolvedPath);
         return Result::Continue;

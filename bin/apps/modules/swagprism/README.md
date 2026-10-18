@@ -45,7 +45,10 @@ shows whether the build was reused, or measured build time in milliseconds and f
 time in microseconds; this is not a frames-per-second benchmark. Hidden previews stop consuming frames until shown again.
 
 Prism finds the compiler beside the installed application, or by walking up from its development
-output. The default options match release. Microcode alone imports Core; 2D execution imports Pixel;
+output. The default snippet options apply release settings during module setup. Allocator
+capabilities still follow the compiler's initial devmode configuration; selecting complete preview
+runtime variants is tracked in [app.prism.008](../../../../backlog/app.prism.md#appprism008--select-allocator-capabilities-with-the-preview-host).
+Microcode alone imports Core; 2D execution imports Pixel;
 GUI execution imports Gui. Microcode beside an execution viewer uses that viewer's module contract.
 Native snippets compile into a shared library containing the edited code and its entry wrapper.
 The renderer is already compiled into Prism and runs in a separate host process, so edits do not

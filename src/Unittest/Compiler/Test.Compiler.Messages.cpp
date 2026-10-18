@@ -317,7 +317,7 @@ SWC_TEST_BEGIN(Compiler_DiagnosticRemovesUnexpandedWordPlaceholders)
     cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
-    Diagnostic        diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_enum);
+    Diagnostic        diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_enum);
     diag.addArgument(Diagnostic::ARG_ARG, "--backend");
 
     DiagnosticBuilder builder(localCtx, diag);

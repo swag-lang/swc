@@ -284,8 +284,10 @@ namespace
         if (!task || !task->hasCompiler())
             return;
         const CompilerInstance& compiler = task->compiler();
-        const auto              id       = compiler.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
-        const auto*             function = compiler.runtimeFunctionSymbol(id);
+        if (!compiler.findCompilerTag("Swag.AllocatorSafety"))
+            return;
+        const auto  id       = compiler.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
+        const auto* function = compiler.runtimeFunctionSymbol(id);
         if (!function || !function->jitEntryAddress())
             return;
         // The host allocator is outside generated code. Re-enter its compiled guard before

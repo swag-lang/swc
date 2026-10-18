@@ -6,6 +6,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
+struct CommandLine;
 
 struct CompilerTag
 {
@@ -17,7 +18,8 @@ struct CompilerTag
 class CompilerTagRegistry
 {
 public:
-    Result setup(TaskContext& ctx);
+    Result      setup(TaskContext& ctx);
+    static bool hasAllocatorCapability(const CommandLine& cmdLine, std::string_view name);
 
     const CompilerTag*              find(std::string_view name) const;
     const std::vector<CompilerTag>& all() const { return tags_; }

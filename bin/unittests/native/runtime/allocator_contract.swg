@@ -45,30 +45,33 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
 }
 
 // Class slack is not readable storage when an electric allocation abuts its guard.
-#test
+#static if #hastag("Swag.AllocatorDiagnostics")
 {
-    var allocator: Allocator
-    let itf = contractAllocator(&allocator, electric: true)
-    for alignment in [16'u32, 64'u32]
+    #test
     {
-        var request: AllocatorRequest
-        request.size      = 129
-        request.alignment = alignment
-        itf.alloc(&request)
-        Swag.assert(request.address != null)
-        defer itf.free(&request)
-        for i in 129 do cast([*] u8, request.address)[i] = cast(u8, i)
-        request.oldSize = 129
-        request.size    = 200
-        itf.realloc(&request)
-        Swag.assert(request.address != null)
-        for i in 129 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
-        request.oldSize = 200
-        request.size    = 17
-        itf.realloc(&request)
-        Swag.assert(request.address != null)
-        Swag.assert((cast(u64, request.address) & (alignment - 1)) == 0)
-        for i in 17 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
+        var allocator: Allocator
+        let itf = contractAllocator(&allocator, electric: true)
+        for alignment in [16'u32, 64'u32]
+        {
+            var request: AllocatorRequest
+            request.size      = 129
+            request.alignment = alignment
+            itf.alloc(&request)
+            Swag.assert(request.address != null)
+            defer itf.free(&request)
+            for i in 129 do cast([*] u8, request.address)[i] = cast(u8, i)
+            request.oldSize = 129
+            request.size    = 200
+            itf.realloc(&request)
+            Swag.assert(request.address != null)
+            for i in 129 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
+            request.oldSize = 200
+            request.size    = 17
+            itf.realloc(&request)
+            Swag.assert(request.address != null)
+            Swag.assert((cast(u64, request.address) & (alignment - 1)) == 0)
+            for i in 17 do Swag.assert(cast([*] u8, request.address)[i] == cast(u8, i))
+        }
     }
 }
 
@@ -77,6 +80,8 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
 {
     for electric in [false, true]
     {
+        if electric and not #hastag("Swag.AllocatorDiagnostics") do
+            continue
         var allocator: Allocator
         let itf = contractAllocator(&allocator, electric)
         for alignment in [0'u32, 64'u32, 0x8000_0000'u32]
@@ -100,6 +105,8 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
 {
     for tracked in [false, true]
     {
+        if tracked and not #hastag("Swag.AllocatorDiagnostics") do
+            continue
         var allocator: Allocator
         let itf = contractAllocator(&allocator)
         allocator.configure(false, false, false, tracked, false)

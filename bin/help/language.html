@@ -9961,6 +9961,35 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 }
 
 <span class="SCmp">#assert</span>(<span class="SCst">StaticExhaustiveSelection</span> == <span class="SNum">1</span>)</span></div>
+<h3 id="_014_003_compiler_instructions_swg_Compiler_Tags_Before_Module_Setup">Compiler Tags Before Module Setup</h3>
+<p>Compiler tags are fixed inputs to a compilation. They are available while compiling the runtime, before any <span class="code-inline">#run</span> in <span class="code-inline">module.swg</span> executes. <span class="code-inline">#hastag("Name")</span> reports whether a tag is present; <span class="code-inline">#gettag("Name", Type, fallback)</span> reads its value, or returns the fallback when it is absent. An ordinary tag can hold <span class="code-inline">false</span> and still be present. The allocator capability tags below use presence to mean that support is compiled: setting one to <span class="code-inline">false</span> removes it instead.</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Predefined tag</th><th>Type</th><th>Default presence</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">Swag.Endian</span></td><td><span class="code-inline">string</span></td><td>Every configuration</td><td>Target byte order; <span class="code-inline">"little"</span> on x86-64</td></tr>
+<tr><td><span class="code-inline">swag.test</span></td><td><span class="code-inline">bool</span></td><td>The <span class="code-inline">test</span> command</td><td>Compile-time test marker</td></tr>
+<tr><td><span class="code-inline">Swag.AllocatorSafety</span></td><td><span class="code-inline">bool</span></td><td><span class="code-inline">devmode</span></td><td>Compile allocator address checks, double-free checks, freed-block canaries and keyed free-list links</td></tr>
+<tr><td><span class="code-inline">Swag.AllocatorDiagnostics</span></td><td><span class="code-inline">bool</span></td><td><span class="code-inline">devmode</span></td><td>Compile allocator tracking, stack capture, leak reports, memory filling, quarantine and electric mode</td></tr>
+</tbody>
+</table>
+<p>Both allocator tags are absent by default in <span class="code-inline">release</span>, including <span class="code-inline">release --debug</span>: debug information is independent of allocator instrumentation. Add or remove either capability on the command line. A name without a value means <span class="code-inline">true</span>; <span class="code-inline">false</span> removes the tag. Only Boolean values are accepted, and the last occurrence of each allocator tag wins.</p>
+<div class="code-block"><span class="SCde">swc build --module mymodule --build-cfg release --tag Swag.AllocatorDiagnostics
+swc build --module mymodule --build-cfg release --tag Swag.AllocatorSafety --tag Swag.AllocatorDiagnostics
+swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorDiagnostics=false
+swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false --tag Swag.AllocatorDiagnostics=false</span></div>
+<p>These are capabilities, not requests to activate every diagnostic mode. With diagnostics compiled, the module can choose its modes through <span class="code-inline">Swag.Build.Config.allocatorLeaks</span>, <span class="code-inline">allocatorCaptureStack</span>, <span class="code-inline">allocatorTrackAllocations</span>, <span class="code-inline">allocatorElectricMode</span> and <span class="code-inline">allocatorFillMemory</span>. These fields exist only when <span class="code-inline">Swag.AllocatorDiagnostics</span> is present; accessing one without that tag is a compilation error. Directly configuring a diagnostic mode on <span class="code-inline">Swag.Allocator</span> without its capability panics. Removing diagnostics also disables the preset's default leak reporting.</p>
+<p>Tags select compiled support; they do not change configuration precedence. An explicit <span class="code-inline">--build-cfg</span> preset still reapplies its allocator settings after module setup. A diagnostic allocator can also select its modes directly through <span class="code-inline">Swag.Allocator.configure</span>.</p>
+<p>Allocator checks, including compiler-inserted guards and value-borrow invalidation, depend on <span class="code-inline">Swag.AllocatorSafety</span>, independently of later changes to <span class="code-inline">Swag.Build.Config.safetyGuards</span>. General language guards elsewhere still follow <span class="code-inline">#safety</span> and <span class="code-inline">safetyGuards</span>; the allocator tags do not change that contract. Diagnostic modes retain the checks they need even when <span class="code-inline">Swag.AllocatorSafety</span> is absent.</p>
+<p>Module setup cannot add or remove these tags. The runtime executing the setup and the runtime compiled for the final program receive the same capability selection. The command-line configuration and tag overrides participate in cache validation; rebuild a dependency when its capability selection changes, and use a consistent selection across linked modules. Public allocator diagnostic fields retain their layout but do not activate excluded code.</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SItr">#hastag</span>(<span class="SStr">"Swag.AllocatorDiagnostics"</span>)
+{
+    <span class="SCmt">// Declarations that need the diagnostic allocator.</span>
+}
+
+<span class="SKwd">const</span> <span class="SCst">TargetEndian</span> = <span class="SItr">#gettag</span>(<span class="SStr">"Swag.Endian"</span>, <span class="STpe">string</span>, <span class="SStr">"unknown"</span>)
+<span class="SCmp">#assert</span>(<span class="SCst">TargetEndian</span> == <span class="SStr">"little"</span>)</span></div>
 <h3 id="_014_003_compiler_instructions_swg_The___command__and___cfg__Values">The <span class="code-inline">#command</span> and <span class="code-inline">#cfg</span> Values</h3>
 <p><span class="code-inline">#command</span> reports one of three source-compilation modes:</p>
 <ul>
@@ -11604,6 +11633,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 "h|The #assert Directive|_014_003_compiler_instructions_swg_The___assert__Directive|",
 "h|The #defined Query|_014_003_compiler_instructions_swg_The___defined__Query|",
 "h|Static Control with #static|_014_003_compiler_instructions_swg_Static_Control_with___static_|",
+"h|Compiler Tags Before Module Setup|_014_003_compiler_instructions_swg_Compiler_Tags_Before_Module_Setup|",
 "h|The #command and #cfg Values|_014_003_compiler_instructions_swg_The___command__and___cfg__Values|",
 "h|The #error and #warning Directives|_014_003_compiler_instructions_swg_The___error__and___warning__Directives|",
 "h|The #global Directive|_014_003_compiler_instructions_swg_The___global__Directive|",

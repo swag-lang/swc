@@ -1,3 +1,4 @@
+#global if #hastag("Swag.AllocatorDiagnostics")
 #global private
 
 using Swag

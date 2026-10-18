@@ -231,7 +231,8 @@ namespace Swag.Build
 
     // The current module build configuration.
     //
-    // See [[ICompiler]]
+    // See [[ICompiler]]. Allocator diagnostic fields exist only with compiler tag
+    // 'Swag.AllocatorDiagnostics', selected before module setup.
     struct Config
     {
         public
@@ -244,16 +245,32 @@ namespace Swag.Build
             ignoreInWorkspace    = false     // Skip this module when building a workspace
             publishDependencies  = false     // Place the shared libraries an executable needs beside it, so it runs without the compiler
 
-            tempAllocatorCapacity     = 4'u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
-            errorAllocatorCapacity    = 16'u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
-            safetyGuards              = SafetyWhat.All          // Activate specific RUNTIME safety checks (guards, panics, poisoning)
-            sanityGuards              = SafetyWhat.All          // Activate specific STATIC (compile-time) sanity checks
-            allocatorCaptureStack     = false                   // Capture a call stack for each tracked allocation
-            allocatorLeaks            = true                    // Report memory leaks at runtime shutdown
-            allocatorTrackAllocations = false                   // Keep an exact allocation list for detailed leak reporting
-            allocatorElectricMode     = false                   // Never reuse freed blocks
-            allocatorFillMemory       = false                   // Fill allocated/freed memory with debug patterns
-            errorStackTrace           = true                    // Add stack trace in case a 'fail' is raised
+            tempAllocatorCapacity  = 4'u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
+            errorAllocatorCapacity = 16'u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
+            safetyGuards           = SafetyWhat.All          // Activate language RUNTIME safety checks; allocator checks use the early 'Swag.AllocatorSafety' tag
+            sanityGuards           = SafetyWhat.All          // Activate specific STATIC (compile-time) sanity checks
+        }
+
+        #static if #hastag("Swag.AllocatorDiagnostics")
+        {
+            public
+            {
+                allocatorCaptureStack     = false     // Capture a call stack for each tracked allocation
+                allocatorLeaks            = true      // Report memory leaks at runtime shutdown
+                allocatorTrackAllocations = false     // Keep an exact allocation list for detailed leak reporting
+                allocatorElectricMode     = false     // Never reuse freed blocks
+                allocatorFillMemory       = false     // Fill allocated/freed memory with debug patterns
+            }
+        }
+        else
+        {
+            // The compiler interface keeps the same layout with either public surface.
+            private reservedAllocatorDiagnostics: [5] u8
+        }
+
+        public
+        {
+            errorStackTrace = true     // Add stack trace in case a 'fail' is raised
 
             warnings: Warnings     // How this module reports its warnings
 

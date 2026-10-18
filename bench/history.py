@@ -50,6 +50,7 @@ PROTOCOL = 2
 # that timeline it reads 950 %.
 DRIFT_LIMIT_PCT = 40.0
 BUILD_CONTROL_SPREAD_LIMIT_PCT = 25.0
+BUILD_PAIR_LIMIT_PCT = 10.0
 
 TRACKED = ["swag-release", "swc-jit-release", "swag-fast-debug", "swc-jit-fast-debug"]
 BUILT = ["swag-release", "swag-fast-debug"]
@@ -227,12 +228,51 @@ def settle_run(run):
     return run
 
 
+def confirmed_build_pair(samples, limit_pct=BUILD_PAIR_LIMIT_PCT):
+    """The fastest build time supported by a second sample, with its supporting time."""
+    ordered = sorted(value for value in samples if math.isfinite(value) and value > 0)
+    return next(((low, high) for low, high in zip(ordered, ordered[1:])
+                 if high <= low * (1.0 + limit_pct / 100.0)), None)
+
+
+def settle_build(build, limit_pct=BUILD_PAIR_LIMIT_PCT):
+    """Use the fastest confirmed pair without letting an isolated low discard the series."""
+    if not build or build.get("error"):
+        return build
+    samples = build.get("samples") or []
+    pair = confirmed_build_pair(samples, limit_pct)
+    raw_min = build.get("raw_min_wall_ms", build.get("unverified_wall_ms", build.get("wall_ms")))
+    build["repeatability"] = {"status": "verified" if pair else "unresolved",
+                              "method": "confirmed-min-v2", "limit_pct": limit_pct,
+                              "supporting_pair_ms": list(pair) if pair else None,
+                              "pair_spread_pct": (pair[1] / pair[0] - 1.0) * 100.0 if pair else None}
+    if not pair:
+        build["unverified_wall_ms"] = build.pop("wall_ms", raw_min)
+        return build
+    unconfirmed = [value for value in samples if value < pair[0]]
+    if unconfirmed:
+        build["raw_min_wall_ms"] = raw_min
+        build["unconfirmed_samples"] = unconfirmed
+    # Preserve the unrounded recorded minimum when it has supporting evidence.
+    build["wall_ms"] = pair[0] if unconfirmed or raw_min is None else raw_min
+    build.pop("unverified_wall_ms", None)
+    return build
+
+
 def settle_campaign(campaign):
-    """Apply the timer-fault rule to every run of a campaign, archived ones included."""
+    """Derive results from archived samples without rewriting the raw campaign."""
     for entries in (campaign.get("tasks") or {}).values():
         for entry in entries.values():
             if isinstance(entry, dict) and entry.get("run"):
                 settle_run(entry["run"])
+    builds = list(campaign.get("hello_build", {}).values()) + list(campaign.get("loop", {}).values())
+    builds += [entry["build"] for entries in campaign.get("tasks", {}).values()
+               for entry in entries.values() if entry.get("build")]
+    for build in builds:
+        # Earlier protocols did not promise repeatability checks. Revisit only
+        # measurements that opted into the local check and kept its evidence.
+        if build.get("repeatability"):
+            settle_build(build, build["repeatability"].get("limit_pct", BUILD_PAIR_LIMIT_PCT))
     return campaign
 
 

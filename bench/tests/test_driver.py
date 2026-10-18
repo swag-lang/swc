@@ -215,13 +215,14 @@ class BuildRepeatabilityTests(unittest.TestCase):
                                                     "run": {"ms": 12, "check": 42}}}}}
         driver.settle_build_measurements(result)
         acc = result["tasks"]["task"]["compiler"]["build"]
-        self.assertNotIn("wall_ms", acc)
-        self.assertEqual(acc["unverified_wall_ms"], 100)
-        self.assertEqual(acc["repeatability"]["status"], "unresolved")
-        self.assertEqual(len(acc["samples"]), 6)
+        self.assertEqual(acc["wall_ms"], 400)
+        self.assertEqual(acc["raw_min_wall_ms"], 100)
+        self.assertEqual(acc["unconfirmed_samples"], [100])
+        self.assertEqual(acc["repeatability"]["status"], "verified")
+        self.assertEqual(len(acc["samples"]), 3)
         self.assertEqual(result["tasks"]["task"]["compiler"]["run"]["ms"], 12)
         self.assertFalse(driver.campaign_errors(result))
-        self.assertFalse(history.ratios_to_best(result["tasks"], ["task"], "build", "wall_ms"))
+        self.assertEqual(history.ratios_to_best(result["tasks"], ["task"], "build", "wall_ms"), {"compiler": 1})
 
     def test_slow_controls_get_two_samples_and_at_most_one_targeted_retry(self):
         for samples, expected in (([5000, 5100], "verified"),

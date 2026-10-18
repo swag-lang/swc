@@ -81,13 +81,18 @@ set the reference. Native / AOT and JIT / interpreted use separate headline refe
 JIT and pure interpreters form one family. Compilation includes bytecode recipes.
 Memory is the largest working set in MiB; separate process peaks are never added.
 
-Time arrows compare the displayed differences directly: a lower difference is a green
-up arrow (improvement), a higher difference is a red down arrow (regression), and equal
-values at printed precision use a neutral right arrow. For example, -1.54 s followed by
--1.62 s improves. Both campaigns need the same protocol and complete task panel.
+Time arrows compare the displayed differences directly, with a minimum-sensitivity check.
+For each task and runtime, replace the selected minimum with its next observed sample.
+The resulting ranges for Swag and its rival give a range of possible gap changes between
+campaigns. A green up or red down arrow needs that entire range to have the same direction.
+A range crossing zero, missing repeat evidence, or equal values at printed precision uses a
+neutral right arrow. Hover for the sensitivity range and measured before/after values.
+This is a leave-one-out sensitivity check, not a statistical confidence interval; it cannot
+bound an unobserved systematic bias. Both campaigns need the same protocol and complete panel.
 Each headline uses its campaign's fastest complete non-Swag competitor. Changes in the
 machine or competitor set can affect these raw differences; corrected history tracks
-compiler progress. Headline arrows show the previous value beside them. Memory arrows
+compiler progress. In particular, a smaller competitive advantage does not establish that
+Swag itself slowed down. Headline arrows show the previous value beside them. Memory arrows
 compare the two displayed peaks; lower is better.
 
 The **Swag vs each language** section compares every measured competitor directly with
@@ -292,18 +297,24 @@ result. Earlier campaigns recorded only build minima, so their within-campaign b
 cannot be reconstructed.
 
 **Compilation is verified locally.** Every toolchain gets at least two complete builds per
-task, including `hello` and the compiler edit-build workloads. The two fastest samples need
-to agree within 10%. A delayed pilot no longer reduces a control to one sample: the budget is
+task, including `hello` and the compiler edit-build workloads. The result is the fastest sample
+with a second sample within 10% above it. Isolated lower samples are retained as unconfirmed;
+they neither become the result nor discard an otherwise repeatable series. For example,
+`148.6, 172.3, 172.4` confirms `172.3`, with `148.6` retained in `unconfirmed_samples` and
+the original precise minimum in `raw_min_wall_ms`. A delayed pilot cannot reduce a control
+to one sample: the budget is
 recomputed from the best time, and only measurements still needing evidence receive retries.
 Fast builds have at most six samples; builds taking at least 2.5 seconds have at most three.
-The order rotates between rounds. The minimum remains the reported result when a second
-sample confirms it; a cold or interrupted build stays in the raw sample list.
+The order rotates between rounds. A cold or interrupted build stays in the raw sample list.
 
 When the limit is reached without an agreeing pair, only that compilation time is omitted
 from comparisons. The raw samples, memory, artifact size and `unverified_wall_ms` remain in
 the campaign with an `unresolved` repeatability status. Other compilation times and execution
-results remain usable. The settings record `build_validation: local-repeatability-v1` and
-the sample limits, so the stronger verification is distinguishable from older campaigns.
+results remain usable. The settings and each checked measurement record `confirmed-min-v2`
+and the sample limits. Reading an archived `local-repeatability-v1` measurement derives the
+confirmed minimum from its retained samples, repairing omitted values without rewriting the
+raw file. Unchecked older campaigns retain their recorded estimator; no repeatability is
+inferred from a single old sample. Their weaker evidence can suppress a trend arrow.
 This checks observed repeatability, not freedom from a systematic bias shared by all repeats.
 
 **The machine has to belong to the campaign.** Two gates, because the first one alone was not
@@ -379,8 +390,10 @@ machine is ±10 % and ±27 % — they were measuring the machine. Both were scal
 which changes their checksum and therefore resets their history; that is the price of the two
 tasks meaning anything at all. **Raise the protocol number whenever a change makes new
 campaigns incomparable with old ones**, and move the old campaigns aside in the same commit.
-The local compilation repeatability check retains protocol 2's recipes, affinity and minimum
-estimator; its extra verification is recorded in settings without resetting the history.
+The local compilation repeatability check retains protocol 2's recipes and affinity. Its
+confirmed-minimum policy is recorded separately, and the full samples remain authoritative.
+Unchecked older build minima and new confirmed minima can differ because of the estimator;
+small historical movements across those policies do not establish compiler progress.
 
 ## How machine variation is removed
 

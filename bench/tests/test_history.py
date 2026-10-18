@@ -14,6 +14,38 @@ TASKS = ("first", "second")
 CONTROLS = ("cpp-a", "cpp-b", "rust", "swift")
 
 
+class BuildEvidenceTests(unittest.TestCase):
+    def test_archived_series_recover_the_fastest_confirmed_pair_and_keep_every_sample(self):
+        for samples, expected in (([148.6, 172.3, 172.4, 181.5, 208.6, 195.9], 172.3),
+                                  ([163.1, 212.1, 214, 262.6, 250.2, 280.2], 212.1),
+                                  ([258.3, 295, 390.2, 403.1, 398.9, 399.9], 390.2)):
+            with self.subTest(samples=samples):
+                build = {"samples": samples[:], "unverified_wall_ms": min(samples),
+                         "repeatability": {"status": "unresolved", "limit_pct": 10}}
+                raw = {"tasks": {"fixture": {"swag-release": {"build": build}}}}
+                history.settle_campaign(raw)
+                self.assertEqual(build["wall_ms"], expected)
+                self.assertEqual(build["samples"], samples)
+                self.assertEqual(build["raw_min_wall_ms"], min(samples))
+                self.assertEqual(build["repeatability"]["supporting_pair_ms"][0], expected)
+                settled = copy.deepcopy(raw)
+                self.assertEqual(history.settle_campaign(raw), settled)
+
+    def test_an_unconfirmed_series_remains_unresolved_and_older_unchecked_results_stay_intact(self):
+        build = {"samples": [3690.5, 4082.5, 4681.6], "wall_ms": 3690.4721}
+        history.settle_build(build)
+        self.assertNotIn("wall_ms", build)
+        self.assertEqual(build["unverified_wall_ms"], 3690.4721)
+        old = {"tasks": {"fixture": {"swag-release": {"build": {"samples": [100], "wall_ms": 100}}}}}
+        self.assertEqual(history.settle_campaign(copy.deepcopy(old)), old)
+
+    def test_a_supported_recorded_minimum_keeps_its_full_precision(self):
+        build = {"samples": [172.3, 172.4, 200], "wall_ms": 172.31234}
+        history.settle_build(build)
+        self.assertEqual(build["wall_ms"], 172.31234)
+        self.assertNotIn("unconfirmed_samples", build)
+
+
 def campaign(stamp, dirty, run_scale=1.0, build_scale=1.0, swag_run=100.0,
              swag_build=50.0, outlier=1.0):
     tasks = {}

@@ -79,7 +79,7 @@ CONTROL_BUILD_BUDGET_MS = 800
 CONTROL_BUILD_MAX_REPS = 3
 BUILD_SLOW_MS = 2500
 BUILD_SLOW_MAX_REPS = 3
-BUILD_PAIR_LIMIT_PCT = 10.0
+BUILD_PAIR_LIMIT_PCT = history.BUILD_PAIR_LIMIT_PCT
 
 DRIFT_LIMIT_PCT = history.DRIFT_LIMIT_PCT
 
@@ -192,14 +192,6 @@ def plan_builds(wall_ms, tracked=True):
     return max(low, min(high, int(budget // wall_ms)))
 
 
-def build_pair_spread(acc):
-    """How closely the two fastest complete builds agree, in percent."""
-    samples = sorted(acc.get("samples") or [])
-    if len(samples) < 2 or samples[0] <= 0:
-        return None
-    return (samples[1] / samples[0] - 1.0) * 100.0
-
-
 def needs_build_sample(acc, tracked=True):
     if acc.get("error"):
         return False
@@ -210,8 +202,7 @@ def needs_build_sample(acc, tracked=True):
         return False
     if count < plan_builds(best, tracked):
         return True
-    spread = build_pair_spread(acc)
-    return spread is None or spread > BUILD_PAIR_LIMIT_PCT
+    return history.confirmed_build_pair(acc.get("samples") or [], BUILD_PAIR_LIMIT_PCT) is None
 
 
 def measure_builds(jobs, env, workloads=False):
@@ -245,13 +236,8 @@ def settle_build_measurements(results):
     for label, acc in measurements:
         if acc.get("error"):
             continue
-        spread = build_pair_spread(acc)
-        stable = spread is not None and spread <= BUILD_PAIR_LIMIT_PCT
-        acc["repeatability"] = {"status": "verified" if stable else "unresolved",
-                                "fastest_pair_spread_pct": spread,
-                                "limit_pct": BUILD_PAIR_LIMIT_PCT}
-        if not stable:
-            acc["unverified_wall_ms"] = acc.pop("wall_ms", acc.get("unverified_wall_ms"))
+        history.settle_build(acc, BUILD_PAIR_LIMIT_PCT)
+        if acc["repeatability"]["status"] == "unresolved":
             print("  compilation %s: no agreeing pair after %d samples; raw samples kept, time omitted" %
                   (label, len(acc.get("samples") or [])))
 
@@ -394,7 +380,7 @@ def campaign_settings(args):
         "build_max_reps": BUILD_MAX_REPS,
         "build_slow_max_reps": BUILD_SLOW_MAX_REPS,
         "build_pair_limit_pct": BUILD_PAIR_LIMIT_PCT,
-        "build_validation": "local-repeatability-v1",
+        "build_validation": "confirmed-min-v2",
         "warmup_s": args.warmup,
     }
 

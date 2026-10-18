@@ -506,8 +506,9 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     The competitor total is shown beside its name; each Swag column gives its total in the heading
     and the time difference in each row: Swag total minus competitor total. Negative means less time; positive means extra time.
     Green means Swag wins; red means Swag loses. Arrows show whether the time saved improved (&uarr;),
-    regressed (&darr;) or stayed the same (&rarr;) since the previous comparable campaign against that same competitor.
-    Hover for the reference date; a dash means no earlier comparison.
+    regressed (&darr;) since the previous comparable campaign against that same competitor.
+    A neutral arrow (&rarr;) means equal printed values or a direction unresolved by the repeated samples.
+    Hover for the reference date and sensitivity check; a dash means no earlier comparison.
     Longer workloads weigh more. Hello is excluded; an incomplete panel produces a dash.</p>
     <h3>Total execution time</h3>
     <p class="section-meta">Measured {{run_date}} &middot; <code>{{run_commit}}</code></p>
@@ -535,7 +536,8 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <p class="section-meta">Measured {{build_date}} &middot; <code>{{build_commit}}</code></p>
     <p class="cap">One ranking per example, fastest to slowest. Complete cold builds include each recipe's imports,
     optimization and linking or bytecode generation. Cells show only measured times and have equal widths.
-    Hello is separate and excluded from the totals above.
+    Locally checked builds use the fastest sample confirmed by a second within 10%; isolated lower samples are retained in the raw data.
+    A time with no confirming pair is omitted. Hello is separate and excluded from the totals above.
     These recipes include different library work; Java and C# CoreCLR produce bytecode.</p>
     {{bu_performance}}
 </section>
@@ -600,8 +602,11 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <ul class="method">
         <li><b>Machine</b>Intel Core Ultra 9 185H, Windows 11, AC power. Baseline x86-64, no <code>-march=native</code> or LTO.</li>
         <li><b>Affinity</b>Execution on performance cores ({{pin_mask}}, {{pin_cores}} cores); builds are not pinned.</li>
-        <li><b>Samples</b>Swag: {{budget_ms}} ms per task, {{min_reps}} to {{max_reps}} samples; fewer for controls. Rotating round-robin, minimum retained. Allocator results use medians.</li>
-        <li><b>Calibration</b>{{calib_start}} ms then {{calib_end}} ms; spread {{machine_spread}}%. Rejected above {{drift_limit}}%; build controls rejected above {{build_control_limit}}%.</li>
+        <li><b>Samples</b>Swag execution: {{budget_ms}} ms per task, {{min_reps}} to {{max_reps}} samples; fewer for controls.
+        Rotating round-robin, execution minimum retained. Locally checked compilations use a minimum confirmed by a second sample within 10%.
+        Unconfirmed lower samples remain in the raw record. Allocator results use medians.</li>
+        <li><b>Calibration</b>{{calib_start}} ms then {{calib_end}} ms; probe departure {{machine_spread}}%.
+        Execution-probe departures above {{drift_limit}}% reject a campaign. Historical build-control spreads above {{build_control_limit}}% produce a note.</li>
         <li><b>Bounds checks</b>Rust, Swift and C# retain their checks; Swag release and C++ do not. Build recipes differ; see <code>bench/README.md</code>.</li>
         <li><b>Reference</b>Headlines use measured durations and their sums
         against the non-Swag runtime with the smallest total over all tasks. Native / AOT and JIT / interpreted references
@@ -620,8 +625,10 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <li><b>Trend arrows</b>Compare the previous accepted campaign with complete measurements on the displayed panel,
         under the same protocol. Each time value uses its own campaign's non-Swag runtime with the smallest total.
         Compare the displayed differences directly: green up = a lower difference;
-        red down = a higher difference; neutral right = the same value at displayed precision.
-        No machine correction or ratio changes that direction. The small value is the previous measured value.
+        red down = a higher difference. A direction needs to survive replacing each selected minimum with its next observed sample.
+        Neutral right = equal printed values, overlapping sensitivity ranges, or missing repeat evidence.
+        This leave-one-out check is not a confidence interval and cannot detect every systematic bias.
+        A competitive gap can widen even when Swag itself runs faster. The small value is the previous measured value.
         Memory arrows compare the two displayed peaks directly; a smaller peak is better.
         Hover an arrow for the reference campaign and matched panel. These are observed changes, not significance tests.</li>
         <li><b>Other benchmarks</b><a href="https://www.spec.org/cpu2017/Docs/overview.html">SPEC CPU</a>

@@ -20,8 +20,8 @@ def campaign(day, own=(50, 99, 101, 200), rival=(100, 100, 100, 100)):
         for runtime, value in (("swag-release", sw), ("cpp-clang-cl", other),
                                ("swc-jit-release", sw), ("node20", other),
                                ("swag-fast-debug", 0.01), ("python3.12", other)):
-            tasks[task][runtime] = {"run": {"ms": value},
-                                   "build": {"wall_ms": value, "peak_bytes": value * 1024}}
+            tasks[task][runtime] = {"run": {"ms": value, "samples": [value, value]},
+                                   "build": {"wall_ms": value, "samples": [value, value], "peak_bytes": value * 1024}}
     return {"meta": {"date": "2026-10-%02dT00:00:00+00:00" % day,
                      "stamp": "campaign-%02d" % day, "protocol": 2}, "tasks": tasks}
 
@@ -62,7 +62,7 @@ class ReportMetricsTests(unittest.TestCase):
         before = campaign(1, own=(100,) * 4)
         current = campaign(2, own=(200,) * 4, rival=(200,) * 4)
         for task in TASKS:
-            current["tasks"][task]["rust"] = {"run": {"ms": 10}}
+            current["tasks"][task]["rust"] = {"run": {"ms": 10, "samples": [10, 10]}}
         change = metrics.previous_change(current, [before, current], TASKS,
                                          "swag-release", "run", "ms", "native")
         self.assertAlmostEqual(change["saved_ms"], -760)
@@ -107,7 +107,36 @@ class ReportMetricsTests(unittest.TestCase):
                                           (-20, -50, "regressed"), (1540.1, 1540.2, "unchanged")):
             with self.subTest(previous=previous, current=current):
                 change.update(previous_saved_ms=previous, current_saved_ms=current, saved_ms=current - previous)
+                change.pop("sensitivity_ms", None)
                 self.assertIn("trend " + state, mkpage.trend(change)[0])
+
+    def test_a_minimum_sensitive_change_keeps_the_measured_gap_without_claiming_a_direction(self):
+        before = campaign(1, own=(100,) * 4)
+        current = campaign(2, own=(101,) * 4)
+        for task in TASKS:
+            current["tasks"][task]["cpp-clang-cl"]["run"]["samples"] = [100, 110]
+        change = metrics.previous_change(current, [before], TASKS, "swag-release", "run", "ms", "native")
+        self.assertEqual(change["saved_ms"], -4)
+        self.assertEqual(change["sensitivity_ms"], [-4, 36])
+        markup, note = mkpage.trend(change)
+        self.assertIn("trend unchanged", markup)
+        self.assertIn("Change unresolved by repeated samples", note)
+        self.assertIn("+4.0 ms now", note)
+        self.assertNotIn("Regressed", markup)
+
+    def test_one_observation_cannot_establish_a_time_trend(self):
+        before = campaign(1, own=(100,) * 4)
+        current = campaign(2, own=(50,) * 4)
+        current["tasks"]["one"]["swag-release"]["run"]["samples"] = [50]
+        change = metrics.previous_change(current, [before], TASKS, "swag-release", "run", "ms", "native")
+        self.assertIsNone(change["sensitivity_ms"])
+        self.assertIn("trend unchanged", mkpage.trend(change)[0])
+
+    def test_timer_faults_do_not_inflate_the_sensitivity_range(self):
+        current = campaign(2, own=(50,) * 4)
+        for task in TASKS:
+            current["tasks"][task]["swag-release"]["run"]["samples"] = [1, 50, 51]
+        self.assertEqual(metrics.minimum_sensitivity(current, TASKS, "swag-release", "run", "ms"), [200, 204])
 
     def test_previous_comparison_skips_other_protocol_and_incomplete_panel(self):
         before = campaign(1)
@@ -260,7 +289,9 @@ class ReportTableTests(unittest.TestCase):
         current = campaign(3, own=(50,) * 4, rival=(200,) * 4)
         for task in TASKS:
             before["tasks"][task]["python3.12"]["run"]["ms"] = 25
+            before["tasks"][task]["python3.12"]["run"]["samples"] = [25, 25]
             current["tasks"][task]["python3.12"]["run"]["ms"] = 10
+            current["tasks"][task]["python3.12"]["run"]["samples"] = [10, 10]
         incomplete = campaign(2)
         del incomplete["tasks"]["four"]
         with mock.patch.object(mkpage, "simple_table", side_effect=lambda headers, rows: (headers, rows)):
@@ -292,6 +323,7 @@ class ReportTableTests(unittest.TestCase):
         for item in (before, current):
             for task in TASKS:
                 item["tasks"][task]["python3.12"]["run"]["ms"] = 25
+                item["tasks"][task]["python3.12"]["run"]["samples"] = [25, 25]
         summary = metrics.comparison(current, TASKS, "swc-jit-release", "run", "ms",
                                      metrics.rivals(current, TASKS, "run", "ms", "jit"))
         self.assertEqual(summary["reference_runtime"], "python3.12")

@@ -190,16 +190,27 @@ def trend(change, show_previous=True):
     if change is None:
         return ('<span class="trend unavailable" aria-label="No comparable earlier campaign">'
                 '&mdash;</span>', 'No comparable earlier campaign')
+    evidence = ""
     if "saved_ms" in change:
         previous = signed_duration(-change["previous_saved_ms"])
         current = signed_duration(-change["current_saved_ms"])
+        sensitivity = change.get("sensitivity_ms")
+        unresolved = ("sensitivity_ms" in change and
+                      (sensitivity is None or sensitivity[0] <= 0 <= sensitivity[1]))
         if current == previous:
             state, arrow, label = "unchanged", "&rarr;", "Unchanged"
+        elif unresolved:
+            state, arrow, label = "unchanged", "&rarr;", "Change unresolved by repeated samples"
         elif change["saved_ms"] > 0:
-            state, arrow, label = "improved", "&uarr;", "Improved"
+            state, arrow, label = "improved", "&uarr;", "Time gap decreased"
         else:
-            state, arrow, label = "regressed", "&darr;", "Regressed"
+            state, arrow, label = "regressed", "&darr;", "Time gap increased"
         detail = "%s: %s before, %s now" % (label, previous, current)
+        if sensitivity is not None:
+            evidence = "; removing each selected minimum gives a change from %s to %s" % (
+                signed_duration(sensitivity[0]), signed_duration(sensitivity[1]))
+        elif "sensitivity_ms" in change:
+            evidence = "; repeated samples are missing for the sensitivity check"
     else:
         previous = "%d MiB" % round(change["previous_peak_bytes"] / 1048576)
         current = "%d MiB" % round(change["current_peak_bytes"] / 1048576)
@@ -212,6 +223,7 @@ def trend(change, show_previous=True):
         detail = "%s: %s before, %s now" % (label, previous, current)
     if not show_previous:
         detail = label
+    detail += evidence
     reference = change["reference"]
     note = '%s vs %s' % (detail, reference["date"][:10])
     title = "%s; reference %s (%s); %d tasks" % (

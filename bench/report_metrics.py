@@ -37,6 +37,30 @@ def reference_runtime(campaign, tasks, family, key, competitors):
     return min(zip(competitors, controls), key=lambda item: (sum(item[1]), item[0]))[0]
 
 
+def minimum_sensitivity(campaign, tasks, runtime, family, key):
+    """Total-time range when each selected minimum loses its supporting fastest sample.
+
+    This is a leave-one-out sensitivity check, not a confidence interval. A single
+    observation cannot establish repeatability and supplies no range.
+    """
+    values = measurements(campaign, tasks, runtime, family, key)
+    if not values:
+        return None
+    upper = 0.0
+    for task, value in zip(tasks, values):
+        record = campaign["tasks"][task][runtime][family]
+        samples = sorted(v for v in record.get("samples", []) if math.isfinite(v) and v > 0)
+        if family == "run":
+            samples = history.timer_faults(samples)[0]
+        # Archived build samples were rounded; match the recorded result before
+        # finding its successor instead of requiring exact floating-point equality.
+        index = min(range(len(samples)), key=lambda i: abs(samples[i] - value)) if samples else 0
+        if index + 1 >= len(samples):
+            return None
+        upper += max(value, samples[index + 1])
+    return [sum(values), upper]
+
+
 def comparison(campaign, tasks, lead, family, key, competitors):
     own = measurements(campaign, tasks, lead, family, key)
     reference = reference_runtime(campaign, tasks, family, key, competitors)
@@ -46,13 +70,17 @@ def comparison(campaign, tasks, lead, family, key, competitors):
     ratios = [value / reference for value, reference in zip(own, best)]
     gaps = [(ratio - 1) * 100 for ratio in ratios]
     low, high = 1 - DISPLAY_BAND_PCT / 100, 1 + DISPLAY_BAND_PCT / 100
+    own_range = minimum_sensitivity(campaign, tasks, lead, family, key)
+    rival_range = minimum_sensitivity(campaign, tasks, reference, family, key)
     return {"reference_runtime": reference, "ratios": ratios, "gap_pct": statistics.median(gaps),
             "ahead": sum(ratio < low for ratio in ratios),
             "close": sum(low <= ratio <= high for ratio in ratios),
             "behind": sum(ratio > high for ratio in ratios),
             "min_gap_pct": min(gaps), "max_gap_pct": max(gaps),
             "median_ms": statistics.median(own), "total_ms": sum(own),
-            "rival_total_ms": sum(best), "saved_ms": sum(best) - sum(own)}
+            "rival_total_ms": sum(best), "saved_ms": sum(best) - sum(own),
+            "saved_ms_range": ([rival_range[0] - own_range[1], rival_range[1] - own_range[0]]
+                               if own_range and rival_range else None)}
 
 
 def previous_change(current, campaigns, tasks, lead, family, key, group=None, peak=False, competitor=None):
@@ -83,6 +111,9 @@ def previous_change(current, campaigns, tasks, lead, family, key, group=None, pe
         result = {"reference": before["meta"], "tasks": len(tasks),
                   "rivals": len(current_rivals),
                   "saved_ms": now["saved_ms"] - old["saved_ms"],
-                  "current_saved_ms": now["saved_ms"], "previous_saved_ms": old["saved_ms"]}
+                  "current_saved_ms": now["saved_ms"], "previous_saved_ms": old["saved_ms"],
+                  "sensitivity_ms": ([now["saved_ms_range"][0] - old["saved_ms_range"][1],
+                                      now["saved_ms_range"][1] - old["saved_ms_range"][0]]
+                                     if now["saved_ms_range"] and old["saved_ms_range"] else None)}
         return result
     return None

@@ -229,13 +229,9 @@ IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const Sou
 {
     const SourceView& srcView = ctx.compiler().srcView(codeRef.srcViewRef);
 
-    // A synthetic or cloned identifier can carry a codeRef whose tokRef does not index this source
-    // view: makeNode() stamps a new node with the active source view but a borrowed token location,
-    // which is later corrected for diagnostics but can legitimately point past this view's token
-    // array (e.g. a location borrowed from a larger source). Such a codeRef does not name a real
-    // token here, so there is no token-derived identifier - return invalid and let the caller use
-    // the node's resolved symbol. Without this guard the srcView.token() read below indexes past the
-    // token array (intermittent out-of-bounds crash in the parallel macro/inline clone path).
+    // Cloned nodes can temporarily pair the active source view with a borrowed token.
+    // If it falls outside this view, return invalid so the caller uses the resolved symbol.
+    // The clone's source location is corrected later for diagnostics.
     if (codeRef.tokRef.isInvalid() || codeRef.tokRef.get() >= srcView.tokens().size())
         return IdentifierRef::invalid();
 
@@ -278,6 +274,7 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
 {
     const uint32_t shardIndex = hash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
+
     auto&          shard       = shards_[shardIndex];
     const uint32_t stripeIndex = (hash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
     auto&          stripe      = shard.internStripes[stripeIndex];
@@ -288,21 +285,21 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     if (found.isValid())
         return found;
 
-    // Most identifiers point directly into source buffers and are never copied.
-    // Owned/synthetic names opt into shard storage below so every interned string
-    // view remains valid for the compiler lifetime.
-    // The table holds every identifier of the stripe, and only a writer holding this mutex adds
-    // one or replaces it, so probing it again here is exact.
+    // Recheck under the writer mutex: another writer may have inserted the name
+    // since the lock-free probe.
     const std::unique_lock lk(stripe.mutex);
     const IdentifierRef    existing = findInterned(stripe.table.load(std::memory_order_relaxed), name, hash);
     if (existing.isValid())
         return existing;
 
+    // Most identifiers borrow source buffers. Copy owned or synthetic names into
+    // shard storage so their views remain valid for the compiler lifetime.
     std::string_view storedName = name;
     if (copyName && !name.empty())
     {
         // The stored name must not reference a temporary.
         const std::scoped_lock storeLock(shard.storeMutex);
+
         const auto [span, _] = shard.stringStore.pushCopySpan(std::span{reinterpret_cast<const std::byte*>(name.data()), name.size()});
         storedName           = std::string_view{reinterpret_cast<const char*>(span.data()), span.size()};
     }
@@ -310,6 +307,7 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     uint32_t localIndex = INVALID_REF;
     {
         const std::scoped_lock storeLock(shard.storeMutex);
+
         localIndex = shard.store.pushBack(Identifier{storedName});
         SWC_ASSERT(localIndex < LOCAL_MASK);
     }
@@ -320,6 +318,7 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
 #endif
 
     publishInterned(stripe, result, hash);
+
     return result;
 }
 
@@ -340,6 +339,7 @@ IdentifierRef IdentifierManager::findInterned(const InternTable* table, std::str
         const uint64_t slot = table->slots[i].load(std::memory_order_acquire);
         if (!slot)
             return IdentifierRef::invalid();
+
         if (static_cast<uint32_t>(slot >> 32) != hash)
             continue;
 
@@ -360,6 +360,7 @@ void IdentifierManager::publishInterned(InternStripe& stripe, IdentifierRef idRe
         uint32_t       i    = internSlot(static_cast<uint32_t>(slot >> 32), table.capacity);
         while (table.slots[i].load(std::memory_order_relaxed))
             i = (i + 1) & mask;
+
         table.slots[i].store(slot, std::memory_order_release);
         table.size++;
     };
@@ -371,6 +372,7 @@ void IdentifierManager::publishInterned(InternStripe& stripe, IdentifierRef idRe
         auto grown      = std::make_unique<InternTable>();
         grown->capacity = table ? table->capacity * 2 : 256;
         grown->slots    = std::make_unique<std::atomic<uint64_t>[]>(grown->capacity);
+
         if (table)
         {
             for (uint32_t i = 0; i < table->capacity; ++i)
@@ -392,8 +394,10 @@ void IdentifierManager::publishInterned(InternStripe& stripe, IdentifierRef idRe
 const Identifier& IdentifierManager::get(IdentifierRef idRef) const
 {
     SWC_ASSERT(idRef.isValid());
+
     const auto shardIndex = idRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
+
     const auto localIndex = idRef.get() & LOCAL_MASK;
     return *(shards_[shardIndex].store.ptr<Identifier>(localIndex));
 }

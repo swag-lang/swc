@@ -386,7 +386,9 @@ Result AstNamedType::semaPostNode(Sema& sema) const
             {
                 if (rightView.sym())
                     sema.setSymbol(nodeIdentRef, rightView.sym());
+
                 sema.setType(nodeIdentRef, rightView.typeRef());
+
                 view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
             }
         }
@@ -401,7 +403,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
         return Result::Continue;
     }
 
-    // Auto-deduce generic arguments for bare generic root structs from enclosing context
+    // Deduce generic arguments for bare roots from the enclosing context.
     SymbolStruct* genericRoot = nullptr;
     if (view.sym()->isStruct())
     {
@@ -418,6 +420,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
     {
         SymbolStruct* instance = nullptr;
         SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *genericRoot, instance));
+
         if (instance)
         {
             sema.setType(nodeIdentRef, SemaHelpers::ensureStructTypeRef(sema, *instance));
@@ -426,8 +429,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
         }
     }
 
-    // If we matched against the interface implementation block in a struct,
-    // then we replace it with the corresponding interface type
+    // An interface impl resolves to its interface type.
     if (view.sym()->isImpl() && view.type() && view.type()->isInterface())
     {
         sema.setSymbol(nodeIdentRef, &view.type()->payloadSymInterface());
@@ -440,6 +442,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
         const TypeRef typeRef = ensureForwardNamedTypeRef(sema, *typeSym);
         if (!typeRef.isValid())
             SWC_RESULT(sema.waitTyped(typeSym, sema.node(nodeIdentRef).codeRef()));
+
         sema.setSymbol(nodeIdentRef, typeSym);
         view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
     }
@@ -456,6 +459,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
         SWC_ASSERT(view.node() != nullptr);
         if (view.node()->is(AstNodeId::MemberAccessExpr))
             nodeRef = view.node()->cast<AstMemberAccessExpr>().nodeRightRef;
+
         SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
         return Result::Error;
     }
@@ -465,6 +469,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
         sema.setType(sema.curNodeRef(), view.typeRef());
     else
         sema.setType(sema.curNodeRef(), view.sym()->typeRef());
+
     return Result::Continue;
 }
 
@@ -472,6 +477,7 @@ Result AstArrayType::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 {
     if (spanDimensionsRef.isValid() && childRef != nodePointeeTypeRef)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
+
     return Result::Continue;
 }
 
@@ -480,13 +486,15 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     TaskContext&       ctx            = sema.ctx();
     const SemaNodeView view           = sema.viewType(nodePointeeTypeRef);
     TypeRef            elementTypeRef = view.typeRef();
-    elementTypeRef                    = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
+
+    elementTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
 
     if (elementTypeRef == sema.typeMgr().typeVoid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_array_element_type, nodePointeeTypeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
         diag.report(ctx);
+
         return Result::Error;
     }
 
@@ -498,13 +506,14 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         return Result::Continue;
     }
 
-    // Value-check
     SmallVector<AstNodeRef> out;
     sema.ast().appendNodes(out, spanDimensionsRef);
 
     SmallVector<uint64_t> dims;
     SmallVector<TypeRef>  indexTypeRefs;
-    bool                  hasEnumDimension = false;
+
+    bool hasEnumDimension = false;
+
     for (const auto& dimRef : out)
     {
         const SemaNodeView typeView = sema.viewNodeTypeSymbol(dimRef);
@@ -512,6 +521,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         {
             uint64_t count = 0;
             SWC_RESULT(resolveEnumArrayDimension(sema, *symEnum, dimRef, count));
+
             dims.push_back(count);
             indexTypeRefs.push_back(symEnum->typeRef());
             hasEnumDimension = true;
@@ -519,7 +529,6 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         }
 
         SemaNodeView dimView = sema.viewTypeConstant(dimRef);
-
         SWC_RESULT(SemaCheck::isValue(sema, dimView.nodeRef()));
         SWC_RESULT(SemaCheck::isConstant(sema, dimView.nodeRef()));
 
@@ -528,6 +537,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_not_int, dimView.nodeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, dimView.cst()->typeRef());
             diag.report(ctx);
+
             return Result::Error;
         }
 
@@ -536,6 +546,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_negative, dimView.nodeRef());
             diag.addArgument(Diagnostic::ARG_VALUE, dimView.cst()->toString(ctx));
             diag.report(ctx);
+
             return Result::Error;
         }
 
@@ -546,12 +557,15 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         const int64_t        dim    = newCst.getInt().asI64();
         if (dim == 0)
             return SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimView.nodeRef());
+
         dims.push_back(dim);
         indexTypeRefs.push_back(TypeRef::invalid());
     }
 
     const std::span<const TypeRef> arrayIndexTypeRefs = hasEnumDimension ? indexTypeRefs.span() : std::span<const TypeRef>{};
-    const TypeRef                  typeRef            = sema.typeMgr().addArrayType(dims, view.typeRef(), TypeInfoFlagsE::Zero, arrayIndexTypeRefs);
+
+    const TypeRef typeRef = sema.typeMgr().addArrayType(dims, view.typeRef(), TypeInfoFlagsE::Zero, arrayIndexTypeRefs);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -578,9 +592,11 @@ Result AstSimdType::semaPostNode(Sema& sema) const
         const TypeInfo& laneCandidate = sema.typeMgr().get(laneTypeRef);
         if (!laneCandidate.isAlias())
             break;
+
         const TypeRef underlyingRef = laneCandidate.payloadTypeRef();
         if (!underlyingRef.isValid())
             break;
+
         laneTypeRef = underlyingRef;
     }
 
@@ -607,6 +623,7 @@ Result AstSimdType::semaPostNode(Sema& sema) const
 
     const TypeInfo ty      = TypeInfo::makeSimd(laneTypeRef, static_cast<uint32_t>(laneCount));
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -616,6 +633,7 @@ Result AstCompilerTypeExpr::semaPostNode(Sema& sema) const
     TaskContext&        ctx     = sema.ctx();
     const TypeRef       typeRef = sema.viewType(nodeTypeRef).typeRef();
     const ConstantValue cst     = ConstantValue::makeTypeValue(ctx, typeRef);
+
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, cst));
     return Result::Continue;
 }
@@ -643,6 +661,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_not_type, nodeExprRef);
         diag.addNote(DiagnosticId::sema_note_strict_alias);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -653,6 +672,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
     {
         const TypeInfo ty      = TypeInfo::makeAlias(&sym);
         const TypeRef  typeRef = sema.typeMgr().addType(ty);
+
         sym.setTypeRef(typeRef);
     }
     else
@@ -662,6 +682,7 @@ Result AstAliasDecl::semaPostNode(Sema& sema) const
 
     sym.setTyped(sema.ctx());
     sym.setSemaCompleted(sema.ctx());
+
     return Result::Continue;
 }
 
@@ -681,6 +702,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         {
             const AstLambdaParam& param        = sema.node(paramRef).cast<AstLambdaParam>();
             TypeRef               paramTypeRef = TypeRef::invalid();
+
             if (param.nodeTypeRef.isValid())
                 paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
             else if (param.nodeDefaultValueRef.isValid())
@@ -710,11 +732,13 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
         returnType = sema.viewType(nodeReturnTypeRef).typeRef();
         SWC_RESULT(SemaCheck::noMoveRefType(sema, returnType, sema.node(nodeReturnTypeRef).codeRef()));
     }
+
     symFunc->setReturnTypeRef(returnType);
     symFunc->setExtraFlags(flags());
 
     const TypeInfo ti      = TypeInfo::makeFunction(symFunc, TypeInfoFlagsE::Zero);
     const TypeRef  typeRef = sema.typeMgr().addType(ti);
+
     symFunc->setTypeRef(typeRef);
     symFunc->setDeclared(ctx);
     symFunc->setTyped(ctx);

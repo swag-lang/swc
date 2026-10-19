@@ -72,6 +72,7 @@ namespace
 
         const MicroReg referenceSlotReg = ioPayload.reg;
         ioPayload.reg                   = codeGen.nextVirtualIntRegister();
+
         MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugSource debugSource(builder, ioPayload.sourceCodeRef);
         builder.emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
@@ -109,15 +110,11 @@ namespace
             if (!promotedTypeRef.isValid())
                 return promotedTypeRef;
 
-            // Compares run at their natural promoted width. An N-bit integer
-            // comparison reads only the low N bits, so it is correct regardless of
-            // the register's upper bits and needs no widening sign/zero-extend
-            // (which the previous 32 -> 64 widening emitted on every compare).
-            // Two f32 values compare with comiss: widening both to f64 first
-            // is exact and changes no answer, NaN included, so it only cost two
-            // clears and two conversions per comparison. An integer compared
-            // with an f32 still meets it at f64, where every int32 and uint32
-            // converts exactly.
+            // Integer compares read only the low promoted-width bits, so upper
+            // register bits need no sign/zero extension. Two f32 values also
+            // compare directly: exact widening to f64 would not change NaN results.
+            // Mixed integer/f32 operands still meet at f64, which represents
+            // every int32 and uint32 exactly.
             const TypeInfo& promotedType = codeGen.typeMgr().get(promotedTypeRef);
             if (promotedType.isFloat() && promotedType.payloadFloatBitsOr(64) == 32 && (!leftType.isFloat() || !rightType.isFloat()))
                 return codeGen.typeMgr().typeF64();
@@ -130,8 +127,9 @@ namespace
 
     void loadCompareOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        const TypeInfo& operandType            = codeGen.typeMgr().get(operandTypeRef);
-        outReg                                 = codeGen.nextVirtualRegisterForType(operandTypeRef, operandType);
+        const TypeInfo& operandType = codeGen.typeMgr().get(operandTypeRef);
+        outReg                      = codeGen.nextVirtualRegisterForType(operandTypeRef, operandType);
+
         const MicroOpBits opBits               = CodeGenTypeHelpers::compareBits(operandType, codeGen.ctx());
         const bool        isAddressBackedValue = operandType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
 
@@ -169,7 +167,8 @@ namespace
         const TypeInfo& operandType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandTypeRef);
         if (operandType.isAny())
         {
-            outReg                          = codeGen.nextVirtualIntRegister();
+            outReg = codeGen.nextVirtualIntRegister();
+
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugSource debugSource(builder, payload.sourceCodeRef);
             builder.emitLoadRegMem(outReg, payload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
@@ -190,15 +189,14 @@ namespace
         builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
     }
 
-    // Two slices compare over their elements, like the array they view. The scalar path below
-    // would only look at the data pointer, so two slices holding the same bytes over different
-    // storage would answer 'false', and two slices of different lengths over the same storage
-    // would answer 'true'.
+    // Compare slice elements and lengths. A scalar pointer comparison would
+    // confuse equal content in different storage with different views of one buffer.
     Result emitSliceCompareBool(CodeGen& codeGen, const SymbolFunction& sliceCmpFunction, TypeRef resultTypeRef, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const TypeInfo& sliceType)
     {
         const uint64_t elementSize = codeGen.typeMgr().get(sliceType.payloadTypeRef()).sizeOf(codeGen.ctx());
 
-        MicroBuilder&  builder       = codeGen.builder();
+        MicroBuilder& builder = codeGen.builder();
+
         const MicroReg leftDataReg   = codeGen.nextVirtualIntRegister();
         const MicroReg rightDataReg  = codeGen.nextVirtualIntRegister();
         const MicroReg leftCountReg  = codeGen.nextVirtualIntRegister();
@@ -226,7 +224,8 @@ namespace
         const auto    callInfo = CodeGenBinaryValueCall::emit(codeGen, stringCmpFunction, leftPayload, rightPayload);
         MicroBuilder& builder  = codeGen.builder();
 
-        const CodeGenNodePayload&              resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), *callInfo.callConv, codeGen.typeMgr().get(stringCmpFunction.returnTypeRef()), ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);
@@ -243,13 +242,15 @@ namespace
         loadTypeInfoComparePtr(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);
         loadTypeInfoComparePtr(rightPtrReg, codeGen, rightPayload, rightOperandTypeRef, compareTypeRef);
 
-        MicroBuilder&       builder       = codeGen.builder();
+        MicroBuilder& builder = codeGen.builder();
+
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
 
         const MicroLabelRef sameTypeLabel  = builder.createLabel();
         const MicroLabelRef otherTypeLabel = builder.createLabel();
         const MicroLabelRef doneLabel      = builder.createLabel();
+
         CodeGenCompareHelpers::emitTypeInfoEqualJump(codeGen, leftPtrReg, rightPtrReg, sameTypeLabel, otherTypeLabel);
 
         const bool wantEqual = tokId == TokenId::SymEqualEqual;
@@ -269,21 +270,27 @@ namespace
     {
         using FloatUnorderedMode          = CodeGenCompareHelpers::FloatUnorderedMode;
         const bool unsignedOrFloatCompare = compareType.usesUnsignedConditions();
+
         switch (tokId)
         {
             case TokenId::SymLess:
                 return {.primaryCond        = CodeGenCompareHelpers::lessCond(unsignedOrFloatCompare),
                         .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
+
             case TokenId::SymLessEqual:
                 return {.primaryCond        = CodeGenCompareHelpers::lessEqualCond(unsignedOrFloatCompare),
                         .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
+
             case TokenId::SymGreater:
                 return {.primaryCond = CodeGenCompareHelpers::greaterCond(unsignedOrFloatCompare)};
+
             case TokenId::SymGreaterEqual:
                 return {.primaryCond = CodeGenCompareHelpers::greaterEqualCond(unsignedOrFloatCompare)};
+
             case TokenId::SymEqualEqual:
                 return {.primaryCond        = MicroCond::Equal,
                         .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
+
             case TokenId::SymBangEqual:
                 return {.primaryCond        = MicroCond::NotEqual,
                         .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::AcceptUnordered : FloatUnorderedMode::ExcludedByPrimary};
@@ -299,6 +306,7 @@ namespace
         AstNodeRef       resolvedRef = codeGen.resolvedNodeRef(callRef);
         if ((resolvedRef.isInvalid() || resolvedRef == callRef) && relationalPayload.inlineSubstituteRef.isValid())
             resolvedRef = relationalPayload.inlineSubstituteRef;
+
         if (resolvedRef.isValid() && resolvedRef != callRef)
         {
             SWC_RESULT(codeGen.emitNodeNow(resolvedRef));
@@ -317,6 +325,7 @@ namespace
             CodeGenMemoryHelpers::loadOperandToRegister(resultPayload.reg, codeGen, callPayload, callPayload.typeRef, opBits);
         else
             codeGen.builder().emitLoadRegReg(resultPayload.reg, callPayload.reg, opBits);
+
         return resultPayload;
     }
 
@@ -396,10 +405,8 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    // One step of an aggregate comparison, at an offset from the start of the value. Most of a
-    // value is bytes both operands must hold identically, but a member whose type answers '=='
-    // its own way — a 'string', a slice, or a struct owning an 'opEquals' — is asked that
-    // question instead, so an array gives the same answer its elements give.
+    // Aggregate comparisons combine byte runs with content or opEquals calls
+    // for members that define equality, including each array element.
     struct ComparePart
     {
         enum class Kind : uint8_t
@@ -410,17 +417,17 @@ namespace
             Array,   // 'count' elements 'size' bytes apart, each compared through 'elemParts'
         };
 
-        Kind                     kind     = Kind::Bytes;
-        uint64_t                 offset   = 0;
-        uint64_t                 size     = 0;
-        uint64_t                 count    = 0;
-        SymbolFunction*          equalsFn = nullptr;
+        Kind            kind     = Kind::Bytes;
+        uint64_t        offset   = 0;
+        uint64_t        size     = 0;
+        uint64_t        count    = 0;
+        SymbolFunction* equalsFn = nullptr;
+
         std::vector<ComparePart> elemParts;
     };
 
-    // Past this many elements, an array whose elements are not plain bytes is compared in a loop.
-    // Unrolled, every element repeats its helper calls and string compares, and a runtime struct
-    // holding a few such arrays grew an equality operator of thousands of instructions.
+    // Bound code size when array elements require repeated helper calls or
+    // string comparisons: compare larger arrays in a loop.
     constexpr uint64_t K_COMPARE_UNROLLED_ELEMENTS = 4;
 
     // Past this many sixteen-byte chunks, a byte run is compared in a loop.
@@ -431,8 +438,7 @@ namespace
         if (!size)
             return;
 
-        // Members follow each other in offset order, so a run that starts where the previous one
-        // ended extends it instead of adding a second compare for the same contiguous bytes.
+        // Offset-ordered members let adjacent byte runs share one compare.
         if (!out.empty() && out.back().kind == ComparePart::Kind::Bytes && out.back().offset + out.back().size == offset)
         {
             out.back().size += size;
@@ -442,15 +448,13 @@ namespace
         out.push_back({.kind = ComparePart::Kind::Bytes, .offset = offset, .size = size});
     }
 
-    // Fill 'out' with the steps comparing a value of this type. The padding a layout inserts
-    // between and after members is not one of them: two values whose every member is equal must
-    // compare equal, and the bytes between the members are not members. A union is the exception
-    // — its members share one storage, so all of it is compared.
+    // Ignore struct padding: equal members must compare equal even if padding
+    // bytes differ. Unions share their storage, so compare the whole region.
     void appendCompareParts(CodeGen& codeGen, SmallVector<ComparePart>& out, const TypeInfo& declaredType, uint64_t base)
     {
-        TaskContext&    ctx           = codeGen.ctx();
-        const TypeInfo& type          = declaredType.unwrapAliasEnumTypeOrSelf(ctx);
-        const uint64_t  size          = type.sizeOf(ctx);
+        TaskContext&    ctx  = codeGen.ctx();
+        const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(ctx);
+        const uint64_t  size = type.sizeOf(ctx);
 
         if (type.isString())
         {
@@ -498,8 +502,7 @@ namespace
             SmallVector<ComparePart> elemParts;
             appendCompareParts(codeGen, elemParts, elemType, 0);
 
-            // An element that occupies all of its own storage leaves the whole array contiguous,
-            // which is one compare instead of one per element.
+            // A byte-only element with no padding makes the entire array one run.
             if (elemParts.size() == 1 && elemParts[0].kind == ComparePart::Kind::Bytes && elemParts[0].offset == 0 && elemParts[0].size == elemSize)
             {
                 appendCompareBytes(out, base, size);
@@ -536,9 +539,8 @@ namespace
         appendCompareBytes(out, base, size);
     }
 
-    // Sixteen bytes at a time: the packed compare answers every byte at once and the move-mask
-    // turns the sixteen lane results into one integer, so a run costs one branch per sixteen
-    // bytes instead of one per eight.
+    // Packed equality plus a move-mask reduces sixteen byte results to one
+    // branch, halving the branches needed by eight-byte scalar chunks.
     void emitCompareBytesVectorChunk(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, uint64_t offset, MicroLabelRef notEqualLabel)
     {
         MicroBuilder&  builder     = codeGen.builder();
@@ -562,8 +564,8 @@ namespace
         uint64_t offset = part.offset;
         if (codeGen.buildCfgBackend().optimizes())
         {
-            // A long run is walked by a loop over its sixteen-byte chunks: unrolled, a struct of a
-            // few kilobytes compiled hundreds of compare blocks for an operator nobody may call.
+            // Loop over long runs to keep large structs from generating hundreds
+            // of unrolled comparison blocks.
             const uint64_t chunkCount = part.size / 16;
             if (chunkCount > K_COMPARE_UNROLLED_CHUNKS)
             {
@@ -571,7 +573,8 @@ namespace
                 CodeGenNodePayload rightCursor = rightPayload;
                 leftCursor.reg                 = codeGen.nextVirtualIntRegister();
                 rightCursor.reg                = codeGen.nextVirtualIntRegister();
-                const MicroReg counterReg      = codeGen.nextVirtualIntRegister();
+
+                const MicroReg counterReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadAddressRegMem(leftCursor.reg, leftPayload.reg, offset, MicroOpBits::B64);
                 builder.emitLoadAddressRegMem(rightCursor.reg, rightPayload.reg, offset, MicroOpBits::B64);
                 builder.emitLoadRegImm(counterReg, ApInt(chunkCount, 64), MicroOpBits::B64);
@@ -579,11 +582,13 @@ namespace
                 const MicroLabelRef loopLabel = builder.createLabel();
                 builder.placeLabel(loopLabel);
                 emitCompareBytesVectorChunk(codeGen, leftCursor, rightCursor, 0, notEqualLabel);
+
                 builder.emitOpBinaryRegImm(leftCursor.reg, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
                 builder.emitOpBinaryRegImm(rightCursor.reg, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
                 builder.emitOpBinaryRegImm(counterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
                 builder.emitCmpRegImm(counterReg, ApInt(0, 64), MicroOpBits::B64);
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loopLabel);
+
                 offset += chunkCount * 16;
             }
 
@@ -694,6 +699,7 @@ namespace
         preparedArgs.reserve(2);
         CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[0]->typeRef(), leftAddrReg);
         CodeGenCallHelpers::appendPreparedValueArg(preparedArgs, codeGen, callConv, otherPayload, params[1]->typeRef());
+
         CodeGenCallHelpers::emitPreparedCall(codeGen, equalsFn, callConv, preparedArgs);
         codeGen.function().addCallDependency(&equalsFn);
 
@@ -708,8 +714,8 @@ namespace
 
     Result emitComparePart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel);
 
-    // One element per iteration: both cursors walk the arrays together and every element part
-    // is asked at its offset from the cursor, so the code size no longer grows with the count.
+    // Walk both arrays together; comparing parts at each cursor keeps code
+    // size independent of the element count.
     Result emitCompareArrayPart(CodeGen& codeGen, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, const ComparePart& part, MicroLabelRef notEqualLabel)
     {
         MicroBuilder&      builder     = codeGen.builder();
@@ -717,7 +723,8 @@ namespace
         CodeGenNodePayload rightCursor = rightPayload;
         leftCursor.reg                 = codeGen.nextVirtualIntRegister();
         rightCursor.reg                = codeGen.nextVirtualIntRegister();
-        const MicroReg counterReg      = codeGen.nextVirtualIntRegister();
+
+        const MicroReg counterReg = codeGen.nextVirtualIntRegister();
 
         builder.emitLoadAddressRegMem(leftCursor.reg, leftPayload.reg, part.offset, MicroOpBits::B64);
         builder.emitLoadAddressRegMem(rightCursor.reg, rightPayload.reg, part.offset, MicroOpBits::B64);
@@ -725,6 +732,7 @@ namespace
 
         const MicroLabelRef loopLabel = builder.createLabel();
         builder.placeLabel(loopLabel);
+
         for (const ComparePart& elemPart : part.elemParts)
             SWC_RESULT(emitComparePart(codeGen, leftCursor, rightCursor, elemPart, notEqualLabel));
 
@@ -752,16 +760,15 @@ namespace
         }
     }
 
-    // A part that is not a plain byte run needs the aggregate path whatever the value's size,
-    // because the scalar compare below can only answer with the storage.
+    // Any part beyond a plain byte run needs the aggregate path at any size;
+    // the scalar path can only compare storage bytes.
     bool hasOwnAnswerPart(std::span<const ComparePart> parts)
     {
         return std::ranges::any_of(parts, [](const ComparePart& part) { return part.kind != ComparePart::Kind::Bytes; });
     }
 
-    // Compare two address-backed aggregate operands (structs/arrays) for equality, step by step.
-    // The scalar compare path only looks at a single register-sized load, which silently ignores
-    // every field past the first machine word for aggregates larger than a register.
+    // Walk every part of address-backed aggregates. A single register-sized
+    // load would miss fields beyond the first machine word.
     Result emitAggregateEqualsBool(CodeGen& codeGen, TypeRef resultTypeRef, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, std::span<const ComparePart> parts)
     {
         MicroBuilder&       builder       = codeGen.builder();
@@ -793,6 +800,7 @@ namespace
         TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightPayload);
         SWC_ASSERT(leftOperandTypeRef.isValid());
         SWC_ASSERT(rightOperandTypeRef.isValid());
+
         CodeGenNodePayload leftOperandPayload  = leftPayload;
         CodeGenNodePayload rightOperandPayload = rightPayload;
         const TypeRef      leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
@@ -814,28 +822,26 @@ namespace
 
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && compareType.isAnyTypeInfo(codeGen.ctx()))
             return emitTypeInfoCompareBool(codeGen, resultTypeRef, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, compareTypeRef);
+
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), leftOperandTypeRef) &&
             codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), rightOperandTypeRef))
             return emitTypeInfoCompareBool(codeGen, resultTypeRef, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
 
-        // An aggregate (struct/array) wider than a machine register must be compared over its full
-        // content. Interfaces compare both their receiver and method table. An aggregate
-        // holding a member with an answer of its own must be compared part by
-        // part whatever its size. The scalar path below only compares a single register-sized
-        // load, which would ignore every field beyond the first machine word and every answer but
-        // the storage.
+        // Compare wide aggregates over their full content, interfaces over both
+        // receiver and method table, and members with custom equality at any size.
+        // A scalar load would miss later fields and bypass those member comparisons.
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
             (SemaHelpers::isByValueAggregateType(compareType) || compareType.isInterface()))
         {
             SmallVector<ComparePart> parts;
             appendCompareParts(codeGen, parts, compareType, 0);
+
             const bool isWiderThanRegister = compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
             if (isWiderThanRegister || hasOwnAnswerPart(parts.span()))
             {
-                // Every part reads its operand through an address. A value wider than a register
-                // is always memory-backed; a narrower one reaches here only because a member has
-                // an answer of its own, and such a member is only ever reached through a place.
+                // Wide values are memory-backed. Narrow values only reach this
+                // path for a member with custom equality, accessed through a place.
                 SWC_ASSERT(isWiderThanRegister || (leftOperandPayload.isAddress() && rightOperandPayload.isAddress()));
                 return emitAggregateEqualsBool(codeGen, resultTypeRef, tokId, leftOperandPayload, rightOperandPayload, parts.span());
             }
@@ -850,7 +856,8 @@ namespace
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         resultPayload.reg                 = codeGen.nextVirtualIntRegister();
-        MicroBuilder& builder             = codeGen.builder();
+
+        MicroBuilder& builder = codeGen.builder();
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
 
         const CodeGenCompareHelpers::CompareCondition condition = buildCompareCondition(tokId, compareType);
@@ -866,6 +873,7 @@ namespace
         TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightPayload);
         SWC_ASSERT(leftOperandTypeRef.isValid());
         SWC_ASSERT(rightOperandTypeRef.isValid());
+
         CodeGenNodePayload leftOperandPayload  = leftPayload;
         CodeGenNodePayload rightOperandPayload = rightPayload;
         const TypeRef      leftCompareTypeRef  = normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
@@ -890,6 +898,7 @@ namespace
         builder.emitCmpRegReg(leftReg, rightReg, opBits);
         builder.emitSetCondReg(lessReg, lessCond.primaryCond);
         builder.emitLoadZeroExtendRegReg(lessReg, lessReg, MicroOpBits::B32, MicroOpBits::B8);
+
         builder.emitSetCondReg(greatReg, greatCond.primaryCond);
         builder.emitLoadZeroExtendRegReg(greatReg, greatReg, MicroOpBits::B32, MicroOpBits::B8);
 
@@ -902,6 +911,7 @@ namespace
         }
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+
         // `<=>` is reconstructed from two predicates: `left > right` minus `left < right` yields
         // {+1, 0, -1} without needing a dedicated three-way compare opcode.
         builder.emitLoadRegReg(resultPayload.reg, greatReg, MicroOpBits::B32);
@@ -915,6 +925,7 @@ namespace
         const SemaNodeView leftView = codeGen.viewType(node.nodeLeftRef);
         const TypeInfo&    vecType  = SemaHelpers::aliasEnumType(codeGen.sema(), leftView);
         SWC_ASSERT(vecType.isSimd());
+
         const TypeInfo& laneType = codeGen.typeMgr().get(vecType.payloadSimdLaneTypeRef());
 
         const MicroReg lhsReg  = CodeGenVectorHelpers::loadVectorOperand(codeGen, codeGen.payload(node.nodeLeftRef));
@@ -935,6 +946,7 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         const TypeRef resultTypeRef = codeGen.viewType(codeGen.curNodeRef()).typeRef();
         SWC_ASSERT(resultTypeRef.isValid());
+
         const auto& calledFn = *relationalPayload->calledFn;
         if (calledFn.specOpKind() == SpecOpKind::OpEquals || calledFn.specOpKind() == SpecOpKind::OpCompare)
             return emitSpecialRelational(codeGen, tok.id, calledFn, resultTypeRef, *relationalPayload);

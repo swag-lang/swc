@@ -35,9 +35,11 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (!typeInfo.isAlias())
             return typeRef;
+
         const TypeRef rawTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (rawTypeRef.isValid())
             return rawTypeRef;
+
         return typeRef;
     }
 
@@ -67,6 +69,7 @@ namespace
         {
             if (!currentType->isArray())
                 break;
+
             whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType->payloadArrayElemTypeRef());
             if (whatTypeRef.isValid())
                 currentType = &codeGen.typeMgr().get(whatTypeRef);
@@ -107,6 +110,7 @@ namespace
             codeGen.builder().emitLoadRegMem(countReg, countPayload.reg, 0, MicroOpBits::B64);
         else
             codeGen.builder().emitLoadRegReg(countReg, countPayload.reg, MicroOpBits::B64);
+
         return countReg;
     }
 
@@ -197,6 +201,7 @@ namespace
         }
 
         SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, fillTypeRef, storageReg));
+
         outPayload.typeRef = fillTypeRef;
         outPayload.reg     = storageReg;
         outPayload.setIsAddress();
@@ -226,6 +231,7 @@ namespace
     {
         if (!count)
             return Result::Continue;
+
         const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
         if (count == 1)
             return emitIntrinsicInitStore(codeGen, fillType, srcPayload, dstAddressReg);
@@ -371,6 +377,7 @@ namespace
             else
                 SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, addressReg, elementSize));
         }
+
         if (!hasLifecycle)
             return Result::Continue;
 
@@ -395,8 +402,10 @@ namespace
             }
 
             SWC_RESULT(codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg, countReg));
+
             if (poisonAfterDrop)
                 SWC_RESULT(CodeGenSafety::emitLifecyclePoisonLoop(codeGen, stableAddrReg, stableCountReg, codeGen.typeMgr().get(targetTypeRef).sizeOf(codeGen.ctx())));
+
             return Result::Continue;
         }
 
@@ -408,8 +417,10 @@ namespace
         }
 
         SWC_RESULT(codeGen.emitLifecycle(targetTypeRef, lifecycleKind, addressReg));
+
         if (poisonAfterDrop)
             SWC_RESULT(CodeGenSafety::emitLifecyclePoison(codeGen, stableAddrReg, codeGen.typeMgr().get(targetTypeRef).sizeOf(codeGen.ctx())));
+
         return Result::Continue;
     }
 
@@ -431,6 +442,7 @@ namespace
         const TypeRef      resultTypeRef = codeGen.curViewType().typeRef();
         const TypeInfo*    exprTypeInfo  = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
         SWC_ASSERT(exprTypeInfo);
+
         const TypeInfo& exprType = *exprTypeInfo;
 
         if (exprType.isInt())
@@ -445,18 +457,14 @@ namespace
             return Result::Continue;
         }
 
-        // The runtime element count is always a natural-width `u64` (slice/string `count`/`length`
-        // fields, or a byte scan for C strings), so type the produced value as `u64` rather than the
-        // surrounding context type. Using the context type (e.g. `bool` for `if !s.count`) made the
-        // value be loaded as 64 bits but compared/consumed at the narrower width, so counts that are a
-        // multiple of 256 (low byte zero) were wrongly seen as zero. Any narrowing the context needs is
-        // handled by the normal conversion path on the consumer side.
+        // Runtime counts are u64, regardless of surrounding context. Retaining a bool
+        // context here truncates the count before comparison (256 becomes zero).
+        // Consumers perform any required narrowing through the normal conversion path.
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.typeMgr().typeU64());
         const MicroReg            baseReg       = materializeCountLikeBaseReg(codeGen, exprPayload);
         if (exprType.isCString())
         {
-            // C strings do not carry a cached length in their runtime representation, so count bytes until
-            // the terminating zero.
+            // C strings have no stored length; scan to the terminating zero.
             const MicroReg cstrReg = codeGen.nextVirtualIntRegister();
             if (exprPayload.isAddress())
                 builder.emitLoadRegMem(cstrReg, baseReg, 0, MicroOpBits::B64);
@@ -481,7 +489,6 @@ namespace
 
         SWC_INTERNAL_ERROR();
     }
-
 }
 
 Result AstIntrinsicInit::codeGenPostNode(CodeGen& codeGen) const

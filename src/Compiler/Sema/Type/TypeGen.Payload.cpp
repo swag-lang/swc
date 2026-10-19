@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
+
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -89,6 +90,7 @@ namespace
         const Result materializeRes = ConstantLower::materializeStaticPayload(sema, valueOffset, storage, valueType, valueBytes);
         SWC_ASSERT(materializeRes == Result::Continue);
         SWC_ASSERT(valueOffset != INVALID_REF);
+
         storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
         tv.value = storage.ptr<std::byte>(valueOffset);
     }
@@ -110,11 +112,13 @@ namespace
 
         TaskContext& ctx = sema.ctx();
 
-        entryGenericsCount                       = static_cast<uint32_t>(genericArgs.size());
+        entryGenericsCount = static_cast<uint32_t>(genericArgs.size());
+
         const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entryGenericsCount);
-        entryGenericsOffset                      = genericsOffset;
-        rtType.generics.ptr                      = genericsPtr;
-        rtType.generics.count                    = entryGenericsCount;
+
+        entryGenericsOffset   = genericsOffset;
+        rtType.generics.ptr   = genericsPtr;
+        rtType.generics.count = entryGenericsCount;
         storage.addRelocation(ownerOffset + genericsPtrFieldOffset, genericsOffset);
 
         entryGenericTypes.reserve(entryGenericsCount);
@@ -147,6 +151,7 @@ namespace
     {
         if (symStruct.attributes().hasRtFlag(RtAttributeFlagsE::NoCopy))
             return false;
+
         return symStruct.opDrop() == nullptr || symStruct.opPostCopy() != nullptr;
     }
 
@@ -187,6 +192,7 @@ namespace
 
         const TypeGen::LifecycleFlags flags = lifecycleFlagsOfTypeRec(ctx, type, visiting);
         visiting.erase(typeRef);
+
         return flags;
     }
 
@@ -195,6 +201,7 @@ namespace
         TypeGen::LifecycleFlags flags;
         for (const TypeRef fieldTypeRef : fieldTypes)
             mergeFieldLifecycle(flags, lifecycleFlagsOfTypeRefRec(ctx, fieldTypeRef, visiting));
+
         return flags;
     }
 
@@ -215,6 +222,7 @@ namespace
             default:
                 return TypeRef::invalid();
         }
+
         if (!visited.insert(typeRef))
             return TypeRef::invalid();
 
@@ -250,6 +258,7 @@ namespace
         {
             if (!field)
                 continue;
+
             const TypeRef owningTypeRef = owningDropTypeRefRec(ctx, field->typeRef(), visited);
             if (owningTypeRef.isValid())
                 return owningTypeRef;
@@ -288,6 +297,7 @@ namespace
             flags.hasPostCopy = symStruct.opPostCopy() != nullptr;
             flags.hasPostMove = symStruct.opPostMove() != nullptr;
             flags.canCopy     = structDeclaresCopy(symStruct);
+
             return flags;
         }
 
@@ -300,10 +310,12 @@ namespace
         const bool hasDirectDrop     = symStruct.opDrop() != nullptr;
         const bool hasDirectPostCopy = symStruct.opPostCopy() != nullptr;
         const bool hasDirectPostMove = symStruct.opPostMove() != nullptr;
-        flags.hasDrop                = flags.hasDrop || hasDirectDrop;
-        flags.hasPostCopy            = flags.hasPostCopy || hasDirectPostCopy;
-        flags.hasPostMove            = flags.hasPostMove || hasDirectPostMove;
-        flags.canCopy                = structDeclaresCopy(symStruct) && flags.canCopy;
+
+        flags.hasDrop     = flags.hasDrop || hasDirectDrop;
+        flags.hasPostCopy = flags.hasPostCopy || hasDirectPostCopy;
+        flags.hasPostMove = flags.hasPostMove || hasDirectPostMove;
+        flags.canCopy     = structDeclaresCopy(symStruct) && flags.canCopy;
+
         return flags;
     }
 
@@ -313,7 +325,9 @@ namespace
         const auto res = storage.reserve<T>();
         const auto off = res.first;
         T*         ptr = res.second;
+
         ptr->base.kind = kind;
+
         return {off, &ptr->base};
     }
 
@@ -322,6 +336,7 @@ namespace
         TaskContext& ctx = sema.ctx();
 
         rtType.sizeofType = static_cast<uint32_t>(type.sizeOf(ctx));
+
         // Runtime metadata must stay stable across identical builds, so do not reuse the
         // allocator-dependent interning hash here.
         rtType.crc = type.runtimeHash(ctx);
@@ -358,15 +373,17 @@ namespace
             const SymbolFunction& symFunc = type.payloadSymFunction();
             if (symFunc.isAttribute())
             {
-                const Utf8 fullName    = symFunc.getFullScopedName(ctx);
+                const Utf8 fullName = symFunc.getFullScopedName(ctx);
+
                 rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), fullName);
                 rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), symFunc.name(ctx));
                 return;
             }
         }
 
-        const Utf8 fullName    = type.toFullName(ctx);
-        const Utf8 name        = type.toName(ctx);
+        const Utf8 fullName = type.toFullName(ctx);
+        const Utf8 name     = type.toName(ctx);
+
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), fullName);
         rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), name);
     }
@@ -384,6 +401,7 @@ namespace
         if (type.isInt())
         {
             addFlag(rtType.base, Runtime::TypeInfoFlags::Integer);
+
             if (type.isIntUnsigned())
                 addFlag(rtType.base, Runtime::TypeInfoFlags::Unsigned);
 
@@ -400,6 +418,7 @@ namespace
         if (type.isFloat())
         {
             addFlag(rtType.base, Runtime::TypeInfoFlags::Float);
+
             rtType.nativeKind = (type.payloadFloatBits() == 32) ? Runtime::TypeInfoNativeKind::F32 : Runtime::TypeInfoNativeKind::F64;
             return;
         }
@@ -409,21 +428,25 @@ namespace
             rtType.nativeKind = Runtime::TypeInfoNativeKind::String;
             return;
         }
+
         if (type.isCString())
         {
             rtType.nativeKind = Runtime::TypeInfoNativeKind::CString;
             return;
         }
+
         if (type.isRune())
         {
             rtType.nativeKind = Runtime::TypeInfoNativeKind::Rune;
             return;
         }
+
         if (type.isAny())
         {
             rtType.nativeKind = Runtime::TypeInfoNativeKind::Any;
             return;
         }
+
         if (type.isVoid())
         {
             rtType.nativeKind = Runtime::TypeInfoNativeKind::Void;
@@ -456,6 +479,7 @@ namespace
         }
 
         std::ranges::sort(result, SymbolOrder::beforeToken);
+
         return result;
     }
 
@@ -463,6 +487,7 @@ namespace
     {
         const auto it = cache.entries.find(depKey);
         SWC_ASSERT(it != cache.entries.end() && "Missing TypeInfo dependency in cache");
+
         return it->second;
     }
 

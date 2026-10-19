@@ -31,6 +31,7 @@ namespace
         const auto    copyReg = codeGen.nextVirtualIntRegister();
         if (baseReg.isInt())
             builder.addVirtualRegForbiddenPhysReg(copyReg, baseReg);
+
         builder.emitLoadRegReg(copyReg, baseReg, MicroOpBits::B64);
         return copyReg;
     }
@@ -68,8 +69,7 @@ namespace
         return false;
     }
 
-    // 'end - low', or zero when the range is inverted. The bare subtraction would wrap and
-    // describe a view over the whole address space.
+    // Inverted ranges produce an empty slice; direct subtraction would wrap.
     void emitSliceCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg lowReg, MicroReg endExclusiveReg)
     {
         MicroBuilder&       builder  = codeGen.builder();
@@ -77,8 +77,10 @@ namespace
         builder.emitLoadRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitCmpRegReg(endExclusiveReg, lowReg, MicroOpBits::B64);
         builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, emptyRef);
+
         builder.emitLoadRegReg(countReg, endExclusiveReg, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(countReg, lowReg, MicroOp::Subtract, MicroOpBits::B64);
+
         builder.placeLabel(emptyRef);
     }
 
@@ -100,6 +102,7 @@ namespace
             normalizedTypeRef = normalizedType->payloadSymEnum().underlyingTypeRef();
             if (!normalizedTypeRef.isValid())
                 return;
+
             normalizedType = &codeGen.typeMgr().get(normalizedTypeRef);
         }
 
@@ -216,8 +219,8 @@ namespace
                 spillOwnerRef = payloadNodeRef;
         }
 
-        // When the source expression already owns a storage slot, spill there first so the destination node
-        // can keep its own runtime storage for the index/slice result.
+        // Reuse source-owned storage when available so the destination keeps its
+        // own slot for the resulting index or slice value.
         const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(spillOwnerRef);
         builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, CodeGenTypeHelpers::bitsFromStorageSize(sizeOfValue));
         return spillAddrReg;
@@ -231,6 +234,7 @@ namespace
         {
             if (indexedPayload.isAddress())
                 return indexedPayload.reg;
+
             return materializeAddressFromValue(codeGen, indexedNodeRef, indexedPayload, indexedType);
         }
 
@@ -239,9 +243,8 @@ namespace
             if (indexedPayload.isAddress())
                 return indexedPayload.reg;
 
-            // A register-resident vector spills into its attached storage so
-            // lanes can be addressed. An assignment target is always
-            // address-backed, so writes never land in the spill.
+            // Spill register-resident vectors so lanes can be addressed. Assignment
+            // targets already have address-backed storage and bypass this path.
             AstNodeRef spillOwnerRef = codeGen.curNodeRef();
             if (indexedNodeRef.isValid())
             {
@@ -316,12 +319,15 @@ namespace
                 const AstNodeRef parentRef = codeGen.visit().parentNodeRef(up);
                 if (parentRef.isInvalid())
                     break;
+
                 detail += std::format(" {}({})", parentRef.get(), Ast::nodeIdInfos(codeGen.node(parentRef).id()).name);
             }
+
             detail += "\n";
             swcAssertDetail("indexable type in the raw-index fallback", __FILE__, __LINE__, detail.view());
         }
 #endif
+
         SWC_UNREACHABLE();
     }
 
@@ -373,9 +379,10 @@ namespace
 
     Result emitAggregateArrayConstIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexedNodeRef, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {
-        uint32_t   fieldOffset   = 0;
-        TypeRef    resultTypeRef = TypeRef::invalid();
-        const bool hasConstInfo  = resolveAggregateArrayConstIndexInfo(codeGen, indexRef, indexedType, fieldOffset, resultTypeRef);
+        uint32_t fieldOffset   = 0;
+        TypeRef  resultTypeRef = TypeRef::invalid();
+
+        const bool hasConstInfo = resolveAggregateArrayConstIndexInfo(codeGen, indexRef, indexedType, fieldOffset, resultTypeRef);
         SWC_ASSERT(hasConstInfo);
         SWC_ASSERT(resultTypeRef.isValid());
 
@@ -402,6 +409,7 @@ namespace
         auto           indexBits = MicroOpBits::B64;
         const MicroReg indexReg  = materializeIndexReg(codeGen, indexRef, indexBits);
         SWC_RESULT(CodeGenSafety::emitBoundCheck(codeGen, indexRef, indexedType, indexedPayload, indexReg));
+
         MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedNodeRef, indexedType, indexedPayload);
 
         if (indexedType.isArray() && indexedPayload.isAddress())
@@ -429,11 +437,12 @@ namespace
         const auto* slicePayload = codeGen.sema().semaPayload<SliceIndexSemaPayload>(codeGen.curNodeRef());
         SWC_ASSERT(slicePayload != nullptr);
 
-        CodeGenNodePayload indexedPayload  = codeGen.payload(node.nodeExprRef);
-        TypeRef            indexedTypeRef  = CodeGenExprView::payloadTypeRef(codeGen, indexedPayload, node.nodeExprRef);
-        indexedTypeRef                     = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
-        const TypeInfo*    indexedTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
-        const SemaNodeView resultView      = codeGen.curViewType();
+        CodeGenNodePayload indexedPayload = codeGen.payload(node.nodeExprRef);
+        TypeRef            indexedTypeRef = CodeGenExprView::payloadTypeRef(codeGen, indexedPayload, node.nodeExprRef);
+        indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
+        const TypeInfo* indexedTypeInfo   = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
+
+        const SemaNodeView resultView = codeGen.curViewType();
         SWC_ASSERT(indexedTypeInfo);
         SWC_ASSERT(resultView.type());
 
@@ -481,8 +490,6 @@ namespace
         const MicroReg dataReg    = codeGen.nextVirtualIntRegister();
         builder.emitLoadAddressAmcRegMem(dataReg, MicroOpBits::B64, baseReg, lowReg, strideSize, 0, MicroOpBits::B64);
 
-        // Without the guard the subtraction below would wrap on an inverted range and hand out
-        // a slice covering the whole address space. An empty view is the defined outcome.
         const MicroReg countReg = codeGen.nextVirtualIntRegister();
         emitSliceCountReg(codeGen, countReg, lowReg, endExclusiveReg);
 
@@ -516,6 +523,7 @@ namespace
             return Result::Continue;
         }
 
+        // Slice spec operators take an inclusive upper bound.
         outReg = codeGen.nextVirtualIntRegister();
         if (specOpPayload.upperBoundRef.isValid())
         {
@@ -559,8 +567,8 @@ namespace
 
         SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), &calledFn));
 
-        // A reference-returning 'opIndex' and a pointer-returning 'opIndexPtr' both hand back
-        // the element's address: the call result register IS the address of the semantic value.
+        // opIndex references and opIndexPtr pointers both return the element address.
+        // Treat their call result register as the semantic value's address.
         const TypeInfo& returnType = codeGen.typeMgr().get(calledFn.returnTypeRef());
         if (returnType.isReference() || calledFn.specOpKind() == SpecOpKind::OpIndexPtr)
         {
@@ -574,14 +582,9 @@ namespace
 
 namespace
 {
-    // A constant lane read of a vector that lives in a register: lane zero of a
-    // 32- or 64-bit lane is one move out of the float register file, and any
-    // other lane first rides to position zero through the four-lane permute.
-    // An 8- or 16-bit integer lane slides down by whole bytes instead, leaves
-    // through the same move, and is extended from its own width. Dynamic
-    // indices keep the spill-and-load path. Reading the low lane this way is
-    // what a low-lane store and every lane extraction of a transpose
-    // compile to, so it is worth a direct form.
+    // Avoid spilling vectors for constant lane reads. Move 32/64-bit lanes
+    // through position zero; shift 8/16-bit lanes by bytes and extend them.
+    // Dynamic indices keep the spill-and-load path.
     bool tryEmitSimdLaneRead(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {
         if (!indexedType.isSimd() || indexedPayload.isAddress())
@@ -590,9 +593,11 @@ namespace
         const SemaNodeView indexView = codeGen.viewConstant(indexRef);
         if (indexView.cstRef().isInvalid())
             return false;
+
         const ConstantValue& indexCst = *indexView.cst();
         if (!codeGen.typeMgr().get(indexCst.typeRef()).isIntLike())
             return false;
+
         const int64_t lane = indexCst.getIntLike().asI64();
         if (lane < 0 || std::cmp_greater_equal(lane, indexedType.payloadSimdLaneCount()))
             return false;
@@ -600,8 +605,9 @@ namespace
         const TypeRef   laneTypeRef = indexedType.payloadSimdLaneTypeRef();
         const TypeInfo& laneType    = codeGen.typeMgr().get(laneTypeRef);
         const uint32_t  laneBits    = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
-        MicroBuilder&   builder     = codeGen.builder();
-        MicroReg        srcReg      = indexedPayload.reg;
+
+        MicroBuilder& builder = codeGen.builder();
+        MicroReg      srcReg  = indexedPayload.reg;
         if (laneBits == 8 || laneBits == 16)
         {
             if (lane != 0)
@@ -621,6 +627,7 @@ namespace
                 builder.emitLoadSignedExtendRegReg(narrowPayload.reg, dwordReg, MicroOpBits::B32, laneOp);
             else
                 builder.emitLoadZeroExtendRegReg(narrowPayload.reg, dwordReg, MicroOpBits::B32, laneOp);
+
             return true;
         }
 
@@ -654,6 +661,7 @@ namespace
         const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
         if (storedSymView.sym() && storedSymView.sym()->isFunction())
             return &storedSymView.sym()->cast<SymbolFunction>();
+
         return nullptr;
     }
 }
@@ -743,6 +751,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
 
     CodeGenNodePayload currentPayload = codeGen.payload(nodeExprRef);
     CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, currentPayload, currentTypeRef);
+
     AstNodeRef currentSourceRef = nodeExprRef;
     for (const AstNodeRef indexRef : indexRefs)
     {
@@ -751,6 +760,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
         if (currentType.isAggregateArray())
         {
             SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, currentPayload, currentSourceRef, indexRef, currentType, currentPayload));
+
             currentTypeRef   = currentPayload.typeRef;
             currentSourceRef = AstNodeRef::invalid();
             continue;
@@ -758,6 +768,7 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
 
         const TypeRef nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
         SWC_RESULT(emitIndexAddress(codeGen, currentPayload, currentSourceRef, indexRef, currentType, currentPayload, nextTypeRef));
+
         currentTypeRef   = nextTypeRef;
         currentSourceRef = AstNodeRef::invalid();
     }

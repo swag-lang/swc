@@ -83,6 +83,7 @@ namespace
         const TypeRef valueTypeRef = cst.typeRef();
         if (!valueTypeRef.isValid())
             return;
+
         deps.push_back(valueTypeRef);
 
         const TypeRef boxedValueTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, valueTypeRef, valueCstRef, AstNodeRef::invalid());
@@ -123,6 +124,7 @@ namespace
             const TypeRef valueTypeRef = TypeGenGenericArg::genericArgValueTypeRef(ctx, arg);
             if (!valueTypeRef.isValid())
                 continue;
+
             deps.push_back(valueTypeRef);
 
             if (!arg.cstRef.isValid())
@@ -139,7 +141,6 @@ namespace
                 deps.push_back(pointedTypeRef);
         }
     }
-
 }
 
 SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const TypeInfo& type, LayoutKind kind)
@@ -160,6 +161,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
 
             std::vector<const Symbol*> symbols;
             symEnum.getAllSymbols(symbols);
+
             for (const Symbol* symbol : symbols)
             {
                 const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
@@ -189,6 +191,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
             const TypeRef finalTypeRef = resolveArrayFinalTypeRef(tm, ctx, type);
             if (finalTypeRef != pointedTypeRef)
                 deps.push_back(finalTypeRef);
+
             break;
         }
 
@@ -216,12 +219,14 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
                 if (symStruct.tryGetGenericInstanceArgs(genericArgs))
                     appendGenericArgDeps(deps, ctx, genericArgs.span());
             }
+
             appendAttributeDeps(deps, sema, symStruct.attributes());
 
             for (const SymbolVariable* field : symStruct.fields())
             {
                 if (!field)
                     continue;
+
                 deps.push_back(field->typeRef());
                 appendAttributeDeps(deps, sema, field->attributes());
             }
@@ -236,6 +241,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
                     const TypeRef methodTypeRef = reflectedMethodTypeRef(ctx, *method);
                     if (methodTypeRef.isValid())
                         deps.push_back(methodTypeRef);
+
                     appendAttributeDeps(deps, sema, method->attributes());
                 }
             }
@@ -246,6 +252,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
                 if (symInterface && symInterface->typeRef().isValid())
                     deps.push_back(symInterface->typeRef());
             }
+
             break;
         }
 
@@ -273,6 +280,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
             {
                 if (!param)
                     continue;
+
                 deps.push_back(param->typeRef());
                 appendAttributeDeps(deps, sema, param->attributes());
             }

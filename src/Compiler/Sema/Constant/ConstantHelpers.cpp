@@ -503,6 +503,7 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
     DataSegment&   segment    = manager.shardDataSegment(shardIndex);
     uint32_t       offset     = INVALID_REF;
     SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(sema, offset, segment, storageType, storageSpan) == Result::Continue);
+
     const DataSegmentRef dataRef = manager.publishConstantStorage(view.cstRef(), storageTypeRef, {.shardIndex = shardIndex, .offset = offset});
     return reinterpret_cast<uint64_t>(manager.shardDataSegment(dataRef.shardIndex).ptr<std::byte>(dataRef.offset));
 }
@@ -513,25 +514,17 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     if (hasRequiredShard)
         return requiredShard;
 
-    // Otherwise a pointer-free payload may live in any shard. Historically these all funnelled into
-    // shard 0, serializing every static-payload materialization (from BOTH ConstantHelpers and
-    // CodeGenConstantHelpers) on that one data-segment mutex — the dominant contention point. We spread
-    // them, but the placement shard cannot be arbitrary: the same logical constant can also be produced
-    // by ConstantManager::addConstantSlow (a non-borrowed value), which lands in shard
-    // `Math::hash(value.hash()) & mask`. Interning only deduplicates within a shard, so to keep every
-    // path rendezvousing on a single constant (and a single address, which pointer identity relies on),
-    // the placement shard must match that exact key. We compute the hash of the borrowed struct/array
-    // ConstantValue that makeMaterializedConstantValue will produce, and derive the shard the same way.
-    //
-    // Scalars/enums fall through to shard 0: those produce non-span constants routed through a different
-    // add path, so we leave their legacy placement untouched.
+    // Distribute pointer-free payloads to avoid serializing shard 0. Placement must
+    // match addConstantSlow's Math::hash(value.hash()) & mask: interning deduplicates
+    // only within a shard, and pointer identity requires one canonical address. Hash
+    // the borrowed struct/array value produced by makeMaterializedConstantValue.
+    // Scalars/enums keep shard 0 because their non-span constants use another path.
     const TypeRef typeRef = originalType.typeRef();
 
     if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
         return 0;
 
-    // Mirror makeMaterializedConstantValue's kind decision. Only the array/struct branches build a
-    // borrowed span constant; the scalar branch takes a different code path.
+    // Mirror makeMaterializedConstantValue: only struct/array kinds use borrowed spans.
     ConstantKind kind;
     if (storageType.isArrayOrSimd())
         kind = ConstantKind::Array;
@@ -540,8 +533,7 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     else
         kind = ConstantKind::Struct;
 
-    // Replicate ConstantValue::hash for the produced (borrowed) value: its final typeRef is the original
-    // typeRef and its payload bytes are these bytes.
+    // Match ConstantValue::hash using the original declared type and these payload bytes.
     uint32_t valueHash = Math::hash(static_cast<uint32_t>(kind));
     valueHash          = Math::hashCombine(valueHash, typeRef.get());
     valueHash          = Math::hashCombine(valueHash, Math::hash(payload));
@@ -553,6 +545,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
 {
     TaskContext&       ctx     = sema.ctx();
     const TypeManager& typeMgr = ctx.typeMgr();
+
     // The entry validates size; recursive spans use the resolved child type's size.
     // Aliases, enum wrappers and type values preserve their underlying layout.
     SWC_ASSERT(typeInfo.sizeOf(ctx) == payload.size());
@@ -584,10 +577,8 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
     {
         SWC_ASSERT(payload.size() == sizeof(Runtime::Slice<std::byte>));
 
-        // The empty test comes first: a slice element type never had to be laid out for the
-        // enclosing payload to exist (a slice is two pointers whatever it points to), so its
-        // size may legitimately not be computed yet — and must not be read — when the slice
-        // carries nothing.
+        // Empty slices need no element layout. Their type can exist before element
+        // size is computed, so do not inspect that size until the count is nonzero.
         const auto* runtimeSlice = reinterpret_cast<const Runtime::Slice<std::byte>*>(payload.data());
         if (runtimeSlice->count == 0)
             return true;
@@ -688,6 +679,7 @@ bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_
             uint32_t align = fieldType.alignOf(ctx);
             if (!align)
                 align = 1;
+
             offset = Math::alignUpU64(offset, align);
             if (offset + fieldSize > payload.size())
                 return false;
@@ -745,7 +737,8 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const DataSegmentRef             dataRef{.shardIndex = placementShardIndex, .offset = offset};
     const std::span<const std::byte> storedBytes = sizeOf ? std::span{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
-    const ConstantValue              result      = makeMaterializedConstantValue(ctx, typeInfo, storageType, storedBytes, dataRef);
+
+    const ConstantValue result = makeMaterializedConstantValue(ctx, typeInfo, storageType, storedBytes, dataRef);
     if (!result.isValid())
         return ConstantRef::invalid();
 
@@ -766,8 +759,9 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const SourceView*      srcView  = codeRange.srcView;
     const SourceFile*      file     = srcView ? srcView->file() : nullptr;
     const std::string_view fileName = file ? std::string_view{file->pathString()} : std::string_view{""};
-    std::string_view       funcName{""};
-    FunctionNameScratch    functionNameScratch;
+
+    std::string_view    funcName{""};
+    FunctionNameScratch functionNameScratch;
     if (function)
     {
         thread_local Utf8 funcNameStorage;
@@ -785,6 +779,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
         .lineEnd   = codeRange.line,
         .colEnd    = codeRange.column + codeRange.len,
     };
+
     outCstRef = sema.cstMgr().addSourceCodeLocation(ctx, typeRef, location);
     return Result::Continue;
 }

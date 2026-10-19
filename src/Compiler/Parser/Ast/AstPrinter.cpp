@@ -28,6 +28,7 @@ namespace
     {
         if (!sema)
             return nodeRef;
+
         return sema->viewZero(nodeRef).nodeRef();
     }
 
@@ -57,9 +58,11 @@ namespace
 
     void appendSemaPayload(Utf8& out, const TaskContext& ctx, Sema& sema, AstNodeRef nodeRef)
     {
-        const bool         isSubstitute = sema.hasSubstitute(nodeRef);
-        const SemaNodeView view         = isSubstitute ? sema.viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol)
-                                                       : sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const bool isSubstitute = sema.hasSubstitute(nodeRef);
+
+        const SemaNodeView view = isSubstitute
+                                      ? sema.viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol)
+                                      : sema.view(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
 
         out += " ";
         SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, "[");
@@ -76,6 +79,7 @@ namespace
         {
             if (!first)
                 SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+
             SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "const = ");
             SyntaxColorHelper::append(out, ctx, SyntaxColor::Constant, sanitizeSemaText(view.cst()->toString(ctx)));
             first = false;
@@ -85,6 +89,7 @@ namespace
         {
             if (!first)
                 SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+
             SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "sym = ");
             SyntaxColorHelper::append(out, ctx, SyntaxColor::Function, view.sym()->name(ctx));
             first = false;
@@ -95,6 +100,7 @@ namespace
         {
             if (!first)
                 SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+
             SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "value");
             first = false;
         }
@@ -104,6 +110,7 @@ namespace
         {
             if (!first)
                 SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+
             SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "lvalue");
             first = false;
         }
@@ -113,6 +120,7 @@ namespace
         {
             if (!first)
                 SyntaxColorHelper::append(out, ctx, SyntaxColor::Code, ", ");
+
             SyntaxColorHelper::append(out, ctx, SyntaxColor::Attribute, "folded");
         }
 
@@ -129,6 +137,7 @@ namespace
 
         const SyntaxColor nodeColor = ast.isAdditionalNode(nodeRef) ? SyntaxColor::Intrinsic : SyntaxColor::Function;
         SyntaxColorHelper::append(out, ctx, nodeColor, nodeInfo.name);
+
         if (node.tokRef().isValid())
         {
             out += " ";
@@ -158,6 +167,7 @@ namespace
             const AstVisitResult result = visit.step(ctx);
             if (result == AstVisitResult::Continue)
                 continue;
+
             return result;
         }
     }
@@ -174,13 +184,15 @@ namespace
 
     struct AstVisitChildCounter
     {
-        AstVisit*                                 visit          = nullptr;
+        AstVisit* visit = nullptr;
+
         std::unordered_map<AstNodeRef, uint32_t>* countsByParent = nullptr;
 
         Result operator()(AstNode&, AstNodeRef&) const
         {
             SWC_ASSERT(visit != nullptr);
             SWC_ASSERT(countsByParent != nullptr);
+
             const AstNodeRef parentRef = visit->currentNodeRef();
             uint32_t&        numChild  = (*countsByParent)[parentRef];
             numChild++;
@@ -190,14 +202,16 @@ namespace
 
     struct AstPrintPreNodeVisitor
     {
-        Utf8*                                              out                     = nullptr;
-        const TaskContext*                                 ctx                     = nullptr;
-        Ast*                                               ast                     = nullptr;
-        AstVisit*                                          visit                   = nullptr;
+        Utf8*              out   = nullptr;
+        const TaskContext* ctx   = nullptr;
+        Ast*               ast   = nullptr;
+        AstVisit*          visit = nullptr;
+
         std::unordered_map<AstNodeRef, uint32_t>*          totalChildrenByParent   = nullptr;
         std::unordered_map<AstNodeRef, uint32_t>*          visitedChildrenByParent = nullptr;
         std::unordered_map<AstNodeRef, AstPrintNodeEntry>* nodeEntries             = nullptr;
-        Sema*                                              sema                    = nullptr;
+
+        Sema* sema = nullptr;
 
         Result operator()(AstNode&) const
         {
@@ -222,16 +236,19 @@ namespace
             {
                 const auto parentIt = nodeEntries->find(parentRef);
                 SWC_ASSERT(parentIt != nodeEntries->end());
+
                 entry.prefix = parentIt->second.prefix;
                 entry.prefix += parentIt->second.isLastChild ? "   " : "|  ";
 
                 const uint32_t totalChildren = (*totalChildrenByParent)[parentRef];
                 const uint32_t childOrder    = (*visitedChildrenByParent)[parentRef];
-                entry.isLastChild            = childOrder == totalChildren;
+
+                entry.isLastChild = childOrder == totalChildren;
             }
 
             appendNodeLine(*out, *ctx, *ast, nodeRef, entry, sema);
             (*nodeEntries)[nodeRef] = entry;
+
             return Result::Continue;
         }
     };
@@ -248,7 +265,7 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     std::unordered_map<AstNodeRef, AstPrintNodeEntry> nodeEntries;
     nodeEntries.reserve(256);
 
-    // Count children per node
+    // Count resolved children first so the final child gets the right connector.
     AstVisit orderingVisit;
     orderingVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
     orderingVisit.setNodeRefResolver(AstPrintNodeRefResolver{.sema = sema});
@@ -258,12 +275,23 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     if (runVisit(orderingVisit, ctx) == AstVisitResult::Error)
         return out;
 
-    // Print
+    // The second visit tracks each child's position among its siblings.
     AstVisit printVisit;
     printVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
     printVisit.setNodeRefResolver(AstPrintNodeRefResolver{.sema = sema});
     printVisit.setPreChildVisitor(AstVisitChildCounter{.visit = &printVisit, .countsByParent = &visitedChildrenByParent});
-    printVisit.setPreNodeVisitor(AstPrintPreNodeVisitor{.out = &out, .ctx = &ctx, .ast = &ast, .visit = &printVisit, .totalChildrenByParent = &totalChildrenByParent, .visitedChildrenByParent = &visitedChildrenByParent, .nodeEntries = &nodeEntries, .sema = sema});
+    printVisit.setPreNodeVisitor(
+        AstPrintPreNodeVisitor{
+            .out   = &out,
+            .ctx   = &ctx,
+            .ast   = &ast,
+            .visit = &printVisit,
+
+            .totalChildrenByParent   = &totalChildrenByParent,
+            .visitedChildrenByParent = &visitedChildrenByParent,
+            .nodeEntries             = &nodeEntries,
+
+            .sema = sema});
 
     printVisit.start(ast, root);
     if (runVisit(printVisit, ctx) == AstVisitResult::Error)

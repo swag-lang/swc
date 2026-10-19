@@ -13,7 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 class CodeGen;
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstNamedNodeT : AstNodeT<I, E>
 {
@@ -27,7 +26,6 @@ struct AstNamedNodeT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstCompoundT : AstNodeT<I, E>
 {
@@ -46,7 +44,6 @@ struct AstCompoundT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstCallExprT : AstCompoundT<I, E>
 {
@@ -71,7 +68,6 @@ struct AstCallExprT : AstCompoundT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstLambdaExprT : AstNodeT<I, E>
 {
@@ -93,7 +89,6 @@ struct AstLambdaExprT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstBinaryT : AstNodeT<I, E>
 {
@@ -114,7 +109,6 @@ struct AstBinaryT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstLiteralT : AstNodeT<I, E>
 {
@@ -126,13 +120,14 @@ struct AstLiteralT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstAggregateDeclT : AstNodeT<I, E>
 {
-    TokenRef   tokNameRef;
-    SpanRef    spanGenericParamsRef;
-    SpanRef    spanWhereRef;
+    TokenRef tokNameRef;
+
+    SpanRef spanGenericParamsRef;
+    SpanRef spanWhereRef;
+
     AstNodeRef nodeBodyRef;
 
     AstAggregateDeclT() = default;
@@ -150,7 +145,6 @@ struct AstAggregateDeclT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstAnonymousAggregateDeclT : AstNodeT<I, E>
 {
@@ -170,7 +164,6 @@ struct AstAnonymousAggregateDeclT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstIfBaseT : AstNodeT<I, E>
 {
@@ -191,7 +184,6 @@ struct AstIfBaseT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
 {
@@ -212,7 +204,6 @@ struct AstIntrinsicInitDropCopyMoveT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 enum class AstVarStorageFlagsE : uint8_t
 {
     Zero   = 0,
@@ -221,11 +212,11 @@ enum class AstVarStorageFlagsE : uint8_t
     Global = 1 << 2,
 };
 
-// ----------------------------------------------------------------------------
 struct AstVarDeclBase
 {
-    AstNodeRef                     nodeTypeRef;
-    AstNodeRef                     nodeInitRef;
+    AstNodeRef nodeTypeRef;
+    AstNodeRef nodeInitRef;
+
     EnumFlags<AstVarStorageFlagsE> storageFlags;
 
     bool hasStorageFlag(AstVarStorageFlagsE flag) const { return storageFlags.has(flag); }
@@ -242,7 +233,6 @@ struct AstVarDeclBase
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallZeroT : AstNodeT<I, E>
 {
@@ -254,7 +244,6 @@ struct AstInternalCallZeroT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallUnaryT : AstNodeT<I, E>
 {
@@ -274,7 +263,6 @@ struct AstInternalCallUnaryT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallBinaryT : AstNodeT<I, E>
 {
@@ -295,7 +283,6 @@ struct AstInternalCallBinaryT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstInternalCallTernaryT : AstNodeT<I, E>
 {
@@ -317,7 +304,6 @@ struct AstInternalCallTernaryT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
 template<AstNodeId I, typename E = void>
 struct AstGenericParamT : AstNodeT<I, E>
 {
@@ -337,14 +323,8 @@ struct AstGenericParamT : AstNodeT<I, E>
     }
 };
 
-// ----------------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
 // ReSharper disable once CppUnusedIncludeDirective
 #include "Compiler/Parser/Ast/AstNodes.Struct.inc"
-
-// ----------------------------------------------------------------------------
-// ----------------------------------------------------------------------------
 
 template<AstNodeId ID>
 struct AstTypeOf;
@@ -402,13 +382,15 @@ struct AstNodeIdInfo
     std::string_view name;
     AstNodeIdFlags   flags;
 
-    using AstCollectChildren   = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
-    using SemaPreNode          = Result (*)(Sema&, AstNode&);
-    using SemaPreNodeChild     = Result (*)(Sema&, AstNode&, AstNodeRef&);
-    using SemaPostNodeChild    = Result (*)(Sema&, AstNode&, AstNodeRef&);
-    using SemaPostNode         = Result (*)(Sema&, AstNode&);
-    using SemaErrorCleanup     = void (*)(Sema&, AstNode&, AstNodeRef);
-    using SemaClone            = AstNodeRef (*)(Sema&, AstNode&, const CloneContext&);
+    using AstCollectChildren = void (*)(SmallVector<AstNodeRef>&, const Ast&, const AstNode&);
+
+    using SemaPreNode       = Result (*)(Sema&, AstNode&);
+    using SemaPreNodeChild  = Result (*)(Sema&, AstNode&, AstNodeRef&);
+    using SemaPostNodeChild = Result (*)(Sema&, AstNode&, AstNodeRef&);
+    using SemaPostNode      = Result (*)(Sema&, AstNode&);
+    using SemaErrorCleanup  = void (*)(Sema&, AstNode&, AstNodeRef);
+    using SemaClone         = AstNodeRef (*)(Sema&, AstNode&, const CloneContext&);
+
     using CodeGenPreNode       = Result (*)(CodeGen&, AstNode&);
     using CodeGenPreNodeChild  = Result (*)(CodeGen&, AstNode&, AstNodeRef&);
     using CodeGenPostNodeChild = Result (*)(CodeGen&, AstNode&, AstNodeRef&);
@@ -421,12 +403,14 @@ struct AstNodeIdInfo
     SemaPostNodeChild semaPostDeclChild;
     SemaPostNode      semaPostDecl;
 
-    SemaPreNode          semaPreNode;
-    SemaPreNodeChild     semaPreNodeChild;
-    SemaPostNodeChild    semaPostNodeChild;
-    SemaPostNode         semaPostNode;
-    SemaErrorCleanup     semaErrorCleanup;
-    SemaClone            semaClone;
+    SemaPreNode       semaPreNode;
+    SemaPreNodeChild  semaPreNodeChild;
+    SemaPostNodeChild semaPostNodeChild;
+    SemaPostNode      semaPostNode;
+
+    SemaErrorCleanup semaErrorCleanup;
+    SemaClone        semaClone;
+
     CodeGenPreNode       codeGenPreNode;
     CodeGenPreNodeChild  codeGenPreNodeChild;
     CodeGenPostNodeChild codeGenPostNodeChild;
@@ -481,6 +465,7 @@ template<AstNodeId ID>
 Result semaPreNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     SWC_ASSERT(childRef.isValid());
+
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>().semaPreNodeChild(sema, childRef);
 }
@@ -489,6 +474,7 @@ template<AstNodeId ID>
 Result semaPostNodeChild(Sema& sema, AstNode& node, AstNodeRef& childRef)
 {
     SWC_ASSERT(childRef.isValid());
+
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>().semaPostNodeChild(sema, childRef);
 }
@@ -525,6 +511,7 @@ template<AstNodeId ID>
 Result codeGenPreNodeChild(CodeGen& codeGen, AstNode& node, AstNodeRef& childRef)
 {
     SWC_ASSERT(childRef.isValid());
+
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>().codeGenPreNodeChild(codeGen, childRef);
 }
@@ -533,6 +520,7 @@ template<AstNodeId ID>
 Result codeGenPostNodeChild(CodeGen& codeGen, AstNode& node, AstNodeRef& childRef)
 {
     SWC_ASSERT(childRef.isValid());
+
     using NodeType = AstTypeOf<ID>::type;
     return node.cast<NodeType>().codeGenPostNodeChild(codeGen, childRef);
 }

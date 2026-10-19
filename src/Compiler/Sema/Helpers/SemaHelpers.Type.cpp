@@ -66,6 +66,7 @@ namespace
 
             ApsInt maxCheck = ApsInt::maxValue(targetBits, true);
             maxCheck.resize(checkBits);
+
             return !value.gt(maxCheck);
         }
 
@@ -77,6 +78,7 @@ namespace
             ApsInt maxCheck = ApsInt::maxValue(targetBits, false);
             minCheck.resize(checkBits);
             maxCheck.resize(checkBits);
+
             return !value.lt(minCheck) && !value.gt(maxCheck);
         }
 
@@ -91,6 +93,7 @@ namespace
         if (!maxSignedU.isUnsigned())
             maxSignedU.setUnsigned(true);
         maxSignedU.resize(checkBits);
+
         return !value.gt(maxSignedU);
     }
 
@@ -106,6 +109,7 @@ namespace
     {
         if (!isAggregateTypeLikeElement(sema, typeRef))
             return typeRef;
+
         return SemaHelpers::normalizeTypeLikeValueTypeRef(sema, typeRef, cstRef, sema.ctx().state().nodeRef);
     }
 
@@ -134,9 +138,11 @@ namespace
                 SWC_RESULT(Cast::cast(sema, defaultView, targetTypeRef, CastKind::Initialization));
                 defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             }
+
             resolvedTypeRef = targetTypeRef;
             if (outResolvedTypeRef)
                 *outResolvedTypeRef = resolvedTypeRef;
+
             return Result::Continue;
         }
 
@@ -161,6 +167,7 @@ namespace
 
         if (outResolvedTypeRef)
             *outResolvedTypeRef = resolvedTypeRef;
+
         return Result::Continue;
     }
 
@@ -203,6 +210,7 @@ namespace
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoVariadic);
         if (representedType.isCodeBlock())
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoCodeBlock);
+
         return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfo);
     }
 
@@ -255,6 +263,7 @@ namespace
             TypeInfo::Sign sign = typeInfo.payloadIntSign();
             if (sign == TypeInfo::Sign::Unknown)
                 sign = TypeInfo::Sign::Signed;
+
             return sema.typeMgr().typeInt(32, sign);
         }
 
@@ -340,6 +349,7 @@ namespace
             {
                 if (!constantFitsTargetType(sema, valueRef, elementTypeRef))
                     return false;
+
                 continue;
             }
 
@@ -363,6 +373,7 @@ namespace
         const auto&                firstAggregate = firstStructType.payloadAggregate();
         SmallVector<IdentifierRef> mergedFieldNames;
         mergedFieldNames.reserve(firstAggregate.names.size());
+
         for (const IdentifierRef fieldName : firstAggregate.names)
             mergedFieldNames.push_back(fieldName);
 
@@ -397,6 +408,7 @@ namespace
 
         SmallVector<TypeRef>     fieldTypes;
         SmallVector<ConstantRef> fieldValues;
+
         for (size_t fieldIndex = 0; fieldIndex < firstAggregate.types.size(); ++fieldIndex)
         {
             fieldTypes.clear();
@@ -490,7 +502,9 @@ namespace
         SmallVector<TypeRef> concreteElemTypes;
         concreteElemTypes.reserve(elemTypes.size());
 
+        // Prefer concrete numeric siblings before considering unsized elements.
         TypeRef resultTypeRef = TypeRef::invalid();
+
         for (size_t i = 0; i < elemTypes.size(); ++i)
         {
             const ConstantRef elemCstRef  = i < values.size() ? values[i] : ConstantRef::invalid();
@@ -757,6 +771,7 @@ Result SemaHelpers::normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstR
     SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, ownerNodeRef));
     SWC_ASSERT(typeInfoCstRef.isValid());
     ioCstRef = typeInfoCstRef;
+
     return Result::Continue;
 }
 
@@ -789,6 +804,7 @@ Result SemaHelpers::tryMaterializeAggregateLiteralConstant(Sema& sema, const Ast
 
     SmallVector<ConstantRef> values;
     values.reserve(children.size());
+
     for (const AstNodeRef childRef : children)
     {
         if (childRef.isInvalid())
@@ -797,11 +813,13 @@ Result SemaHelpers::tryMaterializeAggregateLiteralConstant(Sema& sema, const Ast
         const SemaNodeView childView = sema.viewTypeConstant(childRef);
         if (childView.cstRef().isInvalid())
             return Result::Continue;
+
         values.push_back(childView.cstRef());
     }
 
     const ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), typeInfo.payloadAggregate().names, values);
     sema.setConstant(exprRef, sema.cstMgr().addConstant(sema.ctx(), cst));
+
     return Result::Continue;
 }
 
@@ -825,7 +843,9 @@ Result SemaHelpers::finalizeDefaultValue(Sema& sema, AstNodeRef defaultValueRef,
         symVar.setDefaultValueRef(defaultView.cstRef());
     if (isCallerLocation)
         symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
+
     symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+
     return Result::Continue;
 }
 
@@ -844,6 +864,7 @@ namespace
     {
         if (targetType.isStruct())
             return targetType.payloadSymStruct().tryGetFieldIndexByName(outIndex, idRef);
+
         return targetType.tryGetAggregateMemberIndexByName(outIndex, sema.ctx(), idRef);
     }
 
@@ -854,18 +875,23 @@ namespace
             const auto& types = targetType.payloadAggregate().types;
             if (index >= types.size())
                 return false;
+
             outSlot.index   = index;
             outSlot.typeRef = types[index];
+
             return true;
         }
 
         SWC_ASSERT(targetType.isStruct());
+
         const auto& fields = targetType.payloadSymStruct().fields();
         if (index >= fields.size() || !fields[index])
             return false;
+
         outSlot.field   = fields[index];
         outSlot.index   = index;
         outSlot.typeRef = fields[index]->typeRef();
+
         return true;
     }
 
@@ -890,6 +916,7 @@ namespace
                 {
                     if (currentChildRef == childRef)
                         return false;
+
                     continue;
                 }
 
@@ -922,7 +949,6 @@ namespace
 
         return false;
     }
-
 }
 
 Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers)
@@ -949,21 +975,19 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         const AstNodeRef valueRef = childNode.is(AstNodeId::NamedArgument) ? childNode.cast<AstNamedArgument>().nodeArgRef : child;
         SemaNodeView     view     = sema.viewTypeConstant(valueRef);
 
-        // A child can still be untyped here when it is an auto-member (`.value`)
-        // nested inside an aggregate literal that is itself a call argument: the
-        // direct-argument deferral that would resolve it from the selected
-        // overload's parameter type does not reach nested literal children. Emit
-        // a clear diagnostic instead of asserting (the compiler must never assert).
+        // Typing from the selected overload reaches only direct arguments.
+        // Nested .value children can still lack a type, so report inference
+        // failure here instead of assuming the child is already typed.
         if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_cannot_infer_aggregate_field_type, child);
 
-        // A bare type expression ('MyStruct') becomes a TypeValue constant, exactly
-        // like in a scalar initialization, so it can later cast to a 'typeinfo' field.
+        // Type expressions need TypeValue constants before conversion to typeinfo fields.
         SWC_RESULT(SemaCheck::isValueOrType(sema, view));
 
         SWC_RESULT(SemaHelpers::materializeMovedValue(sema, view));
         if (SemaHelpers::ownsExpressionValue(sema, view.nodeRef()))
             SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
+
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
 
         memberTypes.push_back(view.typeRef());
@@ -983,6 +1007,7 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     }
 
     sema.setIsValue(sema.curNodeRef());
+
     return Result::Continue;
 }
 
@@ -997,6 +1022,7 @@ Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<siz
     for (const TokenRef fieldNameRef : fieldNameRefs)
     {
         SWC_ASSERT(fieldNameRef.isValid());
+
         const SourceCodeRef fieldCodeRef{patternSrcViewRef, fieldNameRef};
         const IdentifierRef fieldIdRef = sema.idMgr().addIdentifier(sema.ctx(), fieldCodeRef);
 
@@ -1008,6 +1034,7 @@ Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<siz
             diag.addArgument(Diagnostic::ARG_TYPE, sourceTypeRef);
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(fieldIdRef).name);
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -1016,6 +1043,7 @@ Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<siz
             Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_duplicate_field, fieldCodeRef);
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(fieldIdRef).name);
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -1052,6 +1080,7 @@ Result SemaHelpers::checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef
 
     const TypeRef aliasTypeRef = nodeRightView.type()->unwrap(sema.ctx(), nodeRightView.typeRef(), TypeExpandE::Alias);
     SWC_ASSERT(aliasTypeRef.isValid());
+
     const TypeInfo& type = sema.typeMgr().get(aliasTypeRef);
 
     if (type.isFloat() && nodeRightView.cst()->getFloat().isZero())
@@ -1109,9 +1138,8 @@ TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNo
     if (typeNodeRef.isInvalid())
         return TypeRef::invalid();
 
-    // Generic deduction and overload matching sometimes run on a declaration AST before the
-    // regular semantic payload for that exact type node is available. Reconstruct the
-    // structural type when the stored view has not been produced yet.
+    // Deduction and overload matching may precede semantic type-node payloads.
+    // Reconstruct structural types when the stored view is not ready.
     const TypeRef typeRef = sema.viewType(typeNodeRef).typeRef();
     if (typeRef.isValid())
         return typeRef;
@@ -1127,6 +1155,7 @@ TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNo
         // Bare '#code' and '#code(params)' have no payload type node: void block.
         if (codeType->nodeTypeRef.isInvalid())
             return typeMgr.addType(TypeInfo::makeCodeBlock(typeMgr.typeVoid()));
+
         const TypeRef payloadTypeRef = structuralTypeRefFromTypeNode(sema, codeType->nodeTypeRef);
         return payloadTypeRef.isValid() ? typeMgr.addType(TypeInfo::makeCodeBlock(payloadTypeRef)) : TypeRef::invalid();
     }
@@ -1175,8 +1204,9 @@ TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNo
         if (const auto* ident = sema.node(namedType->nodeIdentRef).safeCast<AstIdentifier>())
         {
             MatchContext lookUpCxt;
-            lookUpCxt.codeRef         = ident->codeRef();
-            lookUpCxt.noWaitOnEmpty   = true;
+            lookUpCxt.codeRef       = ident->codeRef();
+            lookUpCxt.noWaitOnEmpty = true;
+
             const IdentifierRef idRef = resolveIdentifier(sema, ident->codeRef());
             if (Match::match(sema, lookUpCxt, idRef) == Result::Continue)
             {
@@ -1207,15 +1237,17 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     const IdentifierRef namedIdRef = namedArgumentIdentifier(sema, childRef);
     if (namedIdRef.isValid())
     {
-        // Binding callbacks already identify a literal child. Its named slot is independent
-        // of earlier arguments; only positional children need the assignment history.
+        // Named slots do not depend on earlier arguments; positional slots do.
         size_t index = 0;
         if (resolveNamedMemberIndex(sema, targetType, namedIdRef, index) && resolveAggregateMemberSlot(slot, targetType, index))
             outTypeRef = slot.typeRef;
+
         return Result::Continue;
     }
+
     if (resolveAggregateChildSlot(sema, slot, targetType, children, childRef))
         outTypeRef = slot.typeRef;
+
     return Result::Continue;
 }
 
@@ -1253,6 +1285,7 @@ Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, size_t childInd
         return Result::Continue;
 
     outTypeRef = elementTypes[childIndex];
+
     return Result::Continue;
 }
 

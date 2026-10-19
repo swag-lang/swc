@@ -63,7 +63,7 @@ namespace SemaHelpers
     // Preserve the numeric argument's own type, including aliases.
     bool isAliasPreservingNumericIntrinsic(TokenId tokenId);
 
-    // Check a constant right operand for division by zero in both / and /=.
+    // Check constant divisors for zero in /, %, /=, and %=.
     Result checkDivideByZeroConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView);
 
     // Distinguish field-by-field Swag.init arguments from copying one whole value.

@@ -19,9 +19,8 @@ namespace
         if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
             return false;
 
-        // Ownership is where the node is stored, not where its text was written: an expansion
-        // clones a declaration into the Ast it expands in, and the clone keeps the source
-        // location it came from.
+        // Expansion clones belong to the destination AST while retaining their
+        // original source locations. Check node ownership, not source provenance.
         if (!sema.ast().tryFindNodeRef(declNode).isValid())
             return false;
 
@@ -55,6 +54,7 @@ namespace
         const auto  index  = var.parameterIndex();
         if (index < params.size() && params[index] == &var)
             return true;
+
         return std::ranges::find(params, &var) != params.end();
     }
 
@@ -62,6 +62,7 @@ namespace
     {
         if (var.isFunctionLocalVariable(fn))
             return true;
+
         return fn.containsLocalVariable(var);
     }
 
@@ -145,6 +146,7 @@ namespace
             return true;
         if (calledFn->isForeign())
             return false;
+
         return calledFn->isPure();
     }
 
@@ -154,6 +156,7 @@ namespace
         const auto* payload = sema.semaPayload<T>(nodeRef);
         if (!payload)
             return true;
+
         return isPureHiddenCall(fn, payload->calledFn);
     }
 
@@ -185,6 +188,7 @@ namespace
         {
             if (!budget)
                 return false;
+
             budget--;
 
             const AstNodeRef currentRef = sema.resolvedNodeRef(toScan.back());
@@ -203,6 +207,7 @@ namespace
                 const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(currentRef);
                 if (lowering && lowering->fallibleDynamicCast)
                     return false;
+
                 const SemaNodeView result = sema.viewTypeConstant(currentRef);
                 if (!result.hasType())
                     return false;
@@ -212,6 +217,7 @@ namespace
                     const SemaNodeView operand    = sema.viewType(operandRef);
                     if (!operand.hasType())
                         return false;
+
                     // Integer addresses and opaque function pointers lose their relocation
                     // when returned as JIT bytes. They must use the loaded program's address.
                     const TypeRef   operandTypeRef = operand.type()->unwrap(sema.ctx(), operand.typeRef(), TypeExpandE::Alias);
@@ -229,6 +235,7 @@ namespace
 
                 if (assignStmt.nodeRightRef.isValid())
                     toScan.push_back(assignStmt.nodeRightRef);
+
                 continue;
             }
 
@@ -240,6 +247,7 @@ namespace
                 const auto& memberAccess = node.cast<AstMemberAccessExpr>();
                 if (memberAccess.nodeLeftRef.isValid())
                     toScan.push_back(memberAccess.nodeLeftRef);
+
                 continue;
             }
 
@@ -251,6 +259,7 @@ namespace
 
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, sema.ast());
+
             for (const AstNodeRef childRef : std::ranges::reverse_view(children))
             {
                 if (childRef.isValid())
@@ -275,6 +284,7 @@ namespace SemaPurity
         const AstNodeRef bodyRef = functionBodyRef(*decl);
         if (bodyRef.isInvalid())
             return;
+
         uint32_t budget = K_PURITY_BUDGET;
         if (!isPureFunctionBody(sema, sym, bodyRef, budget))
             return;

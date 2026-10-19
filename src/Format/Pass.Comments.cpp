@@ -26,6 +26,7 @@ namespace
         const char c = body.front();
         if (!isSeparatorChar(c))
             return false;
+
         for (const char cur : body)
         {
             if (cur != c)
@@ -51,6 +52,7 @@ namespace
     {
         if (!text.starts_with("//"))
             return false;
+
         const std::string_view body = text.substr(2);
         if (body.empty())
             return false;
@@ -61,6 +63,7 @@ namespace
             return false;
         if (isSeparatorChar(c))
             return false;
+
         return true;
     }
 
@@ -111,6 +114,7 @@ namespace
                 rewritten += ' ';
                 used++;
             }
+
             rewritten.append(std::max(options.sectionSeparatorWidth, used + 1u) - used, sepChar);
             model.replaceText(i, std::move(rewritten));
         }
@@ -137,6 +141,7 @@ namespace
         auto flush = [&] {
             if (current.pieces.size() > 1)
                 paragraphs.push_back(current);
+
             current.pieces.clear();
         };
 
@@ -158,6 +163,7 @@ namespace
 
             current.pieces.push_back(lineStart);
         }
+
         flush();
 
         const uint32_t tabWidth = std::max(options.tabWidth, 1u);
@@ -173,12 +179,14 @@ namespace
                     const size_t wordStart = body.find_first_not_of(" \t");
                     if (wordStart == std::string_view::npos)
                         break;
+
                     body                 = body.substr(wordStart);
                     const size_t wordEnd = body.find_first_of(" \t");
                     words.push_back(body.substr(0, wordEnd == std::string_view::npos ? body.size() : wordEnd));
                     body = wordEnd == std::string_view::npos ? std::string_view{} : body.substr(wordEnd);
                 }
             }
+
             if (words.empty())
                 continue;
 
@@ -198,6 +206,7 @@ namespace
                     line     = "// ";
                     lineCols = 3;
                 }
+
                 if (lineCols > 3)
                 {
                     line += ' ';
@@ -206,6 +215,7 @@ namespace
                 line += word;
                 lineCols += wordCols;
             }
+
             lines.push_back(std::move(line));
 
             if (lines.size() == paragraph.pieces.size())
@@ -216,6 +226,7 @@ namespace
                     if (lines[i].view() != model.piece(paragraph.pieces[i]).text)
                         unchanged = false;
                 }
+
                 if (unchanged)
                     continue;
             }
@@ -236,8 +247,10 @@ namespace
                         text += lines[extra];
                     }
                 }
+
                 model.replaceText(paragraph.pieces[i], std::move(text));
             }
+
             for (size_t i = reused; i < paragraph.pieces.size(); ++i)
                 model.removePiece(paragraph.pieces[i]);
         }

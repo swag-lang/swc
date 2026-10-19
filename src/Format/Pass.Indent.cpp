@@ -16,9 +16,8 @@ namespace
         uint32_t operandColumn = UINT32_MAX; // where the bracket's content starts, taken from the first wrapped line when needed
     };
 
-    // Where a continuation line landed, and what it was measured from. A line
-    // with no anchor keeps a relative or canonical indent and owes nothing to
-    // any other piece.
+    // The continuation's target column and the piece it was measured from.
+    // An invalid piece marks relative or canonical indentation without an anchor.
     struct ContinuationAnchor
     {
         uint32_t columns     = 0;
@@ -28,8 +27,8 @@ namespace
 
     bool isStatementLine(const FormatPiece& piece)
     {
-        // Literal braces (array / struct literals) are NOT statement
-        // starts: their lines keep their relative indentation.
+        // Literal braces keep their relative indentation instead of starting
+        // a new statement.
         return piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::AttrOpen,
                                    FormatRoleE::ElseKeyword, FormatRoleE::EnumValueStart, FormatRoleE::FieldDeclStart,
                                    FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::DestructuringClose,
@@ -52,6 +51,7 @@ namespace
 
             sortedBlocks_ = model_->blocks();
             std::ranges::sort(sortedBlocks_, [](const FormatBlock& a, const FormatBlock& b) { return a.openPiece < b.openPiece; });
+
             sortedInlineBodies_ = model_->inlineBodies();
             std::ranges::sort(sortedInlineBodies_, [](const FormatInlineBody& a, const FormatInlineBody& b) { return a.doPiece < b.doPiece; });
 
@@ -60,6 +60,7 @@ namespace
 
             for (const uint32_t lineStart : lineStarts)
                 processLine(lineStart);
+
             flushComments(lastCodeCols_, true);
         }
 
@@ -89,6 +90,7 @@ namespace
                 case FormatBlockKind::Plain:
                     return 1;
             }
+
             return 1;
         }
 
@@ -113,11 +115,13 @@ namespace
                 return true;
             if (!piece.roles.hasAny({FormatRoleE::BlockOpen, FormatRoleE::BlockClose}))
                 return false;
+
             for (const FormatBlock& block : model_->blocks())
             {
                 if (block.openPiece == lineStart || block.closePiece == lineStart)
                     return model_->piece(block.headPiece).hasRole(FormatRoleE::WhereKeyword);
             }
+
             return false;
         }
 
@@ -132,14 +136,14 @@ namespace
             const bool editable = FormatPassUtil::canEditGap(*model_, lineStart) && lineStart != 0 &&
                                   model_->gapHasNewline(lineStart);
 
-            // A whole-line comment introduces the code line under it, so it
-            // takes that line's indentation. A closing brace is the exception:
-            // it sits one level out, and a comment cannot introduce it, so the
-            // comment stays where its own block puts it.
+            // Whole-line comments follow the next code line's indentation. Before a
+            // closing brace, retain the comment's own block indentation because the
+            // brace belongs to the parent level.
             if (piece.isComment && FormatPassUtil::lineEndOf(*model_, lineStart) == lineStart)
             {
                 if (editable)
                     pendingComments_.push_back({lineStart, statementColumns(lineStart, piece)});
+
                 return;
             }
 
@@ -149,11 +153,13 @@ namespace
             const bool isStatement            = isStatementLine(piece);
             const bool updatesStatementAnchor = isStatement && piece.isNot(TokenId::KwdElse) &&
                                                 !piece.hasRole(FormatRoleE::DestructuringClose);
+
             if (isStatement)
             {
                 newCols = statementColumns(lineStart, piece);
                 if (piece.hasRole(FormatRoleE::AttrOpen) && !options_->indentAttributes.value_or(true))
                     newCols = oldCols;
+
                 if (updatesStatementAnchor)
                 {
                     lastStmtOldCols_ = oldCols;
@@ -183,17 +189,16 @@ namespace
 
             if (updatesStatementAnchor)
                 updateStatementOperandAnchor(lineStart);
+
             const uint32_t lineEnd = FormatPassUtil::lineEndOf(*model_, lineStart);
             prevLineEndsBinaryOp_  = model_->piece(lineEnd).roles.hasAny({FormatRoleE::BinaryOp, FormatRoleE::TernaryOp});
 
             trackBrackets(lineStart);
         }
 
-        // The first operand of a statement line: what wrapped operand lines
-        // align with under `align-operands`. The operand starts after a
-        // leading control keyword, or after the assignment operator when the
-        // line has one. The piece is kept too, so the alignment pass can move
-        // those wrapped lines again if it later shifts this one.
+        // Track the statement's first operand after its leading control keyword or
+        // assignment operator. Store the piece as well as its column so alignment
+        // can move subsequent operand lines if the anchor line shifts.
         void updateStatementOperandAnchor(const uint32_t lineStart)
         {
             lastStmtOperandCol_   = UINT32_MAX;
@@ -208,6 +213,7 @@ namespace
             const auto take = [&](const size_t index) {
                 if (index >= columns.size())
                     return;
+
                 lastStmtOperandCol_   = columns[index].column;
                 lastStmtOperandPiece_ = columns[index].piece;
             };
@@ -244,6 +250,7 @@ namespace
                     take(c + 1);
                     return;
                 }
+
                 // A leading control keyword, or a constraint's `where`, is not an operand.
                 if (c == 0)
                     take(piece.roles.hasAny({FormatRoleE::ControlKeyword, FormatRoleE::WhereKeyword}) ? 1 : 0);
@@ -270,6 +277,7 @@ namespace
                     depth += options_->indentCaseLabels.value_or(true) ? 1 : 0;
                     if (entry.sawCase && !ownLabel && options_->indentCaseBlocks.value_or(true))
                         depth += 1;
+
                     continue;
                 }
 
@@ -297,10 +305,8 @@ namespace
 
         ContinuationAnchor continuationColumns(const uint32_t lineStart, const uint32_t oldCols) const
         {
-            // Wrapped lines sit under the item the bracket carries on its own
-            // line. A bracket that ends its line has nothing to align with:
-            // its content falls through to the canonical / relative indent
-            // below, which is what keeps hand-packed data tables intact.
+            // Align with an item on the bracket's opening line. Otherwise use the
+            // canonical or relative indent below to preserve hand-packed tables.
             if (options_->alignAfterOpenBracket.value_or(false) && !parenStack_.empty() &&
                 parenStack_.back().itemColumn != UINT32_MAX)
             {
@@ -308,11 +314,9 @@ namespace
                 return {bracket.itemColumn, bracket.piece, bracket.column};
             }
 
-            // Operand lines of a wrapped binary expression align with the first
-            // operand of the expression they continue: the bracket's own first
-            // item when the expression is nested in one, the statement's first
-            // operand otherwise. Anchoring a nested operand on the statement
-            // would tear it out of the argument list it belongs to.
+            // Nested binary expressions align with the bracket's operand, while
+            // top-level ones use the statement's first operand. A statement anchor
+            // would pull a nested expression out of its argument list.
             if (options_->alignOperands.value_or(false) &&
                 (prevLineEndsBinaryOp_ || model_->piece(lineStart).roles.hasAny({FormatRoleE::BinaryOp, FormatRoleE::TernaryOp})))
             {
@@ -326,10 +330,8 @@ namespace
                     return {lastStmtOperandCol_, lastStmtOperandPiece_, lastStmtOperandCol_};
             }
 
-            // Inside brackets, force the canonical continuation indent instead
-            // of keeping the relative one: one level per open bracket, so a row
-            // of a table nested two brackets deep lands two levels in rather
-            // than being flattened onto the statement's first continuation.
+            // Canonical bracket indentation uses one continuation level per open
+            // bracket, preserving the depth of nested data tables.
             if (options_->indentInsideParens.value_or(false) && !parenStack_.empty())
                 return {lastStmtNewCols_ + static_cast<uint32_t>(parenStack_.size()) * std::max(options_->continuationIndentWidth, 1u)};
 
@@ -338,10 +340,9 @@ namespace
             if (lastStmtIsCaseLabel_ && parenStack_.empty() && lastStmtOperandCol_ != UINT32_MAX)
                 return {lastStmtOperandCol_, lastStmtOperandPiece_, lastStmtOperandCol_};
 
-            // Outside every bracket there is no hand-packed table to protect, so
-            // the continuation takes the canonical indent and a mangled one gets
-            // repaired. Inside a bracket the source distance to the statement is
-            // kept: that is what holds a data table's columns together.
+            // Inside brackets, preserve the source distance from the statement to
+            // keep data-table columns together. Elsewhere use the canonical indent
+            // to repair arbitrary continuation spacing.
             const int32_t relative = static_cast<int32_t>(oldCols) - static_cast<int32_t>(lastStmtOldCols_);
             if (relative > 0 && !parenStack_.empty())
                 return {lastStmtNewCols_ + static_cast<uint32_t>(relative)};
@@ -358,6 +359,7 @@ namespace
                 if (oldCols != cmtCols)
                     setLineIndent(comment.line, cmtCols);
             }
+
             pendingComments_.clear();
         }
 
@@ -366,6 +368,7 @@ namespace
             const uint32_t newlines = model_->gapNewlineCount(lineStart);
             if (newlines == 0)
                 return;
+
             model_->setGapBreak(lineStart, newlines, FormatPassUtil::indentForColumns(*model_, cols).view());
         }
 
@@ -377,6 +380,7 @@ namespace
             for (size_t c = 0; c < columns.size(); ++c)
             {
                 const FormatPiece& piece = model_->piece(columns[c].piece);
+
                 // Literal braces carry wrapped items exactly like a call paren
                 // does; block braces open a body and are indented, not aligned.
                 if (piece.is(TokenId::SymLeftParen) || piece.is(TokenId::SymLeftBracket) || piece.hasRole(FormatRoleE::LiteralOpen))
@@ -395,13 +399,13 @@ namespace
             }
         }
 
-        // Remembers a continuation line that was measured from another piece,
-        // so the alignment pass can move it along when it shifts the line that
-        // piece belongs to.
+        // Keep anchored continuations synchronized when alignment moves the
+        // line containing their reference piece.
         void recordHangingLine(const uint32_t lineStart, const ContinuationAnchor& anchor) const
         {
             if (anchor.piece == FormatPiece::INVALID_INDEX || anchor.columns < anchor.pieceColumn)
                 return;
+
             model_->hangingLines().push_back({lineStart, anchor.piece, anchor.columns - anchor.pieceColumn});
         }
 
@@ -419,23 +423,26 @@ namespace
             uint32_t ownCols;
         };
 
-        FormatModel*                  model_;
-        const FormatOptions*          options_;
+        FormatModel*         model_;
+        const FormatOptions* options_;
+
         std::vector<FormatBlock>      sortedBlocks_;
         std::vector<StackEntry>       blockStack_;
         std::vector<FormatInlineBody> sortedInlineBodies_;
         std::vector<FormatInlineBody> inlineBodyStack_;
         std::vector<OpenBracket>      parenStack_;
         std::vector<PendingComment>   pendingComments_;
-        size_t                        nextBlock_            = 0;
-        size_t                        nextInlineBody_       = 0;
-        uint32_t                      lastStmtOldCols_      = 0;
-        uint32_t                      lastStmtNewCols_      = 0;
-        uint32_t                      lastCodeCols_         = 0;
-        uint32_t                      lastStmtOperandCol_   = UINT32_MAX;
-        uint32_t                      lastStmtOperandPiece_ = FormatPiece::INVALID_INDEX;
-        bool                          prevLineEndsBinaryOp_ = false;
-        bool                          lastStmtIsCaseLabel_  = false;
+
+        size_t nextBlock_      = 0;
+        size_t nextInlineBody_ = 0;
+
+        uint32_t lastStmtOldCols_      = 0;
+        uint32_t lastStmtNewCols_      = 0;
+        uint32_t lastCodeCols_         = 0;
+        uint32_t lastStmtOperandCol_   = UINT32_MAX;
+        uint32_t lastStmtOperandPiece_ = FormatPiece::INVALID_INDEX;
+        bool     prevLineEndsBinaryOp_ = false;
+        bool     lastStmtIsCaseLabel_  = false;
     };
 }
 

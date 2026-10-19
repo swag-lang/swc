@@ -54,6 +54,7 @@ namespace
             {
                 if (model_->piece(i).removed)
                     continue;
+
                 const uint32_t prev = model_->prevPiece(i);
                 if (prev == INVALID_PIECE)
                     continue;
@@ -68,11 +69,11 @@ namespace
                 const std::optional<uint32_t> spaces  = desiredSpaces(prev, i);
                 if (!spaces)
                 {
-                    // Alignment is rebuilt by the final alignment pass. In
-                    // strict mode any otherwise unclassified horizontal run
-                    // is ordinary token separation, never user-owned layout.
+                    // Final alignment is rebuilt later. Strict mode treats unclassified
+                    // horizontal runs as token separation, so extra spaces can be removed.
                     if (options_->normalizeHorizontalWhitespace.value_or(false) && current > 1)
                         model_->setGapSpaces(i, 1);
+
                     continue;
                 }
 
@@ -80,6 +81,7 @@ namespace
                 {
                     if (current != *spaces)
                         model_->setGapSpaces(i, *spaces);
+
                     continue;
                 }
 
@@ -97,12 +99,12 @@ namespace
         {
             if (!option)
                 return std::nullopt;
+
             return *option ? 1u : 0u;
         }
 
-        // Swag is blank-sensitive before call / declaration parentheses (a
-        // space there is a syntax error), so this option can only act on the
-        // parenthesized expression that follows a control keyword.
+        // Whitespace before call or declaration parentheses changes Swag syntax.
+        // Only parentheses after control keywords can use this spacing option.
         std::optional<uint32_t> spaceBeforeParen(const uint32_t prevIndex, const uint32_t curIndex) const
         {
             const FormatPiece& prev = model_->piece(prevIndex);
@@ -152,6 +154,7 @@ namespace
             {
                 if (prev.hasRole(FormatRoleE::AttrComma) && opt.spaceAfterAttributeComma)
                     return fromBool(opt.spaceAfterAttributeComma);
+
                 return fromBool(opt.spaceAfterComma);
             }
 
@@ -161,9 +164,8 @@ namespace
             if (cur.hasRole(FormatRoleE::FatArrow) || prev.hasRole(FormatRoleE::FatArrow))
                 return fromBool(opt.spaceAroundFatArrow);
 
-            // `T?` is one type spelling, never a conditional expression. The classifier
-            // gives only nullable-type question marks this role, so ordinary `a ? b : c`
-            // still follows the ternary spacing option below.
+            // Nullable-type '?' must stay attached to its type; other question marks
+            // retain their ternary spacing rules.
             if (cur.hasRole(FormatRoleE::NullableTypeSuffix))
                 return 0u;
 
@@ -185,8 +187,10 @@ namespace
                 const FormatPiece& op = curBinary ? cur : prev;
                 if (isSymbolOperatorId(op.id) || op.is(TokenId::SymQuestion) || op.is(TokenId::SymColon))
                     return fromBool(opt.spaceAroundBinaryOperators);
+
                 if (opt.spaceAroundBinaryOperators.value_or(false))
                     return 1u;
+
                 return std::nullopt;
             }
 
@@ -226,6 +230,7 @@ namespace
                     return std::nullopt;
                 if (*opt.spaceAfterKeyword)
                     return 1u;
+
                 return cur.is(TokenId::SymLeftParen) ? 0u : 1u;
             }
 

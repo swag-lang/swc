@@ -79,6 +79,7 @@ namespace
             uint64_t value = 0;
             for (uint32_t i = 0; i < chunkSize; ++i)
                 value |= static_cast<uint64_t>(static_cast<uint8_t>(bytes[offset + i])) << (i * 8);
+
             builder.emitLoadMemImm(dstReg, offset, ApInt(value, 64), storeBits);
             offset += chunkSize;
         }
@@ -175,6 +176,7 @@ namespace
             SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{storageBytes.data(), storageBytes.size()}, cstRef, storageType));
 
         emitPayloadBytesToAddress(codeGen, storageReg, std::span{storageBytes.data(), storageBytes.size()});
+
         payload.reg     = storageReg;
         payload.typeRef = storageTypeRef;
         payload.setIsAddress();
@@ -246,6 +248,7 @@ namespace
             {
                 const uint64_t elementOffset = i * elementSize;
                 SWC_ASSERT(elementOffset <= std::numeric_limits<uint32_t>::max());
+
                 auto& elem    = outLayout.emplace_back();
                 elem.valueRef = elementRefs[i];
                 elem.typeRef  = elementTypeRef;
@@ -266,6 +269,7 @@ namespace
             return false;
 
         outLayout.reserve(elementRefs.size());
+
         std::vector fieldUsed(fields.size(), false);
         bool        seenNamed = false;
         size_t      nextPos   = 0;
@@ -293,6 +297,7 @@ namespace
                     const SymbolVariable* field = fields[j];
                     if (!field)
                         continue;
+
                     if (field->idRef() == fieldName)
                     {
                         fieldIndex = j;
@@ -304,6 +309,7 @@ namespace
             {
                 while (nextPos < fields.size() && (!fields[nextPos] || fieldUsed[nextPos]))
                     ++nextPos;
+
                 fieldIndex = nextPos;
             }
 
@@ -315,6 +321,7 @@ namespace
             const SymbolVariable* field = fields[fieldIndex];
             if (!field)
                 return false;
+
             fieldUsed[fieldIndex] = true;
             if (!fieldName.isValid())
                 ++nextPos;
@@ -345,6 +352,7 @@ namespace
         const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
         if (!storageType.isArray() && !storageType.isStruct())
             return Result::Continue;
+
         return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, storageTypeRef, dstBaseReg);
     }
 
@@ -378,6 +386,7 @@ namespace
         outPayload.setIsAddress();
         if (!outPayload.typeRef.isValid())
             outPayload.typeRef = targetTypeRef;
+
         return true;
     }
 
@@ -434,6 +443,7 @@ namespace
 
         if (storedTypeRef.isValid())
             return storedTypeRef;
+
         return currentTypeRef;
     }
 
@@ -444,6 +454,7 @@ namespace
         const DataSegmentRef descriptorRef = cst.dataSegmentRef();
         if (!descriptorRef.isValid())
             return false;
+
         DataSegmentRelocation relocation;
         return codeGen.cstMgr().shardDataSegment(descriptorRef.shardIndex).findRelocation(relocation, descriptorRef.offset + offsetof(Runtime::Slice<std::byte>, ptr), DataSegmentRelocationKind::DataSegmentOffset);
     }
@@ -523,6 +534,7 @@ namespace
                 const std::string_view value               = cst.getString();
                 const ConstantRef      runtimeStringCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, codeGen.typeMgr().typeString(), value.data(), value.size());
                 SWC_ASSERT(runtimeStringCstRef.isValid());
+
                 const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
                 payload.setIsValue();
@@ -599,6 +611,7 @@ namespace
                     safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
                     return raiseConstantMaterializationError(codeGen, "cannot materialize a struct constant payload");
+
                 const ConstantValue&             safeCst     = codeGen.cstMgr().get(safeCstRef);
                 const std::span<const std::byte> structBytes = safeCst.getStruct();
                 if (targetTypeRef.isValid())
@@ -634,6 +647,7 @@ namespace
                     {
                         const ConstantRef runtimeStringCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, arrayBytes.data(), arrayBytes.size());
                         SWC_ASSERT(runtimeStringCstRef.isValid());
+
                         const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
                         payload.setIsValue();
@@ -647,9 +661,11 @@ namespace
                         const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
                         if (safeArrayCstRef.isInvalid())
                             return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
+
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
                         const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sourceArrayType.sliceCountFromArrayCast(codeGen.ctx(), elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
+
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
                         payload.setIsValue();
@@ -662,6 +678,7 @@ namespace
                     safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
                     return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
+
                 const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
 
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
@@ -678,20 +695,22 @@ namespace
                 SWC_ASSERT(sliceType.isSlice());
                 const uint64_t elementCount = cst.getSliceCount();
 
-                // A slice whose descriptor already relocates its data pointer views runtime data
-                // in place - a reflected type's field or slot table, folded from a constant type -
-                // and keeps viewing it. Copying its elements would give them a second address, and
-                // a struct finds its own slot in the reflected table by address.
+                // Relocated descriptors already view runtime data, such as reflected field
+                // or slot tables. Preserve their element addresses: reflected structs
+                // locate their own slots by address.
                 const void* targetPtr = sliceBytes.data();
                 if (!sliceBytes.empty() && !hasRelocatedSliceDescriptor(codeGen, cst))
                 {
                     const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
                     if (safeArrayCstRef.isInvalid())
                         return raiseConstantMaterializationError(codeGen, "cannot materialize a slice constant payload");
+
                     targetPtr = codeGen.cstMgr().get(safeArrayCstRef).getArray().data();
                 }
+
                 const ConstantRef runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), targetPtr, elementCount);
                 SWC_ASSERT(runtimeSliceCstRef.isValid());
+
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
                 payload.setIsValue();
@@ -709,6 +728,7 @@ namespace
                 const ConstantRef storageCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, targetTypeRef);
                 if (storageCstRef.isInvalid())
                     return raiseConstantMaterializationError(codeGen, "cannot materialize an aggregate constant payload");
+
                 const ConstantValue& storageCst = codeGen.cstMgr().get(storageCstRef);
 
                 if (storageCst.isArray())
@@ -762,15 +782,16 @@ namespace
     {
         SmallVector<AggregateElementLayout> layout;
         uint32_t                            totalSize = 0;
-        const bool                          hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
+
+        const bool hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
         SWC_INTERNAL_CHECK(hasLayout);
+
         const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
         SWC_INTERNAL_CHECK(totalSize == storageType.sizeOf(codeGen.ctx()));
 
-        // A literal that initializes a variable, or that is the whole body of a function, is
-        // built straight in that destination: nothing is left to copy, move, or drop
-        // afterwards. Sema already binds the literal of a 'return' statement to the return
-        // slot; the destinations selected here are the ones only lowering knows.
+        // Build variable initializers and whole-function-body literals directly in their
+        // destination, avoiding later copies, moves and cleanup. Sema already assigns
+        // return-statement storage; these destinations are only known during lowering.
         MicroReg        dstBaseReg     = MicroReg::invalid();
         SymbolVariable* destinationSym = nullptr;
         bool            buildsInPlace  = true;
@@ -781,8 +802,7 @@ namespace
             dstBaseReg    = codeGen.runtimeStorageAddressReg(nodeRef);
         }
 
-        // Concrete arrays/structs start from their default storage so omitted literal elements keep the
-        // correct zeroed or default-initialized bytes.
+        // Start from defaults so omitted array or struct elements retain valid bytes.
         if (storageType.isStructOrArray())
             SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
 
@@ -792,6 +812,7 @@ namespace
         {
             CodeGenNodePayload elementPayload;
             SWC_RESULT(resolveAggregateElementPayload(elementPayload, codeGen, entry.valueRef, entry.typeRef));
+
             const uint64_t elementSize = codeGen.typeMgr().get(entry.typeRef).sizeOf(codeGen.ctx());
             if (!elementSize)
                 continue;
@@ -801,21 +822,17 @@ namespace
             const TypeRef  sourceTypeRef = elementPayload.effectiveTypeRef(entry.typeRef);
             emitAggregateElementStore(codeGen, dstElementReg, elementPayload, sourceTypeRef, entry.typeRef, static_cast<uint32_t>(elementSize));
 
-            // A call result is an owned temporary even though nothing flags its payload: the
-            // drop registered for its storage says so. The field adopts it like any owned
-            // value, or that drop would release what the field now holds. A projection of
-            // such a temporary is an lvalue instead: it is copied, and the temporary dropped.
-            // Inlined calls can supply owned storage without registering a temporary drop;
-            // ownership comes from the call, not just from the pending cleanup.
+            // A field adopts owned call results, including inline calls without a pending
+            // temporary drop. A projection remains an lvalue: copy it and drop its owner.
             //
-            // A nested literal was built in a temporary of its own and has just been moved out
-            // of it, whether or not its fields own anything: a value that points into itself
-            // still points into that temporary until its 'opPostMove' runs.
+            // Nested literals also move out of their own storage, even when no field owns
+            // resources. Their post-move hook must repair pointers into that old storage.
             const AstNodeRef sourceRef       = codeGen.resolvedNodeRef(entry.valueRef);
             const bool       sourceIsLValue  = sourceRef.isValid() && codeGen.sema().isLValueStored(sourceRef);
             const bool       adoptsTemporary = canDropFields && !sourceIsLValue && elementPayload.runtimeStorageSym && codeGen.hasTemporaryDrop(*elementPayload.runtimeStorageSym);
             const bool       adoptsCall      = elementPayload.isAddress() && !codeGen.viewConstant(entry.valueRef).hasConstant() && CodeGenFunctionHelpers::isOwnedCallResult(codeGen, entry.valueRef);
             const bool       adoptsLiteral   = elementPayload.isAddress() && CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, entry.valueRef);
+
             if (elementPayload.ownsValue || adoptsTemporary || adoptsCall || adoptsLiteral)
             {
                 ownsValue = true;
@@ -823,6 +840,7 @@ namespace
                     SWC_RESULT(codeGen.emitLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostMove, dstElementReg));
                 if (elementPayload.runtimeStorageSym)
                     codeGen.cancelTemporaryDrop(*elementPayload.runtimeStorageSym);
+
                 continue;
             }
 
@@ -831,6 +849,7 @@ namespace
         }
 
         SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, aggregateTypeRef, dstBaseReg));
+
         CodeGenNodePayload& nodePayload = codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);
         nodePayload.ownsValue           = ownsValue;
         if (buildsInPlace)
@@ -845,6 +864,7 @@ namespace
         const bool            isTemporary = storageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) && !storageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal);
         if (ownsValue && isTemporary && codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop))
             codeGen.registerTemporaryDrop(nodeRef, aggregateTypeRef, *storageSym);
+
         return Result::Continue;
     }
 

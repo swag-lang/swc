@@ -69,13 +69,16 @@ namespace
                 nodeRef = call->nodeExprRef;
                 continue;
             }
+
             if (node.is(AstNodeId::Identifier))
                 return autoInlineName(ast.srcView(), node.tokRef());
+
             if (const auto* member = node.safeCast<AstMemberAccessExpr>())
             {
                 nodeRef = member->nodeRightRef;
                 continue;
             }
+
             if (const auto* member = node.safeCast<AstAutoMemberAccessExpr>())
             {
                 nodeRef = member->nodeIdentRef;
@@ -108,6 +111,7 @@ namespace
         {
             if (decl.tokNameRef.isInvalid())
                 return K_NO_FUNCTION;
+
             return indexOf(autoInlineName(ast.srcView(), decl.tokNameRef));
         }
 
@@ -123,6 +127,7 @@ namespace
             indices_.assign(edges_.size(), UINT32_MAX);
             onStack_.assign(edges_.size(), false);
             cyclic_.assign(edges_.size(), false);
+
             for (uint32_t i = 0; i < edges_.size(); ++i)
             {
                 if (indices_[i] == UINT32_MAX)
@@ -174,9 +179,11 @@ namespace
             const uint32_t* index = nameIndices_.find(name.text, name.hash);
             if (!index)
                 return InlineConstraint::None;
+
             // A blocked call leaves the existing flags alone, even when its caller is cyclic.
             if (blockedCalls_ && (blockedCalls_[*index] & BLOCKED_CALLER))
                 return InlineConstraint::BlockedCall;
+
             return cyclic_[*index] ? InlineConstraint::Cycle : InlineConstraint::None;
         }
 
@@ -192,6 +199,7 @@ namespace
                 if (cyclic_[source])
                     for (const uint32_t target : edges_[source])
                         repeated[target] = true;
+
             for (size_t index = 0; index < names_.size(); ++index)
                 if (repeated[index])
                     callInfo[names_[index]].inRecursion = true;
@@ -209,6 +217,7 @@ namespace
                 edges_.emplace_back();
                 names_.push_back(name);
             }
+
             return *index;
         }
 

@@ -13,13 +13,11 @@ namespace
         bool     hasNotNull    = false;
     };
 
-    // A local function or closure re-binds its outer-scope access and owns a distinct code symbol.
-    // `#offsetof(local)` yields an offset within
-    // the function's own frame, and inlining moves the callee's locals behind the caller's,
-    // shifting every one of them. An implicit `.member` would likewise be rebound against the
-    // caller's contextual receiver. Struct
-    // `#offsetof` would survive, but telling the two operands apart needs full resolution, and a
-    // body using `#offsetof` at all is rare enough that refusing all of them costs nothing.
+    // Local functions and closures rebind outer-scope accesses and own distinct code symbols.
+    // Inlining also shifts locals into the caller's frame, changing `#offsetof(local)`, while
+    // an implicit `.member` would bind to the caller's contextual receiver. Struct offsets
+    // would survive, but distinguishing them from local offsets requires full resolution.
+    // Reject these rare bodies at parse time.
     void measureAutoInlineBody(AutoInlineBodyShape& result, const Ast& ast, AstNodeRef nodeRef, const Token* firstToken)
     {
         if (result.blocked || nodeRef.isInvalid() || !ast.hasNode(nodeRef))
@@ -31,6 +29,7 @@ namespace
             result.blocked = true;
             return;
         }
+
         // `try`/`catch`/`expect` record fallibility on their lexical owner while their managed
         // child is analysed. Moving the whole construct into a caller can make that owner finish
         // before the cloned fallible call publishes its state, so leave error-management scopes
@@ -45,6 +44,7 @@ namespace
                 return;
             }
         }
+
         // A `global` or `tls` declaration owns one storage for the whole program, and cloning
         // the body gives every copy a storage of its own.
         const AstVarDeclBase* varDecl = node.safeCast<AstSingleVarDecl>();
@@ -80,6 +80,7 @@ namespace
             result.blocked = true;
             return;
         }
+
         if (node.is(AstNodeId::CompilerCallOne) && firstToken[node.tokRef().get()].id == TokenId::CompilerOffsetOf)
         {
             result.blocked = true;
@@ -100,6 +101,7 @@ uint32_t Parser::computeAutoInlineBodyCost(bool& outHasCalls, bool& outStaticSto
     outHasCalls      = false;
     outStaticStorage = false;
     outHasNotNull    = false;
+
     if (bodyRef.isInvalid() || bodyStartRef.isInvalid())
         return UINT32_MAX;
 

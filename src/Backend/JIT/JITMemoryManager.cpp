@@ -82,10 +82,12 @@ std::byte* JITMemoryManager::allocateSlow(const uint32_t allocationSize)
 
         Block* blockPtr = block.get();
         blocks_.push_back(std::move(block));
+
         const bool allocated = tryAllocateFromBlock(dst, *blockPtr, allocationSize);
         SWC_ASSERT(allocated);
         if (allocationSize == blockSize)
             std::swap(blocks_[firstAvailableBlock_++], blocks_.back());
+
         currentBlock_.store(blockPtr, std::memory_order_release);
     }
 
@@ -100,6 +102,7 @@ void JITMemoryManager::allocateWithCodeSize(JITMemory& outExecutableMemory, cons
 
     const uint32_t pageSize = executablePageSize();
     SWC_ASSERT(allocationSize <= std::numeric_limits<uint32_t>::max() - (pageSize - 1));
+
     const uint32_t requestSize      = allocationSize;
     const uint32_t requestSizeAlign = alignUp(requestSize, pageSize);
 
@@ -131,6 +134,7 @@ void JITMemoryManager::registerUnwindInfo(JITMemory& executableMemory)
 {
     if (!executableMemory.hasUnwindInfo())
         return;
+
     SWC_FORCE_ASSERT(Os::addHostJitFunctionTable(executableMemory));
 }
 

@@ -26,8 +26,7 @@ AstNodeRef Parser::parseAttributeValue()
     return nodeRef;
 }
 
-// Parses '(' and the argument expressions after it, up to the closing ')' it leaves; returns
-// the '('.
+// Consume the opening '(' and its arguments, leaving ')' for the caller to close.
 TokenRef Parser::parseParenArgumentExpressions(SmallVector<AstNodeRef>& outArgs)
 {
     const TokenRef openRef = ref();
@@ -77,8 +76,9 @@ AstNodeRef Parser::parseIntrinsicCallConstantExpr()
     const TokenRef tokRef   = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallExpr>(tokRef);
     nodePtr->intrinsicId    = ast_->srcView().token(tokRef).id;
-    auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
-    nodePtr->nodeExprRef    = idRef;
+
+    auto [idRef, idPtr]  = ast_->makeNode<AstNodeId::Identifier>(tokRef);
+    nodePtr->nodeExprRef = idRef;
     idPtr->addFlag(AstIdentifierFlagsE::CallCallee);
     nodePtr->spanChildrenRef.setInvalid();
     return nodeRef;
@@ -89,8 +89,9 @@ AstNodeRef Parser::parseIntrinsicCallExpr(uint32_t numParams)
     const TokenRef tokRef   = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IntrinsicCallExpr>(tokRef);
     nodePtr->intrinsicId    = ast_->srcView().token(tokRef).id;
-    auto [idRef, idPtr]     = ast_->makeNode<AstNodeId::Identifier>(tokRef);
-    nodePtr->nodeExprRef    = idRef;
+
+    auto [idRef, idPtr]  = ast_->makeNode<AstNodeId::Identifier>(tokRef);
+    nodePtr->nodeExprRef = idRef;
     idPtr->addFlag(AstIdentifierFlagsE::CallCallee);
 
     SmallVector<AstNodeRef> nodeArgs;

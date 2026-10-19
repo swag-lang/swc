@@ -30,12 +30,13 @@ JITMemory& JITMemory::operator=(JITMemory&& other) noexcept
     {
         reset();
 
-        ptr_                       = other.ptr_;
-        size_                      = other.size_;
-        allocationSize_            = other.allocationSize_;
-        unwindInfoOffset_          = other.unwindInfoOffset_;
-        unwindInfoSize_            = other.unwindInfoSize_;
-        hostRuntimeFunction_       = other.hostRuntimeFunction_;
+        ptr_                 = other.ptr_;
+        size_                = other.size_;
+        allocationSize_      = other.allocationSize_;
+        unwindInfoOffset_    = other.unwindInfoOffset_;
+        unwindInfoSize_      = other.unwindInfoSize_;
+        hostRuntimeFunction_ = other.hostRuntimeFunction_;
+
         other.ptr_                 = nullptr;
         other.size_                = 0;
         other.allocationSize_      = 0;

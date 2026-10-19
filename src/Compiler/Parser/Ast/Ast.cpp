@@ -8,6 +8,7 @@ Ast::NodeSpanView Ast::nodeRefs(SpanRef spanRef) const
 {
     if (spanRef.isInvalid())
         return {};
+
     return NodeSpanView(nodeSpan(spanRef).chunksBegin());
 }
 
@@ -23,6 +24,7 @@ const AstNodeRef& Ast::NodeSpanView::operator[](size_t index) const
         index -= it->count;
         ++it;
     } while (index >= it->count);
+
     return static_cast<const AstNodeRef*>(it->ptr)[index];
 }
 
@@ -126,6 +128,7 @@ AstNodeRef Ast::nthNode(SpanRef spanRef, size_t index) const
         const PagedStore::SpanView::Chunk& c = *it;
         if (remaining < c.count)
             return static_cast<const AstNodeRef*>(c.ptr)[remaining];
+
         remaining -= c.count;
     }
 
@@ -139,6 +142,7 @@ AstNodeRef Ast::oneNode(SpanRef spanRef) const
     SWC_ASSERT(first.total == 1);
     if (first != view.chunksEnd())
         return static_cast<const AstNodeRef*>(first->ptr)[0];
+
     return AstNodeRef::invalid();
 }
 
@@ -155,6 +159,7 @@ std::optional<size_t> Ast::findNodeIndex(SpanRef spanRef, AstNodeRef nodeRef) co
         const auto      found = std::ranges::find(nodes, nodeRef);
         if (found != nodes.end())
             return offset + static_cast<size_t>(found - nodes.begin());
+
         offset += nodes.size();
     }
 
@@ -195,6 +200,7 @@ bool Ast::isReachableNodeIndexCurrent(const ReachableNodeIndex& index) const
         if (index.watermarks[i] != shards_[i].store.size())
             return false;
     }
+
     return true;
 }
 
@@ -213,6 +219,7 @@ void Ast::buildReachableNodeIndex() const
     SmallVector<AstNodeRef>                        children;
     SmallVector<std::pair<AstNodeRef, AstNodeRef>> stack;
     stack.push_back({root_, AstNodeRef::invalid()});
+
     while (!stack.empty())
     {
         const auto [nodeRef, parentRef] = stack.back();
@@ -225,6 +232,7 @@ void Ast::buildReachableNodeIndex() const
         ReachableNodeIndex::Entry& entry = index->entries.getOrInsert(reinterpret_cast<uintptr_t>(&node));
         if (entry.nodeRef.isValid())
             continue;
+
         entry = {.nodeRef = nodeRef, .parentRef = parentRef};
 
         children.clear();
@@ -274,12 +282,14 @@ bool Ast::collectReachableNodePathFromIndex(const ReachableNodeIndex& index, Sma
     while (nodeRef.isValid())
     {
         outPath.push_back(nodeRef);
+
         const ReachableNodeIndex::Entry* entry = index.find(&node(nodeRef));
         if (!entry || entry->nodeRef != nodeRef)
         {
             outPath.clear();
             return false;
         }
+
         nodeRef = entry->parentRef;
     }
 
@@ -304,6 +314,7 @@ bool Ast::collectReachableNodePath(SmallVector<AstNodeRef>& outPath, const AstNo
     std::unique_lock lock(reachableNodeIndexMutex_);
     if (!reachableNodeIndex_ || !isReachableNodeIndexCurrent(*reachableNodeIndex_))
         buildReachableNodeIndex();
+
     return collectReachableNodePathFromIndex(*reachableNodeIndex_, outPath, targetRef);
 }
 

@@ -73,6 +73,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     bool                  hasNamed      = false;
     bool                  hasPositional = false;
     bool                  reportedMixed = false;
+
     while (!is(TokenId::SymRightCurly) && !atEnd())
     {
         const TokenRef itemRef = ref();
@@ -84,6 +85,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
             const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
             if (tokName.isInvalid())
                 skipTo({TokenId::SymRightCurly, TokenId::SymComma});
+
             tokNames.push_back(tokName);
         }
 
@@ -107,6 +109,7 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     nodePtr->flags()        = flags;
     if (hasNamed && !hasPositional)
         nodePtr->addFlag(AstVarDeclFlagsE::NamedDestructuring);
+
     nodePtr->nodeInitRef       = parseInitializerExpression(tokAssign);
     nodePtr->spanNamesRef      = ast_->pushSpan(tokNames.span());
     nodePtr->spanFieldNamesRef = ast_->pushSpan(fieldNames.span());
@@ -129,6 +132,7 @@ AstNodeRef Parser::parseVarDecl()
 
     if (hasContextFlag(ParserContextFlagsE::InUsingMemberDecl))
         flags.add(AstVarDeclFlagsE::Using);
+
     storageFlags.add(topLevelStorageFlags_);
     storageFlags.add(aggregateStorageFlags_);
 
@@ -147,6 +151,7 @@ AstNodeRef Parser::parseVarDecl()
                 tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
             if (tokName.isInvalid())
                 skipTo({TokenId::SymComma, TokenId::SymColon, TokenId::SymEqual});
+
             tokNames.push_back(tokName);
 
             if (consumeIf(TokenId::SymComma).isInvalid())
@@ -181,6 +186,7 @@ AstNodeRef Parser::parseVarDecl()
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
                 nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
+
             nodePtr->nodeTypeRef = nodeType;
             nodePtr->nodeInitRef = nodeInit;
         };

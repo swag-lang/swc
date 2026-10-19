@@ -59,7 +59,8 @@ JobRecord* JobManager::allocRecord()
 void JobManager::freeRecord(JobRecord* r)
 {
     SWC_ASSERT(!r->registered && !r->clientWaitPrevious && !r->clientWaitNext && !r->keyWaitPrevious && !r->keyWaitNext);
-    // Minimal reset (fields set on reuse anyway).
+
+    // Other fields are initialized when the record is reused.
     r->job      = nullptr;
     r->state    = JobRecord::State::Ready;
     r->priority = JobPriority::Normal;
@@ -284,6 +285,7 @@ void JobManager::printStats(const TaskContext& ctx) const
         const uint64_t lostNs = phase.serialNs * workers + phase.starvedNs;
         if (percentOf(lostNs) < 0.1)
             continue;
+
         entries.push_back({.label = std::format("Phase {}", phase.name),
                            .value = std::format("{} ms, serial {:.1f}%, starved {:.1f}%", phase.wallNs / 1'000'000, percentOf(phase.serialNs * workers), percentOf(phase.starvedNs))});
     }
@@ -293,9 +295,11 @@ void JobManager::printStats(const TaskContext& ctx) const
         const KindStats& kind = kindStats_[i];
         if (!kind.jobs)
             continue;
+
         entries.push_back({.label = Job::kindName(static_cast<JobKind>(i)),
                            .value = std::format("{} jobs, {} ms busy, longest {} ms{}, starved others {:.1f}%", kind.jobs, kind.busyNs / 1'000'000, kind.maxNs / 1'000'000, kind.longest.empty() ? "" : std::format(" ({})", kind.longest.view()), percentOf(kind.starvedNs))});
     }
+
     Logger::printFieldGroup(ctx, "Scheduler", entries);
 }
 #endif
@@ -304,10 +308,12 @@ std::optional<size_t> JobManager::currentThreadIndex() const noexcept
 {
     if (threadManager_ == this)
         return threadIndex_;
+
     // A nested/local pool can change TLS on the setup thread. Its slot in this
     // pool is still distinct from every worker's slot.
     if (std::this_thread::get_id() == setupThreadId_)
         return singleThreaded_ ? 0 : configuredWorkerCount_;
+
     return std::nullopt;
 }
 
@@ -329,7 +335,6 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     // If already scheduled on this manager, refuse (simplifies invariants).
     SWC_ASSERT(!(job.owner() == this && job.rec() != nullptr));
 
-    // Acquire a Record from the pool and wire it up.
     JobRecord* rec = allocRecord();
     rec->job       = &job;
     rec->priority  = priority;
@@ -411,6 +416,7 @@ void JobManager::parkLocked(ClientState& client, JobRecord* rec, const TaskState
     rec->clientWaitNext     = clientHead;
     if (clientHead)
         clientHead->clientWaitPrevious = rec;
+
     clientHead = rec;
 
     // Keep completion addressable even while the owner waits on an internal JIT
@@ -436,6 +442,7 @@ void JobManager::parkLocked(ClientState& client, JobRecord* rec, const TaskState
             keyHead->keyWaitPrevious = rec;
         else
             filterAdd(*key);
+
         keyHead = rec;
     }
 }

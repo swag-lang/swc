@@ -103,6 +103,7 @@ AstNodeRef Parser::parseCompilerCallOne()
     ParserContextFlags parseFlags = ParserContextFlagsE::Zero;
     if (tokenId == TokenId::CompilerDefined)
         parseFlags = ParserContextFlagsE::InCompilerDefined;
+
     const PushContextFlags context(this, parseFlags);
 
     SmallVector<AstNodeRef> nodeArgs;
@@ -124,6 +125,7 @@ AstNodeRef Parser::parseCompilerFunc()
             nodePtr->nodeBodyRef = parseExpression();
         else
             nodePtr->nodeBodyRef = parseEmbeddedStmt();
+
         return nodeRef;
     }
 
@@ -140,6 +142,7 @@ AstNodeRef Parser::parseCompilerFunc()
     }
     else
         nodePtr->nodeBodyRef = parseExpression();
+
     return nodeRef;
 }
 
@@ -228,12 +231,14 @@ bool Parser::isCodeLiteralBinderAhead() const
     {
         if (t->id != TokenId::Identifier && t->id != TokenId::KwdUnnamed)
             return false;
+
         ++t;
         if (t < lastToken_ && t->id == TokenId::SymComma)
         {
             ++t;
             continue;
         }
+
         break;
     }
 
@@ -261,6 +266,7 @@ SpanRef Parser::parseCodeBinderNames()
             const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
             if (nameRef.isInvalid())
                 break;
+
             names.push_back(nameRef);
         }
 
@@ -554,6 +560,7 @@ AstNodeRef Parser::parseCompilerInject()
     nodePtr->nodeExprRef               = parseExpression();
     nodePtr->spanReplaceInstructionRef = SpanRef::invalid();
     nodePtr->spanReplaceNodeRef        = SpanRef::invalid();
+
     SmallVector<TokenRef>   replacementInstructionRefs;
     SmallVector<AstNodeRef> replacementNodeRefs;
     SmallVector<TokenRef>   bindingNameRefs;
@@ -603,6 +610,7 @@ AstNodeRef Parser::parseCompilerInject()
         nodePtr->spanReplaceInstructionRef = ast_->pushSpan(replacementInstructionRefs.span());
         nodePtr->spanReplaceNodeRef        = ast_->pushSpan(replacementNodeRefs.span());
     }
+
     if (!bindingNameRefs.empty())
     {
         nodePtr->spanBindingNameRef = ast_->pushSpan(bindingNameRefs.span());

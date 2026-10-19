@@ -351,6 +351,7 @@ AstNodeRef Parser::parseCast()
     const TokenRef   openRef       = ref();
 
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+
     // A single argument infers its destination from context. Only a comma at
     // this level separates an explicit type from its operand.
     bool explicitTarget = false;
@@ -364,15 +365,18 @@ AstNodeRef Parser::parseCast()
             explicitTarget = true;
             break;
         }
+
         if (token->id == TokenId::SymLeftParen || token->id == TokenId::SymLeftBracket || token->id == TokenId::SymLeftCurly)
             ++depth;
         else if (token->id == TokenId::SymRightParen || token->id == TokenId::SymRightBracket || token->id == TokenId::SymRightCurly)
         {
             if (depth == 0)
                 break;
+
             --depth;
         }
     }
+
     if (!explicitTarget)
     {
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AutoCastExpr>(tknOp);
@@ -384,10 +388,12 @@ AstNodeRef Parser::parseCast()
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CastExpr>(tknOp);
     nodePtr->addFlag(AstCastExprFlagsE::Explicit);
-    nodePtr->modifierFlags   = modifierFlags;
+    nodePtr->modifierFlags = modifierFlags;
+
     const Token* targetStart = curToken_;
     while (targetStart < lastToken_ && targetStart->id == TokenId::SymLeftParen)
         ++targetStart;
+
     const bool expressionTarget = targetStart < lastToken_ && targetStart->id == TokenId::Identifier;
     if (expressionTarget)
     {
@@ -396,8 +402,10 @@ AstNodeRef Parser::parseCast()
     }
     else
         nodePtr->nodeTypeRef = parseType();
+
     if (nodePtr->nodeTypeRef.isInvalid())
         skipTo({TokenId::SymRightParen});
+
     expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token_before);
     nodePtr->nodeExprRef = parseExpression();
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);

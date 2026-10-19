@@ -43,7 +43,6 @@ AstNodeRef Parser::parseAnonymousAggregateTypeBody()
 
 AstNodeRef Parser::parseSingleType()
 {
-    // Builtin
     if (Token::isType(tok().id))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::BuiltinType>(consume());
@@ -61,12 +60,14 @@ AstNodeRef Parser::parseSingleType()
             nodePtr->nodeBodyRef    = parseAnonymousAggregateTypeBody();
             return nodeRef;
         }
+
         case TokenId::KwdUnion:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>(consume());
             nodePtr->nodeBodyRef    = parseAnonymousAggregateTypeBody();
             return nodeRef;
         }
+
         case TokenId::SymLeftCurly:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousStructDecl>(ref());
@@ -87,6 +88,7 @@ AstNodeRef Parser::parseSingleType()
             const AstNodeRef typeRef = parseType();
             if (expectAndConsumeClosing(TokenId::SymRightParen, openRef).isInvalid())
                 return AstNodeRef::invalid();
+
             return typeRef;
         }
 
@@ -112,6 +114,7 @@ AstNodeRef Parser::parseSubType(const bool allowNullableSuffix)
         diag.report(*ctx_);
         consume();
     }
+
     AstNodeRef subNodeRef = parseSubTypeNoQualifiers();
     if (subNodeRef.isInvalid())
         return AstNodeRef::invalid();
@@ -155,6 +158,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
         const AstNodeRef child = parseSubType(false);
         if (child.isInvalid())
             return AstNodeRef::invalid();
+
         auto [nodeRef, nodePtr]     = ast_->makeNode<AstNodeId::MoveRefType>(tokMoveRef);
         nodePtr->nodePointeeTypeRef = child;
         return nodeRef;
@@ -181,6 +185,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
             nodePtr->nodePointeeTypeRef = child;
             return nodeRef;
         }
+
         return child;
     }
 

@@ -45,6 +45,7 @@ namespace
             const uint32_t rhsOffset = (*relocations)[rhs].offset;
             if (lhsOffset != rhsOffset)
                 return lhsOffset < rhsOffset;
+
             return lhs < rhs;
         }
     };
@@ -61,6 +62,7 @@ std::pair<std::span<const std::byte>, Ref> DataSegment::addSpan(std::span<const 
     const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(value.size()), align, false);
     if (value.data() && !value.empty())
         std::memcpy(ptr, value.data(), value.size());
+
     recordAllocation(offset, static_cast<uint32_t>(value.size()), align);
     return {{ptr, value.size()}, offset};
 }
@@ -78,6 +80,7 @@ std::pair<std::string_view, Ref> DataSegment::addString(const std::string_view v
     if (!value.empty())
         std::memcpy(ptr, value.data(), value.size());
     ptr[value.size()] = std::byte{0};
+
     recordAllocation(offset, size, alignof(std::byte));
     const std::string_view view{reinterpret_cast<const char*>(ptr), value.size()};
 
@@ -88,6 +91,7 @@ std::pair<std::string_view, Ref> DataSegment::addString(const std::string_view v
         key = static_cast<char*>(stringKeys_.allocate(value.size(), alignof(char)));
         std::memcpy(key, value.data(), value.size());
     }
+
     stringMap_.insert_or_assign(std::string_view{key, value.size()}, hash, InternedString{.data = view.data(), .size = static_cast<uint32_t>(view.size()), .offset = offset});
 
     return {view, offset};
@@ -138,6 +142,7 @@ Ref DataSegment::findRef(const void* ptr) const noexcept
     const Ref              ref = store_.findRef(ptr);
     if (ref != INVALID_REF)
         return ref;
+
     return findLargeBlockRefLocked(ptr);
 }
 
@@ -166,6 +171,7 @@ uint32_t DataSegment::size() const noexcept
     const std::shared_lock lock(mutex_);
     if (largeBlocks_.empty())
         return store_.size();
+
     return currentExtentLocked();
 }
 
@@ -184,14 +190,17 @@ void DataSegment::copyTo(std::span<std::byte> dst) const
             return;
 
         std::memset(dst.data(), 0, dst.size_bytes());
+
         const uint32_t storeExtent = store_.extentSize();
         if (storeExtent)
             store_.copyToPreserveOffsets(std::span{dst.data(), storeExtent});
+
         for (const LargeBlock& block : largeBlocks_)
         {
             SWC_ASSERT(block.offset + block.size <= dst.size_bytes());
             std::memcpy(dst.data() + block.offset, block.storage.get(), block.size);
         }
+
         return;
     }
 
@@ -205,9 +214,11 @@ void DataSegment::copyToPreserveOffsets(std::span<std::byte> dst) const
     SWC_ASSERT(storeExtent <= dst.size_bytes());
     if (storeExtent)
         store_.copyToPreserveOffsets(std::span{dst.data(), storeExtent});
+
     const auto tail = dst.subspan(storeExtent);
     if (!tail.empty())
         std::memset(tail.data(), 0, tail.size_bytes());
+
     for (const LargeBlock& block : largeBlocks_)
     {
         SWC_ASSERT(block.offset + block.size <= dst.size_bytes());

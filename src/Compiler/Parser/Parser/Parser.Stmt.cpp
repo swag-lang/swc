@@ -60,11 +60,13 @@ AstNodeRef Parser::parseTopLevelStorageModifier()
 
     const EnumFlags<AstVarStorageFlagsE> savedStorageFlags = topLevelStorageFlags_;
     topLevelStorageFlags_.add(storageFlags);
+
     AstNodeRef nodeRef;
     if (isAny(TokenId::KwdPublic, TokenId::KwdPrivate, TokenId::KwdInternal))
         nodeRef = parseAccessModifier();
     else
         nodeRef = parseTopLevelDeclOrBlock();
+
     topLevelStorageFlags_ = savedStorageFlags;
     return nodeRef;
 }
@@ -102,7 +104,8 @@ AstNodeRef Parser::parseAccessModifier()
     const TokenRef savedAccessRef = topLevelAccessRef_;
     topLevelAccessRef_            = tokModifier;
     nodePtr->nodeWhatRef          = parseTopLevelDeclOrBlock();
-    topLevelAccessRef_            = savedAccessRef;
+
+    topLevelAccessRef_ = savedAccessRef;
     return nodeRef;
 }
 
@@ -165,25 +168,18 @@ AstNodeRef Parser::parseAlias()
     // Alias declarations intentionally accept only type-like forms or symbol names.
     // Letting the full expression parser run here would make value expressions look
     // valid until sema, producing poorer diagnostics and ambiguous AST shapes.
-    // 1) Definitely looks like a type (array, func, struct literal type, pointer type, simd type, etc.)
     if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::SymLeftParen, TokenId::KwdFunc, TokenId::KwdMtd, TokenId::KwdConst, TokenId::ModifierSimd, TokenId::SymAsterisk))
     {
         nodePtr->nodeExprRef = parseType();
     }
-
-    // 2) Built-in scalar types, etc.
     else if (Token::isType(id()))
     {
         nodePtr->nodeExprRef = parseType();
     }
-
-    // 3) Otherwise, allow only a symbol / qualified name as RHS
     else if (is(TokenId::Identifier))
     {
         nodePtr->nodeExprRef = parseQualifiedIdentifier();
     }
-
-    // 4) Everything else: error (e.g. "alias A = 1 + 2")
     else
     {
         raiseError(DiagnosticId::parser_err_expected_type_or_symbol, ref());
@@ -197,6 +193,7 @@ AstNodeRef Parser::parseAlias()
 AstNodeRef Parser::parseReturn()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ReturnStmt>(consume());
+
     // A newline after 'return' is a bare return. This keeps automatic statement
     // termination from accidentally capturing the first expression on the next line.
     if (is(TokenId::SymSemiColon) || tok().startsLine())
@@ -276,7 +273,7 @@ AstNodeRef Parser::parseIf()
         // 'else if' is represented by nesting another if node in the else slot.
         // Later passes can therefore treat chained and manually nested conditionals
         // with the same traversal code.
-        nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
+        nodePtr->nodeIfBlockRef   = parseDoCurlyBlock();
         nodePtr->nodeElseBlockRef = parseElseBranch();
 
         return nodeRef;

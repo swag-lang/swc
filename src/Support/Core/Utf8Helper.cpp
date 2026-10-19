@@ -37,7 +37,6 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
 
     const auto b0 = static_cast<uint8_t>(*u);
 
-    // Fast ASCII path
     if (b0 < 0x80)
     {
         return {u + 1, static_cast<uint32_t>(b0), 1};
@@ -48,9 +47,11 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
     {
         if (e - u < 2)
             return {nullptr, 0, 0};
+
         const uint8_t b1 = u[1];
         if (b0 < 0xC2 || (b1 & 0xC0) != 0x80)
             return {nullptr, 0, 0};
+
         const uint32_t wc = ((b0 & 0x1F) << 6) | (b1 & 0x3F);
         return {u + 2, wc, 2};
     }
@@ -60,6 +61,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
     {
         if (e - u < 3)
             return {nullptr, 0, 0};
+
         const uint8_t b1 = u[1];
         const uint8_t b2 = u[2];
         if ((b1 & 0xC0) != 0x80 || (b2 & 0xC0) != 0x80)
@@ -68,6 +70,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
             return {nullptr, 0, 0}; // overlong
         if (b0 == 0xED && b1 >= 0xA0)
             return {nullptr, 0, 0}; // surrogates
+
         const uint32_t wc = ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F);
         return {u + 3, wc, 3};
     }
@@ -77,6 +80,7 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
     {
         if (e - u < 4)
             return {nullptr, 0, 0};
+
         const uint8_t b1 = u[1];
         const uint8_t b2 = u[2];
         const uint8_t b3 = u[3];
@@ -86,11 +90,11 @@ std::tuple<const char8_t*, char32_t, uint32_t> Utf8Helper::decodeOneChar(const c
             return {nullptr, 0, 0}; // overlong
         if (b0 > 0xF4 || (b0 == 0xF4 && b1 > 0x8F))
             return {nullptr, 0, 0}; // > U+10FFFF
+
         const uint32_t wc = ((b0 & 0x07) << 18) | ((b1 & 0x3F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F);
         return {u + 4, wc, 4};
     }
 
-    // Invalid lead byte
     return {nullptr, 0, 0};
 }
 

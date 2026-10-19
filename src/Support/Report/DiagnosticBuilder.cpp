@@ -40,6 +40,7 @@ namespace
             {
                 if (v.isInvalid())
                     return Utf8{"<type unavailable>"};
+
                 const TypeInfo& type = ctx->compiler().typeMgr().get(v);
                 return qualified ? type.toFullName(*ctx) : type.toName(*ctx);
             }
@@ -61,23 +62,23 @@ namespace
         {
             SWC_ASSERT(element != nullptr);
             SWC_ASSERT(ctx != nullptr);
+
             const SourceCodeRange leftRange  = element->codeRange(lhs, *ctx);
             const SourceCodeRange rightRange = element->codeRange(rhs, *ctx);
             return leftRange.column < rightRange.column;
         }
     };
 
-    // tag → severity mapping
     std::optional<DiagnosticSeverity> tagToSeverity(std::string_view s)
     {
         if (Utf8Helper::startsWith(s, "[note]"))
             return DiagnosticSeverity::Note;
         if (Utf8Helper::startsWith(s, "[help]"))
             return DiagnosticSeverity::Help;
+
         return std::nullopt;
     }
 
-    // remove a header like [note] or [help]
     std::string_view stripLeadingTagHeader(std::string_view s)
     {
         std::string_view t = Utf8Helper::trim(s);
@@ -87,6 +88,7 @@ namespace
             if (close != std::string_view::npos)
                 t.remove_prefix(close + 1);
         }
+
         t = Utf8Helper::trimLeft(t);
         return t;
     }
@@ -326,7 +328,7 @@ Utf8 DiagnosticBuilder::build()
     return out_;
 }
 
-// split message on ';' ignoring ';' inside quotes and escaped quotes
+// Quoted semicolons belong to the message text, even after an escaped quote.
 SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view msg)
 {
     SmallVector<std::string_view> parts;
@@ -357,6 +359,7 @@ SmallVector<std::string_view> DiagnosticBuilder::splitMessage(std::string_view m
                 const std::string_view p = Utf8Helper::trim(msg.substr(start, i - start));
                 if (!p.empty())
                     parts.emplace_back(p);
+
                 start = i + 1;
             }
         }
@@ -379,6 +382,7 @@ SmallVector<DiagnosticBuilder::Part> DiagnosticBuilder::parseParts(std::string_v
     {
         if (raw.empty())
             continue;
+
         const std::optional<DiagnosticSeverity> sev  = tagToSeverity(raw);
         const std::string_view                  body = stripLeadingTagHeader(raw);
         out.push_back({.tag = sev, .text = Utf8(body)});
@@ -408,6 +412,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagPart::LabelMsgText:
             if (!sev)
                 return {White};
+
             switch (*sev)
             {
                 case DiagnosticSeverity::Error:
@@ -429,6 +434,7 @@ DiagnosticBuilder::AnsiSeq DiagnosticBuilder::diagPalette(DiagPart p, std::optio
         case DiagPart::QuoteText:
             if (!sev)
                 return {White};
+
             switch (*sev)
             {
                 case DiagnosticSeverity::Error:
@@ -521,8 +527,8 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
                 }
                 else if (i + 1 < msg.size() && msg[i + 1] == '\'')
                 {
-                    quotedBuf += '\''; // Keep a literal single quote in the content
-                    ++i;               // Consume the escape
+                    quotedBuf += '\'';
+                    ++i;
                 }
                 else
                 {
@@ -540,6 +546,7 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
                 out_ += qColor;
                 out_ += quotedBuf;
                 out_ += reset;
+
                 inQuote = false;
                 quotedBuf.clear();
             }

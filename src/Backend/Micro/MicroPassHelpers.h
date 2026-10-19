@@ -403,6 +403,8 @@ namespace MicroPassHelpers
     // Relocations of direct calls whose target promises no caller-visible writes.
     // Callers still verify the instruction is a direct call before using the set.
     FlatKeySet collectReadOnlyCallRefs(const MicroBuilder& builder);
+    // Direct internal calls whose complete ABI argument transport uses registers.
+    FlatKeySet collectRegisterOnlyCallRefs(MicroBuilder& builder);
     // Relocations of the calls that report a fault: the panic functions of the runtime.
     // The name alone decides. Every reader only moves or drops code a report makes cold,
     // so taking another function of that name for one changes nothing a program observes.

@@ -728,12 +728,11 @@ namespace
     // Only allocator-owned slots qualify: program pointers cannot reach them,
     // so the explicit stack accesses are every access. A path is followed
     // until it rewrites the slot or leaves the function; one that reads any
-    // byte of it, or changes the stack pointer the offsets are relative to,
-    // keeps the store, except the epilogue releasing the frame on its way to
-    // the return. A displacement inside the spill range can also name an outgoing
-    // argument after a call-frame adjustment. Without a frame-relative ownership
-    // proof, calls must therefore count as possible readers. Every dead store goes
-    // in one run.
+    // byte of it, or leaves the stack depth unknown, keeps the store.
+    // Normalize stack accesses to function entry so outgoing-call
+    // adjustments cannot confuse two slots. A known internal call with only
+    // register arguments cannot read an allocator home above its stack pointer;
+    // other calls remain possible readers. Every dead store goes in one run.
     bool eraseDeadSpillStore(MicroPassContext& context)
     {
         if (!context.builder || context.spillAreaLo >= context.spillAreaHi ||
@@ -748,6 +747,22 @@ namespace
 
         const auto     refs  = cfg.instructionRefs();
         const MicroReg stack = CallConv::get(context.callConvKind).stackPointer;
+        if (refs.empty())
+            return false;
+        std::optional<FlatKeyMap<uint64_t>> stackOffsets;
+        std::optional<FlatKeySet>           registerOnlyCalls;
+        const auto                          absoluteOffset = [&](uint32_t index, uint64_t displacement) -> std::optional<int64_t> {
+            if (!stackOffsets)
+                stackOffsets = MicroPassHelpers::collectStackPointerOffsets(context, refs.front(), 0);
+            const auto* delta = stackOffsets->find(refs[index].get());
+            if (!delta)
+                return std::nullopt;
+            const auto signedDelta        = static_cast<int64_t>(*delta);
+            const auto signedDisplacement = static_cast<int64_t>(displacement);
+            if (signedDelta < INT32_MIN || signedDelta > INT32_MAX || signedDisplacement < INT32_MIN || signedDisplacement > INT32_MAX)
+                return std::nullopt;
+            return signedDelta + signedDisplacement;
+        };
 
         // An indexed access through the stack pointer can name any slot.
         for (uint32_t index = 0; index < refs.size(); ++index)
@@ -771,13 +786,20 @@ namespace
         };
         // Displacements are signed: an access below the stack pointer must not
         // wrap past the slot and read as disjoint from it.
-        const auto classify = [&](const MicroInstr& inst, const MicroInstrOperand* ops, const int64_t offset, const int64_t slotSize) {
+        const auto classify = [&](uint32_t index, const MicroInstr& inst, const MicroInstrOperand* ops, const int64_t offset, const int64_t slotSize) {
             const auto& info = MicroInstr::info(inst.op);
-            if (!ops || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || ops[info.memBaseOperandIndex].reg != stack)
+            const bool  push = inst.op == MicroInstrOpcode::Push;
+            const bool  pop  = inst.op == MicroInstrOpcode::Pop;
+            if (!push && !pop && (!ops || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || ops[info.memBaseOperandIndex].reg != stack))
                 return SlotAccess::None;
-            const auto accessOffset = static_cast<int64_t>(ops[info.memOffsetOperandIndex].valueU64);
-            int64_t    accessSize   = 64;
-            bool       pureStore    = false;
+            const uint64_t displacement = push ? 0ull - CallConv::get(context.callConvKind).stackSlotSize() : pop ? 0
+                                                                                                                  : ops[info.memOffsetOperandIndex].valueU64;
+            const auto     access       = absoluteOffset(index, displacement);
+            if (!access)
+                return SlotAccess::Other;
+            const auto accessOffset = *access;
+            int64_t    accessSize   = push || pop ? CallConv::get(context.callConvKind).stackSlotSize() : 64;
+            bool       pureStore    = push;
             switch (inst.op)
             {
                 case MicroInstrOpcode::LoadMemReg:
@@ -786,7 +808,12 @@ namespace
                     [[fallthrough]];
                 case MicroInstrOpcode::LoadRegMem:
                 case MicroInstrOpcode::LoadVecRegMem:
+                case MicroInstrOpcode::OpBinaryRegMem:
                     accessSize = getNumBytes(ops[2].opBits);
+                    break;
+                case MicroInstrOpcode::OpBinaryRegRegMem:
+                case MicroInstrOpcode::OpTernaryRegRegMem:
+                    accessSize = getNumBytes(ops[3].opBits);
                     break;
                 case MicroInstrOpcode::LoadMemImm:
                     pureStore  = true;
@@ -800,26 +827,6 @@ namespace
             if (pureStore && accessOffset <= offset && accessOffset + accessSize >= offset + slotSize)
                 return SlotAccess::Overwrite;
             return SlotAccess::Other;
-        };
-
-        // The frame release before a return: stack-pointer additions and pops
-        // running straight into it.
-        const auto releasesFrame = [&](uint32_t index) {
-            for (; index < refs.size(); ++index)
-            {
-                const MicroInstr* inst = storage.ptr(refs[index]);
-                const auto*       ops  = inst ? inst->ops(operands) : nullptr;
-                if (!inst)
-                    return false;
-                if (inst->op == MicroInstrOpcode::Ret)
-                    return true;
-                if (inst->op == MicroInstrOpcode::Pop)
-                    continue;
-                if (inst->op != MicroInstrOpcode::OpBinaryRegImm || !ops || ops[0].reg != stack ||
-                    ops[2].microOp != MicroOp::Add)
-                    return false;
-            }
-            return false;
         };
 
         // A bounded walk: a store whose fate is not settled within it stays.
@@ -841,7 +848,10 @@ namespace
                 slotSize > context.spillAreaHi - saved[3].valueU64)
                 continue;
 
-            const auto offset = static_cast<int64_t>(saved[3].valueU64);
+            const auto storedOffset = absoluteOffset(storeIndex, saved[3].valueU64);
+            if (!storedOffset)
+                continue;
+            const auto offset = *storedOffset;
             ++stamp;
             pending.assign(cfg.successors(storeIndex).begin(), cfg.successors(storeIndex).end());
             bool     live  = false;
@@ -865,7 +875,7 @@ namespace
                     break;
                 }
                 const auto*      ops    = inst->ops(operands);
-                const SlotAccess access = classify(*inst, ops, offset, static_cast<int64_t>(slotSize));
+                const SlotAccess access = classify(index, *inst, ops, offset, static_cast<int64_t>(slotSize));
                 if (access == SlotAccess::Overwrite)
                     continue;
                 if (access == SlotAccess::Other)
@@ -876,15 +886,22 @@ namespace
                 const MicroInstrUseDef useDef = inst->collectUseDef(operands, context.encoder);
                 if (useDef.isCall)
                 {
-                    live = true;
-                    break;
+                    if (!registerOnlyCalls)
+                        registerOnlyCalls = MicroPassHelpers::collectRegisterOnlyCallRefs(*context.builder);
+                    const auto callStack = absoluteOffset(index, 0);
+                    if (!registerOnlyCalls->contains(refs[index].get()) || !callStack || offset < *callStack)
+                    {
+                        live = true;
+                        break;
+                    }
                 }
                 if (std::ranges::find(useDef.defs, stack) != useDef.defs.end())
                 {
-                    if (releasesFrame(index))
-                        continue;
-                    live = true;
-                    break;
+                    if (std::ranges::any_of(cfg.successors(index), [&](uint32_t successor) { return !absoluteOffset(successor, 0); }))
+                    {
+                        live = true;
+                        break;
+                    }
                 }
                 for (const uint32_t successor : cfg.successors(index))
                     pending.push_back(successor);
@@ -1167,7 +1184,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.instructions != nullptr);
     SWC_ASSERT(context.operands != nullptr);
 
-    if (eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
+    if (reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
         eraseDeadSpillStore(context))
     {
         context.passChanged = true;

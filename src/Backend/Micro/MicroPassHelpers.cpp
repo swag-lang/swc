@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroPassHelpers.h"
+#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -158,6 +159,51 @@ FlatKeyMap<uint64_t> MicroPassHelpers::collectStackPointerOffsets(const MicroPas
         if (states[index] == 1)
             result.emplace(refs[index].get(), offsets[index]);
     return result;
+}
+
+FlatKeySet MicroPassHelpers::collectRegisterOnlyCallRefs(MicroBuilder& builder)
+{
+    FlatKeySet  refs;
+    auto&       ctx  = builder.ctx();
+    const auto& conv = CallConv::get(CallConvKind::Swag);
+    if (conv.stackShadowSpace)
+        return refs;
+    for (const MicroRelocation& relocation : builder.codeRelocations())
+    {
+        if (!relocation.instructionRef.isValid() || !relocation.targetSymbol || !relocation.targetSymbol->isFunction())
+            continue;
+        const auto* inst = builder.instructions().ptr(relocation.instructionRef);
+        const auto* ops  = inst ? inst->ops(builder.operands()) : nullptr;
+        if (!inst || !ops || inst->op != MicroInstrOpcode::CallLocal || ops[0].callConv != CallConvKind::Swag)
+            continue;
+        const auto& function = relocation.targetSymbol->cast<SymbolFunction>();
+        if (function.isForeign() || function.isClosure() || function.isFallible() || !function.returnTypeRef().isValid())
+            continue;
+        if (ABITypeNormalize::normalize(ctx, conv, ctx.typeMgr().get(function.returnTypeRef()), ABITypeNormalize::Usage::Return).isIndirect)
+            continue;
+        SmallVector<ABICall::ArgLayout> layouts;
+        bool                            registerOnly = true;
+        for (const auto* parameter : function.parameters())
+        {
+            // Internal variadics pass one pointer to their packed slice. C
+            // variadics never reach this Swag-only transport proof.
+            const auto normalized = ABITypeNormalize::normalize(ctx, conv, ctx.typeMgr().get(parameter->typeRef()), ABITypeNormalize::Usage::Argument);
+            if (normalized.isIndirect)
+            {
+                registerOnly = false;
+                break;
+            }
+            layouts.push_back({.numBits = normalized.numBits, .isFloat = normalized.isFloat});
+            if (ABICall::argumentRegisterIndex(conv, layouts.span(), static_cast<uint32_t>(layouts.size() - 1)) == UINT32_MAX)
+            {
+                registerOnly = false;
+                break;
+            }
+        }
+        if (registerOnly)
+            refs.insert(relocation.instructionRef.get());
+    }
+    return refs;
 }
 
 FlatKeySet MicroPassHelpers::collectReadOnlyCallRefs(const MicroBuilder& builder)

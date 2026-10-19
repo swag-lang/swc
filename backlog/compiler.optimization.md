@@ -111,24 +111,6 @@ new language syntax.
   flow contract intact and no static per-iteration loss on reachable benchmark hot paths.
 - Related: compiler.optimization.094, compiler.optimization.117.
 
-### compiler.optimization.104 — The unrolled n-body step spills the velocities it just stored
-
-- Evidence: the timestep is a loop-carried latency chain (positions, interactions,
-  velocities, positions), not a divider-throughput limit: on the bench machine ten scalar
-  `sqrtsd`+`divsd` cost the same as five packed `sqrtpd`+`divpd`, and packing all ten
-  interactions measured neutral. With the position loop unrolled, the step holds every body's
-  velocity in a register from its last interaction to the position update and spills several
-  of them to the frame (`[rsp+0x3xx]`), although each was just stored to its field: 405
-  instructions and 170 memory operands per step against 367 / 132 before the unroll.
-- Rejected direction: pairing roots or divisions, alone or with their producers, gains
-  nothing while the divider is idle most of the step. Do not repeat it on this hardware.
-- Next: when allocation would spill a value that an earlier store of the same block wrote to
-  memory nothing has changed since, reload it from that store's location instead of adding a
-  spill store and slot; check the step's frame traffic and the other tasks' unrolled loops.
-- Done when: the step keeps no frame spill for a value it can reload from its own store, with
-  no generated-code loss in other tasks.
-- Related: compiler.optimization.016, compiler.optimization.035.
-
 ### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
 
 - Evidence: `wordfreq`'s `qsort` compares through file-level `late` globals `g_Idx` and `g_Cnt`.
@@ -758,14 +740,14 @@ new language syntax.
   unions, worsens unrelated floating code under interval splitting (raytrace `intersect`
   and `trace` gain instructions, memory operands and frame references) and was discarded.
   Splitting only a reused register whose stored old value is later read leaves raytrace
-  unchanged and enables nbody's cross-group velocity forwarding (compiler.optimization.104);
+  unchanged and enables nbody's cross-group velocity forwarding;
   it is not a general policy for arithmetic temporaries.
 - Next: attribute the extra floating interference and improve residency before expanding
   eligibility beyond a concrete store-to-load forwarding opportunity. Recheck the deblock
   consumer and raytrace alongside any broader rule; do not infer a win from renaming alone.
 - Done when: independent webs expose the intended hoisting and forwarding without
   worsening the affected hot paths through additional transfers or spill traffic.
-- Related: compiler.optimization.015, compiler.optimization.104.
+- Related: compiler.optimization.015.
 
 ### compiler.optimization.102 — Retain one floating zero across unrolled arms
 

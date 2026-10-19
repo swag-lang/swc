@@ -410,6 +410,9 @@ namespace MicroOptimizationLimits
     {
         // [analysis-budget] Bound memory scans used to prove post-RA stores redundant or reusable.
         inline constexpr uint32_t K_MAX_STORE_SCAN_WINDOW = 32;
+
+        // [analysis-budget] Bound each straight-line search for reloads of a value also stored in a local. Later reloads keep their spill home.
+        inline constexpr uint32_t K_SPILL_RELOAD_WINDOW = 512;
     }
 
     namespace PostRAPeepholeCopyForward

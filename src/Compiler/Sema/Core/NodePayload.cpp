@@ -72,14 +72,15 @@ namespace
             return false;
         if (!sym.isLetVariable())
             return false;
+
         const auto& symVar = sym.cast<SymbolVariable>();
         if (symVar.cstRef().isInvalid())
             return false;
+
         return symVar.typeRef().isValid();
     }
 
-    // A node payload table is a map, the lock that guards it, and a count readers test before
-    // taking the lock, so an empty table costs them a single load.
+    // An atomic count lets readers skip locking empty payload tables.
     void* findSharedPayload(const RefPointerMap<AstNodeRef>& map, std::shared_mutex& mutex, const std::atomic<uint32_t>& count, AstNodeRef nodeRef)
     {
         if (!count.load(std::memory_order_acquire))
@@ -89,7 +90,6 @@ namespace
         return map.find(nodeRef);
     }
 
-    // Records the payload of 'nodeRef'; 'mustBeNew' asserts the node had none.
     void storeSharedPayload(RefPointerMap<AstNodeRef>& map, std::shared_mutex& mutex, std::atomic<uint32_t>& count, AstNodeRef nodeRef, void* payload, bool mustBeNew)
     {
         const std::unique_lock lock(mutex);
@@ -98,9 +98,8 @@ namespace
         count.store(static_cast<uint32_t>(map.size()), std::memory_order_release);
     }
 
-    // Node references are aligned, so the shard counts above stay nonzero on nearly every node of
-    // a tree with one entry. The node's own bit tells the rest apart: it is set once an entry is
-    // added and never cleared. A reference that names no node of this tree keeps the lookup.
+    // Aligned node refs make shard counts poor filters. Per-node bits record
+    // which tables ever held an entry; refs outside this AST still need a lookup.
     constexpr uint8_t SIDE_TABLE_LOWERING        = 1 << 0;
     constexpr uint8_t SIDE_TABLE_INLINE          = 1 << 1;
     constexpr uint8_t SIDE_TABLE_INLINE_OVERRIDE = 1 << 2;
@@ -262,6 +261,7 @@ bool NodePayload::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
+
     const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
     return cstRef.isValid();
 }
@@ -316,6 +316,7 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
                 const auto& symVar = front->cast<SymbolVariable>();
                 return symVar.cstRef();
             }
+
             break;
         }
 
@@ -330,6 +331,7 @@ void NodePayload::setConstant(AstNodeRef nodeRef, ConstantRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
+
     AstNode& node = ast().node(nodeRef);
     recordFoldedSourceSymbol(nodeRef, node);
     const uint16_t setBits = static_cast<uint16_t>(NodePayloadKind::ConstantRef) | static_cast<uint16_t>(NodePayloadFlags::Value);
@@ -377,12 +379,13 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     while (true)
     {
         const uint16_t bits = AstNode::payloadBitsFromState(expected);
-        *stored             = {
-                        .substNodeRef  = substNodeRef,
-                        .originalKind  = static_cast<NodePayloadKind>(bits & NODE_PAYLOAD_KIND_MASK),
-                        .originalRef   = AstNode::payloadRefFromState(expected),
-                        .originalShard = static_cast<uint32_t>((bits & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
-                        .originalFlags = static_cast<NodePayloadFlags>(bits & NODE_PAYLOAD_FLAGS_MASK),
+
+        *stored = {
+            .substNodeRef  = substNodeRef,
+            .originalKind  = static_cast<NodePayloadKind>(bits & NODE_PAYLOAD_KIND_MASK),
+            .originalRef   = AstNode::payloadRefFromState(expected),
+            .originalShard = static_cast<uint32_t>((bits & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
+            .originalFlags = static_cast<NodePayloadFlags>(bits & NODE_PAYLOAD_FLAGS_MASK),
         };
 
         const uint16_t newBits = static_cast<uint16_t>((bits & ~(NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK)) |
@@ -394,17 +397,18 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     }
 }
 
-// The rare half of getSubstituteRef: the node was replaced, so follow what replaced it until a
-// node that was not.
+// Follow the uncommon replacement chain until reaching an unsubstituted node.
 AstNodeRef NodePayload::followSubstituteChain(AstNodeRef nodeRef) const
 {
     while (true)
     {
-        const AstNode&    node  = ast().node(nodeRef);
-        const uint64_t    state = node.payloadState();
-        const PayloadInfo info  = {.kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
-                                   .ref      = AstNode::payloadRefFromState(state),
-                                   .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT)};
+        const AstNode& node  = ast().node(nodeRef);
+        const uint64_t state = node.payloadState();
+
+        const PayloadInfo info = {
+            .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
+            .ref      = AstNode::payloadRefFromState(state),
+            .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT)};
         if (info.kind != NodePayloadKind::Substitute)
             break;
 
@@ -425,6 +429,7 @@ bool NodePayload::hasType(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
+
     const TypeRef typeRef = getTypeRef(ctx, nodeRef);
     return typeRef.isValid();
 }
@@ -445,18 +450,22 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
             const ConstantRef cstRef{info.ref};
             if (cstRef.isInvalid())
                 return TypeRef::invalid();
+
             value = ctx.cstMgr().get(cstRef).typeRef();
             break;
         }
+
         case NodePayloadKind::TypeRef:
             value = TypeRef{info.ref};
             break;
+
         case NodePayloadKind::SymbolRef:
         case NodePayloadKind::SymbolList:
         {
             const auto symbols = symbolsFromInfo(info);
             if (symbols.empty() || !symbols.back())
                 return TypeRef::invalid();
+
             value = symbols.back()->typeRef();
             break;
         }
@@ -481,8 +490,10 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
             childRef = expression->cast<AstParenExpr>().nodeExprRef;
         else
             break;
+
         expression = &ast().node(getSubstituteRef(childRef));
     }
+
     return unwrapFunctionReturnTypeIfCall(*this, ctx, nodeRef, *expression, value);
 }
 
@@ -490,6 +501,7 @@ void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(ref.isValid());
+
     AstNode& node = ast().node(nodeRef);
     recordFoldedSourceSymbol(nodeRef, node);
     node.updatePayloadState(NODE_PAYLOAD_KIND_MASK, static_cast<uint16_t>(NodePayloadKind::TypeRef), ref.get());
@@ -499,6 +511,7 @@ bool NodePayload::hasSymbol(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
+
     const AstNode&    node = ast().node(nodeRef);
     const PayloadInfo info = payloadInfo(node);
     if (info.kind != NodePayloadKind::SymbolRef)
@@ -511,11 +524,13 @@ const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     SWC_UNUSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
+
     const AstNode&    node     = ast().node(nodeRef);
     const PayloadInfo info     = payloadInfo(node);
     const uint32_t    shardIdx = info.shardIdx;
     const Shard*      shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
+
     const Symbol* const* slot  = (shard->store.ptr<Symbol*>(info.ref));
     const Symbol&        value = *(*slot);
     return value;
@@ -525,11 +540,13 @@ Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     SWC_UNUSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
+
     const AstNode&    node     = ast().node(nodeRef);
     const PayloadInfo info     = payloadInfo(node);
     const uint32_t    shardIdx = info.shardIdx;
     Shard*            shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
+
     Symbol** slot  = (shard->store.ptr<Symbol*>(info.ref));
     Symbol&  value = *(*slot);
     return value;
@@ -539,6 +556,7 @@ void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
 {
     SWC_ASSERT(symbol);
     AstNode& node = ast().node(nodeRef);
+
     // Constant binding identifiers are synthetic value nodes created while cloning inline
     // arguments; a later name lookup must not turn them back into source-scope variables.
     if (node.is(AstNodeId::Identifier) &&
@@ -550,11 +568,13 @@ void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
     Shard*                 shard    = ensureShard(shardIdx);
     const std::scoped_lock lock(shard->storeMutex);
 
-    const Ref      value       = shard->store.pushBack(symbol);
+    const Ref value = shard->store.pushBack(symbol);
+
     const uint16_t symbolFlags = applySymbolPayloadFlags(0, std::span{&symbol, 1});
     const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK | static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
     const uint16_t setBits     = static_cast<uint16_t>(NodePayloadKind::SymbolRef) |
                              static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT) | symbolFlags;
+
     node.updatePayloadState(clearMask, setBits, value);
 }
 
@@ -562,6 +582,7 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
+
     const AstNode&    node = ast().node(nodeRef);
     const PayloadInfo info = payloadInfo(node);
     if (info.kind != NodePayloadKind::SymbolList)
@@ -573,11 +594,13 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
+
     const AstNode&    node     = ast().node(nodeRef);
     const PayloadInfo info     = payloadInfo(node);
     const uint32_t    shardIdx = info.shardIdx;
     const Shard*      shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
+
     const auto spanView = shard->store.span<const Symbol*>(info.ref);
     const auto it       = spanView.chunksBegin();
 
@@ -607,12 +630,14 @@ void NodePayload::setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol* 
     Shard*                 shard    = ensureShard(shardIdx);
     const std::scoped_lock lock(shard->storeMutex);
 
-    AstNode&       node        = ast().node(nodeRef);
-    const Ref      value       = shard->store.pushSpanContiguous(symbols).get();
+    AstNode&  node  = ast().node(nodeRef);
+    const Ref value = shard->store.pushSpanContiguous(symbols).get();
+
     const uint16_t symbolFlags = applySymbolPayloadFlags(0, symbols);
     const uint16_t clearMask   = NODE_PAYLOAD_KIND_MASK | NODE_PAYLOAD_SHARD_MASK | static_cast<uint16_t>(NodePayloadFlags::Value) | static_cast<uint16_t>(NodePayloadFlags::LValue);
     const uint16_t setBits     = static_cast<uint16_t>(NodePayloadKind::SymbolList) |
                              static_cast<uint16_t>(shardIdx << NODE_PAYLOAD_SHARD_SHIFT) | symbolFlags;
+
     node.updatePayloadState(clearMask, setBits, value);
 }
 
@@ -648,9 +673,8 @@ void NodePayload::setResolvedCallArguments(AstNodeRef nodeRef, std::span<const R
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     if (args.empty())
     {
-        // A call without arguments is the common case, and this node can only have an entry
-        // to erase if the shard holds any: the count says so without taking the lock, as it
-        // does for every reader.
+        // Empty calls usually have no entry to erase. Check the shard count and
+        // node bit first, avoiding the lock when no entry can exist.
         Shard* shard = tryGetShard(shardIdx);
         if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_CALL_ARGS))
             return;
@@ -672,6 +696,7 @@ bool NodePayload::hasResolvedCallArguments(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
+
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
@@ -688,6 +713,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
 {
     if (nodeRef.isInvalid())
         return;
+
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
@@ -721,6 +747,7 @@ std::optional<ResolvedCallArgument> NodePayload::tryGetResolvedCallArgument(AstN
 {
     if (nodeRef.isInvalid())
         return std::nullopt;
+
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
     if (!shard || !shard->resolvedCallArgsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_CALL_ARGS))
         return std::nullopt;
@@ -729,6 +756,7 @@ std::optional<ResolvedCallArgument> NodePayload::tryGetResolvedCallArgument(AstN
     const auto             it = shard->resolvedCallArgsByNode.find(nodeRef);
     if (it == shard->resolvedCallArgsByNode.end() || index >= it->second.size())
         return std::nullopt;
+
     return it->second[index];
 }
 
@@ -741,8 +769,9 @@ void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    Shard*                 shard    = ensureShard(shardIdx);
+
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*         shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef, payload, false);
     markSideTable(ast(), nodeRef, SIDE_TABLE_LOWERING);
 }
@@ -751,9 +780,11 @@ void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
+
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
     if (!shard || !shard->loweringPayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_LOWERING))
         return nullptr;
+
     return findSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef);
 }
 
@@ -771,8 +802,9 @@ void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    Shard*                 shard    = ensureShard(shardIdx);
+
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*         shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef, payload, true);
     markSideTable(ast(), nodeRef, SIDE_TABLE_INLINE);
 }
@@ -781,9 +813,11 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
+
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
     if (!shard || !shard->inlinePayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE))
         return nullptr;
+
     return findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef);
 }
 
@@ -796,8 +830,9 @@ void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    Shard*                 shard    = ensureShard(shardIdx);
+
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*         shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef, payload, true);
     markSideTable(ast(), nodeRef, SIDE_TABLE_INLINE_OVERRIDE);
 }
@@ -806,20 +841,23 @@ void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
+
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
     if (!shard || !shard->inlineContextOverridesCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE_OVERRIDE))
         return nullptr;
+
     return findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef);
 }
 
-// Both inline tables of one node, from a single test of the node: walks along the visit path ask
-// for the two together at every step.
+// Visitor paths request both inline tables, so share their node and shard checks.
 void NodePayload::getInlineContext(AstNodeRef nodeRef, void*& outPayload, void*& outOverride) const
 {
     outPayload  = nullptr;
     outOverride = nullptr;
+
     if (nodeRef.isInvalid())
         return;
+
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
     if (!shard)
         return;
@@ -840,8 +878,9 @@ void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
-    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
-    Shard*                 shard    = ensureShard(shardIdx);
+
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*         shard    = ensureShard(shardIdx);
     storeSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef, payload, true);
     markSideTable(ast(), nodeRef, SIDE_TABLE_SEMA);
 }
@@ -850,9 +889,11 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
+
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
     if (!shard || !shard->semaPayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_SEMA))
         return nullptr;
+
     return findSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef);
 }
 
@@ -860,6 +901,7 @@ void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return;
+
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*         shard    = tryGetShard(shardIdx);
     if (!shard)
@@ -874,6 +916,7 @@ void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const Symbol
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(sourceParam);
+
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->constAssignSourceParametersMutex);
@@ -923,6 +966,7 @@ const Symbol* NodePayload::foldedSourceSymbol(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
+
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
     if (!shard || !shard->foldedSourceSymbolsCount.load(std::memory_order_acquire))
         return nullptr;
@@ -935,6 +979,7 @@ const SymbolVariable* NodePayload::getConstAssignSourceParameter(AstNodeRef node
 {
     if (nodeRef.isInvalid())
         return nullptr;
+
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     const Shard*   shard    = tryGetShard(shardIdx);
     if (!shard)
@@ -976,10 +1021,11 @@ void NodePayload::inheritPayload(AstNode& nodeDst, const AstNode& nodeSrc)
 NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 {
     const uint64_t state = node.payloadState();
-    PayloadInfo    info  = {
-            .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
-            .ref      = AstNode::payloadRefFromState(state),
-            .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
+
+    PayloadInfo info = {
+        .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
+        .ref      = AstNode::payloadRefFromState(state),
+        .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
     };
 
     while (true)
@@ -1004,11 +1050,9 @@ NodePayload::PayloadInfo NodePayload::payloadInfo(const AstNode& node) const
 
 std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& info) const
 {
-    // Resolve the symbol(s) from a single, already-captured payload snapshot. Callers must
-    // never re-read the node's payload to fetch the symbol after switching on its kind: a
-    // concurrent kind transition (e.g. SymbolRef -> ConstantRef while a shared generic `where`
-    // eval node is constant-folded) would otherwise make a ConstantRef/TypeRef value be
-    // reinterpreted as a PagedStore offset, indexing past the store's pages.
+    // Use the captured kind and reference together. Re-reading after dispatch can
+    // race with SymbolRef-to-ConstantRef folding on shared generic eval nodes,
+    // interpreting a constant/type reference as an invalid PagedStore offset.
     if (info.kind != NodePayloadKind::SymbolRef && info.kind != NodePayloadKind::SymbolList)
         return {};
 
@@ -1021,6 +1065,7 @@ std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& i
         const Symbol* const* slot = shard->store.ptr<Symbol*>(info.ref);
         if (!slot || !*slot)
             return {};
+
         return std::span{slot, 1};
     }
 
@@ -1037,10 +1082,11 @@ std::span<const Symbol* const> NodePayload::symbolsFromInfo(const PayloadInfo& i
 NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
 {
     const uint64_t state = node.payloadState();
-    PayloadInfo    info  = {
-            .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
-            .ref      = AstNode::payloadRefFromState(state),
-            .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
+
+    PayloadInfo info = {
+        .kind     = static_cast<NodePayloadKind>(AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_KIND_MASK),
+        .ref      = AstNode::payloadRefFromState(state),
+        .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT),
     };
 
     auto flags = static_cast<NodePayloadFlags>(AstNode::payloadBitsFromState(state) & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK);

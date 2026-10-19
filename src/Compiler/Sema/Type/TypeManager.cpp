@@ -14,7 +14,8 @@ namespace
 {
     constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> makePredefinedRuntimeMap()
     {
-        using Pn                                                        = IdentifierManager::PredefinedName;
+        using Pn = IdentifierManager::PredefinedName;
+
         std::array<RuntimeTypeKind, static_cast<size_t>(Pn::Count)> map = {};
         map.fill(RuntimeTypeKind::Count);
 
@@ -27,26 +28,28 @@ namespace
         map[static_cast<size_t>(Pn::TypeInfoNativeKind)] = RuntimeTypeKind::TypeInfoNativeKind;
         map[static_cast<size_t>(Pn::TypeInfoFlags)]      = RuntimeTypeKind::TypeInfoFlags;
         map[static_cast<size_t>(Pn::TypeValueFlags)]     = RuntimeTypeKind::TypeValueFlags;
-        map[static_cast<size_t>(Pn::TypeInfo)]           = RuntimeTypeKind::TypeInfo;
-        map[static_cast<size_t>(Pn::TypeInfoNative)]     = RuntimeTypeKind::TypeInfoNative;
-        map[static_cast<size_t>(Pn::TypeInfoPointer)]    = RuntimeTypeKind::TypeInfoPointer;
-        map[static_cast<size_t>(Pn::TypeInfoStruct)]     = RuntimeTypeKind::TypeInfoStruct;
-        map[static_cast<size_t>(Pn::TypeInfoFunc)]       = RuntimeTypeKind::TypeInfoFunc;
-        map[static_cast<size_t>(Pn::TypeInfoEnum)]       = RuntimeTypeKind::TypeInfoEnum;
-        map[static_cast<size_t>(Pn::TypeInfoArray)]      = RuntimeTypeKind::TypeInfoArray;
-        map[static_cast<size_t>(Pn::TypeInfoSlice)]      = RuntimeTypeKind::TypeInfoSlice;
-        map[static_cast<size_t>(Pn::TypeInfoAlias)]      = RuntimeTypeKind::TypeInfoAlias;
-        map[static_cast<size_t>(Pn::TypeInfoVariadic)]   = RuntimeTypeKind::TypeInfoVariadic;
-        map[static_cast<size_t>(Pn::TypeInfoGeneric)]    = RuntimeTypeKind::TypeInfoGeneric;
-        map[static_cast<size_t>(Pn::TypeInfoNamespace)]  = RuntimeTypeKind::TypeInfoNamespace;
-        map[static_cast<size_t>(Pn::TypeInfoCodeBlock)]  = RuntimeTypeKind::TypeInfoCodeBlock;
-        map[static_cast<size_t>(Pn::TypeInfoSimd)]       = RuntimeTypeKind::TypeInfoSimd;
 
-        map[static_cast<size_t>(Pn::TypeValue)]      = RuntimeTypeKind::TypeValue;
+        map[static_cast<size_t>(Pn::TypeInfo)]          = RuntimeTypeKind::TypeInfo;
+        map[static_cast<size_t>(Pn::TypeInfoNative)]    = RuntimeTypeKind::TypeInfoNative;
+        map[static_cast<size_t>(Pn::TypeInfoPointer)]   = RuntimeTypeKind::TypeInfoPointer;
+        map[static_cast<size_t>(Pn::TypeInfoStruct)]    = RuntimeTypeKind::TypeInfoStruct;
+        map[static_cast<size_t>(Pn::TypeInfoFunc)]      = RuntimeTypeKind::TypeInfoFunc;
+        map[static_cast<size_t>(Pn::TypeInfoEnum)]      = RuntimeTypeKind::TypeInfoEnum;
+        map[static_cast<size_t>(Pn::TypeInfoArray)]     = RuntimeTypeKind::TypeInfoArray;
+        map[static_cast<size_t>(Pn::TypeInfoSlice)]     = RuntimeTypeKind::TypeInfoSlice;
+        map[static_cast<size_t>(Pn::TypeInfoAlias)]     = RuntimeTypeKind::TypeInfoAlias;
+        map[static_cast<size_t>(Pn::TypeInfoVariadic)]  = RuntimeTypeKind::TypeInfoVariadic;
+        map[static_cast<size_t>(Pn::TypeInfoGeneric)]   = RuntimeTypeKind::TypeInfoGeneric;
+        map[static_cast<size_t>(Pn::TypeInfoNamespace)] = RuntimeTypeKind::TypeInfoNamespace;
+        map[static_cast<size_t>(Pn::TypeInfoCodeBlock)] = RuntimeTypeKind::TypeInfoCodeBlock;
+        map[static_cast<size_t>(Pn::TypeInfoSimd)]      = RuntimeTypeKind::TypeInfoSimd;
+
+        map[static_cast<size_t>(Pn::TypeValue)] = RuntimeTypeKind::TypeValue;
+
         map[static_cast<size_t>(Pn::Attribute)]      = RuntimeTypeKind::Attribute;
         map[static_cast<size_t>(Pn::AttributeParam)] = RuntimeTypeKind::AttributeParam;
+        map[static_cast<size_t>(Pn::Interface)]      = RuntimeTypeKind::Interface;
 
-        map[static_cast<size_t>(Pn::Interface)]          = RuntimeTypeKind::Interface;
         map[static_cast<size_t>(Pn::SourceCodeLocation)] = RuntimeTypeKind::SourceCodeLocation;
         map[static_cast<size_t>(Pn::ErrorValue)]         = RuntimeTypeKind::ErrorValue;
 
@@ -64,17 +67,13 @@ namespace
 
     constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
 
-    // Selects the intern shard for a type. The only requirement is that the result is a
-    // run-stable function of the type's identity (so TypeRef allocation is reproducible)
-    // and reasonably distributed; collisions are harmless because the per-stripe map keys
-    // on TypeInfo::hash()/operator==.
+    // Shard selection must be run-stable and consistent for equal types. Collisions
+    // are resolved by TypeInfo::hash and equality.
     //
-    // Nominal kinds (Enum/Struct/Interface/Alias) have symbol-pointer identity, so their
-    // stable shard key is just the symbol's (memoized) scoped-name hash -- no need to walk
-    // generic args / fields recursively. Structural kinds (Function/Aggregate) must shard
-    // on their full structural hash so structurally-equal-but-distinct symbols land in the
-    // same shard and dedupe; that recursive hash is itself now allocation-free thanks to
-    // the per-symbol name-hash memoization.
+    // Nominal types use memoized scoped-name hashes, avoiding recursive generic/field
+    // walks. Functions and aggregates use their full runtime hash so structurally equal
+    // types deduplicate even when represented by distinct symbols. Memoized symbol
+    // hashes keep that recursive structural hash allocation-free.
     uint32_t stableShardHash(CompilerInstance* compiler, const TypeInfo& typeInfo, uint32_t hash)
     {
         if (!compiler)
@@ -115,17 +114,19 @@ namespace
 void TypeManager::setup(TaskContext& ctx)
 {
     SWC_ASSERT(ctx.hasCompiler());
-    compiler_                      = &ctx.compiler();
+    compiler_ = &ctx.compiler();
+
+    // Build the predefined-identifier reverse map once so reflection can recognize
+    // core runtime types without comparing names.
     const IdentifierManager& idMgr = ctx.idMgr();
-    // Runtime TypeInfo symbols are discovered by predefined identifiers. Build the
-    // reverse map once so later reflection code can recognize the core runtime
-    // structs without string comparisons.
     for (size_t i = 0; i < PREDEFINED_RUNTIME_MAP.size(); ++i)
     {
         const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[i];
         if (kind == RuntimeTypeKind::Count)
             continue;
-        const auto name                                      = static_cast<IdentifierManager::PredefinedName>(i);
+
+        const auto name = static_cast<IdentifierManager::PredefinedName>(i);
+
         mapRtKind_.getOrInsert(idMgr.predefined(name).get()) = kind;
     }
 
@@ -228,6 +229,7 @@ TypeRef TypeManager::typeInt(uint32_t bits, TypeInfo::Sign sign) const
     {
         if (sign == TypeInfo::Sign::Unknown)
             return typeInt_;
+
         return sign == TypeInfo::Sign::Unsigned ? typeIntUnsigned_ : typeIntSigned_;
     }
 
@@ -295,13 +297,13 @@ TypeRef TypeManager::addTypeAfterMiss(const TypeInfo& typeInfo, const uint32_t h
 {
     const uint32_t shardIndex = stableHash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
+
     auto&          shard       = shards_[shardIndex];
     const uint32_t stripeIndex = (stableHash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
     auto&          stripe      = shard.internStripes[stripeIndex];
 
-    // The published-table lookup already missed. Keep the locked lookup because another worker
-    // may have inserted this type before this thread acquired the stripe. The table holds every
-    // type of the stripe, and only a writer holding this mutex adds one or replaces it.
+    // Recheck under the stripe lock: another worker may have interned the type after
+    // our published-table probe. Only writers holding this lock can change the table.
     const std::unique_lock lk(stripe.mutex);
     const TypeRef          existing = findInterned(stripe.table.load(std::memory_order_relaxed), typeInfo, hash);
     if (existing.isValid())
@@ -315,6 +317,7 @@ TypeRef TypeManager::addTypeAfterMiss(const TypeInfo& typeInfo, const uint32_t h
         SWC_ASSERT(localIndex < LOCAL_MASK);
         ptr = shard.store.ptr<TypeInfo>(localIndex);
     }
+
     // TypeRef encodes shard + local index. The TypeInfo stores its own TypeRef so
     // callers that only hold a payload pointer can still recover stable identity.
     TypeRef result{(shardIndex << LOCAL_BITS) | localIndex};
@@ -322,10 +325,12 @@ TypeRef TypeManager::addTypeAfterMiss(const TypeInfo& typeInfo, const uint32_t h
 #if SWC_HAS_REF_DEBUG_INFO
     result.dbgPtr = ptr;
 #endif
+
     ptr->typeRef_ = result;
 
     stripe.owned.emplace_back(ptr);
     publishInterned(stripe, ptr, hash);
+
     return result;
 }
 
@@ -341,6 +346,7 @@ TypeRef TypeManager::findInternedIf(const InternTable* table, size_t hash, const
         const TypeInfo* type = table->types[i].load(std::memory_order_acquire);
         if (!type)
             return TypeRef::invalid();
+
         if (table->hashes[i].load(std::memory_order_relaxed) == hash && matches(*type))
             return type->typeRef();
     }
@@ -373,6 +379,7 @@ TypeRef TypeManager::addArrayType(const std::span<const uint64_t> dims, const Ty
                std::ranges::equal(type.payloadArray_.dims, dims) &&
                std::ranges::equal(type.payloadArray_.indexTypeRefs, indexTypeRefs);
     });
+
     if (found.isValid())
         return found;
 
@@ -392,15 +399,18 @@ TypeRef TypeManager::addArrayTypeAfterFirstDimension(const TypeInfo& arrayType)
 TypeRef TypeManager::arrayElementTypeRef(const TypeInfo& arrayType)
 {
     SWC_ASSERT(arrayType.isArray());
+
     const auto& dims = arrayType.payloadArrayDims();
     if (dims.size() <= 1)
         return arrayType.payloadArrayElemTypeRef();
+
     return addArrayTypeAfterFirstDimension(arrayType);
 }
 
 TypeRef TypeManager::addAggregateStructType(const std::span<const IdentifierRef> names, const std::span<const TypeRef> types)
 {
     SWC_ASSERT(types.size() == names.size());
+
     constexpr TypeInfoFlags flags = TypeInfoFlagsE::Const;
     const uint32_t          hash  = TypeInfo::hashAggregatePayload(TypeInfo::hashHeader(TypeInfoKind::AggregateStruct, flags), TypeInfoKind::AggregateStruct, types, names);
     const uint32_t          place = compiler_ ? TypeRuntimeHash::computeAggregate(TaskContext(*compiler_), TypeInfoKind::AggregateStruct, flags, types, names) : hash;
@@ -410,6 +420,7 @@ TypeRef TypeManager::addAggregateStructType(const std::span<const IdentifierRef>
                std::ranges::equal(type.payloadAggregate_.types, types) &&
                std::ranges::equal(type.payloadAggregate_.names, names);
     });
+
     if (found.isValid())
         return found;
 

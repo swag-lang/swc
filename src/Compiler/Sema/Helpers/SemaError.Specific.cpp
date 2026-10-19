@@ -41,6 +41,7 @@ namespace
                     continue;
 
                 diag.addArgument(Diagnostic::ARG_VALUE, field->name(sema.ctx()));
+
                 auto&             note    = diag.addElement(DiagnosticId::sema_note_required_struct_field_declared_here);
                 const SourceView& srcView = sema.compiler().srcView(field->srcViewRef());
                 note.setSrcView(&srcView);
@@ -68,6 +69,7 @@ namespace
 
             return Ast::VisitResult::Skip;
         });
+
         return lowest;
     }
 
@@ -153,10 +155,8 @@ namespace
         TaskContext& ctx = sema.ctx();
 
 #if SWC_DEV_MODE
-        // Two symbols from one declaration node are one declaration registered twice: the
-        // duplicate visitation an imported generic body once showed as a local defined twice
-        // (compiler.core.047). Stop on it with the owner named, rather than report a conflict
-        // the source does not contain.
+        // Symbols from one declaration indicate duplicate registration, not a source
+        // conflict. Name the owner to expose duplicate visits of imported generic bodies.
         if (symbol && otherSymbol && symbol->decl() && symbol->decl() == otherSymbol->decl())
         {
             const SymbolFunction* function = sema.frame().currentFunction();
@@ -168,6 +168,7 @@ namespace
         auto diag = SemaError::report(sema, diagId, symbol->codeRef());
         diag.addNote(DiagnosticId::sema_note_other_definition);
         diag.last().addSpan(otherSymbol->codeRange(ctx));
+
         diag.report(ctx);
         return Result::Error;
     }
@@ -231,9 +232,11 @@ Result SemaError::raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRe
     TaskContext& ctx  = sema.ctx();
     auto         diag = report(sema, DiagnosticId::sema_err_expected_type_fam, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, srcTypeRef);
+
     const TypeInfo& ty = sema.typeMgr().get(targetTypeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE_FAM, ty.toFamily(ctx));
     diag.addArgument(Diagnostic::ARG_A_REQUESTED_TYPE_FAM, Utf8Helper::addArticleAAn(ty.toFamily(ctx)));
+
     diag.report(ctx);
     return Result::Error;
 }
@@ -261,6 +264,7 @@ Result SemaError::raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef)
             diag.last().addArgument(Diagnostic::ARG_SYM, lowestView.sym()->name(sema.ctx()));
             diag.last().addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(lowestView.sym()->toFamily()));
         }
+
         addSpan(sema, diag.last(), lowest);
     }
 
@@ -274,6 +278,7 @@ Result SemaError::raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNo
     diag.addArgument(Diagnostic::ARG_LEFT, leftTypeRef);
     diag.addArgument(Diagnostic::ARG_RIGHT, rightTypeRef);
     addTypedOperandSpan(sema, diag.last(), nodeValueRef);
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -284,6 +289,7 @@ Result SemaError::raiseConditionalBranchTypes(Sema& sema, AstNodeRef atNodeRef, 
     diag.addArgument(Diagnostic::ARG_LEFT, trueTypeRef);
     diag.addArgument(Diagnostic::ARG_RIGHT, falseTypeRef);
     addTypedOperandSpan(sema, diag.last(), nodeValueRef);
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -293,6 +299,7 @@ Result SemaError::raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
     auto diag = report(sema, DiagnosticId::sema_err_unary_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     addTypedOperandSpan(sema, diag.last(), nodeValueRef, targetTypeRef);
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -302,6 +309,7 @@ Result SemaError::raiseDerefOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
     auto diag = report(sema, DiagnosticId::sema_err_deref_operand_type, atNodeRef, ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
     addTypedOperandSpan(sema, diag.last(), nodeValueRef, targetTypeRef);
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -348,6 +356,7 @@ Result SemaError::raiseFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRe
     const auto diag = report(sema, diagId, atNodeRef, location);
     if (nodeValueRef.isValid())
         addSpanWithMessageId(sema, diag.last(), nodeValueRef, foldSafetyValueLabelId(diagId), DiagnosticSeverity::Note);
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -364,6 +373,7 @@ namespace
         auto diag = SemaError::report(sema, diagId, atNodeRef, SemaError::ReportLocation::Token);
         diag.addArgument(Diagnostic::ARG_TYPE, targetTypeRef);
         addSpanWithMessageId(sema, diag.last(), nodeValueRef, typeValueNoteLabelId(diagId, targetTypeRef), DiagnosticSeverity::Note);
+
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -397,6 +407,7 @@ Result SemaError::raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const 
     auto diag = report(sema, diagId, codeRef);
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
     addRequiredFieldNote(sema, diag, diagId, typeRef);
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -406,6 +417,7 @@ Result SemaError::raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, AstNod
     auto diag = report(sema, diagId, atNodeRef, ReportLocation::Children);
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
     addRequiredFieldNote(sema, diag, diagId, typeRef);
+
     diag.report(sema.ctx());
     return Result::Error;
 }

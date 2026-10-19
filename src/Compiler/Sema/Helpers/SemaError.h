@@ -36,63 +36,82 @@ namespace SemaError
         ExternalDependency,
     };
 
-    SourceCodeRange        getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location);
-    Utf8                   formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
-    Utf8                   formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
-    Utf8                   formatStructMemberList(Sema& sema, TypeRef typeRef);
-    void                   addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner);
+    SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location);
+
+    Utf8 formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
+    Utf8 formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
+    Utf8 formatStructMemberList(Sema& sema, TypeRef typeRef);
+    void addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner);
+
     SymbolDiagnosticOrigin symbolDiagnosticOrigin(const Sema& sema, const Symbol& symbol);
     bool                   isCurrentModuleSymbol(const Sema& sema, const Symbol& symbol);
     DiagnosticElement*     addCurrentModuleHelp(Sema& sema, Diagnostic& diag, const Symbol& symbol, DiagnosticId id);
-    void                   setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange);
-    void                   setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym);
-    void                   setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo* type);
-    void                   setReportArguments(Sema& sema, Diagnostic& diag, AstNodeRef nodeRef);
-    void                   addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
+
+    void setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange);
+    void setReportArguments(Sema& sema, Diagnostic& diag, const Symbol* sym);
+    void setReportArguments(Sema& sema, Diagnostic& diag, const TypeInfo* type);
+    void setReportArguments(Sema& sema, Diagnostic& diag, AstNodeRef nodeRef);
+
+    void addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNodeRef, const Utf8& message = "", DiagnosticSeverity severity = DiagnosticSeverity::Note);
 
     Diagnostic build(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);
     Diagnostic build(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Children);
     Diagnostic build(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location = ReportLocation::Children);
+
     Diagnostic report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);
     Result     raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef);
+
     Diagnostic report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Children);
     Result     raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Children);
+
     Diagnostic report(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location = ReportLocation::Children);
     Result     raise(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location = ReportLocation::Children);
+
     Diagnostic report(Sema& sema, DiagnosticId id, const Symbol& atSymbol);
     Result     raise(Sema& sema, DiagnosticId id, const Symbol& atSymbol);
 
     Diagnostic reportCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
     Result     raiseCannotCast(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    Result     raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    Result     raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef);
-    Result     raiseInvalidRangeBounds(Sema& sema, AstNodeRef atNodeRef, ConstantRef downCstRef, ConstantRef upCstRef);
-    Result     raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
-    Result     raiseLiteralOverflow(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
-    Result     raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef);
-    Result     raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef leftTypeRef, TypeRef rightTypeRef);
-    Result     raiseConditionalBranchTypes(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef trueTypeRef, TypeRef falseTypeRef);
-    Result     raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result     raiseDerefOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result     raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
-    Result     raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
-    Result     raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols);
-    Result     raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNodeRef, const Symbol& symbol);
-    Result     raiseModifierOnlyInteger(Sema& sema, const AstNode& node, TypeRef typeRef);
-    Result     raiseDuplicateCaseValue(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, const Utf8& value, AstNodeRef previousRef);
-    Result     raiseLiteralTooBig(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal);
+
+    Result raiseInvalidType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    Result raiseInvalidRangeType(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef);
+    Result raiseInvalidRangeBounds(Sema& sema, AstNodeRef atNodeRef, ConstantRef downCstRef, ConstantRef upCstRef);
+    Result raiseRequestedTypeFam(Sema& sema, AstNodeRef atNodeRef, TypeRef srcTypeRef, TypeRef targetTypeRef);
+    Result raiseLiteralOverflow(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal, TypeRef targetTypeRef);
+    Result raiseExprNotConst(Sema& sema, AstNodeRef atNodeRef);
+
+    Result raiseBinaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef leftTypeRef, TypeRef rightTypeRef);
+    Result raiseConditionalBranchTypes(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef trueTypeRef, TypeRef falseTypeRef);
+    Result raiseUnaryOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseDerefOperandType(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+
+    Result raiseAlreadyDefined(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
+    Result raiseGhosting(Sema& sema, const Symbol* symbol, const Symbol* otherSymbol);
+    Result raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols);
+
+    Result raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNodeRef, const Symbol& symbol);
+    Result raiseModifierOnlyInteger(Sema& sema, const AstNode& node, TypeRef typeRef);
+    Result raiseDuplicateCaseValue(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, const Utf8& value, AstNodeRef previousRef);
+
+    Result raiseLiteralTooBig(Sema& sema, AstNodeRef atNodeRef, const ConstantValue& literal);
+
     Diagnostic reportFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, ReportLocation location = ReportLocation::Token);
     Result     raiseFoldSafety(Sema& sema, Math::FoldStatus status, AstNodeRef atNodeRef, AstNodeRef nodeValueRef = AstNodeRef::invalid(), ReportLocation location = ReportLocation::Token);
     Result     raiseDivZero(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef);
-    Result     raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result     raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result     raiseInvalidOpEnum(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
-    Result     raiseTypeNotIndexable(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
-    Result     raiseCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef);
-    Result     raiseCodeTypeRestricted(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
-    Result     raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const SourceCodeRef& codeRef, TypeRef typeRef);
-    Result     raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, AstNodeRef atNodeRef, TypeRef typeRef);
-    Result     raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t index, size_t maxCount);
+
+    Result raisePointerArithmeticValuePointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raisePointerArithmeticVoidPointer(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+    Result raiseInvalidOpEnum(Sema& sema, AstNodeRef atNodeRef, AstNodeRef nodeValueRef, TypeRef targetTypeRef);
+
+    Result raiseTypeNotIndexable(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
+
+    Result raiseCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef);
+    Result raiseCodeTypeRestricted(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
+
+    Result raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const SourceCodeRef& codeRef, TypeRef typeRef);
+    Result raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, AstNodeRef atNodeRef, TypeRef typeRef);
+
+    Result raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t index, size_t maxCount);
 }
 
 SWC_END_NAMESPACE();

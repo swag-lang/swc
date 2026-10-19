@@ -36,11 +36,13 @@ namespace
 
         if (!first)
             out += ", ";
+
         first = false;
         out += '\'';
         out += name;
         out += '\'';
         ++count;
+
         return true;
     }
 
@@ -94,11 +96,13 @@ namespace
     {
         if (!origin)
             return;
+
         if (origin->codeRange.srcView)
         {
             diag.addNote(DiagnosticId::sema_note_generic_requested_here);
             diag.last().addSpan(origin->codeRange);
         }
+
         addGenericContextNotesFromSymbolMap(sema, diag, origin->caller, seen);
     }
 
@@ -175,8 +179,9 @@ namespace
         if (!isVisibleError(sema, id))
             return;
 
-        constexpr uint32_t                           expansionLimit = 4;
-        uint32_t                                     expansionCount = 0;
+        constexpr uint32_t expansionLimit = 4;
+        uint32_t           expansionCount = 0;
+
         std::unordered_set<const SemaInlinePayload*> seenPayloads;
 
         const auto addPayloadChain = [&](const SemaInlinePayload* payload) {
@@ -213,6 +218,7 @@ namespace
             const AstNodeRef nodeRef = i ? sema.visit().parentNodeRef(i - 1) : sema.curNodeRef();
             if (nodeRef.isInvalid())
                 break;
+
             addPayloadChain(sema.inlinePayload(nodeRef));
         }
     }
@@ -240,10 +246,12 @@ SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, Re
 {
     const TaskContext& ctx  = sema.ctx();
     const AstNode&     node = sema.node(atNodeRef);
+
     switch (location)
     {
         case ReportLocation::Token:
             return node.codeRange(ctx);
+
         case ReportLocation::Children:
             return node.codeRangeWithChildren(ctx, sema.ast());
     }
@@ -280,6 +288,7 @@ DiagnosticElement* SemaError::addCurrentModuleHelp(Sema& sema, Diagnostic& diag,
 
     DiagnosticElement& element = diag.addElement(id);
     element.addSpan(symbol.codeRange(sema.ctx()));
+
     return &element;
 }
 
@@ -341,8 +350,10 @@ Diagnostic SemaError::build(Sema& sema, DiagnosticId id, const SourceCodeRef& at
         diag = buildDiagnostic(id, codeRange.srcView->fileRef(), codeRange);
     else
         diag = Diagnostic::get(id, FileRef::invalid());
+
     setReportArguments(sema, diag, atCodeRef);
     applySourceWarningLevels(sema, diag, id);
+
     return diag;
 }
 
@@ -353,6 +364,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& a
     Diagnostic diag = build(sema, id, atCodeRef);
     addGenericContextNotes(sema, diag, id);
     addExpansionContextNotes(sema, diag, id);
+
     return diag;
 }
 
@@ -369,6 +381,7 @@ Diagnostic SemaError::build(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, R
     Diagnostic    diag    = buildDiagnostic(id, fileRef, getNodeCodeRange(sema, atNodeRef, location));
     setReportArguments(sema, diag, atNodeRef);
     applySourceWarningLevels(sema, diag, id);
+
     return diag;
 }
 
@@ -379,6 +392,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, 
     Diagnostic diag = build(sema, id, atNodeRef, location);
     addGenericContextNotes(sema, diag, id);
     addExpansionContextNotes(sema, diag, id);
+
     return diag;
 }
 
@@ -430,6 +444,7 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
 
     diag.addNote(DiagnosticId::sema_note_compiler_only_symbol);
     diag.last().addSpan(symbol.codeRange(sema.ctx()));
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -441,6 +456,7 @@ Result SemaError::raiseDuplicateCaseValue(Sema& sema, DiagnosticId id, AstNodeRe
     diag.addArgument(Diagnostic::ARG_VALUE, value);
     diag.addNote(DiagnosticId::sema_note_previous_case_value);
     diag.last().addSpan(sema.node(previousRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -450,7 +466,8 @@ Result SemaError::raiseModifierOnlyInteger(Sema& sema, const AstNode& node, Type
 {
     const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
     const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
-    auto              diag    = report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
+
+    auto diag = report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
     diag.report(sema.ctx());
     return Result::Error;
@@ -464,6 +481,7 @@ Utf8 SemaError::formatEnumValueList(const TaskContext& ctx, const SymbolEnum& sy
     Utf8   result;
     bool   first = true;
     size_t count = 0;
+
     for (const Symbol* symbol : symbols)
     {
         const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
@@ -481,6 +499,7 @@ Utf8 SemaError::formatStructFieldList(const TaskContext& ctx, const SymbolStruct
     Utf8   result;
     bool   first = true;
     size_t count = 0;
+
     for (const SymbolVariable* field : symStruct.fields())
     {
         if (!field)
@@ -504,6 +523,7 @@ namespace
             return "interface";
         if (owner.isNamespace())
             return "namespace";
+
         return {};
     }
 
@@ -511,6 +531,7 @@ namespace
     {
         std::vector<const Symbol*> symbols;
         scope.getAllSymbols(symbols);
+
         for (const Symbol* symbol : symbols)
         {
             const std::string_view name = symbol->name(sema.ctx());
@@ -533,11 +554,13 @@ void SemaError::addUnknownMemberArguments(Sema& sema, Diagnostic& diag, Identifi
 
     std::vector<Utf8> names;
     appendMemberNames(names, sema, owner);
+
     SymbolImplList impls;
     if (owner.isStruct())
         impls = owner.cast<SymbolStruct>().impls();
     else if (owner.isEnum())
         impls = owner.cast<SymbolEnum>().impls();
+
     for (const SymbolImpl* impl : impls)
         appendMemberNames(names, sema, *impl);
 
@@ -559,6 +582,7 @@ Utf8 SemaError::formatStructMemberList(Sema& sema, TypeRef typeRef)
     Utf8   result;
     bool   first = true;
     size_t count = 0;
+
     for (const IdentifierRef idRef : typeInfo.payloadAggregate().names)
     {
         if (!idRef.isValid())

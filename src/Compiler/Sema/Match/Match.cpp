@@ -392,21 +392,19 @@ namespace
             addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
             addPersistedUsingSymMaps(sema, lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
 
-            // Expose the imported module namespaces (Lib, Os, ...) as siblings. Do NOT pull in
-            // importRoot's persisted `using` directives: those accumulate every imported file's usings
-            // (e.g. `using Os`) and would flood unqualified lookups with unrelated symbols
-            // (e.g. `Os.Rectangle` shadowing `Lib.Math.Rectangle`).
+            // Expose imported module namespaces as siblings without importRoot's persisted usings.
+            // Those combine all imported files and could shadow names with unrelated symbols.
             if (importRoot)
                 addSymMap(lookUpCxt, importRoot, moduleRootPriority);
         }
 
         addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(moduleRootDepth + 1));
+
         return Result::Continue;
     }
 
     void lookup(MatchContext& lookUpCxt, IdentifierRef idRef)
     {
-        // Reset candidates & priority state.
         lookUpCxt.resetCandidates();
 
         const auto count = lookUpCxt.symMaps.size();
@@ -415,11 +413,7 @@ namespace
             const SymbolMap* symMap   = lookUpCxt.symMaps[i];
             const auto&      priority = lookUpCxt.symMapPriorities[i];
 
-            // Tell the context: "we're now scanning this layer with this priority".
             lookUpCxt.beginSymMapLookup(priority);
-
-            // SymbolMap::lookupAppend must call lookUpCxt.addSymbol(...)
-            // for each matching symbol it finds.
             symMap->lookupAppend(idRef, lookUpCxt);
         }
 
@@ -463,12 +457,12 @@ namespace
         SWC_RESULT(declSema->prepareFunctionSignature(declRef));
         if (!sym.isDeclared())
             return sema.waitDeclared(&sym, codeRef);
+
         return Result::Continue;
     }
 }
 
-// Every name an unqualified lookup at the current site searches, for the closest-name suggestion
-// of a lookup that found none.
+// Collect visible names for suggestions after an unqualified lookup finds no match.
 void Match::collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::vector<Utf8>& out)
 {
     MatchContext lookUpCxt;
@@ -492,6 +486,7 @@ void Match::collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::v
     for (const SymbolMap* symMap : lookUpCxt.symMaps)
     {
         symMap->getAllSymbols(symbols);
+
         for (const Symbol* symbol : symbols)
             append(*symbol);
     }
@@ -500,19 +495,23 @@ void Match::collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::v
 Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 {
     SWC_RESULT(collect(sema, lookUpCxt, idRef));
+
     while (true)
     {
         lookup(lookUpCxt, idRef);
         preferOwnModuleNamespace(sema, lookUpCxt, idRef);
         if (lookUpCxt.blockedByIgnored())
             return Result::Error;
+
         if (lookUpCxt.empty())
         {
             if (lookUpCxt.noWaitOnEmpty)
                 return Result::Continue;
+
             const Result result = sema.waitIdentifier(idRef, lookUpCxt.codeRef);
             if (result == Result::Pause)
                 sema.ctx().state().memberScope = lookUpCxt.symMapHint;
+
             return result;
         }
 
@@ -525,39 +524,48 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
             {
                 if (!other->isDeclared() && lookUpCxt.noWaitOnPendingSymbols)
                     return Result::Continue;
+
                 const Result ready = declareGenericRootFunctionCandidate(sema, other->cast<SymbolFunction>(), lookUpCxt.codeRef);
                 if (other->isExcludedByCondition())
                 {
                     retryLookup = true;
                     break;
                 }
+
                 SWC_RESULT(ready);
                 continue;
             }
+
             if (!other->isDeclared())
             {
                 if (lookUpCxt.noWaitOnPendingSymbols)
                     return Result::Continue;
+
                 const Result ready = sema.waitDeclared(other, lookUpCxt.codeRef);
                 if (other->isExcludedByCondition())
                 {
                     retryLookup = true;
                     break;
                 }
+
                 SWC_RESULT(ready);
             }
+
             if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
                 continue;
+
             if (!other->isTyped())
             {
                 if (lookUpCxt.noWaitOnPendingSymbols)
                     return Result::Continue;
+
                 const Result ready = sema.waitTyped(other, lookUpCxt.codeRef);
                 if (other->isExcludedByCondition())
                 {
                     retryLookup = true;
                     break;
                 }
+
                 SWC_RESULT(ready);
             }
         }
@@ -599,10 +607,12 @@ Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCalle
         SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
         if (isGenericFunctionOrStructRoot(*other))
             continue;
+
         SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
     }
 
     outSymbols.reserve(fallbackSymbols.size());
+
     for (const Symbol* symbol : fallbackSymbols)
         outSymbols.push_back(const_cast<Symbol*>(symbol));
 
@@ -640,8 +650,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (other == &sym)
             continue;
 
-        // If it's a "local" symbol in SemaScope::symbols_, it doesn't have a symMap (it's null).
-        // So if BOTH are null, they are in the same scope.
+        // Local symbols have no owner map; two null owners therefore denote the same scope.
         if (other->ownerSymMap() != symMapOfSym)
             continue;
 
@@ -650,6 +659,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
             SWC_ASSERT(sym.isTyped());
             if (isGenericFunctionOrStructRoot(*other))
                 continue;
+
             SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))
                 continue;
@@ -661,6 +671,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
             duplicateSymbol->setIgnored(sema.ctx());
             SemaError::raiseAlreadyDefined(sema, duplicateSymbol, &sym);
             reportedLaterDuplicate = true;
+
             continue;
         }
 
@@ -685,6 +696,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
             SWC_ASSERT(sym.isTyped());
             if (isGenericFunctionOrStructRoot(*other))
                 continue;
+
             SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
             if (!sym.deepCompare(other))
                 continue;

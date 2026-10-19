@@ -748,6 +748,7 @@ namespace
         trimTrailingModuleApiWhitespace(text);
         if (!text.empty() && text.back() == ';')
             text.pop_back();
+
         trimTrailingModuleApiWhitespace(text);
     }
 
@@ -756,9 +757,7 @@ namespace
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Macro, "Macro");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Mixin, "Mixin");
 
-        // 'Inline' asks the consumer to expand the body, so it only means something where the
-        // body travels with the declaration. Publishing it on an entry the API reduced to a
-        // foreign call promises an expansion that cannot happen.
+        // Inline requires a body to expand; foreign-only declarations cannot honor it.
         if (hasExportedBody)
             appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Inline, "Inline");
 
@@ -766,9 +765,11 @@ namespace
         // relies on it to compile its unmarked calls again in the importer.
         if (hasExportedBody)
             appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Propagate, "Propagate");
+
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::ConstExpr, "ConstExpr");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::ReadOnly, "ReadOnly");
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Implicit, "Implicit");
+
         if (!hasExportedBody && symbolFunction.hasFullInitialization() && !snippetSpellsAttribute(snippet.view(), "FullInit"))
             ioAttributes.push_back("FullInit");
 
@@ -779,25 +780,46 @@ namespace
         // So is 'NoReturn': an importer judges the flow after the call by it.
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::NoReturn, "NoReturn");
 
-        // The borrow summaries are computed facts, not source attributes: re-emit them
-        // so importers can judge their call sites against this function's parameters.
-        // The export runs after the final sema drain, so the masks include the
-        // transitive bits added by the summary fixpoint.
-        const uint64_t returnsMask         = symbolFunction.returnBorrowsParamsMask();
-        const uint64_t storesMask          = symbolFunction.storesParamsMask();
-        const uint64_t intoPairs           = symbolFunction.storesIntoParamPairs();
-        const uint64_t freesMask           = symbolFunction.freesParamsMask();
-        const uint64_t reallocatesMask     = symbolFunction.reallocatesParamsMask();
-        const uint64_t returnsPayloadMask  = symbolFunction.returnsPayloadParamsMask();
-        const uint64_t returnsStorageMask  = symbolFunction.returnsStorageParamsMask();
+        // Export follows the final semantic drain, so borrow summaries include
+        // transitive effects. Re-emit these computed facts for importers.
+        const uint64_t returnsMask     = symbolFunction.returnBorrowsParamsMask();
+        const uint64_t storesMask      = symbolFunction.storesParamsMask();
+        const uint64_t intoPairs       = symbolFunction.storesIntoParamPairs();
+        const uint64_t freesMask       = symbolFunction.freesParamsMask();
+        const uint64_t reallocatesMask = symbolFunction.reallocatesParamsMask();
+
+        const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask();
+        const uint64_t returnsStorageMask = symbolFunction.returnsStorageParamsMask();
+
         const uint64_t returnsIndirectMask = symbolFunction.returnsIndirectParamsMask();
         const uint64_t storesIndirectMask  = symbolFunction.storesIndirectParamsMask();
         const uint64_t intoIndirectPairs   = symbolFunction.storesIndirectIntoParamPairs();
         const uint64_t freesIndirectMask   = symbolFunction.freesIndirectParamsMask();
-        if ((returnsMask != 0 || storesMask != 0 || intoPairs != 0 || freesMask != 0 || reallocatesMask != 0 || returnsPayloadMask != 0 || returnsIndirectMask != 0 || storesIndirectMask != 0 || intoIndirectPairs != 0 || freesIndirectMask != 0 || !symbolFunction.observesExternalBorrows()) &&
+
+        if ((returnsMask != 0 ||
+             storesMask != 0 ||
+             intoPairs != 0 ||
+             freesMask != 0 ||
+             reallocatesMask != 0 ||
+             returnsPayloadMask != 0 ||
+             returnsIndirectMask != 0 ||
+             storesIndirectMask != 0 ||
+             intoIndirectPairs != 0 ||
+             freesIndirectMask != 0 ||
+             !symbolFunction.observesExternalBorrows()) &&
             (!hasExportedBody || !snippetSpellsAttribute(snippet.view(), "BorrowSummary")))
         {
-            Utf8 summary{std::format("BorrowSummary({}, {}, {}, {}, {}, {}, {}, observesExternal: {}", returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, symbolFunction.observesExternalBorrows())};
+            Utf8 summary{std::format(
+                "BorrowSummary({}, {}, {}, {}, {}, {}, {}, observesExternal: {}",
+                returnsMask,
+                storesMask,
+                intoPairs,
+                freesMask,
+                reallocatesMask,
+                returnsPayloadMask,
+                returnsStorageMask,
+                symbolFunction.observesExternalBorrows())};
+
             if (returnsIndirectMask)
                 summary += std::format(", returnsIndirect: {}", returnsIndirectMask);
             if (storesIndirectMask)
@@ -806,6 +828,7 @@ namespace
                 summary += std::format(", intoIndirect: {}", intoIndirectPairs);
             if (freesIndirectMask)
                 summary += std::format(", freesIndirect: {}", freesIndirectMask);
+
             summary += ")";
             ioAttributes.push_back(std::move(summary));
         }
@@ -823,7 +846,8 @@ namespace
 
     bool tryFindFunctionBodyStartOffset(const ModuleApiGeneratedRoot& root, uint32_t& outBodyStartOffset)
     {
-        outBodyStartOffset         = 0;
+        outBodyStartOffset = 0;
+
         const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
         if (!symbolFunction || !root.file || !symbolFunction->decl())
             return false;
@@ -841,7 +865,8 @@ namespace
             return false;
 
         const SourceView& srcView = ast.srcView();
-        outBodyStartOffset        = srcView.tokenByteStart(srcView.token(bodyTokRef));
+
+        outBodyStartOffset = srcView.tokenByteStart(srcView.token(bodyTokRef));
         return true;
     }
 
@@ -858,6 +883,7 @@ namespace
         const TokenRef endTokRef = paramsNode.tokRefEnd(ast);
         if (!endTokRef.isValid())
             return TokenRef::invalid();
+
         if (!ast.hasSourceView() || !startTokRef.isValid())
             return endTokRef;
 
@@ -880,6 +906,7 @@ namespace
             return false;
 
         const SourceView& srcView = ast.srcView();
+
         for (uint32_t tokIndex = paramsEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
         {
             const Token& token = srcView.token(TokenRef(tokIndex));
@@ -896,7 +923,8 @@ namespace
     bool tryFindFunctionReturnTypeInsertOffset(const SourceFile& file, const AstFunctionDecl& functionDecl, const uint32_t prefixEndOffset, uint32_t& outInsertOffset)
     {
         outInsertOffset = 0;
-        const Ast& ast  = file.ast();
+
+        const Ast& ast = file.ast();
         if (!ast.hasSourceView() || !functionDecl.nodeParamsRef.isValid())
             return false;
 
@@ -975,6 +1003,7 @@ namespace
     bool tryBuildFunctionDeclPrefix(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outPrefix)
     {
         outPrefix.clear();
+
         const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
         if (!symbolFunction || !root.file || !symbolFunction->decl())
             return false;
@@ -993,7 +1022,8 @@ namespace
 
         const SourceView&      srcView = moduleApiNodeSourceView(ctx, root.file->ast(), root.nodeRef);
         const std::string_view source  = srcView.stringView();
-        endOffset                      = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+
+        endOffset = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
 
@@ -1002,6 +1032,7 @@ namespace
 
         auto        rawPrefix    = Utf8(source.substr(startOffset, endOffset - startOffset));
         const auto* functionDecl = symbolFunction->decl()->safeCast<AstFunctionDecl>();
+
         if (functionDecl &&
             symbolFunction->returnTypeRef().isValid() &&
             symbolFunction->returnTypeRef() != ctx.typeMgr().typeVoid() &&
@@ -1014,6 +1045,7 @@ namespace
             {
                 const Utf8 returnTypeName = buildGeneratedModuleApiTypeName(ctx, symbolFunction->returnTypeRef());
                 const Utf8 insertion      = std::format("->{} ", returnTypeName.c_str());
+
                 rawPrefix.insert(insertOffset - startOffset, insertion);
             }
         }
@@ -1022,11 +1054,9 @@ namespace
         return !outPrefix.empty();
     }
 
-    // An entry of a generated module API states only what an importer cannot recompute.
-    // The module is the one the API file describes, the calling convention is Swag, and
-    // the flattened symbol name is the scoped declaration name; each of those is the
-    // default an importer applies on its own. Only an overload carries a name, because
-    // its disambiguating suffix depends on the whole overload set.
+    // Importers infer the module, Swag calling convention, and flattened scoped
+    // name. Emit an explicit target only for overloads, whose suffix depends on
+    // the complete overload set.
     Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction)
     {
         SWC_ASSERT(symbolFunction.callConvKind() == CallConvKind::Swag);
@@ -1051,6 +1081,7 @@ namespace
         // A source annotation can understate what the body actually does. Once the body
         // disappears, only its completed, merged summary may become the importer's contract.
         static constexpr std::string_view BODY_ATTRIBUTES[] = {"Inline", "NoInline", "Safety", "Sanity", "Optimize", "Warning", "BorrowSummary"};
+
         removeModuleApiAttributes(ctx, prefix, BODY_ATTRIBUTES);
         trimTrailingModuleApiDeclarationSeparator(prefix);
         if (prefix.empty())
@@ -1059,16 +1090,17 @@ namespace
         SmallVector<Utf8> attributes;
         if (!symbolFunction->isForeign())
             attributes.push_back(buildModuleApiForeignAttribute(ctx, *symbolFunction));
+
         collectMissingFunctionAttributes(attributes, *symbolFunction, false, prefix);
 
         Utf8 result = buildAttributeListLine(attributes.span(), eol);
         result += prefix;
+
         return result;
     }
 
-    // Emit a bare `impl Interface for Struct {}` for an empty interface impl that has no
-    // member functions to reconstruct it from. The impl prefix (up to the opening brace) is
-    // taken verbatim from the source; an empty body is appended.
+    // No methods can reconstruct an empty interface impl. Preserve its source
+    // prefix and emit an empty body so the implementation remains visible.
     bool tryBuildEmptyInterfaceImplSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outSnippet)
     {
         if (!root.file || !root.symbol)

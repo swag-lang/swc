@@ -25,6 +25,7 @@ namespace
     {
         if (view.sym() && view.sym()->isEnum())
             return &view.sym()->cast<SymbolEnum>();
+
         if (view.sym() && view.sym()->isAlias())
         {
             const SymbolAlias& alias = view.sym()->cast<SymbolAlias>();
@@ -56,10 +57,12 @@ namespace
 
         std::erase_if(symbols, [](const Symbol* symbol) { return !symbol || !symbol->isEnumValue(); });
 
-        const TypeRef     underlyingTypeRef = symEnum.underlyingType(sema.ctx()).unwrap(sema.ctx(), symEnum.underlyingTypeRef(), TypeExpandE::Alias);
-        const uint64_t    count             = symbols.size();
+        const TypeRef underlyingTypeRef = symEnum.underlyingType(sema.ctx()).unwrap(sema.ctx(), symEnum.underlyingTypeRef(), TypeExpandE::Alias);
+
+        const uint64_t    count = symbols.size();
         std::vector<bool> seen(count);
         bool              isDense = count != 0 && underlyingTypeRef.isValid() && sema.typeMgr().get(underlyingTypeRef).isInt();
+
         for (const Symbol* symbol : symbols)
         {
             const auto&          value   = symbol->cast<SymbolEnumValue>();
@@ -78,6 +81,7 @@ namespace
                 isDense = false;
                 break;
             }
+
             seen[rawValue] = true;
         }
 
@@ -87,6 +91,7 @@ namespace
             diag.addArgument(Diagnostic::ARG_TYPE, symEnum.typeRef());
             diag.addArgument(Diagnostic::ARG_VALUE, count ? count - 1 : 0);
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -106,6 +111,7 @@ namespace
         {
             auto&         symEnum = sym.cast<SymbolEnum>();
             const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeEnum(&symEnum));
+
             symEnum.setTypeRef(typeRef);
             return typeRef;
         }
@@ -114,6 +120,7 @@ namespace
         {
             auto&         itf     = sym.cast<SymbolInterface>();
             const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeInterface(&itf));
+
             itf.setTypeRef(typeRef);
             itf.setTyped(sema.ctx());
             return typeRef;
@@ -121,7 +128,6 @@ namespace
 
         return TypeRef::invalid();
     }
-
 }
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
@@ -129,6 +135,7 @@ Result AstBuiltinType::semaPostNode(Sema& sema) const
     const TokenId tokenId = typeTokenId != TokenId::Invalid ? typeTokenId : sema.token(codeRef()).id;
     const TypeRef typeRef = sema.typeMgr().builtinType(tokenId);
     SWC_INTERNAL_CHECK(typeRef.isValid());
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -141,20 +148,23 @@ Result AstVariadicType::semaPostNode(Sema& sema)
 
 Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view             = sema.viewType(nodeTypeRef);
-    TypeRef            elementTypeRef   = view.typeRef();
-    elementTypeRef                      = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
+    const SemaNodeView view           = sema.viewType(nodeTypeRef);
+    TypeRef            elementTypeRef = view.typeRef();
+
+    elementTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
 
     if (elementTypeRef == sema.typeMgr().typeVoid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_variadic_element_type, nodeTypeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
     const TypeInfo ty      = TypeInfo::makeTypedVariadic(view.typeRef());
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -168,6 +178,7 @@ Result AstCodeType::semaPostNode(Sema& sema) const
 
     const TypeInfo ty      = TypeInfo::makeCodeBlock(payloadTypeRef);
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -199,6 +210,7 @@ Result AstValuePointerType::semaPostNode(Sema& sema) const
     const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
     const TypeInfo     ty      = TypeInfo::makeValuePointer(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -208,6 +220,7 @@ Result AstBlockPointerType::semaPostNode(Sema& sema) const
     const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
     const TypeInfo     ty      = TypeInfo::makeBlockPointer(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -217,26 +230,30 @@ Result AstMoveRefType::semaPostNode(Sema& sema) const
     const SemaNodeView view    = sema.viewType(nodePointeeTypeRef);
     const TypeInfo     ty      = TypeInfo::makeMoveReference(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
 
 Result AstSliceType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view             = sema.viewType(nodePointeeTypeRef);
-    TypeRef            elementTypeRef   = view.typeRef();
-    elementTypeRef                      = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
+    const SemaNodeView view           = sema.viewType(nodePointeeTypeRef);
+    TypeRef            elementTypeRef = view.typeRef();
+
+    elementTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
 
     if (elementTypeRef == sema.typeMgr().typeVoid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_slice_element_type, nodePointeeTypeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
     const TypeInfo ty      = TypeInfo::makeSlice(view.typeRef());
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
+
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -263,10 +280,12 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::Interface:
             case TypeInfoKind::Simd:
                 break;
+
             default:
                 const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
                 const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::KwdConst});
-                auto              diag        = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
+
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, SourceCodeRef{srcViewRef(), constTokRef});
                 diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
                 diag.report(sema.ctx());
                 return Result::Error;
@@ -283,6 +302,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_type_qualifier, codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -291,44 +311,57 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
     TypeRef      typeRef;
     TypeManager& typeMgr = sema.typeMgr();
+
     switch (qualifiedType.kind())
     {
         case TypeInfoKind::Array:
             typeRef = typeMgr.addArrayType(qualifiedType.payloadArrayDims(), qualifiedType.payloadArrayElemTypeRef(), typeFlags, qualifiedType.payloadArrayIndexTypeRefs());
             break;
+
         case TypeInfoKind::ValuePointer:
             typeRef = typeMgr.addType(TypeInfo::makeValuePointer(qualifiedType.payloadTypeRef(), typeFlags));
             break;
+
         case TypeInfoKind::BlockPointer:
             typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(qualifiedType.payloadTypeRef(), typeFlags));
             break;
+
         case TypeInfoKind::MoveReference:
             typeRef = typeMgr.addType(TypeInfo::makeMoveReference(qualifiedType.payloadTypeRef(), typeFlags));
             break;
+
         case TypeInfoKind::Slice:
             typeRef = typeMgr.addType(TypeInfo::makeSlice(qualifiedType.payloadTypeRef(), typeFlags));
             break;
+
         case TypeInfoKind::String:
             typeRef = typeMgr.addType(TypeInfo::makeString(typeFlags));
             break;
+
         case TypeInfoKind::CString:
             typeRef = typeMgr.addType(TypeInfo::makeCString(typeFlags));
             break;
+
         case TypeInfoKind::Any:
             typeRef = typeMgr.addType(TypeInfo::makeAny(typeFlags));
             break;
+
         case TypeInfoKind::Interface:
             typeRef = typeMgr.addType(TypeInfo::makeInterface(&qualifiedType.payloadSymInterface(), typeFlags));
             break;
+
         case TypeInfoKind::Function:
             typeRef = typeMgr.addType(TypeInfo::makeFunction(&qualifiedType.payloadSymFunction(), typeFlags));
             break;
+
         case TypeInfoKind::TypeInfo:
             typeRef = typeMgr.addType(TypeInfo::makeTypeInfo(typeFlags));
             break;
+
         case TypeInfoKind::Simd:
             typeRef = typeMgr.addType(TypeInfo::makeSimd(qualifiedType.payloadSimdLaneTypeRef(), qualifiedType.payloadSimdLaneCount(), typeFlags));
             break;
+
         default:
             SWC_UNREACHABLE();
     }
@@ -444,10 +477,10 @@ Result AstArrayType::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 
 Result AstArrayType::semaPostNode(Sema& sema) const
 {
-    TaskContext&       ctx              = sema.ctx();
-    const SemaNodeView view             = sema.viewType(nodePointeeTypeRef);
-    TypeRef            elementTypeRef   = view.typeRef();
-    elementTypeRef                      = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
+    TaskContext&       ctx            = sema.ctx();
+    const SemaNodeView view           = sema.viewType(nodePointeeTypeRef);
+    TypeRef            elementTypeRef = view.typeRef();
+    elementTypeRef                    = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
 
     if (elementTypeRef == sema.typeMgr().typeVoid())
     {

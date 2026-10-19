@@ -74,12 +74,14 @@ namespace
         const MicroInstrOperand* ops = inst.ops(operands);
         if (!ops)
             return;
+
         const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
         for (size_t index = 0; index < modes.size(); ++index)
         {
             const MicroInstrRegMode mode = modes[index];
             if (mode == MicroInstrRegMode::None)
                 continue;
+
             const MicroReg reg = ops[index].reg;
             if (reg.isValid() && !reg.isNoBase())
                 visit(reg, mode);
@@ -91,8 +93,9 @@ namespace
         SWC_ASSERT(context.instructions);
         SWC_ASSERT(context.operands);
 
-        outUsedRegs          = 0;
-        outDefinedBeforeUse  = 0;
+        outUsedRegs         = 0;
+        outDefinedBeforeUse = 0;
+
         uint64_t pendingRegs = 0;
         for (const MicroReg reg : conv.intPersistentRegs)
         {
@@ -110,15 +113,18 @@ namespace
                 const uint64_t regMask = physicalRegMask(reg);
                 if (!regMask)
                     return;
+
                 outUsedRegs |= regMask;
                 if (!pendingRegs)
                     return;
+
                 const uint64_t mask = regMask & pendingRegs;
                 if (mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef)
                     usedRegs |= mask;
                 if (mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef)
                     definedRegs |= mask;
             });
+
             // Aggregate the entire instruction before resolving first touches:
             // a read wins over a definition even when its operand appears later.
             outDefinedBeforeUse |= pendingRegs & definedRegs & ~usedRegs;
@@ -148,6 +154,7 @@ namespace
 
             if (framePointerUsed)
                 return false;
+
             if (!framePointerDef)
                 continue;
 
@@ -157,6 +164,7 @@ namespace
             const MicroInstrOperand* ops = inst.ops(operands);
             if (!ops)
                 return false;
+
             if (ops[0].reg != conv.framePointer)
                 return false;
             if (ops[1].reg != conv.stackPointer)
@@ -174,10 +182,13 @@ namespace
     {
         if (!reg.isValid() || !reg.isInt())
             return false;
+
         if (reg == conv.stackPointer || reg == conv.framePointer || reg == conv.intReturn)
             return false;
+
         if (conv.isIntArgReg(reg))
             return false;
+
         return true;
     }
 
@@ -187,8 +198,10 @@ namespace
         {
             if (!reg.isValid())
                 continue;
+
             if (!isSafeTransientReplacementIntReg(conv, reg))
                 continue;
+
             const uint64_t mask = physicalRegMask(reg);
             if (!mask || (usedRegs & mask))
                 continue;
@@ -204,8 +217,10 @@ namespace
     {
         if (!ops || inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
+
         if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B64)
             return false;
+
         return ops[2].microOp == expectedOp;
     }
 
@@ -214,6 +229,7 @@ namespace
         const MicroInstrOperand* ops = inst.ops(*context.operands);
         if (!ops)
             return false;
+
         const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
         for (size_t index = 0; index < modes.size(); ++index)
         {
@@ -242,9 +258,11 @@ namespace
             const MicroInstr* inst = &*walker;
             if (inst->op == MicroInstrOpcode::Nop)
                 continue;
+
             const MicroInstrOperand* ops = inst->ops(*context.operands);
             if (!isStackPointerAdjust(*inst, ops, stackPointer, MicroOp::Add) || ops[3].hasWideImmediateValue())
                 break;
+
             total += ops[3].valueU64;
             outFirst = walker.current;
         }
@@ -274,11 +292,14 @@ namespace
             {
                 if (ops[3].hasWideImmediateValue() || !ops[3].valueU64)
                     return 0;
+
                 allocation += ops[3].valueU64;
                 continue;
             }
+
             if (isStackPointerAdjust(*it, ops, stackPointer, MicroOp::Add))
                 continue;
+
             if (definesStackPointer(context, *it, stackPointer) || it->op == MicroInstrOpcode::Push ||
                 it->op == MicroInstrOpcode::Pop)
                 return 0;
@@ -293,6 +314,7 @@ namespace
         {
             if (it->op != MicroInstrOpcode::Ret)
                 continue;
+
             MicroInstrRef  first = MicroInstrRef::invalid();
             const uint64_t total = sumEpilogueAdds(context, stackPointer, it.current, first);
             if (!first.isValid() || total != allocation)
@@ -331,6 +353,7 @@ namespace
             {
                 if (!inEntryRun)
                     return true;
+
                 continue;
             }
 
@@ -344,8 +367,10 @@ namespace
                        (nextIt->op == MicroInstrOpcode::Nop ||
                         isStackPointerAdjust(*nextIt, nextIt->ops(*context.operands), stackPointer, MicroOp::Add)))
                     ++nextIt;
+
                 if (nextIt == endIt || nextIt->op != MicroInstrOpcode::Ret)
                     return true;
+
                 // This entire add/Nop run is validated. Resume at the Ret so
                 // its entry-run effect is still handled by the main walk.
                 it = nextIt;
@@ -389,11 +414,14 @@ namespace
         {
             if (!persistentReg.isValid())
                 continue;
+
             if (persistentReg == conv.framePointer)
                 continue;
+
             const uint64_t mask = physicalRegMask(persistentReg);
             if (!(usedRegs & mask))
                 continue;
+
             const bool firstIsDef = (definedBeforeUse & mask) != 0;
             if (!firstIsDef)
                 continue;
@@ -407,12 +435,14 @@ namespace
         // At most one entry per persistent register of the convention: a short list scanned
         // in place, with the last replacement of a register winning as a map assignment would.
         SmallVector<std::pair<MicroReg, MicroReg>, 8> remap;
-        const auto                                    findRemap = [&remap](const MicroReg reg) -> MicroReg* {
+
+        const auto findRemap = [&remap](const MicroReg reg) -> MicroReg* {
             for (auto& [from, to] : remap)
             {
                 if (from == reg)
                     return &to;
             }
+
             return nullptr;
         };
 
@@ -426,6 +456,7 @@ namespace
                 *known = replacementReg;
             else
                 remap.emplace_back(persistentReg, replacementReg);
+
             usedRegs |= physicalRegMask(replacementReg);
         }
 
@@ -448,6 +479,7 @@ namespace
             MicroInstrOperand* ops = inst.ops(operands);
             if (!ops)
                 continue;
+
             const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
             for (size_t i = 0; i < modes.size(); ++i)
             {

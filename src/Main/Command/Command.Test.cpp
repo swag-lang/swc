@@ -37,12 +37,14 @@ namespace
         {
             if (!file || file->isRuntime())
                 continue;
+
             if (!file->ast().hasSourceView())
                 continue;
 
             const SourceView& srcView = file->ast().srcView();
             if (srcView.mustSkip())
                 continue;
+
             if (srcView.runsJit())
                 return true;
         }
@@ -130,6 +132,7 @@ namespace
             stack.pop_back();
             if (!function)
                 continue;
+
             if (!visited.insert(function))
                 continue;
 
@@ -152,7 +155,8 @@ namespace
     {
         std::unordered_set<const SymbolFunction*> skippedFunctions;
         std::unordered_set<const SymbolFunction*> functions;
-        uint32_t                                  expectedTestCount = 0;
+
+        uint32_t expectedTestCount = 0;
     };
 
     bool shouldKeepSelectedJitFunction(const JitFunctionSelection& selection, const SymbolFunction* function)
@@ -180,8 +184,10 @@ namespace
             stack.pop_back();
             if (!function)
                 continue;
+
             if (!graph.visited.insert(function).second)
                 continue;
+
             if (function->isIgnored() || functionHasSourceError(compiler, *function) || functionHasUnmatchedSanityErrorDirective(compiler, *function))
             {
                 graph.selfSkippedFunctions.push_back(function);
@@ -194,6 +200,7 @@ namespace
             {
                 if (!dependency || dependency == function)
                     continue;
+
                 graph.reverseDependencies[dependency].push_back(function);
                 stack.push_back(dependency);
             }
@@ -232,13 +239,17 @@ namespace
     {
         if (!function)
             return;
+
         if (function->isIgnored())
             return;
+
         if (!isRuntimeTestFunction(compiler, *function))
             return;
+
         const SourceFile* file = compiler.srcView(function->srcViewRef()).file();
         if (file && !file->ast().srcView().runsJit())
             return;
+
         if (selection.skippedFunctions.contains(function))
             return;
 
@@ -314,6 +325,7 @@ namespace
 
         if (decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr)
             return false;
+
         if (decl->id() != AstNodeId::CompilerFunc)
             return true;
 
@@ -372,12 +384,14 @@ namespace
         {
             if (!file)
                 continue;
+
             if (!file->ast().hasSourceView())
                 continue;
 
             const SourceView& srcView = file->ast().srcView();
             if (srcView.mustSkip())
                 continue;
+
             file->unitTest().verifyUntouchedExpected(ctx, srcView);
         }
     }

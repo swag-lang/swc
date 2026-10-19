@@ -1641,9 +1641,11 @@ namespace
         SWC_RESULT(loadCompilerIncludeBytes(sema, childRef, resolvedPath, bytes));
         sema.compiler().registerCompilerInputFile(resolvedPath);
 
-        const std::array<uint64_t, 1> dims         = {bytes.size()};
-        const TypeRef                 arrayTypeRef = sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
-        const ConstantValue           value        = ConstantValue::makeArray(ctx, arrayTypeRef, bytes.span());
+        const std::array<uint64_t, 1> dims = {bytes.size()};
+
+        const TypeRef       arrayTypeRef = sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
+        const ConstantValue value        = ConstantValue::makeArray(ctx, arrayTypeRef, bytes.span());
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
@@ -1660,6 +1662,7 @@ namespace
 
         fs::path resolvedPath;
         SWC_RESULT(resolveCompilerIncludePath(sema, childRef, loadPath, resolvedPath));
+
         return sema.compiler().registerModuleSetupLoad(resolvedPath);
     }
 
@@ -1682,7 +1685,7 @@ namespace
             const auto [next, cp, eat] = Utf8Helper::decodeOneChar(cur, end);
             if (!next)
             {
-                // Keep constexpr conversion robust for any non-literal string payload by mirroring runtime UTF-8 decoding.
+                // Match runtime UTF-8 replacement decoding for malformed non-literal strings.
                 runes.push_back(0xFFFD);
                 ++cur;
                 continue;
@@ -1693,8 +1696,10 @@ namespace
             cur = next;
         }
 
-        const std::span     bytes = {reinterpret_cast<const std::byte*>(runes.data()), runes.size() * sizeof(char32_t)};
+        const std::span bytes = {reinterpret_cast<const std::byte*>(runes.data()), runes.size() * sizeof(char32_t)};
+
         const ConstantValue value = ConstantValue::makeSlice(ctx, sema.typeMgr().typeRune(), bytes, TypeInfoFlagsE::Const);
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
@@ -1703,8 +1708,10 @@ namespace
 Result AstCompilerImport::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));
+
     auto linkBackendKind = Runtime::BuildCfgBackendKind::None;
     SWC_RESULT(resolveModuleImportLinkBackend(sema, *this, linkBackendKind));
+
     return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this), moduleImportLocation(sema, *this), moduleImportVersion(sema, *this), linkBackendKind);
 }
 
@@ -1719,34 +1726,43 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerKindOf(sema, *this);
         case TokenId::CompilerDeclType:
             return semaCompilerDeclType(sema, *this);
+
         case TokenId::CompilerNameOf:
             return semaCompilerNameOf(sema, *this);
         case TokenId::CompilerFullNameOf:
             return semaCompilerFullNameOf(sema, *this);
+
         case TokenId::CompilerSizeOf:
             return semaCompilerSizeOf(sema, *this);
         case TokenId::CompilerOffsetOf:
             return semaCompilerOffsetOf(sema, *this);
         case TokenId::CompilerAlignOf:
             return semaCompilerAlignOf(sema, *this);
+
         case TokenId::CompilerDefined:
             return semaCompilerDefined(sema, *this);
         case TokenId::CompilerIsConstExpr:
             return semaCompilerIsConstExpr(sema, *this);
+
         case TokenId::CompilerSafety:
             return semaCompilerSafety(sema, *this);
         case TokenId::CompilerSanity:
             return semaCompilerSanity(sema, *this);
+
         case TokenId::CompilerLocation:
             return semaCompilerLocation(sema, *this);
+
         case TokenId::CompilerForeignLib:
             return semaCompilerForeignLib(sema, *this);
         case TokenId::CompilerInclude:
             return semaCompilerInclude(sema, *this);
+
         case TokenId::CompilerInject:
             return substituteCompilerInject(sema, sema.curNodeRef(), nodeArgRef);
+
         case TokenId::CompilerHasTag:
             return semaCompilerHasTag(sema, *this);
+
         case TokenId::CompilerRunes:
             return semaCompilerRunes(sema, *this);
 
@@ -1785,6 +1801,7 @@ Result AstCompilerInject::semaPostNode(Sema& sema) const
 {
     SmallVector<SemaClone::NodeReplacement> replacements;
     appendInjectReplacements(sema, *this, replacements);
+
     return substituteCompilerInject(sema, sema.curNodeRef(), nodeExprRef, replacements.span());
 }
 
@@ -1795,6 +1812,7 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
     {
         case TokenId::CompilerGetTag:
             return semaCompilerGetTag(sema, *this);
+
         case TokenId::CompilerStringOf:
             return semaCompilerStringOf(sema, *this);
 

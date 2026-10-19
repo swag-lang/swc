@@ -37,6 +37,7 @@ namespace
             {
                 if (segmentStart == INVALID_PIECE)
                     return;
+
                 segments.push_back({segmentStart, model.prevPiece(i)});
                 separators.push_back(i);
                 keys.emplace_back();
@@ -52,6 +53,7 @@ namespace
 
         if (segmentStart == INVALID_PIECE)
             return;
+
         segments.push_back({segmentStart, model.prevPiece(closePiece)});
         keys.push_back(std::move(key));
 
@@ -61,6 +63,7 @@ namespace
         std::vector<uint32_t> order(segments.size());
         for (uint32_t i = 0; i < order.size(); ++i)
             order[i] = i;
+
         std::ranges::stable_sort(order, [&](const uint32_t a, const uint32_t b) { return keys[a].view() < keys[b].view(); });
 
         bool identity = true;
@@ -69,6 +72,7 @@ namespace
             if (order[i] != i)
                 identity = false;
         }
+
         if (identity)
             return;
 
@@ -87,6 +91,7 @@ namespace
         {
             const PieceRange& range = segments[s];
             leadingGaps[s]          = model.gapBefore(range.first);
+
             for (uint32_t i = range.first; i <= range.last; ++i)
             {
                 snapshots[s].pieces.push_back(model.piece(i));
@@ -152,6 +157,7 @@ namespace
                 continue;
             if (model.piece(next).isComment)
                 continue;
+
             // Only between the attribute and the declaration it annotates: the
             // next piece must start a statement or another attribute list.
             if (!model.piece(next).roles.hasAny({FormatRoleE::AttrOpen, FormatRoleE::StmtStart, FormatRoleE::FuncDeclStart, FormatRoleE::VarDeclStart, FormatRoleE::ConstDeclStart, FormatRoleE::FieldDeclStart, FormatRoleE::EnumValueStart}))

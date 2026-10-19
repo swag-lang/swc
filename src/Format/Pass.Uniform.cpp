@@ -10,11 +10,9 @@ namespace
     using FormatPassUtil::INVALID_PIECE;
     using FormatSiblings::BodyShape;
 
-    // Rewrites the syntax of sibling bodies so they share one form: `do` or
-    // braces for the branches of a chain, `{ return e }` or `=> e` for closures
-    // and functions. Each rewrite only swaps, drops, or extends existing
-    // pieces; the caller parses the result again before laying it out, so the
-    // text written here only has to be valid, not well placed.
+    // Normalize sibling bodies to one syntax: `do` or braces for branches,
+    // and `{ return e }` or `=> e` for functions and closures. The caller
+    // reparses the rewritten text before layout, so only valid syntax is needed.
     class UniformPass
     {
     public:
@@ -29,6 +27,7 @@ namespace
             rewriteBranches();
             rewriteClosures();
             rewriteFunctions();
+
             return changed_;
         }
 
@@ -50,6 +49,7 @@ namespace
             model_->removePiece(branch.lastPiece);
             if (next != INVALID_PIECE && !model_->gapHasNewline(next) && model_->piece(next).roles.hasAny({FormatRoleE::ElseKeyword}))
                 model_->setGapBreak(next, 1, model_->lineIndentOf(branch.keyword));
+
             changed_ = true;
         }
 
@@ -61,8 +61,8 @@ namespace
             text += "}";
             model_->replaceText(last, std::move(text));
 
-            // A number now carries the brace after it: render it as plain text,
-            // the parse that follows reads the number again.
+            // Render the appended brace as plain text even when the original piece
+            // was a number; the subsequent parse will classify it again.
             model_->piece(last).id = TokenId::Identifier;
         }
 
@@ -108,11 +108,11 @@ namespace
                         braceAll   = braceAll && shape.braceable;
                     }
                 }
+
                 if (!valid || !hasInline || !hasBraced)
                     continue;
 
-                // A run of guards only ever shrinks: a guard reads as one line
-                // whatever its neighbours hold.
+                // Keep guard groups compact even when neighboring bodies require braces.
                 if (unbraceAll)
                 {
                     for (size_t i = 0; i < shapes.size(); ++i)
@@ -137,6 +137,7 @@ namespace
         {
             if (!shape.braced || !shape.unbraceable)
                 return false;
+
             const uint32_t prev = model_->prevPiece(body.openPiece);
             return prev != INVALID_PIECE && !model_->piece(prev).isComment;
         }
@@ -170,6 +171,7 @@ namespace
                     expanded               = expanded || !shape.oneLine;
                     compact                = compact && shape.compact;
                 }
+
                 if (!oneLine || !expanded)
                     continue;
 
@@ -177,10 +179,12 @@ namespace
                 {
                     const FormatFunctionBody& body  = bodies[group[i]];
                     const BodyShape&          shape = shapes[i];
+
                     if (compact)
                     {
                         if (shape.valid && canUnbraceFunction(body, shape))
                             unbraceFunction(body, shape);
+
                         continue;
                     }
 
@@ -217,6 +221,7 @@ namespace
                     expanded               = expanded || !shape.oneLine;
                     compact                = compact && shape.compact && shape.valid;
                 }
+
                 if (!oneLine || !expanded || !compact)
                     continue;
 
@@ -230,7 +235,8 @@ namespace
 
         FormatModel*         model_;
         const FormatOptions* options_;
-        bool                 changed_ = false;
+
+        bool changed_ = false;
     };
 }
 

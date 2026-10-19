@@ -76,6 +76,7 @@ namespace
         std::ranges::stable_sort(order, [&](const uint32_t a, const uint32_t b) {
             if (!caseInsensitive)
                 return run[a].sortKey.view() < run[b].sortKey.view();
+
             Utf8 ka = run[a].sortKey;
             Utf8 kb = run[b].sortKey;
             ka.make_lower();
@@ -153,6 +154,7 @@ namespace
         // phase rescans the model from scratch.
         if (sortWanted)
             forEachRun(model, [&](const std::vector<UsingStatement>& run) { sortRun(model, run); });
+
         if (mergeWanted)
             forEachRun(model, [&](const std::vector<UsingStatement>& run) { mergeRun(model, run); });
     }

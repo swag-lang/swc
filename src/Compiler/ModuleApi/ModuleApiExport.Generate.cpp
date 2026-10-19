@@ -71,21 +71,22 @@ namespace
             if (variable->hasExtraFlag(SymbolVariableFlagsE::Parameter) || variable->isFunctionLocalVariable(function) || function.containsLocalVariable(*variable))
                 return true;
         }
+
         if (!isCurrentModuleSymbol(ctx.compiler(), symbol) || isWholeFileExportedSymbol(ctx.compiler(), symbol))
             return true;
 
-        // A field, a member constant and an enum value travel with the type that declares them,
-        // and the body is re-emitted in that same generated file, so it reads them exactly as it
-        // did in the module it came from: the access rules answer with the file the code was
-        // written in, not with the one that ends up calling it. An opaque type publishes storage
-        // instead of members, so nothing a body names inside one can bind again.
+        // Members travel with their exported type and are re-emitted in the same
+        // generated file, preserving the original file's access rules. Opaque types
+        // expose storage without members, so member references cannot be rebound.
         if (symbol.isValueExpr())
         {
             bool ownedByExportedType = false;
+
             for (const SymbolMap* owner = symbol.ownerSymMap(); owner; owner = owner->ownerSymMap())
             {
                 if (!owner->isStruct() && !owner->isEnum())
                     continue;
+
                 if (!owner->isPublic() || isModuleApiOpaqueType(*owner))
                     return false;
 
@@ -105,13 +106,16 @@ namespace
         diag.addArgument(Diagnostic::ARG_SYM, function.getFullScopedName(ctx));
         diag.addArgument(Diagnostic::ARG_BECAUSE, because);
         diag.last().addSpan(range, "", DiagnosticSeverity::Error);
+
         if (referencedSymbol)
         {
             diag.addNote(DiagnosticId::cmd_note_api_dependency_declared_here);
             diag.last().addArgument(Diagnostic::ARG_TARGET, referencedSymbol->getFullScopedName(ctx));
             diag.last().addSpan(referencedSymbol->codeRange(ctx));
         }
+
         diag.report(ctx);
+
         return Result::Error;
     }
 
@@ -123,9 +127,11 @@ namespace
 
         Result     result = Result::Continue;
         const Ast& ast    = file.ast();
+
         Ast::visit(ast, functionDecl->nodeBodyRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
             const NodePayload::ResolvedSymbols resolved    = file.nodePayloadContext().resolveSymbols(nodeRef);
             const Symbol*                      unavailable = nullptr;
+
             for (const Symbol* symbol : resolved.symbols)
             {
                 if (symbol && !isExportedBodySymbolAvailable(ctx, function, *symbol))
@@ -147,18 +153,21 @@ namespace
             {
                 const AstNode& focus   = node.is(AstNodeId::CallExpr) ? ast.node(node.cast<AstCallExpr>().nodeExprRef) : node;
                 const Utf8     because = std::format("symbol '{}' is not exposed by the module API", unavailable->getFullScopedName(ctx));
-                result                 = reportFunctionBodyExportError(ctx, function, focus.codeRange(ctx), because.view(), diagnosticId, unavailable);
+
+                result = reportFunctionBodyExportError(ctx, function, focus.codeRange(ctx), because.view(), diagnosticId, unavailable);
                 return Ast::VisitResult::Stop;
             }
 
             return Ast::VisitResult::Continue;
         });
+
         return result;
     }
 
     bool tryGetSwagAttributeIntValue(uint32_t& outValue, TaskContext& ctx, const Symbol& symbol, std::string_view attrName)
     {
         outValue = 0;
+
         for (const AttributeInstance& attribute : symbol.attributes().attributes)
         {
             if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != attrName)
@@ -181,12 +190,8 @@ namespace
         return false;
     }
 
-    // Whether the snippet already spells `marker` as an attribute.
-    //
-    // The snippet is source text, so a plain substring search also matches an identifier that
-    // happens to contain the attribute name, and a function named 'depDiscardableCount' would
-    // then lose its '#[Swag.Discardable]'. Only a spelling bounded like a member of an
-    // attribute list counts: '#[Inline]', '#[Swag.Inline]', or either inside a list.
+    // Match attribute boundaries: a name such as depDiscardableCount must not
+    // suppress the Discardable attribute. Qualified and list entries also count.
     bool snippetSpellsAttribute(const std::string_view snippet, const std::string_view marker)
     {
         for (size_t pos = snippet.find(marker); pos != std::string_view::npos; pos = snippet.find(marker, pos + 1))
@@ -207,14 +212,13 @@ namespace
     {
         if (!symbolFunction.attributes().hasRtFlag(flag))
             return;
+
         if (snippetSpellsAttribute(snippet, marker))
             return;
 
         ioAttributes.push_back(Utf8{marker});
     }
 
-    // One list holds every attribute of a declaration, so an entry costs one line whatever it
-    // states.
     Utf8 buildAttributeListLine(std::span<const Utf8> attributes, const std::string_view eol)
     {
         if (attributes.empty())
@@ -225,11 +229,13 @@ namespace
         {
             if (index != 0)
                 result += ", ";
+
             result += attributes[index];
         }
 
         result += "]";
         result += eol;
+
         return result;
     }
 
@@ -239,6 +245,7 @@ namespace
             return declNode.cast<AstStructDecl>().nodeBodyRef;
         if (declNode.is(AstNodeId::UnionDecl))
             return declNode.cast<AstUnionDecl>().nodeBodyRef;
+
         return AstNodeRef::invalid();
     }
 
@@ -288,7 +295,8 @@ namespace
 
     bool collectOpaqueStringSlots(TaskContext& ctx, SmallVector<OpaqueStringSlot>& slots, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t baseOffset)
     {
-        typeRef              = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        typeRef = ctx.typeMgr().get(typeRef).unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
         if (type.isString())
         {
@@ -299,23 +307,28 @@ namespace
             slots.push_back(slot);
             return true;
         }
+
         if (type.isArray())
         {
             const TypeRef  elementType = type.payloadArrayElemTypeRef();
             const uint64_t elementSize = ctx.typeMgr().get(elementType).sizeOf(ctx);
             SWC_ASSERT(elementSize);
+
             for (uint64_t offset = 0; offset < bytes.size(); offset += elementSize)
             {
                 if (!collectOpaqueStringSlots(ctx, slots, elementType, bytes.subspan(offset, elementSize), baseOffset + offset))
                     return false;
             }
+
             return true;
         }
+
         if (type.isStruct())
         {
             const SymbolStruct& owner = type.payloadSymStruct();
             if (owner.hasDynamicStorage())
                 return false;
+
             // A union has no active-field tag from which to recover a non-null pointer.
             // Scalar representations and null pointer slots can still stay constant.
             if (owner.isUnion())
@@ -327,16 +340,20 @@ namespace
                     if (!collectOpaqueStringSlots(ctx, unionSlots, field->typeRef(), bytes.subspan(field->offset(), size), baseOffset + field->offset()))
                         return false;
                 }
+
                 return std::ranges::none_of(unionSlots, [](const OpaqueStringSlot& slot) { return slot.value.ptr != nullptr; });
             }
+
             for (const SymbolVariable* field : owner.fields())
             {
                 const uint64_t size = field->typeInfo(ctx).sizeOf(ctx);
                 if (!collectOpaqueStringSlots(ctx, slots, field->typeRef(), bytes.subspan(field->offset(), size), baseOffset + field->offset()))
                     return false;
             }
+
             return true;
         }
+
         // A non-null address can name provider state, a function, reflected metadata,
         // or another allocation. Never turn that address into integer initializer bytes.
         return !type.isPointerLike() || std::ranges::all_of(bytes, [](std::byte value) { return value == std::byte{0}; });

@@ -31,13 +31,14 @@ namespace ModuleApiExport
 
     struct ModuleApiGeneratedRoot
     {
-        const SourceFile*          file    = nullptr;
-        AstNodeRef                 nodeRef = AstNodeRef::invalid();
-        const Symbol*              symbol  = nullptr;
+        const SourceFile* file    = nullptr;
+        AstNodeRef        nodeRef = AstNodeRef::invalid();
+        const Symbol*     symbol  = nullptr;
+
         std::vector<IdentifierRef> namespacePath;
-        // A non-public declaration published because a source body in the interface names it.
-        // It keeps its own access and its body: the module does not export it, so a foreign
-        // binding could not reach it.
+
+        // Non-public declarations needed by exported source bodies keep their
+        // original access and body; a foreign binding could not reach them.
         bool supporting = false;
     };
 
@@ -45,8 +46,10 @@ namespace ModuleApiExport
     {
         SmallVector<const Symbol*>        values;
         std::unordered_set<const Symbol*> set;
+
         // Only ever added to, so a flat table rather than a map node per symbol.
         PointerSet<const Symbol> validated;
+
         // The supporting symbols of the interface being built; a non-public type among them
         // is as reachable as a public one.
         const PointerSet<const Symbol>* supportingSymbols = nullptr;
@@ -108,13 +111,16 @@ namespace ModuleApiExport
     // method, the generic arguments of an instance, a signature, a field, an alias target.
     struct ModuleApiDependencyCollector
     {
-        TaskContext*               ctx;
-        ModuleApiDependencyScope   scope = ModuleApiDependencyScope::Public;
+        TaskContext*             ctx;
+        ModuleApiDependencyScope scope = ModuleApiDependencyScope::Public;
+
         std::vector<const Symbol*> symbols;
+
         // Membership only: one collector per root, so the sets stay small and flat.
         PointerSet<const Symbol> symbolSet;
         PointerSet<const Symbol> visitedSymbols;
-        RefSet<TypeRef>          visitedTypeRefs;
+
+        RefSet<TypeRef> visitedTypeRefs;
     };
 
     void collectModuleApiSymbolDependencies(ModuleApiDependencyCollector& collector, const Symbol& symbol);

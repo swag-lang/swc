@@ -1674,6 +1674,54 @@ SWC_TEST_BEGIN(RegAlloc_KeepsCopyApartFromRedefinedSource)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(RegAlloc_JoinsCarriedVectorWithItsLoopExitValue)
+{
+    constexpr MicroReg carried = MicroReg::virtualFloatReg(9200);
+    constexpr MicroReg other   = MicroReg::virtualFloatReg(9201);
+    constexpr MicroReg next    = MicroReg::virtualFloatReg(9202);
+    constexpr MicroReg count   = MicroReg::virtualIntReg(9200);
+    for (const auto callConvKind : testedCallConvs())
+    {
+        const auto& conv = CallConv::get(callConvKind);
+        for (const bool keepOldValue : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+            builder.emitClearReg(carried, MicroOpBits::B128);
+            builder.emitClearReg(other, MicroOpBits::B128);
+            builder.emitLoadRegImm(count, ApInt(10, 64), MicroOpBits::B64);
+            const MicroLabelRef header = builder.createLabel();
+            builder.placeLabel(header);
+            builder.emitOpBinaryRegRegReg(next, carried, other, MicroOp::VecAdd32, MicroOpBits::B128);
+            const MicroInstrRef producer = builder.instructions().lastInstructionRef();
+            if (keepOldValue)
+                builder.emitLoadMemReg(conv.stackPointer, 16, carried, MicroOpBits::B128);
+            builder.emitLoadRegReg(carried, next, MicroOpBits::B128);
+            builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+            builder.emitCmpRegImm(count, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B64, header);
+            builder.emitLoadMemReg(conv.stackPointer, 32, next, MicroOpBits::B128);
+            builder.emitRet();
+
+            MicroRegisterAllocationPass regAllocPass;
+            MicroPassManager            passes;
+            passes.addStartPass(regAllocPass);
+            MicroPassContext passCtx;
+            passCtx.callConvKind = callConvKind;
+            SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+            SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+            SWC_RESULT(verifyCallConvConformity(builder, conv));
+            if (!passCtx.intervalAllocated)
+                return Result::Error;
+            const auto* produced = builder.instructions().ptr(producer)->ops(builder.operands());
+            if ((produced[0].reg == produced[1].reg) == keepOldValue)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_TransfersDeadCopySourcesAcrossBarriers)
 {
     for (const auto callConvKind : testedCallConvs())

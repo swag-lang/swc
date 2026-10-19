@@ -2241,7 +2241,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
 //
 // What a join may cost is the shape of the interval the walk splits: one value now carries both
 // roles. So a join is kept to copies whose overlap crosses control flow, inside the copy's own
-// loop nest, with a source that does not outlive that loop; the guards below say why each one.
+// loop nest. Integer sources must stay in that loop; full-vector sources can also supply its
+// exit value. The definition/liveness proof below applies to both classes.
 //
 // Returns whether a value was renamed, in which case every analysis of the pass is stale.
 bool MicroRegisterAllocationPass::coalesceSameValueCopies()
@@ -2414,10 +2415,12 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         if (!sourceLeavesCopyBlock(idx, src))
             continue;
 
-        // Depth counts the same back-edge ranges searched by the confinement
-        // check. At depth zero no enclosing loop can constrain this copy.
+        // Keep integer joins confined to avoid moving their spill traffic onto
+        // loop exits. A full-vector result may also be the value consumed after
+        // the loop: sharing its carried register removes the latch copy while
+        // retaining the same-value interference proof below.
         const uint32_t copyDepth = depthAt(idx);
-        const bool     confined  = !copyDepth || sourceStaysInCopyLoop(idx, src);
+        const bool     confined  = !copyDepth || srcReg.isVirtualFloat() || sourceStaysInCopyLoop(idx, src);
         const auto     known     = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });
         if (known != candidates.end())
         {

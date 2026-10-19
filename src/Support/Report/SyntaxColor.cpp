@@ -98,6 +98,7 @@ namespace
             {
                 if (color == SyntaxColor::Default)
                     return LogColorHelper::toAnsi(ctx, LogColor::Reset);
+
                 const uint32_t rgb = getSyntaxColorRgb(color, ctx.cmdLine().syntaxColorLum);
                 return LogColorHelper::colorToAnsi((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
             }
@@ -170,6 +171,7 @@ namespace
 
                 if (!colorName.empty())
                     return std::format("<span class=\"{}\">", colorName);
+
                 break;
             }
         }
@@ -186,6 +188,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
     {
         if (!cmdLine.syntaxColor)
             return line;
+
         if (!cmdLine.logColor)
             return line;
     }
@@ -193,13 +196,15 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
     const LangSpec& langSpec = ctx.global().langSpec();
     const auto*     cur      = reinterpret_cast<const char8_t*>(line.data());
     const auto*     end      = reinterpret_cast<const char8_t*>(line.data() + line.size());
-    Utf8            result;
-    char32_t        c;
-    uint32_t        offset;
-    uint32_t        multiLineCommentLevel = 0;
+
+    Utf8     result;
+    char32_t c;
+    uint32_t offset;
+    uint32_t multiLineCommentLevel = 0;
 
     bool hasCode = false;
     cur          = Utf8Helper::decodeOneChar(cur, end, c, offset);
+
     while (c)
     {
         // Multi-line comment
@@ -222,7 +227,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 if ((cur + 1) < end && cur[0] == '/' && cur[1] == '*')
                 {
                     multiLineCommentLevel++;
-                    result += "/*"; // fixed: was "*/"
+                    result += "/*";
                     cur += 2;
                     continue;
                 }
@@ -234,6 +239,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                     multiLineCommentLevel--;
                     if (multiLineCommentLevel == 0)
                         break;
+
                     continue;
                 }
 
@@ -252,6 +258,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             result += c;
             while (cur < end && !langSpec.isEol(*cur))
                 result += *cur++;
+
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
             result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
@@ -263,6 +270,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             result += syntaxColorToAnsi(ctx, SyntaxColor::Attribute, mode);
             result += c;
             result += *cur++;
+
             const char8_t* const attributeBegin = cur;
 
             int cpt = 1;
@@ -296,14 +304,18 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                             result += *cur++;
                         }
                     }
+
                     if (cur < end)
                         result += *cur++;
+
                     continue;
                 }
+
                 if (*cur == '[')
                     cpt++;
                 else if (*cur == ']')
                     cpt--;
+
                 result += *cur++;
             }
 
@@ -340,12 +352,14 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             {
                 if (*cur == '\\' && (cur + 1) < end)
                     result += *cur++;
+
                 if (cur < end)
                     result += *cur++;
             }
 
             if (cur < end && *cur == '"')
                 result += *cur++;
+
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
             result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
@@ -356,9 +370,11 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
         {
             Utf8 word;
             word += c;
+
             const char8_t* pz1 = cur;
             while (pz1 < end && (langSpec.isAscii(*pz1) || langSpec.isDigit(*pz1)))
                 word += *pz1++;
+
             if (pz1 < end && *pz1 == '\'')
             {
                 result += syntaxColorToAnsi(ctx, SyntaxColor::String, mode);
@@ -367,12 +383,14 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 {
                     if (*cur == '\\' && (cur + 1) < end)
                         result += *cur++;
+
                     if (cur < end)
                         result += *cur++;
                 }
 
                 if (cur < end && *cur == '\'')
                     result += *cur++;
+
                 cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
                 result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
                 continue;
@@ -387,6 +405,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             result += *cur++;
             while (cur < end && (*cur == '0' || *cur == '1' || *cur == '_'))
                 result += *cur++;
+
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
             result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
@@ -400,6 +419,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
             result += *cur++;
             while (cur < end && (langSpec.isHexNumber(*cur) || *cur == '_'))
                 result += *cur++;
+
             cur = Utf8Helper::decodeOneChar(cur, end, c, offset);
             result += syntaxColorToAnsi(ctx, SyntaxColor::Default, mode);
             continue;
@@ -426,6 +446,7 @@ Utf8 SyntaxColorHelper::colorize(const TaskContext& ctx, SyntaxColorMode mode, c
                 result += *cur++;
                 if (cur < end && (*cur == '-' || *cur == '+'))
                     result += *cur++;
+
                 while (cur < end && (langSpec.isDigit(*cur) || *cur == '_'))
                     result += *cur++;
             }

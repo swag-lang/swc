@@ -17,16 +17,18 @@ namespace
 
     struct ResourcePayload
     {
-        uint32_t  typeId = 0;
-        uint32_t  nameId = 0;
-        uint32_t  langId = K_RESOURCE_LANG;
+        uint32_t typeId = 0;
+        uint32_t nameId = 0;
+        uint32_t langId = K_RESOURCE_LANG;
+
         ByteArray bytes;
     };
 
     struct ResourceTreeNode
     {
-        uint32_t                      id      = 0;
-        const ResourcePayload*        payload = nullptr;
+        uint32_t               id      = 0;
+        const ResourcePayload* payload = nullptr;
+
         std::vector<ResourceTreeNode> children;
     };
 
@@ -65,6 +67,7 @@ namespace
     {
         if (!bytes.containsRange(offset, sizeof(uint16_t)))
             return false;
+
         outValue = bytes.readLe16(offset);
         return true;
     }
@@ -73,6 +76,7 @@ namespace
     {
         if (!bytes.containsRange(offset, sizeof(uint32_t)))
             return false;
+
         outValue = bytes.readLe32(offset);
         return true;
     }
@@ -81,6 +85,7 @@ namespace
     {
         if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))
             cp = 0xFFFD;
+
         if (cp <= 0xFFFF)
         {
             out.push_back(static_cast<char16_t>(cp));
@@ -134,6 +139,7 @@ namespace
                     valid = false;
                     break;
                 }
+
                 cp = (cp << 6) | (bx & 0x3F);
             }
 
@@ -180,6 +186,7 @@ namespace
         bytes.appendLe16(type);
         bytes.appendUtf16LeZ(key);
         bytes.align(4);
+
         return offset;
     }
 
@@ -203,6 +210,7 @@ namespace
     {
         if (value.empty())
             return;
+
         strings.push_back({.key = utf8ToUtf16(key), .value = utf8ToUtf16(value.view())});
     }
 
@@ -224,8 +232,10 @@ namespace
 
         const uint32_t fileInfoOffset = beginVersionBlock(bytes, u"StringFileInfo", 0, 1);
         const uint32_t tableOffset    = beginVersionBlock(bytes, u"040904b0", 0, 1);
+
         for (const VersionString& str : strings)
             appendVersionStringBlock(bytes, str);
+
         finishVersionBlock(bytes, tableOffset);
         finishVersionBlock(bytes, fileInfoOffset);
     }
@@ -234,9 +244,11 @@ namespace
     {
         const uint32_t varInfoOffset = beginVersionBlock(bytes, u"VarFileInfo", 0, 1);
         const uint32_t varOffset     = beginVersionBlock(bytes, u"Translation", 4, 0);
+
         bytes.appendLe16(K_RESOURCE_LANG);
         bytes.appendLe16(K_RESOURCE_CODEPAGE);
         bytes.align(4);
+
         finishVersionBlock(bytes, varOffset);
         finishVersionBlock(bytes, varInfoOffset);
     }
@@ -248,14 +260,19 @@ namespace
 
         bytes.appendLe32(0xFEEF04BDu);
         bytes.appendLe32(0x00010000u);
+
         bytes.appendLe32(versionMs(image.win32));
         bytes.appendLe32(versionLs(image.win32));
+
         bytes.appendLe32(versionMs(image.win32));
         bytes.appendLe32(versionLs(image.win32));
+
         bytes.appendLe32(0x0000003Fu);
         bytes.appendLe32(0);
+
         bytes.appendLe32(0x00040004u);
         bytes.appendLe32(image.kind == LinkImageKind::SharedLibrary ? 2u : 1u);
+
         bytes.appendLe32(0);
         bytes.appendLe32(0);
         bytes.appendLe32(0);
@@ -264,6 +281,7 @@ namespace
         appendVersionStringFileInfo(bytes, image);
         appendVersionVarFileInfo(bytes);
         finishVersionBlock(bytes, rootOffset);
+
         return bytes;
     }
 
@@ -274,10 +292,8 @@ namespace
 
     ByteArray buildManifest()
     {
-        // DPI awareness is declared here rather than opted into at runtime: the manifest makes
-        // the OS set it at process creation, before any injected DLL can claim the process
-        // awareness first. Left to a runtime call, that race made the same binary come up
-        // per-monitor aware on one launch and DWM-stretched (blurry) on the next.
+        // Declare DPI awareness at process creation, before an injected DLL can
+        // claim it. A later runtime call can otherwise leave the image DWM-scaled.
         static constexpr char MANIFEST[] =
             "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>\r\n"
             "<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>\r\n"
@@ -334,6 +350,7 @@ namespace
             entry.height     = std::to_integer<uint8_t>(bytes[entryOffset + 1]);
             entry.colorCount = std::to_integer<uint8_t>(bytes[entryOffset + 2]);
             entry.reserved   = std::to_integer<uint8_t>(bytes[entryOffset + 3]);
+
             if (!tryReadU16(entry.planes, bytes, entryOffset + 4) || !tryReadU16(entry.bitCount, bytes, entryOffset + 6) || !tryReadU32(entry.bytesInRes, bytes, entryOffset + 8) || !tryReadU32(entry.imageOffset, bytes, entryOffset + 12))
                 return failInvalidIcon(outDiag, config, "ICO directory entry is truncated");
             if (entry.reserved != 0)
@@ -354,6 +371,7 @@ namespace
         group.appendLe16(0);
         group.appendLe16(1);
         group.appendLe16(static_cast<uint16_t>(entries.size()));
+
         for (const IconDirEntry& entry : entries)
         {
             group.pushBack(static_cast<std::byte>(entry.width));
@@ -431,6 +449,7 @@ namespace
             const ResourceTreeNode& child       = node.children[i];
             const uint32_t          entryOffset = entriesOffset + i * 8;
             bytes.writeLe32(entryOffset + 0, child.id);
+
             if (child.payload)
             {
                 leaves.push_back({.payload = child.payload, .entryValueOffset = entryOffset + 4});
@@ -450,6 +469,7 @@ namespace
         {
             leaf.dataEntryOffset = static_cast<uint32_t>(outSection.bytes.size());
             outSection.bytes.writeLe32(leaf.entryValueOffset, leaf.dataEntryOffset);
+
             outSection.bytes.appendLe32(0);
             outSection.bytes.appendLe32(static_cast<uint32_t>(leaf.payload->bytes.size()));
             outSection.bytes.appendLe32(0);
@@ -474,6 +494,7 @@ namespace
         ResourceTreeNode root;
         for (const ResourcePayload& payload : payloads)
             insertPayload(root, payload);
+
         sortTree(root);
 
         std::vector<ResourceLeafRef> leaves;
@@ -490,6 +511,7 @@ bool Win32OsPatcher::buildResourceSection(Win32ResourceSection& outSection, Diag
     std::vector<ResourcePayload> payloads;
     if (image.win32.hasIcon() && !appendIconPayloads(payloads, outDiag, image.win32))
         return false;
+
     if (image.win32.hasVersionInfo())
         addPayload(payloads, K_RT_VERSION, 1, buildVersionInfo(image));
     addPayload(payloads, K_RT_MANIFEST, 1, buildManifest());

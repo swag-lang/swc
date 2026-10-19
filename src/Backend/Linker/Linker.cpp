@@ -28,6 +28,7 @@ namespace
             job.error.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::appendFileUsers(FileSystem::describeIoFailure(ioError), path));
             return false;
         }
+
         return true;
     }
 
@@ -48,6 +49,7 @@ namespace
                 if (FileSystem::writeBinaryFileAtomic(object.path, object.bytes.data(), object.bytes.size(), ioError) != Result::Continue)
                     return false;
             }
+
             return true;
         };
 
@@ -61,8 +63,8 @@ namespace
             object.bytes.clear();
     }
 
-    // Serialises the LinkImage (or archives the objects) and writes the artifact, returning false with
-    // job.error filled on any failure. Split out so executeInternalLink records job.ok in one place.
+    // Build and publish the artifact, leaving a diagnostic in job.error on failure.
+    // executePreparedLink records the outcome in job.ok.
     bool runInternalLink(LinkJob& job, ImageWriter& writer)
     {
         ByteArray bytes;
@@ -74,6 +76,7 @@ namespace
                 if (!writer.writeImage(bytes, pdbBytes, job.error, job.image, job.debugInfo, job.pdbPath))
                     return false;
                 break;
+
             case LinkJob::Output::StaticLibrary:
                 if (!writer.buildStaticArchive(bytes, job.error, job.archiveMembers))
                     return false;
@@ -83,9 +86,10 @@ namespace
         if (!writeJobArtifact(job, job.outputPath, bytes))
             return false;
 
-        // Debug-info sidecar (PDB), written next to the image when debug info is enabled.
+        // Replace the PDB when generated; otherwise remove debug data from an earlier build.
         if (!pdbBytes.empty() && !writeJobArtifact(job, job.pdbPath, pdbBytes))
             return false;
+
         if (pdbBytes.empty())
         {
             fs::path stalePdbPath = job.pdbPath;
@@ -126,14 +130,14 @@ namespace
                 return false;
         }
 
-        // The static face of the same library: one archive of the objects this module compiled, so
-        // an executable can link the code in rather than import it. It sits in a directory of its
-        // own, next to the import library the DLL just produced under the same name.
+        // Publish the same code as a static archive in its own directory, separate
+        // from the DLL's import library with the same file name.
         if (!job.staticLibraryPath.empty())
         {
             ByteArray archiveBytes;
             if (!writer.buildStaticArchive(archiveBytes, job.error, job.staticLibraryMembers))
                 return false;
+
             if (!writeJobArtifact(job, job.staticLibraryPath, archiveBytes))
                 return false;
         }
@@ -143,9 +147,8 @@ namespace
         return true;
     }
 
-    // Serialise the LinkImage (or archive the objects) and write the artifact. Runs on a background
-    // thread and so touches nothing but the self-contained job. The target format is chosen from the
-    // job alone (set during prepareLink), so this stays usable on a detached thread.
+    // The prepared job owns all state, including target selection, so a detached
+    // background thread can write the artifact without touching the builder.
     void executePreparedLink(LinkJob& job)
     {
         const std::unique_ptr<ImageWriter> writer = ImageWriter::create(job.targetOs);

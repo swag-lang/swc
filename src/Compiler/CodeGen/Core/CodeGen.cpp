@@ -32,6 +32,7 @@ CodeGenNodePayload CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNode
     if (symbol->isVariable())
     {
         const auto& variable = symbol->cast<SymbolVariable>();
+
         // Deferred bodies do not cache stack addresses: each emitted copy must
         // materialize a register dominated by its own control-flow path.
         if (variable.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && localStackBaseReg().isValid())
@@ -41,6 +42,7 @@ CodeGenNodePayload CodeGen::conditionBindingPayload(TypeRef& outTypeRef, AstNode
         SWC_ASSERT(value);
         return *value;
     }
+
     return payload(nodeRef);
 }
 
@@ -79,6 +81,7 @@ void CodeGen::appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::
         bool matches = printMicroPatternMatches(pattern, scopedName);
         for (size_t dot = scopedName.find('.'); !matches && dot != std::string_view::npos; dot = scopedName.find('.', dot + 1))
             matches = printMicroPatternMatches(pattern, scopedName.substr(dot + 1));
+
         if (matches)
             stages.emplace_back(colon == std::string_view::npos ? std::string_view{"pre-emit"} : value.substr(colon + 1));
     }
@@ -135,31 +138,37 @@ namespace
                 const auto& stmt = parent.cast<AstIfStmt>();
                 return childRef == stmt.nodeConditionRef || childRef == stmt.nodeIfBlockRef || childRef == stmt.nodeElseBlockRef;
             }
+
             case AstNodeId::IfVarDecl:
             {
                 const auto& stmt = parent.cast<AstIfVarDecl>();
                 return childRef == stmt.nodeVarRef || childRef == stmt.nodeWhereRef || childRef == stmt.nodeIfBlockRef || childRef == stmt.nodeElseBlockRef;
             }
+
             case AstNodeId::WhileStmt:
             {
                 const auto& stmt = parent.cast<AstWhileStmt>();
                 return childRef == stmt.nodeExprRef || childRef == stmt.nodeBodyRef;
             }
+
             case AstNodeId::ForCStyleStmt:
             {
                 const auto& stmt = parent.cast<AstForCStyleStmt>();
                 return childRef == stmt.nodeVarDeclRef || childRef == stmt.nodeExprRef || childRef == stmt.nodePostStmtRef || childRef == stmt.nodeBodyRef;
             }
+
             case AstNodeId::ForStmt:
             {
                 const auto& stmt = parent.cast<AstForStmt>();
                 return childRef == stmt.nodeWhereRef || childRef == stmt.nodeBodyRef;
             }
+
             case AstNodeId::ForeachStmt:
             {
                 const auto& stmt = parent.cast<AstForeachStmt>();
                 return childRef == stmt.nodeWhereRef || childRef == stmt.nodeBodyRef;
             }
+
             case AstNodeId::InfiniteLoopStmt:
                 return childRef == parent.cast<AstInfiniteLoopStmt>().nodeBodyRef;
             case AstNodeId::WithStmt:
@@ -175,8 +184,10 @@ namespace
     {
         if (!payload.isAddress())
             return false;
+
         if (sym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
             return true;
+
         return codeGen.localStackBaseReg().isValid() && sym.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal);
     }
 
@@ -194,12 +205,15 @@ namespace
             dst.runtimeStorageSym = src.runtimeStorageSym;
         if (!dst.runtimeFunctionSymbol && src.runtimeFunctionSymbol)
             dst.runtimeFunctionSymbol = src.runtimeFunctionSymbol;
+
         if (!dst.runtimeArrayFillTypeRef.isValid() && src.runtimeArrayFillTypeRef.isValid())
             dst.runtimeArrayFillTypeRef = src.runtimeArrayFillTypeRef;
         if (!dst.runtimeArrayFillCstRef.isValid() && src.runtimeArrayFillCstRef.isValid())
             dst.runtimeArrayFillCstRef = src.runtimeArrayFillCstRef;
+
         dst.runtimeSafetyMask |= src.runtimeSafetyMask;
         dst.ownsValue |= src.ownsValue;
+
         if (!dst.fallibleWrapperConsumed && !dst.hasFallibleWrapper() && src.hasFallibleWrapper())
         {
             dst.fallibleWrapperOwnerRef = src.fallibleWrapperOwnerRef;
@@ -326,6 +340,7 @@ namespace
         outFunction = nullptr;
         outSizeOf   = 0;
         outCount    = 0;
+
         if (!typeRef.isValid())
             return false;
 
@@ -357,7 +372,6 @@ namespace
             return false;
 
         const SymbolFunction* lifecycleFunction = resolveEffectiveLifecycleFunction(codeGen, typeInfo, lifecycleKind);
-
         if (!lifecycleFunction)
             return false;
 
@@ -396,6 +410,7 @@ namespace
 
             SmallVector<CodeGenStructHelpers::StructLikeFieldLayout, 4> fields;
             fields.reserve(fieldCount);
+
             CodeGenStructHelpers::StructLikeFieldLayoutCursor cursor;
             for (size_t i = 0; i < fieldCount; ++i)
                 fields.push_back(CodeGenStructHelpers::structLikeFieldLayout(codeGen, cursor, typeInfo, i));
@@ -418,6 +433,7 @@ namespace
                 for (const auto& field : fields)
                     SWC_RESULT(emitFieldLifecycle(field));
             }
+
             return Result::Continue;
         }
 
@@ -436,8 +452,7 @@ namespace
         const SymbolFunction* directLifecycle = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
         const auto&           fields          = typeInfo.payloadSymStruct().fields();
 
-        // A user-defined drop must see its fields still alive. Post-copy and post-move run after the
-        // contained fields have repaired their own state.
+        // Drop must see live fields; post-copy/move run after field state is repaired.
         if (lifecycleKind == CodeGenLifecycleKind::Drop && directLifecycle)
             SWC_RESULT(codeGen.emitLifecycleAction(*directLifecycle, addressReg));
 
@@ -549,40 +564,47 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
 
     if (!started_)
     {
-        // CodeGen instances can pause and resume. All per-function mutable state is
-        // initialized exactly once here; later calls resume the visitor from its saved
-        // cursor and must see the same function/root pair.
+        // Initialize per-function state once. A paused visitor resumes with its
+        // saved cursor and the same function/root pair.
         root_     = root;
         function_ = &symbolFunc;
         builder_  = &symbolFunc.microInstrBuilder(ctx());
         visit_.start(ast(), root);
 
-        nextVirtualRegister_                      = 1;
-        localStackFrameSize_                      = 0;
-        localStackBaseReg_                        = MicroReg::invalid();
-        vectorZeroReg_                            = MicroReg::invalid();
-        bodyEntryRef_                             = MicroInstrRef::invalid();
+        nextVirtualRegister_ = 1;
+        localStackFrameSize_ = 0;
+        localStackBaseReg_   = MicroReg::invalid();
+        vectorZeroReg_       = MicroReg::invalid();
+        bodyEntryRef_        = MicroInstrRef::invalid();
+
         currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
         currentFunctionIndirectReturnReg_         = MicroReg::invalid();
         currentFunctionClosureContextReg_         = MicroReg::invalid();
+
         deferScopes_.clear();
         deferredEmissionCursors_.clear();
         deferredEmitDepth_                = 0;
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
+
         // The drop test reads the function's variables; the other one walks its whole body.
         hasDeferredStatements_ = (symbolFunc.attributes().effectiveRuntimeSafetyMask(buildCfg().safetyGuards) & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) || functionHasImplicitDrops(*this, symbolFunc) || containsDeferredActions(root);
-        variablePayloads_      = {};
+
+        variablePayloads_ = {};
         variablePayloadChunks_.clear();
         variablePayloadCount_ = 0;
+
         moveElisionVars_.clear();
         elidedImplicitDrops_.clear();
         temporaryDrops_.clear();
         returnMoveOutVar_    = nullptr;
         moveElisionAnalyzed_ = false;
+
         clearGlobalsToDropScratchLayout();
+
         frames_.clear();
         frames_.emplace_back();
+
         symbolFunc.setDebugStackFrameSize(0);
         symbolFunc.setDebugStackBaseReg(MicroReg::invalid());
 
@@ -605,9 +627,9 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         const AttributeList&     attributes       = symbolFunc.attributes();
         const Runtime::BuildCfg& compilerBuildCfg = buildCfg();
         Runtime::BuildCfgBackend backendBuildCfg  = compilerBuildCfg.backend;
-        // '#[Swag.Optimize(false)]' turns the optimizer off for this one function.
-        // 'true' turns it on where the build configuration had it off, and never lowers
-        // the level a configuration already asked for.
+
+        // A per-function Optimize(false) disables optimization. Optimize(true)
+        // enables it without lowering the level already requested by the build.
         if (attributes.backendOptimize.has_value())
         {
             if (!attributes.backendOptimize.value())
@@ -630,6 +652,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             appendCommandLinePrintMicroStages(stages, requests, symbolFunc.getFullScopedName(ctx()).view());
             builder_->setPrintPassOptions(stages);
         }
+
         builder_->setPrintSymbol(&symbolFunc);
 
         started_ = true;
@@ -666,6 +689,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             completed_ = true;
             return Result::Error;
         }
+
         if (result == AstVisitResult::Stop)
         {
             completed_ = true;
@@ -785,6 +809,7 @@ const CodeGenLoweringPayload* CodeGen::loweringPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
+
     return sema().loweringPayload<CodeGenLoweringPayload>(nodeRef);
 }
 
@@ -807,6 +832,7 @@ const SymbolVariable* CodeGen::runtimeStorageSymbol(AstNodeRef nodeRef) const
     const auto* payload = static_cast<const CodeGenNodePayload*>(nodePayloads_.find(resolvedRef));
     if (payload && payload->runtimeStorageSym != nullptr)
         return payload->runtimeStorageSym;
+
     return nullptr;
 }
 
@@ -830,15 +856,12 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
     const AstNodeRef    queryNodeRef = nodeRef;
     CodeGenNodePayload* nodePayload  = safePayload(nodeRef);
 
-    // A register-less payload is not proof that nothing was emitted. An expansion that produces
-    // no value - an inlined call to a void function - records a void payload and leaves its side
-    // effects behind it, so materializing it again would run them a second time. Only a node with
-    // nothing recorded, or one that still owes a value, is emitted here.
+    // A void inline expansion can have side effects without a result register.
+    // Re-emit only missing payloads or values still owed, never an already emitted void.
     const bool emittedWithoutValue = nodePayload && nodePayload->typeRef.isValid() && nodePayload->typeRef == typeMgr().typeVoid();
     if (!emittedWithoutValue && (!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedNodeRef(nodeRef) != curNodeRef())
     {
-        // Some substituted children are intentionally skipped during the main walk and are
-        // only materialized when a parent eventually consumes their runtime value.
+        // Skipped substituted children materialize when a parent consumes their value.
         const Result materializeResult = emitNodeNow(nodeRef);
         SWC_ASSERT(materializeResult != Result::Pause);
         if (materializeResult == Result::Continue)
@@ -856,17 +879,16 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
     return *nodePayload;
 }
 
-// A call sema evaluated at compile time keeps its value when a cast later substitutes the
-// node: the live view then shows the cast, but the stored payload still holds the folded
-// constant. The node must stay a constant, not become runtime code again: sema gave the
-// folded call no result storage, so a real call would borrow the cast's own storage and
-// write its result where the conversion builds its value.
+// A folded call retains its stored constant when a cast substitutes the node.
+// Re-emitting it would borrow the conversion's storage: sema allocated no call
+// result slot, so the runtime result would overwrite the conversion's own value.
 bool CodeGen::keepsFoldedConstant(AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid() || resolvedNodeRef(nodeRef) == nodeRef)
         return false;
     if (!sema().isFoldedTypedConstStored(nodeRef))
         return false;
+
     return sema().viewStored(nodeRef, SemaNodeViewPartE::Constant).hasConstant();
 }
 
@@ -930,6 +952,7 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
     const VariablePayloadState* state = variablePayloads_.find(&sym);
     if (!state || !state->hasPayload)
         return nullptr;
+
     const VariablePayloadState& symbolPayload = *state;
     if (isStackAddressPayload(*this, sym, symbolPayload.payload) &&
         symbolPayload.addressGeneration != currentDeferredAddressGeneration_)
@@ -964,25 +987,22 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     dstPayload.storageKind = srcPayloadCopy.storageKind;
     if (srcPayloadCopy.hasMaterializedPointerLikeValue())
         dstPayload.markMaterializedPointerLikeValue();
+
     mergeNodePayloadMetadata(dstPayload, srcPayloadCopy);
     return dstPayload;
 }
 
 CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 {
-    // A node wrapped in a transparent substitute (an implicit cast the main walk never visits,
-    // e.g. the bool cast of `if !s.buffer`) stores its payload on the substitute's slot while
-    // its register still holds the original value. When the caller derived the payload type from
-    // the substitute-resolved view, retype the payload with the node's own stored type: consumers
-    // rely on `payload.typeRef` to pick the real operand width, and keeping the context type would
-    // make them read a 64-bit pointer as a single byte.
+    // Transparent substitutes store the original value in the substitute's payload
+    // slot. Keep the node's stored type so consumers use the real operand width;
+    // a context bool type must not make a 64-bit pointer read as one byte.
     const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
     const AstNode&   payloadNode = node(nodeRef);
     if (resolvedRef.isValid() && resolvedRef != nodeRef && typeRef.isValid() && typeRef == viewType(nodeRef).typeRef())
     {
-        // Cast-like nodes are the exception: their own codegen converts the value to the
-        // substitute-resolved context type (e.g. `cast() pow(...)` under a return-context cast),
-        // so for them the register really holds a value of the view type.
+        // Cast-like nodes already convert to the resolved context type, so their
+        // register really does hold a value of that type.
         if (payloadNode.isNot(AstNodeId::CastExpr) &&
             payloadNode.isNot(AstNodeId::AutoCastExpr) &&
             payloadNode.isNot(AstNodeId::AsCastExpr) &&
@@ -1004,6 +1024,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         if (leftPayload && leftPayload->sourceCodeRef.isValid())
             nodePayload.sourceCodeRef = leftPayload->sourceCodeRef;
     }
+
     nodePayload.typeRef     = typeRef;
     nodePayload.storageKind = CodeGenNodePayload::StorageKind::Value;
     nodePayload.clearMaterializedPointerLikeValue();
@@ -1042,25 +1063,23 @@ MicroReg CodeGen::offsetAddressReg(const MicroReg baseReg, const uint32_t offset
     const MicroReg addressReg = nextVirtualIntRegister();
     if (forbidBaseReg && baseReg.isInt())
         builder().addVirtualRegForbiddenPhysReg(addressReg, baseReg);
+
     builder().emitLoadRegReg(addressReg, baseReg, MicroOpBits::B64);
     builder().emitOpBinaryRegImm(addressReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
     return addressReg;
 }
 
-// The function's cleared vector register: the zero an unsigned widening
-// interleaves with. One per function, cleared where the body starts so every
-// use is dominated, and shared rather than remade at each site; the allocator
-// rematerializes a clear wherever it has no register to spare, so the long
-// live range costs nothing where the register is not wanted. It goes after
-// the prologue and the parameter copies: the stack adjustments stay one run
-// for the prologue passes to merge, and the argument registers are read
-// before anything else may take one.
+// Define one zero vector at body entry for unsigned widening. The definition
+// dominates every use, and the allocator can rematerialize it instead of spilling.
+// Place it after the prologue and parameter copies so stack adjustments remain
+// mergeable and incoming arguments are read before their registers are reused.
 MicroReg CodeGen::vectorZeroRegister()
 {
     if (vectorZeroReg_.isValid())
         return vectorZeroReg_;
 
-    vectorZeroReg_                = nextVirtualFloatRegister();
+    vectorZeroReg_ = nextVirtualFloatRegister();
+
     MicroStorage&       instrs    = builder().instructions();
     const MicroInstrRef beforeRef = instrs.findNextInstructionRef(bodyEntryRef_);
     if (!beforeRef.isValid())
@@ -1092,6 +1111,7 @@ CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym, 
     localPayload.reg = offsetAddressReg(localStackBaseReg(), sym.offset());
     if (cache)
         setVariablePayload(sym, localPayload);
+
     return localPayload;
 }
 
@@ -1100,9 +1120,8 @@ MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind call
     if (currentFunctionIndirectReturnReg_.isValid())
         return currentFunctionIndirectReturnReg_;
 
-    // The hidden return pointer can arrive either through a stack spill produced by
-    // prolog lowering or directly in the ABI's first integer argument register. Materialize
-    // a stable virtual copy so later calls cannot clobber the incoming ABI register.
+    // The hidden return pointer arrives via a prologue spill or the first integer
+    // argument register. Use a stable virtual copy that later calls cannot clobber.
     if (hasCurrentFunctionIndirectReturnStackOffset() && localStackBaseReg().isValid())
     {
         MicroBuilder&           builder = this->builder();
@@ -1131,9 +1150,8 @@ MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
     if (CodeGenFunctionHelpers::usesCallerReturnStorage(*this, *storageSym))
         return ensureCurrentFunctionIndirectReturnReg(function().callConvKind());
 
-    // The result temporary of an inline expansion is declared nowhere, and each 'return' of
-    // the expanded body reaches it inside its own branch: an address cached by one of them
-    // does not dominate the others.
+    // Inline result temporaries have no declaration. Recompute their address:
+    // a return in one branch cannot supply a definition dominating other branches.
     const bool               isInlineResult = frame().hasCurrentInlineContext() && frame().currentInlineContext().payload->resultVar == storageSym;
     const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*storageSym, !inDeferredEmission() && !isInlineResult);
     SWC_ASSERT(storagePayload.isAddress());
@@ -1170,6 +1188,7 @@ Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecyc
 {
     if (hasLifecycle(typeRef, lifecycleKind))
         SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(*this, addressReg, typeMgr().get(typeRef).sizeOf(ctx())));
+
     return emitLifecycleRec(*this, typeRef, lifecycleKind, addressReg);
 }
 
@@ -1177,6 +1196,7 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
 {
     if (hasTemporaryDrop(storage))
         return;
+
     const auto* valuePayload = safePayload(valueRef);
     const bool  ownsValue    = valuePayload && valuePayload->ownsValue;
 
@@ -1201,10 +1221,12 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
 
         const SemaInlinePayload* inlinePayload = candidateFrame.currentInlineContext().payload;
         SWC_ASSERT(inlinePayload != nullptr);
+
         // Loop and switch frames inherit this payload. Rechecking it cannot change the
         // ancestor match while the visitor remains at the same node.
         if (inlinePayload == lastExaminedPayload || inlinePayload->materializedArgRefs.empty())
             continue;
+
         lastExaminedPayload = inlinePayload;
 
         for (const AstNodeRef materializedArgRef : inlinePayload->materializedArgRefs)
@@ -1233,6 +1255,7 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
             const AstNodeRef conditionRef = ast().nthNode(intrinsic->spanChildrenRef, 0);
             if (resolvedNodeRef(flushRootRef) == resolvedNodeRef(conditionRef))
                 break;
+
             return;
         }
 
@@ -1240,27 +1263,29 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
         {
             if (!ownsValue)
                 return;
+
             if (parent.is(AstNodeId::ConditionalExpr))
             {
-                // Only a conditional that owns its value flushes these drops inside the branch
-                // that produced them. Past the join of any other, the drop would also run when
-                // the other branch was taken and this temporary was never constructed.
+                // Only owning conditionals flush inside the producing branch. A drop past
+                // another conditional's join could destroy an unconstructed temporary.
                 const auto* conditionalLowering = loweringPayload(parentRef);
                 if (!conditionalLowering || !conditionalLowering->ownsValue)
                     return;
+
                 flushRootRef = parentRef;
             }
+
             break;
         }
 
-        // Caller argument bindings are materialized inside the callee's inline clone. Their
-        // temporaries still belong to the caller expression, so cross the clone root before
-        // choosing the enclosing statement boundary.
+        // Inline argument temporaries belong to the caller expression. Cross the
+        // clone root before choosing their enclosing statement boundary.
         if (callerInlineRootRef.isValid())
         {
             flushRootRef = parentRef;
             if (parentRef == callerInlineRootRef)
                 callerInlineRootRef.setInvalid();
+
             continue;
         }
 
@@ -1278,15 +1303,15 @@ void CodeGen::registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const 
 
 Result CodeGen::emitTemporaryDropsForFailure(AstNodeRef scopeRef)
 {
-    // Emit the exceptional edge without retiring the successful edge's cleanups.
-    // A handler nested in a later operand does not unwind earlier sibling operands.
-    // Every queued cleanup names an initialized temporary, including ordinary
-    // call results whose expression is not marked as an explicit owned move.
+    // Emit failure-edge cleanups without retiring success-edge cleanups. Nested
+    // handlers leave earlier sibling operands intact. Every queued temporary is
+    // initialized, including ordinary call results without an explicit owned move.
     for (size_t i = temporaryDrops_.size(); i != 0; --i)
     {
         const CodeGenTemporaryDrop drop = temporaryDrops_[i - 1];
         if (!drop.storageSym)
             continue;
+
         for (size_t up = 0;; ++up)
         {
             // The failure expression itself can own completed operand temporaries.
@@ -1299,10 +1324,12 @@ Result CodeGen::emitTemporaryDropsForFailure(AstNodeRef scopeRef)
                 SWC_RESULT(emitLifecycle(drop.typeRef, LifecycleKind::Drop, storage.reg));
                 break;
             }
+
             if (parentRef == scopeRef)
                 break;
         }
     }
+
     return Result::Continue;
 }
 
@@ -1340,16 +1367,16 @@ Result CodeGen::flushTemporaryDrops(const AstNodeRef rootRef)
         if (drop.storageSym == nullptr || drop.flushRootRef != rootRef)
             continue;
 
-        const SymbolVariable* storageSym        = drop.storageSym;
-        drop.storageSym                         = nullptr;
+        const SymbolVariable* storageSym = drop.storageSym;
+        drop.storageSym                  = nullptr;
+
         const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*storageSym, false);
         SWC_RESULT(emitLifecycle(drop.typeRef, LifecycleKind::Drop, storagePayload.reg));
     }
 
-    // A statement normally retires a suffix. Keep inner canceled entries until the
-    // later temporaries finish, preserving drop order without moving live entries.
-    // Retaining this suffix would make every later AST node scan the function's
-    // entire temporary history, even after all those values were dropped.
+    // Retire the inactive suffix so later nodes do not scan dead temporary history.
+    // Keep inner inactive entries until later temporaries finish, preserving order
+    // without moving live entries.
     while (!temporaryDrops_.empty() && !temporaryDrops_.back().storageSym)
         temporaryDrops_.pop_back();
 
@@ -1456,6 +1483,7 @@ CodeGenDeferScope& CodeGen::lifetimeDeferScope()
         if (!deferScopes_[index - 1].borrowOnly)
             return deferScopes_[index - 1];
     }
+
     SWC_ASSERT(!deferScopes_.empty());
     return deferScopes_.back();
 }
@@ -1471,6 +1499,7 @@ void CodeGen::initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar)
     MicroStorage&       instructions = builder().instructions();
     const MicroInstrRef beforeRef    = instructions.findNextInstructionRef(lifetimeDeferScope().entryRef);
     const uint32_t      sizeOf       = CodeGenFunctionHelpers::checkedTypeSizeInBytes(*this, typeMgr().get(symVar.typeRef()));
+
     for (uint32_t offset = 0; offset < sizeOf;)
     {
         const uint32_t    remaining = sizeOf - offset;
@@ -1490,6 +1519,7 @@ void CodeGen::initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar)
         }
         else
             builder().emitLoadMemImm(localStackBaseReg(), address, ApInt(0, width * 8), bits);
+
         offset += width;
     }
 }
@@ -1513,6 +1543,7 @@ void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef body
 void CodeGen::registerValueBorrowEnd(uint32_t recordOffset)
 {
     SWC_ASSERT(!deferScopes_.empty());
+
     auto& action              = deferScopes_.back().actions.emplace_back();
     action.kind               = CodeGenDeferredAction::Kind::EndValueBorrow;
     action.borrowRecordOffset = recordOffset;
@@ -1541,6 +1572,7 @@ bool CodeGen::hasOpenLocalValueBorrow() const
 void CodeGen::registerErrorScopePop()
 {
     SWC_ASSERT(!deferScopes_.empty());
+
     auto& action = deferScopes_.back().actions.emplace_back();
     action.kind  = CodeGenDeferredAction::Kind::PopErrorScope;
 }
@@ -1555,6 +1587,7 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFu
     {
         if (CodeGenFunctionHelpers::isBorrowedIndirectParameter(*this, function(), symVar, paramInfo))
             return;
+
         // A by-value aggregate parameter is a transport image of the caller's value: ownership
         // stays with the caller, exactly as for a borrowed indirect parameter.
         if (CodeGenFunctionHelpers::isByValueAggregateParameter(*this, function(), symVar, paramInfo))
@@ -1563,6 +1596,7 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFu
             !CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(*this, function(), symVar, paramInfo))
             return;
     }
+
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
         !symVar.hasExtraFlag(SymbolVariableFlagsE::Initialized))
         return;
@@ -1586,6 +1620,7 @@ void CodeGen::registerImplicitParameterDrops(std::span<const CodeGenFunctionHelp
 {
     const auto& params = function().parameters();
     SWC_ASSERT(paramInfos.size() == params.size());
+
     for (size_t i = 0; i < params.size(); ++i)
     {
         const SymbolVariable* symVar = params[i];
@@ -1600,6 +1635,7 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
     {
         case CodeGenDeferredAction::Kind::EndValueBorrow:
             return CodeGenSafety::emitValueBorrowEnd(*this, action.borrowRecordOffset);
+
         case CodeGenDeferredAction::Kind::PopErrorScope:
         {
             const IdentifierRef idRef = idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::PopErr);
@@ -1657,8 +1693,7 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             if (isImplicitDropElided(*action.variable))
                 return Result::Continue;
 
-            // The local was moved out by the return currently being emitted: ownership
-            // now lives in the return value, so this path must not drop it.
+            // This return moved ownership into its result; do not drop the local here.
             if (action.variable == returnMoveOutVar_)
                 return Result::Continue;
 
@@ -1668,8 +1703,7 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
 
             SWC_RESULT(emitLifecycle(action.lifecycleTypeRef, action.lifecycleKind, variablePayload.reg));
 
-            // Under lifecycle safety, poison the dropped storage so a dangling access to
-            // the dead local fails deterministically instead of reading stale bits.
+            // Replace stale bytes in dropped storage when lifecycle poisoning is active.
             if (CodeGenSafety::hasLifecycleRuntimeSafety(*this))
                 SWC_RESULT(CodeGenSafety::emitLifecyclePoison(*this, variablePayload.reg, typeMgr().get(action.lifecycleTypeRef).sizeOf(ctx())));
 
@@ -1686,9 +1720,8 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
     if (scopeIndex >= deferScopes_.size())
         return Result::Continue;
 
-    // Defer actions run in LIFO order. The cursor lets a nested return/break emitted by
-    // one deferred action continue with the still-pending outer actions without replaying
-    // the action that is currently on the stack.
+    // Run actions in LIFO order. A nested return/break resumes at the cursor,
+    // skipping the action already being emitted.
     const size_t clampedActionCount = std::min(actionCount, deferScopes_[scopeIndex].actions.size());
     deferredEmissionCursors_.push_back({.scopeIndex = scopeIndex, .nextActionCount = clampedActionCount});
 
@@ -1696,11 +1729,13 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
     for (size_t i = clampedActionCount; i != 0; --i)
     {
         deferredEmissionCursors_.back().nextActionCount = i - 1;
+
         // Emitting a deferred body can grow the scope stack. Keep no reference into it alive
         // across that emission, and copy the action before its owning scope can move.
         const CodeGenDeferredAction action = deferScopes_[scopeIndex].actions[i - 1];
         if (action.kind == CodeGenDeferredAction::Kind::PopErrorScope && !popErrorScope)
             continue;
+
         result = emitDeferredAction(action);
         if (result != Result::Continue || currentInstructionBlocksFallthrough())
             break;
@@ -1719,6 +1754,7 @@ Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size
     {
         const size_t scopeIndex  = scopeCursor - 1;
         size_t       actionCount = scopeIndex == startScopeIndex ? startActionCount : deferScopes_[scopeIndex].actions.size();
+
         // A return or failure inside a defer first leaves its new inner scopes. When it
         // reaches an already-running outer scope, resume after that scope's current action.
         for (const auto& cursor : deferredEmissionCursors_)
@@ -1726,6 +1762,7 @@ Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size
             if (cursor.scopeIndex == scopeIndex)
                 actionCount = std::min(actionCount, cursor.nextActionCount);
         }
+
         SWC_RESULT(emitDeferredActionsInScope(scopeIndex, actionCount, !hasStopScope || scopeIndex != stopScopeIndex || popStopErrorScope));
         if (currentInstructionBlocksFallthrough() || (hasStopScope && scopeIndex == stopScopeIndex))
             break;
@@ -1762,6 +1799,7 @@ Result CodeGen::popDeferScope()
     // action must still be able to finish this scope's remaining cleanup exactly once.
     if (!currentInstructionBlocksFallthrough())
         SWC_RESULT(emitDeferredActionsInScope(deferScopes_.size() - 1, deferScopes_.back().actions.size(), false));
+
     deferScopes_.pop_back();
     return Result::Continue;
 }
@@ -1856,12 +1894,9 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
     if (nodeRef.isInvalid())
         return;
 
-    // Reach every node the coming emission will lower, which is the SUBSTITUTED tree, not the
-    // written one: an inline expansion, an operator rewrite and a lowered loop all hang their
-    // real body off a substitute. A register cached on one of those nodes was defined on the
-    // path of an earlier emission of this same body, and that path does not reach the one about
-    // to be emitted, so leaving it behind makes the second emission read a register nothing
-    // wrote on its way in.
+    // Invalidate the substituted tree that emission actually visits, including
+    // inline expansions, operator rewrites, and lowered loops. Cached registers
+    // from an earlier emission need not be defined along the new control-flow path.
     RefSet<AstNodeRef>      visited;
     SmallVector<AstNodeRef> stack;
     stack.push_back(nodeRef);
@@ -1879,6 +1914,7 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
         if (CodeGenNodePayload* payload = safePayload(currentRef))
         {
             payload->reg = MicroReg::invalid();
+
             // A catch in a defer can be emitted for both a try failure and a normal return.
             // Consuming its handler belongs to one emission, not to the shared AST node.
             if (payload->fallibleWrapperConsumed)
@@ -1958,12 +1994,14 @@ Result CodeGen::emitNodeNow(AstNodeRef nodeRef)
             result = Result::Pause;
         else if (visitResult == AstVisitResult::Error)
             result = Result::Error;
+
         break;
     }
 
     --deferredEmitDepth_;
     currentDeferredAddressGeneration_ = savedDeferredAddressGeneration;
     visit_                            = std::move(savedVisit);
+
     if (curNodeRef().isValid())
         builder().setCurrentDebugSourceCodeRef(node(curNodeRef()).codeRef());
 
@@ -2018,6 +2056,7 @@ void CodeGen::popFrame()
                     SWC_ASSERT(ancestorDoneLabel == MicroLabelRef::invalid() || ancestorDoneLabel == childDoneLabel);
                     if (ancestorDoneLabel == MicroLabelRef::invalid())
                         ancestorFrame.setCurrentInlineDoneLabel(childDoneLabel);
+
                     break;
                 }
             }
@@ -2042,6 +2081,7 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
     if (typeRef.isInvalid())
         return nextVirtualIntRegister();
+
     return nextVirtualRegisterForType(typeRef, typeMgr().get(typeRef));
 }
 
@@ -2056,6 +2096,7 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& ty
 
     if (registerType->isFloat() || registerType->isSimd())
         return nextVirtualFloatRegister();
+
     return nextVirtualIntRegister();
 }
 
@@ -2123,10 +2164,9 @@ Result CodeGen::preNode(AstNode& node)
                 frame.currentInlineContextRef().resultStorageSym = matchingInlineCtx->resultStorageSym;
             }
 
-            // When no matching frame is found in the frame stack, we are inside a locally
-            // compiled function (e.g., a local function inside a macro expansion). In that
-            // case, any doneLabel created by emitInlineReturn must be placed at this boundary
-            // since the outer expansion won't do it.
+            // Without an outer frame, this is a locally compiled function (for example
+            // inside a macro). Place any return's doneLabel at this boundary because
+            // the enclosing expansion cannot place it.
             frame.currentInlineContextRef().noOuterDoneLabel = matchingInlineCtx == nullptr;
         }
         else
@@ -2184,22 +2224,18 @@ Result CodeGen::postNode(AstNode& node)
                     inlineNodePayload.reg = inlineCtx.resultStorageReg;
                 else
                 {
-                    // The result temporary is declared nowhere, so a cached address would be
-                    // the one materialized by whichever 'return' ran first - inside its own
-                    // branch, which does not dominate the others or this join.
+                    // This undeclared result temporary needs a fresh address at the join;
+                    // a cached return-branch definition would not dominate every path.
                     inlineNodePayload.reg = resolveLocalStackPayload(*resultStorageSym, false).reg;
                 }
             }
         }
         else if (frame().hasCurrentInlineContext() && frame().currentInlineContext().noOuterDoneLabel)
         {
-            // When the inline boundary is inside a locally compiled function (e.g., a local
-            // function inside a macro expansion), the inline root lives in the caller's AST
-            // context and rootNodeRef won't match curNodeRef. Any doneLabel created by
-            // emitInlineReturn for a 'return' inside the injected code must still be placed
-            // at the boundary so jumps to it resolve correctly. We only do this when
-            // noOuterDoneLabel is set, meaning no matching outer label was found in preNode,
-            // so the outer expansion won't place it.
+            // A locally compiled function's inline root can live in the caller's AST,
+            // so rootNodeRef need not match curNodeRef. Place return targets here when
+            // preNode found no outer frame to place them; noOuterDoneLabel records
+            // that requirement.
             const MicroLabelRef doneLabel = frame().currentInlineContext().doneLabel;
             if (doneLabel.isValid())
                 builder().placeLabel(doneLabel);
@@ -2210,6 +2246,7 @@ Result CodeGen::postNode(AstNode& node)
 
     if (valueBorrowValueScopeRefs.contains(curNodeRef()))
         SWC_RESULT(popDeferScope());
+
     SWC_RESULT(CodeGenSafety::emitValueBorrowSite(*this, curNodeRef()));
     SWC_RESULT(flushTemporaryDrops(curNodeRef()));
 
@@ -2220,8 +2257,10 @@ Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     if (sema().isImplicitCodeBlockArg(curNodeRef(), childRef))
         return Result::SkipChildren;
+
     if (childRef.isValid())
         builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
+
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPreNodeChild(*this, node, childRef);
 }

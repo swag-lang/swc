@@ -102,11 +102,13 @@ struct CodeGenDeferredAction
         EndValueBorrow,
     };
 
-    Kind                  kind               = Kind::DeferStmt;
-    uint32_t              borrowRecordOffset = 0;
-    AstNodeRef            deferStmtRef       = AstNodeRef::invalid();
-    AstNodeRef            bodyRef            = AstNodeRef::invalid();
-    AstModifierFlags      modifierFlags;
+    Kind     kind               = Kind::DeferStmt;
+    uint32_t borrowRecordOffset = 0;
+
+    AstNodeRef       deferStmtRef = AstNodeRef::invalid();
+    AstNodeRef       bodyRef      = AstNodeRef::invalid();
+    AstModifierFlags modifierFlags;
+
     const SymbolVariable* variable         = nullptr;
     TypeRef               lifecycleTypeRef = TypeRef::invalid();
     CodeGenLifecycleKind  lifecycleKind    = CodeGenLifecycleKind::Drop;
@@ -114,19 +116,18 @@ struct CodeGenDeferredAction
 
 struct CodeGenDeferScope
 {
-    AstNodeRef                            scopeRef      = AstNodeRef::invalid();
-    AstNodeRef                            breakOwnerRef = AstNodeRef::invalid();
-    AstNodeRef                            switchCaseRef = AstNodeRef::invalid();
-    MicroInstrRef                         entryRef      = MicroInstrRef::invalid();
+    AstNodeRef    scopeRef      = AstNodeRef::invalid();
+    AstNodeRef    breakOwnerRef = AstNodeRef::invalid();
+    AstNodeRef    switchCaseRef = AstNodeRef::invalid();
+    MicroInstrRef entryRef      = MicroInstrRef::invalid();
+
     SmallVector<CodeGenDeferredAction, 4> actions;
     bool                                  borrowOnly = false;
 };
 
-// Per-local facts gathered by the move-elision pre-walk (see CodeGenMoveElision): the
-// lexically-last use, the block owning the declaration, and whether any use can leak
-// the local's address (which forbids eliding its reset and scope-exit drop).
-// 'deferEscaped' only tracks uses inside defer bodies and closures: those are the only
-// observers that can still run after a return moved the local out.
+// Move-elision facts: last lexical use, declaring block, and address escapes.
+// An escaped address forbids skipping reset/drop. deferEscaped tracks defer
+// bodies and closures, the observers that can outlive a move at return.
 struct CodeGenMoveElisionVar
 {
     AstNodeRef lastUseRef   = AstNodeRef::invalid();
@@ -161,29 +162,35 @@ public:
 
     struct InlineContext
     {
-        AstNodeRef               rootNodeRef      = AstNodeRef::invalid();
-        const SemaInlinePayload* payload          = nullptr;
-        MicroLabelRef            doneLabel        = MicroLabelRef::invalid();
-        MicroReg                 resultStorageReg = MicroReg::invalid();
-        SymbolVariable*          resultStorageSym = nullptr;
-        bool                     noOuterDoneLabel = false; // true when in local-function context
+        AstNodeRef               rootNodeRef = AstNodeRef::invalid();
+        const SemaInlinePayload* payload     = nullptr;
+
+        MicroLabelRef   doneLabel        = MicroLabelRef::invalid();
+        MicroReg        resultStorageReg = MicroReg::invalid();
+        SymbolVariable* resultStorageSym = nullptr;
+
+        bool noOuterDoneLabel = false; // true when in local-function context
     };
 
-    const BreakContext&  currentBreakContext() const { return breakable_; }
-    void                 setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
-    BreakContextKind     currentBreakableKind() const { return breakable_.kind; }
-    const BreakContext&  currentContinueContext() const { return continuable_; }
-    BreakContextKind     currentContinuableKind() const { return continuable_.kind; }
-    AstNodeRef           currentSwitch() const { return currentSwitch_; }
-    void                 setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef           currentSwitchCase() const { return currentSwitchCase_; }
-    void                 setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
-    MicroLabelRef        currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
-    void                 setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
-    MicroLabelRef        currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
-    void                 setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
-    bool                 currentLoopHasContinueJump() const { return currentLoopHasContinueJump_; }
-    void                 setCurrentLoopHasContinueJump(bool value) { currentLoopHasContinueJump_ = value; }
+    const BreakContext& currentBreakContext() const { return breakable_; }
+    void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
+    BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
+
+    const BreakContext& currentContinueContext() const { return continuable_; }
+    BreakContextKind    currentContinuableKind() const { return continuable_.kind; }
+
+    AstNodeRef currentSwitch() const { return currentSwitch_; }
+    void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef currentSwitchCase() const { return currentSwitchCase_; }
+    void       setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+
+    MicroLabelRef currentLoopContinueLabel() const { return currentLoopContinueLabel_; }
+    void          setCurrentLoopContinueLabel(MicroLabelRef labelRef) { currentLoopContinueLabel_ = labelRef; }
+    MicroLabelRef currentLoopBreakLabel() const { return currentLoopBreakLabel_; }
+    void          setCurrentLoopBreakLabel(MicroLabelRef labelRef) { currentLoopBreakLabel_ = labelRef; }
+    bool          currentLoopHasContinueJump() const { return currentLoopHasContinueJump_; }
+    void          setCurrentLoopHasContinueJump(bool value) { currentLoopHasContinueJump_ = value; }
+
     const InlineContext& currentInlineContext() const { return inlineContext_; }
     InlineContext&       currentInlineContextRef() { return inlineContext_; }
     void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel);
@@ -195,13 +202,16 @@ public:
     bool                 hasCurrentInlineContext() const { return inlineContext_.payload != nullptr && inlineContext_.rootNodeRef.isValid(); }
 
 private:
-    BreakContext  breakable_;
-    BreakContext  continuable_;
-    AstNodeRef    currentSwitch_              = AstNodeRef::invalid();
-    AstNodeRef    currentSwitchCase_          = AstNodeRef::invalid();
+    BreakContext breakable_;
+    BreakContext continuable_;
+
+    AstNodeRef currentSwitch_     = AstNodeRef::invalid();
+    AstNodeRef currentSwitchCase_ = AstNodeRef::invalid();
+
     MicroLabelRef currentLoopContinueLabel_   = MicroLabelRef::invalid();
     MicroLabelRef currentLoopBreakLabel_      = MicroLabelRef::invalid();
     bool          currentLoopHasContinueJump_ = false;
+
     InlineContext inlineContext_;
     AstNodeRef    inlineBoundaryRootRef_ = AstNodeRef::invalid();
 };
@@ -217,49 +227,56 @@ public:
     // Appends one stage per '--print-micro' request whose pattern names `scopedName`.
     static void appendCommandLinePrintMicroStages(std::vector<Utf8>& stages, std::span<const Utf8> requests, std::string_view scopedName);
 
-    Sema&                           sema() { return *(sema_); }
-    const Sema&                     sema() const { return *(sema_); }
-    TaskContext&                    ctx();
-    const TaskContext&              ctx() const;
-    CompilerInstance&               compiler();
-    const CompilerInstance&         compiler() const;
+    Sema&                   sema() { return *(sema_); }
+    const Sema&             sema() const { return *(sema_); }
+    TaskContext&            ctx();
+    const TaskContext&      ctx() const;
+    CompilerInstance&       compiler();
+    const CompilerInstance& compiler() const;
+
     const Runtime::BuildCfg&        buildCfg() const;
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
     bool                            isDebugInfoEnabled() const { return buildCfgBackend().debugInfo; }
     bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }
     bool                            isNativeExecutableBuild() const { return buildCfgBackendKind() == Runtime::BuildCfgBackendKind::Executable; }
-    ConstantManager&                cstMgr();
-    const ConstantManager&          cstMgr() const;
-    TypeManager&                    typeMgr();
-    const TypeManager&              typeMgr() const;
-    TypeGen&                        typeGen();
-    const TypeGen&                  typeGen() const;
-    IdentifierManager&              idMgr();
-    const IdentifierManager&        idMgr() const;
-    MicroBuilder&                   builder() { return *(builder_); }
-    const MicroBuilder&             builder() const { return *(builder_); }
 
-    Ast&                          ast();
-    const Ast&                    ast() const;
-    SourceView&                   srcView(SourceViewRef srcViewRef);
-    const SourceView&             srcView(SourceViewRef srcViewRef) const;
-    AstNode&                      node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&                node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    AstVisit&                     visit() { return visit_; }
-    const AstVisit&               visit() const { return visit_; }
-    AstNodeRef                    curNodeRef() const { return visit_.currentNodeRef(); }
-    AstNode&                      curNode() { return node(curNodeRef()); }
-    const AstNode&                curNode() const { return node(curNodeRef()); }
-    const Token&                  token(const SourceCodeRef& codeRef) const;
+    ConstantManager&         cstMgr();
+    const ConstantManager&   cstMgr() const;
+    TypeManager&             typeMgr();
+    const TypeManager&       typeMgr() const;
+    TypeGen&                 typeGen();
+    const TypeGen&           typeGen() const;
+    IdentifierManager&       idMgr();
+    const IdentifierManager& idMgr() const;
+
+    MicroBuilder&       builder() { return *(builder_); }
+    const MicroBuilder& builder() const { return *(builder_); }
+
+    Ast&              ast();
+    const Ast&        ast() const;
+    SourceView&       srcView(SourceViewRef srcViewRef);
+    const SourceView& srcView(SourceViewRef srcViewRef) const;
+    AstNode&          node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&    node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+
+    AstVisit&       visit() { return visit_; }
+    const AstVisit& visit() const { return visit_; }
+    AstNodeRef      curNodeRef() const { return visit_.currentNodeRef(); }
+    AstNode&        curNode() { return node(curNodeRef()); }
+    const AstNode&  curNode() const { return node(curNodeRef()); }
+    const Token&    token(const SourceCodeRef& codeRef) const;
+
     CodeGenFrame&                 frame() { return frames_.back(); }
     const CodeGenFrame&           frame() const { return frames_.back(); }
     std::span<const CodeGenFrame> frames() const { return frames_; }
 
     SemaNodeView view(AstNodeRef nodeRef) { return sema().view(nodeRef); }
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part) { return sema().view(nodeRef, part); }
-    AstNodeRef   resolvedNodeRef(AstNodeRef nodeRef) { return sema().resolvedNodeRef(nodeRef); }
-    AstNodeRef   resolvedNodeRef(AstNodeRef nodeRef) const { return const_cast<CodeGen*>(this)->resolvedNodeRef(nodeRef); }
+
+    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) { return sema().resolvedNodeRef(nodeRef); }
+    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) const { return const_cast<CodeGen*>(this)->resolvedNodeRef(nodeRef); }
+
     SemaNodeView viewZero(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Zero); }
     SemaNodeView viewNode(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node); }
     SemaNodeView viewType(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type); }
@@ -291,8 +308,9 @@ public:
     const SymbolVariable*         runtimeStorageSymbol(AstNodeRef nodeRef) const;
     TypeRef                       transparentPayloadTypeRef();
     void                          appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    SymbolFunction&               function() { return *(function_); }
-    const SymbolFunction&         function() const { return *(function_); }
+
+    SymbolFunction&       function() { return *(function_); }
+    const SymbolFunction& function() const { return *(function_); }
 
     template<typename T>
     T* safeNodePayload(AstNodeRef nodeRef)
@@ -360,6 +378,7 @@ public:
             const AstNodeRef parentRef = visit_.parentNodeRef(up);
             if (parentRef.isInvalid())
                 return nullptr;
+
             if (node(parentRef).is(nodeId))
                 return safeNodePayload<T>(parentRef);
         }
@@ -378,55 +397,66 @@ public:
             auxNodePayloads_.erase(nodeRef);
     }
 
-    CodeGenNodePayload&       payload(AstNodeRef nodeRef);
-    CodeGenNodePayload*       safePayload(AstNodeRef nodeRef);
-    bool                      keepsFoldedConstant(AstNodeRef nodeRef);
+    CodeGenNodePayload& payload(AstNodeRef nodeRef);
+    CodeGenNodePayload* safePayload(AstNodeRef nodeRef);
+    bool                keepsFoldedConstant(AstNodeRef nodeRef);
+
     void                      setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload);
     const CodeGenNodePayload* variablePayload(const SymbolVariable& sym) const;
     CodeGenNodePayload        conditionBindingPayload(TypeRef& outTypeRef, AstNodeRef nodeRef);
-    void                      setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
-    uint32_t                  valueBorrowStackOffset = 0;
-    uint32_t                  localStackFrameSize() const { return localStackFrameSize_; }
-    bool                      hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
-    void                      setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
-    MicroReg                  localStackBaseReg() const { return localStackBaseReg_; }
-    void                      setBodyEntryRef(MicroInstrRef ref) { bodyEntryRef_ = ref; }
-    MicroReg                  vectorZeroRegister();
-    void                      setCurrentFunctionIndirectReturnStackOffset(uint32_t offset) { currentFunctionIndirectReturnStackOffset_ = offset; }
-    void                      clearCurrentFunctionIndirectReturnStackOffset() { currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu; }
-    bool                      hasCurrentFunctionIndirectReturnStackOffset() const { return currentFunctionIndirectReturnStackOffset_ != 0xFFFFFFFFu; }
-    uint32_t                  currentFunctionIndirectReturnStackOffset() const { return currentFunctionIndirectReturnStackOffset_; }
-    void                      setCurrentFunctionIndirectReturnReg(MicroReg reg) { currentFunctionIndirectReturnReg_ = reg; }
-    MicroReg                  currentFunctionIndirectReturnReg() const { return currentFunctionIndirectReturnReg_; }
-    MicroReg                  ensureCurrentFunctionIndirectReturnReg(CallConvKind callConvKind);
-    void                      setCurrentFunctionClosureContextReg(MicroReg reg) { currentFunctionClosureContextReg_ = reg; }
-    MicroReg                  currentFunctionClosureContextReg() const { return currentFunctionClosureContextReg_; }
-    CodeGenNodePayload&       inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&       setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&       setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&       setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
-    CodeGenNodePayload&       setPayloadAddressReg(AstNodeRef nodeRef, MicroReg reg, TypeRef typeRef = TypeRef::invalid());
-    MicroReg                  offsetAddressReg(MicroReg baseReg, uint32_t offset, bool forbidBaseReg = true);
-    CodeGenNodePayload        resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
-    MicroReg                  runtimeStorageAddressReg(AstNodeRef nodeRef);
-    bool                      hasLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind) const;
-    bool                      tryBuildLifecycleAction(TypeRef typeRef, LifecycleKind lifecycleKind, const SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const;
-    Result                    emitLifecycleAction(const SymbolFunction& calledFunction, MicroReg addressReg);
-    Result                    emitLifecycleAction(const SymbolFunction& calledFunction, MicroReg addressReg, uint32_t sizeOf, uint32_t count);
-    Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg);
-    Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, uint32_t count);
-    Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, MicroReg countReg);
-    void                      registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const SymbolVariable& storage);
-    bool                      hasTemporaryDrop(const SymbolVariable& storage) const;
-    void                      cancelTemporaryDrop(const SymbolVariable& storage);
-    Result                    flushTemporaryDrops(AstNodeRef rootRef);
-    Result                    emitTemporaryDropsForFailure(AstNodeRef scopeRef);
-    void                      pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
-    Result                    popDeferScope();
-    void                      registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
-    void                      registerErrorScopePop();
-    void                      registerValueBorrowEnd(uint32_t recordOffset);
-    bool                      hasOpenLocalValueBorrow() const;
+
+    void     setLocalStackFrameSize(uint32_t frameSize) { localStackFrameSize_ = frameSize; }
+    uint32_t valueBorrowStackOffset = 0;
+    uint32_t localStackFrameSize() const { return localStackFrameSize_; }
+    bool     hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
+    void     setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
+    MicroReg localStackBaseReg() const { return localStackBaseReg_; }
+
+    void     setBodyEntryRef(MicroInstrRef ref) { bodyEntryRef_ = ref; }
+    MicroReg vectorZeroRegister();
+
+    void     setCurrentFunctionIndirectReturnStackOffset(uint32_t offset) { currentFunctionIndirectReturnStackOffset_ = offset; }
+    void     clearCurrentFunctionIndirectReturnStackOffset() { currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu; }
+    bool     hasCurrentFunctionIndirectReturnStackOffset() const { return currentFunctionIndirectReturnStackOffset_ != 0xFFFFFFFFu; }
+    uint32_t currentFunctionIndirectReturnStackOffset() const { return currentFunctionIndirectReturnStackOffset_; }
+    void     setCurrentFunctionIndirectReturnReg(MicroReg reg) { currentFunctionIndirectReturnReg_ = reg; }
+    MicroReg currentFunctionIndirectReturnReg() const { return currentFunctionIndirectReturnReg_; }
+    MicroReg ensureCurrentFunctionIndirectReturnReg(CallConvKind callConvKind);
+
+    void     setCurrentFunctionClosureContextReg(MicroReg reg) { currentFunctionClosureContextReg_ = reg; }
+    MicroReg currentFunctionClosureContextReg() const { return currentFunctionClosureContextReg_; }
+
+    CodeGenNodePayload& inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload& setPayload(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload& setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload& setPayloadAddress(AstNodeRef nodeRef, TypeRef typeRef = TypeRef::invalid());
+    CodeGenNodePayload& setPayloadAddressReg(AstNodeRef nodeRef, MicroReg reg, TypeRef typeRef = TypeRef::invalid());
+
+    MicroReg           offsetAddressReg(MicroReg baseReg, uint32_t offset, bool forbidBaseReg = true);
+    CodeGenNodePayload resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
+    MicroReg           runtimeStorageAddressReg(AstNodeRef nodeRef);
+
+    bool   hasLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind) const;
+    bool   tryBuildLifecycleAction(TypeRef typeRef, LifecycleKind lifecycleKind, const SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const;
+    Result emitLifecycleAction(const SymbolFunction& calledFunction, MicroReg addressReg);
+    Result emitLifecycleAction(const SymbolFunction& calledFunction, MicroReg addressReg, uint32_t sizeOf, uint32_t count);
+    Result emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg);
+    Result emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, uint32_t count);
+    Result emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, MicroReg countReg);
+
+    void   registerTemporaryDrop(AstNodeRef valueRef, TypeRef typeRef, const SymbolVariable& storage);
+    bool   hasTemporaryDrop(const SymbolVariable& storage) const;
+    void   cancelTemporaryDrop(const SymbolVariable& storage);
+    Result flushTemporaryDrops(AstNodeRef rootRef);
+    Result emitTemporaryDropsForFailure(AstNodeRef scopeRef);
+
+    void   pushDeferScope(AstNodeRef scopeRef = AstNodeRef::invalid(), AstNodeRef breakOwnerRef = AstNodeRef::invalid(), AstNodeRef switchCaseRef = AstNodeRef::invalid());
+    Result popDeferScope();
+    void   registerDefer(AstNodeRef deferStmtRef, AstNodeRef bodyRef, AstModifierFlags modifierFlags);
+    void   registerErrorScopePop();
+    void   registerValueBorrowEnd(uint32_t recordOffset);
+    bool   hasOpenLocalValueBorrow() const;
+
     struct ValueBorrowSite
     {
         AstNodeRef expressionRef;
@@ -435,26 +465,31 @@ public:
         uint32_t   stackOffset;
         bool       addressHome;
     };
+
     SmallVector<ValueBorrowSite> valueBorrowSites;
     RefSet<AstNodeRef>           valueBorrowValueScopeRefs; // Scopes of the non-home sites: every node tests this, not the list
     RefSet<AstNodeRef>           valueBorrowExpressionRefs; // Values the sites borrow, for the same per-node test
     bool                         needsValueBorrowRuntime = false;
-    void                         registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo = nullptr);
-    void                         initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
-    void                         registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos);
-    bool                         hasDeferredStatements() const { return hasDeferredStatements_; }
-    Result                       emitDeferredActionsForReturn();
-    Result                       emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef, bool popErrorScope = true);
-    Result                       emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
-    Result                       emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
-    Result                       emitDeferredActionsUntilOwner(AstNodeRef CodeGenDeferScope::* ownerField, AstNodeRef ownerRef);
-    Result                       emitDeferredActionsDownTo(size_t stopScopeIndex);
-    Result                       emitNodeNow(AstNodeRef nodeRef);
-    void                         invalidateNodePayloadRegs(AstNodeRef nodeRef);
-    bool                         containsDeferredActions(AstNodeRef nodeRef);
-    CodeGenDeferScope&           lifetimeDeferScope();
-    bool                         currentInstructionBlocksFallthrough() const;
-    bool                         inDeferredEmission() const { return deferredEmitDepth_ != 0; }
+
+    void registerImplicitDrop(const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo* paramInfo = nullptr);
+    void initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
+    void registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos);
+
+    bool   hasDeferredStatements() const { return hasDeferredStatements_; }
+    Result emitDeferredActionsForReturn();
+    Result emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef, bool popErrorScope = true);
+    Result emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef);
+    Result emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
+    Result emitDeferredActionsUntilOwner(AstNodeRef CodeGenDeferScope::* ownerField, AstNodeRef ownerRef);
+    Result emitDeferredActionsDownTo(size_t stopScopeIndex);
+
+    Result emitNodeNow(AstNodeRef nodeRef);
+    void   invalidateNodePayloadRegs(AstNodeRef nodeRef);
+
+    bool               containsDeferredActions(AstNodeRef nodeRef);
+    CodeGenDeferScope& lifetimeDeferScope();
+    bool               currentInstructionBlocksFallthrough() const;
+    bool               inDeferredEmission() const { return deferredEmitDepth_ != 0; }
 
     // Move elision (see CodeGenMoveElision): per-function analysis cache and the set of
     // locals whose scope-exit drop has been elided by a consuming '#move'.
@@ -477,8 +512,9 @@ public:
     uint32_t                                  globalsToDropScratchOffset() const { return globalsToDropScratchOffset_; }
     uint32_t                                  globalsToDropScratchSize() const { return globalsToDropScratchSize_; }
     std::span<const CodeGenGlobalToDropEntry> globalsToDropScratchEntries() const { return globalsToDropScratchEntries_; }
-    void                                      pushFrame(const CodeGenFrame& frame);
-    void                                      popFrame();
+
+    void pushFrame(const CodeGenFrame& frame);
+    void popFrame();
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& typeInfo);
@@ -506,48 +542,61 @@ private:
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
     Result emitConstant(AstNodeRef nodeRef);
+
     Result emitDeferredAction(const CodeGenDeferredAction& action);
     Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount, bool popErrorScope = true);
     Result emitDeferredActionsFrom(size_t startScopeIndex, size_t startActionCount, size_t stopScopeIndex, bool hasStopScope, bool popStopErrorScope = true);
     bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
-    void   mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
 
-    Sema*                                                   sema_ = nullptr;
-    AstVisit                                                visit_;
-    std::vector<CodeGenFrame>                               frames_;
-    RefPointerMap<AstNodeRef>                               nodePayloads_;
-    RefPointerMap<AstNodeRef>                               auxNodePayloads_;
+    void mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef, AstNodeRef resolvedRef) const;
+
+    Sema*                     sema_ = nullptr;
+    AstVisit                  visit_;
+    std::vector<CodeGenFrame> frames_;
+
+    RefPointerMap<AstNodeRef> nodePayloads_;
+    RefPointerMap<AstNodeRef> auxNodePayloads_;
+
     PointerMap<SymbolVariable, VariablePayloadState>        variablePayloads_;
     SmallVector<std::unique_ptr<VariablePayloadState[]>, 4> variablePayloadChunks_;
     uint32_t                                                variablePayloadCount_ = 0;
+
     // Filled only when a move asks whether it can be elided; most functions never do.
     FlatKeyMap<CodeGenMoveElisionVar, uint64_t> moveElisionVars_;
     PointerSet<const SymbolVariable>            elidedImplicitDrops_;
     const SymbolVariable*                       returnMoveOutVar_    = nullptr;
     bool                                        moveElisionAnalyzed_ = false;
-    SymbolFunction*                             function_            = nullptr;
-    MicroBuilder*                               builder_             = nullptr;
-    uint32_t                                    nextVirtualRegister_ = 1;
-    uint32_t                                    localStackFrameSize_ = 0;
-    MicroReg                                    localStackBaseReg_;
-    MicroReg                                    vectorZeroReg_;
-    MicroInstrRef                               bodyEntryRef_;
-    uint32_t                                    currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
-    MicroReg                                    currentFunctionIndirectReturnReg_;
-    MicroReg                                    currentFunctionClosureContextReg_;
-    SmallVector<CodeGenDeferScope, 32>          deferScopes_;
-    SmallVector<CodeGenDeferredEmissionCursor>  deferredEmissionCursors_;
-    uint32_t                                    deferredEmitDepth_                = 0;
-    uint32_t                                    currentDeferredAddressGeneration_ = 0;
-    uint32_t                                    nextDeferredAddressGeneration_    = 1;
-    bool                                        hasDeferredStatements_            = false;
-    uint32_t                                    globalsToDropScratchOffset_       = 0;
-    uint32_t                                    globalsToDropScratchSize_         = 0;
-    SmallVector<CodeGenGlobalToDropEntry>       globalsToDropScratchEntries_;
-    SmallVector<CodeGenTemporaryDrop, 4>        temporaryDrops_;
-    AstNodeRef                                  root_      = AstNodeRef::invalid();
-    bool                                        started_   = false;
-    bool                                        completed_ = false;
+
+    SymbolFunction* function_            = nullptr;
+    MicroBuilder*   builder_             = nullptr;
+    uint32_t        nextVirtualRegister_ = 1;
+
+    uint32_t      localStackFrameSize_ = 0;
+    MicroReg      localStackBaseReg_;
+    MicroReg      vectorZeroReg_;
+    MicroInstrRef bodyEntryRef_;
+
+    uint32_t currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
+    MicroReg currentFunctionIndirectReturnReg_;
+    MicroReg currentFunctionClosureContextReg_;
+
+    SmallVector<CodeGenDeferScope, 32>         deferScopes_;
+    SmallVector<CodeGenDeferredEmissionCursor> deferredEmissionCursors_;
+
+    uint32_t deferredEmitDepth_                = 0;
+    uint32_t currentDeferredAddressGeneration_ = 0;
+    uint32_t nextDeferredAddressGeneration_    = 1;
+    bool     hasDeferredStatements_            = false;
+
+    uint32_t                              globalsToDropScratchOffset_ = 0;
+    uint32_t                              globalsToDropScratchSize_   = 0;
+    SmallVector<CodeGenGlobalToDropEntry> globalsToDropScratchEntries_;
+
+    SmallVector<CodeGenTemporaryDrop, 4> temporaryDrops_;
+
+    AstNodeRef root_      = AstNodeRef::invalid();
+    bool       started_   = false;
+    bool       completed_ = false;
 };
 
 SWC_END_NAMESPACE();

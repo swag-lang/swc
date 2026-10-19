@@ -14,16 +14,19 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     };
 
     MicroReg      reg;
-    SourceCodeRef sourceCodeRef                = SourceCodeRef::invalid();
-    TypeRef       typeRef                      = TypeRef::invalid();
-    StorageKind   storageKind                  = StorageKind::Value;
-    bool          materializedPointerLikeValue = false;
-    bool          runtimeStorageOverridden     = false;
-    bool          fallibleWrapperConsumed      = false;
-    MicroLabelRef fallibleFailLabel            = MicroLabelRef::invalid();
-    MicroLabelRef fallibleDoneLabel            = MicroLabelRef::invalid();
-    MicroLabelRef fallibleFunctionFailLabel    = MicroLabelRef::invalid();
-    MicroLabelRef fallibleFunctionDoneLabel    = MicroLabelRef::invalid();
+    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
+    TypeRef       typeRef       = TypeRef::invalid();
+    StorageKind   storageKind   = StorageKind::Value;
+
+    bool materializedPointerLikeValue = false;
+    bool runtimeStorageOverridden     = false;
+
+    bool          fallibleWrapperConsumed = false;
+    MicroLabelRef fallibleFailLabel       = MicroLabelRef::invalid();
+    MicroLabelRef fallibleDoneLabel       = MicroLabelRef::invalid();
+
+    MicroLabelRef fallibleFunctionFailLabel = MicroLabelRef::invalid();
+    MicroLabelRef fallibleFunctionDoneLabel = MicroLabelRef::invalid();
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }
@@ -41,6 +44,7 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     void markMaterializedPointerLikeValue() { materializedPointerLikeValue = true; }
     void clearMaterializedPointerLikeValue() { materializedPointerLikeValue = false; }
     bool hasMaterializedPointerLikeValue() const { return materializedPointerLikeValue; }
+
     void setRuntimeStorageSymbol(SymbolVariable* sym)
     {
         runtimeStorageSym        = sym;
@@ -51,6 +55,7 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     {
         if (typeRef.isValid())
             return typeRef;
+
         return fallbackTypeRef;
     }
 

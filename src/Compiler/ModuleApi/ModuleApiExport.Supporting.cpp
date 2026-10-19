@@ -11,16 +11,12 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// A generic body, a macro and a mixin travel as source and are analyzed again by every
-// importer, so each name they spell has to resolve in the generated file. The module may keep
-// such a declaration private or internal: this pass publishes it with that access, then
-// publishes what the published declaration needs in turn.
+// Generic bodies, macros, and mixins travel as source. Publish the private or
+// internal declarations they need, preserving access, then follow their dependencies.
 //
-// An unmaterialized body has no resolved symbols, so its names are looked up the way the
-// importer will look them up: in the declaring type and its impl blocks, in the enclosing
-// namespaces, and in the private root of the file. That over-approximates (a local can share
-// the name of a private helper), which costs an unused declaration in the interface; the
-// resolved bodies of the published helpers are then followed exactly.
+// Unmaterialized bodies have no resolved symbols. Look up names through type,
+// impl, namespace, and file scopes, as importers will. This can include unused
+// helpers when locals share a name; follow resolved helper bodies exactly.
 namespace
 {
     using ModuleApiExport::appendGeneratedRootUnique;
@@ -39,10 +35,13 @@ namespace
 
     struct SupportingCollector
     {
-        TaskContext*                         ctx;
+        TaskContext* ctx;
+
         std::vector<ModuleApiGeneratedRoot>* roots;
+
         // Every root symbol, public or supporting: what the generated file already declares.
         PointerSet<const Symbol> published;
+
         // Supporting roots whose own dependencies are not collected yet.
         std::vector<size_t> pending;
     };
@@ -51,6 +50,7 @@ namespace
     {
         if (const auto* function = symbol.safeCast<SymbolFunction>())
             return function->isMethod() ? Utf8("method") : Utf8("function");
+
         return ModuleApiExport::symbolKindName(symbol);
     }
 
@@ -68,17 +68,20 @@ namespace
         diag.addArgument(Diagnostic::ARG_SYM, symbol.getFullScopedName(ctx));
         diag.addArgument(Diagnostic::ARG_BECAUSE, because);
         diag.last().addSpan(range, "", DiagnosticSeverity::Error);
+
         if (referencedSymbol)
             addDependencyDeclaredHereNote(ctx, diag, *referencedSymbol);
+
         diag.report(ctx);
+
         return Result::Error;
     }
 
-    // Whether the symbol is a declaration the generated file can carry as source.
     bool isPublishableSupportingSymbol(TaskContext& ctx, const Symbol& symbol)
     {
         if (symbol.isPublic() || !isCurrentModuleSymbol(ctx.compiler(), symbol) || isWholeFileExportedSymbol(ctx.compiler(), symbol))
             return false;
+
         if (!symbol.decl())
             return false;
 
@@ -86,8 +89,10 @@ namespace
         {
             if (function->isGenericInstance() || function->attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
                 return false;
+
             if (const SymbolStruct* owner = function->ownerStruct(); owner && owner->isGenericInstance())
                 return false;
+
             return function->decl()->is(AstNodeId::FunctionDecl);
         }
 
@@ -110,12 +115,14 @@ namespace
         const SourceFile* astFile    = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
         if (!astFile)
             astFile = sourceFile;
+
         if (!sourceFile || !astFile)
             return false;
 
         AstNodeRef declRef;
         if (!tryFindReachableNodeRef(astFile->ast(), symbol.decl(), declRef))
             return false;
+
         if (!isExportedPublicDeclScope(*astFile, declRef, symbol))
             return false;
 
@@ -125,6 +132,7 @@ namespace
         outRoot.supporting = true;
         if (outRoot.nodeRef.isInvalid())
             return false;
+
         return extractPublicNamespacePath(ctx, *astFile, declRef, symbol, outRoot.namespacePath);
     }
 
@@ -133,6 +141,7 @@ namespace
     {
         if (collector.published.contains(&symbol))
             return true;
+
         if (!isPublishableSupportingSymbol(*collector.ctx, symbol))
             return false;
 
@@ -141,14 +150,16 @@ namespace
             return false;
 
         collector.published.insert(&symbol);
+
         const size_t count = collector.roots->size();
         appendGeneratedRootUnique(*collector.roots, std::move(root));
         if (collector.roots->size() != count)
             collector.pending.push_back(count);
+
         return true;
     }
 
-    // The type whose bodies a member belongs to, once the member is a field or a constant.
+    // Value-expression members inherit availability from their enclosing type.
     const SymbolMap* owningTypeOfMember(const Symbol& symbol)
     {
         if (!symbol.isValueExpr())
@@ -167,14 +178,14 @@ namespace
     {
         if (const auto* function = symbol.safeCast<SymbolFunction>())
             return function->hasUnmaterializedGenericBody() || function->attributes().hasMacroOrMixin();
+
         if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
             return symbolStruct->isGenericRoot() && !symbolStruct->isGenericInstance();
+
         return false;
     }
 
-    // ------------------------------------------------------------------------------------------
     // Syntactic walk: an unmaterialized body, looked up by name.
-    // ------------------------------------------------------------------------------------------
 
     using LookupScopes = SmallVector<const SymbolMap*, 16>;
 
@@ -193,16 +204,20 @@ namespace
         if (const auto* symbolStruct = type->safeCast<SymbolStruct>())
         {
             addLookupScope(scopes, symbolStruct);
+
             for (const SymbolImpl* symImpl : symbolStruct->impls())
                 addLookupScope(scopes, symImpl);
+
             return;
         }
 
         if (const auto* symbolEnum = type->safeCast<SymbolEnum>())
         {
             addLookupScope(scopes, symbolEnum);
+
             for (const SymbolImpl* symImpl : symbolEnum->impls())
                 addLookupScope(scopes, symImpl);
+
             return;
         }
 
@@ -217,6 +232,7 @@ namespace
             addTypeLookupScopes(scopes, symImpl.symStruct());
         else if (symImpl.isForEnum())
             addTypeLookupScopes(scopes, symImpl.symEnum());
+
         if (symImpl.symInterface())
             addTypeLookupScopes(scopes, symImpl.symInterface());
     }
@@ -238,6 +254,7 @@ namespace
                 addImplLookupScopes(scopes, *symImpl);
             else
                 addLookupScope(scopes, symMap);
+
             if (symMap->isModule())
                 break;
         }
@@ -247,12 +264,14 @@ namespace
             return;
 
         addLookupScope(scopes, fileNamespace);
+
         const SymbolMap* symMap = fileNamespace;
         for (const IdentifierRef idRef : root.namespacePath)
         {
             const Symbol* nested = symMap->findFirstNamespace(idRef);
             if (!nested)
                 break;
+
             symMap = nested->asSymMap();
             addLookupScope(scopes, symMap);
         }
@@ -266,6 +285,7 @@ namespace
         {
             scope->forEachSymbolById(idRef, false, [&](const Symbol* symbol) {
                 addSupportingSymbol(collector, *symbol);
+
                 if (outQualifierScopes && symbol->isSymMap() && !symbol->isImpl())
                     addTypeLookupScopes(*outQualifierScopes, symbol);
             });
@@ -276,9 +296,11 @@ namespace
     {
         SupportingCollector* collector;
         const Ast*           ast;
-        LookupScopes         scopes;
-        IdentifierRef        moduleIdRef = IdentifierRef::invalid();
-        const SymbolMap*     moduleMap   = nullptr;
+
+        LookupScopes scopes;
+
+        IdentifierRef    moduleIdRef = IdentifierRef::invalid();
+        const SymbolMap* moduleMap   = nullptr;
     };
 
     IdentifierRef identifierRefOf(const SyntacticWalk& walk, const AstNodeRef nodeRef, const AstNode& node)
@@ -300,8 +322,10 @@ namespace
             const IdentifierRef idRef = identifierRefOf(walk, nodeRef, node);
             if (idRef.isInvalid())
                 return;
+
             if (idRef == walk.moduleIdRef)
                 addLookupScope(outScopes, walk.moduleMap);
+
             lookupSupportingName(*walk.collector, walk.scopes.span(), idRef, &outScopes);
             return;
         }
@@ -334,6 +358,7 @@ namespace
             const IdentifierRef idRef = identifierRefOf(walk, nodeRef, node);
             if (idRef.isValid())
                 lookupSupportingName(*walk.collector, walk.scopes.span(), idRef, nullptr);
+
             return;
         }
 
@@ -344,6 +369,7 @@ namespace
             LookupScopes qualifierScopes;
             collectQualifierScopes(walk, access->nodeLeftRef, qualifierScopes);
             walkSourceDeclaration(walk, access->nodeLeftRef);
+
             if (!qualifierScopes.empty() && access->nodeRightRef.isValid() && walk.ast->hasNode(access->nodeRightRef))
             {
                 const AstNode& right = walk.ast->node(access->nodeRightRef);
@@ -352,6 +378,7 @@ namespace
                     const IdentifierRef idRef = identifierRefOf(walk, access->nodeRightRef, right);
                     if (idRef.isValid())
                         lookupSupportingName(*walk.collector, qualifierScopes.span(), idRef, nullptr);
+
                     return;
                 }
             }
@@ -362,6 +389,7 @@ namespace
 
         SmallVector<AstNodeRef> childRefs;
         node.collectChildrenFromAst(childRefs, *walk.ast);
+
         for (const AstNodeRef childRef : childRefs)
             walkSourceDeclaration(walk, childRef);
     }
@@ -370,6 +398,7 @@ namespace
     {
         SyntacticWalk walk{.collector = &collector, .ast = &root.file->ast()};
         collectLexicalLookupScopes(walk.scopes, root);
+
         if (const SymbolNamespace* moduleNamespace = root.file->moduleNamespace())
         {
             walk.moduleIdRef = moduleNamespace->idRef();
@@ -379,9 +408,7 @@ namespace
         walkSourceDeclaration(walk, root.nodeRef);
     }
 
-    // ------------------------------------------------------------------------------------------
     // Resolved walk: the declaration of a published helper, followed exactly.
-    // ------------------------------------------------------------------------------------------
 
     // A node that introduces the symbols it resolves to: what it declares travels with the body.
     bool isLocalDeclarationNode(const AstNode& node)
@@ -414,6 +441,7 @@ namespace
             case AstNodeId::AliasDecl:
             case AstNodeId::InterfaceDecl:
                 return true;
+
             default:
                 return false;
         }
@@ -434,6 +462,7 @@ namespace
 
         if (!isCurrentModuleSymbol(collector.ctx->compiler(), symbol) || isWholeFileExportedSymbol(collector.ctx->compiler(), symbol))
             return true;
+
         if (symbol.isPublic() || collector.published.contains(&symbol))
             return true;
 
@@ -442,6 +471,7 @@ namespace
         {
             if (isModuleApiOpaqueType(*owningType))
                 return false;
+
             return owningType->isPublic() || addSupportingSymbol(collector, *owningType);
         }
 
@@ -458,9 +488,11 @@ namespace
     // Publishes what the declaration at 'nodeRef' names, and returns the first name it cannot.
     UnavailableSymbol collectResolvedNodeDependencies(SupportingCollector& collector, const SourceFile& file, AstNodeRef nodeRef)
     {
-        const Ast&               ast = file.ast();
+        const Ast& ast = file.ast();
+
         UnavailableSymbol        result;
         PointerSet<const Symbol> localSymbols;
+
         Ast::visit(ast, nodeRef, [&](const AstNodeRef childRef, const AstNode& node) {
             const NodePayload::ResolvedSymbols resolved = file.nodePayloadContext().resolveSymbols(childRef);
             if (isLocalDeclarationNode(node))
@@ -495,10 +527,12 @@ namespace
                 return Ast::VisitResult::Continue;
 
             const AstNode& focus = node.is(AstNodeId::CallExpr) ? ast.node(node.cast<AstCallExpr>().nodeExprRef) : node;
-            result.symbol        = unavailable;
-            result.focus         = focus.codeRange(*collector.ctx);
+
+            result.symbol = unavailable;
+            result.focus  = focus.codeRange(*collector.ctx);
             return Ast::VisitResult::Stop;
         });
+
         return result;
     }
 
@@ -526,6 +560,7 @@ namespace
             return Result::Continue;
 
         TaskContext& ctx = *collector.ctx;
+
         for (const SymbolVariable* field : symbolStruct->fields())
         {
             if (!field || field->isIgnored() || field->memberAccess() == MemberAccess::Public || !field->decl())
@@ -546,6 +581,7 @@ namespace
             diag.last().addSpan(unavailable.focus, "", DiagnosticSeverity::Error);
             addDependencyDeclaredHereNote(ctx, diag, *unavailable.symbol);
             diag.report(ctx);
+
             return Result::Error;
         }
 
@@ -557,6 +593,7 @@ namespace
     {
         ModuleApiDependencyCollector dependencies{.ctx = collector.ctx, .scope = ModuleApiDependencyScope::NonPublic};
         collectModuleApiSymbolDependencies(dependencies, symbol);
+
         for (const Symbol* dependency : dependencies.symbols)
             addSupportingSymbol(collector, *dependency);
     }
@@ -567,6 +604,7 @@ namespace ModuleApiExport
     Result appendSupportingDeclarationRoots(TaskContext& ctx, std::vector<ModuleApiGeneratedRoot>& ioRoots)
     {
         SupportingCollector collector{.ctx = &ctx, .roots = &ioRoots};
+
         for (const ModuleApiGeneratedRoot& root : ioRoots)
         {
             if (root.symbol)
@@ -598,6 +636,7 @@ namespace ModuleApiExport
             // Copy: the roots vector grows while the dependencies of a root are published.
             const ModuleApiGeneratedRoot root = ioRoots[index];
             collectTypeDependencies(collector, *root.symbol);
+
             if (needsSyntacticWalk(*root.symbol))
                 collectSyntacticDependencies(collector, root);
             else

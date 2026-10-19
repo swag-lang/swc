@@ -396,7 +396,8 @@ namespace
 
         TaskContext&    ctx     = sema.ctx();
         const TypeInfo& ptrType = sema.typeMgr().get(typeRef);
-        ConstantValue   ptrValueCst;
+
+        ConstantValue ptrValueCst;
         if (ptrType.isValuePointer())
             ptrValueCst = ConstantValue::makeValuePointer(ctx, ptrType.payloadTypeRef(), ptrValue, ptrType.flags());
         else
@@ -456,6 +457,7 @@ namespace
     Result semaTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
         SWC_UNUSED(node);
+
         if (isFunctionAddressOperand(view))
         {
             const auto& symFunc = view.sym()->cast<SymbolFunction>();
@@ -473,6 +475,7 @@ namespace
 
         const TypeRef typeRef = takeAddressResultTypeRef(sema, view);
         sema.setType(sema.curNodeRef(), typeRef);
+
         if (view.hasConstant())
         {
             // Folding a dereference does not change the location it designates.
@@ -502,6 +505,7 @@ namespace
     {
         SWC_UNUSED(node);
         SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
         return Result::Continue;
     }
@@ -512,11 +516,11 @@ namespace
         if (!type.isAnyPointer())
             return SemaError::raiseDerefOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
 
-        // Use-site nullability: narrowing was already applied to the live view, so a
-        // remaining 'nullable' means no dominating test proves this dereference safe. A
-        // non-null compile-time constant is proof.
+        // Narrowing is already reflected in the live view. A remaining nullable
+        // pointer needs a non-null constant or validation from before inlining.
         if (type.isNullable() && (!view.hasConstant() || view.cst()->isNull()) && !SemaHelpers::nullabilityValidatedBeforeInlining(sema))
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, view.nodeRef(), view.typeRef());
+
         return Result::Continue;
     }
 
@@ -526,6 +530,7 @@ namespace
         const TypeRef   resultTypeRef = type.dereferenceTypeRef(sema.ctx());
 
         SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));
+
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsLValue(node);
         return Result::Continue;
@@ -555,6 +560,7 @@ namespace
         {
             if (type.isConst())
                 flags.add(TypeInfoFlagsE::Const);
+
             pointeeTypeRef = type.payloadTypeRef();
         }
         else
@@ -575,8 +581,10 @@ namespace
         }
 
         SWC_ASSERT(pointeeTypeRef.isValid());
+
         const TypeInfo ty      = TypeInfo::makeMoveReference(pointeeTypeRef, flags);
         const TypeRef  typeRef = sema.typeMgr().addType(ty);
+
         sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;
     }
@@ -602,19 +610,26 @@ namespace
         {
             case TokenId::SymMinus:
                 return checkMinus(sema, node, view);
+
             case TokenId::SymPlus:
                 return checkPlus(sema, node, view);
+
             case TokenId::KwdNot:
                 return checkNot(sema, node, view);
+
             case TokenId::SymTilde:
                 return checkTilde(sema, node, view);
+
             case TokenId::SymAmpersand:
                 return checkTakeAddress(sema, node, view);
+
             case TokenId::SymLeftBracket:
                 return checkDeref(sema, view);
+
             case TokenId::ModifierMove:
             case TokenId::ModifierFwd:
                 return checkMoveRef(sema, node, view);
+
             default:
                 SWC_INTERNAL_ERROR();
         }
@@ -639,11 +654,13 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const bool takesFunctionAddress = opId == TokenId::SymAmpersand && isFunctionAddressOperand(view);
     if (!takesFunctionAddress)
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+
     if (opId == TokenId::KwdNot)
     {
         SWC_RESULT(SemaHelpers::readReferenceValue(sema, view));
         SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, view));
     }
+
     sema.setIsValue(*this);
 
     // An explicit copy always owns distinct storage, even when the surrounding
@@ -651,16 +668,20 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     if (opId == TokenId::ModifierCopy)
     {
         SWC_RESULT(SemaHelpers::readReferenceValue(sema, view));
+
         const TypeRef typeRef = view.typeRef();
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), typeRef, typeRef, AstModifierFlagsE::Zero, false, true));
         SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, typeRef, SpecOpKind::OpPostCopy));
         SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, typeRef, SpecOpKind::OpDrop));
+
         auto& lowering = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
         if (!lowering.runtimeStorageSym)
             lowering.runtimeStorageSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, *this, "__copied_value");
         lowering.ownsValue = true;
+
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *lowering.runtimeStorageSym, typeRef));
         SWC_RESULT(SemaEscape::checkVariableInitializer(sema, *lowering.runtimeStorageSym, view.nodeRef(), typeRef));
+
         sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;
     }
@@ -670,17 +691,11 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     if (handledSpecialOp)
         return Result::Continue;
 
-    // Force types
     SWC_RESULT(promote(sema, opId, view));
-
-    // Type-check
     SWC_RESULT(check(sema, opId, *this, view));
 
-    // Taking the address of a constant array element: the element value was
-    // constant-folded during index resolution, but the array data lives in the
-    // data segment so the address is valid. Replace the scalar constant on the
-    // index node with its type so codegen emits the element address instead of
-    // the folded value.
+    // Index folding preserves the array's storage. Clear the folded element
+    // value so codegen can emit its address; retain a pointer constant when possible.
     if (opId == TokenId::SymAmpersand && view.cstRef().isValid() && isAddressableConstantIndex(sema, view))
     {
         const TypeRef childTypeRef = view.typeRef();
@@ -689,15 +704,16 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
         const TypeRef typeRef = takeAddressResultTypeRef(sema, view);
         sema.setType(sema.curNodeRef(), typeRef);
+
         const ConstantRef cstRef = makeAddressableConstantIndexPointerRef(sema, view, typeRef);
         if (cstRef.isValid())
             sema.setConstant(sema.curNodeRef(), cstRef);
+
         return Result::Continue;
     }
 
-    // Constant folding ('#move' never folds: it needs the operand's storage address, and a
-    // packed vector never folds either — the binary operators leave a simd operand to the
-    // backend the same way, so the lanes are computed by the hardware in every path)
+    // Move and forwarding keep the operand's storage address. SIMD lanes
+    // are evaluated by the backend, as with binary operators.
     if (view.cstRef().isValid() && opId != TokenId::ModifierMove && opId != TokenId::ModifierFwd && !SemaHelpers::aliasType(sema, view).isSimd())
     {
         ConstantRef result;
@@ -707,6 +723,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             sema.setConstant(sema.curNodeRef(), result);
             if (opId == TokenId::SymLeftBracket)
                 sema.setIsLValue(*this);
+
             return Result::Continue;
         }
     }
@@ -715,23 +732,27 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     {
         case TokenId::SymLeftBracket:
             return semaDeref(sema, *this, view);
+
         case TokenId::SymAmpersand:
-            // Taking the address of a tracked nullable path lets it be mutated through the
-            // alias: drop any active narrowing for it, then recompute the operand view so
-            // the resulting pointer targets the DECLARED storage type, not the narrowed one.
+            // Address-taking permits mutation through aliases. Discard narrowing
+            // so the result points to the declared storage type.
             if (sema.anyFrameHasNarrowFacts())
             {
                 SemaHelpers::killNarrowPathAfterStatement(sema, nodeExprRef, false);
                 view.recompute(sema);
             }
+
             // '&x.field' consumes the address, never the value: no 'late' read guard.
             SemaHelpers::clearLateFieldReadGuard(sema, nodeExprRef);
             return semaTakeAddress(sema, *this, view);
+
         case TokenId::KwdNot:
             return semaNot(sema, *this, view);
+
         case TokenId::ModifierMove:
         case TokenId::ModifierFwd:
             return semaMoveRef(sema, view);
+
         case TokenId::SymPlus:
         case TokenId::SymMinus:
         case TokenId::SymTilde:
@@ -744,6 +765,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
 
     if (tok.id == TokenId::SymMinus && SemaHelpers::aliasType(sema, view).isIntSigned())
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
+
     return Result::Continue;
 }
 

@@ -29,29 +29,35 @@ namespace
 
     struct ModuleApiImplEntry
     {
-        Utf8              prefix;
+        Utf8 prefix;
+
         std::vector<Utf8> snippets;
     };
 
     struct ModuleApiUsingSnippet
     {
         std::vector<IdentifierRef> namespacePath;
-        Utf8                       snippet;
+
+        Utf8 snippet;
     };
 
     struct ModuleApiOrderedEntry
     {
         std::vector<IdentifierRef> namespacePath;
         std::vector<Utf8>          snippets;
-        Utf8                       implPrefix;
-        const SourceFile*          file    = nullptr;
-        AstNodeRef                 implRef = AstNodeRef::invalid();
-        bool                       isImpl  = false;
+
+        Utf8 implPrefix;
+
+        const SourceFile* file    = nullptr;
+        AstNodeRef        implRef = AstNodeRef::invalid();
+
+        bool isImpl = false;
     };
 
     bool extractFileNamespacePath(TaskContext& ctx, const SourceFile& file, std::string_view moduleNamespace, std::vector<IdentifierRef>& outNamespacePath)
     {
         outNamespacePath.clear();
+
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
             return true;
@@ -62,6 +68,7 @@ namespace
 
         SmallVector<AstNodeRef> globalRefs;
         file.ast().appendNodes(globalRefs, rootNode.cast<AstFile>().spanGlobalsRef);
+
         for (const AstNodeRef globalRef : globalRefs)
         {
             if (globalRef.isInvalid())
@@ -77,6 +84,7 @@ namespace
 
             SmallVector<TokenRef> nameRefs;
             file.ast().appendTokens(nameRefs, global.spanNameRef);
+
             for (const TokenRef nameRef : nameRefs)
             {
                 if (!nameRef.isValid())
@@ -111,6 +119,7 @@ namespace
             const std::string_view line = snippetText.substr(lineStart, lineEnd - lineStart);
             if (!line.empty())
                 outContent += indent;
+
             outContent.append(line);
 
             if (lineEnd < snippetText.size())
@@ -119,6 +128,7 @@ namespace
                 pos = lineEnd + 1;
                 if (snippetText[lineEnd] == '\r' && pos < snippetText.size() && snippetText[pos] == '\n')
                     pos++;
+
                 continue;
             }
 
@@ -126,10 +136,8 @@ namespace
         }
     }
 
-    // A generated entry opens with its attribute list, and the plain 'Foreign' of an entry the
-    // API reduced to a declaration says nothing its neighbours do not also say. Take it off the
-    // entry so a run of them can state it once. A 'Foreign' that names a symbol stays where it
-    // is: that one belongs to its own declaration.
+    // Hoist bare Foreign attributes so consecutive declarations can share one.
+    // Keep named Foreign targets on their own declarations.
     bool tryTakeBareForeignAttribute(Utf8& ioSnippet)
     {
         static constexpr std::string_view SOLE = "#[Foreign]";
@@ -147,13 +155,13 @@ namespace
         size_t skip = SOLE.size();
         while (skip < ioSnippet.size() && (ioSnippet[skip] == '\r' || ioSnippet[skip] == '\n'))
             ++skip;
+
         ioSnippet.erase(0, skip);
         return true;
     }
 
-    // States one attribute once for a run of entries instead of once per entry. A run of one is
-    // written back as it came, because a block would cost more than it saves. The whole content
-    // is formatted afterwards, so the braces need no indentation of their own.
+    // Share Foreign across consecutive entries. Keep a single entry unchanged;
+    // a block would add clutter. Final formatting supplies brace indentation.
     void appendForeignRun(Utf8& outContent, std::span<const Utf8> originals, std::span<const Utf8> stripped, const Utf8& indent, const std::string_view eol)
     {
         if (originals.empty())
@@ -164,6 +172,7 @@ namespace
             appendIndentedSnippet(outContent, originals.front().view(), indent.view(), eol);
             if (originals.front().back() != '\n' && originals.front().back() != '\r')
                 outContent += eol;
+
             return;
         }
 
@@ -171,6 +180,7 @@ namespace
         block += eol;
         block += "{";
         block += eol;
+
         for (const Utf8& snippet : stripped)
         {
             appendIndentedSnippet(block, snippet.view(), "    ", eol);
@@ -187,6 +197,7 @@ namespace
     {
         std::vector<Utf8> originals;
         std::vector<Utf8> stripped;
+
         for (const Utf8& snippet : snippets)
         {
             Utf8 candidate = snippet;
@@ -200,6 +211,7 @@ namespace
             appendForeignRun(outContent, originals, stripped, indent, eol);
             originals.clear();
             stripped.clear();
+
             appendIndentedSnippet(outContent, snippet.view(), indent.view(), eol);
             if (snippet.back() != '\n' && snippet.back() != '\r')
                 outContent += eol;
@@ -221,6 +233,7 @@ namespace
 
         Utf8 childIndent = indent;
         childIndent += "    ";
+
         appendSnippetsGroupingForeign(outContent, entry.snippets, childIndent, eol);
 
         outContent += indent;
@@ -232,7 +245,8 @@ namespace
     {
         size_t start;
         size_t end;
-        Utf8   replacement;
+
+        Utf8 replacement;
     };
 
     struct ModuleApiAttributeListSpan
@@ -243,8 +257,9 @@ namespace
 
     struct ModuleApiAttributeEntrySpan
     {
-        size_t           start;
-        size_t           end;
+        size_t start;
+        size_t end;
+
         std::string_view name;
     };
 
@@ -257,14 +272,17 @@ namespace
 
         size_t readOffset  = edits.front().start;
         size_t writeOffset = readOffset;
+
         for (const ModuleApiTextEdit& edit : edits)
         {
             SWC_ASSERT(edit.start >= readOffset && edit.end <= ioContent.size());
             SWC_ASSERT(edit.replacement.size() <= edit.end - edit.start);
+
             const size_t preservedSize = edit.start - readOffset;
             if (preservedSize)
                 std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, preservedSize);
             writeOffset += preservedSize;
+
             if (!edit.replacement.empty())
                 std::memcpy(ioContent.data() + writeOffset, edit.replacement.data(), edit.replacement.size());
             writeOffset += edit.replacement.size();
@@ -274,6 +292,7 @@ namespace
         const size_t suffixSize = ioContent.size() - readOffset;
         if (suffixSize)
             std::memmove(ioContent.data() + writeOffset, ioContent.data() + readOffset, suffixSize);
+
         ioContent.resize(writeOffset + suffixSize);
     }
 
@@ -295,8 +314,10 @@ namespace
         const std::string_view firstName = tokens[firstTokenIndex].string(srcView);
         if (firstName != "Swag")
             return firstName;
+
         if (firstTokenIndex + 2 >= endTokenIndex || tokens[firstTokenIndex + 1].id != TokenId::SymDot || tokens[firstTokenIndex + 2].id != TokenId::Identifier)
             return firstName;
+
         return tokens[firstTokenIndex + 2].string(srcView);
     }
 
@@ -319,17 +340,22 @@ namespace
 
         std::vector<ModuleApiTextEdit> edits;
         const auto&                    tokens = srcView.tokens();
+
         for (size_t tokenIndex = 0; tokenIndex < tokens.size(); ++tokenIndex)
         {
             if (tokens[tokenIndex].id != TokenId::SymAttrStart)
                 continue;
 
-            const size_t                             listStart       = srcView.tokenByteStart(tokens[tokenIndex]);
-            size_t                                   entryTokenIndex = tokenIndex + 1;
-            uint32_t                                 parenDepth      = 0;
-            uint32_t                                 bracketDepth    = 1;
-            uint32_t                                 curlyDepth      = 0;
+            const size_t listStart = srcView.tokenByteStart(tokens[tokenIndex]);
+
+            size_t entryTokenIndex = tokenIndex + 1;
+
+            uint32_t parenDepth   = 0;
+            uint32_t bracketDepth = 1;
+            uint32_t curlyDepth   = 0;
+
             std::vector<ModuleApiAttributeEntrySpan> entries;
+
             for (size_t listTokenIndex = tokenIndex + 1; listTokenIndex < tokens.size(); ++listTokenIndex)
             {
                 const Token& token = tokens[listTokenIndex];

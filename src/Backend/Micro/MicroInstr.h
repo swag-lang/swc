@@ -41,13 +41,17 @@ enum class MicroInstrFlagsE : uint16_t
     HasMemBaseOffsetOperands = 1 << 5,
     IsCallInstruction        = 1 << 6,
     WritesMemory             = 1 << 7,
+
     // An encoder may add implicit register uses or definitions for this opcode.
     EncoderRegUseDef    = 1 << 8,
     Fixed128BitOperands = 1 << 9,
+
     // A definition-only physical register claim can start at the output slot.
     RegisterDefsAtOutput = 1 << 10,
+
     // A compare or test that defines the flags and nothing else. CmpRegAmc is not marked.
     CompareOrTest = 1 << 11,
+
     // A memory access that may name a constant or an arena-resident global from the
     // instruction pointer, a relocation supplying the displacement.
     RelocatableMemoryAccess = 1 << 12,
@@ -57,12 +61,16 @@ using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 struct MicroInstrDef
 {
     std::array<MicroInstrRegMode, 3> regModes;
-    MicroInstrRegSpecial             special               = MicroInstrRegSpecial::None;
-    uint8_t                          microOpIndex          = 0;
-    uint8_t                          callConvIndex         = 0;
-    MicroInstrFlags                  flags                 = MicroInstrFlagsE::Zero;
-    uint8_t                          memBaseOperandIndex   = 0;
-    uint8_t                          memOffsetOperandIndex = 0;
+    MicroInstrRegSpecial             special = MicroInstrRegSpecial::None;
+
+    uint8_t microOpIndex  = 0;
+    uint8_t callConvIndex = 0;
+
+    MicroInstrFlags flags = MicroInstrFlagsE::Zero;
+
+    uint8_t memBaseOperandIndex   = 0;
+    uint8_t memOffsetOperandIndex = 0;
+
     // Only these union operands contain MicroOpBits, never immediates or registers.
     uint8_t opBitsMask = 0;
 
@@ -141,6 +149,7 @@ struct MicroInstrOperand
     {
         if (hasWideImmediateValue())
             return valueInt;
+
         return ApInt(valueU64, fallbackBitWidth);
     }
 };
@@ -188,8 +197,9 @@ struct MicroInstrUseDef
 {
     SmallVector4<MicroReg> uses;
     SmallVector4<MicroReg> defs;
-    bool                   isCall   = false;
-    CallConvKind           callConv = CallConvKind::Swag;
+
+    bool         isCall   = false;
+    CallConvKind callConv = CallConvKind::Swag;
 
     void addUse(MicroReg reg);
     void addDef(MicroReg reg);
@@ -212,19 +222,24 @@ struct MicroInstr
     MicroOperandRef  opsRef      = MicroOperandRef::invalid();
     MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
     uint8_t          numOperands = 0;
+
     // Generated guards may touch their private records, but preserve source-program memory.
     bool compilerSafetyCall = false;
+
     // A value-borrow write guard emitted while the function had no borrow of its own open.
     // A write it proves lands in this frame cannot meet a live borrow, so it needs no check.
     bool frameWriteGuard = false;
 
     MicroInstrOperand*       ops(MicroOperandStorage& operands) const;
     const MicroInstrOperand* ops(const MicroOperandStorage& operands) const;
-    MicroInstrUseDef         collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
-    CallFloatArgs            callFloatArgs(const MicroOperandStorage& operands) const;
-    bool                     has128BitOperands(const MicroInstrOperand* operands) const;
+
+    MicroInstrUseDef collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
+    CallFloatArgs    callFloatArgs(const MicroOperandStorage& operands) const;
+    bool             has128BitOperands(const MicroInstrOperand* operands) const;
+
     // Conservatively describes all float inputs of a packed instruction.
     MicroOpBits packedFloatInputBits(const MicroInstrOperand* operands) const;
+
     // Refills a record the caller keeps. A call names every argument and transient register of
     // its convention, which outgrows the inline lists: a record reused across a walk keeps the
     // storage the first call grew instead of allocating it again for each one.
@@ -232,8 +247,9 @@ struct MicroInstr
     void collectRegOperands(MicroOperandStorage& operands, MicroInstrRegOperandRefs& out, const Encoder* encoder) const;
 
     static constexpr const MicroInstrDef& info(MicroInstrOpcode op) { return MICRO_INSTR_OPCODE_INFOS[static_cast<size_t>(op)]; }
-    static bool                           isCompareOrTest(MicroInstrOpcode op) { return info(op).flags.has(MicroInstrFlagsE::CompareOrTest); }
-    static bool                           isRelocatableMemoryAccess(MicroInstrOpcode op) { return info(op).flags.has(MicroInstrFlagsE::RelocatableMemoryAccess); }
+
+    static bool isCompareOrTest(MicroInstrOpcode op) { return info(op).flags.has(MicroInstrFlagsE::CompareOrTest); }
+    static bool isRelocatableMemoryAccess(MicroInstrOpcode op) { return info(op).flags.has(MicroInstrFlagsE::RelocatableMemoryAccess); }
 };
 
 SWC_END_NAMESPACE();

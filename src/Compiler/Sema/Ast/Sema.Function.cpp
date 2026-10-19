@@ -1292,6 +1292,7 @@ namespace
 
         sema.setIsValue(sema.curNodeRef());
         sema.unsetIsLValue(sema.curNodeRef());
+
         return Result::Continue;
     }
 
@@ -1334,6 +1335,7 @@ namespace
         SymbolFunction* ownerFunction = sema.frame().enclosingFunction();
         if (!ownerFunction)
             ownerFunction = sema.currentFunction();
+
         if (!storageSym.isSemaCompleted() && ownerFunction)
         {
             const TypeInfo& symType = sema.typeMgr().get(sym.typeRef());
@@ -1351,6 +1353,7 @@ namespace
     {
         std::vector<const Symbol*> symbols;
         sym.getAllSymbols(symbols, true);
+
         for (const Symbol* symbol : symbols)
         {
             const auto* captureSym = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
@@ -1385,6 +1388,7 @@ namespace
         SourceCodeRef codeRef;
         codeRef.srcViewRef = captureArg.codeRef().srcViewRef;
         codeRef.tokRef     = captureArg.tokAliasNameRef;
+
         return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
     }
 
@@ -1412,24 +1416,25 @@ namespace
 
     Result buildClosureCaptureSymbols(Sema& sema, const AstClosureExpr& node, SymbolFunction& sym)
     {
-        TaskContext&            ctx = sema.ctx();
+        TaskContext& ctx = sema.ctx();
+
         SmallVector<AstNodeRef> captures;
         sema.ast().appendNodes(captures, node.nodeCaptureArgsRef);
 
         uint64_t captureOffset = 0;
         for (const AstNodeRef captureRef : captures)
         {
-            const AstClosureArgument& captureArg       = sema.node(captureRef).cast<AstClosureArgument>();
-            Symbol*                   sourceSym        = nullptr;
-            SymbolVariable*           sourceVar        = nullptr;
-            TypeRef                   typeRef          = TypeRef::invalid();
-            const bool                hasExplicitAlias = captureArg.tokAliasNameRef.isValid();
-            const auto*               identifier       = sema.node(captureArg.nodeIdentifierRef).safeCast<AstIdentifier>();
-            const bool                hasBoundConstant = identifier && identifier->hasFlag(AstIdentifierFlagsE::ConstantBinding) && sema.viewConstant(captureArg.nodeIdentifierRef).hasConstant();
+            const AstClosureArgument& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
+            Symbol*                   sourceSym  = nullptr;
+            SymbolVariable*           sourceVar  = nullptr;
+            TypeRef                   typeRef    = TypeRef::invalid();
 
-            // Expansion parameters can already be bound to a constant, including an omitted
-            // argument's default. Capture that value: looking its name up again would replace
-            // it with the macro's parameter, which has no storage in the caller's frame.
+            const bool  hasExplicitAlias = captureArg.tokAliasNameRef.isValid();
+            const auto* identifier       = sema.node(captureArg.nodeIdentifierRef).safeCast<AstIdentifier>();
+            const bool  hasBoundConstant = identifier && identifier->hasFlag(AstIdentifierFlagsE::ConstantBinding) && sema.viewConstant(captureArg.nodeIdentifierRef).hasConstant();
+
+            // Capture an expansion parameter's bound constant, including defaults.
+            // A fresh lookup would find the macro parameter, with no caller storage.
             if (hasExplicitAlias || hasBoundConstant)
             {
                 sourceSym = sema.viewSymbol(captureArg.nodeIdentifierRef).sym();
@@ -1449,6 +1454,7 @@ namespace
                 {
                     const auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_invalid, captureArg.nodeIdentifierRef);
                     diag.report(sema.ctx());
+
                     return Result::Error;
                 }
 
@@ -1466,6 +1472,7 @@ namespace
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_let_by_ref, captureArg.nodeIdentifierRef);
                 diag.addArgument(Diagnostic::ARG_SYM, sourceVar->name(sema.ctx()));
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
@@ -1477,15 +1484,15 @@ namespace
                 if (sourceVar)
                     diag.addArgument(Diagnostic::ARG_SYM, sourceVar->name(sema.ctx()));
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
             if (captureByRef && (hasExplicitAlias || hasBoundConstant) && !sema.isLValue(captureArg.nodeIdentifierRef))
                 return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, captureArg.nodeIdentifierRef);
 
-            // A by-value capture is a raw byte copy into the closure buffer: the environment never
-            // runs 'opPostCopy' on the way in and never drops the captured value on the way out, so
-            // only types without lifecycle operations can be captured by value.
+            // By-value captures copy raw bytes, without copy or drop hooks. Reject
+            // types whose lifecycle cannot be honored by that environment.
             if (!captureByRef && !typeInfo.isAnyVariadic())
             {
                 const TypeInfo& checkType    = typeInfo.unwrapAliasEnumTypeOrSelf(ctx);
@@ -1503,6 +1510,7 @@ namespace
                     auto diag = SemaError::report(sema, diagId, captureArg.nodeIdentifierRef);
                     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
                     diag.report(ctx);
+
                     return Result::Error;
                 }
             }
@@ -1537,6 +1545,7 @@ namespace
                 diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
                 diag.addArgument(Diagnostic::ARG_VALUE, Runtime::CLOSURE_CAPTURE_BUFFER_SIZE);
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
@@ -1548,10 +1557,12 @@ namespace
             }
 
             auto* captureSym = Symbol::make<SymbolVariable>(ctx, &captureArg, captureArg.tokRef(), captureIdRef, SymbolFlagsE::Zero);
+
             // The by-value copy is a cell of the closure's own, so its mutability is the capture
             // list's to state: without 'var' it stays read-only, whatever the source was declared.
             if (!captureByRef && !captureIsVar)
                 captureSym->addExtraFlag(SymbolVariableFlagsE::Let);
+
             captureSym->setTypeRef(typeRef);
             captureSym->setClosureCapturedSource(sourceVar);
             captureSym->setClosureCaptureOffset(static_cast<uint32_t>(captureOffset));
@@ -1570,6 +1581,7 @@ namespace
                     diag.addNote(DiagnosticId::sema_note_previous_capture);
                     diag.last().addSpan(inserted->codeRange(ctx));
                     diag.report(ctx);
+
                     return Result::Error;
                 }
             }
@@ -1577,6 +1589,7 @@ namespace
             captureSym->setDeclared(ctx);
             captureSym->setTyped(ctx);
             captureSym->setSemaCompleted(ctx);
+
             captureOffset += storageSize;
         }
 

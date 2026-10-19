@@ -45,10 +45,12 @@ Result CodeGenFunctionHelpers::emitMoveValue(CodeGen& codeGen, TypeRef typeRef, 
     source.reg     = sourceReg;
     source.typeRef = typeRef;
     source.setIsAddress();
+
     CodeGenMemoryHelpers::storePayloadToAddress(codeGen, dstReg, source, checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(typeRef)));
     SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeRef, dstReg));
     if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::PostMove))
         SWC_RESULT(codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::PostMove, dstReg));
+
     if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
         SWC_RESULT(emitMovedFromDefaultValue(codeGen, typeRef, sourceReg));
     else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
@@ -56,11 +58,14 @@ Result CodeGenFunctionHelpers::emitMoveValue(CodeGen& codeGen, TypeRef typeRef, 
         sourceRef = SemaHelpers::resolveTransparentExprSourceRef(codeGen.sema(), sourceRef);
         while (sourceRef.isValid() && codeGen.node(sourceRef).is(AstNodeId::ParenExpr))
             sourceRef = codeGen.node(sourceRef).cast<AstParenExpr>().nodeExprRef;
+
         if (sourceRef.isValid() && codeGen.node(sourceRef).is(AstNodeId::UnaryExpr) &&
             codeGen.token(codeGen.node(sourceRef).codeRef()).id == TokenId::ModifierMove)
             sourceRef = codeGen.node(sourceRef).cast<AstUnaryExpr>().nodeExprRef;
+
         SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, sourceReg, typeRef, sourceRef));
     }
+
     return Result::Continue;
 }
 
@@ -93,6 +98,7 @@ namespace
             SWC_ASSERT(rawType);
             if (!rawType)
                 return Result::Error;
+
             return persistCompilerRunValueRec(ctx, segment, *rawType, dstBytes, srcBytes, localStackBase, localStackSize);
         }
 
@@ -116,6 +122,7 @@ namespace
             const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(srcString->length), 1, false);
             SWC_UNUSED(dataOffset);
             std::memcpy(dataStorage, srcString->ptr, srcString->length);
+
             dstString->ptr    = reinterpret_cast<const char*>(dataStorage);
             dstString->length = srcString->length;
             return Result::Continue;
@@ -123,8 +130,9 @@ namespace
 
         if (typeInfo.isSlice())
         {
-            auto* const     dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
-            const auto*     srcSlice       = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
+            auto* const dstSlice = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
+            const auto* srcSlice = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
+
             const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
             const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
             const uint64_t  elementSize    = elementType.sizeOf(ctx);
@@ -134,6 +142,7 @@ namespace
             const bool     scanElements = SemaHelpers::needsPersistentCompilerRunReturn(ctx, elementTypeRef);
             const uint64_t byteCount    = srcSlice->count * elementSize;
             SWC_ASSERT(byteCount <= std::numeric_limits<uint32_t>::max());
+
             const bool mustClone = stackContainsRange(localStackBase, localStackSize, srcSlice->ptr, byteCount) || scanElements;
             if (!mustClone)
                 return Result::Continue;
@@ -171,7 +180,6 @@ namespace
                 return Result::Error;
 
             uint64_t totalCount = typeInfo.arrayTotalElementCount();
-
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
@@ -205,9 +213,8 @@ namespace
         return Result::Continue;
     }
 
-    // Generated code calls back here with the compiler instance, not with the code-generation
-    // Sema that emitted the call: a '#run' executes after its CodeGenJob has finished and
-    // released that Sema, while the instance outlives every job of its module.
+    // #run executes after its CodeGenJob releases the lowering Sema. Pass the
+    // compiler instance, which outlives every job in the module, to this callback.
     void persistCompilerRunValue(CompilerInstance* compiler, uint64_t rawTypeRef, void* dst, const void* src, const void* localStackBase, uint64_t localStackSize)
     {
         SWC_ASSERT(compiler);
@@ -236,6 +243,7 @@ namespace
     {
         if (isFloat)
             return microOpBitsFromBitWidth(numBits);
+
         return MicroOpBits::B64;
     }
 }
@@ -251,7 +259,8 @@ bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen,
     if (!returnTypeRef.isValid())
         return false;
 
-    const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+    const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
+
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
     return normalizedRet.isIndirect;
 }
@@ -262,9 +271,11 @@ namespace
     {
         if (!symVar.decl())
             return nullptr;
+
         const AstNodeRef declRef = codeGen.ast().tryFindNodeRef(symVar.decl());
         if (declRef.isInvalid())
             return nullptr;
+
         const auto* expansion = codeGen.sema().inlinePayload(declRef);
         return expansion && !expansion->returnsToCallerSite() ? expansion : nullptr;
     }
@@ -274,8 +285,10 @@ bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const Sym
 {
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
         return false;
+
     if (const auto* expansion = inlineReturnStorageOwner(codeGen, symVar))
         return expansion->resultVar != nullptr;
+
     return functionUsesIndirectReturnStorage(codeGen, codeGen.function());
 }
 
@@ -292,12 +305,14 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(Cod
             const auto& context = frame.currentInlineContext();
             if (context.payload != expansion || !context.resultStorageReg.isValid())
                 continue;
+
             CodeGenNodePayload result;
             result.typeRef = symVar.typeRef();
             result.setIsAddress();
             result.reg = context.resultStorageReg;
             return result;
         }
+
         SWC_ASSERT(expansion->resultVar != nullptr);
         return codeGen.resolveLocalStackPayload(*expansion->resultVar, false);
     }
@@ -333,14 +348,10 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveClosureCapturePayload(CodeGen&
     SWC_ASSERT(symVar.isClosureCapture());
     SWC_ASSERT(codeGen.currentFunctionClosureContextReg().isValid());
 
-    // Recompute the capture address from the closure context on every access
-    // instead of caching it. A cached capture address (context + offset) is a
-    // virtual register that stays live from the first to the last reference;
-    // when those references straddle loops or calls (e.g. a nested closure built
-    // when a popup opens), RegAlloc round-trips that long-lived value through the
-    // spill machinery and can reload it from a slot that was never written on the
-    // taken path. The context register itself is pinned to a persistent register,
-    // so recomputing here keeps every derived address short-lived and spill-free.
+    // Recompute capture addresses from the pinned closure context. Caching keeps
+    // the derived register live across loops and calls, where spill/reload paths
+    // can read a slot not initialized on the taken path. Short-lived derived
+    // addresses avoid those spills while the persistent context stays available.
     CodeGenNodePayload capturePayload;
     capturePayload.typeRef = symVar.typeRef();
 
@@ -438,6 +449,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     {
         const SymbolVariable* param = params[i];
         SWC_ASSERT(param != nullptr);
+
         const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex = i + hiddenArgCount;
         FunctionParameterInfo                  currentInfo;
@@ -445,6 +457,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
         if (i == parameterIndex)
             result = currentInfo;
     }
+
     return result;
 }
 
@@ -470,6 +483,7 @@ void CodeGenFunctionHelpers::fillFunctionParameterInfos(CodeGen& codeGen, std::s
         const SymbolVariable* param = params[i];
         SWC_ASSERT(param != nullptr && param->hasParameterIndex());
         SWC_ASSERT(param->parameterIndex() == i);
+
         const ABITypeNormalize::NormalizedType type      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(param->typeRef()), ABITypeNormalize::Usage::Argument);
         const uint32_t                         slotIndex = param->parameterIndex() + hiddenArgCount;
         FunctionParameterInfo&                 paramInfo = outParamInfos[i];
@@ -488,10 +502,12 @@ bool CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParamet
         return false;
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
         return false;
+
     if (paramInfo)
         return paramInfo->isIndirect;
 
-    const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
+    const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
+
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
     return normalizedParam.isIndirect;
 }
@@ -504,16 +520,16 @@ bool CodeGenFunctionHelpers::isBorrowedIndirectParameter(CodeGen& codeGen, const
     if (paramInfo)
         return paramInfo->isIndirect && !paramInfo->needsIndirectCopy;
 
-    const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
+    const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
+
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symVar.typeRef()), ABITypeNormalize::Usage::Argument);
     return normalizedParam.isIndirect && !normalizedParam.needsIndirectCopy;
 }
 
 bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo* paramInfo)
 {
-    // An aggregate small enough for the ABI to pass in a register still needs a memory home in
-    // the callee: the body reads it through its address. The prologue gives such a parameter a
-    // local slot and spills the incoming register there.
+    // Register-passed aggregates still need a memory home: the callee reads
+    // through their address, so the prologue spills them to local slots.
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         return false;
 
@@ -525,10 +541,12 @@ bool CodeGenFunctionHelpers::isByValueAggregateParameter(CodeGen& codeGen, const
     const TypeInfo& storageType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef);
     if (!SemaHelpers::isByValueAggregateType(storageType))
         return false;
+
     if (paramInfo)
         return !paramInfo->isIndirect;
 
-    const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
+    const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
+
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(ctx, callConv, storageType, ABITypeNormalize::Usage::Argument);
     return !normalizedParam.isIndirect;
 }
@@ -547,13 +565,13 @@ bool CodeGenFunctionHelpers::isImmutableIndirectParameter(CodeGen& codeGen, cons
     if (!typeRef.isValid())
         return false;
 
-    // A value handle or a struct is a value: nothing may change the caller's storage while the
-    // call runs, so every read through the parameter is fixed for the call and may leave a loop
-    // or be reused across stores and calls. A function that must watch an object another thread
-    // changes takes a pointer. An array parameter is a view the callee itself writes through.
+    // By-value handles and structs cannot change in caller storage during the
+    // call, so reads can move out of loops or across stores/calls. Observing
+    // external changes requires a pointer; array parameters remain writable views.
     const TypeInfo& storageType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, typeRef);
     if (storageType.isStructOrAggregateStruct())
         return true;
+
     return storageType.isStringOrSlice() || storageType.isInterface() || storageType.isAny();
 }
 
@@ -583,9 +601,8 @@ void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallC
     const uint32_t  frameSize = codeGen.localStackFrameSize();
     SWC_ASSERT(frameSize != 0);
 
-    // RegAlloc picks the physical register for the frame base. Forbidding every transient
-    // (caller-saved) one, plus the stack and frame pointers, leaves only persistent registers,
-    // so neither a call nor later instruction selection can clobber the active frame base.
+    // Restrict the frame base to persistent registers. Caller-saved registers
+    // and stack/frame pointers can be clobbered by calls or instruction selection.
     const MicroReg        frameBaseReg  = codeGen.nextVirtualIntRegister();
     SmallVector<MicroReg> forbiddenRegs = callConv.intTransientRegs;
     forbiddenRegs.push_back(callConv.stackPointer);
@@ -596,6 +613,7 @@ void CodeGenFunctionHelpers::emitLocalStackFramePrologue(CodeGen& codeGen, CallC
     builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
     codeGen.setLocalStackBaseReg(frameBaseReg);
+
     codeGen.function().setDebugStackFrameSize(frameSize);
     codeGen.function().setDebugStackBaseReg(frameBaseReg);
 }
@@ -665,6 +683,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
     {
         if (&payloadSym != &symVar)
             codeGen.setVariablePayload(symVar, *symbolPayload);
+
         return *symbolPayload;
     }
 
@@ -675,6 +694,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
         const CodeGenNodePayload payload = codeGen.resolveLocalStackPayload(payloadSym);
         if (&payloadSym != &symVar)
             codeGen.setVariablePayload(symVar, payload);
+
         return payload;
     }
 
@@ -696,6 +716,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
     codeGen.setVariablePayload(payloadSym, outPayload);
     if (&payloadSym != &symVar)
         codeGen.setVariablePayload(symVar, outPayload);
+
     return outPayload;
 }
 
@@ -745,6 +766,7 @@ namespace
         {
             if (typeInfo.payloadSymStruct().hasDynamicStorage())
                 return false;
+
             for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
             {
                 if (field && !canEmitDefaultPayloadBytesInline(codeGen, codeGen.typeMgr().get(field->typeRef())))
@@ -779,7 +801,8 @@ namespace
         if (!storedBytes)
             return Result::Continue;
 
-        outPayloadBytes          = std::span{storedBytes, static_cast<size_t>(size)};
+        outPayloadBytes = std::span{storedBytes, static_cast<size_t>(size)};
+
         ConstantValue payloadCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, outPayloadBytes);
         payloadCst.setDataSegmentRef({.shardIndex = 0, .offset = offset});
         outPayloadRef = codeGen.cstMgr().addMaterializedPayloadConstant(payloadCst);
@@ -801,9 +824,11 @@ namespace
             CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, payloadReg, size);
             return Result::Continue;
         }
+
         SmallVector<std::byte> payloadBytes;
         payloadBytes.resize(size);
         SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), std::span{payloadBytes.data(), payloadBytes.size()}, valueRef, typeInfo));
+
         const bool canEmitInline = canEmitDefaultPayloadBytesInline(codeGen, typeInfo);
         if (CodeGenMemoryHelpers::emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, std::span{payloadBytes.data(), payloadBytes.size()}, canEmitInline))
             return Result::Continue;
@@ -817,11 +842,13 @@ namespace
             storeBits = MicroOpBits::B32;
         else if (size == 8)
             storeBits = MicroOpBits::B64;
+
         if (canEmitInline && storeBits != MicroOpBits::Zero)
         {
             uint64_t value = 0;
             for (uint32_t i = 0; i < size; ++i)
                 value |= static_cast<uint64_t>(static_cast<uint8_t>(payloadBytes[i])) << (i * 8);
+
             codeGen.builder().emitLoadMemImm(dstAddressReg, 0, ApInt(value, 64), storeBits);
             return Result::Continue;
         }
@@ -843,8 +870,8 @@ namespace
 
     Result emitImplicitDefaultValue(CodeGen& codeGen, const TypeInfo& declaredType, MicroReg dstAddressReg)
     {
-        const TypeInfo& typeInfo    = declaredType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
-        const TypeRef   typeRef     = typeInfo.typeRef();
+        const TypeInfo& typeInfo = declaredType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const TypeRef   typeRef  = typeInfo.typeRef();
         if (typeInfo.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeInfo, dstAddressReg);
         if (typeInfo.isArray())
@@ -869,6 +896,7 @@ namespace
             return Result::Continue;
 
         SWC_ASSERT(elemCount <= std::numeric_limits<uint32_t>::max());
+
         const TypeInfo& storageElemType = elemType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         if (storageElemType.isStruct())
             return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemType, dstAddressReg, static_cast<uint32_t>(elemCount));
@@ -901,9 +929,8 @@ namespace
 
         const MicroReg fieldAddressReg = codeGen.offsetAddressReg(dstAddressReg, field.offset(), false);
 
-        // A 'late' field is typed non-null, so the generic implicit-default
-        // path would skip it ("needs explicit initialization"). Its storage
-        // must instead start as null so a presence comparison reads false: zero it.
+        // Late fields start absent despite their non-null type. The generic default
+        // path skips types requiring explicit initialization, so zero this storage.
         if (field.hasExtraFlag(SymbolVariableFlagsE::LateInit))
         {
             CodeGenMemoryHelpers::emitMemZero(codeGen, fieldAddressReg, fieldSize);
@@ -959,6 +986,7 @@ namespace
             const uint64_t fieldSize   = codeGen.typeMgr().get(field->typeRef()).sizeOf(codeGen.ctx());
             if (fieldOffset < initializedEnd)
                 return false;
+
             initializedEnd = fieldOffset + fieldSize;
         }
 
@@ -1015,6 +1043,7 @@ namespace
     {
         const TypeRef typeRef = typeInfo.typeRef();
         SWC_ASSERT(typeInfo.isStruct());
+
         ConstantRef defaultValueRef = ConstantRef::invalid();
         SWC_RESULT(typeInfo.payloadSymStruct().resolveImplicitDefaultValueRef(codeGen.sema(), typeRef, defaultValueRef));
         if (defaultValueRef.isInvalid())
@@ -1042,6 +1071,7 @@ Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeR
 {
     const TypeInfo& type = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), typeRef);
     SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, dstAddressReg, type.sizeOf(codeGen.ctx())));
+
     if (!type.isStruct() || !type.payloadSymStruct().isDynamic())
         return emitImplicitDefaultValue(codeGen, type, dstAddressReg);
 
@@ -1055,9 +1085,12 @@ Result CodeGenFunctionHelpers::emitMovedFromDefaultValue(CodeGen& codeGen, TypeR
         codeGen.builder().emitLoadRegMem(identity, dstAddressReg, offset, MicroOpBits::B64);
         identities.push_back(identity);
     }
+
     SWC_RESULT(emitImplicitDefaultValue(codeGen, type, dstAddressReg));
+
     for (size_t i = 0; i < slots.size(); ++i)
         codeGen.builder().emitLoadMemReg(dstAddressReg, slots[i], identities[i], MicroOpBits::B64);
+
     return Result::Continue;
 }
 
@@ -1076,13 +1109,16 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
             const MicroReg args[] = {dstAddressReg};
             return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *init, args);
         }
+
         return symStruct.isUnion() ? emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg) : emitStructComposedDefaultValue(codeGen, typeInfo, dstAddressReg);
     }
+
     if (symStruct.hasImplicitAllZeroDefault())
     {
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, checkedTypeSizeInBytes(codeGen, typeInfo));
         return Result::Continue;
     }
+
     if (symStruct.requiresExplicitInitialization())
         return emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg);
 
@@ -1098,6 +1134,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
 
     ConstantRef safeDefaultValueRef = ConstantRef::invalid();
     SWC_RESULT(materializeStructDefaultPayload(codeGen, safeDefaultValueRef, payloadBytes, typeInfo));
+
     // Construction can discover a partial write over a relocated pointer only while
     // resolving the default. Complete that write against the runtime address instead.
     if (safeDefaultValueRef.isInvalid() && symStruct.hasRuntimeImplicitDefault())
@@ -1122,6 +1159,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
 
     const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
+
     const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
     if (symStruct.hasImplicitAllZeroDefault())
     {
@@ -1130,10 +1168,12 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
         return Result::Continue;
     }
+
     ConstantRef                safeDefaultValueRef = ConstantRef::invalid();
     std::span<const std::byte> payloadBytes;
     if (!symStruct.requiresExplicitInitialization() && !symStruct.hasRuntimeImplicitDefault())
         SWC_RESULT(materializeStructDefaultPayload(codeGen, safeDefaultValueRef, payloadBytes, typeInfo));
+
     if (symStruct.requiresExplicitInitialization() || symStruct.hasRuntimeImplicitDefault())
     {
         for (uint32_t i = 0; i < count; ++i)
@@ -1161,12 +1201,14 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
 
     const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
-    const uint32_t                          sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
-    const CodeGenMemoryHelpers::ElementLoop loop   = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
+    const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+
+    const CodeGenMemoryHelpers::ElementLoop loop = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
     if (symStruct.hasImplicitAllZeroDefault())
         CodeGenMemoryHelpers::emitMemZero(codeGen, loop.cursorReg, sizeOf);
     else
         SWC_RESULT(emitStructDefaultValue(codeGen, typeInfo, loop.cursorReg));
+
     CodeGenMemoryHelpers::endElementLoop(codeGen, loop, sizeOf);
     return Result::Continue;
 }
@@ -1176,8 +1218,8 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
     if (!count)
         return Result::Continue;
 
-    const TypeInfo& declaredType  = codeGen.typeMgr().get(typeRef);
-    const TypeInfo& typeInfo      = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
+    const TypeInfo& declaredType = codeGen.typeMgr().get(typeRef);
+    const TypeInfo& typeInfo     = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
     if (typeInfo.isStruct())
         return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, count);
     if (count == 1)
@@ -1189,8 +1231,7 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
         if (SymbolStruct::typeRequiresExplicitInitialization(codeGen.sema(), typeInfo.typeRef()))
             return Result::Continue;
 
-        // These defaults only zero storage. Emit one contiguous fill instead of generating
-        // an address and a separate initialization for every element in a constant count.
+        // Batch zero-only defaults into one fill instead of initializing each element.
         const uint64_t totalSize = static_cast<uint64_t>(sizeOf) * count;
         if (totalSize <= std::numeric_limits<uint32_t>::max())
         {
@@ -1212,13 +1253,14 @@ Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef ty
 
 Result CodeGenFunctionHelpers::emitTypeDefaultValue(CodeGen& codeGen, TypeRef typeRef, const MicroReg dstAddressReg, const MicroReg countReg)
 {
-    const TypeInfo& declaredType  = codeGen.typeMgr().get(typeRef);
-    const TypeInfo& typeInfo      = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
+    const TypeInfo& declaredType = codeGen.typeMgr().get(typeRef);
+    const TypeInfo& typeInfo     = declaredType.unwrapAliasTypeOrSelf(codeGen.ctx());
     if (typeInfo.isStruct())
         return emitStructDefaultValue(codeGen, typeInfo, dstAddressReg, countReg);
 
-    const uint32_t                          sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
-    const CodeGenMemoryHelpers::ElementLoop loop   = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
+    const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+
+    const CodeGenMemoryHelpers::ElementLoop loop = CodeGenMemoryHelpers::beginElementLoop(codeGen, dstAddressReg, countReg);
     SWC_RESULT(emitImplicitDefaultValue(codeGen, typeInfo, loop.cursorReg));
     CodeGenMemoryHelpers::endElementLoop(codeGen, loop, sizeOf);
     return Result::Continue;
@@ -1330,6 +1372,7 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
 {
     outStorageReg = MicroReg::invalid();
     outStorageSym = nullptr;
+
     if (!typeRef.isValid())
         return false;
 
@@ -1345,10 +1388,9 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
     if (!inlineCtx && !codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
         return false;
 
-    // The value has to be the returned type itself. A call whose result the return
-    // converts - a 'string' becoming a 'String' - builds its own temporary through the
-    // conversion; writing the call's bytes into the return slot would leave the slot
-    // holding a value of another type, and the conversion's result never copied there.
+    // Build directly only when the expression already has the return type.
+    // A conversion such as string to String needs its own temporary; writing
+    // source bytes into the return slot would leave it holding the wrong type.
     const TypeRef returnTypeRef = inlineCtx ? inlineCtx->payload->returnTypeRef : codeGen.function().returnTypeRef();
     if (!returnTypeRef.isValid())
         return false;
@@ -1396,10 +1438,11 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
                 outStorageReg = inlineCtx->resultStorageReg;
             else
             {
-                // Materialized here rather than taken from the cache: the result temporary
-                // is declared nowhere, and a 'return' in another branch may have filled it.
+                // No declaration anchors this temporary's cached address; another
+                // branch's return may have produced a non-dominating definition.
                 outStorageReg = codeGen.resolveLocalStackPayload(*outStorageSym, false).reg;
             }
+
             return outStorageReg.isValid();
         }
 
@@ -1408,13 +1451,12 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
     }
 }
 
-// An aggregate literal builds a whole value from scratch: its fields ran their own copy or
-// move hooks as they entered it, and nothing else names the storage it was built in. It is
-// therefore an owned value wherever it goes, never a source to copy from.
+// Aggregate fields already ran their copy/move hooks while entering fresh,
+// unaliased literal storage. The resulting value transfers ownership.
 bool CodeGenFunctionHelpers::isFreshAggregateLiteral(CodeGen& codeGen, AstNodeRef nodeRef)
 {
-    // The written node is what matters: the cast that types a literal substitutes for it
-    // without changing where its value came from.
+    // Inspect the written literal: its typing cast substitutes for the node
+    // without changing the value's origin.
     while (nodeRef.isValid())
     {
         const AstNode& node = codeGen.node(nodeRef);
@@ -1429,14 +1471,14 @@ bool CodeGenFunctionHelpers::isFreshAggregateLiteral(CodeGen& codeGen, AstNodeRe
     return false;
 }
 
-// A call result owns its value, whether the call was emitted or expanded inline, and
-// whatever error-management wrappers stand around it. A reference-returning call is the
-// exception: its address is a borrowed referee.
+// Emitted and inlined calls own their results through error-management wrappers.
+// Reference-returning calls instead borrow the referenced object.
 bool CodeGenFunctionHelpers::isOwnedCallResult(CodeGen& codeGen, AstNodeRef nodeRef)
 {
     AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
     while (resolvedRef.isValid() && codeGen.node(resolvedRef).is(AstNodeId::ErrorManagementExpr))
         resolvedRef = codeGen.resolvedNodeRef(codeGen.node(resolvedRef).cast<AstErrorManagementExpr>().nodeExprRef);
+
     if (resolvedRef.isInvalid())
         return false;
 
@@ -1452,6 +1494,7 @@ bool CodeGenFunctionHelpers::isOwnedCallResult(CodeGen& codeGen, AstNodeRef node
         calledFunction = CodeGenExprView::singleFunction(codeGen.viewSymbol(resolvedRef));
     if (!calledFunction || !calledFunction->returnTypeRef().isValid())
         return false;
+
     return !codeGen.typeMgr().get(calledFunction->returnTypeRef()).isReference();
 }
 
@@ -1470,6 +1513,7 @@ bool CodeGenFunctionHelpers::tryUseShortBodyReturnStorage(CodeGen& codeGen, AstN
     AstNodeRef parentRef   = codeGen.visit().parentNodeRef(parentIndex);
     while (parentRef.isValid() && (codeGen.node(parentRef).is(AstNodeId::CastExpr) || codeGen.node(parentRef).is(AstNodeId::ParenExpr)))
         parentRef = codeGen.visit().parentNodeRef(++parentIndex);
+
     if (parentRef.isInvalid() || parentRef != codeGen.resolvedNodeRef(codeGen.function().declNodeRef()))
         return false;
 
@@ -1524,6 +1568,7 @@ void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeR
 
     const CallConv& callConv = CallConv::get(callConvKind);
     CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
+
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
     ABICall::callReg(builder, callConvKind, targetReg, preparedCall);
 }

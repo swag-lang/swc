@@ -35,15 +35,17 @@ public:
     {
     }
 
-    bool          isForStruct() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForStruct); }
-    bool          isForEnum() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForEnum); }
-    bool          isForInterface() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForInterface); }
+    bool isForStruct() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForStruct); }
+    bool isForEnum() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForEnum); }
+    bool isForInterface() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForInterface); }
+
     bool          isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
     void          setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
     IdentifierRef pendingRegistrationTargetIdRef() const noexcept { return pendingRegistrationTargetIdRef_; }
     void          setPendingRegistrationTargetIdRef(IdentifierRef idRef) noexcept { pendingRegistrationTargetIdRef_ = idRef; }
-    AstNodeRef    genericBlockRef() const noexcept { return genericBlockRef_; }
-    void          setGenericBlockRef(AstNodeRef nodeRef) noexcept { genericBlockRef_ = nodeRef; }
+
+    AstNodeRef genericBlockRef() const noexcept { return genericBlockRef_; }
+    void       setGenericBlockRef(AstNodeRef nodeRef) noexcept { genericBlockRef_ = nodeRef; }
 
     SymbolStruct*    symStruct() const;
     void             setSymStruct(SymbolStruct* sym);
@@ -51,23 +53,28 @@ public:
     void             setSymEnum(SymbolEnum* sym);
     TypeRef          ownerTypeRef() const;
     const SymbolMap* targetSymbolMap() const;
+
     SymbolInterface* symInterface() const noexcept { return interfaceSym_; }
     void             setSymInterface(SymbolInterface* sym) noexcept { interfaceSym_ = sym; }
 
-    void                            addFunction(const TaskContext& ctx, SymbolFunction* sym);
-    const SymbolFunction*           findFunction(IdentifierRef functionIdRef) const;
-    const SymbolFunction*           findFunctionForInterfaceMethod(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
-    const SymbolFunction*           resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
+    void                  addFunction(const TaskContext& ctx, SymbolFunction* sym);
+    const SymbolFunction* findFunction(IdentifierRef functionIdRef) const;
+    const SymbolFunction* findFunctionForInterfaceMethod(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
+    const SymbolFunction* resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const;
+
     SmallVector<SymbolFunction*, 8> specOps() const;
-    Result                          ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
-    Result                          validateInterfaceConstraints(Sema& sema, CastFailure& failure) const;
+
+    Result ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
+    Result validateInterfaceConstraints(Sema& sema, CastFailure& failure) const;
 
 private:
-    std::vector<SymbolFunction*>  specOps_;
+    std::vector<SymbolFunction*> specOps_;
+
     mutable std::shared_mutex     interfaceMethodTableMutex_;
     mutable ConstantRef           interfaceMethodTableRef_          = ConstantRef::invalid();
     mutable std::atomic<uint32_t> interfaceMethodTablePublishedRef_ = ConstantRef::invalid().get();
-    mutable std::atomic<bool>     missingMethodReported_            = false;
+
+    mutable std::atomic<bool> missingMethodReported_ = false;
 
     union
     {
@@ -75,9 +82,11 @@ private:
         SymbolEnum*   ownerEnum_;
     };
 
-    SymbolInterface* interfaceSym_                   = nullptr;
-    IdentifierRef    pendingRegistrationTargetIdRef_ = IdentifierRef::invalid();
-    AstNodeRef       genericBlockRef_                = AstNodeRef::invalid();
+    SymbolInterface* interfaceSym_ = nullptr;
+
+    IdentifierRef pendingRegistrationTargetIdRef_ = IdentifierRef::invalid();
+
+    AstNodeRef genericBlockRef_ = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

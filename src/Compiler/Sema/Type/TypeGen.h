@@ -33,7 +33,8 @@ public:
     {
         std::span<const std::byte> span;
         TypeRef                    rtTypeRef;
-        uint32_t                   offset = 0;
+
+        uint32_t offset = 0;
     };
 
     struct TypeGenCache
@@ -46,40 +47,51 @@ public:
 
         struct Entry
         {
-            uint32_t                           offset = 0;
-            TypeRef                            rtTypeRef;
-            State                              state            = State::CommonInit;
-            bool                               backRefPublished = false;
-            bool                               onDfsStack       = false;
-            uint32_t                           nextDependency   = 0;
-            SmallVector<TypeRef>               deps;
-            uint32_t                           enumValuesOffset   = 0;
-            uint32_t                           enumValuesCount    = 0;
-            uint32_t                           structFieldsOffset = 0;
-            uint32_t                           structFieldsCount  = 0;
-            SmallVector<TypeRef>               structFieldTypes;
+            uint32_t offset = 0;
+            TypeRef  rtTypeRef;
+
+            State    state            = State::CommonInit;
+            bool     backRefPublished = false;
+            bool     onDfsStack       = false;
+            uint32_t nextDependency   = 0;
+
+            SmallVector<TypeRef> deps;
+
+            uint32_t enumValuesOffset = 0;
+            uint32_t enumValuesCount  = 0;
+
+            uint32_t             structFieldsOffset = 0;
+            uint32_t             structFieldsCount  = 0;
+            SmallVector<TypeRef> structFieldTypes;
+
             uint32_t                           structMethodsOffset = 0;
             uint32_t                           structMethodsCount  = 0;
             SmallVector<TypeRef>               structMethodTypes;
             std::vector<const SymbolFunction*> structMethods;
-            uint32_t                           structInterfacesOffset = 0;
-            uint32_t                           structInterfacesCount  = 0;
-            SmallVector<TypeRef>               structInterfaceTypes;
-            std::vector<const SymbolImpl*>     structInterfaces;
-            TypeRef                            structFromGenericTypeRef = TypeRef::invalid();
-            uint32_t                           structGenericsOffset     = 0;
-            uint32_t                           structGenericsCount      = 0;
-            SmallVector<TypeRef>               structGenericTypes;
-            uint32_t                           usingFieldsOffset = 0;
-            uint32_t                           usingFieldsCount  = 0;
-            SmallVector<TypeRef>               usingFieldTypes;
-            uint32_t                           funcParamsOffset = 0;
-            uint32_t                           funcParamsCount  = 0;
-            SmallVector<TypeRef>               funcParamTypes;
-            uint32_t                           funcGenericsOffset = 0;
-            uint32_t                           funcGenericsCount  = 0;
-            SmallVector<TypeRef>               funcGenericTypes;
-            TypeRef                            funcReturnTypeRef = TypeRef::invalid();
+
+            uint32_t                       structInterfacesOffset = 0;
+            uint32_t                       structInterfacesCount  = 0;
+            SmallVector<TypeRef>           structInterfaceTypes;
+            std::vector<const SymbolImpl*> structInterfaces;
+
+            TypeRef              structFromGenericTypeRef = TypeRef::invalid();
+            uint32_t             structGenericsOffset     = 0;
+            uint32_t             structGenericsCount      = 0;
+            SmallVector<TypeRef> structGenericTypes;
+
+            uint32_t             usingFieldsOffset = 0;
+            uint32_t             usingFieldsCount  = 0;
+            SmallVector<TypeRef> usingFieldTypes;
+
+            uint32_t             funcParamsOffset = 0;
+            uint32_t             funcParamsCount  = 0;
+            SmallVector<TypeRef> funcParamTypes;
+
+            uint32_t             funcGenericsOffset = 0;
+            uint32_t             funcGenericsCount  = 0;
+            SmallVector<TypeRef> funcGenericTypes;
+
+            TypeRef funcReturnTypeRef = TypeRef::invalid();
         };
 
         // The walk's bookkeeping occupies the existing padding before dependencies.
@@ -87,7 +99,8 @@ public:
 
         // Even generations are free; odd generations identify one exclusive owner.
         // The generation also closes release-before-scheduler-registration races.
-        std::atomic<uint64_t>              ownership{0};
+        std::atomic<uint64_t> ownership{0};
+
         std::unordered_map<TypeRef, Entry> entries;
         SmallVector<TypeRef>               pendingBackRefs;
     };
@@ -106,8 +119,9 @@ public:
     private:
         TypeGenCache* cache_;
         TaskContext*  ctx_;
-        uint64_t      generation_ = 0;
-        bool          owned_      = false;
+
+        uint64_t generation_ = 0;
+        bool     owned_      = false;
     };
 
     struct LifecycleFlags
@@ -125,9 +139,8 @@ public:
     static LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef);
     static TypeRef        owningDropTypeRef(TaskContext& ctx, TypeRef typeRef);
 
-    // The function type a reflected method entry should carry, or invalid when the method
-    // cannot appear in runtime metadata at all (compiler-only, or a signature that names a
-    // type reflection cannot describe).
+    // Return a reflected method's function type, or invalid for compiler-only methods
+    // and signatures containing types runtime reflection cannot describe.
     static TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc);
 
 private:
@@ -149,21 +162,26 @@ private:
         Simd,
     };
 
-    TypeGenCache&                                  cacheFor(const DataSegment& storage);
-    static LayoutKind                              layoutKindOf(const TypeInfo& type);
-    static Result                                  rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef);
-    static void                                    initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry);
-    static SmallVector<TypeRef>                    computeDeps(TypeManager& tm, Sema& sema, const TypeInfo& type, LayoutKind kind);
-    static void                                    wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind);
+    TypeGenCache& cacheFor(const DataSegment& storage);
+
+    static LayoutKind layoutKindOf(const TypeInfo& type);
+    static Result     rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, const SourceCodeRef& codeRef);
+
+    static void                 initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, TypeRef typeRef, const TypeInfo& type, TypeGenCache::Entry& entry);
+    static SmallVector<TypeRef> computeDeps(TypeManager& tm, Sema& sema, const TypeInfo& type, LayoutKind kind);
+    static void                 wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment& storage, TypeRef key, const TypeGenCache::Entry& entry, LayoutKind kind);
+
     static std::pair<uint32_t, Runtime::TypeInfo*> allocateTypeInfoPayload(DataSegment& storage, LayoutKind kind);
-    static TypeRef                                 resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType);
+
+    static TypeRef resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType);
 
     static Result processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache);
 
     mutable std::shared_mutex                                             cachesMutex_;
     std::unordered_map<const DataSegment*, std::unique_ptr<TypeGenCache>> caches_;
-    mutable std::shared_mutex                                             ptrToTypeMutex_;
+
     // Published type info address to its type. Only looked up, one flat slot per entry.
+    mutable std::shared_mutex      ptrToTypeMutex_;
     FlatKeyMap<TypeRef, uintptr_t> ptrToType_;
 };
 

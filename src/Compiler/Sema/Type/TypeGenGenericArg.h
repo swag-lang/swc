@@ -12,8 +12,10 @@ namespace TypeGenGenericArg
     {
         if (arg.typeRef.isValid())
             return arg.typeRef;
+
         if (arg.cstRef.isValid())
             return ctx.cstMgr().get(arg.cstRef).typeRef();
+
         return TypeRef::invalid();
     }
 }

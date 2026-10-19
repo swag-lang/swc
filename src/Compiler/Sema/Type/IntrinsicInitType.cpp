@@ -34,6 +34,7 @@ TypeRef IntrinsicInitType::normalizeTypeRef(TaskContext& ctx, TypeRef typeRef)
     const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
     if (rawTypeRef.isValid() && !preservesAliasType(ctx.typeMgr().get(rawTypeRef)))
         return rawTypeRef;
+
     return typeRef;
 }
 

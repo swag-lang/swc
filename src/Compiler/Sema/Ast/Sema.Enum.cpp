@@ -24,8 +24,8 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
     {
         SemaHelpers::declareSymbol(sema, *this);
 
-        // Runtime: enum 'AttributeUsage' is forced to be in flag mode.
-        // (we can't rely on #[Swag.EnumFlags] as attributes are constructed there)
+        // AttributeUsage bootstraps attribute construction, so #[Swag.EnumFlags]
+        // cannot set its flag mode yet.
         Symbol& sym = *sema.curViewSymbol().sym();
         if (sym.inSwagNamespace(sema.ctx()))
         {
@@ -92,7 +92,8 @@ namespace
             return typeView.typeRef();
         }
 
-        const auto sign    = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
+        const auto sign = sym.isEnumFlags() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
+
         typeView.typeRef() = sema.typeMgr().typeInt(32, sign);
         typeView.type()    = &sema.typeMgr().get(typeView.typeRef());
         return typeView.typeRef();
@@ -121,23 +122,23 @@ namespace
         {
             const ConstantValue& initValue = *nodeInitView.cst();
             SWC_ASSERT(initValue.isEnumValue());
+
             valueCst = initValue.getEnumValue();
             return Result::Continue;
         }
 
-        // Cast initializer constant to the underlying type.
-        // If the user wrote an explicit cast, preserve explicit semantics here.
+        // Preserve explicit cast semantics when converting the initializer.
         bool isExplicitInitCast = false;
         if (nodeInitView.node()->is(AstNodeId::AutoCastExpr))
             isExplicitInitCast = true;
         if (nodeInitView.node()->is(AstNodeId::CastExpr))
             isExplicitInitCast = nodeInitView.node()->cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit);
+
         const CastKind initCastKind = isExplicitInitCast ? CastKind::Explicit : CastKind::Initialization;
         SWC_RESULT(Cast::cast(sema, nodeInitView, symEnum.underlyingTypeRef(), initCastKind));
         valueCst = nodeInitView.cstRef();
         return Result::Continue;
     }
-
 }
 
 Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -157,6 +158,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     TypeRef       enumTypeRef       = sym.typeRef();
     if (enumTypeRef.isInvalid())
         enumTypeRef = sema.typeMgr().addType(TypeInfo::makeEnum(&sym));
+
     sym.setTypeRef(enumTypeRef);
     sym.setUnderlyingTypeRef(underlyingTypeRef);
     sym.setTyped(sema.ctx());
@@ -175,11 +177,11 @@ Result AstEnumDecl::semaPostNode(Sema& sema) const
     if (sym.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_enum, SourceCodeRef{srcViewRef(), tokNameRef});
 
-    // Runtime enum
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
     sym.setSemaCompleted(sema.ctx());
+
     return Result::Continue;
 }
 
@@ -187,6 +189,7 @@ Result AstEnumValue::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 {
     if (childRef == nodeInitRef)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
+
     return Result::Continue;
 }
 
@@ -203,6 +206,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     if (nodeInitView.nodeRef().isValid())
     {
         SWC_RESULT(normalizeEnumInitializerConstant(sema, symEnum, nodeInitView, valueCst));
+
         if (underlyingType.isInt())
         {
             const ConstantValue& cstVal = sema.cstMgr().get(valueCst);
@@ -212,12 +216,12 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
     }
     else
     {
-        // No initializer => auto value
         if (!underlyingType.isInt())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_missing_enum_value, codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, underlyingTypeRef);
             diag.report(ctx);
+
             return Result::Error;
         }
 
@@ -225,11 +229,11 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
             return Result::Error;
 
         const ConstantValue val = ConstantValue::makeInt(ctx, symEnum.nextValue(), underlyingType.payloadIntBits(), underlyingType.payloadIntSign());
-        valueCst                = sema.cstMgr().addConstant(ctx, val);
+
+        valueCst = sema.cstMgr().addConstant(ctx, val);
         symEnum.setHasNextValue();
     }
 
-    // Create a symbol for this enum value
     const IdentifierRef   idRef    = sema.idMgr().addIdentifier(ctx, codeRef());
     constexpr SymbolFlags flags    = SymbolFlagsE::Declared | SymbolFlagsE::SemaCompleted;
     auto*                 symValue = Symbol::make<SymbolEnumValue>(ctx, this, tokRef(), idRef, flags);
@@ -238,6 +242,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
 
     const ConstantValue enumCst    = ConstantValue::makeEnumValue(ctx, valueCst, symEnum.typeRef());
     const ConstantRef   enumCstRef = sema.cstMgr().addConstant(ctx, enumCst);
+
     symValue->setCstRef(enumCstRef);
     symValue->setTypeRef(symEnum.typeRef());
     symValue->setTyped(ctx);

@@ -30,6 +30,7 @@ class IdentifierManager;
 class Sema;
 class SourceFile;
 struct SemaInlinePayload;
+
 struct ScopedBreakSemaPayload
 {
     AstNodeRef targetScopeRef = AstNodeRef::invalid();
@@ -66,44 +67,47 @@ struct SemaEscapeInfo
     const SymbolVariable* sourceVar = nullptr;
     AstNodeRef            sourceRef = AstNodeRef::invalid();
     TypeRef               typeRef   = TypeRef::invalid();
+
     // All signature parameters whose storage this value may borrow. Keeping the full
     // set is required for aggregates and closures that carry more than one parameter;
     // sourceVar remains the representative origin used by local diagnostics.
     uint64_t parameterOriginsMask = 0;
+
     // Borrows copied from the aggregate designated by a pointer parameter. These
     // refer to its contents, not to the parameter's pointed-to slot itself.
     uint64_t parameterIndirectOriginsMask = 0;
+
     // Opaque-call snapshots carried by this value. Shared ownership keeps them valid
     // when nested Sema instances and control-flow alternatives exchange their state.
     SmallVector4<std::shared_ptr<const SemaEscapeDeferredCallSnapshot>> deferredCalls;
+
     // Owning root/field pairs replaced after an opaque accessor produced this view. The
     // accessor's final returned-payload projection decides whether each one detached it.
     SmallVector4<SemaEscapeDetachedPayloadField> detachedOwnedPayloadFields;
+
     // Lexical depth of the storage backing a Materialized borrow (0 = unknown).
     uint32_t sourceScopeDepth = 0;
-    // The borrow designates a payload the source OWNS (a buffer read out of a value with
-    // an owning lifecycle), not the source's own storage. Releasing such a payload is
-    // what the owner is for, so it must not feed the "this callee frees the pointer you
-    // handed it" summary.
+
+    // This borrow refers to an owned allocation, not the owner's storage.
+    // Its normal release must not imply that the callee frees a passed parameter.
     bool viaOwnedPayload = false;
+
     // Members of a dynamically typed payload may refer back into that payload or to
     // storage released with it. Copying a carrier member does not establish an
     // independent lifetime, unlike reading a pointer out of an ordinary container.
     bool viaErasedPayload = false;
-    // The borrow WAS such a payload until the owner replaced its carrier ('old = .table;
-    // .table = alloc(...)'): it no longer follows the owner's new allocation, but what
-    // it addresses is still memory the owner released, never the owner's own storage.
-    // Handing it to a freeing callee is the owner reallocating, not the parameter freed.
+
+    // Replacing the owning carrier detaches this borrow from the new allocation.
+    // It still refers to the released payload, not to the owner's storage.
     bool detachedOwnedPayload = false;
-    // The borrow was reached only through a FIELD this value holds: 'p.owner = me' makes
-    // 'p' carry the receiver without 'p' being it. Every escape rule still applies — the
-    // carrier must not outlive what it points at — but the FREES summary must not:
-    // releasing the carrier releases the carrier's own storage and nothing else.
+
+    // A stored field carries its origin without becoming that origin. Escape
+    // rules still apply, but freeing the carrier does not free the borrowed storage.
     bool viaStoredField = false;
-    // The value IS the pointer stored in the box a pointer parameter designates, read
-    // as 'parameter[]': the indirect origins name that box exactly. Releasing such a
-    // value releases what the caller's box holds and leaves the box alive, which is
-    // the only release a caller can pin on the storage it passed.
+
+    // This value is the pointer read from a parameter-designated box; indirect
+    // origins identify that box exactly. Releasing it frees the contents while
+    // leaving the caller's box alive.
     bool viaParameterPointee = false;
 
     bool hasBorrow() const { return kind != SemaEscapeKind::None; }
@@ -123,17 +127,19 @@ struct SemaEscapeInfo
         {
             parameterOriginsMask |= other.parameterOriginsMask;
             parameterIndirectOriginsMask |= other.parameterIndirectOriginsMask;
-            // A payload route present on either control-flow alternative remains
-            // possible after the join. An unconditional carrier replacement clears it
-            // before the join; a conditional replacement must not hide the other path.
+
+            // A payload route possible on either branch survives the join. Only
+            // an unconditional carrier replacement can clear it on every path.
             viaOwnedPayload      = viaOwnedPayload || other.viaOwnedPayload;
             viaErasedPayload     = viaErasedPayload || other.viaErasedPayload;
             detachedOwnedPayload = detachedOwnedPayload || other.detachedOwnedPayload;
-            // One direct borrow among the merged facts is enough to make the value stand
-            // for the parameter's storage.
+
+            // One direct borrow makes the merged value represent parameter storage.
             viaStoredField = viaStoredField && other.viaStoredField;
+
             // Naming the box's content exactly takes every alternative agreeing on it.
             viaParameterPointee = viaParameterPointee && other.viaParameterPointee;
+
             return;
         }
 
@@ -144,6 +150,7 @@ struct SemaEscapeInfo
                 if (std::ranges::find(deferredCalls, call) == deferredCalls.end())
                     deferredCalls.push_back(call);
             }
+
             for (auto it = detachedOwnedPayloadFields.begin(); it != detachedOwnedPayloadFields.end();)
             {
                 if (std::ranges::find(other.detachedOwnedPayloadFields, *it) == other.detachedOwnedPayloadFields.end())
@@ -151,6 +158,7 @@ struct SemaEscapeInfo
                 else
                     ++it;
             }
+
             return;
         }
 
@@ -217,11 +225,13 @@ struct SemaEscapeProjectionHash
     size_t operator()(const SemaEscapeProjection& projection) const noexcept
     {
         size_t result = std::hash<const SymbolVariable*>{}(projection.root);
+
         for (const SemaEscapeProjectionComponent& component : projection.components)
         {
             const size_t value = component.kind == SemaEscapeProjectionKind::Field ? std::hash<const SymbolVariable*>{}(component.field) : std::hash<uint64_t>{}(component.index);
             result ^= value + static_cast<size_t>(component.kind) + 0x9e3779b9 + (result << 6) + (result >> 2);
         }
+
         return result;
     }
 };
@@ -244,30 +254,33 @@ public:
     Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeRef root);
     Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeRef root, bool declPass);
     ~Sema();
+
     JobResult exec();
     Result    execResult();
 
-    TaskContext&                    ctx() { return *(ctx_); }
-    const TaskContext&              ctx() const { return *(ctx_); }
-    CompilerInstance&               compiler() { return ctx().compiler(); }
-    const CompilerInstance&         compiler() const { return ctx().compiler(); }
+    TaskContext&            ctx() { return *(ctx_); }
+    const TaskContext&      ctx() const { return *(ctx_); }
+    CompilerInstance&       compiler() { return ctx().compiler(); }
+    const CompilerInstance& compiler() const { return ctx().compiler(); }
+
     const Runtime::BuildCfg&        buildCfg() const;
     Runtime::SafetyWhat             runtimeSafetyGuards() const;
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
     bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }
     bool                            isNativeExecutableBuild() const { return buildCfgBackendKind() == Runtime::BuildCfgBackendKind::Executable; }
-    SymbolFunction*                 currentFunction() { return frame().currentFunction(); }
-    const SymbolFunction*           currentFunction() const { return frame().currentFunction(); }
-    bool                            isCurrentFunction() const { return currentFunction() != nullptr; }
 
-    // Call dependencies this Sema already added to 'owner', cached by callee address. A function
-    // calls the same callees again and again (every runtime safety check asks for the same panic
-    // function), and adding one again changes nothing but takes the function's lock to find out.
+    SymbolFunction*       currentFunction() { return frame().currentFunction(); }
+    const SymbolFunction* currentFunction() const { return frame().currentFunction(); }
+    bool                  isCurrentFunction() const { return currentFunction() != nullptr; }
+
+    // Cache repeated call dependencies to avoid taking the function lock again
+    // for common callees such as runtime safety panic functions.
     bool knowsCallDependency(const SymbolFunction& owner, const SymbolFunction& callee) const
     {
         return knownCallDependencyOwner_ == &owner && knownCallDependencies_[knownCallDependencySlot(callee)] == &callee;
     }
+
     void noteCallDependency(const SymbolFunction& owner, const SymbolFunction& callee)
     {
         if (knownCallDependencyOwner_ != &owner)
@@ -275,15 +288,18 @@ public:
             knownCallDependencyOwner_ = &owner;
             knownCallDependencies_.fill(nullptr);
         }
+
         knownCallDependencies_[knownCallDependencySlot(callee)] = &callee;
     }
-    bool                            isGlobalScope() const { return !isCurrentFunction(); }
-    bool                            isOptimizeEnabled() const { return buildCfgBackend().optimizes(); }
-    bool                            isConstExprRequired() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr); }
-    bool                            isRunExprContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr); }
-    bool                            isCompilerEvalContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::CompilerEval); }
-    bool                            isDeclPass() const { return declPass_; }
-    bool                            enteringState() const { return visit_.enteringState(); }
+
+    bool isGlobalScope() const { return !isCurrentFunction(); }
+    bool isOptimizeEnabled() const { return buildCfgBackend().optimizes(); }
+    bool isConstExprRequired() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr); }
+    bool isRunExprContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr); }
+    bool isCompilerEvalContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::CompilerEval); }
+    bool isDeclPass() const { return declPass_; }
+    bool enteringState() const { return visit_.enteringState(); }
+
     // Cheap gate for the default-initialization elision pass: set when this job
     // declares a local the pass may prove safe to leave uninitialized.
     void noteInitFlowCandidate() { hasInitFlowCandidates_ = true; }
@@ -297,25 +313,28 @@ public:
     const TypeGen&           typeGen() const;
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
-    SourceView&              srcView(SourceViewRef srcViewRef);
-    const SourceView&        srcView(SourceViewRef srcViewRef) const;
-    NodePayload&             currentNodePayloadContext() { return nodePayloadContext(); }
-    const NodePayload&       currentNodePayloadContext() const { return nodePayloadContext(); }
-    const SourceFile*        ownerSourceFile(SourceViewRef srcViewRef) const;
-    NodePayload*             owningNodePayloadContext(SourceViewRef srcViewRef) const;
-    AstNodeRef               ownerDeclNodeRef(SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid()) const;
-    Sema*                    tryCreateDeclSema(std::unique_ptr<Sema>& outOwnedSema, SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid());
-    bool                     usesOwningNodePayloadContext(SourceViewRef srcViewRef) const;
-    Ast&                     ast();
-    const Ast&               ast() const;
-    AstNode&                 node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&           node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    const Token&             token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
-    SourceCodeRange          tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
-    std::string_view         tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
-    Utf8                     fileName() const;
-    const SourceFile*        file() const;
-    // Mints the rank of the next 'with' subject. See 'SemaScope::AutoMemberBinding::order'.
+
+    SourceView&        srcView(SourceViewRef srcViewRef);
+    const SourceView&  srcView(SourceViewRef srcViewRef) const;
+    NodePayload&       currentNodePayloadContext() { return nodePayloadContext(); }
+    const NodePayload& currentNodePayloadContext() const { return nodePayloadContext(); }
+    const SourceFile*  ownerSourceFile(SourceViewRef srcViewRef) const;
+    NodePayload*       owningNodePayloadContext(SourceViewRef srcViewRef) const;
+    AstNodeRef         ownerDeclNodeRef(SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid()) const;
+    Sema*              tryCreateDeclSema(std::unique_ptr<Sema>& outOwnedSema, SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid());
+    bool               usesOwningNodePayloadContext(SourceViewRef srcViewRef) const;
+
+    Ast&              ast();
+    const Ast&        ast() const;
+    AstNode&          node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&    node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    const Token&      token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
+    SourceCodeRange   tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
+    std::string_view  tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
+    Utf8              fileName() const;
+    const SourceFile* file() const;
+
+    // Assign the next with-subject rank; see SemaScope::AutoMemberBinding::order.
     static uint64_t nextAutoMemberOrder();
 
     std::vector<ActiveCompilerAstExpansion>&       compilerAstExpansions() { return compilerAstExpansions_; }
@@ -324,20 +343,22 @@ public:
     SemaFrame&                 frame() { return frames_.back(); }
     const SemaFrame&           frame() const { return frames_.back(); }
     std::span<const SemaFrame> frames() const { return frames_; }
-    void                       addNarrowKillAllFrames(std::span<const Symbol* const> path);
-    void                       addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
-    bool                       anyFrameHasNarrowFacts() const;
-    // A branch proves its facts in the innermost frame its body owns, and that frame is popped
-    // before the construct owning the branches can compare the paths. These keep one such set
-    // alive across the pop: 'arm' asks postNode() to snapshot the body's frame just before it
-    // goes, 'capture' snapshots the current frame now, and 'take' hands the set over once.
-    void             armNarrowFactCapture(AstNodeRef bodyRef);
-    void             captureNarrowFacts(AstNodeRef bodyRef);
-    bool             takeNarrowFactCapture(AstNodeRef bodyRef, SmallVector2<SemaNarrowFact>& facts);
+
+    void addNarrowKillAllFrames(std::span<const Symbol* const> path);
+    void addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
+    bool anyFrameHasNarrowFacts() const;
+
+    // Preserve branch facts after their body frame is popped: arm snapshots at
+    // postNode(), capture snapshots now, and take consumes the saved facts once.
+    void armNarrowFactCapture(AstNodeRef bodyRef);
+    void captureNarrowFacts(AstNodeRef bodyRef);
+    bool takeNarrowFactCapture(AstNodeRef bodyRef, SmallVector2<SemaNarrowFact>& facts);
+
     SemaScope*       curScopePtr() { return curScope_; }
     const SemaScope* curScopePtr() const { return curScope_; }
     SemaScope&       curScope() { return *(curScope_); }
     const SemaScope& curScope() const { return *(curScope_); }
+
     SemaScope*       lookupScope();
     const SemaScope* lookupScope() const;
     SemaScope*       upLookupScope() { return frame().upLookupScope(); }
@@ -345,14 +366,16 @@ public:
     SemaScope*       resolvedUpLookupScope();
     const SemaScope* resolvedUpLookupScope() const;
     static void      configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess = false);
-    void             restartCurrentNode(AstNodeRef nodeRef);
-    void             rebindTaskContext(TaskContext& ctx) { ctx_ = &ctx; }
 
-    AstVisit&        visit() { return visit_; }
-    const AstVisit&  visit() const { return visit_; }
-    AstNodeRef       curNodeRef() const { return visit_.currentNodeRef(); }
-    AstNode&         curNode() { return node(curNodeRef()); }
-    const AstNode&   curNode() const { return node(curNodeRef()); }
+    void restartCurrentNode(AstNodeRef nodeRef);
+    void rebindTaskContext(TaskContext& ctx) { ctx_ = &ctx; }
+
+    AstVisit&       visit() { return visit_; }
+    const AstVisit& visit() const { return visit_; }
+    AstNodeRef      curNodeRef() const { return visit_.currentNodeRef(); }
+    AstNode&        curNode() { return node(curNodeRef()); }
+    const AstNode&  curNode() const { return node(curNodeRef()); }
+
     SymbolMap*       curSymMap() { return curScope_->symMap(); }
     const SymbolMap* curSymMap() const { return curScope_->symMap(); }
     const SymbolMap* topSymMap() const { return startSymMap_; }
@@ -361,6 +384,7 @@ public:
     const SymbolNamespace& moduleNamespace() const { return nodePayloadContext().moduleNamespace(); }
     SymbolNamespace&       moduleNamespace() { return nodePayloadContext().moduleNamespace(); }
     void                   setModuleNamespace(SymbolNamespace& ns) { nodePayloadContext().setModuleNamespace(ns); }
+
     const SymbolNamespace& fileNamespace() const { return nodePayloadContext().fileNamespace(); }
     SymbolNamespace&       fileNamespace() { return nodePayloadContext().fileNamespace(); }
     void                   setFileNamespace(SymbolNamespace& ns) { nodePayloadContext().setFileNamespace(ns); }
@@ -372,6 +396,7 @@ public:
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
     SemaNodeView viewStored(AstNodeRef nodeRef) { return viewStored(nodeRef, SemaNodeViewPartE::All); }
     SemaNodeView viewStored(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part);
+
     SemaNodeView viewZero(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Zero); }
     SemaNodeView viewNode(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node); }
     SemaNodeView viewType(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type); }
@@ -387,6 +412,7 @@ public:
 
     SemaNodeView curView();
     SemaNodeView curView(EnumFlags<SemaNodeViewPartE> part);
+
     SemaNodeView curViewZero() { return curView(SemaNodeViewPartE::Zero); }
     SemaNodeView curViewNode() { return curView(SemaNodeViewPartE::Node); }
     SemaNodeView curViewType() { return curView(SemaNodeViewPartE::Type); }
@@ -404,27 +430,31 @@ public:
     void clearConstant(AstNodeRef n) { nodePayloadContext().clearConstant(n); }
     void setSymbol(AstNodeRef n, Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
     void setSymbol(AstNodeRef n, const Symbol* symbol) { nodePayloadContext().setSymbol(n, symbol); }
+
     bool hasSubstitute(AstNodeRef n) const { return nodePayloadContext().hasSubstitute(n); }
     void setSubstitute(AstNodeRef n, AstNodeRef substNodeRef) { nodePayloadContext().setSubstitute(n, substNodeRef); }
     void recordImplicitPropagation(AstNodeRef n) { nodePayloadContext().recordImplicitPropagation(n); }
+
     void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 
-    // Every code generation job owns such a table, and most of them never record a payload in
-    // it: the table allocates nothing until the first one. A payload is never null, so a null
-    // read means absent.
+    // Code generation jobs keep local lowering payloads. The table allocates
+    // only on first insertion; a null lookup always means absent.
     void enableLocalLoweringPayloads() { localLoweringPayloads_.emplace(); }
     bool usesLocalLoweringPayloads() const { return localLoweringPayloads_.has_value(); }
+
     bool hasLoweringPayload(AstNodeRef n) const
     {
         if (localLoweringPayloads_ && localLoweringPayloads_->find(n))
             return true;
+
         return nodePayloadContext().hasLoweringPayload(n);
     }
 
     void setLoweringPayload(AstNodeRef n, void* payload)
     {
         SWC_ASSERT(payload != nullptr);
+
         if (localLoweringPayloads_)
         {
             localLoweringPayloads_->set(n, payload);
@@ -476,7 +506,6 @@ public:
         nodePayloadContext().setInlineContextOverride(n, payload);
     }
 
-    // A node's inline payload and inline-context override, read together.
     void inlineContext(AstNodeRef n, void*& outPayload, void*& outOverride) const { nodePayloadContext().getInlineContext(n, outPayload, outOverride); }
 
     template<typename T>
@@ -485,6 +514,7 @@ public:
         void* payload = nodePayloadContext().getInlineContextOverride(n);
         if (!payload)
             return nullptr;
+
         return static_cast<T*>(payload);
     }
 
@@ -503,10 +533,11 @@ public:
         void* payload = nodePayloadContext().getSemaPayload(n);
         if (!payload)
             return nullptr;
+
         return static_cast<T*>(payload);
     }
 
-    // The node's payload of type T, allocated from the compiler on first request.
+    // Allocate persistent semantic payloads from the compiler on first request.
     template<typename T>
     T& ensureSemaPayload(AstNodeRef n)
     {
@@ -522,33 +553,36 @@ public:
     void                                appendResolvedCallArguments(AstNodeRef n, SmallVector<ResolvedCallArgument>& out) const { nodePayloadContext().appendResolvedCallArguments(n, out); }
     ResolvedCallArgument                getResolvedCallArgument(AstNodeRef n, uint32_t index) const { return nodePayloadContext().getResolvedCallArgument(n, index); }
     std::optional<ResolvedCallArgument> tryGetResolvedCallArgument(AstNodeRef n, uint32_t index) const { return nodePayloadContext().tryGetResolvedCallArgument(n, index); }
-    void                                markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef);
-    bool                                isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const;
+
+    void markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef);
+    bool isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const;
 
     const SemaEscapeInfo* variableEscapeInfo(const SymbolVariable& symVar) const;
-    // Every local currently known to borrow something, for the checks that start from the
-    // BORROWED storage instead of the borrowing variable.
+
+    // Track local borrows for checks that start from the borrowed storage.
     using VariableEscapeInfoMap   = std::unordered_map<const SymbolVariable*, SemaEscapeInfo>;
     using ProjectionEscapeInfoMap = std::unordered_map<SemaEscapeProjection, SemaEscapeInfo, SemaEscapeProjectionHash>;
 
     const VariableEscapeInfoMap&   variableEscapeInfos() const { return *variableEscapeInfos_; }
     const ProjectionEscapeInfoMap& projectionEscapeInfos() const { return *projectionEscapeInfos_; }
-    void                           setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
-    void                           clearVariableEscapeInfo(const SymbolVariable& symVar);
-    void                           detachVariableOwnedPayload(const SymbolVariable& symVar);
-    void                           detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
-    SemaEscapeInfo                 variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
-    SemaEscapeInfo                 projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
-    // What ONE named field of a variable carries, ignoring its other fields. A structure
-    // that transports several borrows at once - an allocator request carries the block to
-    // release and the hint the report names - needs the borrow of the field the operation
-    // actually reads, not the merge of all of them.
-    SemaEscapeInfo variableFieldEscapeInfo(const SymbolVariable& symVar, std::string_view fieldName) const;
-    void           setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
-    void           clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
 
-    // Structural changes of storage a local view was reading, judged once the body they
-    // sit in is fully resolved (SemaEscape::reportBorrowInvalidations).
+    void setVariableEscapeInfo(const SymbolVariable& symVar, const SemaEscapeInfo& info);
+    void clearVariableEscapeInfo(const SymbolVariable& symVar);
+    void detachVariableOwnedPayload(const SymbolVariable& symVar);
+    void detachVariableOwnedPayloadField(const SymbolVariable& symVar, const SymbolVariable& owner, const SymbolVariable& field);
+
+    SemaEscapeInfo variableEscapeInfoIncludingProjections(const SymbolVariable& symVar) const;
+    SemaEscapeInfo projectionEscapeInfoIncludingWildcards(const SemaEscapeProjection& projection) const;
+
+    // Read one field's borrow without merging unrelated fields. Allocator
+    // requests, for example, can carry distinct block and diagnostic-hint borrows.
+    SemaEscapeInfo variableFieldEscapeInfo(const SymbolVariable& symVar, std::string_view fieldName) const;
+
+    void setProjectionEscapeInfo(const SemaEscapeProjection& projection, const SemaEscapeInfo& info);
+    void clearProjectionEscapeInfo(const SemaEscapeProjection& projection);
+
+    // Storage changes are checked after the body is fully resolved by
+    // SemaEscape::reportBorrowInvalidations.
     std::span<const SemaBorrowInvalidation> borrowInvalidations() const { return borrowInvalidations_.span(); }
     void                                    addBorrowInvalidation(const SemaBorrowInvalidation& record) { borrowInvalidations_.push_back(record); }
     void                                    setBorrowInvalidations(std::span<const SemaBorrowInvalidation> records)
@@ -565,13 +599,14 @@ public:
 
     // Orders local lifetimes by lexical depth, then by reverse declaration order.
     bool localStorageOutlives(const SymbolVariable& destination, const SymbolVariable& source) const;
+
     // A merged local borrow keeps the shortest lifetime, including at flow joins.
     void mergeEscapeInfo(SemaEscapeInfo& destination, const SemaEscapeInfo& source) const;
 
-    // Flow joins for the borrow-escape state: a branch alternative starts from the entry
-    // state, and alternatives UNION at the merge point (may-borrow), so a borrow cleared
-    // in only one path survives the join.
     void clearProjectionsOfRoot(const SymbolVariable& symVar);
+
+    // Each branch starts from the entry state. Union at the join preserves
+    // every possible borrow, including one cleared on only some paths.
     void pushEscapeBranch();
     void nextEscapeBranchAlternative();
     void popEscapeBranch(bool mergeEntryState);
@@ -592,13 +627,14 @@ public:
     void unsetIsValue(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::Value); }
     void unsetIsValue(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::Value); }
 
-    bool                  isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    bool                  isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
-    bool                  isFoldedTypedConstStored(AstNodeRef ref) const;
-    void                  setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void                  unsetFoldedTypedConst(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void                  unsetFoldedTypedConst(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
-    void                  setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    bool isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
+    bool isFoldedTypedConstStored(AstNodeRef ref) const;
+    void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void unsetFoldedTypedConst(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void unsetFoldedTypedConst(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+
     bool                  isConstAssignBinding(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
     bool                  isConstAssignBinding(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::ConstAssignBinding); }
     bool                  isConstAssignBindingStored(AstNodeRef ref) const;
@@ -610,8 +646,10 @@ public:
         NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding);
         nodePayloadContext().setConstAssignSourceParameter(ref, sourceParam);
     }
+
     void unsetConstAssignBinding(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
     void unsetConstAssignBinding(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding); }
+
     bool isConstAssignTarget(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignTarget); }
     bool isConstAssignTarget(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::ConstAssignTarget); }
     bool isConstAssignTargetStored(AstNodeRef ref) const;
@@ -623,18 +661,20 @@ public:
     void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
     void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayloadKindRef(nodeDst, node(srcRef)); }
     void inheritPayload(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayload(nodeDst, node(srcRef)); }
+
     void copyResolvedCallArguments(AstNodeRef dstRef, AstNodeRef srcRef) { nodePayloadContext().copyResolvedCallArguments(dstRef, srcRef); }
 
-    // A frame carries the attributes of the function it is in: a caller done with its local copy
-    // hands it over instead of having it copied a second time.
-    void       pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
-    void       pushFramePopOnPostChild(SemaFrame&& frame, AstNodeRef popAfterChildRef);
-    void       pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
-    void       pushFramePopOnPostNode(SemaFrame&& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
+    // Moving a finished local frame avoids copying its function attributes again.
+    void pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef);
+    void pushFramePopOnPostChild(SemaFrame&& frame, AstNodeRef popAfterChildRef);
+    void pushFramePopOnPostNode(const SemaFrame& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
+    void pushFramePopOnPostNode(SemaFrame&& frame, AstNodeRef popNodeRef = AstNodeRef::invalid());
+
     SemaScope* pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
     SemaScope* pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
-    void       deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
-    void       processCurrentPostNodePopsNow();
+
+    void deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
+    void processCurrentPostNodePopsNow();
 
     Result waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, const SourceCodeRef& codeRef);
@@ -642,6 +682,7 @@ public:
     Result waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef);
     Result waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
+
     Result completeLazyFunction(SymbolFunction& calledFn);
     Result waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
@@ -652,8 +693,10 @@ public:
     Result waitConstraintsResolved(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     Result waitTypeInfoGeneration(std::atomic<uint64_t>& owner, uint64_t generation, AstNodeRef nodeRef);
+
     // Records why this job cannot go on and hands the worker back to the scheduler.
-    Result      parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
+    Result parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
+
     Result      makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result      prepareFunctionSignature(AstNodeRef functionRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
@@ -662,53 +705,62 @@ private:
     friend struct SemaNodeView;
     friend void SemaGeneric::prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs);
 
-    bool                         hasActiveLookupScopeOverride() const;
-    TypeRef                      typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
-    ConstantRef                  constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }
-    TypeRef                      typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
-    ConstantRef                  constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
-    const ConstantValue&         constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), resolvedNodeRef(n)); }
-    const Symbol&                symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
-    Symbol&                      symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
-    const Symbol&                symbolOfStored(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
-    Symbol&                      symbolOfStored(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
-    bool                         hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), resolvedNodeRef(n)); }
-    bool                         hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), resolvedNodeRef(n)); }
-    bool                         hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(resolvedNodeRef(n)); }
-    bool                         hasSymbolStored(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
-    AstNodeRef                   getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
-    bool                         hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
-    std::span<const Symbol*>     getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
-    std::span<Symbol*>           getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
-    bool                         hasSymbolListStored(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
-    std::span<const Symbol*>     getSymbolListStored(AstNodeRef n) const { return nodePayloadContext().getSymbolList(n); }
-    std::span<Symbol*>           getSymbolListStored(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
-    bool                         hasSymbolRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
-    const Symbol&                symbolOfRaw(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
-    Symbol&                      symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
-    bool                         hasSymbolListRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
-    std::span<Symbol*>           getSymbolListRaw(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+    bool hasActiveLookupScopeOverride() const;
+
+    TypeRef              typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
+    ConstantRef          constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }
+    TypeRef              typeRefOfStored(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), n); }
+    ConstantRef          constantRefOfStored(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), n); }
+    const ConstantValue& constantOf(AstNodeRef n) const { return nodePayloadContext().getConstant(ctx(), resolvedNodeRef(n)); }
+    const Symbol&        symbolOf(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
+    Symbol&              symbolOf(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), resolvedNodeRef(n)); }
+    const Symbol&        symbolOfStored(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
+    Symbol&              symbolOfStored(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
+
+    bool       hasType(AstNodeRef n) const { return nodePayloadContext().hasType(ctx(), resolvedNodeRef(n)); }
+    bool       hasConstant(AstNodeRef n) const { return nodePayloadContext().hasConstant(ctx(), resolvedNodeRef(n)); }
+    bool       hasSymbol(AstNodeRef n) const { return nodePayloadContext().hasSymbol(resolvedNodeRef(n)); }
+    bool       hasSymbolStored(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
+    AstNodeRef getSubstituteRef(AstNodeRef n) const { return resolvedNodeRef(n); }
+
+    bool                     hasSymbolList(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(resolvedNodeRef(n)); }
+    std::span<const Symbol*> getSymbolList(AstNodeRef n) const { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
+    std::span<Symbol*>       getSymbolList(AstNodeRef n) { return nodePayloadContext().getSymbolList(resolvedNodeRef(n)); }
+    bool                     hasSymbolListStored(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
+    std::span<const Symbol*> getSymbolListStored(AstNodeRef n) const { return nodePayloadContext().getSymbolList(n); }
+    std::span<Symbol*>       getSymbolListStored(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+
+    bool               hasSymbolRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbol(n); }
+    const Symbol&      symbolOfRaw(AstNodeRef n) const { return nodePayloadContext().getSymbol(ctx(), n); }
+    Symbol&            symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
+    bool               hasSymbolListRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
+    std::span<Symbol*> getSymbolListRaw(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+
     NodePayload::ResolvedSymbols resolveSymbols(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(resolvedNodeRef(n)); }
     NodePayload::ResolvedSymbols resolveSymbolsStored(AstNodeRef n) const { return nodePayloadContext().resolveSymbols(n); }
 
-    SemaScope*         pushScope(SemaScopeFlags flags);
-    void               popScope();
-    void               pushFrame(const SemaFrame& frame);
-    void               pushFrame(SemaFrame&& frame);
-    void               deferFramePopOnPostChild(AstNodeRef popAfterChildRef);
-    void               deferFramePopOnPostNode(AstNodeRef popNodeRef);
-    void               popFrame();
+    SemaScope* pushScope(SemaScopeFlags flags);
+    void       popScope();
+
+    void pushFrame(const SemaFrame& frame);
+    void pushFrame(SemaFrame&& frame);
+    void deferFramePopOnPostChild(AstNodeRef popAfterChildRef);
+    void deferFramePopOnPostNode(AstNodeRef popNodeRef);
+    void popFrame();
+
     NodePayload&       nodePayloadContext() { return *(nodePayloadContext_); }
     const NodePayload& nodePayloadContext() const { return *(nodePayloadContext_); }
-    static void        inheritMissingNamespaces(TaskContext& ctx, NodePayload& payloadContext);
-    static SymbolMap*  topLevelStartSymMap(TaskContext& ctx, NodePayload& payloadContext);
-    static SymbolMap*  childStartSymMap(Sema& parent, NodePayload& payloadContext);
+
+    static void       inheritMissingNamespaces(TaskContext& ctx, NodePayload& payloadContext);
+    static SymbolMap* topLevelStartSymMap(TaskContext& ctx, NodePayload& payloadContext);
+    static SymbolMap* childStartSymMap(Sema& parent, NodePayload& payloadContext);
 
     void   setVisitors();
     Result preDecl(AstNode& node);
     Result preDeclChild(AstNode& node, AstNodeRef& childRef);
     Result postDeclChild(AstNode& node, AstNodeRef& childRef);
     Result postDecl(AstNode& node);
+
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
@@ -724,9 +776,8 @@ private:
         CompilerAst,
     };
 
-    // A deferred item runs after the walk that met it has left its enclosing nodes, so it
-    // keeps the context those nodes had established, such as an attribute list's attributes.
-    // Only an item nested under such a node needs a copy; the base frame is still current.
+    // Deferred items outlive the enclosing walk, so nested items retain its
+    // frame context. Top-level items can reuse the current base frame.
     struct DeferredTopLevelItem
     {
         AstNodeRef                       nodeRef;
@@ -748,12 +799,11 @@ private:
     TaskContext*                             ctx_                = nullptr;
     NodePayload*                             nodePayloadContext_ = nullptr;
     std::optional<RefPointerMap<AstNodeRef>> localLoweringPayloads_;
+
     struct EscapeBranchState
     {
-        // The state each alternative starts from is shared, not copied: a branch that changes no
-        // borrow - which is most of them - leaves the facts it entered with untouched.
-        // The merge is made only once an alternative brings a fact: an empty map still
-        // allocates, and most branches of most functions bring none.
+        // Share each alternative's entry state and copy only on mutation.
+        // Create merged maps lazily: even an empty map would allocate.
         std::shared_ptr<VariableEscapeInfoMap>   entryState;
         std::shared_ptr<ProjectionEscapeInfoMap> entryProjectionState;
         std::optional<VariableEscapeInfoMap>     mergedState;
@@ -761,28 +811,31 @@ private:
     };
 
     SmallVector4<SemaBorrowInvalidation> borrowInvalidations_;
-    // Borrow facts are snapshotted at every branch, and a function of any size has many. The
-    // snapshot shares the map and a writer copies it only when it has something to change.
-    // Every sema starts from no fact, and a code generation or declaration sema never records
-    // one: it starts from maps shared by all, which the first writer copies like any snapshot.
+
+    // Branch snapshots share their maps until a writer changes a fact. Empty
+    // maps are shared across all semas, including declaration and codegen jobs.
     static const std::shared_ptr<VariableEscapeInfoMap>&   emptyVariableEscapeInfos();
     static const std::shared_ptr<ProjectionEscapeInfoMap>& emptyProjectionEscapeInfos();
     VariableEscapeInfoMap&                                 mutableVariableEscapeInfos();
     ProjectionEscapeInfoMap&                               mutableProjectionEscapeInfos();
-    std::shared_ptr<VariableEscapeInfoMap>                 variableEscapeInfos_   = emptyVariableEscapeInfos();
-    std::shared_ptr<ProjectionEscapeInfoMap>               projectionEscapeInfos_ = emptyProjectionEscapeInfos();
+
+    std::shared_ptr<VariableEscapeInfoMap>   variableEscapeInfos_   = emptyVariableEscapeInfos();
+    std::shared_ptr<ProjectionEscapeInfoMap> projectionEscapeInfos_ = emptyProjectionEscapeInfos();
+
     // Only a function body records scope depths; the map exists once one is recorded.
     std::optional<std::unordered_map<const SymbolVariable*, uint32_t>> variableScopeDepths_;
     std::vector<EscapeBranchState>                                     escapeBranchStack_;
-    AstVisit                                                           visit_;
+
+    AstVisit visit_;
 
     SemaScopeArena            scopeArena_;
     std::vector<SemaScopePtr> scopes_;
-    SymbolMap*                startSymMap_           = nullptr;
-    SemaScope*                curScope_              = nullptr;
-    bool                      declPass_              = false;
-    bool                      rootVisitDone_         = false;
-    bool                      hasInitFlowCandidates_ = false;
+    SymbolMap*                startSymMap_ = nullptr;
+    SemaScope*                curScope_    = nullptr;
+
+    bool declPass_              = false;
+    bool rootVisitDone_         = false;
+    bool hasInitFlowCandidates_ = false;
 
     static size_t                         knownCallDependencySlot(const SymbolFunction& callee) { return (reinterpret_cast<uintptr_t>(&callee) * 0x9E3779B97F4A7C15ull) >> 60; }
     const SymbolFunction*                 knownCallDependencyOwner_ = nullptr;
@@ -825,15 +878,17 @@ private:
         AstNodeRef                               nodeRef;
         std::function<Result(Sema&, AstNodeRef)> callback;
     };
+
     std::vector<DeferredPostNodeAction>     deferredPostNodeActions_;
     std::vector<ActiveCompilerAstExpansion> compilerAstExpansions_;
-    std::vector<DeferredTopLevelItem>       deferredTopLevelItems_;
-    std::vector<DeferredTopLevelItem>       pendingTopLevelCompilerRuns_;
-    uint32_t                                deferredTopLevelItemIndex_       = 0;
-    uint32_t                                deferredTopLevelItemInsertIndex_ = 0;
-    uint32_t                                pendingTopLevelCompilerRunIndex_ = 0;
-    bool                                    deferTopLevelItems_              = false;
-    bool                                    deferredTopLevelItemRunning_     = false;
+
+    std::vector<DeferredTopLevelItem> deferredTopLevelItems_;
+    std::vector<DeferredTopLevelItem> pendingTopLevelCompilerRuns_;
+    uint32_t                          deferredTopLevelItemIndex_       = 0;
+    uint32_t                          deferredTopLevelItemInsertIndex_ = 0;
+    uint32_t                          pendingTopLevelCompilerRunIndex_ = 0;
+    bool                              deferTopLevelItems_              = false;
+    bool                              deferredTopLevelItemRunning_     = false;
 };
 
 SWC_END_NAMESPACE();

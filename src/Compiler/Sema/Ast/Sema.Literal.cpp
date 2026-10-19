@@ -621,12 +621,12 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
     bool expSignSeen  = false;
     bool expDigitSeen = false;
 
-    size_t  fracDigits = 0; // number of digits AFTER '.'
-    int64_t expValue   = 0; // exponent part AFTER 'e'
+    size_t  fracDigits = 0; // Fractional digits.
+    int64_t expValue   = 0; // Explicit exponent.
 
     for (const char c : str)
     {
-        // skip numeric separators (NO cleaned copy)
+        // Skip separators while parsing to avoid a temporary cleaned string.
         if (langSpec.isNumberSep(c))
             continue;
 
@@ -641,6 +641,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
                 if (over)
                 {
                     raiseNumberTooBig(sema, codeRef(), str);
+
                     return Result::Error;
                 }
 
@@ -648,6 +649,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
                 if (over)
                 {
                     raiseNumberTooBig(sema, codeRef(), str);
+
                     return Result::Error;
                 }
 
@@ -666,9 +668,11 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
                 else
                 {
                     raiseNumberTooBig(sema, codeRef(), str);
+
                     return Result::Error;
                 }
             }
+
             continue;
         }
 
@@ -700,7 +704,6 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
         SWC_UNREACHABLE();
     }
 
-    // Exponent offset from decimal digits
     int64_t totalExp10 = 0;
 
     if (seenExp)
@@ -715,6 +718,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
         if (totalExp10 < (std::numeric_limits<int64_t>::min)() + static_cast<int64_t>(fracDigits))
         {
             raiseNumberTooBig(sema, codeRef(), str);
+
             return Result::Error;
         }
 
@@ -726,6 +730,7 @@ Result AstFloatLiteral::semaPreNode(Sema& sema) const
 
     const ConstantValue val = ConstantValue::makeFloatUnsized(ctx, value);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
     return Result::SkipChildren;
 }
 
@@ -733,8 +738,10 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
+
     const bool autoName = isUntypedVarInitializer(sema, sema.curNodeRef());
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children, autoName));
+
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
     return SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);
 }
@@ -746,13 +753,13 @@ Result AstStructLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstArrayLiteral::semaPostNode(Sema& sema)
 {
-    // 'AstArrayLiteral' directly contains the element expressions in `spanChildrenRef`.
     SmallVector<AstNodeRef> elements;
     collectChildren(elements, sema.ast());
     if (elements.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_empty_array_literal, sema.curNodeRef());
 
-    bool                     allConstant = true;
+    bool allConstant = true;
+
     SmallVector<ConstantRef> values;
     SmallVector<TypeRef>     elemTypes;
     values.reserve(elements.size());
@@ -770,7 +777,9 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
         SWC_RESULT(SemaHelpers::materializeMovedValue(sema, view));
         if (SemaHelpers::ownsExpressionValue(sema, view.nodeRef()))
             SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
+
         SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, view.nodeRef(), view.typeRef(), view.typeRef(), AstModifierFlagsE::Zero, true));
+
         values.push_back(view.cstRef());
         elemTypes.push_back(view.typeRef());
         allConstant = allConstant && view.cstRef().isValid();
@@ -790,6 +799,7 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
     sema.setIsValue(*this);
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
     SWC_RESULT(SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView));
+
     return Result::Continue;
 }
 
@@ -801,6 +811,7 @@ Result AstArrayLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     SWC_RESULT(pushLiteralChildBindingType(sema, LiteralChildBindingKind::ArrayLike, children, childRef, &pushed));
     if (!pushed)
         SWC_RESULT(pushArrayLiteralSiblingBindingType(sema, children, childRef));
+
     return Result::Continue;
 }
 

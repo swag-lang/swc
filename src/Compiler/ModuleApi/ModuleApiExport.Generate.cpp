@@ -1123,6 +1123,7 @@ namespace
         outSnippet += "{";
         outSnippet += eol;
         outSnippet += "}";
+
         return true;
     }
 
@@ -1144,7 +1145,8 @@ namespace
     uint32_t moduleApiRootSortByte(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef)
     {
         constexpr uint32_t moduleApiInvalidByte = 0xFFFFFFFFu;
-        uint32_t           startOffset          = moduleApiInvalidByte;
+
+        uint32_t startOffset = moduleApiInvalidByte;
         if (!tryGetModuleApiSnippetStartOffset(ctx, file, nodeRef, startOffset))
             return moduleApiInvalidByte;
 
@@ -1160,6 +1162,7 @@ namespace
         {
             SWC_ASSERT(ctx != nullptr);
             SWC_ASSERT(file != nullptr);
+
             return moduleApiRootSortByte(*ctx, *file, entry.rootRef);
         }
     };
@@ -1185,6 +1188,7 @@ namespace
             const SourceFile* astFile    = ctx.compiler().ownerSourceFile(method->srcViewRef());
             if (!astFile)
                 astFile = sourceFile;
+
             if (!sourceFile || !astFile)
                 continue;
 
@@ -1193,11 +1197,13 @@ namespace
                 continue;
 
             ModuleApiGeneratedRoot methodRoot;
+
             methodRoot.file    = astFile;
             methodRoot.nodeRef = findExportDeclRoot(*astFile, declRef);
             methodRoot.symbol  = method;
             if (methodRoot.nodeRef.isInvalid())
                 continue;
+
             if (!extractPublicNamespacePath(ctx, *astFile, declRef, *method, methodRoot.namespacePath))
                 continue;
 
@@ -1208,6 +1214,7 @@ namespace
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, const std::string_view eol)
     {
         outSnippet.clear();
+
         std::string_view snippetText;
         if (!root.file || !tryGetModuleApiSnippet(ctx, *root.file, root.nodeRef, snippetText))
             return Result::Continue;
@@ -1220,6 +1227,7 @@ namespace
         outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
             prependMissingFunctionAttributes(*symbolFunction, eol, true, outSnippet);
+
         return Result::Continue;
     }
 }
@@ -1229,6 +1237,7 @@ namespace ModuleApiExport
     Result validateWholeFileFunctionBodies(TaskContext& ctx, const SourceFile& file)
     {
         Result result = Result::Continue;
+
         Ast::visit(file.ast(), file.ast().root(), [&](const AstNodeRef nodeRef, const AstNode& node) {
             const auto* declaration = node.safeCast<AstFunctionDecl>();
             if (!declaration || declaration->nodeBodyRef.isInvalid())
@@ -1236,13 +1245,15 @@ namespace ModuleApiExport
 
             // This check needs only bound symbols, never inferred types or constant values.
             const NodePayload::ResolvedSymbols resolved = file.nodePayloadContext().resolveSymbols(nodeRef);
-            const auto*                        function = !resolved.symbols.empty() && resolved.symbols.front() ? resolved.symbols.front()->safeCast<SymbolFunction>() : nullptr;
+
+            const auto* function = !resolved.symbols.empty() && resolved.symbols.front() ? resolved.symbols.front()->safeCast<SymbolFunction>() : nullptr;
             if (!function)
                 return Ast::VisitResult::Continue;
 
             result = validateExportedFunctionBody(ctx, file, *function, DiagnosticId::cmd_err_api_whole_file_body_not_exportable);
             return result == Result::Continue ? Ast::VisitResult::Continue : Ast::VisitResult::Stop;
         });
+
         return result;
     }
 
@@ -1277,14 +1288,17 @@ namespace ModuleApiExport
         }
 
         const std::string_view source = srcView.stringView();
-        endOffset                     = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+
+        endOffset = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
+
         if (startOffset >= endOffset)
             return false;
 
         outPrefix = buildSanitizedModuleApiSnippet(ctx, file, implRef, startOffset, source.substr(startOffset, endOffset - startOffset), eol);
         trimTrailingModuleApiWhitespace(outPrefix);
+
         return !outPrefix.empty();
     }
 
@@ -1300,15 +1314,16 @@ namespace ModuleApiExport
             return Result::Continue;
         }
 
-        // A supporting declaration keeps its own access and travels as source: the module does
-        // not export it, so a foreign binding could not reach it. What its body names was
-        // already published or reported when it was collected.
+        // Supporting declarations keep their access and travel as source because
+        // foreign bindings cannot reach them. Their body dependencies were already
+        // published or diagnosed during collection.
         if (root.supporting && root.symbol)
         {
             if (const auto* symbolFunction = root.symbol->safeCast<SymbolFunction>())
                 SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
             else if (root.symbol->isAlias() || root.symbol->isStruct() || root.symbol->isEnum() || root.symbol->isInterface())
                 SWC_RESULT(validatePublicTypeSymbol(ctx, *root.symbol, validationStack));
+
             return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
         }
 
@@ -1371,6 +1386,7 @@ namespace ModuleApiExport
         const SourceFile* implFile = ctx.compiler().ownerSourceFile(symImpl->srcViewRef());
         if (!implFile)
             implFile = ctx.compiler().sourceViewFile(*symImpl);
+
         if (!implFile)
             return false;
 
@@ -1402,6 +1418,7 @@ namespace ModuleApiExport
         // The same filter and first-occurrence order as appendGeneratedRootUnique, but a module
         // carries thousands of roots: compare each one only with those sharing its hash.
         std::unordered_map<uint32_t, SmallVector<uint32_t>> rootsByHash;
+
         for (std::vector<ModuleApiGeneratedRoot>& fileRoots : perFileRoots)
         {
             for (ModuleApiGeneratedRoot& root : fileRoots)
@@ -1415,6 +1432,7 @@ namespace ModuleApiExport
 
                 SmallVector<uint32_t>& bucket    = rootsByHash[hash];
                 bool                   duplicate = false;
+
                 for (const uint32_t index : bucket)
                 {
                     if (sameGeneratedRoot(outRoots[index], *root.file, root.nodeRef, root.namespacePath))
@@ -1447,7 +1465,13 @@ namespace ModuleApiExport
 
         for (const ModuleApiPublicEntry& publicEntry : sortedEntries)
         {
-            appendGeneratedRootUnique(outRoots, {.file = astFile, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});
+            appendGeneratedRootUnique(
+                outRoots,
+                {.file          = astFile,
+                 .nodeRef       = publicEntry.rootRef,
+                 .symbol        = publicEntry.symbol,
+                 .namespacePath = publicEntry.namespacePath});
+
             if (const auto* symbolStruct = publicEntry.symbol ? publicEntry.symbol->safeCast<SymbolStruct>() : nullptr)
                 appendGeneratedGenericRootMethodRoots(ctx, *symbolStruct, outRoots);
         }

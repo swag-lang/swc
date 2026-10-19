@@ -87,6 +87,7 @@ namespace
     {
         if (typeRef.isInvalid())
             return Result::Continue;
+
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         switch (typeInfo.kind())
         {
@@ -99,9 +100,11 @@ namespace
             case TypeInfoKind::AggregateStruct:
             case TypeInfoKind::AggregateArray:
                 break;
+
             default:
                 return Result::Continue;
         }
+
         if (!visited.insert(typeRef))
             return Result::Continue;
 
@@ -166,26 +169,31 @@ namespace
         const TypeInfo* type = &declaredType.unwrapAliasEnumTypeOrSelf(ctx);
         if (!type->isArray() && !type->isStruct())
             return false;
+
         if (!visited.insert(type->typeRef()))
             return false;
         if (type->isArray())
             return typeHasUnionStorageRec(ctx, ctx.typeMgr().get(type->payloadArrayElemTypeRef()), visited);
+
         if (type->isStruct())
         {
             if (type->payloadSymStruct().isUnion())
                 return true;
+
             for (const SymbolVariable* field : type->payloadSymStruct().fields())
             {
                 if (field && typeHasUnionStorageRec(ctx, ctx.typeMgr().get(field->typeRef()), visited))
                     return true;
             }
         }
+
         return false;
     }
 
     struct AggregateConstruction
     {
-        Sema*                              sema_ = nullptr;
+        Sema* sema_ = nullptr;
+
         std::vector<std::byte>             bytes;
         std::vector<DataSegmentRelocation> relocations;
         std::vector<uint8_t>               runtimeBytes;
@@ -193,20 +201,24 @@ namespace
         void replaceRange(uint64_t offset, uint64_t size)
         {
             SWC_ASSERT(offset <= bytes.size() && size <= bytes.size() - offset);
+
             // A partial pointer write leaves bytes of the eventual native address.
             // Later writes may replace those bytes too, making the final value constant.
             std::erase_if(relocations, [=, this](const DataSegmentRelocation& relocation) {
                 const uint64_t relocationEnd = uint64_t{relocation.offset} + sizeof(void*);
                 if (!size || relocation.offset >= offset + size || offset >= relocationEnd)
                     return false;
+
                 if (offset > relocation.offset || offset + size < relocationEnd)
                 {
                     if (runtimeBytes.empty())
                         runtimeBytes.resize(bytes.size(), 0);
                     std::fill_n(runtimeBytes.data() + relocation.offset, sizeof(void*), 1);
                 }
+
                 return true;
             });
+
             if (!runtimeBytes.empty())
                 std::fill_n(runtimeBytes.data() + offset, size, 0);
         }
@@ -249,6 +261,7 @@ namespace
                 uint32_t     materializedOffset = INVALID_REF;
                 DataSegment& segment            = sema.cstMgr().shardDataSegment(0);
                 SWC_RESULT(ConstantLower::materializeStaticPayload(sema, materializedOffset, segment, type, lowered));
+
                 sourceRef = {.shardIndex = 0, .offset = materializedOffset};
                 source    = {segment.ptr<std::byte>(materializedOffset), static_cast<size_t>(size)};
             }
@@ -259,12 +272,14 @@ namespace
 
             std::vector<DataSegmentRelocation> sourceRelocations;
             sema.cstMgr().shardDataSegment(sourceRef.shardIndex).copyRelocations(sourceRelocations, sourceRef.offset, static_cast<uint32_t>(size));
+
             for (DataSegmentRelocation relocation : sourceRelocations)
             {
                 SWC_ASSERT(relocation.offset - sourceRef.offset + sizeof(void*) <= size);
                 relocation.offset = static_cast<uint32_t>(offset + relocation.offset - sourceRef.offset);
                 if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset && relocation.targetShardIndex == INVALID_REF)
                     relocation.targetShardIndex = sourceRef.shardIndex;
+
                 relocations.push_back(relocation);
             }
 
@@ -357,6 +372,7 @@ namespace
                     const uint64_t slotOffset = offset + owner.dynamicSlotOffsets().front();
                     const void*    pointer    = nullptr;
                     std::memcpy(&pointer, bytes.data() + slotOffset, sizeof(pointer));
+
                     DataSegmentRef target;
                     if (!sema.cstMgr().resolveDataSegmentRef(target, pointer))
                         return Result::Error;
@@ -392,14 +408,17 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
     const TypeInfo& type = sema.typeMgr().get(typeRef);
     const uint64_t  size = type.sizeOf(sema.ctx());
     SWC_ASSERT(size <= UINT32_MAX);
+
     AggregateConstruction construction{.sema_ = &sema, .bytes = std::vector<std::byte>(size, std::byte{0})};
     if (construction.writeDefault(type, size, 0) != Result::Continue)
         return ConstantRef::invalid();
+
     for (const ConstantPayloadWrite& write : writes)
     {
         if (write.valueRef.isValid() && construction.writeValue(write.typeRef, write.valueRef, write.offset) != Result::Continue)
             return ConstantRef::invalid();
     }
+
     if (SymbolStruct::initializeDynamicIdentityBytes(sema, construction.bytes, type) != Result::Continue)
         return ConstantRef::invalid();
     if (construction.collectDynamicRelocations(type, 0) != Result::Continue)
@@ -414,6 +433,7 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
     const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(size), type.alignOf(sema.ctx()), false);
     if (size)
         std::memcpy(storage, construction.bytes.data(), size);
+
     for (const DataSegmentRelocation& relocation : construction.relocations)
     {
         if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
@@ -421,7 +441,9 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
         else
             segment.addRelocation(offset + relocation.offset, {.shardIndex = relocation.targetShardIndex, .offset = relocation.targetOffset});
     }
+
     const ConstantValue result = makeMaterializedConstantValue(sema.ctx(), type, storageType, {storage, static_cast<size_t>(size)}, {.shardIndex = shardIndex, .offset = offset});
+
     // Equal union bytes can carry different relocation inventories (an integer view
     // versus a pointer view). Byte-only constant interning cannot merge those facts.
     return sema.cstMgr().addUniqueMaterializedPayloadConstant(result);

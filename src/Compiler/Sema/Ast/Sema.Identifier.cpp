@@ -53,6 +53,7 @@ namespace
             const Symbol* next = current->cast<SymbolAlias>().aliasedSymbol();
             if (!next || next == current)
                 break;
+
             current = next;
         }
 
@@ -113,6 +114,7 @@ namespace
 
         if (decl->is(AstNodeId::ClosureExpr))
             return true;
+
         return decl->is(AstNodeId::FunctionExpr) && function.hasExtraFlag(SymbolFunctionFlagsE::BoundToClosure);
     }
 
@@ -135,10 +137,8 @@ namespace
         if (node.hasFlag(AstIdentifierFlagsE::InClosureCapture))
             return false;
 
-        // A name used only to ask the compiler about its type -- '#decltype(x)', '#typeof(x)' --
-        // reads no storage, so the closure has nothing to capture. Requiring a capture there
-        // would force a value into the closure only to name its type. The '#typeof' test walks
-        // the visit path to its root, so it is asked only of a name that would need a capture.
+        // Type-only compiler introspection needs no captured storage. Defer the
+        // full visit-path check until this symbol would otherwise need capture.
         if (node.hasFlag(AstIdentifierFlagsE::InCompilerDefined))
             return false;
 
@@ -153,9 +153,8 @@ namespace
         if (symVar.hasGlobalStorage())
             return false;
 
-        // Local-scope variables (e.g. inside a block or foreach body) have no
-        // ownerSymMap, so ownerFunction() cannot walk the scope chain. Check
-        // the function's local variable list directly.
+        // Block-local variables may lack ownerSymMap, so ownerFunction cannot find
+        // them through scope ownership. Check the current function's locals directly.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
         {
             if (currentFn->containsLocalVariable(symVar))
@@ -229,9 +228,8 @@ namespace
         if (!symVar.isFrameVariable())
             return nullptr;
 
-        // Every answer short of an outer function is "no boundary", and a variable of the
-        // current function ends the walk below on its first step: answer it before the visit
-        // path is searched for an inline context.
+        // Variables owned here have no outer-function boundary. Answer before
+        // the more expensive search for inline context.
         if (currentFn.ownsVariable(symVar))
             return nullptr;
 
@@ -278,6 +276,7 @@ namespace
             case TokenId::CompilerSizeOf:
             case TokenId::CompilerAlignOf:
                 return true;
+
             default:
                 return false;
         }
@@ -319,6 +318,7 @@ namespace
                 return &owner->cast<SymbolStruct>() == target;
             if (!owner->isImpl())
                 return false;
+
             const auto& ownerImpl = owner->cast<SymbolImpl>();
             return ownerImpl.isForStruct() && ownerImpl.symStruct() == target;
         }
@@ -332,6 +332,7 @@ namespace
                 return &owner->cast<SymbolEnum>() == target;
             if (!owner->isImpl())
                 return false;
+
             const auto& ownerImpl = owner->cast<SymbolImpl>();
             return ownerImpl.isForEnum() && ownerImpl.symEnum() == target;
         }
@@ -348,6 +349,7 @@ namespace
 
         SmallVector<AstNodeRef> children;
         sema.node(rootRef).collectChildrenFromAst(children, sema.ast());
+
         for (const AstNodeRef childRef : children)
         {
             if (subtreeContains(sema, childRef, needleRef))
@@ -391,6 +393,7 @@ namespace
             {
                 if (subtreeContains(sema, call->nodeExprRef, currentRef))
                     return false;
+
                 return isSwagOperatorsAttributeCall(sema, *call);
             }
         }
@@ -409,10 +412,12 @@ namespace
 
         const ConstantValue constant = ConstantValue::makeString(sema.ctx(), operatorName);
         const ConstantRef   cstRef   = sema.cstMgr().addConstant(sema.ctx(), constant);
+
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeString());
         sema.setConstant(sema.curNodeRef(), cstRef);
         sema.setIsValue(sema.curNode());
         sema.unsetIsLValue(sema.curNodeRef());
+
         return true;
     }
 
@@ -422,6 +427,7 @@ namespace
             return currentImpl.symStruct()->idRef();
         if (currentImpl.isForEnum())
             return currentImpl.symEnum()->idRef();
+
         return IdentifierRef::invalid();
     }
 

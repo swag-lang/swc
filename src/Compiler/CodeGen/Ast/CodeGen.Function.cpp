@@ -82,8 +82,8 @@ namespace
         if (!codeGen.function().usesGlobalsToDrop())
             return;
 
-        // `Swag.globalsToDrop()` returns a slice built in the current frame, so reserve scratch space once in the local
-        // stack layout and keep the referenced drop helpers alive as dependencies.
+        // Reserve scratch space once for the frame-backed globalsToDrop slice,
+        // and retain the referenced drop helpers as call dependencies.
         SmallVector<CodeGenGlobalToDropEntry> entries;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
             collectGlobalToDropEntriesRec(codeGen, *rootModule, entries);
@@ -97,9 +97,10 @@ namespace
         constexpr uint32_t entryAlignment = alignof(Runtime::GlobalToDrop);
         constexpr uint32_t scratchAlign   = std::max(sliceAlignment, entryAlignment);
         constexpr uint32_t entriesOffset  = Math::alignUpU32(sliceSize, entryAlignment);
-        const uint64_t     scratchBase    = Math::alignUpU64(frameSize, scratchAlign);
-        const uint64_t     scratchSize    = entriesOffset + entries.size() * entrySize;
-        const uint64_t     scratchEnd     = scratchBase + scratchSize;
+
+        const uint64_t scratchBase = Math::alignUpU64(frameSize, scratchAlign);
+        const uint64_t scratchSize = entriesOffset + entries.size() * entrySize;
+        const uint64_t scratchEnd  = scratchBase + scratchSize;
         SWC_ASSERT(scratchSize > 0);
         SWC_ASSERT(scratchSize <= std::numeric_limits<uint32_t>::max());
         SWC_ASSERT(scratchEnd <= std::numeric_limits<uint32_t>::max());
@@ -119,6 +120,7 @@ namespace
         outAlignment = typeInfo.alignOf(codeGen.ctx());
         if (!outAlignment)
             outAlignment = 1;
+
         return true;
     }
 
@@ -183,8 +185,10 @@ namespace
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         const std::vector<SymbolVariable*>& params       = codeGen.function().parameters();
         SWC_ASSERT(paramInfos.size() == params.size());
+
         uint64_t frameSize = 0;
         codeGen.clearCurrentFunctionIndirectReturnStackOffset();
+
         for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
@@ -243,9 +247,11 @@ namespace
             bodyRef = fn->nodeBodyRef;
         else if (const auto* fn = decl->safeCast<AstClosureExpr>())
             bodyRef = fn->nodeBodyRef;
+
         CodeGenSafety::configureValueBorrowSites(codeGen, bodyRef, frameSize);
         appendDebugParameterSlots(codeGen, frameSize);
         configureGlobalsToDropScratchLayout(codeGen, frameSize);
+
         if (hasIndirectReturnArg)
         {
             constexpr uint32_t hiddenReturnStorageSize      = sizeof(uint64_t);
@@ -266,6 +272,7 @@ namespace
                     frameSize += sizeof(Runtime::ValueBorrowRecord);
             }
         }
+
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
         SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
@@ -280,9 +287,9 @@ namespace
             return;
         SWC_ASSERT(codeGen.localStackBaseReg().isValid());
 
-        // Once parameter payloads are materialized, mirror them into the synthetic debug slots so the
-        // debugger can recover them from a single stack location. Use the local-frame base instead of
-        // raw SP so later spill-frame insertion does not slide these stores into the allocator spill area.
+        // Give materialized parameters one stable debugger-visible stack home. Use
+        // the local-frame base so later spill-frame insertion cannot move these stores
+        // into allocator spill slots.
         MicroBuilder&                       builder = codeGen.builder();
         const MicroReg                      baseReg = codeGen.localStackBaseReg();
         const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
@@ -319,6 +326,7 @@ namespace
             const MicroOpBits storeBits = microOpBitsFromChunkSize(copySize);
             if (storeBits == MicroOpBits::Zero)
                 continue;
+
             builder.emitLoadMemReg(baseReg, symVar->debugStackSlotOffset(), symbolPayload->reg, storeBits);
         }
     }
@@ -334,16 +342,14 @@ namespace
         CodeGenFunctionHelpers::fillFunctionParameterInfos(codeGen, outParamInfos, symbolFunc, hasIndirectReturnArg, symbolFunc.isClosure());
     }
 
-    // A parameter that needs addressable storage owns a local slot, which
-    // 'spillAddressableParametersToLocalSlots' fills from the payload registered for it here.
-    // 'materializeFunctionParameter' would instead hand back that slot's address right away,
-    // so the incoming argument would never be read and the spill would copy the still
-    // uninitialized slot onto itself. Register parameters avoid this because
-    // 'materializeRegisterParameters' loads them before any of that.
+    // Load incoming stack arguments before spilling them to their local slots.
+    // materializeFunctionParameter would return the destination slot address,
+    // making the spill read uninitialized local storage instead of the argument.
     bool stackParameterNeedsEagerLoad(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo)
     {
         if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || !codeGen.localStackBaseReg().isValid())
             return false;
+
         return symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) ||
                CodeGenFunctionHelpers::isByValueAggregateParameter(codeGen, symbolFunc, symVar, &paramInfo);
     }
@@ -357,6 +363,7 @@ namespace
         {
             const SymbolVariable* symVar = params[i];
             SWC_ASSERT(symVar != nullptr);
+
             const CodeGenFunctionHelpers::FunctionParameterInfo& paramInfo = paramInfos[i];
             if (paramInfo.isRegisterArg)
                 continue;
@@ -384,6 +391,7 @@ namespace
         MicroBuilder&                       builder = codeGen.builder();
         const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
         SWC_ASSERT(paramInfos.size() == params.size());
+
         for (size_t i = 0; i < params.size(); ++i)
         {
             const SymbolVariable* symVar = params[i];
@@ -445,9 +453,10 @@ namespace
         if (resolvedChildRef != resolvedBodyRef)
             return Result::SkipChildren;
 
-        const SymbolFunction&                  symbolFunc    = codeGen.function();
-        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
-        const CallConv&                        callConv      = CallConv::get(callConvKind);
+        const SymbolFunction& symbolFunc   = codeGen.function();
+        const CallConvKind    callConvKind = symbolFunc.callConvKind();
+        const CallConv&       callConv     = CallConv::get(callConvKind);
+
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
 
         codeGen.setCurrentFunctionIndirectReturnReg(MicroReg::invalid());
@@ -456,6 +465,7 @@ namespace
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         buildFunctionParameterInfos(codeGen, paramInfos, symbolFunc, normalizedRet.isIndirect);
+
         buildLocalStackLayout(codeGen, callConv, normalizedRet.isIndirect, paramInfos);
         SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
         {
@@ -474,20 +484,16 @@ namespace
             const ScopedDebugNoStep noStep(builder, true);
             const MicroReg          closureContextReg = codeGen.nextVirtualIntRegister();
 
-            // The closure context pointer is read at every capture access, so it
-            // is live across the whole function body (including loops and calls
-            // that materialize nested closures). Keeping it in an ordinary virtual
-            // register makes RegAlloc round-trip it through the spill machinery,
-            // which can resolve a reload to a slot that was never written on the
-            // taken path. Constrain it to a persistent (callee-saved) register the
-            // same way the local stack base is handled, so it survives calls
-            // without ever entering the spill path.
+            // Capture accesses need the context throughout the body, across loops and calls.
+            // As with the local stack base, require a callee-saved register to avoid the
+            // spill path, whose reload can read a slot not written on the taken path.
             SmallVector<MicroReg> forbiddenRegs;
             for (const MicroReg reg : callConv.intTransientRegs)
                 forbiddenRegs.push_back(reg);
             forbiddenRegs.push_back(callConv.stackPointer);
             if (callConv.framePointer.isValid())
                 forbiddenRegs.push_back(callConv.framePointer);
+
             builder.addVirtualRegForbiddenPhysRegs(closureContextReg, forbiddenRegs.span());
 
             builder.emitLoadRegReg(closureContextReg, callConv.intArgRegs[closureContextSlot], MicroOpBits::B64);
@@ -503,8 +509,7 @@ namespace
             spillParametersToDebugSlots(codeGen, symbolFunc);
         }
 
-        // The body starts after this instruction: what the function makes
-        // once for its whole body is inserted here.
+        // Remember the insertion point for setup shared by the whole function body.
         codeGen.setBodyEntryRef(codeGen.builder().instructions().lastInstructionRef());
 
         CodeGenSafety::initializeValueBorrowSites(codeGen);
@@ -518,14 +523,17 @@ namespace
                 const auto& param = *symbolFunc.parameters()[i];
                 if (!paramInfos[i].isIndirect || paramInfos[i].needsIndirectCopy || !CodeGenSafety::isBorrowedValueType(codeGen, param.typeRef()))
                     continue;
+
                 const auto* payload = codeGen.variablePayload(param);
                 SWC_ASSERT(payload && payload->isAddress());
                 SWC_RESULT(CodeGenSafety::emitValueBorrowBegin(codeGen, recordOffset, payload->reg, codeGen.typeMgr().get(param.typeRef()).sizeOf(codeGen.ctx())));
                 recordOffset += sizeof(Runtime::ValueBorrowRecord);
             }
         }
+
         if (normalizedRet.isIndirect)
             SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind), normalizedRet.indirectSize));
+
         codeGen.registerImplicitParameterDrops(paramInfos);
 
         return Result::Continue;

@@ -106,9 +106,8 @@ namespace
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
-        uint64_t                            frameSize    = 0;
-        // Sema already fixed the per-local offsets. Codegen only turns that sparse layout into one
-        // contiguous stack frame and marks each symbol as stack-backed.
+
+        uint64_t frameSize = 0;
         for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
@@ -127,6 +126,7 @@ namespace
             uint32_t        alignment = typeInfo.alignOf(codeGen.ctx());
             if (!alignment)
                 alignment = 1;
+
             if (!size)
             {
                 symVar->setOffset(0);
@@ -145,6 +145,7 @@ namespace
         }
 
         CodeGenSafety::configureValueBorrowSites(codeGen, bodyRef, frameSize);
+
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
         SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
@@ -175,8 +176,10 @@ namespace
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         buildCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
+
         buildCompilerFunctionStackLayout(codeGen, bodyRef);
         SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
+
         CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
         if (returnTypeRef.isValid())
@@ -256,8 +259,10 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
 
     SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
     buildCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
+
     buildCompilerFunctionStackLayout(codeGen, nodeBodyRef);
     SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
+
     CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
     codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
@@ -292,6 +297,7 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 
     buildCompilerFunctionStackLayout(codeGen, codeGen.curNode().cast<AstCompilerRunExpr>().nodeExprRef);
     SWC_RESULT(CodeGenSafety::prepareValueBorrowSafety(codeGen));
+
     CodeGenFunctionHelpers::emitLocalStackFramePrologue(codeGen, callConvKind);
 
     // Compiler-run entry points receive the caller output buffer in the first integer argument.
@@ -316,6 +322,7 @@ Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
         swcAssertDetail("condView.cst()", __FILE__, __LINE__, detail.view());
 #endif
     }
+
     SWC_ASSERT(condView.cst());
 
     if (childRef == nodeIfBlockRef && !condView.cst()->getBool())
@@ -336,6 +343,7 @@ Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
     MicroBuilder&               builder = codeGen.builder();
     CompilerScopeCodeGenPayload scopeState;
     scopeState.doneLabel = builder.createLabel();
+
     codeGen.setNodePayload(codeGen.curNodeRef(), scopeState);
     return Result::Continue;
 }
@@ -345,9 +353,8 @@ Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef&
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
-    // The scope owns a defer scope so that 'break to <name>' unwinds it, and so that a bare
-    // 'break' or 'continue' aimed at an enclosing loop unwinds it on the way out. It leaves the
-    // break and continue contexts alone: only the named form targets a '#scope'.
+    // Own a defer scope so named breaks and exits to enclosing loops unwind it.
+    // Keep loop break/continue contexts: only a named break targets #scope.
     codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
 }
@@ -391,6 +398,7 @@ Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
         return Result::Continue;
 
     SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(scopeRef));
+
     MicroBuilder& builder = codeGen.builder();
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, scopeState->doneLabel);
     return Result::Continue;
@@ -407,13 +415,16 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView exprView     = codeGen.viewType(nodeExprRef);
     SWC_ASSERT(exprView.type());
 
-    const CodeGenNodePayload&              exprPayload      = codeGen.payload(nodeExprRef);
-    const MicroReg                         payloadReg       = exprPayload.reg;
-    const bool                             payloadLValue    = exprPayload.isAddress();
-    const CodeGenNodePayload&              runExprPayload   = codeGen.payload(codeGen.curNodeRef());
-    const MicroReg                         outputStorageReg = runExprPayload.reg;
-    const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, *exprView.type(), ABITypeNormalize::Usage::Return);
-    const bool                             needsPersistent  = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), exprView.typeRef());
+    const CodeGenNodePayload& exprPayload   = codeGen.payload(nodeExprRef);
+    const MicroReg            payloadReg    = exprPayload.reg;
+    const bool                payloadLValue = exprPayload.isAddress();
+
+    const CodeGenNodePayload& runExprPayload   = codeGen.payload(codeGen.curNodeRef());
+    const MicroReg            outputStorageReg = runExprPayload.reg;
+
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, *exprView.type(), ABITypeNormalize::Usage::Return);
+
+    const bool needsPersistent = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), exprView.typeRef());
 
     if (normalizedRet.isIndirect)
     {
@@ -434,6 +445,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
             CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, exprView.typeRef(), outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
         }
     }
+
     SWC_RESULT(codeGen.emitDeferredActionsForReturn());
     CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
     builder.emitRet();

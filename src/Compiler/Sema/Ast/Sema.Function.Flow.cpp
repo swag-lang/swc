@@ -51,6 +51,7 @@ namespace
     {
         if (nodeRef.isInvalid())
             return false;
+
         return isNestedUfcsReceiverValue(sema, nodeRef, sema.viewTypeSymbol(nodeRef));
     }
 
@@ -128,6 +129,7 @@ namespace
             case AstNodeId::TopLevelBlock:
             case AstNodeId::ErrorManagementStmt:
                 return true;
+
             default:
                 return false;
         }
@@ -139,9 +141,8 @@ namespace
         bool containsAssumedCast = false;
         bool isFallibleResult    = false;
 
-        // A '!' records the proof it makes. Sema re-enters a node after a dependency yield,
-        // and the proof recorded on the first pass is this node's own: reading it back on the
-        // next pass would make the assertion look redundant against itself.
+        // Do not recheck a proof this node recorded before a dependency pause:
+        // on re-entry it would make its own assertion appear redundant.
         bool notNullProofRecorded = false;
     };
 
@@ -151,6 +152,7 @@ namespace
             return;
 
         CodeGenLoweringPayload& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, targetRef);
+
         payload.fallibleWrapperOwnerRef = ownerRef;
         payload.fallibleWrapperTokenId  = tokenId;
     }
@@ -173,6 +175,7 @@ namespace
             case TokenId::KwdExpect:
             case TokenId::KwdAssume:
                 break;
+
             default:
                 return;
         }
@@ -188,11 +191,14 @@ namespace
         {
             case TokenId::KwdTry:
                 return SemaFrame::ErrorContextMode::Try;
+
             case TokenId::KwdCatch:
                 return SemaFrame::ErrorContextMode::Catch;
+
             case TokenId::KwdExpect:
             case TokenId::KwdAssume:
                 return SemaFrame::ErrorContextMode::Expect;
+
             default:
                 return SemaFrame::ErrorContextMode::None;
         }
@@ -279,6 +285,7 @@ namespace
             return false;
 
         const AstNode& scope = sema.node(scopeRef);
+
         // A block chooses where errors go; each call still spells that it can fail.
         if (const auto* stmt = scope.safeCast<AstErrorManagementStmt>())
             return sema.node(stmt->nodeBodyRef).isNot(AstNodeId::EmbeddedBlock) &&
@@ -307,10 +314,8 @@ namespace
         return owner && owner->attributes().hasRtFlag(RtAttributeFlagsE::Propagate);
     }
 
-    // A fallible expression is handled by the keyword written around it or, in a
-    // 'Swag.Propagate' body, as an unwritten 'try'. Code generation already sends an unmarked
-    // failure to the nearest handler, which is exactly where 'try' sends it, so the implicit
-    // form only has to be accepted here. The editor is told where it applies, so it can show it.
+    // Swag.Propagate accepts an unmarked fallible expression as an implicit try.
+    // Codegen already targets the nearest handler; record it for the editor.
     bool acceptFallibleExpression(Sema& sema)
     {
         if (hasExplicitCallErrorHandler(sema))
@@ -326,9 +331,7 @@ namespace
     // Only the body's own analysis reports it, not each inline expansion of that body.
     void reportRedundantTry(Sema& sema)
     {
-        // Outside every inline context the error-handling owner is the current function. Its
-        // attribute is asked first: only a 'Swag.Propagate' body needs the visit path searched
-        // for an inline context.
+        // Check the attribute before searching for an inline context.
         const SymbolFunction* owner = sema.currentFunction();
         if (!owner || !owner->attributes().hasRtFlag(RtAttributeFlagsE::Propagate))
             return;
@@ -357,6 +360,7 @@ namespace
         if (const auto* currentFn = sema.currentFunction())
             addFunctionDeclaredHereNote(sema, diag, *currentFn);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -374,6 +378,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_SYM, callable->name(sema.ctx()));
         addFunctionDeclaredHereNote(sema, diag, *callable);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -408,6 +413,7 @@ namespace
             addFunctionDeclaredHereNote(sema, diag, *fn);
 
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -443,10 +449,8 @@ namespace
         if (!childView.typeRef().isValid())
             return TypeRef::invalid();
 
-        // On a binding to a nullable slot, the flag is stripped INSIDE the move reference.
-        // Dropping the move reference instead would change what the
-        // payload points at, and the qualifiers of the binding must survive onto whatever
-        // is reached through it.
+        // Remove nullability inside a reference while preserving its move-reference
+        // shape and qualifiers; dropping the reference would change its payload.
         const TypeInfo& outerType = SemaHelpers::aliasEnumType(sema, childView);
         if (outerType.isReference())
         {

@@ -19,12 +19,9 @@ struct SemaCompilerIf
     SemaCompilerIf*      parent = nullptr;
     std::mutex           symbolsMutex;
 
-    // A SemaCompilerIf lives in the shared AST payload of a static-control branch. Declarations
-    // inside that block are semantically analyzed by independent SemaJobs running on different
-    // worker threads, and each registers itself here via registerCompilerIf(). Without the lock
-    // the concurrent push_back() on this shared vector races (relocate/memmove), corrupting the
-    // heap. The matching read happens after every child of the static-control node has been
-    // processed, so it needs no lock.
+    // Static-control payloads are shared by independent SemaJobs. Lock writes
+    // while declarations register themselves along the chain. Reads occur only
+    // after all branch children complete and need no lock.
     void addSymbolToChain(Symbol* sym)
     {
         for (auto it = this; it; it = it->parent)
@@ -48,19 +45,17 @@ struct SemaLookupScopeOverrideNodes
     std::unordered_set<AstNodeRef> nodeRefs;
 };
 
-// A collection currently being iterated by an enclosing loop, rooted at the storage
-// variable the loop reads. While such a borrow is live, a structural mutation of that
-// same storage (Array.add / remove / clear / free ...) invalidates the iteration: the
-// loop reads a count snapshot and '&it' aliases the buffer, so a realloc dangles it.
-// Held in the frame so it is inherited by inline/macro expansions and restored when the
-// loop frame pops (also on error unwinding).
+// Track the storage iterated by an enclosing loop. Structural mutation can
+// invalidate its count snapshot or reallocate the buffer aliased by &it.
+// Frame inheritance carries the borrow through inline/macro expansion and
+// restores the previous set when the loop frame pops, including on errors.
 struct SemaIterationBorrow
 {
     const SymbolVariable* root      = nullptr;
     AstNodeRef            sourceRef = AstNodeRef::invalid();
-    // The loop body, used to spare the common safe pattern where the mutation is followed
-    // by a loop exit ('for it in c { if hit { c.removeAt(i); return it } }'): the loop
-    // never iterates again after the mutation, so the snapshot is never used stale.
+
+    // A mutation followed by a loop exit is safe from later iterations. Keep
+    // the body so analysis can prove the count snapshot is never reused.
     AstNodeRef bodyRef = AstNodeRef::invalid();
 };
 
@@ -74,19 +69,17 @@ enum class SemaFrameContextFlagsE
 };
 using SemaFrameContextFlags = EnumFlags<SemaFrameContextFlagsE>;
 
-// What a flow fact proves about an access path. A new kind is added here, recognized in
-// `SemaHelpers::collectNarrowGuards`, and queried by whoever consumes it; the storage,
-// the scoping and the kill rules below are shared by every kind.
+// Flow facts share storage, scoping, and kill rules. New kinds also need
+// recognition in SemaHelpers::collectNarrowGuards and a consuming query.
 enum class SemaNarrowFactKind : uint8_t
 {
     NonNull, // the path cannot be null: consumed by the use-site nullability rules
     NonZero, // the path cannot be zero
 };
 
-// A flow fact about an access path (root variable followed by field symbols, e.g. `p` or
-// `me.lastBucket`). `holds == true` means the path is proven at this point of the walk;
-// `holds == false` is a kill that invalidates EVERY kind for the path and everything it
-// prefixes (after an assignment or address-of), so `kind` is meaningless on a kill.
+// An access path is a root variable followed by field symbols (p or me.lastBucket).
+// holds proves the path here; a kill invalidates every kind on the path and its
+// descendants after assignment or address-of. The kind of a kill is irrelevant.
 struct SemaNarrowFact
 {
     SmallVector4<const Symbol*> path;
@@ -126,66 +119,79 @@ public:
 
     SymbolAccess currentAccess() const { return access_; }
     void         setCurrentAccess(SymbolAccess access) { access_ = access; }
-    // An access modifier written in an aggregate body applies to the members of THAT aggregate.
-    // Recording the symbol map it was written in keeps it from reaching a nested aggregate
-    // declared inside the same block, whose members belong to a type of its own. Outside that map
-    // the answer is the language default, which is the same 'internal' a top-level declaration
-    // gets — except inside an anonymous aggregate, which cannot be annotated at all.
+
+    // An access modifier applies only to members of its owning aggregate. Nested
+    // aggregates default to internal; anonymous aggregates cannot be annotated
+    // and remain accessible through the value that holds them.
     MemberAccessSpec memberAccessFor(const SymbolMap* symMap) const;
     void             setCurrentMemberAccess(MemberAccessSpec access, const SymbolMap* symMap)
     {
         memberAccess_    = access;
         memberAccessMap_ = symMap;
     }
-    bool                 globalCompilerIfEnabled() const { return globalCompilerIfEnabled_; }
-    void                 setGlobalCompilerIfEnabled(bool value) { globalCompilerIfEnabled_ = value; }
+
+    bool globalCompilerIfEnabled() const { return globalCompilerIfEnabled_; }
+    void setGlobalCompilerIfEnabled(bool value) { globalCompilerIfEnabled_ = value; }
+
     AttributeList&       currentAttributes() { return attributes_; }
     const AttributeList& currentAttributes() const { return attributes_; }
 
-    SemaCompilerIf*                     currentCompilerIf() const { return compilerIf_; }
-    void                                setCurrentCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
-    const SymbolImpl*                   currentImpl() const { return impl_; }
-    void                                setCurrentImpl(const SymbolImpl* impl) { impl_ = impl; }
-    const SymbolInterface*              currentInterface() const { return interface_; }
-    void                                setCurrentInterface(const SymbolInterface* itf) { interface_ = itf; }
-    SymbolFunction*                     currentFunction() const { return function_; }
-    void                                setCurrentFunction(SymbolFunction* func) { function_ = func; }
-    SymbolFunction*                     enclosingFunction() const { return enclosingFunction_; }
-    void                                setEnclosingFunction(SymbolFunction* func) { enclosingFunction_ = func; }
-    SemaNamedCompilerScope*             currentNamedCompilerScope() const { return namedCompilerScope_; }
-    void                                setCurrentNamedCompilerScope(SemaNamedCompilerScope* scope) { namedCompilerScope_ = scope; }
-    SemaFrameContextFlags               contextFlags() const { return contextFlags_; }
-    bool                                hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
-    void                                addContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.add(flag); }
-    void                                removeContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.remove(flag); }
-    AstNodeRef                          syntaxScopeNodeRef() const { return syntaxScopeNodeRef_; }
-    void                                setSyntaxScopeNodeRef(AstNodeRef nodeRef) { syntaxScopeNodeRef_ = nodeRef; }
-    SemaInlinePayload*                  currentInlinePayload() { return inlinePayload_; }
-    const SemaInlinePayload*            currentInlinePayload() const { return inlinePayload_; }
-    void                                setCurrentInlinePayload(SemaInlinePayload* payload) { inlinePayload_ = payload; }
-    AstNodeRef                          inlineContextRootRef() const { return inlineContextRootRef_; }
-    void                                setInlineContextRootRef(AstNodeRef nodeRef) { inlineContextRootRef_ = nodeRef; }
-    SemaScope*                          lookupScope() const { return lookupScope_; }
-    void                                setLookupScope(SemaScope* scope) { lookupScope_ = scope; }
+    SemaCompilerIf* currentCompilerIf() const { return compilerIf_; }
+    void            setCurrentCompilerIf(SemaCompilerIf* ifc) { compilerIf_ = ifc; }
+
+    const SymbolImpl* currentImpl() const { return impl_; }
+    void              setCurrentImpl(const SymbolImpl* impl) { impl_ = impl; }
+
+    const SymbolInterface* currentInterface() const { return interface_; }
+    void                   setCurrentInterface(const SymbolInterface* itf) { interface_ = itf; }
+
+    SymbolFunction* currentFunction() const { return function_; }
+    void            setCurrentFunction(SymbolFunction* func) { function_ = func; }
+    SymbolFunction* enclosingFunction() const { return enclosingFunction_; }
+    void            setEnclosingFunction(SymbolFunction* func) { enclosingFunction_ = func; }
+
+    SemaNamedCompilerScope* currentNamedCompilerScope() const { return namedCompilerScope_; }
+    void                    setCurrentNamedCompilerScope(SemaNamedCompilerScope* scope) { namedCompilerScope_ = scope; }
+
+    SemaFrameContextFlags contextFlags() const { return contextFlags_; }
+    bool                  hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
+    void                  addContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.add(flag); }
+    void                  removeContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.remove(flag); }
+
+    AstNodeRef syntaxScopeNodeRef() const { return syntaxScopeNodeRef_; }
+    void       setSyntaxScopeNodeRef(AstNodeRef nodeRef) { syntaxScopeNodeRef_ = nodeRef; }
+
+    SemaInlinePayload*       currentInlinePayload() { return inlinePayload_; }
+    const SemaInlinePayload* currentInlinePayload() const { return inlinePayload_; }
+    void                     setCurrentInlinePayload(SemaInlinePayload* payload) { inlinePayload_ = payload; }
+    AstNodeRef               inlineContextRootRef() const { return inlineContextRootRef_; }
+    void                     setInlineContextRootRef(AstNodeRef nodeRef) { inlineContextRootRef_ = nodeRef; }
+
+    SemaScope* lookupScope() const { return lookupScope_; }
+    void       setLookupScope(SemaScope* scope) { lookupScope_ = scope; }
+
     const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes() const { return lookupScopeOverrideNodes_; }
     void                                setLookupScopeOverrideNodes(const SemaLookupScopeOverrideNodes* nodes) { lookupScopeOverrideNodes_ = nodes; }
-    SemaScope*                          upLookupScope() const { return upLookupScope_; }
-    void                                setUpLookupScope(SemaScope* scope) { upLookupScope_ = scope; }
-    bool                                ignoreRuntimeAccess() const { return ignoreRuntimeAccess_; }
-    void                                setIgnoreRuntimeAccess(bool value) { ignoreRuntimeAccess_ = value; }
-    bool                                ignoreRedirectedLookupSymMaps() const { return ignoreRedirectedLookupSymMaps_; }
-    void                                setIgnoreRedirectedLookupSymMaps(bool value) { ignoreRedirectedLookupSymMaps_ = value; }
+
+    SemaScope* upLookupScope() const { return upLookupScope_; }
+    void       setUpLookupScope(SemaScope* scope) { upLookupScope_ = scope; }
+
+    bool ignoreRuntimeAccess() const { return ignoreRuntimeAccess_; }
+    void setIgnoreRuntimeAccess(bool value) { ignoreRuntimeAccess_ = value; }
+    bool ignoreRedirectedLookupSymMaps() const { return ignoreRedirectedLookupSymMaps_; }
+    void setIgnoreRedirectedLookupSymMaps(bool value) { ignoreRedirectedLookupSymMaps_ = value; }
 
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
     const BreakContext& currentContinueContext() const { return continuable_; }
     BreakContextKind    currentContinuableKind() const { return continuable_.kind; }
-    // Innermost enclosing '#scope', named or not. It is not a break or continue target; the
-    // frame keeps it so a bare 'break' or a 'continue' that finds no loop can name the
-    // construct the reader was aiming at instead of reporting a bare absence.
-    AstNodeRef       currentCompilerScope() const { return compilerScope_; }
-    void             setCurrentCompilerScope(AstNodeRef nodeRef) { compilerScope_ = nodeRef; }
+
+    // #scope is not a bare break/continue target. Keep the innermost scope for
+    // diagnostics when no enclosing loop provides the intended target.
+    AstNodeRef currentCompilerScope() const { return compilerScope_; }
+    void       setCurrentCompilerScope(AstNodeRef nodeRef) { compilerScope_ = nodeRef; }
+
     AstNodeRef       currentErrorScope() const { return currentErrorScope_; }
     ErrorContextMode currentErrorContextMode() const { return currentErrorContextMode_; }
     void             setCurrentErrorContext(AstNodeRef nodeRef, ErrorContextMode mode)
@@ -193,10 +199,12 @@ public:
         currentErrorScope_       = nodeRef;
         currentErrorContextMode_ = mode;
     }
-    AstNodeRef      currentSwitch() const { return currentSwitch_; }
-    void            setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef      currentSwitchCase() const { return currentSwitchCase_; }
-    void            setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+
+    AstNodeRef currentSwitch() const { return currentSwitch_; }
+    void       setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef currentSwitchCase() const { return currentSwitchCase_; }
+    void       setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+
     AstNodeRef      currentRuntimeStorageNodeRef() const { return runtimeStorageNodeRef_; }
     SymbolVariable* currentRuntimeStorageSym() const { return runtimeStorageSym_; }
     void            setCurrentRuntimeStorage(AstNodeRef nodeRef, SymbolVariable* sym)
@@ -208,40 +216,38 @@ public:
     std::span<const SemaIterationBorrow> iterationBorrows() const { return iterationBorrows_.span(); }
     void                                 pushIterationBorrow(const SemaIterationBorrow& borrow) { iterationBorrows_.push_back(borrow); }
 
-    // Binding types are the types the context expects of the expression being analyzed. The
-    // first `scopeBindingCount_` of them belong to an enclosing statement, such as a switch on
-    // an enum whose members its cases name bare; the rest target one expression and stop at
-    // the next statement.
-    std::span<const TypeRef>         bindingTypes() const { return bindingTypes_.span(); }
-    bool                             hasExpressionBindingTypes() const { return bindingTypes_.size() > scopeBindingCount_; }
-    void                             pushBindingType(TypeRef type);
-    void                             pushScopeBindingType(TypeRef type);
-    void                             popBindingType();
-    void                             clearBindingTypes();
+    // Contextual types guide expression analysis. The first scopeBindingCount_
+    // belong to an enclosing statement (such as an enum switch); remaining types
+    // apply to one expression and are cleared at the next statement.
+    std::span<const TypeRef> bindingTypes() const { return bindingTypes_.span(); }
+    bool                     hasExpressionBindingTypes() const { return bindingTypes_.size() > scopeBindingCount_; }
+    void                     pushBindingType(TypeRef type);
+    void                     pushScopeBindingType(TypeRef type);
+    void                     popBindingType();
+    void                     clearBindingTypes();
+
     std::span<SymbolVariable* const> bindingVars() const { return bindingVars_.span(); }
     void                             pushBindingVar(SymbolVariable* sym);
     void                             popBindingVar();
-    void                             hideLookupSymbol(const Symbol* sym);
-    bool                             isLookupSymbolHidden(const Symbol* sym) const;
 
-    // A frame pushed only to carry a binding type or lookup context for one operand -- the
-    // initializer of a declaration, the right side of an assignment. It is popped with that
-    // operand, so it scopes name resolution, never a flow proof: a proof recorded while it is
-    // on top belongs to the statement's own frame and is written past it.
+    void hideLookupSymbol(const Symbol* sym);
+    bool isLookupSymbolHidden(const Symbol* sym) const;
+
+    // Operand-only frames scope binding types and name lookup (initializers or
+    // assignment rhs), not flow proofs. Facts recorded through such a frame
+    // belong to the statement's own frame beneath it.
     bool bindingScoped() const { return bindingScoped_; }
     void setBindingScoped() { bindingScoped_ = true; }
     void clearBindingScoped() { bindingScoped_ = false; }
 
-    // The frame of a 'defer' body. Its statements run at scope exit, so what they invalidate
-    // cannot reach back to the code written between the 'defer' and that exit: a kill recorded
-    // inside it stops here instead of propagating to the enclosing regions.
+    // Deferred code runs at scope exit. Its flow kills stop at this frame so they
+    // cannot invalidate proofs used by code between the defer and that exit.
     bool deferBody() const { return deferBody_; }
     void setDeferBody() { deferBody_ = true; }
 
-    // The function and inline expansion a 'defer' body was entered in. A 'return' there would
-    // leave the body; one in a lambda declared inside it, or in an inlined callee, returns from
-    // that function instead. A deferred 'fail' is not control flow: it has its own defined
-    // meaning (the scope fails, or its error is replaced).
+    // Remember the function/inline expansion owning this defer. A return from a
+    // nested lambda or inlined callee stays inside the deferred body. Deferred fail
+    // has its own meaning: fail the scope or replace its error.
     bool returnLeavesDefer() const { return deferBody_ && function_ == deferFunction_ && inlinePayload_ == deferInlinePayload_; }
     void setDeferOwner()
     {
@@ -252,8 +258,8 @@ public:
     void addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
     void addNarrowKill(std::span<const Symbol* const> path);
     bool queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const { return queryNarrowFact(narrowFacts_.span(), path, kind); }
-    // Same question asked of a set that no longer belongs to a live frame: what a branch body
-    // proved is read back after its frame was popped, and it answers with the same rules.
+
+    // Popped branch frames leave facts that must obey the same query rules.
     static bool                     queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path, SemaNarrowFactKind kind);
     std::span<const SemaNarrowFact> narrowFacts() const { return narrowFacts_.span(); }
     bool                            hasNarrowFacts() const { return !narrowFacts_.empty(); }
@@ -266,46 +272,64 @@ public:
     SymbolFlags       flagsForCurrentAccess() const;
 
 private:
-    SymbolAccess                        access_ = SymbolAccess::Internal;
-    MemberAccessSpec                    memberAccess_;
-    const SymbolMap*                    memberAccessMap_         = nullptr;
-    bool                                globalCompilerIfEnabled_ = true;
-    AttributeList                       attributes_;
-    SmallVector8<IdentifierRef>         nsPath_;
-    SemaCompilerIf*                     compilerIf_                    = nullptr;
-    const SymbolImpl*                   impl_                          = nullptr;
-    const SymbolInterface*              interface_                     = nullptr;
-    SymbolFunction*                     function_                      = nullptr;
-    SymbolFunction*                     enclosingFunction_             = nullptr;
-    SemaNamedCompilerScope*             namedCompilerScope_            = nullptr;
-    SemaFrameContextFlags               contextFlags_                  = SemaFrameContextFlagsE::Zero;
-    AstNodeRef                          syntaxScopeNodeRef_            = AstNodeRef::invalid();
-    SemaInlinePayload*                  inlinePayload_                 = nullptr;
-    AstNodeRef                          inlineContextRootRef_          = AstNodeRef::invalid();
-    SemaScope*                          lookupScope_                   = nullptr;
-    const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes_      = nullptr;
-    SemaScope*                          upLookupScope_                 = nullptr;
-    bool                                bindingScoped_                 = false;
-    bool                                deferBody_                     = false;
-    const SymbolFunction*               deferFunction_                 = nullptr;
-    const SemaInlinePayload*            deferInlinePayload_            = nullptr;
-    bool                                ignoreRuntimeAccess_           = false;
-    bool                                ignoreRedirectedLookupSymMaps_ = false;
-    BreakContext                        breakable_;
-    BreakContext                        continuable_;
-    AstNodeRef                          compilerScope_           = AstNodeRef::invalid();
-    AstNodeRef                          currentErrorScope_       = AstNodeRef::invalid();
-    ErrorContextMode                    currentErrorContextMode_ = ErrorContextMode::None;
-    AstNodeRef                          currentSwitch_           = AstNodeRef::invalid();
-    AstNodeRef                          currentSwitchCase_       = AstNodeRef::invalid();
-    AstNodeRef                          runtimeStorageNodeRef_   = AstNodeRef::invalid();
-    SymbolVariable*                     runtimeStorageSym_       = nullptr;
-    SmallVector2<TypeRef>               bindingTypes_;
-    uint32_t                            scopeBindingCount_ = 0;
-    SmallVector2<SymbolVariable*>       bindingVars_;
-    SmallVector2<SemaIterationBorrow>   iterationBorrows_;
-    SmallVector4<const Symbol*>         hiddenLookupSymbols_;
-    SmallVector2<SemaNarrowFact>        narrowFacts_;
+    SymbolAccess     access_ = SymbolAccess::Internal;
+    MemberAccessSpec memberAccess_;
+    const SymbolMap* memberAccessMap_ = nullptr;
+
+    bool          globalCompilerIfEnabled_ = true;
+    AttributeList attributes_;
+
+    SmallVector8<IdentifierRef> nsPath_;
+
+    SemaCompilerIf*         compilerIf_         = nullptr;
+    const SymbolImpl*       impl_               = nullptr;
+    const SymbolInterface*  interface_          = nullptr;
+    SymbolFunction*         function_           = nullptr;
+    SymbolFunction*         enclosingFunction_  = nullptr;
+    SemaNamedCompilerScope* namedCompilerScope_ = nullptr;
+
+    SemaFrameContextFlags contextFlags_       = SemaFrameContextFlagsE::Zero;
+    AstNodeRef            syntaxScopeNodeRef_ = AstNodeRef::invalid();
+
+    SemaInlinePayload* inlinePayload_        = nullptr;
+    AstNodeRef         inlineContextRootRef_ = AstNodeRef::invalid();
+
+    SemaScope*                          lookupScope_              = nullptr;
+    const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes_ = nullptr;
+    SemaScope*                          upLookupScope_            = nullptr;
+
+    bool bindingScoped_ = false;
+
+    bool                     deferBody_          = false;
+    const SymbolFunction*    deferFunction_      = nullptr;
+    const SemaInlinePayload* deferInlinePayload_ = nullptr;
+
+    bool ignoreRuntimeAccess_           = false;
+    bool ignoreRedirectedLookupSymMaps_ = false;
+
+    BreakContext breakable_;
+    BreakContext continuable_;
+    AstNodeRef   compilerScope_ = AstNodeRef::invalid();
+
+    AstNodeRef       currentErrorScope_       = AstNodeRef::invalid();
+    ErrorContextMode currentErrorContextMode_ = ErrorContextMode::None;
+
+    AstNodeRef currentSwitch_     = AstNodeRef::invalid();
+    AstNodeRef currentSwitchCase_ = AstNodeRef::invalid();
+
+    AstNodeRef      runtimeStorageNodeRef_ = AstNodeRef::invalid();
+    SymbolVariable* runtimeStorageSym_     = nullptr;
+
+    SmallVector2<TypeRef> bindingTypes_;
+    uint32_t              scopeBindingCount_ = 0;
+
+    SmallVector2<SymbolVariable*> bindingVars_;
+
+    SmallVector2<SemaIterationBorrow> iterationBorrows_;
+
+    SmallVector4<const Symbol*> hiddenLookupSymbols_;
+
+    SmallVector2<SemaNarrowFact> narrowFacts_;
 };
 
 SWC_END_NAMESPACE();

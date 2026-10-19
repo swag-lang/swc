@@ -125,6 +125,7 @@ void SemaFrame::killNarrowFactsByRootId(std::span<const IdentifierRef> rootIds)
         const IdentifierRef rootId = fact.path.empty() ? IdentifierRef::invalid() : fact.path.front()->idRef();
         return std::ranges::find(rootIds, rootId) != rootIds.end();
     });
+
     // Keep survivor order: the most recent matching proof or kill still wins.
     narrowFacts_.resize(static_cast<size_t>(keptEnd - narrowFacts_.begin()));
 }
@@ -138,6 +139,7 @@ bool SemaFrame::queryNarrowFact(std::span<const SemaNarrowFact> facts, std::span
     for (size_t factIndex = facts.size(); factIndex > 0; --factIndex)
     {
         const SemaNarrowFact& fact = facts[factIndex - 1];
+
         // Proofs of another kind cannot answer this query, even when their paths match.
         if (fact.holds && fact.kind != kind)
             continue;
@@ -173,10 +175,9 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     if (!sema.curScope().isTopLevel() || sema.curScope().isImpl())
         return symbolMap;
 
-    // Explicit namespace scopes already carry the resolved namespace symbol map.
-    // Re-rooting them through file/module access can create a sibling namespace
-    // with the same id under another visibility root, which splits later member
-    // declarations and qualified lookups across different namespace objects.
+    // Explicit namespace scopes already have the resolved map. Re-rooting through
+    // file/module visibility would create sibling namespaces with the same id,
+    // splitting member declarations from qualified lookups.
     if (symbolMap && !sema.frame().nsPath().empty())
         return symbolMap;
 
@@ -189,15 +190,10 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     {
         root = &sema.moduleNamespace();
 
-        // Imported-API files create their top-level symbols under the shared import-root namespace
-        // (siblings of this module's namespace) so an imported module keeps its own namespace
-        // hierarchy (e.g. `Lib.Color`) exactly as if compiled directly, instead of being nested
-        // under the importing module (`Importer.Lib.Color`). Runtime files do the same: they are
-        // compiled into every module, and rooting them under the module namespace would give the
-        // same runtime type a different scoped name — and thus a different runtime identity
-        // (descriptor fullname and crc) — in every module (`Importer.Swag.BaseError`). Lookup
-        // still goes through the module namespace, so builtins (`Swag`) and sibling imports keep
-        // resolving.
+        // Imported APIs and runtime files share the import-root namespace. Nesting
+        // them under the importer would rename Lib.Color to Importer.Lib.Color and
+        // give runtime types module-dependent full names and CRC identities.
+        // Lookup still uses the module namespace to resolve Swag and sibling imports.
         const SourceFile* file = sema.file();
         if (file && (file->isImportedApi() || file->isRuntime()))
         {
@@ -214,10 +210,8 @@ MemberAccessSpec SemaFrame::memberAccessFor(const SymbolMap* symMap) const
     if (symMap && symMap == memberAccessMap_)
         return memberAccess_;
 
-    // An anonymous aggregate has no name to be reached by, and no declaration a modifier could be
-    // written on: a returned tuple and an inline union are reached only through whatever holds
-    // them, so that is what decides who reaches their members. Closing them again would leave them
-    // unreachable with no syntax to open them.
+    // Anonymous aggregates cannot carry access modifiers. Their holders control
+    // visibility; closing members would leave no syntax to make them accessible.
     const auto* symStruct = symMap ? symMap->safeCast<SymbolStruct>() : nullptr;
     if (symStruct && symStruct->hasExtraFlag(SymbolStructFlagsE::Anonymous))
         return {MemberAccess::Public, false};
@@ -232,6 +226,7 @@ SymbolFlags SemaFrame::flagsForCurrentAccess() const
         flags.add(SymbolFlagsE::Public);
     else if (currentAccess() == SymbolAccess::Private)
         flags.add(SymbolFlagsE::Private);
+
     return flags;
 }
 

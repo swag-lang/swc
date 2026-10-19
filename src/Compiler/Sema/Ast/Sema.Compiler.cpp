@@ -374,6 +374,7 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     // enclosing loop. Only 'break to <name>' leaves the scope itself.
     SemaFrame frame = sema.frame();
     frame.setCurrentCompilerScope(sema.curNodeRef());
+
     if (tokNameRef.isValid())
     {
         // Named `#scope` resolution is an ancestor context just like `break` ownership,
@@ -384,6 +385,7 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
         namedScope->parent   = sema.frame().currentNamedCompilerScope();
         frame.setCurrentNamedCompilerScope(namedScope);
     }
+
     sema.pushFramePopOnPostChild(std::move(frame), childRef);
     return Result::Continue;
 }
@@ -403,6 +405,7 @@ Result AstScopedBreakStmt::semaPreNode(Sema& sema)
     auto         diag         = SemaError::report(sema, DiagnosticId::sema_err_unknown_scope_name, SourceCodeRef{node.srcViewRef(), node.tokNameRef});
     diag.addArgument(Diagnostic::ARG_SYM, tokScopeName.string(sema.srcView(nameCodeRef.srcViewRef)));
     diag.report(sema.ctx());
+
     return Result::Error;
 }
 
@@ -418,6 +421,7 @@ Result AstCompilerCodeBlock::semaPostNode(Sema& sema) const
     sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeCodeBlock(payload)));
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
+
     return Result::Continue;
 }
 
@@ -433,6 +437,7 @@ Result AstCompilerCodeExpr::semaPostNode(Sema& sema) const
     sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeCodeBlock(payload)));
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
+
     return Result::Continue;
 }
 
@@ -442,6 +447,7 @@ Result AstCompilerExpression::semaPostNode(Sema& sema)
     SemaHelpers::normalizeTypeOperandToConstant(sema, exprView);
     SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
     sema.inheritPayload(*this, nodeExprRef);
+
     return Result::Continue;
 }
 
@@ -449,6 +455,7 @@ Result AstCompilerExpression::semaPreNodeChild(Sema& sema, const AstNodeRef& chi
 {
     if (childRef == nodeExprRef)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
+
     return Result::Continue;
 }
 
@@ -469,6 +476,7 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
 
         frame.setCurrentCompilerIf(payload.ifData);
         sema.pushFramePopOnPostChild(std::move(frame), childRef);
+
         return Result::Continue;
     }
 
@@ -528,10 +536,10 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
 Result AstCompilerIf::semaPostNode(Sema& sema) const
 {
-    // Condition must already be a constant at this point
     const SemaNodeView condView = sema.viewConstant(nodeConditionRef);
     SWC_ASSERT(condView.hasConstant());
     SWC_ASSERT(condView.cst());
+
     const bool takenIfBranch = condView.cst()->getBool();
 
     const CompilerIfSemaPayload* payload        = sema.semaPayload<CompilerIfSemaPayload>(sema.curNodeRef());
@@ -545,7 +553,6 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
         }
     }
 
-    // The block that will be ignored
     const SemaCompilerIf* ignoredIfData = payload ? (takenIfBranch ? payload->elseData : payload->ifData) : nullptr;
     if (ignoredIfData)
     {
@@ -574,6 +581,7 @@ Result AstCompilerSwitch::semaPreDeclChild(Sema& sema, const AstNodeRef& childRe
 
     frame.setCurrentCompilerIf(caseData.branch);
     sema.pushFramePopOnPostChild(std::move(frame), childRef);
+
     return Result::Continue;
 }
 
@@ -598,6 +606,7 @@ Result AstCompilerSwitch::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
 
     frame.setCurrentCompilerIf(caseData.branch);
     sema.pushFramePopOnPostChild(std::move(frame), childRef);
+
     return Result::Continue;
 }
 
@@ -624,13 +633,15 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     SemaNodeView caseView = sema.viewNodeTypeConstant(childRef);
     SemaHelpers::normalizeTypeOperandToConstant(sema, caseView);
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, caseView));
+
     const TypeRef switchTypeRef = sema.viewType(nodeExprRef).typeRef();
     SWC_RESULT(Cast::cast(sema, caseView, SemaSwitch::caseCastTypeRef(sema, switchTypeRef), CastKind::Implicit));
     SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 
     CompilerSwitchSemaPayload& payload    = sema.ensureSemaPayload<CompilerSwitchSemaPayload>(sema.curNodeRef());
     const ConstantRef          caseCstRef = sema.viewConstant(childRef).cstRef();
-    const AstNodeRef*          previous   = payload.seen.tryAdd(caseCstRef, childRef);
+
+    const AstNodeRef* previous = payload.seen.tryAdd(caseCstRef, childRef);
     if (!previous)
         return Result::Continue;
 
@@ -645,9 +656,8 @@ Result AstCompilerSwitch::semaPostNode(Sema& sema) const
     CompilerSwitchSemaPayload& payload = sema.ensureSemaPayload<CompilerSwitchSemaPayload>(sema.curNodeRef());
     SWC_RESULT(resolveCompilerSwitchSelection(sema, *this, payload));
 
-    // '#complete' means the declared enum values are the whole domain, so a 'default' has
-    // nothing left to catch and a missing value is a compile-time error, exactly as for a
-    // runtime switch.
+    // As in a runtime switch, #complete requires every declared enum value and
+    // forbids a default branch.
     if (modifierFlags.has(AstModifierFlagsE::Complete))
     {
         const AstNodeRef defaultCaseRef = compilerSwitchDefaultCaseRef(sema, *this);

@@ -43,6 +43,7 @@ JobResult SemaJob::exec()
 #if SWC_DEV_MODE
     file_ = sema_->file();
 #endif
+
     const JobResult result = sema_->exec();
     if (result == JobResult::Sleep)
         return result;
@@ -54,9 +55,10 @@ JobResult SemaJob::exec()
         sema_->compiler().notifyAlive();
     }
 
-    // A completed job stays owned by the compiler until the module ends; what it releases here
-    // is the whole walk state: frames, scopes, escape maps, and the visit stack.
+    // The compiler retains completed jobs until module teardown. Release the
+    // walk state now: frames, scopes, escape maps, and the visit stack.
     sema_.reset();
+
     return result;
 }
 

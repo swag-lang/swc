@@ -552,69 +552,91 @@ private:
 
     void refreshJitOrderCache() const;
 
-    static inline std::atomic<uint64_t>           s_freesMaskVersion{0};
-    static inline std::atomic<uint64_t>           s_callGraphVersion{0};
-    mutable std::vector<SymbolFunction*>          jitOrderCache_;
-    mutable std::atomic<uint64_t>                 jitOrderCacheVersion_  = 0;
-    mutable uint64_t                              jitOrderCacheEpochSum_ = 0;
-    std::atomic<uint32_t>                         callGraphEpoch_        = 0;
-    mutable std::atomic<uint32_t>                 inlinedCost_           = 0;
-    mutable std::shared_mutex                     jitOrderCacheMutex_;
-    mutable std::vector<uint64_t>                 globalInitOffsetsCache_;
-    mutable std::atomic<bool>                     globalInitOffsetsComputed_ = false;
-    mutable std::mutex                            globalInitOffsetsMutex_;
-    mutable ConstantJitTargets                    constantJitTargets_;
-    mutable std::shared_mutex                     constantJitTargetsMutex_;
-    std::vector<SymbolFunction*>                  callDependencies_;
-    PointerSet<SymbolFunction>                    callDependencySet_;
+    static inline std::atomic<uint64_t> s_freesMaskVersion{0};
+    static inline std::atomic<uint64_t> s_callGraphVersion{0};
+
+    mutable std::vector<SymbolFunction*> jitOrderCache_;
+    mutable std::atomic<uint64_t>        jitOrderCacheVersion_  = 0;
+    mutable uint64_t                     jitOrderCacheEpochSum_ = 0;
+    std::atomic<uint32_t>                callGraphEpoch_        = 0;
+    mutable std::atomic<uint32_t>        inlinedCost_           = 0;
+    mutable std::shared_mutex            jitOrderCacheMutex_;
+
+    mutable std::vector<uint64_t> globalInitOffsetsCache_;
+    mutable std::atomic<bool>     globalInitOffsetsComputed_ = false;
+    mutable std::mutex            globalInitOffsetsMutex_;
+
+    mutable ConstantJitTargets constantJitTargets_;
+    mutable std::shared_mutex  constantJitTargetsMutex_;
+
+    std::vector<SymbolFunction*> callDependencies_;
+    PointerSet<SymbolFunction>   callDependencySet_;
+
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleEffectDependencies_;
-    uint32_t                                      numComputedLocals_            = 0;
-    uint32_t                                      localStackOffset_             = 0;
-    uint64_t                                      returnBorrowsParamsMask_      = 0;
-    uint64_t                                      returnsStorageParamsMask_     = 0;
-    bool                                          observesExternalBorrows_      = false;
-    bool                                          borrowEffectsComputed_        = false;
-    uint64_t                                      storesParamsMask_             = 0;
-    uint64_t                                      storesIntoParamPairs_         = 0;
-    uint64_t                                      returnsIndirectParamsMask_    = 0;
-    uint64_t                                      storesIndirectParamsMask_     = 0;
-    uint64_t                                      storesIndirectIntoParamPairs_ = 0;
-    std::vector<PendingBorrowStore>               pendingBorrowStores_;
-    std::atomic<uint64_t>                         freesParamsMask_                           = 0;
-    std::atomic<uint64_t>                         freesIndirectParamsMask_                   = 0;
-    uint64_t                                      reallocatesParamsMask_                     = 0;
-    uint64_t                                      reallocatesUnknownProjectionParamsMask_    = 0;
-    uint64_t                                      returnsPayloadParamsMask_                  = 0;
-    uint64_t                                      returnsPayloadUnknownProjectionParamsMask_ = 0;
-    SmallVector4<ParamField>                      reallocatedParamFields_;
-    SmallVector4<ParamField>                      returnedPayloadParamFields_;
-    TypeRef                                       returnType_                 = TypeRef::invalid();
-    uint8_t                                       rtAttributeBitIndex_        = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
-    mutable bool                                  inferredFullInitialization_ = false;
-    SpecOpKind                                    specOpKind_                 = SpecOpKind::None;
-    CallConvKind                                  callConvKind_               = CallConvKind::Swag;
-    AstNodeRef                                    declNodeRef_                = AstNodeRef::invalid();
-    const NodePayload*                            declNodePayloadCtx_         = nullptr;
-    uint32_t                                      interfaceMethodSlot_        = K_INVALID_INTERFACE_METHOD_SLOT;
-    uint32_t                                      debugStackFrameSize_        = 0;
-    MicroReg                                      debugStackBaseReg_          = MicroReg::invalid();
+
+    uint32_t numComputedLocals_ = 0;
+    uint32_t localStackOffset_  = 0;
+
+    uint64_t returnBorrowsParamsMask_  = 0;
+    uint64_t returnsStorageParamsMask_ = 0;
+    bool     observesExternalBorrows_  = false;
+    bool     borrowEffectsComputed_    = false;
+
+    uint64_t storesParamsMask_     = 0;
+    uint64_t storesIntoParamPairs_ = 0;
+
+    uint64_t returnsIndirectParamsMask_    = 0;
+    uint64_t storesIndirectParamsMask_     = 0;
+    uint64_t storesIndirectIntoParamPairs_ = 0;
+
+    std::vector<PendingBorrowStore> pendingBorrowStores_;
+
+    std::atomic<uint64_t> freesParamsMask_         = 0;
+    std::atomic<uint64_t> freesIndirectParamsMask_ = 0;
+
+    uint64_t reallocatesParamsMask_                  = 0;
+    uint64_t reallocatesUnknownProjectionParamsMask_ = 0;
+
+    uint64_t returnsPayloadParamsMask_                  = 0;
+    uint64_t returnsPayloadUnknownProjectionParamsMask_ = 0;
+
+    SmallVector4<ParamField> reallocatedParamFields_;
+    SmallVector4<ParamField> returnedPayloadParamFields_;
+
+    TypeRef      returnType_                 = TypeRef::invalid();
+    uint8_t      rtAttributeBitIndex_        = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
+    mutable bool inferredFullInitialization_ = false;
+
+    SpecOpKind   specOpKind_   = SpecOpKind::None;
+    CallConvKind callConvKind_ = CallConvKind::Swag;
+
+    AstNodeRef         declNodeRef_        = AstNodeRef::invalid();
+    const NodePayload* declNodePayloadCtx_ = nullptr;
+
+    uint32_t interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
+
+    uint32_t debugStackFrameSize_ = 0;
+    MicroReg debugStackBaseReg_   = MicroReg::invalid();
 
     // Created when code generation starts and dropped once the function is lowered: most
     // functions a program imports are never generated, and a lowered one keeps its machine code.
-    std::atomic<MicroBuilder*>           microInstrBuilder_ = nullptr;
-    MachineCode                          loweredMicroCode_;
+    std::atomic<MicroBuilder*> microInstrBuilder_ = nullptr;
+    MachineCode                loweredMicroCode_;
+
     mutable std::shared_mutex            callDependenciesMutex_;
     mutable std::shared_mutex            closureAdapterMutex_;
     mutable std::shared_mutex            lazyBodyRunMutex_;
     mutable std::atomic<SymbolFunction*> closureAdapterPublished_ = nullptr;
     std::shared_mutex                    emitMutex_;
-    JITMemory                            jitExecMemory_;
-    mutable std::atomic<void*>           jitPatchedAddress_ = nullptr;
-    mutable std::atomic<void*>           jitEntryAddress_   = nullptr;
-    mutable AtomicEnumFlags<JitStateE>   jitState_;
-    std::atomic<uint64_t>                jitReadyVersion_{0};
-    mutable std::atomic<GenericData*>    genericData_ = nullptr;
+
+    JITMemory                          jitExecMemory_;
+    mutable std::atomic<void*>         jitPatchedAddress_ = nullptr;
+    mutable std::atomic<void*>         jitEntryAddress_   = nullptr;
+    mutable AtomicEnumFlags<JitStateE> jitState_;
+    std::atomic<uint64_t>              jitReadyVersion_{0};
+
+    mutable std::atomic<GenericData*> genericData_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

@@ -56,10 +56,9 @@ namespace
         return typeRef;
     }
 
-    // A leading dot reads on one of two planes. The subject plane names a member of a value
-    // that is in scope ('me', a 'with' target); the type plane names a member of the type the
-    // position itself asks for ('.EnumValue' in a typed slot). They answer different questions,
-    // so they are ranked apart instead of sharing one precedence run.
+    // Leading-dot lookup ranks value subjects (me or with) separately from
+    // contextual types (.EnumValue in a typed slot). These lookup sources must
+    // not share one precedence chain.
     enum class AutoMemberPlane : uint8_t
     {
         Subject,
@@ -68,17 +67,18 @@ namespace
 
     struct AutoMemberCandidate
     {
-        const SymbolMap*      symMap        = nullptr;
-        TypeRef               typeRef       = TypeRef::invalid();
-        TypeRef               resultTypeRef = TypeRef::invalid();
-        const SymbolVariable* symVar        = nullptr;
-        AstNodeRef            baseExprRef   = AstNodeRef::invalid();
-        uint32_t              precedence    = UINT32_MAX;
-        AutoMemberPlane       plane         = AutoMemberPlane::Subject;
+        const SymbolMap* symMap        = nullptr;
+        TypeRef          typeRef       = TypeRef::invalid();
+        TypeRef          resultTypeRef = TypeRef::invalid();
 
-        // A subject the caller owns, reachable here only because an inlined body inherits the
-        // caller's frame. It is not one of this body's own subjects, so it neither answers for
-        // "innermost" nor counts as a name this body shadows.
+        const SymbolVariable* symVar      = nullptr;
+        AstNodeRef            baseExprRef = AstNodeRef::invalid();
+
+        uint32_t        precedence = UINT32_MAX;
+        AutoMemberPlane plane      = AutoMemberPlane::Subject;
+
+        // Inherited caller subjects are not local to this inline body, so they
+        // neither determine its innermost subject nor count as shadowed names.
         bool fromCaller = false;
     };
 
@@ -90,7 +90,8 @@ namespace
 
     SymbolVariable* activeReceiverBinding(Sema& sema)
     {
-        const IdentifierRef                    meId     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+
         const std::span<SymbolVariable* const> bindings = sema.frame().bindingVars();
         for (size_t i = bindings.size(); i > 0; --i)
         {
@@ -140,6 +141,7 @@ namespace
         }
 
         sema.setIsValue(*leftPtr);
+
         return leftRef;
     }
 
@@ -148,11 +150,12 @@ namespace
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef);
         nodePtr->setCodeRef(autoMemberCodeRef);
         nodePtr->nodeLeftRef = makeAutoMemberLeftExpr(sema, tokRef, autoMemberCodeRef, candidate);
-        // The RHS of a synthesized member access is a member name, not an arbitrary expression.
-        // Reusing detached-expression clone state there can leak stale substitutes from the
-        // auto-member source into the generated `left.member` form.
+
+        // Clone the right-hand member name without detached-expression state;
+        // stale substitutes from the auto-member source would corrupt left.member.
         nodePtr->nodeRightRef = cloneAutoMemberRightExpr(sema, rightRef);
         outNode               = nodePtr;
+
         return nodeRef;
     }
 
@@ -171,6 +174,7 @@ namespace
             score += 2;
         if (candidate.symVar)
             score += 1;
+
         return score;
     }
 
@@ -219,11 +223,10 @@ namespace
         if (typeRef != normalizedTypeRef)
         {
             const TypeInfo& sourceType = sema.typeMgr().get(typeRef);
-            // A strict alias keeps its identity on the value it names, so a member
-            // selected FROM that value carries it. An alias of a POINTER is a different
-            // shape: the member is reached by dereferencing, and belongs to the pointee,
-            // never to the alias. Re-typing it as the alias would make '.x * .x' compare
-            // two pointers.
+
+            // A strict value alias retains its identity on member selection. An alias
+            // of a pointer or reference only names indirection: the selected member
+            // belongs to its pointee and must not acquire the pointer alias type.
             const TypeRef aliasUnderlyingTypeRef = sourceType.isAlias() ? sourceType.payloadSymAlias().underlyingTypeRef() : TypeRef::invalid();
             const bool    aliasIsIndirection     = aliasUnderlyingTypeRef.isValid() && sema.typeMgr().get(aliasUnderlyingTypeRef).isPointerOrReference();
             if (sourceType.isAlias() && sourceType.payloadSymAlias().isStrict() && !aliasIsIndirection)
@@ -233,16 +236,38 @@ namespace
         if (typeInfo.isStruct())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymStruct(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence, .plane = plane});
+
+            outCandidates.push_back(
+                {.symMap        = &typeInfo.payloadSymStruct(),
+                 .typeRef       = normalizedTypeRef,
+                 .resultTypeRef = resultTypeRef,
+                 .symVar        = symVar,
+                 .baseExprRef   = baseExprRef,
+                 .precedence    = precedence,
+                 .plane         = plane});
         }
         else if (typeInfo.isEnum())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymEnum(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence, .plane = plane});
+
+            outCandidates.push_back(
+                {.symMap        = &typeInfo.payloadSymEnum(),
+                 .typeRef       = normalizedTypeRef,
+                 .resultTypeRef = resultTypeRef,
+                 .symVar        = symVar,
+                 .baseExprRef   = baseExprRef,
+                 .precedence    = precedence,
+                 .plane         = plane});
         }
         else if (typeInfo.isAggregateStruct())
         {
-            outCandidates.push_back({.typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence, .plane = plane});
+            outCandidates.push_back(
+                {.typeRef       = normalizedTypeRef,
+                 .resultTypeRef = resultTypeRef,
+                 .symVar        = symVar,
+                 .baseExprRef   = baseExprRef,
+                 .precedence    = precedence,
+                 .plane         = plane});
         }
 
         return Result::Continue;
@@ -255,6 +280,7 @@ namespace
         {
             if (containsNodeRef(visitedRefs.span(), exprRef))
                 return false;
+
             visitedRefs.push_back(exprRef);
 
             const SemaNodeView storedSymbolView = sema.viewStored(exprRef, SemaNodeViewPartE::Symbol);

@@ -52,13 +52,16 @@ struct DebugInfoConstantRecord : DebugInfoTypedRecord
 
 struct DebugInfoFunctionRecord
 {
-    Utf8                                     symbolName;
-    Utf8                                     debugName;
-    TypeRef                                  returnTypeRef = TypeRef::invalid();
-    const MachineCode*                       machineCode   = nullptr;
-    const SourceFile*                        sourceFile    = nullptr;
-    uint32_t                                 frameSize     = 0;
-    MicroReg                                 frameBaseReg  = MicroReg::invalid();
+    Utf8    symbolName;
+    Utf8    debugName;
+    TypeRef returnTypeRef = TypeRef::invalid();
+
+    const MachineCode* machineCode = nullptr;
+    const SourceFile*  sourceFile  = nullptr;
+
+    uint32_t frameSize    = 0;
+    MicroReg frameBaseReg = MicroReg::invalid();
+
     std::span<const DebugInfoLocalRecord>    parameters;
     std::span<const DebugInfoLocalRecord>    locals;
     std::span<const DebugInfoConstantRecord> constants;
@@ -70,15 +73,16 @@ struct DebugInfoObjectRequest
     Runtime::TargetOs targetOs = Runtime::TargetOs::Windows;
     fs::path          objectPath;
 
-    // Position of this object among the ones the module emits. It names the object exactly, where
-    // the hash of its path only names it probably: an archive splitting a module one function per
-    // member holds thousands of objects, and two colliding hashes would define the same unwind
-    // symbol twice.
-    uint32_t                                 objectIndex = 0;
+    // Use the module emission index as exact object identity. Function-per-member archives
+    // can contain thousands of objects; hashing their paths risks collisions that define
+    // an unwind symbol twice.
+    uint32_t objectIndex = 0;
+
     std::span<const DebugInfoFunctionRecord> functions;
     std::span<const DebugInfoDataRecord>     globals;
     std::span<const DebugInfoConstantRecord> constants;
-    bool                                     emitCodeView = false;
+
+    bool emitCodeView = false;
 };
 
 struct DebugInfoObjectResult
@@ -117,11 +121,13 @@ struct DebugInfoPdbUdt
 // the request's functions/globals.
 struct DebugInfoPdbResult
 {
-    ByteArray                         tpiRecords;
-    ByteArray                         ipiRecords;
-    uint32_t                          tpiIndexEnd    = 0x1000;
-    uint32_t                          ipiIndexEnd    = 0x1000;
-    uint32_t                          buildInfoIndex = 0;
+    ByteArray tpiRecords;
+    ByteArray ipiRecords;
+
+    uint32_t tpiIndexEnd    = 0x1000;
+    uint32_t ipiIndexEnd    = 0x1000;
+    uint32_t buildInfoIndex = 0;
+
     std::vector<DebugInfoPdbFunction> functions;
     std::vector<uint32_t>             globalTypes;
     std::vector<DebugInfoPdbUdt>      udts;

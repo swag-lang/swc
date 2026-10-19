@@ -14,6 +14,7 @@ struct ByteArray
     ByteArray(ByteArray&&) noexcept            = default;
     ByteArray& operator=(const ByteArray&)     = default;
     ByteArray& operator=(ByteArray&&) noexcept = default;
+
     ByteArray(std::initializer_list<std::byte> bytes);
     explicit ByteArray(size_t count);
     ByteArray(size_t count, std::byte value);
@@ -40,11 +41,13 @@ struct ByteArray
     const std::byte* data() const noexcept;
     size_t           size() const noexcept;
     bool             empty() const noexcept;
-    void             clear() noexcept;
-    void             reserve(size_t count);
-    void             resize(size_t count);
-    void             resize(size_t count, std::byte value);
-    void             pushBack(std::byte value);
+
+    void clear() noexcept;
+    void reserve(size_t count);
+    void resize(size_t count);
+    void resize(size_t count, std::byte value);
+    void pushBack(std::byte value);
+
     std::byte&       operator[](size_t index) noexcept;
     const std::byte& operator[](size_t index) const noexcept;
 
@@ -84,16 +87,20 @@ struct ByteArray
     void append(std::string_view text);
     void appendAligned(uint32_t& outOffset, const ByteArray& bytes, uint32_t alignment);
     void appendCString(std::string_view text);
+
     void appendLe16(uint16_t value);
     void appendLe32(uint32_t value);
     void appendLe64(uint64_t value);
     void appendBe32(uint32_t value);
+
     void appendUtf16Le(std::string_view text);
     void appendUtf16Le(std::u16string_view text);
     void appendUtf16LeZ(std::u16string_view text);
+
     void writeLe16(size_t offset, uint16_t value) noexcept;
     void writeLe32(size_t offset, uint32_t value) noexcept;
     void writeLe64(size_t offset, uint64_t value) noexcept;
+
     void align(size_t alignment, std::byte pad = std::byte{0});
 
 private:

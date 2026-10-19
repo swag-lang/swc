@@ -75,9 +75,10 @@ public:
         }
         else
         {
-            ptr_                 = other.ptr_;
-            sizeValue_           = other.sizeValue_;
-            capacityValue_       = other.capacityValue_;
+            ptr_           = other.ptr_;
+            sizeValue_     = other.sizeValue_;
+            capacityValue_ = other.capacityValue_;
+
             other.ptr_           = other.inlineData();
             other.sizeValue_     = 0;
             other.capacityValue_ = InlineCapacity;
@@ -104,6 +105,7 @@ public:
                 alloc_ = other.alloc_;
             }
         }
+
         assign(other.begin(), other.end());
         return *this;
     }
@@ -127,14 +129,16 @@ public:
         }
         else
         {
-            alloc_               = std::move(other.alloc_);
-            ptr_                 = other.ptr_;
-            sizeValue_           = other.sizeValue_;
-            capacityValue_       = other.capacityValue_;
+            alloc_         = std::move(other.alloc_);
+            ptr_           = other.ptr_;
+            sizeValue_     = other.sizeValue_;
+            capacityValue_ = other.capacityValue_;
+
             other.ptr_           = other.inlineData();
             other.sizeValue_     = 0;
             other.capacityValue_ = InlineCapacity;
         }
+
         return *this;
     }
 
@@ -153,11 +157,12 @@ public:
     const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
     const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
 
-    size_type          size() const noexcept { return sizeValue_; }
-    uint32_t           size32() const noexcept { return static_cast<uint32_t>(sizeValue_); }
-    size_type          capacity() const noexcept { return capacityValue_; }
-    bool               empty() const noexcept { return sizeValue_ == 0; }
-    bool               isInline() const noexcept { return ptr_ == inlineData(); }
+    size_type size() const noexcept { return sizeValue_; }
+    uint32_t  size32() const noexcept { return static_cast<uint32_t>(sizeValue_); }
+    size_type capacity() const noexcept { return capacityValue_; }
+    bool      empty() const noexcept { return sizeValue_ == 0; }
+    bool      isInline() const noexcept { return ptr_ == inlineData(); }
+
     std::span<T>       span() noexcept { return std::span<T>(ptr_, sizeValue_); }
     std::span<const T> span() const noexcept { return std::span<const T>(ptr_, sizeValue_); }
 
@@ -165,6 +170,7 @@ public:
     {
         if (newCapacityValue <= capacityValue_)
             return;
+
         reallocate(growTo(newCapacityValue));
     }
 
@@ -195,6 +201,7 @@ public:
     {
         if (i >= sizeValue_)
             throw std::out_of_range("SmallVector::at");
+
         return ptr_[i];
     }
 
@@ -202,6 +209,7 @@ public:
     {
         if (i >= sizeValue_)
             throw std::out_of_range("SmallVector::at");
+
         return ptr_[i];
     }
 

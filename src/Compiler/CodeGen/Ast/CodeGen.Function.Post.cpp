@@ -36,7 +36,8 @@ namespace
         if (!nodeRef.isValid())
             return nullptr;
 
-        const AstNode&               node = codeGen.node(nodeRef);
+        const AstNode& node = codeGen.node(nodeRef);
+
         SmallVector<SymbolFunction*> deps;
         codeGen.function().appendCallDependencies(deps);
         for (SymbolFunction* dep : deps)
@@ -53,15 +54,15 @@ namespace
             if (dep->declNodeRef().isInvalid())
                 continue;
 
-            // Nested function expressions can be lowered before the symbol view is rebound, so recover the
-            // callee by matching the declaration source location recorded in the dependency list. Inline
-            // clones can share source tokens, so this fallback is only valid when the match is unique.
+            // A nested function can be lowered before its symbol view is rebound.
+            // Recover by source location only when unique; inline clones share tokens.
             if (dep->srcViewRef() != node.srcViewRef())
                 continue;
             if (dep->tokRef() != node.tokRef())
                 continue;
             if (sourceLocationMatch)
                 return nullptr;
+
             sourceLocationMatch = dep;
         }
 
@@ -73,6 +74,7 @@ namespace
         const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
         if (resolvedRef.isValid() && codeGen.node(resolvedRef).is(nodeId))
             return resolvedRef;
+
         return nodeRef;
     }
 
@@ -156,6 +158,7 @@ namespace
         CodeGenNodePayload* payload = codeGen.safePayload(resolvedNodeRef);
         if (!payload || !payload->hasFallibleWrapper())
             return nullptr;
+
         return payload;
     }
 
@@ -174,6 +177,7 @@ namespace
         CodeGenNodePayload* payload = codeGen.safePayload(nodeRef);
         if (!payload || !payload->hasFallibleWrapper())
             return nullptr;
+
         return payload;
     }
 
@@ -257,6 +261,7 @@ namespace
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         if (!typeInfo.isAlias())
             return typeInfo.isReference();
+
         const TypeInfo* unwrappedType = typeInfo.unwrapAliasType(codeGen.ctx());
         return unwrappedType ? unwrappedType->isReference() : typeInfo.isReference();
     }
@@ -271,6 +276,7 @@ namespace
             codeGen.builder().emitLoadRegMem(resultReg, payload.reg, 0, MicroOpBits::B64);
         else
             codeGen.builder().emitLoadRegReg(resultReg, payload.reg, MicroOpBits::B64);
+
         return resultReg;
     }
 
@@ -388,8 +394,9 @@ namespace
         const MicroOpBits         presenceBits = CodeGenTypeHelpers::compareBits(exprType, codeGen.ctx());
         const CodeGenNodePayload& exprPayload  = codeGen.payload(resolvedExprRef);
         const MicroReg            presenceReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, exprPayload, exprTypeRef, exprType, presenceBits);
-        MicroBuilder&             builder      = codeGen.builder();
-        const MicroLabelRef       presentLabel = builder.createLabel();
+
+        MicroBuilder&       builder      = codeGen.builder();
+        const MicroLabelRef presentLabel = builder.createLabel();
         builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, presentLabel);
         SWC_RESULT(CodeGenSafety::emitNotNullCheck(codeGen, codeGen.node(ownerRef)));
@@ -414,6 +421,7 @@ namespace
         if (storeBits == MicroOpBits::Zero)
             storeBits = CodeGenTypeHelpers::bitsFromStorageSize(typeInfo.sizeOf(codeGen.ctx()));
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
+
         if (srcPayload.isAddress())
             builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, 0, storeBits);
         else
@@ -445,6 +453,7 @@ namespace
             zeroValue = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, std::span{rawBytes.data(), rawBytes.size()});
         else
             zeroValue = ConstantValue::make(ctx, rawBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+
         if (zeroValue.kind() == ConstantKind::Invalid)
             return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized zero constant");
 
@@ -464,6 +473,7 @@ namespace
         outCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
         if (!outCstRef.isValid())
             return raiseInternalCodeGenError(codeGen, "cannot cache the synthesized zero constant");
+
         return Result::Continue;
     }
 
@@ -511,10 +521,8 @@ namespace
         return CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, typeRef, dstAddressReg);
     }
 
-    // A call result held in a compiler temporary owns its value: the return transfers
-    // it with 'opPostMove' instead of deep-copying it, and nothing drops the abandoned
-    // temporary. An aggregate literal that could not be built in the return slot is such
-    // a temporary too. Caller-owned return storages ('retval') stay outside this rule.
+    // Owned call temporaries and fresh aggregate literals transfer with opPostMove;
+    // nothing drops the abandoned temporary. Caller-owned retval storage is excluded.
     bool returnSourceIsOwnedTemporary(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         if (exprPayload.ownsValue)
@@ -525,22 +533,20 @@ namespace
             return false;
         if (exprPayload.runtimeStorageSym && exprPayload.runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal))
             return false;
+
         return CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, exprRef) || CodeGenFunctionHelpers::isOwnedCallResult(codeGen, exprRef);
     }
 
-    // A literal the compiler folded is copied out of constant data, exactly as it is into a
-    // variable it initializes: no value owned it before, and none of its fields can point into
-    // storage that did not exist yet. Entering the return slot runs no hook, as when the call
-    // itself is folded and the caller receives the constant.
+    // Folded literals come from constant data and had no previous owner. Their
+    // fields cannot point into a new return slot, so entering it needs no lifecycle
+    // hook, just as when the whole call folds.
     bool returnSourceIsConstantLiteral(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         return exprPayload.runtimeStorageSym == nullptr && codeGen.viewConstant(exprRef).hasConstant() && CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, exprRef);
     }
 
-    // The local named by 'return exprRef' when the return can transfer its ownership:
-    // the value moves to the caller and this return's deferred actions skip its drop.
-    // An explicit 'return #move local' asks for exactly what the bare local already
-    // gets, so the modifier is looked through instead of defeating the transfer.
+    // Returning an eligible local transfers ownership and suppresses its deferred
+    // drop. Look through #move, which requests the same transfer as a bare local.
     const SymbolVariable* returnMoveOutSource(CodeGen& codeGen, AstNodeRef exprRef)
     {
         AstNodeRef sourceRef = exprRef;
@@ -553,6 +559,7 @@ namespace
         const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, sourceRef);
         if (!symVar || !CodeGenMoveElision::canMoveOutAtReturn(codeGen, *symVar))
             return nullptr;
+
         return symVar;
     }
 
@@ -570,6 +577,7 @@ namespace
         const SymbolVariable* symVar = CodeGenMoveElision::directStructVariable(codeGen, unary->nodeExprRef);
         if (symVar && (symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal)))
             return AstNodeRef::invalid();
+
         return unary->nodeExprRef;
     }
 
@@ -579,18 +587,18 @@ namespace
     {
         if (!codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
             return Result::Continue;
+
         const CodeGenNodePayload& placePayload = codeGen.payload(placeRef);
         const MicroReg            placeReg     = placePayload.isAddress() ? placePayload.reg : codeGen.payload(exprRef).reg;
         return CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, typeRef, placeReg);
     }
 
-    // Completes an indirect return of a moved place: the return storage takes the value with
-    // 'opPostMove', then the place is reset.
     Result finishMovedPlaceReturn(CodeGen& codeGen, TypeRef typeRef, AstNodeRef exprRef, AstNodeRef placeRef, MicroReg outputStorageReg)
     {
         // An address payload already ran the hook with the return copy.
         if (!codeGen.payload(exprRef).isAddress() && codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::PostMove))
             SWC_RESULT(codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::PostMove, outputStorageReg));
+
         return resetMovedReturnPlace(codeGen, typeRef, exprRef, placeRef);
     }
 
@@ -604,6 +612,7 @@ namespace
                 const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(nodeRef);
                 if (!catchErr || !lowering || !lowering->errHandlerOwnerSym)
                     return raiseInternalCodeGenError(codeGen, "missing catch error owner or runtime helper '__catchErr'", nodeRef);
+
                 const MicroReg args[] = {codeGen.resolveLocalStackPayload(*lowering->errHandlerOwnerSym).reg};
                 return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *catchErr, args);
             }
@@ -615,10 +624,13 @@ namespace
                 {
                     if (failurePath)
                         codeGen.builder().emitTrap();
+
                     return Result::Continue;
                 }
+
                 [[fallthrough]];
             }
+
             case FallibleHandlerKind::Expect:
             {
                 if (failurePath)
@@ -653,15 +665,13 @@ namespace
         if (inlineCtx.resultStorageReg.isValid())
             return inlineCtx.resultStorageReg;
 
-        // A fresh address every time: the result temporary is declared nowhere, so a cached
-        // one would come from whichever 'return' ran first, inside a branch the next one
-        // does not share.
+        // Recompute the address: this undeclared result temporary has no cached
+        // register definition guaranteed to dominate returns in separate branches.
         return codeGen.resolveLocalStackPayload(inlineResultStorageSymbol(codeGen, inlinePayload), false).reg;
     }
 
-    // An owned temporary the return transfers is no longer an operand temporary of the return.
-    // The storage the returned value occupies can differ from the one recorded on the node: an
-    // implicit conversion of a call result builds its own value from the call's.
+    // Returning a temporary transfers its drop obligation. An implicit conversion
+    // can give the value storage different from the node's recorded temporary.
     void cancelReturnedTemporaryDrops(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         const SymbolVariable* nodeStorage = codeGen.runtimeStorageSymbol(exprRef);
@@ -689,26 +699,27 @@ namespace
             payloadExprRef = exprRef;
 
         const CodeGenNodePayload& exprPayload = codeGen.payload(payloadExprRef);
-        // The value was built straight in the selected result storage, so storing it there
-        // would copy the slot onto itself. The storage symbol proves the alias even when the
-        // expression and return path materialize different address registers.
+
+        // Storage identity proves an in-place result even when the expression and
+        // return path materialize distinct address registers. Avoid a self-copy.
         if (exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultStorage)
             return Result::Continue;
 
         SWC_RESULT(emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef));
 
-        // The selected inline result storage must own its value, like a real return slot: a
-        // moved-out local, the 'retval' local (never dropped itself), a moved place or an owned
-        // call temporary transfers with 'opPostMove'; any other lifecycle source is deep-copied so
-        // the store does not alias a live value.
+        // Inline result storage must own its value just like a real return slot.
+        // Locals moved out, retval, moved places, and owned call temporaries transfer
+        // with opPostMove; other lifecycle sources need a deep copy.
         if (codeGen.typeMgr().get(inlinePayload.returnTypeRef).isReference())
             return Result::Continue;
+
         const AstNodeRef movedPlaceRef      = moveOutVar ? AstNodeRef::invalid() : returnMovedPlace(codeGen, exprRef);
         const bool       returnsRetVal      = returnExprRetValVariable(codeGen, exprRef) != nullptr;
         const bool       movesOwnership     = moveOutVar != nullptr || returnsRetVal || movedPlaceRef.isValid() || returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
         const auto       storeLifecycleKind = movesOwnership ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         if (!returnSourceIsConstantLiteral(codeGen, payloadExprRef, exprPayload) && codeGen.hasLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind))
             SWC_RESULT(codeGen.emitLifecycle(inlinePayload.returnTypeRef, storeLifecycleKind, resultAddr));
+
         if (movedPlaceRef.isValid())
             SWC_RESULT(resetMovedReturnPlace(codeGen, inlinePayload.returnTypeRef, exprRef, movedPlaceRef));
 
@@ -730,6 +741,7 @@ namespace
         }
 
         SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
+
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         codeGen.setReturnMoveOutVar(moveOutVar);
         const Result deferredResult = codeGen.emitDeferredActionsUntilScopeRef(inlinePayload.inlineRootRef);
@@ -768,6 +780,7 @@ namespace
                 const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
                 if (symbolPayload && symbolPayload->isAddress())
                     return *symbolPayload;
+
                 return codeGen.resolveLocalStackPayload(symVar);
             }
 
@@ -875,6 +888,7 @@ namespace
         const bool       usesDirectReturnStorage = CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, storageNodeRef, typeRef, dstReg, directReturnStorageSym);
         if (!usesDirectReturnStorage)
             dstReg = codeGen.runtimeStorageAddressReg(storageNodeRef);
+
         constexpr auto dstSize = static_cast<uint32_t>(sizeof(Runtime::ClosureValue));
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, dstSize);
 
@@ -889,10 +903,12 @@ namespace
             const auto* captureVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
             if (!captureVar || !captureVar->isClosureCapture())
                 continue;
+
             emitClosureCaptureStore(codeGen, *captureVar, dstReg);
         }
 
         codeGen.function().addCallDependency(&symFunc);
+
         CodeGenNodePayload& nodePayload = codeGen.setPayloadAddressReg(nodeRef, dstReg, typeRef);
         if (usesDirectReturnStorage)
             nodePayload.setRuntimeStorageSymbol(directReturnStorageSym);
@@ -902,12 +918,12 @@ namespace
             if (usesDirectReturnStorage)
                 storagePayload.setRuntimeStorageSymbol(directReturnStorageSym);
         }
+
         return Result::Continue;
     }
 
-    // The 'retval' local named by the return expression, when there is one. The payload's
-    // storage symbol only tags compiler temporaries, so the named local is recovered from
-    // the expression's stored symbol.
+    // Payload storage symbols tag compiler temporaries. Recover a named retval
+    // local from the expression's stored symbol instead.
     const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef)
     {
         if (exprRef.isInvalid())
@@ -921,16 +937,17 @@ namespace
         return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ? &symVar : nullptr;
     }
 
-    // 'return #move result' on the 'retval' local asks for what 'return result' already does:
-    // the value is in the return storage. The operand is returned then, so the return recognizes
-    // that storage instead of copying it onto itself.
+    // Look through #move on a retval local: it already occupies the return slot,
+    // so recognizing the operand avoids copying that storage onto itself.
     AstNodeRef returnExprThroughRetValMove(CodeGen& codeGen, AstNodeRef exprRef)
     {
         if (exprRef.isInvalid())
             return exprRef;
+
         const auto* unary = codeGen.node(exprRef).safeCast<AstUnaryExpr>();
         if (!unary || codeGen.token(unary->codeRef()).id != TokenId::ModifierMove)
             return exprRef;
+
         return returnExprRetValVariable(codeGen, unary->nodeExprRef) ? unary->nodeExprRef : exprRef;
     }
 
@@ -942,12 +959,9 @@ namespace
         return returnExprRetValVariable(codeGen, exprRef) != nullptr;
     }
 
-    // The value was built straight in the caller's return slot, so copying it there again
-    // would copy the slot onto itself, and running the copy's lifecycle on it would
-    // duplicate ownership it already holds. Register identity is not enough to detect
-    // this: the expression and the epilogue each materialize their own virtual register
-    // from the hidden return pointer, so the storage symbol — or the named 'retval'
-    // local — is what actually proves they alias.
+    // Values built in the caller's slot already own their contents; copying or
+    // running a copy hook again would duplicate ownership. Check storage symbols
+    // (including retval), since distinct virtual registers can name the same slot.
     bool returnValueAlreadyInCallerStorage(CodeGen& codeGen, AstNodeRef exprRef, const CodeGenNodePayload& exprPayload)
     {
         if (!exprPayload.isAddress())
@@ -979,10 +993,12 @@ namespace
     {
         if (!exprPayload.isAddress() || exprPayload.reg != outputStorageReg)
             SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, returnTypeRef, outputStorageReg));
+
         if (!exprPayload.isAddress() || exprPayload.reg == outputStorageReg || !lifecycleKind)
             return Result::Continue;
         if (!codeGen.hasLifecycle(returnTypeRef, *lifecycleKind))
             return Result::Continue;
+
         return codeGen.emitLifecycle(returnTypeRef, *lifecycleKind, outputStorageReg);
     }
 
@@ -990,19 +1006,23 @@ namespace
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef returnExprRef)
     {
-        const AstNodeRef                       exprRef                       = returnExprThroughRetValMove(codeGen, returnExprRef);
-        MicroBuilder&                          builder                       = codeGen.builder();
-        const CallConvKind                     callConvKind                  = symbolFunc.callConvKind();
-        const CallConv&                        callConv                      = CallConv::get(callConvKind);
-        const TypeRef                          returnTypeRef                 = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet                 = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
-        const bool                             needsPersistentCompilerReturn = isFunctionDeclOf(codeGen, AstNodeId::CompilerFunc) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
+        const AstNodeRef exprRef = returnExprThroughRetValMove(codeGen, returnExprRef);
+        MicroBuilder&    builder = codeGen.builder();
+
+        const CallConvKind callConvKind  = symbolFunc.callConvKind();
+        const CallConv&    callConv      = CallConv::get(callConvKind);
+        const TypeRef      returnTypeRef = symbolFunc.returnTypeRef();
+
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
+
+        const bool needsPersistentCompilerReturn = isFunctionDeclOf(codeGen, AstNodeId::CompilerFunc) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
 
         if (normalizedRet.isVoid)
         {
             // Void returns only need control transfer; ABI return registers are irrelevant.
             SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+
             const ScopedDebugNoStep noStep(builder, true);
             CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
@@ -1030,6 +1050,7 @@ namespace
             movesOwnedTemporary = returnSourceIsOwnedTemporary(codeGen, exprRef, exprPayload);
             if (moveOutVar != nullptr || movedPlaceRef.isValid() || movesOwnedTemporary)
                 copyLifecycleKind = CodeGen::LifecycleKind::PostMove;
+
             if (returnSourceIsConstantLiteral(codeGen, exprRef, exprPayload))
                 copyLifecycleKind.reset();
         }
@@ -1067,10 +1088,12 @@ namespace
             // Capture the result before destroying operand temporaries. Their
             // generic post-node flush would execute after the return instruction.
             SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
+
             codeGen.setReturnMoveOutVar(moveOutVar);
             const Result deferredResult = codeGen.emitDeferredActionsForReturn();
             codeGen.setReturnMoveOutVar(previousMoveOutVar);
             SWC_RESULT(deferredResult);
+
             if (delayReturnMaterialization && needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
             else if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg && !returnValueIsInPlace)
@@ -1080,6 +1103,7 @@ namespace
                 if (movedPlaceRef.isValid())
                     SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
+
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
@@ -1114,10 +1138,12 @@ namespace
             // Capture the result before destroying operand temporaries. Their
             // generic post-node flush would execute after the return instruction.
             SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
+
             codeGen.setReturnMoveOutVar(moveOutVar);
             const Result deferredResult = codeGen.emitDeferredActionsForReturn();
             codeGen.setReturnMoveOutVar(previousMoveOutVar);
             SWC_RESULT(deferredResult);
+
             if (delayReturnMaterialization)
             {
                 if (returnTypeInfo.isReference())
@@ -1134,6 +1160,7 @@ namespace
                 if (movedPlaceRef.isValid())
                     SWC_RESULT(resetMovedReturnPlace(codeGen, returnTypeRef, exprRef, movedPlaceRef));
             }
+
             ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
         }
 
@@ -1142,10 +1169,10 @@ namespace
             CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
         }
+
         return Result::Continue;
     }
 
-    // Whether the function being generated was declared by a node of kind 'declId'.
     bool isFunctionDeclOf(CodeGen& codeGen, AstNodeId declId)
     {
         const AstNodeRef declRef = codeGen.function().declNodeRef();
@@ -1154,13 +1181,15 @@ namespace
 
     Result emitCompilerRunBlockReturn(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        const SymbolFunction&                  symbolFunc       = codeGen.function();
-        const CallConvKind                     callConvKind     = symbolFunc.callConvKind();
-        const CallConv&                        callConv         = CallConv::get(callConvKind);
-        const TypeRef                          returnTypeRef    = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
-        const MicroReg                         outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
-        MicroBuilder&                          builder          = codeGen.builder();
+        const SymbolFunction& symbolFunc    = codeGen.function();
+        const CallConvKind    callConvKind  = symbolFunc.callConvKind();
+        const CallConv&       callConv      = CallConv::get(callConvKind);
+        const TypeRef         returnTypeRef = symbolFunc.returnTypeRef();
+
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
+
+        const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+        MicroBuilder&  builder          = codeGen.builder();
 
         if (exprRef.isValid() && !normalizedRet.isVoid)
         {
@@ -1197,6 +1226,7 @@ namespace
             CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);
             builder.emitRet();
         }
+
         return Result::Continue;
     }
 
@@ -1236,6 +1266,7 @@ namespace
 
         const AstNodeRef functionDeclRef = codeGen.resolvedNodeRef(codeGen.function().declNodeRef());
         SWC_ASSERT(functionDeclRef.isValid());
+
         CodeGenNodePayload& payload = ensureFallibleFunctionPayload(codeGen, functionDeclRef);
         if (!payload.fallibleFunctionFailLabel.isValid())
         {
@@ -1266,19 +1297,14 @@ namespace
         SWC_RESULT(codeGen.emitTemporaryDropsForFailure(target.scopeRef));
         if (target.kind == FallibleTarget::Kind::Handler)
             return codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef, false);
+
         return codeGen.emitDeferredActionsForReturn();
     }
 
-    // Runs the deferred actions a propagating failure unwinds through, with that failure parked
-    // for their duration.
-    //
-    // Cleanup routinely dismisses failures of its own -- 'discard catch close()' is the ordinary
-    // shape -- and a 'catch' both consumes the error in flight and clears the flag every fallible
-    // call is tested against. Left alone, the cleanup therefore swallows the very failure it is
-    // unwinding for; restored too early, in the 'catch' itself, the test that follows the guarded
-    // call reads it and jumps out, so everything after that 'catch' never runs. Parking the error
-    // across the whole deferred block is what keeps both halves right: the cleanup runs on a clean
-    // error state, and the failure is exactly as it was when the jump finally happens.
+    // Park the propagating failure across the entire deferred block. Cleanup can
+    // catch and dismiss its own failures, clearing the ambient error flag. Restoring
+    // inside that catch would make the guarded call's following check jump out
+    // before cleanup finishes. Restore only just before the final jump.
     Result emitFallibleJump(CodeGen& codeGen)
     {
         const FallibleTarget target = resolveFallibleTarget(codeGen);
@@ -1315,9 +1341,10 @@ namespace
         if (!isActiveFunctionRoot(codeGen, declRef))
             return Result::Continue;
 
-        const SymbolFunction&                  symbolFunc    = codeGen.function();
-        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
-        const CallConv&                        callConv      = CallConv::get(callConvKind);
+        const SymbolFunction& symbolFunc   = codeGen.function();
+        const CallConvKind    callConvKind = symbolFunc.callConvKind();
+        const CallConv&       callConv     = CallConv::get(callConvKind);
+
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, codeGen.typeMgr().get(symbolFunc.returnTypeRef()), ABITypeNormalize::Usage::Return);
 
         if (hasExpressionBody)
@@ -1367,13 +1394,9 @@ Result CodeGenCallHelpers::emitFallibleCastFailure(CodeGen& codeGen)
     return emitFallibleFailureJump(codeGen);
 }
 
-// Whether the error a call may have left behind can be read where it lives.
-// The runtime keeps the thread's context in a thread-local slot, and the
-// platform keeps the first of those slots at a fixed place in the thread's own
-// block: four instructions reach the flag. Through the runtime helper it is an
-// opaque call, which is 23 instructions, two calls of its own to resolve the
-// slot, and every caller-saved register spilled around it - after every
-// fallible call, in whatever loop it sits in.
+// Native Windows code can reach the thread's error flag through its TLS slot.
+// Inlining avoids a runtime context lookup and caller-saved register spills
+// after each fallible call, especially inside loops.
 bool CodeGenCallHelpers::canReadErrorFlagInline(const CodeGen& codeGen)
 {
     return codeGen.isNativeBuild() && codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows;
@@ -1452,8 +1475,10 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
         const SymbolFunction* clearErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::ClearErr);
         if (!clearErr || !lowering->errOwnerSym)
             return raiseInternalCodeGenError(codeGen, "missing catch capture owner or runtime helper '__clearErr'", nodeRef);
+
         codeGen.initializeLocalStorageAtScopeEntry(*lowering->errBindingSym);
         codeGen.initializeLocalStorageAtScopeEntry(*lowering->errOwnerSym);
+
         const MicroReg args[] = {
             codeGen.resolveLocalStackPayload(*lowering->errBindingSym).reg,
             codeGen.resolveLocalStackPayload(*lowering->errOwnerSym).reg,
@@ -1480,6 +1505,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
     if (!runtimePushErr)
         return raiseInternalCodeGenError(codeGen, "missing runtime helper '__pushErr'", nodeRef);
     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{}));
+
     // Return, break and continue bypass the wrapper's normal completion. Restore its
     // outer error frame after the body's cleanup, just as on ordinary success.
     codeGen.registerErrorScopePop();
@@ -1538,6 +1564,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         codeGen.pushDeferScope(ownerRef);
         codeGen.registerImplicitDrop(*lowering->errHandlerOwnerSym);
     }
+
     SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, true));
     if (hasResult && kind == FallibleHandlerKind::Catch)
     {
@@ -1555,13 +1582,9 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
                 resultStorage = operandStorage;
         }
 
-        // An address-backed result register is defined by the success path, and
-        // when the managed expression never falls through — an inlined callee
-        // whose only exit is 'fail' — that definition is never emitted at all.
-        // Both this zeroing and every consumer after the join would then read an
-        // undefined register. Define it on this path too, from the storage
-        // symbol: the same address the success path computes, rooted at the
-        // local stack base whose definition dominates both arms.
+        // An inlined callee whose only exit is fail emits no success-path definition
+        // of the result register. Define its address here too, from the local stack
+        // base that dominates both paths, before zeroing and joining consumers.
         if (resultPayload.isAddress() && resultStorage && codeGen.localStackBaseReg().isValid() &&
             resultStorage->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
@@ -1578,6 +1601,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         const SymbolFunction* bindErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::BindErr);
         if (!bindErr || !lowering->errOwnerSym)
             return raiseInternalCodeGenError(codeGen, "missing catch capture owner or runtime helper '__bindErr'", nodeRef);
+
         const MicroReg args[] = {
             codeGen.resolveLocalStackPayload(*errSym).reg,
             codeGen.resolveLocalStackPayload(*lowering->errOwnerSym).reg,

@@ -1,25 +1,15 @@
-// The wrapping contract.
+// Wrapping uses local syntax-aware rules, one construct and break at a time.
+// The canonical style leaves column-limit at zero, preserving authored general
+// wrapping. Operand-chain limits can still split long, unbroken bitwise or
+// homogeneous logical chains without simplifying logic or replacing authored
+// multiline layouts.
 //
-// This pass decides locally, one construct and one break at a time. There is no
-// penalty function over the whole unwrapped line the way clang-format has, and
-// no Wadler document searched for the best fit the way prettier has. That is a
-// deliberate choice, not a missing feature, and it rests on what the canonical
-// Swag style is: `column-limit` is 0, so general statement wrapping stays with
-// the author. Narrow syntax-aware rules can still split an unbroken construct:
-// long bitwise and homogeneous logical chains use one operand per line.
-// These rules preserve authored multiline expressions and never simplify logic.
+// Within brackets, continuations preserve their distance from the statement
+// so hand-packed data tables keep their column spacing.
 //
-// The exception is the interior of a bracket, where continuation lines keep
-// their distance to the statement instead of taking the canonical indent. That
-// is what carries a hand-packed data table: its rows are aligned in columns the
-// formatter cannot see, and forcing the canonical indent on them was measured to
-// destroy that alignment when rows starting with `1,` carry a leading blank
-// so the numbers line up under `-1,`.
-//
-// A `column-limit` above 0 turns the greedy breaker below on. It stays greedy:
-// it picks the break highest in the expression tree that still fits, one break
-// at a time. Revisit this choice — and only then reach for a solver — when a
-// wrapping shape has to be added that cannot be stated as one such local rule.
+// A positive column-limit enables the greedy breaker, which chooses the break
+// highest in the expression tree that fits. A global layout solver is needed
+// only if a required wrapping shape cannot be expressed by these local rules.
 
 #include "pch.h"
 #include "Compiler/Lexer/Token.h"
@@ -63,18 +53,20 @@ namespace
         uint32_t              openPiece  = INVALID_PIECE;
         uint32_t              closePiece = INVALID_PIECE;
         std::vector<uint32_t> items;
-        std::optional<bool>   forceSingleLine;
-        std::optional<bool>   sourceSelectsLayout;
-        std::optional<bool>   hugTrailingBlock;
-        FormatListLayout      layout                = FormatListLayout::Preserve;
-        FormatBinPackStyle    binPack               = FormatBinPackStyle::Preserve;
-        uint32_t              singleLineColumnLimit = 0;
-        ListLineMode          lineMode              = ListLineMode::Unchanged;
-        bool                  editable              = false;
-        bool                  hasComment            = false;
-        bool                  canJoin               = false;
-        bool                  literal               = false;
-        bool                  hug                   = false;
+
+        std::optional<bool> forceSingleLine;
+        std::optional<bool> sourceSelectsLayout;
+        std::optional<bool> hugTrailingBlock;
+        FormatListLayout    layout                = FormatListLayout::Preserve;
+        FormatBinPackStyle  binPack               = FormatBinPackStyle::Preserve;
+        uint32_t            singleLineColumnLimit = 0;
+
+        ListLineMode lineMode   = ListLineMode::Unchanged;
+        bool         editable   = false;
+        bool         hasComment = false;
+        bool         canJoin    = false;
+        bool         literal    = false;
+        bool         hug        = false;
     };
 
     struct LogicalPolicy
@@ -95,21 +87,23 @@ namespace
 
     struct LogicalState
     {
-        uint32_t                firstPiece        = INVALID_PIECE;
-        uint32_t                lastPiece         = INVALID_PIECE;
-        uint32_t                rootOperatorPiece = INVALID_PIECE;
-        std::vector<uint32_t>   operators;
-        std::vector<uint32_t>   operands;
+        uint32_t              firstPiece        = INVALID_PIECE;
+        uint32_t              lastPiece         = INVALID_PIECE;
+        uint32_t              rootOperatorPiece = INVALID_PIECE;
+        std::vector<uint32_t> operators;
+        std::vector<uint32_t> operands;
+
         std::optional<bool>     forceSingleLine;
         std::optional<bool>     sourceSelectsLayout;
         FormatLogicalLayout     layout        = FormatLogicalLayout::Preserve;
         FormatOperatorWrapStyle breakPosition = FormatOperatorWrapStyle::Preserve;
         FormatLogicalPacking    packing       = FormatLogicalPacking::Preserve;
-        ListLineMode            lineMode      = ListLineMode::Unchanged;
-        bool                    editable      = false;
-        bool                    hasComment    = false;
-        bool                    canJoin       = false;
-        bool                    keepMultiline = false;
+
+        ListLineMode lineMode      = ListLineMode::Unchanged;
+        bool         editable      = false;
+        bool         hasComment    = false;
+        bool         canJoin       = false;
+        bool         keepMultiline = false;
     };
 
     enum class LayoutTargetKind : uint8_t
@@ -144,14 +138,17 @@ namespace
         {
             collectLists();
             collectLogicalExpressions();
+
             // New operand breaks must participate in the containing list's
             // layout choice during this pass, not on the next formatting run.
             wrapOperandChains(model_->bitwiseExpressions(), options_->bitwiseChainColumnLimit, options_->breakBeforeBinaryOperators);
             const auto logicalBreak = options_->logicalOperatorBreakPosition == FormatOperatorWrapStyle::Preserve ? options_->breakBeforeBinaryOperators : options_->logicalOperatorBreakPosition;
             wrapOperandChains(model_->logicalExpressions(), options_->logicalChainColumnLimit, logicalBreak);
+
             chooseLineModes();
             prepareLists();
             prepareLogicalExpressions();
+
             wrapLongLines();
             finishLists();
             finishLogicalExpressions();
@@ -220,6 +217,7 @@ namespace
                 state.binPack               = policy.binPack;
                 state.singleLineColumnLimit = policy.singleLineColumnLimit;
                 state.literal               = open.hasRole(FormatRoleE::LiteralOpen);
+
                 collectItems(state);
                 lists_.push_back(std::move(state));
             }
@@ -243,6 +241,7 @@ namespace
                 if (!model_->piece(next).isComment)
                     return next;
             }
+
             return INVALID_PIECE;
         }
 
@@ -258,14 +257,16 @@ namespace
                 const uint32_t rootDepth = model_->piece(expr.rootOperatorPiece).depth;
 
                 LogicalState state;
-                state.firstPiece          = expr.firstPiece;
-                state.lastPiece           = expr.lastPiece;
-                state.rootOperatorPiece   = expr.rootOperatorPiece;
+                state.firstPiece        = expr.firstPiece;
+                state.lastPiece         = expr.lastPiece;
+                state.rootOperatorPiece = expr.rootOperatorPiece;
+
                 state.forceSingleLine     = policy.forceSingleLine;
                 state.sourceSelectsLayout = policy.sourceSelectsLayout;
                 state.layout              = policy.layout;
                 state.breakPosition       = policy.breakPosition;
                 state.packing             = policy.packing;
+
                 state.operands.push_back(expr.firstPiece);
 
                 for (uint32_t i = expr.firstPiece; i <= expr.lastPiece; ++i)
@@ -273,9 +274,11 @@ namespace
                     const FormatPiece& piece = model_->piece(i);
                     if (!piece.hasRole(FormatRoleE::LogicalOp) || piece.depth != rootDepth)
                         continue;
+
                     const uint32_t operand = nextCodePiece(i);
                     if (operand == INVALID_PIECE || operand > expr.lastPiece)
                         continue;
+
                     state.operators.push_back(i);
                     state.operands.push_back(operand);
                 }
@@ -299,6 +302,7 @@ namespace
                 const uint32_t rhsSize = rhs.lastPiece - rhs.firstPiece;
                 if (lhsSize != rhsSize)
                     return lhsSize < rhsSize;
+
                 return lhs.firstPiece > rhs.firstPiece;
             });
 
@@ -327,6 +331,7 @@ namespace
             const uint32_t     item = model_->nextPiece(state.openPiece);
             if (item == INVALID_PIECE || item == state.closePiece)
                 return;
+
             state.items.push_back(item);
 
             const uint32_t innerDepth = open.depth + 1;
@@ -358,11 +363,13 @@ namespace
                 const FormatPiece& piece = model_->piece(i);
                 if (piece.removed)
                     continue;
+
                 if (piece.isComment)
                 {
                     state.hasComment = true;
                     state.canJoin    = false;
                 }
+
                 if (piece.frozen || model_->gapBefore(i).frozen)
                 {
                     state.editable = false;
@@ -374,11 +381,8 @@ namespace
             }
         }
 
-        // A call whose last argument is the only multiline one reads as a header
-        // followed by a block: `f(a, b, [` then the rows, then `])`. Splitting the
-        // scalar arguments one per line only to reach that block hides the header
-        // and pushes the block far to the right, so detect the shape here and let
-        // the list keep its opening line.
+        // Keep preceding items on the opening line when only the final item is a
+        // multiline literal block; splitting the header pushes that block right.
         bool wantsHug(const ListState& state) const
         {
             if (!state.hugTrailingBlock.value_or(false) || state.hasComment || state.items.size() < 2)
@@ -396,8 +400,10 @@ namespace
                 {
                     if (!FormatPassUtil::canEditGap(*model_, i))
                         return false;
+
                     continue;
                 }
+
                 // An earlier argument that spans lines has its own block to place.
                 if (model_->gapHasNewline(i))
                     return false;
@@ -406,17 +412,18 @@ namespace
             if (!FormatPassUtil::canEditGap(*model_, last))
                 return false;
 
-            // The enclosing close can own a source newline even when every
-            // item fits on one line. Only the last item's contents justify
-            // hugging; otherwise a table of compact rows collapses entirely.
+            // A newline before the enclosing close does not make the last item
+            // multiline; counting it would collapse tables of compact rows.
             uint32_t lastEnd = model_->prevPiece(state.closePiece);
             if (model_->piece(lastEnd).is(TokenId::SymComma))
                 lastEnd = model_->prevPiece(lastEnd);
+
             for (uint32_t i = last + 1; i <= lastEnd; ++i)
             {
                 if (!model_->piece(i).removed && model_->gapHasNewline(i))
                     return true;
             }
+
             return false;
         }
 
@@ -435,10 +442,8 @@ namespace
             if (state.items.size() < 2)
                 return true;
 
-            // Literal rows often intentionally pack many scalar values per
-            // source line. Unlike argument lists, seeing only the first two
-            // items together is not enough evidence that a previously
-            // multiline data table should become one enormous line.
+            // Literal rows can pack scalars across several lines. Unlike calls, the
+            // first two items sharing a line must not collapse the whole data table.
             if (state.literal)
             {
                 for (uint32_t i = state.openPiece + 1; i <= state.closePiece; ++i)
@@ -453,6 +458,7 @@ namespace
                 if (textHasNewline(model_->gapBefore(i).origText))
                     return false;
             }
+
             return true;
         }
 
@@ -463,6 +469,7 @@ namespace
             result.reserve(lastPiece - firstPiece);
             for (uint32_t i = firstPiece + 1; i <= lastPiece; ++i)
                 result.push_back(model_->gapBefore(i));
+
             return result;
         }
 
@@ -480,6 +487,7 @@ namespace
                 return options_->spaceInsideBrackets.value_or(false) ? 1 : 0;
             if (open.is(TokenId::SymLeftCurly))
                 return options_->spaceInsideBraces.value_or(false) ? 1 : 0;
+
             return options_->spaceInsideParentheses.value_or(false) ? 1 : 0;
         }
 
@@ -499,10 +507,12 @@ namespace
                     return options_->spaceInsideBrackets.value_or(false) ? 1 : 0;
                 return options_->spaceInEmptyParentheses.value_or(false) ? 1 : 0;
             }
+
             if (close.is(TokenId::SymRightBracket))
                 return options_->spaceInsideBrackets.value_or(false) ? 1 : 0;
             if (close.is(TokenId::SymRightCurly))
                 return options_->spaceInsideBraces.value_or(false) ? 1 : 0;
+
             return options_->spaceInsideParentheses.value_or(false) ? 1 : 0;
         }
 
@@ -516,11 +526,13 @@ namespace
                 const uint32_t item = state.items[i];
                 if (!model_->gapHasNewline(item))
                     continue;
+
                 model_->setGapSpaces(item, i == 0 ? spacesAfterOpen(state) : spacesAfterComma());
             }
 
             if (model_->gapHasNewline(state.closePiece))
                 model_->setGapSpaces(state.closePiece, spacesBeforeClose(state));
+
             return true;
         }
 
@@ -529,6 +541,7 @@ namespace
             const uint32_t columnLimit = state.singleLineColumnLimit != 0 ? state.singleLineColumnLimit : options_->columnLimit;
             if (columnLimit == 0)
                 return true;
+
             const uint32_t lineStart = model_->lineStartOf(state.openPiece);
             return FormatPassUtil::lineWidth(*model_, lineStart) <= columnLimit;
         }
@@ -549,6 +562,7 @@ namespace
             {
                 if (joinList(state))
                     state.lineMode = ListLineMode::SingleLine;
+
                 return;
             }
 
@@ -562,6 +576,7 @@ namespace
                     state.lineMode = ListLineMode::SingleLine;
                 else
                     state.lineMode = ListLineMode::MultiLine;
+
                 return;
             }
 
@@ -588,6 +603,7 @@ namespace
         {
             if (std::ranges::find(state.operators, pieceIndex) != state.operators.end())
                 return true;
+
             return std::ranges::find(state.operands.begin() + 1, state.operands.end(), pieceIndex) != state.operands.end();
         }
 
@@ -602,16 +618,19 @@ namespace
                 const FormatPiece& piece = model_->piece(i);
                 if (piece.removed)
                     continue;
+
                 if (piece.isComment)
                 {
                     state.hasComment = true;
                     state.canJoin    = false;
                 }
+
                 if (piece.frozen || model_->gapBefore(i).frozen)
                 {
                     state.editable = false;
                     state.canJoin  = false;
                 }
+
                 if (model_->gapHasNewline(i) && !isLogicalBoundaryGap(state, i))
                     state.canJoin = false;
             }
@@ -625,6 +644,7 @@ namespace
                 if (textHasNewline(model_->gapBefore(i).origText))
                     return false;
             }
+
             return true;
         }
 
@@ -645,6 +665,7 @@ namespace
         {
             if (!state.canJoin)
                 return false;
+
             joinLogicalBoundaries(state);
             return true;
         }
@@ -653,6 +674,7 @@ namespace
         {
             if (options_->columnLimit == 0)
                 return true;
+
             const uint32_t lineStart = model_->lineStartOf(state.firstPiece);
             return FormatPassUtil::lineWidth(*model_, lineStart) <= options_->columnLimit;
         }
@@ -666,6 +688,7 @@ namespace
             {
                 if (joinLogicalExpression(state))
                     state.lineMode = ListLineMode::SingleLine;
+
                 return;
             }
 
@@ -684,6 +707,7 @@ namespace
                     state.lineMode = ListLineMode::SingleLine;
                 else
                     state.lineMode = ListLineMode::MultiLine;
+
                 return;
             }
 
@@ -714,6 +738,7 @@ namespace
                 if (!model_->piece(i).removed && model_->gapHasNewline(i))
                     return true;
             }
+
             return false;
         }
 
@@ -734,6 +759,7 @@ namespace
                 if (column.piece == piece)
                     return column.column;
             }
+
             return UINT32_MAX;
         }
 
@@ -742,10 +768,9 @@ namespace
             return state.literal && !state.items.empty() && textHasNewline(model_->gapBefore(state.items.front()).origText);
         }
 
-        // Where the first item actually starts on the bracket's line. That is
-        // one past the bracket in every list the spacing pass tightens, but a
-        // type-level brace keeps its inner blank, and hanging alignment has to
-        // line up with the item rather than with the bracket.
+        // Align with the first item's actual column. Type-level braces can retain
+        // an inner blank, so hanging alignment cannot always use the column
+        // immediately after the opening bracket.
         uint32_t firstItemColumn(const ListState& state) const
         {
             std::vector<PieceColumn> columns;
@@ -755,6 +780,7 @@ namespace
                 if (columns[c].piece == state.openPiece)
                     return columns[c + 1].column;
             }
+
             return UINT32_MAX;
         }
 
@@ -787,6 +813,7 @@ namespace
         {
             if (state.items.empty() || state.hasComment)
                 return;
+
             const uint32_t first = state.items.front();
             if (model_->gapHasNewline(first) && FormatPassUtil::canEditGap(*model_, first))
                 model_->setGapSpaces(first, spacesAfterOpen(state));
@@ -796,6 +823,7 @@ namespace
         {
             if (state.items.empty() || state.hasComment)
                 return;
+
             const uint32_t first = state.items.front();
             if (FormatPassUtil::canEditGap(*model_, first))
                 model_->setGapBreak(first, 1, fixedContinuationIndent(state.openPiece).view());
@@ -841,6 +869,7 @@ namespace
                 if (model_->gapHasNewline(item))
                     return item;
             }
+
             return INVALID_PIECE;
         }
 
@@ -855,6 +884,7 @@ namespace
                 const uint32_t item = state.items[i];
                 if (item == requiredBreak || !model_->gapHasNewline(item) || !FormatPassUtil::canEditGap(*model_, item))
                     continue;
+
                 model_->setGapSpaces(item, i == 0 ? spacesAfterOpen(state) : spacesAfterComma());
             }
         }
@@ -865,8 +895,10 @@ namespace
             {
                 if (state.lineMode == ListLineMode::SingleLine)
                     continue;
+
                 if (state.lineMode == ListLineMode::MultiLine || piecesSpanLines(state.openPiece, state.closePiece))
                     applyListShape(state);
+
                 packExistingLines(state);
             }
         }
@@ -887,6 +919,7 @@ namespace
             if (options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::Before ||
                 options_->breakBeforeBinaryOperators == FormatOperatorWrapStyle::After)
                 return options_->breakBeforeBinaryOperators;
+
             return FormatOperatorWrapStyle::After;
         }
 
@@ -920,6 +953,7 @@ namespace
                 if (logicalBoundaryIsBroken(state, i))
                     return static_cast<uint32_t>(i);
             }
+
             return INVALID_PIECE;
         }
 
@@ -971,10 +1005,12 @@ namespace
                 {
                     if (requiredBreak != INVALID_PIECE)
                         setLogicalBoundaryBreak(state, requiredBreak, indent);
+
                     for (size_t i = 0; i < state.operators.size(); ++i)
                     {
                         if (model_->piece(state.operators[i]).isNot(TokenId::KwdOr))
                             continue;
+
                         setLogicalBoundaryBreak(state, i, indent);
                     }
                     break;
@@ -1010,9 +1046,11 @@ namespace
             {
                 if (model_->piece(piece).frozen || model_->gapBefore(piece).frozen)
                     return false;
+
                 const uint32_t next = model_->nextPiece(piece);
                 if (next == INVALID_PIECE || model_->gapHasNewline(next))
                     return true;
+
                 piece = next;
             }
         }
@@ -1026,6 +1064,7 @@ namespace
                 if (model_->piece(commaPiece).depth == model_->piece(state.openPiece).depth + 1)
                     return true;
             }
+
             return false;
         }
 
@@ -1044,6 +1083,7 @@ namespace
             {
                 if (pieceIndex < state.firstPiece || pieceIndex > state.lastPiece || !isLogicalBoundaryGap(state, pieceIndex))
                     continue;
+
                 const uint32_t size = state.lastPiece - state.firstPiece;
                 if (size < resultSize)
                 {
@@ -1051,6 +1091,7 @@ namespace
                     resultSize = size;
                 }
             }
+
             return result;
         }
 
@@ -1066,6 +1107,7 @@ namespace
                 return FormatOperatorWrapStyle::None;
             if (state->breakPosition == FormatOperatorWrapStyle::Before || state->breakPosition == FormatOperatorWrapStyle::After)
                 return state->breakPosition;
+
             return options_->breakBeforeBinaryOperators;
         }
 
@@ -1076,12 +1118,12 @@ namespace
                 if (pieceIndex > list.openPiece && pieceIndex < list.closePiece)
                     return &list;
             }
+
             return nullptr;
         }
 
-        // One statement, one continuation indent. A line that a break produced is
-        // queued with the indent that break used, because measuring again from
-        // the new line would step one level further right at every break.
+        // Reuse the statement's continuation indent for every queued break.
+        // Measuring from each new line would move successive breaks farther right.
         struct PendingWrap
         {
             uint32_t lineStart     = INVALID_PIECE;
@@ -1120,17 +1162,20 @@ namespace
                         multiline        = true;
                         protectedThrough = expr.lastPiece;
                     }
+
                     if (!FormatPassUtil::canEditGap(*model_, i) || piece.isComment)
                     {
                         editable         = false;
                         protectedThrough = expr.lastPiece;
                         break;
                     }
+
                     if (piece.depth == root.depth && piece.id == root.id && piece.hasRole(FormatRoleE::BinaryOp))
                     {
                         const bool beforeOperator = breakStyle == FormatOperatorWrapStyle::Before;
                         operands.push_back(beforeOperator ? i : model_->nextPiece(i));
                     }
+
                     // Mixed and/or precedence needs an author's grouping decision.
                     if (root.hasRole(FormatRoleE::LogicalOp) && piece.hasRole(FormatRoleE::LogicalOp) && piece.depth == root.depth && piece.id != root.id)
                     {
@@ -1139,6 +1184,7 @@ namespace
                         break;
                     }
                 }
+
                 if (!editable || operands.size() < 2)
                     continue;
 
@@ -1148,11 +1194,13 @@ namespace
                     if (list.forceSingleLine.value_or(false) && expr.firstPiece > list.openPiece && expr.lastPiece < list.closePiece)
                         editable = false;
                 }
+
                 for (const LogicalState& logical : logicalExpressions_)
                 {
                     if (logical.forceSingleLine.value_or(false) && expr.firstPiece >= logical.firstPiece && expr.lastPiece <= logical.lastPiece)
                         editable = false;
                 }
+
                 if (!editable)
                     continue;
 
@@ -1170,6 +1218,7 @@ namespace
                     const uint32_t width    = columns.front().column + end->column - anchor->column + FormatModel::textColumns(model_->piece(end->piece).text, tabWidth, end->column);
                     if (width <= columnLimit)
                         continue;
+
                     const Utf8 indent = FormatPassUtil::indentForColumns(*model_, anchor->column);
                     for (const uint32_t operand : operands)
                     {
@@ -1185,6 +1234,7 @@ namespace
                     if (logical.firstPiece == expr.firstPiece && logical.lastPiece == expr.lastPiece)
                         logical.keepMultiline = true;
                 }
+
                 protectedThrough = expr.lastPiece;
             }
         }
@@ -1234,6 +1284,7 @@ namespace
                     break;
                 }
             }
+
             if (!isTopLevelBinaryBreak)
                 return INVALID_PIECE;
 
@@ -1247,6 +1298,7 @@ namespace
             const FormatPiece& first = model_->piece(columns.front().piece);
             if (first.hasRole(FormatRoleE::ControlKeyword))
                 return columns.size() > 1 ? columns[1].piece : INVALID_PIECE;
+
             return columns.front().piece;
         }
 
@@ -1276,6 +1328,7 @@ namespace
                         break;
                     }
                 }
+
                 outIndent = anchorColumn == UINT32_MAX ? pending.indent : FormatPassUtil::indentForColumns(*model_, anchorColumn);
             }
             else
@@ -1284,6 +1337,7 @@ namespace
             model_->setGapBreak(breakPiece, 1, outIndent.view());
             if (outOperandAnchor != INVALID_PIECE)
                 model_->hangingLines().push_back({breakPiece, outOperandAnchor, 0});
+
             return breakPiece;
         }
 
@@ -1315,12 +1369,12 @@ namespace
 
             if (candidate == INVALID_PIECE || candidate == columns.front().piece || model_->piece(candidate).isComment)
                 return INVALID_PIECE;
+
             return candidate;
         }
 
-        // How much of the expression a break at this token preserves: a list
-        // separator cuts between whole items, and below it the operators rank by
-        // precedence, so `and` is cut before `<` and `<` before `*`.
+        // Prefer separators between whole list items, then operators from loosest
+        // to tightest precedence: logical, relational, and arithmetic or bitwise.
         static uint32_t breakRank(const FormatPiece& piece)
         {
             if (piece.is(TokenId::SymComma))
@@ -1331,16 +1385,13 @@ namespace
                 return 2;
             if (Token::isOpArithmeticOrBitwise(piece.id))
                 return 3;
+
             return 4;
         }
 
-        // One break at a time, chosen locally — see the pass header. The break
-        // that keeps the most structure is the one highest in the expression
-        // tree: first the shallowest bracket depth, so a top-level `+` beats a
-        // comma nested inside one of its operands however much earlier that
-        // comma sits, then the loosest-binding token at that depth. Among the
-        // remaining candidates the last one that still fits wins, which fills
-        // the line.
+        // Choose locally: prefer the shallowest bracket depth, then the loosest
+        // operator precedence at that depth. Among equally ranked candidates,
+        // take the last one that fits to fill the retained line.
         uint32_t chooseBreak(const std::vector<PieceColumn>& columns) const
         {
             const uint32_t limit = options_->columnLimit;
@@ -1351,6 +1402,7 @@ namespace
             {
                 if (breakCandidateAt(columns, c) == INVALID_PIECE)
                     continue;
+
                 const FormatPiece& piece = model_->piece(columns[c].piece);
                 if (piece.depth < bestDepth)
                 {
@@ -1360,6 +1412,7 @@ namespace
                 if (piece.depth == bestDepth)
                     bestRank = std::min(bestRank, breakRank(piece));
             }
+
             if (bestDepth == UINT32_MAX)
                 return INVALID_PIECE;
 
@@ -1372,12 +1425,12 @@ namespace
                 const FormatPiece& piece     = model_->piece(columns[c].piece);
                 if (candidate == INVALID_PIECE || piece.depth != bestDepth || breakRank(piece) != bestRank)
                     continue;
+
                 if (firstAny == INVALID_PIECE)
                     firstAny = candidate;
 
-                // What has to fit is the line the break leaves behind. Breaking
-                // *after* a token puts that token on it, so its end column is
-                // what the limit applies to, not where it starts.
+                // When breaking after a token, its end column remains on this line.
+                // Measure that end rather than the token's start against the limit.
                 const uint32_t end = candidate == columns[c].piece ? columns[c].column : columns[c].column + FormatModel::textColumns(piece.text, tabWidth, columns[c].column);
                 if (end <= limit)
                     best = candidate;
@@ -1404,6 +1457,7 @@ namespace
                 {
                     if (pieceIndex == breakPiece)
                         break;
+
                     const FormatPiece& piece = model_->piece(pieceIndex);
                     if (piece.is(TokenId::SymLeftParen) || piece.is(TokenId::SymLeftBracket))
                         stack.push_back(column);
@@ -1413,6 +1467,7 @@ namespace
                             stack.pop_back();
                     }
                 }
+
                 if (!stack.empty())
                     openBracketColumn = stack.back();
                 if (openBracketColumn != UINT32_MAX)
@@ -1477,6 +1532,7 @@ namespace
                 return true;
             if (piece.is(TokenId::SymRightParen) || piece.is(TokenId::SymRightBracket) || piece.is(TokenId::SymRightCurly))
                 return true;
+
             return piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::AttrOpen,
                                        FormatRoleE::ElseKeyword, FormatRoleE::EnumValueStart, FormatRoleE::FieldDeclStart,
                                        FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::LiteralOpen,
@@ -1491,6 +1547,7 @@ namespace
                 if (pieceIndex > body.doPiece && pieceIndex <= body.lastPiece)
                     result++;
             }
+
             return result;
         }
 
@@ -1501,6 +1558,7 @@ namespace
             const uint32_t colon = nextCodePiece(item);
             if (colon == INVALID_PIECE || !model_->piece(colon).hasRole(FormatRoleE::NamedArgumentColon))
                 return item;
+
             const uint32_t value = nextCodePiece(colon);
             return value == INVALID_PIECE ? item : value;
         }
@@ -1545,6 +1603,7 @@ namespace
                     if (piece.match != INVALID_PIECE &&
                         (piece.is(TokenId::SymRightParen) || piece.is(TokenId::SymRightBracket) || piece.is(TokenId::SymRightCurly)))
                         structuralDepth = model_->piece(piece.match).depth;
+
                     const uint32_t bracketDepth     = structuralDepth > itemDepth ? structuralDepth - itemDepth : 0;
                     const uint32_t pieceInlineDepth = inlineBodyDepthAt(lineStart);
                     const uint32_t inlineDepth      = pieceInlineDepth > itemInlineDepth ? pieceInlineDepth - itemInlineDepth : 0;
@@ -1575,17 +1634,16 @@ namespace
                 applyOnePerLine(state, indent);
                 alignBrokenItems(state, indent);
                 placeClose(state);
+
                 for (size_t i = 0; i < state.items.size(); ++i)
                     alignMultilineItemContents(state, i);
                 recordHangingItems(state);
             }
         }
 
-        // A continuation line placed under its bracket has to move with that
-        // bracket when the alignment pass later shifts the line the bracket sits
-        // on. The indent pass records the lines it placed so alignment can
-        // replay them; a line this pass creates needs the same record, or it
-        // only reaches its column on the next run of the formatter.
+        // Record newly wrapped item lines so later alignment can move them with
+        // their opening bracket. Without these anchors, the correct indentation
+        // would only appear on the next formatting pass.
         void recordHangingItems(const ListState& state) const
         {
             if (state.hug || state.layout != FormatListLayout::HangingAlign || literalStartsOnNextSourceLine(state))
@@ -1594,6 +1652,7 @@ namespace
             const uint32_t open = pieceColumn(state.openPiece);
             if (open == UINT32_MAX)
                 return;
+
             const uint32_t item   = firstItemColumn(state);
             const uint32_t offset = item != UINT32_MAX && item > open ? item - open : 1;
 
@@ -1610,6 +1669,7 @@ namespace
             {
                 for (size_t i = 0; i < state.operators.size(); ++i)
                     setLogicalBoundaryBreak(state, i, indent);
+
                 return;
             }
 
@@ -1618,10 +1678,12 @@ namespace
 
             if (state.lineMode == ListLineMode::MultiLine)
                 setLogicalBoundaryBreak(state, 0, indent);
+
             for (size_t i = 0; i < state.operators.size(); ++i)
             {
                 if (model_->piece(state.operators[i]).isNot(TokenId::KwdOr))
                     continue;
+
                 setLogicalBoundaryBreak(state, i, indent);
             }
         }
@@ -1632,6 +1694,7 @@ namespace
             {
                 if (state.lineMode == ListLineMode::SingleLine || !piecesSpanLines(state.firstPiece, state.lastPiece))
                     continue;
+
                 const Utf8 indent = logicalIndent(state);
                 addRequiredLogicalBreaks(state, indent);
                 normalizeLogicalBoundaries(state, indent);
@@ -1639,9 +1702,8 @@ namespace
             }
         }
 
-        // Same rule as `recordHangingItems`: an operand line placed under the
-        // expression's first operand has to follow that operand when alignment
-        // shifts the line it sits on.
+        // Align operand continuations relative to the first operand so later
+        // alignment moves them together with their anchor line.
         void recordHangingOperands(const LogicalState& state) const
         {
             if (state.layout != FormatLogicalLayout::HangingAlign || pieceColumn(state.firstPiece) == UINT32_MAX)
@@ -1657,8 +1719,9 @@ namespace
             }
         }
 
-        FormatModel*              model_;
-        const FormatOptions*      options_;
+        FormatModel*         model_;
+        const FormatOptions* options_;
+
         std::vector<ListState>    lists_;
         std::vector<LogicalState> logicalExpressions_;
     };

@@ -23,7 +23,8 @@ namespace
 
     struct StaticPayload
     {
-        uint32_t                   baseOffset = 0;
+        uint32_t baseOffset = 0;
+
         std::span<std::byte>       dstBytes;
         std::span<const std::byte> srcBytes;
     };
@@ -160,6 +161,7 @@ namespace
             outPtr                     = static_cast<PT*>(targetSegment.ptr<ST>(targetRef.offset));
             segment.addRelocation(relocationOffset, targetRef);
         }
+
         return Result::Continue;
     }
 
@@ -175,6 +177,7 @@ namespace
             outAddress                 = rawAddress(targetSegment.ptr<std::byte>(targetRef.offset));
             segment.addRelocation(relocationOffset, targetRef);
         }
+
         return Result::Continue;
     }
 
@@ -206,7 +209,8 @@ namespace
         SWC_RESULT(lowerConstantToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, valueType, cstRef));
 
         const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
-        outData                             = rawValueData.data();
+
+        outData = rawValueData.data();
         return Result::Continue;
     }
 
@@ -256,11 +260,13 @@ namespace
 
         const TypeRef valueTypeRef = sema.typeGen().getBackTypeRef(srcAny.type);
         SWC_INTERNAL_CHECK(valueTypeRef.isValid());
+
         const TypeInfo& valueType = sema.typeMgr().get(valueTypeRef);
         const uint64_t  valueSize = valueType.sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
 
         uint32_t valueOffset = INVALID_REF;
+
         // Nested `any` values get their own static storage so relocations can target them.
         SWC_RESULT(ConstantLower::materializeStaticPayload(sema, valueOffset, segment, valueType, rawBytes(srcAny.value, valueSize)));
         dstAny.value = segment.ptr<std::byte>(valueOffset);
@@ -275,6 +281,7 @@ namespace
         DataSegmentRef descriptorRef;
         if (!sema.cstMgr().resolveDataSegmentRef(descriptorRef, descriptor))
             return false;
+
         DataSegmentRelocation relocation;
         return sema.cstMgr().shardDataSegment(descriptorRef.shardIndex).findRelocation(relocation, descriptorRef.offset + offsetof(Runtime::Slice<std::byte>, ptr), DataSegmentRelocationKind::DataSegmentOffset);
     }
@@ -287,9 +294,8 @@ namespace
         auto&       dstSlice = writable<Runtime::Slice<std::byte>>(payload.dstBytes);
         const auto& srcSlice = readable<Runtime::Slice<std::byte>>(payload.srcBytes);
 
-        // A null slice materializes nothing, so its element type is never laid out here. Asking for
-        // that layout first asks a struct sema has not finished for its size, which is how the
-        // 'nullable' slice field of an implicit struct default tripped the layout assertion.
+        // Null slices need no element layout. Querying it first can ask an unfinished
+        // struct for its size, including nullable fields in implicit struct defaults.
         if (!srcSlice.ptr && !srcSlice.count)
         {
             dstSlice.ptr   = nullptr;
@@ -297,10 +303,9 @@ namespace
             return Result::Continue;
         }
 
-        // A view read out of storage that is already runtime data - a reflected type's field
-        // or slot table, whose descriptor carries its own relocation - keeps pointing at what it
-        // views. A copy would give the elements a second address, and a struct finds its own
-        // slot by address. Raw compile-time bytes have no such relocation and are copied below.
+        // Relocated descriptors already view runtime storage. Preserve that address:
+        // reflected struct slots identify themselves by address. Only raw compile-time
+        // bytes without such relocations are copied below.
         if (srcSlice.ptr && isRelocatedSliceDescriptor(sema, payload.srcBytes.data()))
         {
             uint64_t address = 0;
@@ -316,8 +321,9 @@ namespace
         if (!srcSlice.count || !elementSize)
         {
             const auto [dataOffset, dataStorage] = segment.reserveBytes(1, elementType.alignOf(ctx), true);
-            dstSlice.ptr                         = dataStorage;
-            dstSlice.count                       = srcSlice.count;
+
+            dstSlice.ptr   = dataStorage;
+            dstSlice.count = srcSlice.count;
             segment.addRelocation(payload.baseOffset + offsetof(Runtime::Slice<std::byte>, ptr), dataOffset);
             return Result::Continue;
         }
@@ -327,7 +333,9 @@ namespace
         SWC_ASSERT(srcSlice.count <= std::numeric_limits<uint64_t>::max() / elementSize);
         const uint64_t byteCount = srcSlice.count * elementSize;
         SWC_ASSERT(byteCount <= std::numeric_limits<uint32_t>::max());
+
         const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(byteCount), elementType.alignOf(ctx), true);
+
         const StaticPayload slicePayload{
             .baseOffset = dataOffset,
             .dstBytes   = rawBytes(dataStorage, byteCount),
@@ -378,6 +386,7 @@ namespace
             auto&          destination = writable<const Runtime::DynamicStructInfo*>(subBytes(payload.dstBytes, slotOffset, sizeof(void*)));
             SWC_RESULT(relocateSegmentPointer<Runtime::DynamicStructInfo>(destination, sema, segment, payload.baseOffset + slotOffset, descriptor));
         }
+
         for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
         {
             if (!field)
@@ -449,6 +458,7 @@ namespace
             dstPtr = srcRawAddress;
             return Result::Continue;
         }
+
         return relocateSegmentAddress(dstPtr, sema, segment, payload.baseOffset, srcPtr);
     }
 

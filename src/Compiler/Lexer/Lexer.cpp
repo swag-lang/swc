@@ -14,9 +14,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // These helpers intentionally stay independent from Lexer state. They are used while
-    // lexing a compiler-global marker, before a regular token stream exists for the
-    // following expression.
+    // Compiler-global conditions are inspected before a token stream exists.
+    // Keep the raw expression helpers independent of Lexer state.
     enum class GlobalIfValue
     {
         Unknown,
@@ -84,8 +83,13 @@ namespace
         // Keep suggestions conservative: a noisy "did you mean" is worse than no
         // suggestion when compiler directives and intrinsics are intentionally terse.
         const size_t candidateLen = std::max(name.size(), bestCandidate->size());
-        const auto   maxDistance  = static_cast<uint32_t>(candidateLen <= 5 ? 1 : candidateLen <= 8 ? 2
-                                                                                                    : 3);
+        const auto   maxDistance  = static_cast<uint32_t>(
+            candidateLen <= 5
+                ? 1
+            : candidateLen <= 8
+                ? 2
+                : 3);
+
         if (bestDistance > maxDistance)
             return std::nullopt;
 
@@ -176,11 +180,13 @@ namespace
             return GlobalIfValue::Unknown;
 
         skipBlanksRaw(langSpec, cursor);
+
         bool notEqual = false;
         if (!consumeRaw("==", cursor))
         {
             if (!consumeRaw("!=", cursor))
                 return GlobalIfValue::Unknown;
+
             notEqual = true;
         }
 
@@ -201,6 +207,7 @@ namespace
         bool value = compilerCommandFromKind(cmdLine.command) == expected;
         if (notEqual)
             value = !value;
+
         return value ? GlobalIfValue::True : GlobalIfValue::False;
     }
 }
@@ -217,8 +224,8 @@ bool Lexer::isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
 void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
 {
     if (hasUtf8Error_)
-
         return;
+
     hasUtf8Error_ = true;
     hasFileError_ = true;
 
@@ -234,6 +241,7 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
 {
     if (hasTokenError_)
         return {};
+
     hasTokenError_ = true;
     hasFileError_  = true;
 
@@ -243,7 +251,6 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
     Diagnostic diag = Diagnostic::get(id, srcView_->fileRef());
     diag.last().addSpan(srcView_, offset, len);
 
-    // Add an argument with the token string
     if (len)
     {
         const std::string_view tkn = srcView_->codeView(offset, len);
@@ -272,8 +279,10 @@ void Lexer::eatUtf8Char()
     if (!buf)
     {
         raiseTokenError(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+
         hasUtf8Error_  = true;
         hasTokenError_ = true;
+
         buffer_++;
     }
     else
@@ -318,8 +327,7 @@ void Lexer::pushToken()
     const bool    isTrivia     = Token::isTrivia(tokenId);
     const bool    hasEolInside = token_.hasFlag(TokenFlagsE::EolInside);
 
-    // Update previous token's flags before filtering
-    // This must happen even for tokens that will be filtered out
+    // Trivia still supplies spacing and line-boundary flags to adjacent tokens.
     if (!srcView_->tokens().empty())
     {
         auto& back = srcView_->tokens().back();
@@ -329,7 +337,6 @@ void Lexer::pushToken()
             back.flags.add(TokenFlagsE::EolAfter);
     }
 
-    // Update the current token's flags based on the previous token
     if (prevTokenWasWhitespace_)
         token_.flags.add(TokenFlagsE::BlankBefore);
     if (prevTokenHadEolInside_)
@@ -338,6 +345,7 @@ void Lexer::pushToken()
     // Always update the previous-token facts, even for filtered tokens.
     prevTokenWasWhitespace_ = tokenId == TokenId::Whitespace;
     prevTokenHadEolInside_  = hasEolInside;
+
     if (!isTrivia)
         prevCodeTokenId_ = tokenId;
     else if (hasEolInside)
@@ -350,31 +358,33 @@ void Lexer::pushToken()
     else if (!isTrivia)
         pendingRawStringLiteral_ = false;
 
-    // Use switch for better branch prediction and consolidate similar checks
     switch (tokenId)
     {
         case TokenId::Whitespace:
             if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
                 srcView_->trivia().push_back({.tokRef = TokenRef{srcView_->numTokens()}, .tok = token_});
             break;
+
         case TokenId::CommentLine:
         case TokenId::CommentBlock:
             if (!isRawMode() && lexerFlags_.hasNot(LexerFlagsE::EmitTrivia))
                 break;
+
             srcView_->trivia().push_back({.tokRef = TokenRef{srcView_->numTokens()}, .tok = token_});
             break;
+
         default:
             if (isRawMode())
                 break;
+
             srcView_->tokens().push_back(token_);
             break;
     }
 }
 
-// Validate hex/Unicode escape sequences
 void Lexer::lexEscape(TokenId containerToken, bool eatEol)
 {
-    // Eat the EOL right after the escape character
+    // Only multiline strings allow an escaped line ending.
     if (eatEol)
     {
         if (buffer_[1] == '\r' || buffer_[1] == '\n')
@@ -398,10 +408,11 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
                 diag.addArgument(Diagnostic::ARG_VALUE, std::string_view(suggestion, 2));
             }
         }
+
         diag.report(*ctx_);
     }
 
-    // pos points to the backslash
+    // buffer_ still points to the backslash.
     if (buffer_[1] != 'x' && buffer_[1] != 'u' && buffer_[1] != 'U')
     {
         buffer_++;
@@ -417,28 +428,29 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
         case 'x':
             expectedDigits = 2;
             break;
+
         case 'u':
             expectedDigits = 4;
             break;
+
         case 'U':
             expectedDigits = 8;
             break;
+
         default:
             SWC_UNREACHABLE();
     }
 
-    // Check if we have the required number of hex digits
     for (uint32_t i = 0; i < expectedDigits; i++)
     {
         if (!langSpec_->isHexNumber(buffer_[2 + i]))
         {
-            // Not enough or invalid hex digits
             const uint32_t actualDigits = i;
             const auto     offset       = static_cast<uint32_t>(buffer_ - startBuffer_);
 
             if (actualDigits == 0)
             {
-                const uint8_t first = buffer_[2]; // first expected a hex digit
+                const uint8_t first = buffer_[2];
                 if (isTerminatorAfterEscapeChar(first, containerToken))
                     raiseTokenError(DiagnosticId::lex_err_empty_hex_escape, offset, 2);
                 else
@@ -456,7 +468,6 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
         }
     }
 
-    // Valid escape sequence
     buffer_ += 2 + expectedDigits;
 }
 

@@ -164,6 +164,7 @@ namespace
         const TypeInfo&    sourceType        = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeRef      sourceTypeToCheck = sourceType.typeRef();
         const TypeInfo&    dstType           = typeMgr.get(dstTypeRef);
+
         // Wide non-vector values also carry a backing address when classified as
         // values (slice expressions and constant descriptors, for example).
         if (!srcPayload.isAddress() && (sourceType.sizeOf(codeGen.ctx()) <= 8 || srcPayload.reg.isAnyFloat()))
@@ -187,8 +188,7 @@ namespace
             }
             else
             {
-                // A 'using' field chain reaches the pointee subobject for pointers and
-                // references alike.
+                // Follow by-value using fields to the pointee subobject.
                 SmallVector<SymbolStructUsingPathStep> usingPath;
                 if (!resolveUsingStructCastPath(codeGen, sourceTypeRef, dstType.payloadTypeRef(), usingPath))
                     return false;
@@ -202,8 +202,8 @@ namespace
             }
         }
 
-        // Addressable values cast to references/pointers must become the pointer value itself.
-        // Keeping them as an address payload causes later member/index lowering to dereference one level too far.
+        // Publish the pointer value itself. An address payload would make later
+        // member/index lowering dereference one level too far.
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         dstPayload.reg                 = pointeeAddressReg;
         dstPayload.markMaterializedPointerLikeValue();
@@ -321,6 +321,7 @@ namespace
         {
             readTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
         }
+
         SWC_ASSERT(readTypeRef.isValid());
         SWC_ASSERT(readTypeInfo && !readTypeInfo->isReference());
         SWC_ASSERT(readPayload.isAddress());
@@ -485,6 +486,7 @@ namespace
 
         const TypeInfo& resolvedSourceType = codeGen.typeMgr().get(resolvedSourceTypeRef);
         SWC_ASSERT(resolvedSourceType.isPointerOrReference());
+
         for (const auto& step : usingPath)
         {
             SWC_ASSERT(step.field != nullptr);
@@ -524,20 +526,26 @@ namespace
         {
             // Build exact low and high 32-bit contributions as packed doubles.
             // Each subtraction is exact; only their final sum rounds to f64.
-            const TypeRef                 vecTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(codeGen.typeMgr().typeU64(), 2));
-            const std::array<uint64_t, 2> seedBits   = {0x4530000043300000ULL, 0};
-            const std::array<uint64_t, 2> biasBits   = {0x4330000000000000ULL, 0x4530000000000000ULL};
-            const MicroReg                seedReg    = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{seedBits}));
-            const MicroReg                biasReg    = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{biasBits}));
+            const TypeRef vecTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(codeGen.typeMgr().typeU64(), 2));
+
+            const std::array<uint64_t, 2> seedBits = {0x4530000043300000ULL, 0};
+            const std::array<uint64_t, 2> biasBits = {0x4330000000000000ULL, 0x4530000000000000ULL};
+
+            const MicroReg seedReg = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{seedBits}));
+            const MicroReg biasReg = CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, std::as_bytes(std::span{biasBits}));
 
             const MicroReg sourceVecReg = codeGen.nextVirtualFloatRegister();
             builder.emitLoadRegReg(sourceVecReg, srcReg, MicroOpBits::B64);
+
             const MicroReg splitReg = codeGen.nextVirtualFloatRegister();
             builder.emitOpBinaryRegRegReg(splitReg, sourceVecReg, seedReg, MicroOp::VecUnpackLo32, MicroOpBits::B128);
+
             const MicroReg partsReg = codeGen.nextVirtualFloatRegister();
             builder.emitOpBinaryRegRegReg(partsReg, splitReg, biasReg, MicroOp::VecSubF64, MicroOpBits::B128);
+
             const MicroReg upperReg = codeGen.nextVirtualFloatRegister();
             builder.emitOpBinaryRegRegReg(upperReg, partsReg, partsReg, MicroOp::VecUnpackHi64, MicroOpBits::B128);
+
             const MicroReg dstF64Reg = codeGen.nextVirtualFloatRegister();
             builder.emitOpBinaryRegRegReg(dstF64Reg, partsReg, upperReg, MicroOp::FloatAdd, MicroOpBits::B64);
             return narrowF64ToFloatBits(codeGen, dstF64Reg, dstBits, dstType);
@@ -582,6 +590,7 @@ namespace
         const auto* runtimePayload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(runtimePayload != nullptr);
         SWC_ASSERT(runtimePayload->runtimeFunctionSymbol != nullptr);
+
         const auto& runtimeFunction = *runtimePayload->runtimeFunctionSymbol;
 
         const TypeRef       resultTypeRef = codeGen.curViewType().typeRef();
@@ -622,6 +631,7 @@ namespace
 
                 sourceTypeReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+
                 const MicroLabelRef typeDoneLabel = builder.createLabel();
                 builder.emitCmpRegImm(itableReg, ApInt(0, 64), MicroOpBits::B64);
                 builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, typeDoneLabel);
@@ -675,6 +685,7 @@ namespace
                 const std::span<const std::byte> arrayBytes       = srcConst.getArray();
                 const ConstantRef                runtimeStringRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, arrayBytes.data(), arrayBytes.size());
                 SWC_ASSERT(runtimeStringRef.isValid());
+
                 const ConstantValue&      runtimeStringCst = codeGen.cstMgr().get(runtimeStringRef);
                 const CodeGenNodePayload& dstPayload       = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
                 builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringRef);
@@ -715,9 +726,11 @@ namespace
             {
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, srcConstView.cstRef(), srcConst.typeRef());
                 SWC_ASSERT(safeArrayCstRef.isValid());
+
                 const ConstantValue& safeArrayCst    = codeGen.cstMgr().get(safeArrayCstRef);
                 const ConstantRef    runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, dstTypeRef, safeArrayCst.getArray().data(), elementCount);
                 SWC_ASSERT(runtimeSliceRef.isValid());
+
                 const ConstantValue&      runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
                 const CodeGenNodePayload& dstPayload      = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
                 builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceRef);
@@ -752,6 +765,7 @@ namespace
             {
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, srcConstView.cstRef(), srcConst.typeRef());
                 SWC_ASSERT(safeArrayCstRef.isValid());
+
                 const ConstantValue& safeArrayCst = codeGen.cstMgr().get(safeArrayCstRef);
 
                 CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -789,12 +803,12 @@ namespace
         return Result::Continue;
     }
 
-    // Emit a DynCast safety panic call using the generic safety panic function.
     Result emitDynCastPanic(CodeGen& codeGen, const AstNode& node)
     {
         const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
         if (lowering && lowering->fallibleDynamicCast)
             return CodeGenCallHelpers::emitFallibleCastFailure(codeGen);
+
         SymbolFunction* panicFn = codeGen.compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
         SWC_ASSERT(panicFn != nullptr);
         return CodeGenSafety::emitDynCastCheck(codeGen, *panicFn, node);
@@ -809,6 +823,7 @@ namespace
         MicroReg                 storageReg = MicroReg::invalid();
         const SemaNodeView       resultView = codeGen.curViewType();
         SWC_ASSERT(lowering.runtimeFunctionSymbol);
+
         if (lowering.runtimeTypeCast)
         {
             const MicroReg sourceReg = materializePointerLikeInterfaceObjectReg(codeGen, source);
@@ -821,9 +836,11 @@ namespace
             storageReg                 = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             const MicroReg readOnlyReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegImm(readOnlyReg, ApInt(resultView.type()->isConst() ? 1 : 0, 64), MicroOpBits::B64);
+
             const MicroReg args[] = {targetReg, source.reg, storageReg, readOnlyReg};
             SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering.runtimeFunctionSymbol, args, resultReg));
         }
+
         if (lowering.assumedDynamicCast && lowering.hasDynamicCastCheck())
         {
             const MicroLabelRef valid = builder.createLabel();
@@ -833,10 +850,12 @@ namespace
             SWC_RESULT(emitDynCastPanic(codeGen, node));
             builder.placeLabel(valid);
         }
+
         if (lowering.runtimeTypeCast)
             codeGen.setPayloadValue(codeGen.curNodeRef(), resultView.typeRef()).reg = resultReg;
         else
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), storageReg, resultView.typeRef());
+
         return Result::Continue;
     }
 
@@ -844,18 +863,22 @@ namespace
     {
         if (&source == &target)
             return 1;
+
         uint32_t count = 0;
         for (const SymbolVariable* field : source.fields())
         {
             if (!field->isUsingField())
                 continue;
+
             const TypeInfo& fieldType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, field->typeRef());
             if (!fieldType.isStruct())
                 continue;
+
             count += countFixedUsingPaths(ctx, fieldType.payloadSymStruct(), target);
             if (count > 1)
                 return 2;
         }
+
         return count;
     }
 
@@ -863,6 +886,7 @@ namespace
     {
         const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(lowering && lowering->dynamicCast);
+
         const TypeRef            sourceTypeRef = codeGen.viewType(sourceRef).typeRef();
         const CodeGenNodePayload sourcePayload = sourcePayloadForCast(codeGen, sourceRef);
         const TypeInfo&          resultType    = codeGen.typeMgr().get(resultTypeRef);
@@ -880,8 +904,10 @@ namespace
         }
         else
             targetTypeRef = resultType.payloadTypeRef();
+
         DynamicStructCastSourceInfo sourceInfo;
         SWC_INTERNAL_CHECK(resolveDynamicStructCastSourceInfo(codeGen.sema(), sourceRef, sourceTypeRef, sourceInfo));
+
         MicroBuilder& builder       = codeGen.builder();
         MicroReg      sourcePtrReg  = codeGen.nextVirtualIntRegister();
         MicroReg      sourceTypeReg = MicroReg::invalid();
@@ -908,8 +934,9 @@ namespace
                 const TypeInfo& targetType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), targetTypeRef);
                 if (targetType.isStruct())
                 {
-                    const SymbolStruct&                    sourceStruct = codeGen.typeMgr().get(sourceInfo.structTypeRef).payloadSymStruct();
-                    const SymbolStruct&                    targetStruct = targetType.payloadSymStruct();
+                    const SymbolStruct& sourceStruct = codeGen.typeMgr().get(sourceInfo.structTypeRef).payloadSymStruct();
+                    const SymbolStruct& targetStruct = targetType.payloadSymStruct();
+
                     SmallVector<SymbolStructUsingPathStep> path;
                     bool                                   found     = sourceStruct.resolveUsingFieldPath(codeGen.ctx(), targetStruct, path);
                     int64_t                                direction = 1;
@@ -1056,6 +1083,7 @@ namespace
 
         outResultReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegImm(outResultReg, ApInt(0, 64), MicroOpBits::B64);
+
         const MicroReg args[] = {targetTypeReg, sourceTypeReg, valueAddrReg};
         return CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, asFn, args, outResultReg);
     }
@@ -1080,6 +1108,7 @@ namespace
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, okLabel);
                 SWC_RESULT(emitDynCastPanic(codeGen, codeGen.node(codeGen.curNodeRef())));
                 builder.placeLabel(okLabel);
+
                 finalValueAddrReg = asResultReg;
             }
             else
@@ -1123,6 +1152,7 @@ namespace
 
                 TypeInfoFlags mutableFlags = dstType.flags();
                 mutableFlags.remove(TypeInfoFlagsE::Const);
+
                 const TypeRef mutablePtrTypeRef = dstType.isBlockPointer() ? codeGen.typeMgr().addType(TypeInfo::makeBlockPointer(dstType.payloadTypeRef(), mutableFlags)) : codeGen.typeMgr().addType(TypeInfo::makeValuePointer(dstType.payloadTypeRef(), mutableFlags));
                 if (mutablePtrTypeRef != dstTypeRef)
                     SWC_RESULT(emitAnyRuntimeAsCall(asMutablePtrReg, codeGen, runtimeAsFn, mutablePtrTypeRef, sourceTypeReg, valueAddrReg));
@@ -1184,6 +1214,7 @@ namespace
                 builder.placeLabel(fallbackLabel);
                 builder.emitLoadRegMem(dstPayload.reg, valueAddrReg, 0, valueBits);
                 builder.placeLabel(doneLabel);
+
                 SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, codeGen.node(codeGen.curNodeRef()), dstPayload.reg, false, dstTypeRef));
                 return Result::Continue;
             }
@@ -1268,6 +1299,7 @@ namespace
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, okLabel);
                 SWC_RESULT(emitDynCastPanic(codeGen, codeGen.node(codeGen.curNodeRef())));
                 builder.placeLabel(okLabel);
+
                 finalValueAddrReg = asResultReg;
             }
             else if (isImplicitNullableAnyStringCast)
@@ -1382,11 +1414,12 @@ namespace
         SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), setPayload.calledFn));
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, dstTypeRef);
 
-        // The constructed value is owned by its compiler temporary, like a call result: a
-        // consumer that only borrows it leaves it to this drop, one that stores it cancels it.
+        // The temporary owns the constructed value, as for a call result.
+        // Borrowers leave its drop in place; consumers that store it cancel the drop.
         const SymbolVariable& storageSym = *castPayload->runtimeStorageSym;
         if (storageSym.hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) && !storageSym.hasExtraFlag(SymbolVariableFlagsE::RetVal) && codeGen.hasLifecycle(dstTypeRef, CodeGen::LifecycleKind::Drop))
             codeGen.registerTemporaryDrop(codeGen.curNodeRef(), dstTypeRef, storageSym);
+
         return Result::Continue;
     }
 
@@ -1401,6 +1434,7 @@ namespace
         const auto* castPayload = codeGen.loweringPayload(codeGen.curNodeRef());
         if (castPayload && castPayload->dynamicCast)
             return emitCheckedDynamicCast(codeGen, srcNodeRef, dstTypeRef);
+
         MicroBuilder&            builder             = codeGen.builder();
         const CodeGenNodePayload srcPayload          = sourcePayloadForCast(codeGen, srcNodeRef);
         const bool               needsRuntimeStorage = castPayload && castPayload->runtimeStorageSym != nullptr;
@@ -1455,6 +1489,7 @@ namespace
         const TypeInfo& resolvedDstType    = dstType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const TypeRef   resolvedSrcTypeRef = resolvedSrcType.typeRef();
         const TypeRef   resolvedDstTypeRef = resolvedDstType.typeRef();
+
         // Address homes refer to the descriptor itself, including an 'any' value.
         // Resolve them before unboxing or converting the descriptor's contents.
         if (castPayload && castPayload->ufcsReceiverAddress && resolvedDstType.isAnyPointer())
@@ -1477,12 +1512,14 @@ namespace
 
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
+
         if (resolvedSrcType.isInterface() && resolvedDstType.isAnyPointer())
         {
             const TypeRef dstPointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), resolvedDstType.payloadTypeRef());
             if (dstPointeeTypeRef.isValid() && typeMgr.get(dstPointeeTypeRef).isStruct())
                 return emitDynamicStructCast(codeGen, srcNodeRef, dstPointeeTypeRef, false);
         }
+
         if (resolvedSrcType.isAnyPointer() &&
             resolvedSrcType.payloadTypeRef() == typeMgr.typeVoid() &&
             dstType.isFunction() &&
@@ -1516,8 +1553,9 @@ namespace
             }
 
             SWC_ASSERT(dstSize <= std::numeric_limits<uint32_t>::max());
-            // Large pointer-like layouts cannot be represented as a raw zero immediate; materialize a
-            // typed zero blob that matches the destination runtime representation.
+
+            // Wide pointer-like layouts need a typed zero blob matching their
+            // runtime representation, rather than a raw zero immediate.
             SmallVector<std::byte> typedNullBytes;
             typedNullBytes.resize(dstSize);
 
@@ -1561,6 +1599,7 @@ namespace
                 builder.emitLoadRegReg(dstPayload.reg, srcReg, MicroOpBits::B64);
             else
                 builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, MicroOpBits::B64, srcOpBits);
+
             return Result::Continue;
         }
 
@@ -1586,10 +1625,13 @@ namespace
 
         if (resolvedSrcType.isArray() && resolvedDstType.isAnyPointer())
             return emitArrayToPointerCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
+
         if (resolvedDstType.isString() && resolvedSrcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
+
         if (resolvedDstType.isStringOrSlice() && resolvedSrcType.isCString())
             return emitCStringToStringOrSliceCast(codeGen, srcNodeRef, dstTypeRef, resolvedDstType);
+
         if (resolvedDstType.isSlice())
         {
             const TypeRef sourceArrayTypeRef = sliceCastSourceArrayTypeRef(codeGen, srcNodeRef, resolvedSrcTypeRef, resolvedSrcType, resolvedDstType);
@@ -1649,6 +1691,7 @@ namespace
 
             ConstantRef typeInfoCstRef = ConstantRef::invalid();
             SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, anyTypeRef, codeGen.curNodeRef()));
+
             const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
             SWC_ASSERT(typeInfoCst.isValuePointer());
 
@@ -1665,9 +1708,10 @@ namespace
         {
             SWC_ASSERT(castPayload && castPayload->runtimeStorageSym != nullptr);
 
-            const TypeInfo&   objectType = typeMgr.get(interfaceObjectTypeRef);
-            const auto&       srcStruct  = objectType.payloadSymStruct();
-            const auto&       dstItf     = dstType.payloadSymInterface();
+            const TypeInfo& objectType = typeMgr.get(interfaceObjectTypeRef);
+            const auto&     srcStruct  = objectType.payloadSymStruct();
+            const auto&     dstItf     = dstType.payloadSymInterface();
+
             InterfaceCastInfo castInfo;
             const bool        hasCastInfo = resolveInterfaceCastInfo(codeGen, srcStruct, dstItf, castInfo);
             SWC_ASSERT(hasCastInfo);
@@ -1732,8 +1776,9 @@ namespace
             if (castInfo.usingField)
             {
                 const SymbolVariable& usingField = *castInfo.usingField;
-                // The runtime object pointer must target the `using` field implementation, whether we reused the
-                // original lvalue address or spilled a temporary copy.
+
+                // Target the using field implementation in both borrowed source
+                // storage and spilled temporary copies.
                 if (castInfo.usingFieldIsPointer)
                 {
                     const MicroReg baseObjectReg = objectReg;
@@ -1841,6 +1886,7 @@ namespace
                 builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
             else
                 builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+
             return Result::Continue;
         }
 
@@ -1916,9 +1962,7 @@ namespace
             return Result::Continue;
         }
 
-        // A vector reinterpreted as its array shape needs memory: array
-        // consumers read through an address, and the vector may only live in
-        // a register.
+        // Array consumers need an address, so spill a vector held in a register.
         if (resolvedSrcType.isSimd() && resolvedDstType.isArray() && !srcPayload.isAddress())
         {
             const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
@@ -2017,6 +2061,7 @@ Result AstCastExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef
         if (!lowering || (!lowering->runtimeTypeCast && !lowering->runtimeValueCast))
             return Result::SkipChildren;
     }
+
     return Result::Continue;
 }
 
@@ -2033,21 +2078,28 @@ Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
             sourceReg = codeGen.nextVirtualIntRegister();
             codeGen.builder().emitLoadRegMem(sourceReg, source.reg, 0, MicroOpBits::B64);
         }
+
         const MicroReg dstReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         SWC_RESULT(CodeGenFunctionHelpers::emitMoveValue(codeGen, typeRef, dstReg, sourceReg, nodeExprRef));
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), dstReg, typeRef).ownsValue = true;
+
         if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
             codeGen.registerTemporaryDrop(codeGen.curNodeRef(), typeRef, *lowering->runtimeStorageSym);
+
         return Result::Continue;
     }
+
     if (lowering && (lowering->runtimeTypeCast || lowering->runtimeValueCast))
         return emitRuntimeTargetCast(codeGen, *this, *lowering);
+
     SWC_RESULT(emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef()));
+
     if (hasFlag(AstCastExprFlagsE::NullabilityOnly))
     {
         const auto& value = codeGen.payload(codeGen.curNodeRef());
         SWC_RESULT(CodeGenSafety::emitNullExtractCheck(codeGen, *this, value.reg, value.isAddress(), codeGen.transparentPayloadTypeRef()));
     }
+
     return Result::Continue;
 }
 

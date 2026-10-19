@@ -29,9 +29,11 @@ Utf8 DocApi::displayNameFor(const std::string_view fullName, const DocItemKind k
     const size_t last = fullName.rfind('.');
     if (last == std::string_view::npos)
         return fullName;
+
     const size_t previous = last ? fullName.rfind('.', last - 1) : std::string_view::npos;
     if (previous == std::string_view::npos)
         return fullName;
+
     return fullName.substr(previous + 1);
 }
 
@@ -61,6 +63,7 @@ std::optional<DocItemKind> DocApi::itemKind(const Symbol& symbol)
         return DocItemKind::Alias;
     if (const auto* function = symbol.safeCast<SymbolFunction>())
         return function->isAttribute() ? DocItemKind::Attribute : DocItemKind::Function;
+
     return std::nullopt;
 }
 
@@ -71,13 +74,16 @@ bool DocApi::hasNoDocAttribute(const Symbol& symbol)
     {
         if (const AttributeList* attrs = scan->attributesIfAny(); attrs && attrs->hasRtFlag(RtAttributeFlagsE::NoDoc))
             return true;
+
         // A separate impl has its own lexical scope; its methods still belong to
         // the documented type. Keep checking the lexical chain for scoped NoDoc too.
         const Symbol* owner = documentationOwner(*scan);
         if (owner && owner != scan->ownerSymMap() && hasNoDocAttribute(*owner))
             return true;
+
         scan = scan->ownerSymMap();
     }
+
     return false;
 }
 
@@ -89,9 +95,11 @@ namespace
         {
             if (scope->isPrivate())
                 return true;
+
             const Symbol* owner = documentationOwner(*scope);
             scope               = owner ? owner : scope->ownerSymMap();
         }
+
         return false;
     }
 
@@ -102,8 +110,10 @@ namespace
         {
             if ((owner->isStruct() || owner->isInterface() || owner->isEnum()) && !owner->isPublic())
                 return false;
+
             owner = owner->ownerSymMap();
         }
+
         return true;
     }
 
@@ -121,6 +131,7 @@ namespace
             return file->isRuntime() && !hasPrivateDocumentationOwner(symbol);
         if (!ModuleApi::isCurrentModuleSourceFile(*file))
             return false;
+
         return symbol.isPublic() && hasPublicAggregateOwner(symbol);
     }
 }
@@ -151,8 +162,10 @@ bool DocApi::isInCompilerGeneratedScope(const TaskContext& ctx, const Symbol& sy
     {
         if (hasCompilerGeneratedIdentifier(ctx, *scan))
             return true;
+
         scan = scan->ownerSymMap();
     }
+
     return false;
 }
 
@@ -168,6 +181,7 @@ namespace
                 return false;
             offset--;
         }
+
         return true;
     }
 }
@@ -184,6 +198,7 @@ void DocApi::appendNormalizedComment(std::vector<Utf8>& outLines, std::string_vi
         text.remove_prefix(2);
         if (!text.empty() && text.front() == ' ')
             text.remove_prefix(1);
+
         outLines.emplace_back(text);
         return;
     }
@@ -202,12 +217,14 @@ void DocApi::appendNormalizedComment(std::vector<Utf8>& outLines, std::string_vi
         const std::string_view view = line;
         if (Utf8Helper::trim(view) == "*")
             continue;
+
         size_t indent = 0;
         while (indent < view.size() && (view[indent] == ' ' || view[indent] == '\t'))
             indent++;
         if (indent != view.size())
             commonIndent = std::min(commonIndent, indent);
     }
+
     if (commonIndent == std::numeric_limits<size_t>::max())
         commonIndent = 0;
 
@@ -221,6 +238,7 @@ void DocApi::appendNormalizedComment(std::vector<Utf8>& outLines, std::string_vi
             if (!view.empty() && view.front() == ' ')
                 view.remove_prefix(1);
         }
+
         outLines.emplace_back(view);
     }
 
@@ -250,6 +268,7 @@ namespace
                     result.clear();
                     hasComment = false;
                 }
+
                 continue;
             }
 
@@ -268,6 +287,7 @@ namespace
 
         if (!hasComment)
             result.clear();
+
         return hasComment;
     }
 
@@ -306,6 +326,7 @@ namespace
             commentPos = line;
         else
             commentPos = std::min(line, block);
+
         if (commentPos != std::string_view::npos)
             DocApi::appendNormalizedComment(result, suffix.substr(commentPos));
     }
@@ -341,6 +362,7 @@ std::vector<Utf8> DocApi::symbolCommentLines(TaskContext& ctx, const Symbol& sym
         result = leadingCommentLines(ctx, file, rootRef);
     if (result.empty() && declRef != rootRef)
         result = leadingCommentLines(ctx, file, declRef);
+
     return result;
 }
 
@@ -358,6 +380,7 @@ namespace
             return interfaceDecl->nodeBodyRef;
         if (const auto* enumDecl = node.safeCast<AstEnumDecl>())
             return enumDecl->nodeBodyRef;
+
         return AstNodeRef::invalid();
     }
 
@@ -390,6 +413,7 @@ namespace
                         if (functionBodyRef.isValid())
                             bodyTokRef = functionBodyRef;
                     }
+
                     endOffset = srcView.tokenByteStart(srcView.token(bodyTokRef));
                 }
             }
@@ -398,6 +422,7 @@ namespace
         const std::string_view source = srcView.stringView();
         startOffset                   = std::min<uint32_t>(startOffset, static_cast<uint32_t>(source.size()));
         endOffset                     = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
         if (startOffset >= endOffset)
@@ -422,6 +447,7 @@ namespace
         std::string value = relative.generic_string();
         if (value.starts_with(".."))
             return {};
+
         return value;
     }
 
@@ -430,6 +456,7 @@ namespace
         const auto* symVar = symbol.safeCast<SymbolVariable>();
         if (!symVar)
             return false;
+
         const MemberAccess access = symVar->memberAccess();
         return access == MemberAccess::Internal || access == MemberAccess::Private;
     }
@@ -440,11 +467,13 @@ namespace
             return false;
         if (isRestrictedField(symbol))
             return false;
+
         const SourceFile* file = compiler.sourceViewFile(symbol);
         if (!file)
             return false;
         if (runtime)
             return file->isRuntime();
+
         return ModuleApi::isCurrentModuleSourceFile(*file) && (symbol.isPublic() || symbol.isEnumValue());
     }
 
@@ -493,6 +522,7 @@ namespace
         std::string_view source;
         if (!ModuleApi::tryGetModuleApiSnippet(ctx, file, typeRef, source))
             return {};
+
         Utf8 result(source);
         result.trim();
         return result;
@@ -534,8 +564,10 @@ namespace
                 if (srcView.tokenString(owner.tokRef()) == "Swag" && srcView.tokenString(ident.tokRef()) == "NoDoc")
                     return true;
             }
+
             nodeRef = attributes->nodeBodyRef;
         }
+
         return false;
     }
 
@@ -548,6 +580,7 @@ namespace
         const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(file->ast(), symbol);
         if (declRef.isInvalid())
             return false;
+
         return hasSourceNoDocAttribute(ctx, *file, ModuleApi::findExportDeclRoot(*file, declRef));
     }
 
@@ -584,6 +617,7 @@ namespace
             const SourceCodeRange nameRange = srcView.token(nameRef).codeRange(ctx, srcView);
             member.commentLines             = sameLineCommentLines(nameRange);
         }
+
         item.members.push_back(std::move(member));
     }
 
@@ -593,8 +627,7 @@ namespace
         if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
             return;
 
-        // The outermost wrapper is what a leading comment is written above, so it is kept as the
-        // members' comment root once the walk enters one.
+        // Preserve the outermost wrapper as the root for leading member comments.
         const AstNodeRef childRootRef = rootRef.isValid() ? rootRef : nodeRef;
 
         const AstNode& node = ast.node(nodeRef);
@@ -618,6 +651,7 @@ namespace
         {
             if (hasSourceNoDocAttribute(ctx, file, nodeRef))
                 return;
+
             collectGenericMemberNode(ctx, item, file, attributes->nodeBodyRef, restricted, childRootRef, seenNames);
             return;
         }
@@ -628,6 +662,7 @@ namespace
             node.collectChildrenFromAst(children, ast);
             for (const AstNodeRef childRef : children)
                 collectGenericMemberNode(ctx, item, file, childRef, restricted, childRootRef, seenNames);
+
             return;
         }
 
@@ -637,22 +672,27 @@ namespace
             node.collectChildrenFromAst(children, ast);
             for (const AstNodeRef childRef : children)
                 collectGenericMemberNode(ctx, item, file, childRef, restricted, AstNodeRef::invalid(), seenNames);
+
             return;
         }
 
         if (restricted)
             return;
+
         if (const auto* single = node.safeCast<AstSingleVarDecl>())
         {
             if (single->hasFlag(AstVarDeclFlagsE::Const))
                 return;
+
             appendGenericMember(ctx, item, file, nodeRef, childRootRef, *single, single->tokNameRef, seenNames);
             return;
         }
+
         if (const auto* multiple = node.safeCast<AstMultiVarDecl>())
         {
             if (multiple->hasFlag(AstVarDeclFlagsE::Const))
                 return;
+
             SmallVector<TokenRef> names;
             ast.appendTokens(names, multiple->spanNamesRef);
             for (const TokenRef nameRef : names)
@@ -687,6 +727,7 @@ namespace
             row.commentLines = memberCommentLines(ctx, *member);
             if (row.name.empty() || row.fullName.empty() || !seenNames.insert(row.name).second)
                 continue;
+
             item.members.push_back(std::move(row));
         }
 
@@ -702,6 +743,7 @@ namespace
                 {
                     SmallVector<AstNodeRef> children;
                     file->ast().node(bodyRef).collectChildrenFromAst(children, file->ast());
+
                     // A member is 'internal' unless it says otherwise, so the walk starts closed.
                     for (const AstNodeRef childRef : children)
                         collectGenericMemberNode(ctx, item, *file, childRef, true, AstNodeRef::invalid(), seenNames);
@@ -725,9 +767,11 @@ void DocApi::collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unor
     {
         if (!symbol || !seen.insert(symbol).second)
             continue;
+
         outSymbols.push_back(symbol);
         if (symbol->isSymMap())
             collectSymbolTree(outSymbols, seen, *symbol->asSymMap());
+
         // Runtime and generic methods can remain declarations until a caller needs
         // their bodies. They still belong to the documented type's public surface.
         if (const auto* symbolStruct = symbol->safeCast<SymbolStruct>())
@@ -761,8 +805,10 @@ namespace
                 if (const Symbol* result = owner->cast<SymbolImpl>().targetSymbolMap())
                     return result;
             }
+
             owner = owner->ownerSymMap();
         }
+
         return nullptr;
     }
 
@@ -776,6 +822,7 @@ namespace
                 return scope->getFullScopedName(ctx);
             scope = scope->ownerSymMap();
         }
+
         return {};
     }
 
@@ -825,6 +872,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
     std::vector<const Symbol*>                    symbols;
     std::unordered_set<const Symbol*>             seen;
     std::unordered_map<const Symbol*, AstNodeRef> publicRootRefs;
+
     if (runtime)
     {
         if (compiler.symModule())
@@ -840,6 +888,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         {
             if (ModuleApi::collectPublicEntries(ctx, fallbackPublicEntries) != Result::Continue)
                 return;
+
             publicEntries = &fallbackPublicEntries;
         }
 
@@ -853,10 +902,8 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
                 symbols.push_back(entry.symbol);
                 publicRootRefs.emplace(entry.symbol, entry.rootRef);
 
-                // Nested types and interface methods are exported through their
-                // aggregate root rather than as independent module API entries.
-                // Collect the public symbol tree so each of them still receives
-                // its own canonical, top-level documentation section.
+                // Nested types and interface methods are exported through their aggregate
+                // root. Walk its public tree to give each symbol a documentation section.
                 if (entry.symbol->isSymMap())
                 {
                     std::vector<const Symbol*>        members;
@@ -866,6 +913,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
                     {
                         if (!member || !isDocumentationSymbol(compiler, *member, false) || !seen.insert(member).second)
                             continue;
+
                         symbols.push_back(member);
                     }
                 }
@@ -880,6 +928,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
                     {
                         if (!method || !isDocumentationSymbol(compiler, *method, false) || hasSourceNoDocAttribute(ctx, *method) || !seen.insert(method).second)
                             continue;
+
                         symbols.push_back(method);
                     }
                 }
@@ -907,6 +956,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         const Symbol* symbol = symbols[index];
         if (!symbol || hasNoDocAttribute(*symbol))
             return;
+
         const std::optional<DocItemKind> kind = itemKind(*symbol);
         if (!kind.has_value())
             return;
@@ -914,6 +964,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
             return;
         if (isAnonymousAggregateSymbol(*symbol) || isInCompilerGeneratedScope(workerCtx, *symbol))
             return;
+
         if (const auto* function = symbol->safeCast<SymbolFunction>())
         {
             const SymbolImpl* impl = function->declImplContext();
@@ -971,18 +1022,20 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
             }
         }
 
-        DocItemCandidate& candidate     = candidates[index];
-        candidate.file                  = file;
-        candidate.kind                  = *kind;
-        candidate.fullName              = std::move(fullName);
-        candidate.ownerName             = std::move(ownerName);
-        candidate.namespaceName         = documentationNamespace(workerCtx, *symbol, owner);
+        DocItemCandidate& candidate = candidates[index];
+        candidate.file              = file;
+        candidate.kind              = *kind;
+        candidate.fullName          = std::move(fullName);
+        candidate.ownerName         = std::move(ownerName);
+        candidate.namespaceName     = documentationNamespace(workerCtx, *symbol, owner);
+
         candidate.overload.symbol       = symbol;
         candidate.overload.file         = file;
         candidate.overload.signature    = buildDisplaySignature(workerCtx, *file, declRef, rootRef);
         candidate.overload.commentLines = symbolCommentLines(workerCtx, *symbol, *file, declRef, rootRef);
         candidate.overload.sourceLine   = symbol->codeRange(workerCtx).line;
         collectGenericNames(workerCtx, *symbol, candidate.overload.genericNames);
+
         candidate.valid = true;
     });
 
@@ -1025,6 +1078,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
             item.namespaceName = candidate.namespaceName;
             outItems.push_back(std::move(item));
         }
+
         outItems[it->second].overloads.push_back(std::move(candidate.overload));
     }
 
@@ -1054,4 +1108,5 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
     for (DocItem& item : outItems)
         collectItemMembers(ctx, item, runtime);
 }
+
 SWC_END_NAMESPACE();

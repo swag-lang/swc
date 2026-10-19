@@ -1509,11 +1509,9 @@ namespace
     {
         const SemaNodeView nodeCallee = sema.view(node.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
 
-        // Use-site nullability: invoking a function value reads its code pointer.
-        // Narrowing was already applied to the live callee view, so a remaining
-        // 'nullable' means no dominating test proves this call safe. A binding to a
-        // nullable slot ('&nullable func()->T', what an 'opIndex' hands back) is exactly as
-        // nullable as the slot it names, so the reference layer is looked through first.
+        // Calling a function value reads its code pointer, including through a
+        // reference to a nullable slot. The live view already includes narrowing,
+        // so a remaining nullable qualifier needs a dominating presence check.
         if (nodeCallee.typeRef().isValid())
         {
             const TypeRef calleeTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeCallee.typeRef());
@@ -1527,9 +1525,11 @@ namespace
 
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
+
         SmallVector<AstNodeRef> sourceArgs;
         if (!tryIntrinsicFold)
             sourceArgs = args;
+
         for (auto& arg : args)
             arg = Match::resolveCallArgumentRef(sema, arg);
 
@@ -1544,18 +1544,22 @@ namespace
         {
             if (trailingBlockSiblingRef.isValid())
                 sema.markImplicitCodeBlockArg(sema.visit().parentNodeRef(), trailingBlockSiblingRef);
+
             args.push_back(trailingBlockArgRef);
             if (!tryIntrinsicFold)
                 sourceArgs.push_back(trailingBlockArgRef);
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        auto                              resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
+
+        auto resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
         if constexpr (std::is_same_v<T, AstIntrinsicCallExpr>)
             resolveMode = Match::ResolveCallMode::Intrinsic;
+
         const Result resolveResult = Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode);
         SWC_RESULT(resolveResult);
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
+
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         if (!nodeSymView.hasSymbol() && sema.viewConstant(sema.curNodeRef()).hasConstant())
             return Result::Continue;
@@ -1568,7 +1572,8 @@ namespace
         const AttributeList& attributes  = calledFn.attributes();
         const bool           isMixinCall = attributes.hasRtFlag(RtAttributeFlagsE::Mixin);
         const bool           isMacroCall = attributes.hasRtFlag(RtAttributeFlagsE::Macro);
-        auto*                currentFn   = sema.currentFunction();
+
+        auto* currentFn = sema.currentFunction();
         if (currentFn &&
             currentFn->decl() &&
             calledFn.decl() &&
@@ -1588,9 +1593,8 @@ namespace
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, sema.curNode().codeRef()));
         }
 
-        // Iterator invalidation: a structural mutation of a collection an enclosing loop is
-        // iterating. Checked before inline/const-fold expansion so an inlined mutating
-        // method (Array.add, remove, ...) is still caught at its call site.
+        // Check iterator invalidation before inline or constant-fold expansion
+        // replaces mutating calls such as Array.add or remove.
         SWC_RESULT(SemaEscape::checkIterationMutation(sema, sema.curNodeRef(), calledFn));
 
         // The same rule outside a loop: a view of storage this call can move or free,
@@ -1606,6 +1610,7 @@ namespace
             if (calledFn.name(sema.ctx()).empty())
                 diag.removeArgument(Diagnostic::ARG_SYM);
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -1613,6 +1618,7 @@ namespace
         {
             if constexpr (std::is_same_v<T, AstIntrinsicCallExpr>)
                 SWC_RESULT(applyAliasPreservingIntrinsicResultType(sema, node, args));
+
             SWC_RESULT(ConstantIntrinsic::tryConstantFoldCall(sema, calledFn, args));
         }
         else
@@ -1621,9 +1627,8 @@ namespace
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
 
-            // Capture argument borrows before inlining can replace the call. An ordinary inline
-            // body is re-analyzed with caller symbols, but the callee summary remains the source
-            // of truth for whether one argument is stored through another.
+            // Record argument borrows before inlining replaces the call; the callee
+            // summary still determines whether one argument is stored through another.
             SemaEscape::noteCallArguments(sema, sema.curNodeRef());
             SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg, sourceArgs.span()));
         }

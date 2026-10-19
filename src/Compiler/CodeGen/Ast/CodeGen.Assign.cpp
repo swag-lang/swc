@@ -41,6 +41,7 @@ namespace
 
         ioRightTypeRef  = rightType.payloadTypeRef();
         payload.typeRef = ioRightTypeRef;
+
         if (payload.isAddress())
         {
             const MicroReg pointeeReg = codeGen.nextVirtualIntRegister();
@@ -71,12 +72,14 @@ namespace
 
     struct AssignEncodeContext
     {
-        AssignTarget              target;
+        AssignTarget target;
+
         const CodeGenNodePayload* rightPayload = nullptr;
         TypeRef                   rightTypeRef = TypeRef::invalid();
-        MicroOpBits               opBits       = MicroOpBits::Zero;
-        uint32_t                  copySize     = 0;
-        AssignEncodingKind        encodingKind = AssignEncodingKind::EqualStore;
+
+        MicroOpBits        opBits       = MicroOpBits::Zero;
+        uint32_t           copySize     = 0;
+        AssignEncodingKind encodingKind = AssignEncodingKind::EqualStore;
     };
 
     AssignEncodingKind resolveAssignEncodingKind(const TypeInfo& targetType, TokenId assignOp)
@@ -101,7 +104,8 @@ namespace
 
     MicroReg materializeAssignPointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        operandTypeRef                = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), operandTypeRef);
+        operandTypeRef = CodeGenTypeHelpers::unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), operandTypeRef);
+
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits srcBits     = CodeGenTypeHelpers::scalarStoreBits(operandType, codeGen.ctx());
         return CodeGenPointerIndex::materialize(codeGen, operandPayload, operandType, srcBits);
@@ -137,6 +141,7 @@ namespace
         const TypeRef opTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), targetTypeRef);
         target.typeRef          = targetTypeRef;
         target.opTypeRef        = opTypeRef;
+
         return target;
     }
 
@@ -167,6 +172,7 @@ namespace
         SWC_ASSERT(copySize <= std::numeric_limits<uint32_t>::max());
         encodeCtx.copySize     = static_cast<uint32_t>(copySize);
         encodeCtx.encodingKind = AssignEncodingKind::EqualStoreBulk;
+
         return encodeCtx;
     }
 
@@ -241,14 +247,16 @@ namespace
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
-        const auto&        node          = codeGen.node(codeGen.curNodeRef()).cast<AstAssignStmt>();
-        const TypeInfo&    targetType    = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
-        const bool         isSigned      = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
-        const TokenId      binaryOp      = Token::assignToBinary(assignOp);
-        const MicroOp      op            = intBinaryMicroOp(binaryOp, isSigned);
+        const auto&     node       = codeGen.node(codeGen.curNodeRef()).cast<AstAssignStmt>();
+        const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
+        const bool      isSigned   = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
+        const TokenId   binaryOp   = Token::assignToBinary(assignOp);
+        const MicroOp   op         = intBinaryMicroOp(binaryOp, isSigned);
+
         MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
+
         const MicroReg leftReg = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
         builder.emitLoadRegMem(leftReg, targetPayload.reg, 0, encodeCtx.opBits);
 
@@ -298,7 +306,8 @@ namespace
         SWC_ASSERT(targetType.isSimd());
         const TypeInfo& laneType = codeGen.typeMgr().get(targetType.payloadSimdLaneTypeRef());
 
-        const TokenId      binaryOp      = Token::assignToBinary(assignOp);
+        const TokenId binaryOp = Token::assignToBinary(assignOp);
+
         MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
@@ -309,8 +318,8 @@ namespace
         MicroReg resultReg;
         if (binaryOp == TokenId::SymLowerLower || binaryOp == TokenId::SymGreaterGreater)
         {
-            // A count the source names rides in the instruction. Otherwise it
-            // travels in the low bits of a vector register.
+            // Encode constant shift counts directly; runtime counts use the
+            // low bits of a vector register.
             const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstAssignStmt>();
             resultReg        = CodeGenVectorHelpers::emitConstantShift(codeGen, binaryOp, leftReg, laneType, node.nodeRightRef);
             if (!resultReg.isValid())
@@ -379,11 +388,13 @@ namespace
         const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
         SWC_ASSERT(targetType.isFloat());
 
-        const TokenId      binaryOp      = Token::assignToBinary(assignOp);
-        const MicroOp      op            = floatBinaryMicroOp(binaryOp);
+        const TokenId binaryOp = Token::assignToBinary(assignOp);
+        const MicroOp op       = floatBinaryMicroOp(binaryOp);
+
         MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
+
         const MicroReg leftReg = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
         builder.emitLoadRegMem(leftReg, targetPayload.reg, 0, encodeCtx.opBits);
 
@@ -400,9 +411,10 @@ namespace
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(assignOp == TokenId::SymPlusEqual || assignOp == TokenId::SymMinusEqual);
 
-        const uint64_t     stride        = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), encodeCtx.target.opTypeRef);
-        const MicroReg     leftReg       = codeGen.nextVirtualIntRegister();
-        const MicroReg     indexReg      = materializeAssignPointerIndexReg(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef);
+        const uint64_t stride   = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), encodeCtx.target.opTypeRef);
+        const MicroReg leftReg  = codeGen.nextVirtualIntRegister();
+        const MicroReg indexReg = materializeAssignPointerIndexReg(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef);
+
         MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
@@ -458,6 +470,7 @@ namespace
     {
         if (originalRightTypeRef.isValid() && codeGen.typeMgr().get(originalRightTypeRef).isMoveReference())
             return true;
+
         return codeGen.sema().isLValue(codeGen.node(rightRef));
     }
 
@@ -466,6 +479,7 @@ namespace
         const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp);
         if (encodeCtx.target.payload.isAddress() && !CodeGenSafety::isUnborrowableLocalWrite(codeGen, leftRef))
             SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, encodeCtx.target.payload.reg, codeGen.typeMgr().get(encodeCtx.target.typeRef).sizeOf(codeGen.ctx())));
+
         if (assignOp != TokenId::SymEqual)
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
         if (!encodeCtx.target.opTypeRef.isValid())
@@ -475,17 +489,20 @@ namespace
         if (!targetType.isStruct() && !targetType.isArray())
             return emitAssignEncoded(codeGen, encodeCtx, assignOp);
 
-        const bool                   isMove            = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate});
-        const bool                   isRelocate        = modifierFlags.has(AstModifierFlagsE::Relocate);
-        const bool                   skipTargetDrop    = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::FirstInit) || isRelocate;
-        const SymbolVariable*        sourceStorage     = codeGen.runtimeStorageSymbol(rightRef);
-        const bool                   ownedRValue       = originalRightPayload.isAddress() && (CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, rightRef) || CodeGenFunctionHelpers::isOwnedCallResult(codeGen, rightRef));
-        const bool                   movesTemporary    = originalRightPayload.ownsValue || (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage)) || ownedRValue;
-        const CodeGen::LifecycleKind postKind          = isMove || movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
-        const bool                   hasTargetDrop     = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
-        const bool                   hasPostLifecycle  = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
-        const bool                   canTouchSource    = isMove && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
-        const bool                   shouldResetSource = canTouchSource && !isRelocate && codeGen.hasLifecycle(rightTypeRef, CodeGen::LifecycleKind::Drop);
+        const bool isMove         = modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate});
+        const bool isRelocate     = modifierFlags.has(AstModifierFlagsE::Relocate);
+        const bool skipTargetDrop = modifierFlags.has(AstModifierFlagsE::NoDrop) || modifierFlags.has(AstModifierFlagsE::FirstInit) || isRelocate;
+
+        const SymbolVariable* sourceStorage  = codeGen.runtimeStorageSymbol(rightRef);
+        const bool            ownedRValue    = originalRightPayload.isAddress() && (CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, rightRef) || CodeGenFunctionHelpers::isOwnedCallResult(codeGen, rightRef));
+        const bool            movesTemporary = originalRightPayload.ownsValue || (sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage)) || ownedRValue;
+
+        const CodeGen::LifecycleKind postKind         = isMove || movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
+        const bool                   hasTargetDrop    = !skipTargetDrop && codeGen.hasLifecycle(encodeCtx.target.opTypeRef, CodeGen::LifecycleKind::Drop);
+        const bool                   hasPostLifecycle = codeGen.hasLifecycle(encodeCtx.target.opTypeRef, postKind);
+
+        const bool canTouchSource    = isMove && originalRightPayload.isAddress() && canReinitializeMoveSource(codeGen, rightRef, originalRightTypeRef);
+        const bool shouldResetSource = canTouchSource && !isRelocate && codeGen.hasLifecycle(rightTypeRef, CodeGen::LifecycleKind::Drop);
 
         // A '#relocate' source, or a '#move' source without a drop lifecycle, is abandoned
         // with its stale bits: under lifecycle safety it is poisoned and marked moved-from.
@@ -495,7 +512,9 @@ namespace
         // to reset or drop. Lifecycle safety can still poison its abandoned storage.
         AstNodeRef            resolvedRightRef = AstNodeRef::invalid();
         const SymbolVariable* rightVar         = CodeGenMoveElision::directStructVariable(codeGen, rightRef, &resolvedRightRef);
-        const bool            elideSource      = (shouldResetSource || (canTouchSource && isRelocate)) && rightVar && CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
+
+        const bool elideSource = (shouldResetSource || (canTouchSource && isRelocate)) && rightVar && CodeGenMoveElision::canElideMoveSource(codeGen, *rightVar, resolvedRightRef);
+
         if (elideSource)
             codeGen.markImplicitDropElided(*rightVar);
 
@@ -508,6 +527,7 @@ namespace
                 SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, encodeCtx.target.opTypeRef, encodeCtx.target.payload.reg));
             if (movesTemporary && sourceStorage)
                 codeGen.cancelTemporaryDrop(*sourceStorage);
+
             return Result::Continue;
         }
 
@@ -575,10 +595,9 @@ namespace
         if (invalidateAfterGuard)
             SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, stableRight.reg, rightTypeRef, rightRef));
 
-        // A call result - emitted, expanded inline, or behind an error-management wrapper,
-        // which registers no cleanup for it - is an owned rvalue, and so is a fresh
-        // aggregate literal. Its bits now belong to the destination, after any post-move
-        // repair, so its statement cleanup stands down.
+        // Call results and fresh aggregates are owned rvalues, even when inline or
+        // error-managed calls have no registered cleanup. After post-move repair,
+        // their bits belong to the destination; cancel any remaining statement cleanup.
         if (movesTemporary && sourceStorage)
             codeGen.cancelTemporaryDrop(*sourceStorage);
 
@@ -623,10 +642,9 @@ namespace
         return storageReg;
     }
 
-    // A destructured field overwrites a live target, so the old value has to die before the
-    // new bits land, and the payload both sides now share has to be repaired afterwards.
-    // 'postKind' is PostMove when the whole right side is a consumed temporary, PostCopy when
-    // it outlives the statement.
+    // Destructuring overwrites live targets: drop the old value before copying
+    // and repair the shared payload afterwards. Consumed temporaries use PostMove;
+    // sources that outlive the statement use PostCopy.
     Result emitAssignDestructuringField(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& fieldPayload, TypeRef fieldTypeRef, CodeGen::LifecycleKind postKind)
     {
         AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, fieldPayload, fieldTypeRef, TokenId::SymEqual);
@@ -688,10 +706,9 @@ namespace
         if (!aggregateCst)
             sourceReg = materializeDestructuringSourceCopy(codeGen, rightPayload, rightType);
 
-        // That private copy now holds every byte of the right side. When the right side was a
-        // call-result temporary, its whole-value cleanup stands down and this list becomes the
-        // owner: each named field is moved into its target, and each field the pattern skips is
-        // dropped out of the copy instead of leaking.
+        // A temporary right side transfers ownership of its private copy to the
+        // pattern. Move bound fields into their targets and drop skipped fields,
+        // replacing the temporary's whole-value cleanup.
         const SymbolVariable*        sourceStorage  = sourceReg.isValid() ? codeGen.runtimeStorageSymbol(rightRef) : nullptr;
         const bool                   movesTemporary = sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage);
         const CodeGen::LifecycleKind postKind       = movesTemporary ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
@@ -709,10 +726,11 @@ namespace
             if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            const size_t fieldIndex  = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
-                                           ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightType, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
-                                           : i;
-            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightType, fieldIndex);
+            const size_t fieldIndex = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
+                                          ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightType, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
+                                          : i;
+
+            const auto fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, rightType, fieldIndex);
 
             SWC_ASSERT(fieldIndex < boundFields.size());
             boundFields[fieldIndex] = true;
@@ -769,16 +787,20 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), assignPayload->calledFn);
     }
 
-    const Token&              tok               = codeGen.token(codeRef());
-    const CodeGenNodePayload* leftPayload       = codeGen.safePayload(nodeLeftRef);
-    const SourceCodeRef       leftSourceCodeRef = leftPayload && leftPayload->sourceCodeRef.isValid() ? leftPayload->sourceCodeRef : codeGen.node(nodeLeftRef).codeRef();
-    const ScopedDebugSource   debugSource(codeGen.builder(), leftSourceCodeRef);
-    CodeGenNodePayload        rightPayload         = codeGen.payload(nodeRightRef);
-    const SemaNodeView        rightView            = codeGen.viewTypeConstant(nodeRightRef);
-    const TypeRef             originalRightTypeRef = rightView.typeRef();
-    TypeRef                   rightTypeRef         = originalRightTypeRef;
-    rightPayload                                   = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
-    const AstNodeRef leftRef                       = codeGen.resolvedNodeRef(nodeLeftRef);
+    const Token&              tok         = codeGen.token(codeRef());
+    const CodeGenNodePayload* leftPayload = codeGen.safePayload(nodeLeftRef);
+
+    const SourceCodeRef leftSourceCodeRef = leftPayload && leftPayload->sourceCodeRef.isValid() ? leftPayload->sourceCodeRef : codeGen.node(nodeLeftRef).codeRef();
+
+    const ScopedDebugSource debugSource(codeGen.builder(), leftSourceCodeRef);
+
+    CodeGenNodePayload rightPayload         = codeGen.payload(nodeRightRef);
+    const SemaNodeView rightView            = codeGen.viewTypeConstant(nodeRightRef);
+    const TypeRef      originalRightTypeRef = rightView.typeRef();
+    TypeRef            rightTypeRef         = originalRightTypeRef;
+    rightPayload                            = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
+
+    const AstNodeRef leftRef = codeGen.resolvedNodeRef(nodeLeftRef);
 
     if (leftRef.isValid() && codeGen.node(leftRef).is(AstNodeId::AssignList))
     {

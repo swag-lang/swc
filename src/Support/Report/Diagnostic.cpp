@@ -58,6 +58,7 @@ namespace
     {
         std::array<bool, static_cast<size_t>(DiagnosticId::Count)> seen{};
         const DiagnosticMessageDefinition*                         previous = nullptr;
+
         for (const DiagnosticMessageDefinition& definition : DIAGNOSTIC_MESSAGE_DEFINITIONS)
         {
             const size_t idIndex = static_cast<size_t>(definition.id);
@@ -68,6 +69,7 @@ namespace
             {
                 if (seen[idIndex])
                     return false;
+
                 seen[idIndex] = true;
             }
             else if (definition.name != previous->name || definition.severity != previous->severity)
@@ -83,6 +85,7 @@ namespace
             if (!seen[idIndex])
                 return false;
         }
+
         return true;
     }
 
@@ -102,6 +105,7 @@ namespace
                 info.firstMessage = static_cast<uint16_t>(messageIndex);
                 info.severity     = definition.severity;
             }
+
             ++info.messageCount;
         }
 
@@ -124,6 +128,7 @@ namespace
         const CommandLine& cmdLine = ctx.cmdLine();
         if (cmdLine.command != CommandKind::Test)
             return false;
+
         if (cmdLine.lexOnly || cmdLine.syntaxOnly || cmdLine.semaOnly)
             return false;
 
@@ -167,6 +172,7 @@ namespace
 
         constexpr size_t maxDisplayedOrigins = 4;
         const size_t     sequentialOrigins   = originRanges.size() > maxDisplayedOrigins ? maxDisplayedOrigins - 1 : originRanges.size();
+
         for (size_t idx = 0; idx < sequentialOrigins; idx++)
         {
             diagnostic.addNote(DiagnosticId::sema_note_generated_source_origin);
@@ -189,6 +195,7 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& c
 
     constexpr uint32_t         maxTokenStrLen = 40;
     constexpr std::string_view tokenEllipsis  = " ...";
+
     if (token.hasFlag(TokenFlagsE::EolInside))
     {
         const size_t pos = str.find_first_of("\n\r");
@@ -244,6 +251,7 @@ void Diagnostic::addNote(DiagnosticId id)
 {
     if (id == DiagnosticId::None)
         return;
+
     auto               ptr = std::make_shared<DiagnosticElement>(id);
     DiagnosticElement* raw = ptr.get();
     raw->setSeverity(DiagnosticSeverity::Note);
@@ -257,6 +265,7 @@ void Diagnostic::addDidYouMeanNote(const std::optional<Utf8>& suggestion)
 
     DiagnosticElement& note = addElement(DiagnosticId::cmd_note_did_you_mean);
     note.setSeverity(DiagnosticSeverity::Note);
+
     // Store {value} on the note itself so it does not get shadowed by a parent
     // diagnostic argument using the same placeholder.
     note.addArgument(ARG_VALUE, suggestion.value());
@@ -319,8 +328,10 @@ void Diagnostic::report(TaskContext& ctx) const
 {
     if (elements_.empty())
         return;
+
     if (silent() || ctx.silentDiagnostic())
         return;
+
     Diagnostic reportedDiagnostic = *this;
     if (!reportedDiagnostic.applyWarningPolicy(ctx))
         return;
@@ -338,7 +349,7 @@ void Diagnostic::report(TaskContext& ctx) const
     // Distinct owners can report identical text, including diagnostics without a span.
     const bool firstReport = !ctx.hasCompiler() || ctx.compiler().tryRegisterReportedDiagnostic(msg);
 
-    // Check that diagnostic was not awaited
+    // Match expectations in every source file represented by this diagnostic.
     if (fileOwner_.isValid())
     {
         SWC_ASSERT(ctx.hasCompiler());
@@ -366,6 +377,7 @@ void Diagnostic::report(TaskContext& ctx) const
         case DiagnosticSeverity::Error:
             if (firstReport && !dismiss && ctx.reportToStats())
                 Stats::addError();
+
             ctx.setHasError();
             if (ctx.hasCompiler())
             {
@@ -374,6 +386,7 @@ void Diagnostic::report(TaskContext& ctx) const
                 {
                     SourceFile& file = ctx.compiler().file(fileOwner_);
                     file.setHasError();
+
                     const SourceCodeRange startRange = reportedDiagnostic.elements_.front()->codeRange(0, ctx);
                     file.addErrorLineRange(startRange.line, startRange.endLine(ctx));
                 }
@@ -382,6 +395,7 @@ void Diagnostic::report(TaskContext& ctx) const
         case DiagnosticSeverity::Warning:
             if (firstReport && !dismiss && ctx.reportToStats())
                 Stats::get().numWarnings.fetch_add(1);
+
             ctx.setHasWarning();
             if (ctx.hasCompiler())
             {
@@ -419,7 +433,6 @@ void Diagnostic::report(TaskContext& ctx) const
         }
     }
 
-    // Log diagnostic
     if (!dismiss)
     {
         Logger::print(ctx, msg);

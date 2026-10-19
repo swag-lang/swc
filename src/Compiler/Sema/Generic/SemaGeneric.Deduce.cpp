@@ -1271,8 +1271,9 @@ namespace
             outMapping.paramArgs[0].allowImplicitAddressBinding = true;
         }
 
-        bool                       seenNamed = false;
-        uint32_t                   nextPos   = paramStart;
+        bool     seenNamed = false;
+        uint32_t nextPos   = paramStart;
+
         Match::NamedArgumentLookup namedParamLookup;
 
         for (uint32_t userIndex = 0; userIndex < args.size(); ++userIndex)
@@ -1291,6 +1292,7 @@ namespace
 
                 outMapping.paramArgs[found].argRef       = argRef;
                 outMapping.paramArgs[found].callArgIndex = SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);
+
                 continue;
             }
 
@@ -1304,6 +1306,7 @@ namespace
             {
                 if (numParams == 0 || !params[numParams - 1].isVariadic)
                     return false;
+
                 outMapping.variadicArgs.push_back({argRef, SemaGeneric::callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg)});
                 continue;
             }
@@ -1328,7 +1331,8 @@ namespace
 
     Result buildPartialLambdaBindingType(Sema& sema, const SymbolFunction& function, const AstLambdaType& lambdaType, std::span<const SemaClone::ParamBinding> bindings, TypeRef& outTypeRef)
     {
-        outTypeRef       = TypeRef::invalid();
+        outTypeRef = TypeRef::invalid();
+
         TaskContext& ctx = sema.ctx();
 
         auto* symFunc = Symbol::make<SymbolFunction>(ctx, &lambdaType, lambdaType.tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
@@ -1354,6 +1358,7 @@ namespace
             auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
             symVar->setTypeRef(paramTypeRef);
             symFunc->addParameter(symVar);
+
             if (idRef.isValid())
                 symFunc->addSymbol(ctx, symVar, false);
         }
@@ -1370,6 +1375,7 @@ namespace
         symFunc->setDeclared(ctx);
         symFunc->setTyped(ctx);
         symFunc->setSemaCompleted(ctx);
+
         return Result::Continue;
     }
 }
@@ -1427,9 +1433,8 @@ namespace SemaGeneric
         if (!buildGenericCallArgMapping(sema, params.span(), args, ufcsArg, prependUfcsArg, mapping))
             return Result::Continue;
 
-        // First pass: user-provided arguments. A deduction error rejects this candidate
-        // but does not immediately emit a diagnostic; overload resolution will decide
-        // whether this failure is the one the user should see.
+        // Deduce from explicit arguments first. Defer any failure diagnostic until
+        // overload resolution decides which candidate failure to report.
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
             const GenericCallArgEntry& entry = mapping.paramArgs[i];
@@ -1439,6 +1444,7 @@ namespace SemaGeneric
             const AstNodeRef valueArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
             TypeRef          argTypeRef  = TypeRef::invalid();
             SWC_RESULT(resolveCallArgTypeForGenericDeduction(sema, argTypeRef, valueArgRef));
+
             if (!argTypeRef.isValid())
                 return Result::Continue;
 
@@ -1448,9 +1454,11 @@ namespace SemaGeneric
                 const TypeInfo& argType = sema.typeMgr().get(argTypeRef);
                 if (!argType.isTypedVariadic())
                     patternRef = typedVariadicElementTypeRef(*declSema, params[i].typeRef);
+
                 if (patternRef.isInvalid())
                     continue;
             }
+
             if (entry.allowImplicitAddressBinding)
                 patternRef = applyImplicitAddressBindingPattern(*declSema, patternRef, argTypeRef);
 
@@ -1461,6 +1469,7 @@ namespace SemaGeneric
             {
                 if (outFailureArgIndex)
                     *outFailureArgIndex = entry.callArgIndex;
+
                 return Result::Continue;
             }
         }
@@ -1477,6 +1486,7 @@ namespace SemaGeneric
                     const AstNodeRef valueArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
                     TypeRef          argTypeRef  = TypeRef::invalid();
                     SWC_RESULT(resolveCallArgTypeForGenericDeduction(sema, argTypeRef, valueArgRef));
+
                     if (!argTypeRef.isValid())
                         return Result::Continue;
 
@@ -1487,30 +1497,33 @@ namespace SemaGeneric
                     {
                         if (outFailureArgIndex)
                             *outFailureArgIndex = entry.callArgIndex;
+
                         return Result::Continue;
                     }
                 }
             }
         }
 
+        // Defaults may fill missing generic parameters, while MissingOnly preserves
+        // deductions already fixed by explicit arguments.
         for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
         {
             const GenericCallArgEntry& entry = mapping.paramArgs[i];
             if (entry.argRef.isValid() || params[i].typeRef.isInvalid() || params[i].defaultRef.isInvalid() || params[i].isVariadic || !params[i].hasExplicitType)
                 continue;
+
             if (!patternCanDeduceMissingGenericParam(*declSema, genericParams, ioResolvedArgs.span(), params[i].typeRef))
                 continue;
 
-            // Second pass: defaults are allowed to fill only still-missing generic
-            // parameters. They must not override deductions already forced by explicit
-            // arguments, hence DeductionMode::MissingOnly below.
             AstNodeRef defaultRef = AstNodeRef::invalid();
             SWC_RESULT(SemaGeneric::evalGenericFunctionParamDefault(*declSema, root, genericParams, ioResolvedArgs.span(), params[i].defaultRef, defaultRef));
+
             if (defaultRef.isInvalid())
                 continue;
 
             TypeRef defaultTypeRef = TypeRef::invalid();
             SWC_RESULT(resolveCallArgTypeForGenericDeduction(*declSema, defaultTypeRef, defaultRef));
+
             if (!defaultTypeRef.isValid())
                 continue;
 
@@ -1526,7 +1539,8 @@ namespace SemaGeneric
 
     Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef, bool requireCompleteGenericArgs)
     {
-        outTypeRef       = TypeRef::invalid();
+        outTypeRef = TypeRef::invalid();
+
         const auto* decl = function.declAs<AstFunctionDecl>();
         if (!decl)
             return Result::Continue;

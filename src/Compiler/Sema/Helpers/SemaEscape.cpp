@@ -5950,11 +5950,9 @@ namespace SemaEscape
         std::vector<SemaEscapeDeferredCheck>     checks = ctx.compiler().takeDeferredEscapeChecks();
         const std::vector<SemaEscapeSummaryEdge> edges  = ctx.compiler().takeEscapeSummaryEdges();
 
-        // Chain the per-function summaries across opaque calls before judging: a
-        // wrapper that returns 'g(p)' borrows whatever 'g' says it borrows, and a
-        // function that forwards its parameter to a storing callee stores it too.
-        // Masks only grow, so the fixpoint terminates; cycles (mutual recursion) just
-        // converge. Sema is fully drained here, so growing the masks is race-free.
+        // Chain opaque-call summaries before judging escapes: returned and stored
+        // parameters propagate through wrappers. Masks only grow, so recursive cycles
+        // converge. Semantic jobs are drained here, making mask updates race-free.
         auto propagateReallocation = [](const SemaEscapeSummaryEdge& edge, const SemaEscapeDeferredGuard* payloadGuard) {
             const uint64_t beforeMask    = edge.caller->reallocatesParamsMask();
             const size_t   beforeFields  = edge.caller->reallocatedParamFields().size();
@@ -5973,6 +5971,7 @@ namespace SemaEscape
                 {
                     if (entry.paramIndex != sourceParam || !entry.field)
                         continue;
+
                     edge.caller->addReallocatesParamField(edge.callerParamIndex, *entry.field);
                     copiedField = true;
                 }
@@ -6004,6 +6003,7 @@ namespace SemaEscape
                 {
                     if (entry.paramIndex != sourceParam || !entry.field)
                         continue;
+
                     edge.caller->addReturnsPayloadParamField(edge.callerParamIndex, *entry.field);
                     copiedField = true;
                 }
@@ -6022,15 +6022,18 @@ namespace SemaEscape
         for (const bool returnPhase : {true, false})
         {
             bool changed = !edges.empty();
+
             while (changed)
             {
                 changed = false;
+
                 for (const SemaEscapeSummaryEdge& edge : edges)
                 {
                     if (edge.kind == SemaEscapeSummaryEdgeKind::ExternalToExternal || edge.kind == SemaEscapeSummaryEdgeKind::ExternalToPair || edge.kind == SemaEscapeSummaryEdgeKind::RetentionToPair)
                     {
                         if (returnPhase || !edge.caller || !edge.callee)
                             continue;
+
                         const bool observes = edge.kind != SemaEscapeSummaryEdgeKind::RetentionToPair && edge.callee->observesExternalBorrows();
 
                         const bool retains = edge.kind != SemaEscapeSummaryEdgeKind::ExternalToExternal &&
@@ -6038,6 +6041,7 @@ namespace SemaEscape
                                               edge.callee->returnsIndirectParamsMask() || edge.callee->storesIndirectParamsMask() || edge.callee->storesIndirectIntoParamPairs());
                         if (!observes && !retains)
                             continue;
+
                         if (edge.kind == SemaEscapeSummaryEdgeKind::ExternalToExternal)
                         {
                             if (!edge.caller->observesExternalBorrows())
@@ -6051,20 +6055,25 @@ namespace SemaEscape
                             edge.caller->addStoresIntoParam(edge.callerIntoParamIndex, edge.callerParamIndex);
                             changed = true;
                         }
+
                         continue;
                     }
+
                     if ((edge.kind == SemaEscapeSummaryEdgeKind::ReturnToReturn) != returnPhase || !summaryGuardsMatch(edge, false))
                         continue;
+
                     const bool                     storageRoute = !edge.callerIndirect && !edge.calleeIndirect && summaryGuardsMatch(edge, true);
                     const SemaEscapeDeferredGuard* payloadGuard = storageRoute ? summaryPayloadGuard(edge) : nullptr;
                     const uint64_t                 calleeBit    = 1ULL << edge.calleeParamIndex;
                     const uint64_t                 callerBit    = 1ULL << edge.callerParamIndex;
+
                     switch (edge.kind)
                     {
                         case SemaEscapeSummaryEdgeKind::ExternalToExternal:
                         case SemaEscapeSummaryEdgeKind::ExternalToPair:
                         case SemaEscapeSummaryEdgeKind::RetentionToPair:
                             break; // Handled before the parameter-mask edges.
+
                         case SemaEscapeSummaryEdgeKind::ReturnToReturn:
                             if ((returnBorrowMask(*edge.callee, edge.calleeIndirect) & calleeBit) && !(returnBorrowMask(*edge.caller, edge.callerIndirect) & callerBit))
                             {
@@ -6078,10 +6087,8 @@ namespace SemaEscape
                                 changed = true;
                             }
 
-                            // A wrapper that hands back what an accessor read out of the
-                            // payload returns a view into that payload too - but only when the
-                            // argument WAS the payload's owner, not when the caller passed
-                            // something the callee merely reached through.
+                            // Returning an accessor's payload preserves that payload route
+                            // only when the forwarded argument was its owner.
                             if (storageRoute && !edge.viaStoredField && payloadGuard && (edge.callee->returnsStorageParamsMask() & calleeBit))
                             {
                                 if (propagateReturnedPayload(edge, *payloadGuard->callee, payloadGuard->paramIndex))
@@ -6089,6 +6096,7 @@ namespace SemaEscape
                             }
                             else if (storageRoute && !edge.viaStoredField && (edge.callee->returnsPayloadParamsMask() & calleeBit) && propagateReturnedPayload(edge, *edge.callee, edge.calleeParamIndex))
                                 changed = true;
+
                             break;
 
                         case SemaEscapeSummaryEdgeKind::ReturnToStores:
@@ -6105,14 +6113,11 @@ namespace SemaEscape
                                 edge.caller->addStoresParam(edge.callerParamIndex, edge.callerIndirect);
                                 changed = true;
                             }
-                            // The same forwarding edge chains the FREES summary: a wrapper
-                            // handing its parameter to a freeing callee frees it too. When
-                            // what was handed over is a payload the parameter OWNS, the
-                            // conclusion changes rather than disappears: releasing the buffer
-                            // does not release the container, but it does move it, and that is
-                            // what invalidates the views into it. When the argument merely
-                            // CARRIES the parameter in a field, there is no conclusion at all:
-                            // the callee frees the carrier, which is not the parameter.
+
+                            // Forward frees through wrappers. Freeing a parameter's owned
+                            // payload invalidates its views without freeing the owner itself.
+                            // A carrier that merely stores the parameter is a different
+                            // allocation, so freeing it establishes no free of that parameter.
                             if (storageRoute && (edge.callee->freesParamsMask() & calleeBit) && !edge.viaStoredField)
                             {
                                 if (edge.viaOwnedPayload || payloadGuard)
@@ -6129,8 +6134,10 @@ namespace SemaEscape
 
                             // A value read out of the parameter's box and handed to a freeing
                             // callee releases what the box holds, never the box.
-                            if (edge.callerIndirect && edge.viaParameterPointee && !edge.viaOwnedPayload && summaryGuardsMatch(edge, true) &&
-                                ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit) && !(edge.caller->freesIndirectParamsMask() & callerBit))
+                            if (edge.callerIndirect && edge.viaParameterPointee && !edge.viaOwnedPayload &&
+                                summaryGuardsMatch(edge, true) &&
+                                ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit) &&
+                                !(edge.caller->freesIndirectParamsMask() & callerBit))
                             {
                                 edge.caller->addFreesParam(edge.callerParamIndex, true);
                                 changed = true;
@@ -6153,10 +6160,8 @@ namespace SemaEscape
                             }
                             break;
 
-                        // 'let table = .tablePtr(); table[i] = key': the store lands in
-                        // whatever the accessor handed back. It reaches the receiver exactly
-                        // when the accessor returns its storage - which only the (final)
-                        // return summary can say.
+                        // Stores through an accessor result reach the receiver only when
+                        // the final return summary says it returns the receiver's storage.
                         case SemaEscapeSummaryEdgeKind::ReturnToPair:
                             if (!edge.calleeIndirect && summaryGuardsMatch(edge, true) && (edge.callee->returnsStorageParamsMask() & calleeBit) &&
                                 !SymbolFunction::hasStoresIntoPair(storedBorrowPairs(*edge.caller, edge.callerIndirect), edge.callerIntoParamIndex, edge.callerParamIndex))
@@ -6194,6 +6199,7 @@ namespace SemaEscape
                 return a.intoParamIndex < b.intoParamIndex;
             if (a.guards.size() != b.guards.size())
                 return a.guards.size() < b.guards.size();
+
             return a.symName < b.symName;
         });
 
@@ -6219,6 +6225,7 @@ namespace SemaEscape
                 previous->symName == check.symName &&
                 previous->diagId == check.diagId)
                 continue;
+
             previous = &check;
 
             DiagnosticId diagId = check.diagId;
@@ -6257,6 +6264,7 @@ namespace SemaEscape
                             if (entry.paramIndex == accessor->paramIndex && entry.field)
                                 borrowedFields.push_back(entry.field);
                         }
+
                         borrowedFieldsUnknown = borrowedFields.empty();
                     }
                 }
@@ -6272,6 +6280,7 @@ namespace SemaEscape
                     else
                         ++it;
                 }
+
                 if (!borrowedFieldsUnknown && borrowedFields.empty())
                     continue;
 
@@ -6292,6 +6301,7 @@ namespace SemaEscape
                         if (entry.paramIndex == check.paramIndex && entry.field)
                             affectedFields.push_back(entry.field);
                     }
+
                     affectedFieldsUnknown = affectedFields.empty();
                 }
 
@@ -6315,24 +6325,25 @@ namespace SemaEscape
             }
             else if (check.judgeStores)
             {
-                // An argument handed to a callee escapes when the callee KEEPS it
-                // (stores summary) or is invalidated when the callee FREES it. An
-                // owner's payload lives on the heap: freeing it is legitimate.
+                // Stored arguments escape; freed arguments are invalidated. Releasing
+                // an owner's heap payload is legitimate and checked separately.
                 const bool storesHit = (storedBorrowMask(*check.callee, check.indirect) >> check.paramIndex) & 1;
                 const bool freesHit  = !check.indirect && ((check.callee->freesParamsMask() >> check.paramIndex) & 1);
                 if (!storesHit && !freesHit)
                     continue;
+
                 if (!storesHit)
                 {
                     if (check.ownerSource || check.viaStoredField)
                         continue;
-                    // Every factory in the chain must return the argument's storage.
-                    // A result that only carries it still borrows it for escape checks,
-                    // but freeing that result releases a different allocation.
+
+                    // Every wrapper must return the argument's storage. Freeing a result
+                    // that merely carries the argument releases a different allocation.
                     if (std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
                             return !guard.callee || guard.indirect || !(guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex));
                         }))
                         continue;
+
                     diagId = DiagnosticId::sanity_err_free_borrowed;
                 }
             }
@@ -6345,7 +6356,12 @@ namespace SemaEscape
             const bool guardMiss = std::ranges::any_of(check.guards, [](const SemaEscapeDeferredGuard& guard) {
                 if (!guard.callee)
                     return true;
-                const uint64_t mask = guard.requireStorageRoute ? (guard.indirect ? 0 : guard.callee->returnsStorageParamsMask() | guard.callee->returnsPayloadParamsMask()) : returnBorrowMask(*guard.callee, guard.indirect);
+
+                const uint64_t mask = guard.requireStorageRoute
+                                          ? (guard.indirect
+                                                 ? 0
+                                                 : guard.callee->returnsStorageParamsMask() | guard.callee->returnsPayloadParamsMask())
+                                          : returnBorrowMask(*guard.callee, guard.indirect);
                 return !(mask & (1ULL << guard.paramIndex));
             });
             if (guardMiss)
@@ -6357,6 +6373,7 @@ namespace SemaEscape
                 diag.addArgument(Diagnostic::ARG_SYM, check.symName);
             if (!check.valueName.empty())
                 diag.addArgument(Diagnostic::ARG_VALUE, check.valueName);
+
             diag.addArgument(Diagnostic::ARG_WHAT, check.what);
             if (check.typeRef.isValid())
                 diag.addArgument(Diagnostic::ARG_TYPE, check.typeRef);
@@ -6381,6 +6398,7 @@ namespace SemaEscape
             {
                 if (!guard.callee)
                     continue;
+
                 diag.addNote(DiagnosticId::sema_note_borrow_propagated_through);
                 diag.last().addArgument(Diagnostic::ARG_SYM, guard.callee->name(ctx));
                 diag.last().addSpan(guard.callee->codeRange(ctx));

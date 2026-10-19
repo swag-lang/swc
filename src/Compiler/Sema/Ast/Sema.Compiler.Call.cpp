@@ -900,10 +900,12 @@ namespace
             return Result::Continue;
 
         const TypeRef specializedTypeRef = SemaHelpers::ensureStructTypeRef(sema, *instance);
+
         sema.setSymbol(view.nodeRef(), instance);
         if (specializedTypeRef.isValid())
             sema.setType(view.nodeRef(), specializedTypeRef);
         view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+
         return Result::Continue;
     }
 
@@ -929,8 +931,10 @@ namespace
 
         ConstantRef newCstRef;
         SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+
         sema.setConstant(view.nodeRef(), newCstRef);
         view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+
         return Result::Continue;
     }
 
@@ -974,6 +978,7 @@ namespace
         const TypeInfo& resolvedType = sema.typeMgr().get(resolvedTypeRef);
         if (resolvedType.isConst() || !resolvedType.isArray())
             return resolvedTypeRef;
+
         return constQualifiedArrayTypeRefFromResolvedType(sema, resolvedType);
     }
 
@@ -999,14 +1004,17 @@ namespace
         SWC_ASSERT(viewType != nullptr);
         SWC_ASSERT(!viewCstRef.isValid() || viewCst != nullptr);
 
-        outTypeRef            = viewTypeRef;
+        outTypeRef = viewTypeRef;
+
         const bool isTypeLike = viewType->isTypeValue() || viewType->isAnyTypeInfo(sema.ctx()) || sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), viewTypeRef);
         if (isTypeLike)
         {
             outTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, view);
             if (!outTypeRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
+
             SWC_RESULT(specializeCompilerOperandConcreteTypeRef(sema, outTypeRef));
+
             return Result::Continue;
         }
 
@@ -1014,6 +1022,7 @@ namespace
             outTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, outTypeRef, viewCstRef);
 
         SWC_RESULT(specializeCompilerOperandConcreteTypeRef(sema, outTypeRef));
+
         return Result::Continue;
     }
 
@@ -1024,6 +1033,7 @@ namespace
         {
             if (owner->isStruct())
                 return &owner->cast<SymbolStruct>();
+
             owner = owner->ownerSymMap();
         }
 
@@ -1051,6 +1061,7 @@ namespace
                               symStruct.isUnion(),
                               symStruct.fields().size(),
                               symStruct.declNodeRef().get());
+
         swcAssertDetail("compiler #sizeof/#alignof operand needs a concrete struct instance", __FILE__, __LINE__, detail.view());
 #endif
 
@@ -1080,6 +1091,7 @@ namespace
                                   symStruct.isUnion(),
                                   symStruct.fields().size(),
                                   symStruct.declNodeRef().get());
+
             swcAssertDetail("compiler #sizeof/#alignof concrete struct value needs to be nonzero", __FILE__, __LINE__, detail.view());
         }
 #endif
@@ -1112,6 +1124,7 @@ namespace
                                   ownerStruct->isUnion(),
                                   ownerStruct->fields().size(),
                                   ownerStruct->declNodeRef().get());
+
             swcAssertDetail("compiler #offsetof owner struct needs a concrete layout", __FILE__, __LINE__, detail.view());
         }
 #endif
@@ -1158,6 +1171,7 @@ namespace
         const AstNode&   child    = sema.node(childRef);
         SemaNodeView     view     = sema.viewTypeConstant(childRef);
         SWC_ASSERT(view.typeRef().isValid());
+
         unNarrowIntrospectionView(sema, childRef, view);
 
         SWC_RESULT(concretizeViewConstant(sema, view));

@@ -16,6 +16,7 @@ Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, const ParserJob
     file.unitTest().tokenize(ctx);
 
     LexerFlags lexerFlags = LexerFlagsE::Default;
+
     // Imported declarations participate in lookup, while documentation owns only
     // the current module and the runtime. Their trivia has no documentation consumer.
     if (options.emitTrivia && !file.isImportedApi())
@@ -43,16 +44,24 @@ void parseSourceFiles(const TaskContext& ctx, const std::span<SourceFile* const>
 {
     TaskContext parserCtx(ctx);
     JobManager& jobMgr = ctx.global().jobMgr();
-    jobMgr.parallelForIndexed(parserCtx, static_cast<uint32_t>(files.size()), JobKind::Parser, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t index) {
-        // A diagnostic belongs to one file. Reset the worker context before taking
-        // another file, and leave the caller's context untouched in single-core mode.
-        workerCtx = ctx;
-        const TaskScopedContext scopedContext(workerCtx);
-        SourceFile&             file = *files[index];
-        if (file.loadContent(workerCtx) != Result::Continue)
-            return;
-        parseLoadedSourceFile(workerCtx, file, options);
-    });
+    jobMgr.parallelForIndexed(
+        parserCtx,
+        static_cast<uint32_t>(files.size()),
+        JobKind::Parser,
+        ctx.compiler().jobClientId(),
+        [&](TaskContext& workerCtx, uint32_t index) {
+            // A diagnostic belongs to one file. Reset the worker context before taking
+            // another file, and leave the caller's context untouched in single-core mode.
+            workerCtx = ctx;
+            const TaskScopedContext scopedContext(workerCtx);
+
+            SourceFile& file = *files[index];
+            if (file.loadContent(workerCtx) != Result::Continue)
+                return;
+
+            parseLoadedSourceFile(workerCtx, file, options);
+        });
+
     // The indexed helper runs small/single-core batches inline. Keep the parser
     // stage's client barrier in those paths too, including an empty input set.
     jobMgr.waitAll(ctx.compiler().jobClientId());

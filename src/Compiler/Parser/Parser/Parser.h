@@ -56,36 +56,48 @@ enum class FwdParseMode : uint8_t
 class Parser
 {
 public:
-    void        parse(TaskContext& ctx, Ast& ast);
-    AstNodeRef  parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, ParserGeneratedMode mode, TokenRef startTokRef = TokenRef::invalid());
+    void       parse(TaskContext& ctx, Ast& ast);
+    AstNodeRef parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, ParserGeneratedMode mode, TokenRef startTokRef = TokenRef::invalid());
+
     static void finalizeAutoInlineCandidates(std::span<Ast* const> moduleAsts);
 
 private:
-    ParserContextFlags             contextFlags_                   = ParserContextFlagsE::Zero;
-    TaskContext*                   ctx_                            = nullptr;
-    Ast*                           ast_                            = nullptr;
-    const Token*                   firstToken_                     = nullptr;
-    const Token*                   curToken_                       = nullptr;
-    const Token*                   lastToken_                      = nullptr;
-    uint32_t                       depthParen_                     = 0;
-    uint32_t                       depthBracket_                   = 0;
-    uint32_t                       depthCurly_                     = 0;
-    uint32_t                       closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
-    uint32_t                       closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
-    uint32_t                       closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
-    TokenRef                       lastErrorToken_                 = TokenRef::invalid();
-    TokenRef                       topLevelAccessRef_              = TokenRef::invalid();
-    EnumFlags<AstVarStorageFlagsE> topLevelStorageFlags_           = AstVarStorageFlagsE::Zero;
-    TokenRef                       aggregateAccessModifierRef_     = TokenRef::invalid();
-    TokenRef                       aggregateReadOnlyRef_           = TokenRef::invalid();
-    EnumFlags<AstVarStorageFlagsE> aggregateStorageFlags_          = AstVarStorageFlagsE::Zero;
+    ParserContextFlags contextFlags_ = ParserContextFlagsE::Zero;
 
-    FwdParseMode fwdPassMode_     = FwdParseMode::Copy; // variant emitted by the current statement pass
-    FwdParseMode fwdCurMode_      = FwdParseMode::Copy; // mode of the innermost '#fwd'-declaring function
-    bool         fwdDeclActive_   = false;              // inside a function that declares a '#fwd' parameter
-    bool         fwdSeenParam_    = false;              // a '#fwd' parameter was seen in the current parameter list
-    bool         fwdStmtTrigger_  = false;              // current statement declared a '#fwd' function (re-parse trigger)
-    uint32_t     fwdReparseDepth_ = 0;                  // >0 while re-parsing a move variant (silences duplicate diagnostics)
+    TaskContext* ctx_ = nullptr;
+    Ast*         ast_ = nullptr;
+
+    const Token* firstToken_ = nullptr;
+    const Token* curToken_   = nullptr;
+    const Token* lastToken_  = nullptr;
+
+    uint32_t depthParen_   = 0;
+    uint32_t depthBracket_ = 0;
+    uint32_t depthCurly_   = 0;
+
+    uint32_t closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
+    uint32_t closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
+    uint32_t closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
+
+    TokenRef lastErrorToken_ = TokenRef::invalid();
+
+    TokenRef topLevelAccessRef_ = TokenRef::invalid();
+
+    EnumFlags<AstVarStorageFlagsE> topLevelStorageFlags_ = AstVarStorageFlagsE::Zero;
+
+    TokenRef aggregateAccessModifierRef_ = TokenRef::invalid();
+    TokenRef aggregateReadOnlyRef_       = TokenRef::invalid();
+
+    EnumFlags<AstVarStorageFlagsE> aggregateStorageFlags_ = AstVarStorageFlagsE::Zero;
+
+    FwdParseMode fwdPassMode_ = FwdParseMode::Copy; // Variant emitted by this statement pass.
+    FwdParseMode fwdCurMode_  = FwdParseMode::Copy; // Mode of the innermost function declaring #fwd.
+
+    bool fwdDeclActive_  = false; // Inside a function declaring #fwd.
+    bool fwdSeenParam_   = false; // The current parameter list contains #fwd.
+    bool fwdStmtTrigger_ = false; // This statement needs a second parse for its #fwd function.
+
+    uint32_t fwdReparseDepth_ = 0; // Move replay depth; suppresses duplicate diagnostics.
 
     const Token* tokPtr() const { return curToken_; }
     const Token& tok() const { return *(curToken_); }
@@ -96,7 +108,8 @@ private:
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
     bool         isClosureCaptureEndPipe() const;
-    bool         isRecoveryClosingDelimiter() const
+
+    bool isRecoveryClosingDelimiter() const
     {
         return (depthParen_ && is(TokenId::SymRightParen)) ||
                (depthBracket_ && is(TokenId::SymRightBracket)) ||
@@ -109,6 +122,7 @@ private:
 #if SWC_HAS_REF_DEBUG_INFO
         result.dbgPtr = curToken_;
 #endif
+
         return result;
     }
 
@@ -138,38 +152,48 @@ private:
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId);
     SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId);
     SpanRef    parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds);
+
     AstNodeRef parseGeneratedValue(ParserGeneratedMode mode);
     AstNodeRef parseGeneratedContent(ParserGeneratedMode mode);
 
-    AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
-    AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);
-    void             markCallCalleeNode(AstNodeRef nodeRef);
-    TokenId          swagIntrinsicId(AstNodeRef nodeExpr) const;
-    AstNodeRef       lowerSwagIntrinsicCall(AstNodeRef nodeExpr, SpanRef spanArgsRef, TokenRef tokCallRef);
-    AstNodeRef       parseArraySlicingIndex(AstNodeRef nodeRef);
+    AstNodeRef parseInitializerList(AstNodeRef nodeWhat);
+    AstNodeRef parseFunctionArguments(AstNodeRef nodeExpr);
+    void       markCallCalleeNode(AstNodeRef nodeRef);
+    TokenId    swagIntrinsicId(AstNodeRef nodeExpr) const;
+    AstNodeRef lowerSwagIntrinsicCall(AstNodeRef nodeExpr, SpanRef spanArgsRef, TokenRef tokCallRef);
+    AstNodeRef parseArraySlicingIndex(AstNodeRef nodeRef);
+
     AstModifierFlags parseModifiers();
-    AstNodeRef       parseBinaryExpr(int minPrecedence);
-    SpanRef          parseQualifiedName();
-    AstNodeRef       parseLambdaParam(bool isType);
+
+    AstNodeRef parseBinaryExpr(int minPrecedence);
+    SpanRef    parseQualifiedName();
+    AstNodeRef parseLambdaParam(bool isType);
 
     template<AstNodeId ID>
     AstNodeRef parseAttributeList();
+
     template<AstNodeId ID>
     AstNodeRef parseAggregateDecl();
+
     template<AstNodeId ID>
     AstNodeRef parseCompilerIfStmt();
+
     template<AstNodeId ID>
     AstNodeRef parseCompilerIfBody(TokenRef tokRef);
+
     template<AstNodeId ID>
     AstNodeRef parseCompilerStatic();
+
     template<AstNodeId ID>
     AstNodeRef parseCompilerSwitch(TokenRef staticTokRef);
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId)
     {
-        auto [nodeRef, nodePtr]  = ast_->makeNode<ID>(ref());
+        auto [nodeRef, nodePtr] = ast_->makeNode<ID>(ref());
+
         nodePtr->spanChildrenRef = parseCompoundContent(ID, tokenStartId);
+
         return nodeRef;
     }
 
@@ -185,6 +209,7 @@ private:
     AstNodeRef parseBreak();
     AstNodeRef parseCast();
     AstNodeRef parseClosureArg();
+
     AstNodeRef parseCompilerExpression();
     AstNodeRef parseCompilerDiagnostic();
     void       parseCompilerArgumentList(TokenRef tokRef, uint32_t minCount, uint32_t maxCount, bool asCompilerExpressions, SmallVector<AstNodeRef>& outArgs);
@@ -203,8 +228,10 @@ private:
     AstNodeRef parseCompilerScope();
     AstNodeRef parseCompilerTypeExpr();
     AstNodeRef parseCompilerTypeOf();
+
     AstNodeRef parseConstraint();
     void       parseConstraintList(SmallVector<AstNodeRef>& outRefs);
+
     AstNodeRef parseContinue();
     AstNodeRef parseVarDeclDecomposition();
     void       parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool& hasNamed, bool& hasPositional);
@@ -215,12 +242,14 @@ private:
     AstNodeRef parseEmbeddedStmt();
     AstNodeRef parseEnumDecl();
     AstNodeRef parseEnumValue();
+
     AstNodeRef parseErrorManagementExpr();
     AstNodeRef parseErrorManagementStmt();
     AstNodeRef parseExpression();
     bool       isForeignFunctionKeyword() const;
     TokenRef   findMisalignedInnerOpening(TokenRef openRef) const;
     AstNodeRef parseRangeExpression();
+
     AstNodeRef parseFail();
     AstNodeRef parseFallThrough();
     AstNodeRef parseFile();
@@ -230,11 +259,14 @@ private:
     AstNodeRef parseForLoop();
     AstNodeRef parseForCpp();
     AstNodeRef parseForInfinite();
+
     AstNodeRef parseFunctionDecl(bool isInterfaceDefinition = false);
     AstNodeRef parseFunctionBody();
     uint32_t   computeAutoInlineBodyCost(bool& outHasCalls, bool& outStaticStorage, bool& outHasNotNull, AstNodeRef bodyRef, TokenRef bodyStartRef) const;
+
     AstNodeRef parseFunctionParam();
     AstNodeRef parseFunctionParamList();
+
     AstNodeRef parseGenericParam();
     AstNodeRef parseAccessModifier();
     AstNodeRef parseQuotedIdentifier();
@@ -247,58 +279,67 @@ private:
     AstNodeRef parseIntrinsicCall(uint32_t numParams);
     AstNodeRef parseIntrinsicCallConstantExpr();
     AstNodeRef parseIntrinsicCallExpr(uint32_t numParams);
+
     // 'Swag.drop', 'Swag.postCopy' and 'Swag.postMove' share one syntax: a target and an optional count.
     template<AstNodeId NODE_ID>
-    AstNodeRef                     parseLifecycleIntrinsic();
-    AstNodeRef                     parseIntrinsicInit();
-    AstNodeRef                     parseLogicalExpr(int minPrecedence);
-    AstNodeRef                     parseLambdaExpression();
-    AstNodeRef                     parseLambdaType();
-    AstNodeRef                     parseLambdaParam();
-    AstNodeRef                     parseLambdaArgumentExpr();
-    AstNodeRef                     parseLiteral();
-    AstNodeRef                     parseRawStringLiteral();
-    AstNodeRef                     parseLiteralArray();
-    AstNodeRef                     parseLiteralExpression();
-    AstNodeRef                     parseLiteralStruct();
-    AstNodeRef                     parseLogicalExpr();
-    AstNodeRef                     parseNamedArg();
-    AstNodeRef                     parseNamespace();
-    AstNodeRef                     parseParenExpr();
-    AstNodeRef                     parsePostFixExpression();
-    AstNodeRef                     parseIdentifierSuffixValue();
-    AstNodeRef                     parseQuotedSingleSuffixValue();
-    AstNodeRef                     parseQuoteSuffix(AstNodeRef nodeRef);
-    TokenRef                       parseParenArgumentExpressions(SmallVector<AstNodeRef>& outArgs);
-    AstNodeRef                     parseDynamicTypeTarget();
-    AstNodeRef                     parseIdentifier();
-    AstNodeRef                     parseAutoMemberAccessExpr();
-    AstNodeRef                     parsePrefixExpr();
-    AstNodeRef                     parsePrimaryExpression();
-    AstNodeRef                     parseQualifiedIdentifier();
-    AstNodeRef                     parseRelationalExpr(int minPrecedence);
-    AstNodeRef                     parseRelationalExpr();
-    AstNodeRef                     parseRetValType();
-    AstNodeRef                     parseReturn();
-    AstNodeRef                     parseSingleType();
+    AstNodeRef parseLifecycleIntrinsic();
+    AstNodeRef parseIntrinsicInit();
+
+    AstNodeRef parseLogicalExpr(int minPrecedence);
+
+    AstNodeRef parseLambdaExpression();
+    AstNodeRef parseLambdaType();
+    AstNodeRef parseLambdaParam();
+    AstNodeRef parseLambdaArgumentExpr();
+
+    AstNodeRef parseLiteral();
+    AstNodeRef parseRawStringLiteral();
+    AstNodeRef parseLiteralArray();
+    AstNodeRef parseLiteralExpression();
+    AstNodeRef parseLiteralStruct();
+
+    AstNodeRef parseLogicalExpr();
+    AstNodeRef parseNamedArg();
+    AstNodeRef parseNamespace();
+    AstNodeRef parseParenExpr();
+    AstNodeRef parsePostFixExpression();
+    AstNodeRef parseIdentifierSuffixValue();
+    AstNodeRef parseQuotedSingleSuffixValue();
+    AstNodeRef parseQuoteSuffix(AstNodeRef nodeRef);
+    TokenRef   parseParenArgumentExpressions(SmallVector<AstNodeRef>& outArgs);
+    AstNodeRef parseDynamicTypeTarget();
+    AstNodeRef parseIdentifier();
+    AstNodeRef parseAutoMemberAccessExpr();
+    AstNodeRef parsePrefixExpr();
+    AstNodeRef parsePrimaryExpression();
+    AstNodeRef parseQualifiedIdentifier();
+    AstNodeRef parseRelationalExpr(int minPrecedence);
+    AstNodeRef parseRelationalExpr();
+    AstNodeRef parseRetValType();
+    AstNodeRef parseReturn();
+    AstNodeRef parseSingleType();
+
     EnumFlags<AstVarStorageFlagsE> parseStorageModifiers();
-    AstNodeRef                     parseStructDecl();
-    AstNodeRef                     parseSubType();
-    AstNodeRef                     parseSubType(bool allowNullableSuffix);
-    AstNodeRef                     parseSubTypeNoQualifiers();
-    AstNodeRef                     parseSwitch();
-    AstNodeRef                     parseSwitchCaseDefault();
-    AstNodeRef                     parseTopLevelCall();
-    AstNodeRef                     parseTopLevelStorageModifier();
-    AstNodeRef                     parseTopLevelDeclOrBlock();
-    AstNodeRef                     parseTopLevelStmt();
-    AstNodeRef                     parseType();
-    AstNodeRef                     parseUnionDecl();
-    AstNodeRef                     parseUnreachable();
-    AstNodeRef                     parseUsing();
-    AstNodeRef                     parseVarDecl();
-    AstNodeRef                     parseWhile();
-    AstNodeRef                     parseWith();
+
+    AstNodeRef parseStructDecl();
+    AstNodeRef parseSubType();
+    AstNodeRef parseSubType(bool allowNullableSuffix);
+    AstNodeRef parseSubTypeNoQualifiers();
+
+    AstNodeRef parseSwitch();
+    AstNodeRef parseSwitchCaseDefault();
+
+    AstNodeRef parseTopLevelCall();
+    AstNodeRef parseTopLevelStorageModifier();
+    AstNodeRef parseTopLevelDeclOrBlock();
+    AstNodeRef parseTopLevelStmt();
+    AstNodeRef parseType();
+    AstNodeRef parseUnionDecl();
+    AstNodeRef parseUnreachable();
+    AstNodeRef parseUsing();
+    AstNodeRef parseVarDecl();
+    AstNodeRef parseWhile();
+    AstNodeRef parseWith();
 
     bool skipTo(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
     bool skipAfter(const SmallVector<TokenId>& targets, SkipUntilFlags flags = SkipUntilFlagsE::Zero);
@@ -308,22 +349,26 @@ private:
     static void setReportExpected(Diagnostic& diag, TokenId expectedTknId);
     void        setReportSymbol(Diagnostic& diag, TokenRef tokRef) const;
     void        setReportArgumentCount(Diagnostic& diag, TokenRef calleeRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast) const;
-    Diagnostic  reportExpectedDoBlock(TokenRef tknRefAfterHeader);
-    Diagnostic  reportUnexpectedDoBlock(TokenRef doTokRef);
-    Diagnostic  reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId);
-    Diagnostic  reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
-    Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
-    Diagnostic  reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
-    void        reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded);
-    void        enhanceReportError(Diagnostic& diag, DiagnosticId id, TokenRef tknRef) const;
-    void        finishReportError(Diagnostic& diag, TokenRef tknRef);
-    Diagnostic  reportError(DiagnosticId id, TokenRef tknRef);
-    Diagnostic  reportError(DiagnosticId id, AstNodeRef nodeRef);
-    void        reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed);
-    void        raiseError(DiagnosticId id, TokenRef tknRef);
-    void        raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
-    void        tryEnhanceUnexpectedToken(Diagnostic& diag, TokenRef tknRef) const;
-    bool        hasContextFlag(ParserContextFlags flags) const { return contextFlags_.has(flags); }
+
+    Diagnostic reportExpectedDoBlock(TokenRef tknRefAfterHeader);
+    Diagnostic reportUnexpectedDoBlock(TokenRef doTokRef);
+    Diagnostic reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId);
+    Diagnostic reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
+    Diagnostic reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
+    Diagnostic reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
+    void       reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded);
+
+    void       enhanceReportError(Diagnostic& diag, DiagnosticId id, TokenRef tknRef) const;
+    void       finishReportError(Diagnostic& diag, TokenRef tknRef);
+    Diagnostic reportError(DiagnosticId id, TokenRef tknRef);
+    Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);
+    void       reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed);
+
+    void raiseError(DiagnosticId id, TokenRef tknRef);
+    void raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
+    void tryEnhanceUnexpectedToken(Diagnostic& diag, TokenRef tknRef) const;
+
+    bool hasContextFlag(ParserContextFlags flags) const { return contextFlags_.has(flags); }
 
     struct PushContextFlags
     {
@@ -334,6 +379,7 @@ private:
         {
             parser   = p;
             oldFlags = p->contextFlags_;
+
             p->contextFlags_.add(flags);
         }
 
@@ -347,24 +393,37 @@ private:
 inline EnumFlags<AstVarStorageFlagsE> Parser::parseStorageModifiers()
 {
     EnumFlags<AstVarStorageFlagsE> storageFlags = AstVarStorageFlagsE::Zero;
+
     for (;;)
     {
         AstVarStorageFlagsE storageFlag = AstVarStorageFlagsE::Zero;
         switch (id())
         {
-            case TokenId::KwdLate: storageFlag = AstVarStorageFlagsE::Late; break;
-            case TokenId::KwdTls: storageFlag = AstVarStorageFlagsE::Tls; break;
-            case TokenId::KwdGlobal: storageFlag = AstVarStorageFlagsE::Global; break;
-            default: break;
+            case TokenId::KwdLate:
+                storageFlag = AstVarStorageFlagsE::Late;
+                break;
+
+            case TokenId::KwdTls:
+                storageFlag = AstVarStorageFlagsE::Tls;
+                break;
+
+            case TokenId::KwdGlobal:
+                storageFlag = AstVarStorageFlagsE::Global;
+                break;
+
+            default:
+                break;
         }
 
         if (storageFlag == AstVarStorageFlagsE::Zero)
             break;
+
         if (storageFlags.has(storageFlag))
         {
             const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_storage_modifier, ref());
             diag.report(*ctx_);
         }
+
         storageFlags.add(storageFlag);
         consume();
     }
@@ -394,6 +453,7 @@ inline void Parser::reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bo
     {
         const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, itemRef);
         diag.report(*ctx_);
+
         reportedMixed = true;
     }
 }
@@ -403,8 +463,10 @@ inline bool Parser::prepareNextArgument()
     // Leave an enclosing container closer for the closing-delimiter diagnostic.
     if (isAny(TokenId::SymRightCurly, TokenId::SymRightBracket))
         return false;
+
     if (expectAndConsume(TokenId::SymComma, DiagnosticId::parser_err_expected_token).isInvalid())
         skipTo({TokenId::SymComma, TokenId::SymRightParen});
+
     return !is(TokenId::SymRightParen);
 }
 
@@ -430,6 +492,7 @@ inline void Parser::parseConstraintList(SmallVector<AstNodeRef>& outRefs)
         const AstNodeRef whereRef       = parseConstraint();
         if (whereRef.isValid())
             outRefs.push_back(whereRef);
+
         if (loopStartToken == curToken_)
             consume();
     }

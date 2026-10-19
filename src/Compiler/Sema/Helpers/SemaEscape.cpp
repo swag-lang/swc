@@ -4373,19 +4373,23 @@ namespace
         {
             if (!storageProjection(*sema_, store_->leftRef, slot_))
                 return false;
+
             normalizeProjectionRoot(*sema_, slot_);
             if (!slot_.root || slot_.components.empty())
                 return false;
+
             // Only builtin view assignments qualify. User-defined assignment,
             // conversion and cleanup can invoke observers before a clear takes effect.
             const TypeRef slotType = expressionTypeRef(*sema_, store_->leftRef);
             if (!isDirectBorrowCarrier(*sema_, slotType) || hasOwningLifecycle(*sema_, slotType))
                 return false;
+
             for (const auto& component : slot_.components)
             {
                 if (component.kind == SemaEscapeProjectionKind::AnyIndex)
                     return false;
             }
+
             // A destructor can reinstall an alias after the explicit clear. Until
             // cleanup effects have field paths, keep such bodies conservative.
             for (const SymbolVariable* local : fn_->localVariables())
@@ -4393,6 +4397,7 @@ namespace
                 if (local && hasOwningLifecycle(*sema_, local->typeRef()))
                     return false;
             }
+
             State state;
             walk(bodyRef, state);
             if (!valid_ || !sawStore_ || (state.reachable && state.live))
@@ -4408,8 +4413,10 @@ namespace
                 if (callee && callee != fn_)
                     addExternalBorrowEdge(*sema_, *fn_, *callee, SemaEscapeSummaryEdgeKind::ExternalToPair, store_->intoIndex, store_->storedIndex);
             }
+
             for (const auto& observer : observers_)
                 addExternalBorrowEdge(*sema_, *fn_, *observer.first, observer.second ? SemaEscapeSummaryEdgeKind::ExternalToPair : SemaEscapeSummaryEdgeKind::RetentionToPair, store_->intoIndex, store_->storedIndex);
+
             return true;
         }
 
@@ -4419,6 +4426,7 @@ namespace
             bool live      = false;
             bool reachable = true;
         };
+
         struct Deferred
         {
             AstNodeRef       bodyRef;
@@ -4432,7 +4440,9 @@ namespace
             {
                 ++*this->value;
             }
+
             ~WalkDepth() { --*value; }
+
             uint32_t* value;
         };
 
@@ -4442,6 +4452,7 @@ namespace
                 valid_ = false;
             else
                 --budget_;
+
             return valid_;
         }
 
@@ -4449,6 +4460,7 @@ namespace
         {
             if (!storageProjection(*sema_, ref, result))
                 return false;
+
             normalizeProjectionRoot(*sema_, result);
             return true;
         }
@@ -4476,15 +4488,18 @@ namespace
             {
                 if (typeCanCarryBorrowImpl(*sema_, callee->returnTypeRef()))
                     valid_ = false;
+
                 const std::pair<const SymbolFunction*, bool> guard{callee, state.live};
                 if (std::ranges::find(observers_, guard) == observers_.end())
                     observers_.push_back(guard);
             }
+
             const AstNodeRef receiver = syntacticMethodReceiverRef(*sema_, ref);
             if (receiver.isValid())
                 expression(receiver, state, true);
             else if (!callee)
                 expression(node.nodeExprRef, state);
+
             SmallVector<AstNodeRef> arguments;
             node.collectArguments(arguments, sema_->ast());
             for (const AstNodeRef argument : arguments)
@@ -4495,6 +4510,7 @@ namespace
         {
             SmallVector<AstNodeRef> pending;
             pending.push_back(root);
+
             while (!pending.empty() && spend())
             {
                 const AstNodeRef ref = pending.back();
@@ -4508,6 +4524,7 @@ namespace
                 // nodes. It proves identity, not that evaluating that path is inert.
                 if (node.is(AstNodeId::CallExpr) || hasUnmodeledBorrowHook(*sema_, ref, node))
                     return false;
+
                 if (live)
                 {
                     const auto* lowering = sema_->loweringPayload<CodeGenLoweringPayload>(ref);
@@ -4563,6 +4580,7 @@ namespace
                     if ((!callArgument && (value.components.empty() || typeCanCarryBorrowImpl(*sema_, expressionTypeRef(*sema_, ref)))) ||
                         (state.live && overlaps(value)))
                         valid_ = false;
+
                     return;
                 }
 
@@ -4610,17 +4628,20 @@ namespace
                 if ((action.flags.has(AstModifierFlagsE::Fail) && !failed) ||
                     (action.flags.has(AstModifierFlagsE::NoFail) && failed))
                     continue;
+
                 defers_.resize(i - 1);
                 ++cleanupDepth_;
                 scoped(action.bodyRef, state);
                 --cleanupDepth_;
             }
+
             defers_ = saved;
         }
 
         void block(const AstNode& node, State& state)
         {
-            const size_t            first = defers_.size();
+            const size_t first = defers_.size();
+
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, sema_->ast());
             for (const AstNodeRef child : children)
@@ -4628,8 +4649,10 @@ namespace
                 if (state.reachable && valid_)
                     walk(child, state);
             }
+
             if (state.reachable)
                 unwind(state, first, false);
+
             defers_.resize(first);
         }
 
@@ -4639,16 +4662,19 @@ namespace
             walk(ref, state);
             if (state.reachable)
                 unwind(state, first, false);
+
             defers_.resize(first);
         }
 
         void branches(AstNodeRef condition, AstNodeRef yesRef, AstNodeRef noRef, State& state)
         {
             expression(condition, state);
+
             State yes = state;
             State no  = state;
             scoped(yesRef, yes);
             scoped(noRef, no);
+
             state.live      = (yes.reachable && yes.live) || (no.reachable && no.live);
             state.reachable = yes.reachable || no.reachable;
         }
@@ -4705,6 +4731,7 @@ namespace
                         state.live               = !right.hasConstant() || !right.cst()->isNullValue(sema_->ctx());
                         if (ref == store_->nodeRef || assign.nodeLeftRef == store_->leftRef)
                             sawStore_ = true;
+
                         return;
                     }
 
@@ -4781,17 +4808,23 @@ namespace
             }
         }
 
-        Sema*                                               sema_;
-        SymbolFunction*                                     fn_;
-        const SymbolFunction::PendingBorrowStore*           store_;
-        SemaEscapeProjection                                slot_;
-        std::vector<Deferred>                               defers_;
+        Sema*           sema_;
+        SymbolFunction* fn_;
+
+        const SymbolFunction::PendingBorrowStore* store_;
+
+        SemaEscapeProjection slot_;
+
+        std::vector<Deferred> defers_;
+
         std::vector<std::pair<const SymbolFunction*, bool>> observers_;
-        uint32_t                                            budget_       = 16384;
-        uint32_t                                            cleanupDepth_ = 0;
-        uint32_t                                            depth_        = 0;
-        bool                                                valid_        = true;
-        bool                                                sawStore_     = false;
+
+        uint32_t budget_       = 16384;
+        uint32_t cleanupDepth_ = 0;
+        uint32_t depth_        = 0;
+
+        bool valid_    = true;
+        bool sawStore_ = false;
     };
 
 }
@@ -4799,6 +4832,7 @@ namespace
 void SemaEscapeInfo::markStoredFieldBorrow()
 {
     viaStoredField = true;
+
     // A copied field keeps its lifetime bounds, but no longer aliases the slot
     // used to read it. Clone shared snapshots so other aliases and flow branches
     // retain their own storage route.
@@ -4806,11 +4840,14 @@ void SemaEscapeInfo::markStoredFieldBorrow()
     {
         if (!snapshot)
             continue;
+
         auto copied = std::make_shared<SemaEscapeDeferredCallSnapshot>(*snapshot);
         for (auto& check : copied->checks)
             check.viaStoredField = true;
+
         for (auto& edge : copied->edges)
             edge.viaStoredField = true;
+
         snapshot = std::move(copied);
     }
 }
@@ -4820,6 +4857,7 @@ namespace SemaEscape
     void finalizeBorrowStores(Sema& sema, SymbolFunction& fn, AstNodeRef bodyRef)
     {
         computeExternalBorrowObservation(sema, fn, bodyRef);
+
         for (const auto& store : fn.takePendingBorrowStores())
         {
             if (store.indirect || !BorrowStoreRetention(sema, fn, store).prove(bodyRef))

@@ -38,21 +38,23 @@ namespace
             runDeclarationFamily(AlignCategory::Declarations, options_->alignConsecutiveDeclarations, options_->alignDeclarationInitializers.value_or(false));
             runDeclarationFamily(AlignCategory::StructFields, options_->alignStructFields, options_->alignStructFieldInitializers.value_or(false));
             runDeclarationFamily(AlignCategory::Constants, options_->alignConsecutiveConstants, options_->alignConstantTypes.value_or(false));
+
             runCategory(AlignCategory::Aliases, options_->alignConsecutiveAliases);
             runCategory(AlignCategory::Assignments, options_->alignConsecutiveAssignments);
             runCategory(AlignCategory::EnumValues, options_->alignEnumValues);
             runCategory(AlignCategory::Attributes, options_->alignAttributes);
             runCategory(AlignCategory::FatArrows, options_->alignFatArrows);
             runCategory(AlignCategory::CaseBodies, options_->alignCaseBodies);
+
             runArrayColumns();
             repairHangingLines();
+
             runTrailingComments();
         }
 
     private:
-        // The first piece on the line carrying `role` at the line's own depth.
-        // With afterPiece, returns the piece that follows it instead (used to
-        // anchor the type after `:` or the body after `case ... :`).
+        // Find `role` at the line's own depth. `afterPiece` returns the following
+        // piece instead, for type or case-body anchors.
         uint32_t findRoleOnLine(const uint32_t lineStart, const FormatRoleE role, const bool afterPiece) const
         {
             const uint32_t declDepth = model_->piece(lineStart).depth;
@@ -64,10 +66,12 @@ namespace
                 {
                     if (!afterPiece)
                         return i;
+
                     const uint32_t next = model_->nextPiece(i);
                     return next != INVALID_PIECE && next <= lineEnd ? next : INVALID_PIECE;
                 }
             }
+
             return INVALID_PIECE;
         }
 
@@ -75,6 +79,7 @@ namespace
         {
             if (findRoleOnLine(lineStart, startRole, false) == INVALID_PIECE)
                 return false;
+
             return startRole != FormatRoleE::VarDeclStart || !model_->piece(lineStart).hasRole(FormatRoleE::ControlKeyword);
         }
 
@@ -130,12 +135,14 @@ namespace
                 {
                     if (first.hasRole(FormatRoleE::AttrOpen))
                         return INVALID_PIECE; // attribute starts the line: nothing to align
+
                     const uint32_t lineEnd = FormatPassUtil::lineEndOf(*model_, lineStart);
                     for (uint32_t i = model_->nextPiece(lineStart); i != INVALID_PIECE && i <= lineEnd; i = model_->nextPiece(i))
                     {
                         if (model_->piece(i).hasRole(FormatRoleE::AttrOpen))
                             return i;
                     }
+
                     return INVALID_PIECE;
                 }
             }
@@ -153,13 +160,13 @@ namespace
             return model_->piece(lineStart).isComment && FormatPassUtil::lineEndOf(*model_, lineStart) == lineStart;
         }
 
-        // `internal` / `readonly` / `private` / `public` written alone on a line
-        // is the first half of the declaration below it, not a line of its own,
-        // so it must not cut the run of declarations in two.
+        // A standalone access modifier belongs to the following declaration and
+        // must not split a declaration alignment group.
         bool lineIsAccessModifierOnly(const uint32_t lineStart) const
         {
             if (!FormatPassUtil::isAccessModifier(model_->piece(lineStart)))
                 return false;
+
             const uint32_t next = model_->nextPiece(lineStart);
             return next == INVALID_PIECE || model_->gapHasNewline(next);
         }
@@ -168,6 +175,7 @@ namespace
         {
             if (lineIsAccessModifierOnly(lineStart))
                 return true;
+
             return category == AlignCategory::Aliases && model_->piece(lineStart).hasRole(FormatRoleE::AttrOpen);
         }
 
@@ -192,6 +200,7 @@ namespace
                     alignGroup(group);
                 else
                     unalignGroup(group); // lone line: stale manual padding shrinks to one space
+
                 group.clear();
             };
 
@@ -208,6 +217,7 @@ namespace
                 {
                     if (!group.empty() && blank && mode == FormatAlignMode::Consecutive)
                         flush();
+
                     continue;
                 }
 
@@ -244,6 +254,7 @@ namespace
                     groupDepth  = model_->piece(lineStart).depth;
                     groupIndent = indent;
                 }
+
                 group.emplace_back(lineStart, anchor);
             }
 
@@ -291,14 +302,13 @@ namespace
             return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
         }
 
-        // A line joins a grid group when it is a declaration of the right kind
-        // that owns at least one alignable column. Unlike the single-anchor
-        // path, an untyped-but-initialized field still joins (via its `=`
-        // column), so it no longer fragments the surrounding group.
+        // Grid members need a type or initializer anchor. Untyped initialized
+        // fields can therefore join the group through their '=' column.
         bool declLineHasColumn(const FormatRoleE startRole, const uint32_t lineStart) const
         {
             if (!lineIsStandaloneDeclaration(startRole, lineStart))
                 return false;
+
             return typeAnchorOf(lineStart) != INVALID_PIECE || initAnchorOf(lineStart) != INVALID_PIECE;
         }
 
@@ -334,6 +344,7 @@ namespace
                 {
                     if (!group.empty() && blank && mode == FormatAlignMode::Consecutive)
                         flush();
+
                     continue;
                 }
 
@@ -368,16 +379,16 @@ namespace
                     groupDepth  = model_->piece(lineStart).depth;
                     groupIndent = indent;
                 }
+
                 group.push_back(lineStart);
             }
 
             flush();
         }
 
-        // Aligns the type and initializer columns of one grid group. The type
-        // column is padded first because widening it shifts every initializer;
-        // alignGroup recomputes columns from the live model, so the second pass
-        // sees the already-aligned types.
+        // Align types first because widening them shifts initializers.
+        // The initializer pass recomputes columns from the live model, so it
+        // sees the updated type padding.
         void alignGridGroup(const std::vector<uint32_t>& group, const bool tightenOnly) const
         {
             std::vector<std::pair<uint32_t, uint32_t>> types; // (lineStart, type anchor)
@@ -431,6 +442,7 @@ namespace
                         anchorCol = pc.column;
                         break;
                     }
+
                     prevEnd = pc.column + FormatModel::textColumns(model_->piece(pc.piece).text, std::max(options_->tabWidth, 1u), pc.column);
                 }
 
@@ -439,11 +451,9 @@ namespace
                 target         = std::max(target, naturalCols[i]);
             }
 
-            // A table of names of every length is still a table; one line standing
-            // far away from all the others is not, and aligning on it turns the
-            // column into a stripe of whitespace. Sort the group by anchor column
-            // and drop an end while it is separated from the rest by a gap wider
-            // than the option allows. A dropped line keeps its minimum spacing.
+            // Exclude isolated anchor columns so one outlier cannot create excessive
+            // padding. Trim either end of the sorted natural columns while its gap
+            // exceeds the configured limit; excluded lines keep minimum spacing.
             std::vector aligned(group.size(), true);
             if (options_->alignOutlierGap > 0 && group.size() >= 2)
             {
@@ -459,6 +469,7 @@ namespace
                     const uint32_t bottomGap = naturalCols[order[first + 1]] - naturalCols[order[first]];
                     if (std::max(topGap, bottomGap) <= options_->alignOutlierGap)
                         break;
+
                     if (topGap >= bottomGap)
                         aligned[order[last--]] = false;
                     else
@@ -492,6 +503,7 @@ namespace
                         wanted = std::min(wanted, std::max(maximumColumn, prevEndCol + 1) - prevEndCol);
                     if (model_->gapColumns(anchor) != wanted)
                         model_->setGapSpaces(anchor, wanted);
+
                     continue;
                 }
 
@@ -550,6 +562,7 @@ namespace
                     {
                         std::vector<PieceColumn> columns;
                         FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(rows[r][k]), &columns);
+
                         uint32_t prevEnd = 0;
                         for (const PieceColumn& pc : columns)
                         {
@@ -558,8 +571,10 @@ namespace
                                 currentCols[r] = pc.column;
                                 break;
                             }
+
                             prevEnd = pc.column + FormatModel::textColumns(model_->piece(pc.piece).text, std::max(options_->tabWidth, 1u), pc.column);
                         }
+
                         naturalCols[r] = prevEnd + 1;
                         target         = std::max(target, naturalCols[r]);
                     }
@@ -615,11 +630,14 @@ namespace
                         {
                             if (!FormatPassUtil::canEditGap(*model_, next))
                                 return {};
+
                             elems.push_back(next);
                         }
                     }
+
                     last = q;
                 }
+
                 if (model_->gapHasNewline(piece.match))
                     return {};
 
@@ -627,21 +645,20 @@ namespace
                     elemCount = elems.size();
                 else if (elems.size() != elemCount)
                     return {}; // ragged rows
+
                 rows.push_back(std::move(elems));
                 p = piece.match;
             }
 
             if (elemCount == SIZE_MAX || elemCount < 2)
                 return {};
+
             return rows;
         }
 
-        // Padding an anchor pushes everything after it on that line to the
-        // right, including any bracket a later line hangs inside. The indent
-        // pass ran before this one, so those continuation lines still sit at
-        // the pre-alignment column: move each one back under its bracket.
-        // Records come in source order, so a bracket that itself lives on a
-        // repaired line is already at its final column when it is read.
+        // Alignment can move an anchor after indentation has run. Replay each
+        // continuation's offset from its anchor to restore the intended column.
+        // Source order ensures anchors on continuation lines are already repaired.
         void repairHangingLines() const
         {
             std::vector<PieceColumn> columns;
@@ -656,6 +673,7 @@ namespace
                     continue;
 
                 FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(hanging.openPiece), &columns);
+
                 uint32_t openColumn = UINT32_MAX;
                 for (const PieceColumn& pc : columns)
                 {
@@ -665,12 +683,14 @@ namespace
                         break;
                     }
                 }
+
                 if (openColumn == UINT32_MAX)
                     continue;
 
                 const uint32_t wanted = openColumn + hanging.offset;
                 if (wanted == lineIndentColumn(hanging.lineStart))
                     continue;
+
                 model_->setGapBreak(hanging.lineStart, newlines, FormatPassUtil::indentForColumns(*model_, wanted).view());
             }
         }
@@ -704,6 +724,7 @@ namespace
                             model_->setGapSpaces(comment, minSpaces);
                     }
                 }
+
                 group.clear();
             };
 
@@ -711,6 +732,7 @@ namespace
             {
                 if (model_->piece(lineStart).removed)
                     continue;
+
                 if (lineIsBlankSeparated(lineStart) || lineIsCommentOnly(lineStart))
                 {
                     flush();
@@ -724,6 +746,7 @@ namespace
                     flush();
                     continue;
                 }
+
                 if (!FormatPassUtil::canEditGap(*model_, lineEnd) || model_->gapHasNewline(lineEnd))
                 {
                     flush();
@@ -735,14 +758,16 @@ namespace
                     flush();
                 if (group.empty())
                     groupIndent = indent;
+
                 group.emplace_back(lineStart, lineEnd);
             }
 
             flush();
         }
 
-        FormatModel*          model_;
-        const FormatOptions*  options_;
+        FormatModel*         model_;
+        const FormatOptions* options_;
+
         std::vector<uint32_t> lineStarts_;
     };
 }

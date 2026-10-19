@@ -14,6 +14,7 @@ namespace SemaCallArgument
         const AstNodeRef bodyRef = argNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
         if (bodyRef.isInvalid())
             return false;
+
         const AstNode& bodyNode = sema.node(bodyRef);
         if (!bodyNode.is(AstNodeId::EmbeddedBlock))
             return false;

@@ -20,24 +20,26 @@ namespace SemaClone
     {
         std::span<const ParamBinding>    bindings;
         std::span<const NodeReplacement> replacements;
-        const Ast*                       sourceAst                            = nullptr;
-        bool                             preserveFunctionGenerics             = false;
-        bool                             preserveBindingExprState             = false;
-        bool                             duplicateRuntimeStorage              = false;
-        bool                             resolveBindingExprWithParentBindings = false;
-        // Pin already-resolved identifier symbols even on a same-Ast clone (as a cross-Ast clone
-        // always does). Used when inlining a body within its own file so references to the
-        // callee's private helpers/globals/constants keep resolving to the callee's symbols
-        // instead of being re-resolved by name in the caller's scope. Function-local/parameter
-        // identifiers are still re-resolved (to the cloned decls / substituted args) because the
-        // preserveSyntheticSymbol predicate excludes them.
+
+        const Ast* sourceAst = nullptr;
+
+        bool preserveFunctionGenerics             = false;
+        bool preserveBindingExprState             = false;
+        bool duplicateRuntimeStorage              = false;
+        bool resolveBindingExprWithParentBindings = false;
+
+        // Preserve resolved symbols on same-AST clones, as cross-AST cloning already does.
+        // Callee helpers/globals/constants keep their original symbols when inlined;
+        // preserveSyntheticSymbol excludes locals/parameters so they can be rebound.
         bool     preserveResolvedSymbols = false;
         uint32_t breakableDepth          = 0;
-        // How many nested callables - local functions, lambdas, closures - the clone has
-        // descended into. A callable is a function of its own: an expression the expansion
-        // bound to a name lives in the caller's frame and cannot be read from inside it.
-        uint32_t   nestedCallableDepth                 = 0;
+
+        // Nested callables have independent frames and cannot read expressions
+        // bound to names in the caller's expansion frame.
+        uint32_t nestedCallableDepth = 0;
+
         AstNodeRef suppressedImplicitCastSubstituteRef = AstNodeRef::invalid();
+
         explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false, bool inDuplicateRuntimeStorage = false, uint32_t inBreakableDepth = 0) :
             bindings(inBindings),
             replacements(inReplacements),

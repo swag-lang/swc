@@ -18,6 +18,7 @@ namespace CodeGenExprView
         const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
         if (storedView.type() != nullptr)
             return storedView;
+
         return codeGen.viewType(exprRef);
     }
 
@@ -26,6 +27,7 @@ namespace CodeGenExprView
         Symbol* symbol = view.singleSymbol();
         if (!symbol || !symbol->isFunction())
             return nullptr;
+
         return &symbol->cast<SymbolFunction>();
     }
 }

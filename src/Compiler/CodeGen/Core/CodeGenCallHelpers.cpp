@@ -51,8 +51,7 @@ namespace
                 outPayload.setIsValue();
                 return true;
 
-            // 'char' and 'rune' are integer-like at the type level but carry their own constant
-            // kinds, so they never reach the 'Int' arm.
+            // Char and rune have distinct constant kinds despite their integer-like types.
             case ConstantKind::Char:
                 builder.emitLoadRegImm(outPayload.reg, ApInt(cst.getChar(), 64), MicroOpBits::B64);
                 outPayload.setIsValue();
@@ -86,6 +85,7 @@ namespace
                 const ConstantRef      runtimeStringCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, value.data(), value.size());
                 if (runtimeStringCstRef.isInvalid())
                     return false;
+
                 const ConstantValue& runtimeStringCst = codeGen.cstMgr().get(runtimeStringCstRef);
                 builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(runtimeStringCst.getStruct().data()), runtimeStringCstRef);
                 outPayload.setIsValue();
@@ -150,6 +150,7 @@ namespace
                 const ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, targetTypeRef.isValid() ? targetTypeRef : cst.typeRef());
                 if (safeCstRef.isInvalid())
                     return false;
+
                 const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
                 builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(safeCst.getStruct().data()), safeCstRef);
                 outPayload.setIsAddress();
@@ -161,6 +162,7 @@ namespace
                 const ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, targetTypeRef.isValid() ? targetTypeRef : cst.typeRef());
                 if (safeCstRef.isInvalid())
                     return false;
+
                 const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
                 builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(safeCst.getArray().data()), safeCstRef);
                 outPayload.setIsAddress();
@@ -176,11 +178,13 @@ namespace
                 const ConstantRef                safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
                 if (safeArrayCstRef.isInvalid())
                     return false;
+
                 const ConstantValue& safeArrayCst    = codeGen.cstMgr().get(safeArrayCstRef);
                 const void*          targetPtr       = sliceBytes.empty() ? sliceBytes.data() : safeArrayCst.getArray().data();
                 const ConstantRef    runtimeSliceRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, runtimeTypeRef, targetPtr, elementCount);
                 if (runtimeSliceRef.isInvalid())
                     return false;
+
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceRef);
                 builder.emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceRef);
                 outPayload.setIsValue();
@@ -222,10 +226,9 @@ namespace
 
         const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
 
-        // A struct or array constant bound to a non-null value-pointer parameter (the
-        // castless receiver) passes the address of its own static payload: a segment
-        // address every backend relocates. Lowering the pointer itself to bytes would
-        // bake a compiler-memory address into the emitted code, dead in a native image.
+        // Castless receivers pass the aggregate's relocatable static address.
+        // Lowering that pointer to bytes would embed a compiler-memory address
+        // that is invalid in a native image.
         if (storageType.isNonNullValuePointer() && defaultCst.isStructOrArray())
         {
             const TypeRef     pointeeTypeRef = storageType.payloadTypeRef();
@@ -234,8 +237,9 @@ namespace
             {
                 const ConstantValue&             safeCst = codeGen.cstMgr().get(safeCstRef);
                 const std::span<const std::byte> bytes   = safeCst.isStruct() ? safeCst.getStruct() : safeCst.getArray();
-                outPayload.typeRef                       = targetTypeRef;
-                outPayload.reg                           = codeGen.nextVirtualIntRegister();
+
+                outPayload.typeRef = targetTypeRef;
+                outPayload.reg     = codeGen.nextVirtualIntRegister();
                 codeGen.builder().emitLoadRegPtrReloc(outPayload.reg, reinterpret_cast<uint64_t>(bytes.data()), safeCstRef);
                 outPayload.setIsValue();
                 outPayload.markMaterializedPointerLikeValue();
@@ -300,8 +304,10 @@ void CodeGenCallHelpers::appendPreparedValueArg(SmallVector<ABICall::PreparedArg
     preparedArg.isAddressed           = operandPayload.isAddress() && !normalizedArg.isIndirect && !argType.isReference();
     preparedArg.numBits               = normalizedArg.numBits;
 }
+
 bool CodeGenCallHelpers::materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef)
 {
     return materializeDefaultConstantPayload(codeGen, outPayload, targetTypeRef, constantRef);
 }
+
 SWC_END_NAMESPACE();

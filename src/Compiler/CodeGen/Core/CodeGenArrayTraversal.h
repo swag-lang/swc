@@ -22,13 +22,16 @@ namespace CodeGenArrayTraversal
         const MicroReg countReg   = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(elementReg, addressReg, MicroOpBits::B64);
         builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
+
         const MicroLabelRef loop = builder.createLabel();
         builder.placeLabel(loop);
         SWC_RESULT(emitElement(elementType, elementReg));
+
         builder.emitOpBinaryRegImm(elementReg, ApInt(elementSize, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loop);
+
         return Result::Continue;
     }
 }

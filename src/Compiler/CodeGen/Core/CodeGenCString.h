@@ -14,6 +14,7 @@ namespace CodeGenCString
             codeGen.builder().emitLoadRegMem(cstrReg, payload.reg, 0, MicroOpBits::B64);
         else
             codeGen.builder().emitLoadRegReg(cstrReg, payload.reg, MicroOpBits::B64);
+
         return cstrReg;
     }
 }

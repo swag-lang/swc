@@ -17,6 +17,7 @@ namespace CodeGenFloatConstant
             const uint64_t widenedBits  = std::bit_cast<uint64_t>(widenedValue);
             const MicroReg widenedReg   = codeGen.nextVirtualFloatRegister();
             builder.emitLoadRegImm(widenedReg, ApInt(widenedBits, 64), MicroOpBits::B64);
+
             builder.emitClearReg(payload.reg, MicroOpBits::B32);
             builder.emitOpBinaryRegReg(payload.reg, widenedReg, MicroOp::ConvertFloatToFloat, MicroOpBits::B64);
             payload.setIsValue();

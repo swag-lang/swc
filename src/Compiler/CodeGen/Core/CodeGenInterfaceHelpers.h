@@ -15,13 +15,15 @@ namespace CodeGenInterfaceHelpers
 {
     struct InterfaceCastInfo
     {
-        const SymbolStruct*   objectStruct        = nullptr;
-        const SymbolImpl*     implSym             = nullptr;
+        const SymbolStruct* objectStruct = nullptr;
+        const SymbolImpl*   implSym      = nullptr;
+
         const SymbolVariable* usingField          = nullptr;
         bool                  usingFieldIsPointer = false;
     };
 
-    bool   resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo);
+    bool resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo);
+
     Result prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo, bool allowIncomplete = false);
     void   emitLoadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, ConstantRef tableCstRef);
 }

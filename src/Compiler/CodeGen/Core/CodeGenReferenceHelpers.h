@@ -40,6 +40,7 @@ namespace CodeGenReferenceHelpers
             ioTypeRef = typeInfo->payloadTypeRef();
             derefReferencePayload(codeGen, ioPayload, ioTypeRef);
         }
+
         return nullptr;
     }
 }

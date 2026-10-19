@@ -39,6 +39,7 @@ namespace
             const TypeInfo& currentType = sema.typeMgr().get(whatTypeRef);
             if (!currentType.isArray())
                 break;
+
             whatTypeRef = IntrinsicInitType::normalizeTypeRef(sema.ctx(), currentType.payloadArrayElemTypeRef());
         }
 
@@ -59,6 +60,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_WHAT, std::format("{} argument{}", expectedCount, expectedCount == 1 ? "" : "s"));
         diag.addArgument(Diagnostic::ARG_VALUE, args.size());
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -95,6 +97,7 @@ namespace
 
             if (!whatType || !whatType->isPointerOrReference())
                 return SemaError::raiseRequestedTypeFam(sema, whatView.nodeRef(), whatView.typeRef(), sema.typeMgr().typeBlockPtrVoid());
+
             return Result::Continue;
         }
 
@@ -106,9 +109,9 @@ namespace
             return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, whatView.nodeRef());
 
         markIntrinsicOperandAddressableStorage(sema, whatView);
+
         return Result::Continue;
     }
-
 }
 
 Result AstIntrinsicInit::semaPostNode(Sema& sema) const
@@ -119,6 +122,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
     SWC_ASSERT(fillTypeRef.isValid());
     if (fillTypeRef.isInvalid())
         return Result::Error;
+
     SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, fillTypeRef, nodeWhatRef));
 
     SmallVector<AstNodeRef> args;
@@ -127,6 +131,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
     {
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, fillTypeRef))
             return failIntrinsicInitRequiresValue(sema, nodeWhatRef, fillTypeRef);
+
         return SemaSpecOp::addDefaultInitCallDependencies(sema, fillTypeRef);
     }
 
@@ -158,6 +163,7 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
 
         if (sema.isCurrentFunction())
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, fillTypeRef, "__intrinsic_runtime_storage"));
+
         return SemaSpecOp::addDefaultInitCallDependencies(sema, fillTypeRef);
     }
 
@@ -171,18 +177,21 @@ Result AstIntrinsicInit::semaPostNode(Sema& sema) const
 Result AstIntrinsicDrop::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
+
     return SemaSpecOp::addLifecycleCallDependencies(sema, intrinsicLifecycleTargetTypeRef(sema, sema.viewType(nodeWhatRef).typeRef(), nodeCountRef.isValid()), SpecOpKind::OpDrop);
 }
 
 Result AstIntrinsicPostCopy::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
+
     return SemaSpecOp::addLifecycleCallDependencies(sema, intrinsicLifecycleTargetTypeRef(sema, sema.viewType(nodeWhatRef).typeRef(), nodeCountRef.isValid()), SpecOpKind::OpPostCopy);
 }
 
 Result AstIntrinsicPostMove::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaIntrinsicLifecycleStmt(sema, nodeWhatRef, nodeCountRef));
+
     return SemaSpecOp::addLifecycleCallDependencies(sema, intrinsicLifecycleTargetTypeRef(sema, sema.viewType(nodeWhatRef).typeRef(), nodeCountRef.isValid()), SpecOpKind::OpPostMove);
 }
 
@@ -197,7 +206,8 @@ namespace
         {
             if (calledFn != nullptr)
             {
-                auto& payload    = sema.ensureSemaPayload<DataOfSpecOpPayload>(sema.curNodeRef());
+                auto& payload = sema.ensureSemaPayload<DataOfSpecOpPayload>(sema.curNodeRef());
+
                 payload.calledFn = calledFn;
             }
 
@@ -217,9 +227,11 @@ namespace
         TypeRef dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
         if (view.cstRef().isValid())
             dataTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, dataTypeRef, view.cstRef());
+
         const TypeInfo* type  = &sema.typeMgr().get(dataTypeRef);
         TypeInfoFlags   flags = type->flags();
         flags.add(view.type()->flags());
+
         // The inline parameter freezes its descriptor, not the slice's elements.
         const bool inlineSliceParameter = type->isSlice() && sema.constAssignSourceParameter(SemaHelpers::resolveTransparentConditionExprSourceRef(sema, view.nodeRef()));
         if (!inlineSliceParameter && SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))
@@ -277,6 +289,7 @@ namespace
         sema.setType(sema.curNodeRef(), resultTypeRef);
         ConstantIntrinsic::tryConstantFoldDataOf(sema, resultTypeRef, view);
         sema.setIsValue(node);
+
         return Result::Continue;
     }
 

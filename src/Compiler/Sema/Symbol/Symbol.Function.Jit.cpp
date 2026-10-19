@@ -27,19 +27,20 @@ namespace
     // by its epoch, and one that moved before is walked in its new state.
     uint64_t appendDepOrder(SmallVector<SymbolFunction*>& outJitOrder, SymbolFunction& root)
     {
-        // Iterative DFS avoids recursive stack growth on large call graphs and
-        // emits dependencies before dependents, which is the order JIT batching
-        // needs for patching direct calls.
+        // Use iterative DFS to avoid stack growth and order dependencies before callers,
+        // as required when patching direct calls.
         PointerSet<SymbolFunction>   seen;
         SmallVector<DepStackEntry>   stack;
         SmallVector<SymbolFunction*> dependencies;
         uint64_t                     epochSum = 0;
+
         stack.push_back({.function = &root, .expanded = false});
 
         while (!stack.empty())
         {
             const auto current = stack.back();
             stack.pop_back();
+
             SymbolFunction* function = current.function;
             if (!function)
                 continue;
@@ -66,10 +67,12 @@ namespace
 
             dependencies.clear();
             function->appendCallDependencies(dependencies);
+
             for (auto* dependency : std::ranges::reverse_view(dependencies))
             {
                 if (!dependency || dependency == function)
                     continue;
+
                 stack.push_back({.function = dependency, .expanded = false});
             }
         }
@@ -79,7 +82,8 @@ namespace
 
     void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction& function, const Symbol* waiterSymbol)
     {
-        TaskState& wait   = ctx.state();
+        TaskState& wait = ctx.state();
+
         wait.kind         = TaskStateKind::SemaWaitSymJitCompleted;
         wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : function.declNodeRef();
         wait.codeRef      = ctx.state().codeRef.isValid() ? ctx.state().codeRef : function.codeRefIfDeclared();
@@ -94,9 +98,11 @@ namespace
         wait.nodeRef    = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : waiterFunction.declNodeRef();
         if (wait.nodeRef.isInvalid())
             wait.nodeRef = targetFunction.declNodeRef();
+
         wait.codeRef = ctx.state().codeRef.isValid() ? ctx.state().codeRef : waiterFunction.codeRefIfDeclared();
         if (!wait.codeRef.isValid())
             wait.codeRef = targetFunction.codeRefIfDeclared();
+
         wait.symbol       = &targetFunction;
         wait.waiterSymbol = &waiterFunction != &targetFunction ? &waiterFunction : nullptr;
     }
@@ -119,6 +125,7 @@ namespace
                 continue;
             if (dependency->jitPatchAddress() || dependency->jitEntryAddress())
                 continue;
+
             if (dependency->isIgnored())
             {
                 ctx.state().jitEmissionError = true;
@@ -147,6 +154,7 @@ namespace
 
         if (layout.numBits == 8 || layout.numBits == 16 || layout.numBits == 32 || layout.numBits == 64)
             return microOpBitsFromBitWidth(layout.numBits);
+
         return MicroOpBits::B64;
     }
 
@@ -182,6 +190,7 @@ namespace
         param->setDeclared(ctx);
         param->setTyped(ctx);
         param->setSemaCompleted(ctx);
+
         adapter.addParameter(param);
     }
 
@@ -194,9 +203,11 @@ namespace
         // are forwarded after normal ABI normalization.
         uint32_t regIndex = 1;
 
-        const CallConv&                        callConv      = CallConv::get(adapter.callConvKind());
+        const CallConv& callConv = CallConv::get(adapter.callConvKind());
+
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(adapter.returnTypeRef()), ABITypeNormalize::Usage::Return);
-        const bool                             hasHiddenRet  = normalizedRet.isIndirect;
+
+        const bool hasHiddenRet = normalizedRet.isIndirect;
 
         MicroBuilder& builder = adapter.microInstrBuilder(ctx);
         builder.setContext(ctx);
@@ -208,7 +219,10 @@ namespace
         incomingArgLayouts.reserve(adapter.parameters().size() + (hasHiddenRet ? 2u : 1u));
         if (hasHiddenRet)
             incomingArgLayouts.push_back({});
+
+        // The closure context follows any hidden return slot.
         incomingArgLayouts.push_back({});
+
         for (const SymbolVariable* param : adapter.parameters())
         {
             SWC_ASSERT(param != nullptr);
@@ -253,6 +267,7 @@ namespace
         SWC_RESULT(adapter.emit(ctx));
         adapter.setCodeGenCompleted(ctx);
         adapter.tryMarkCodeGenJobScheduled();
+
         return Result::Continue;
     }
 }
@@ -290,10 +305,8 @@ bool SymbolFunction::tryMarkJitPatchJobScheduled() noexcept
 
 void SymbolFunction::refreshJitOrderCache() const
 {
-    // The same order is asked for over and over: once per snapshot of the dependency-closure loop,
-    // once per metadata pointer judged against its call graph, twice per compile-time call that
-    // patches its global slots. It only changes when the call graph does, so it is walked once per
-    // state of that graph instead of once per question.
+    // Metadata queries, relocation patching, and dependency walks reuse this order.
+    // Recompute only when a graph change affects its closure.
     const uint64_t version = callGraphVersion();
 
     {
@@ -309,6 +322,7 @@ void SymbolFunction::refreshJitOrderCache() const
             uint64_t epochSum = 0;
             for (const SymbolFunction* function : jitOrderCache_)
                 epochSum += function->callGraphEpoch();
+
             if (epochSum == jitOrderCacheEpochSum_)
             {
                 jitOrderCacheVersion_.store(version, std::memory_order_relaxed);
@@ -346,6 +360,7 @@ const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
     globalInitOffsetsCache_.erase(duplicates.begin(), duplicates.end());
 
     globalInitOffsetsComputed_.store(true, std::memory_order_release);
+
     return globalInitOffsetsCache_;
 }
 

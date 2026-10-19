@@ -104,23 +104,26 @@ namespace Runtime
         const TypeInfo*  pointedType;
         const void*      value;
         Slice<Attribute> attributes;
-        uint32_t         offset;
-        uint32_t         crc;
-        TypeValueFlags   flags;
-        uint32_t         padding;
+
+        uint32_t       offset;
+        uint32_t       crc;
+        TypeValueFlags flags;
+        uint32_t       padding;
     };
 
     struct DynamicStructInfo;
 
     struct TypeInfo
     {
-        String                   fullname;
-        String                   name;
-        uint32_t                 sizeofType;
-        uint32_t                 crc;
-        TypeInfoFlags            flags = TypeInfoFlags::Zero;
-        TypeInfoKind             kind  = TypeInfoKind::Invalid;
-        uint8_t                  padding[3];
+        String fullname;
+        String name;
+
+        uint32_t      sizeofType;
+        uint32_t      crc;
+        TypeInfoFlags flags = TypeInfoFlags::Zero;
+        TypeInfoKind  kind  = TypeInfoKind::Invalid;
+        uint8_t       padding[3];
+
         const TypeInfo*          unqualified;
         const DynamicStructInfo* dynamicIdentity;
     };
@@ -159,13 +162,16 @@ namespace Runtime
     struct TypeInfoStruct
     {
         TypeInfo base;
+
         void (*opInit)(void*);
         void (*opDrop)(void*);
         void (*opPostCopy)(void*);
         void (*opPostMove)(void*);
-        String                   structName;
-        const TypeInfo*          fromGeneric;
-        Slice<TypeValue>         generics;
+
+        String           structName;
+        const TypeInfo*  fromGeneric;
+        Slice<TypeValue> generics;
+
         Slice<TypeValue>         fields;
         Slice<TypeValue>         usingFields;
         Slice<TypeValue>         methods;
@@ -176,7 +182,8 @@ namespace Runtime
 
     struct TypeInfoFunc
     {
-        TypeInfo         base;
+        TypeInfo base;
+
         Slice<TypeValue> generics;
         Slice<TypeValue> parameters;
         const TypeInfo*  returnType;
@@ -185,7 +192,8 @@ namespace Runtime
 
     struct TypeInfoEnum
     {
-        TypeInfo         base;
+        TypeInfo base;
+
         Slice<TypeValue> values;
         const TypeInfo*  rawType;
         Slice<Attribute> attributes;
@@ -193,11 +201,13 @@ namespace Runtime
 
     struct TypeInfoArray
     {
-        TypeInfo        base;
+        TypeInfo base;
+
         const TypeInfo* pointedType;
         const TypeInfo* finalType;
-        uint64_t        count;
-        uint64_t        totalCount;
+
+        uint64_t count;
+        uint64_t totalCount;
     };
 
     struct TypeInfoSlice

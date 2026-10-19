@@ -23,6 +23,7 @@ namespace
             else
                 out << ch;
         }
+
         out << '"';
     }
 
@@ -37,10 +38,12 @@ namespace
         std::string line;
         if (!std::getline(input, line))
             return false;
+
         uint32_t   size   = 0;
         const auto parsed = std::from_chars(line.data(), line.data() + line.size(), size);
         if (parsed.ec != std::errc{} || parsed.ptr != line.data() + line.size() || size > 64 * 1024 * 1024)
             return false;
+
         value.resize(size);
         return static_cast<bool>(input.read(value.data(), size));
     }
@@ -59,8 +62,10 @@ namespace
             case SymbolKind::Variable:
                 if (symbol.cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::Parameter))
                     return "parameter";
+
                 if (symbol.ownerSymMap() && (symbol.ownerSymMap()->isStruct() || symbol.ownerSymMap()->isInterface()))
                     return "property";
+
                 return "variable";
             case SymbolKind::Constant: return "variable";
             default: return "";
@@ -76,10 +81,13 @@ namespace
         if (variable.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
             (symbol.ownerSymMap() && (symbol.ownerSymMap()->isStruct() || symbol.ownerSymMap()->isInterface())))
             return {};
+
         if (variable.hasGlobalStorage())
             return "global";
+
         if (variable.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
             return "local";
+
         return {};
     }
 
@@ -110,6 +118,7 @@ namespace
                     default: return nullptr;
                 }
             }
+
             return nullptr;
         }
 
@@ -117,20 +126,24 @@ namespace
         {
             if (!symbol.decl() || symbol.tokRef().isInvalid() || tokenRef.isInvalid() || symbol.isIgnored() || symbol.isExcludedByCondition())
                 return;
+
             const auto kind = tokenKind(symbol);
             if (kind.empty() || source.ref() != file->ast().srcView().ref())
                 return;
+
             const Token& token = source.token(tokenRef);
             if (token.id != TokenId::Identifier || source.tokenString(tokenRef) != symbol.name(*ctx))
                 return;
 
             const SourceView& target = compiler->srcView(symbol.srcViewRef());
+
             // Generated views can reuse a physical file with different offsets. Until they have a
             // canonical source mapping, omit navigation while keeping the resolved token kind.
             const bool   hasDefinition = target.file() && target.ref() == target.file()->ast().srcView().ref();
             const Token* targetToken   = symbol.tokRef().isInvalid() ? nullptr : &target.token(symbol.tokRef());
             if (hasDefinition)
                 targetFiles->insert(target.file());
+
             const bool  declaration = hasDefinition && target.ref() == source.ref() && symbol.tokRef() == tokenRef;
             const auto* variable    = symbol.decl()->safeCast<AstSingleVarDecl>();
             const bool  inferred    = declaration && variable && variable->nodeTypeRef.isInvalid() && variable->nodeInitRef.isValid();
@@ -141,6 +154,7 @@ namespace
             if (!first)
                 *out << ',';
             first = false;
+
             *out << "{\"start\":" << source.tokenByteStart(token) << ",\"length\":" << token.byteLength << ",\"name\":";
             writeString(*out, source.tokenString(tokenRef));
             *out << ",\"kind\":";
@@ -148,13 +162,16 @@ namespace
             *out << ",\"type\":";
             writeString(*out, symbol.typeRef().isValid() ? symbol.typeInfo(*ctx).toName(*ctx).view() : std::string_view{});
             *out << ",\"declaration\":" << (declaration ? "true" : "false") << ",\"readonly\":" << (readonly ? "true" : "false");
+
             if (!storage.empty())
             {
                 *out << ",\"storage\":";
                 writeString(*out, storage);
             }
+
             *out << ",\"intrinsic\":" << (intrinsic ? "true" : "false")
                  << ",\"inferred\":" << (inferred ? "true" : "false") << ",\"definition\":";
+
             if (hasDefinition && targetToken)
             {
                 *out << "{\"path\":";
@@ -169,6 +186,7 @@ namespace
         {
             const NodePayload& payload  = file->nodePayloadContext();
             const auto         resolved = payload.resolveSymbols(ref);
+
             for (const Symbol* symbol : resolved.symbols)
             {
                 if (symbol && symbol->decl() == &node)
@@ -179,6 +197,7 @@ namespace
             if (symbol)
             {
                 occurrence(*symbol, compiler->srcView(node.srcViewRef()), node.tokRef());
+
                 const auto* call = node.safeCast<AstCallExpr>();
                 if (call && symbol->isFunction())
                 {
@@ -197,6 +216,7 @@ namespace
         {
             const SourceView&     view = file->ast().srcView();
             std::vector<uint32_t> starts;
+
             for (const AstNodeRef ref : file->nodePayloadContext().implicitPropagations())
             {
                 const AstNode& node = file->ast().node(ref);
@@ -207,6 +227,7 @@ namespace
             std::ranges::sort(starts);
             const auto repeated = std::ranges::unique(starts);
             starts.erase(repeated.begin(), repeated.end());
+
             for (size_t i = 0; i < starts.size(); ++i)
                 *out << (i ? "," : "") << starts[i];
         }
@@ -230,10 +251,12 @@ Result EditorIndex::loadOverlays(CommandLine& cmdLine)
 {
     if (cmdLine.editorOverlay.empty())
         return Result::Continue;
+
     std::ifstream input(cmdLine.editorOverlay, std::ios::binary);
     std::string   header;
     auto          sources = std::make_shared<std::unordered_map<std::string, std::string>>();
     bool          valid   = static_cast<bool>(std::getline(input, header)) && header == "SWAG-EDITOR-1";
+
     while (valid && input.peek() != std::char_traits<char>::eof())
     {
         std::string path;
@@ -242,11 +265,13 @@ Result EditorIndex::loadOverlays(CommandLine& cmdLine)
         if (valid)
             sources->insert_or_assign(pathKey(fs::path(std::u8string(path.begin(), path.end()))), std::move(content));
     }
+
     if (!valid || input.bad())
     {
         std::println(stderr, "cannot read editor overlay '{}': expected SWAG-EDITOR-1 and length-prefixed UTF-8 paths and buffers", cmdLine.editorOverlay.string());
         return Result::Error;
     }
+
     cmdLine.editorSources = std::move(sources);
     return Result::Continue;
 }
@@ -265,9 +290,10 @@ Result EditorIndex::write(CompilerInstance& compiler)
     std::unordered_map<std::string, IndexedSource> indexedSources;
     std::unordered_set<std::string>                modulePaths;
     std::unordered_set<const SourceFile*>          targetFiles;
-    const CommandLine&                             cmdLine      = compiler.cmdLine();
-    const std::string                              moduleKey    = cmdLine.modulePath.empty() ? std::string{} : pathKey(cmdLine.modulePath);
-    const std::string                              modulePrefix = moduleKey.empty() || moduleKey.ends_with('/') ? moduleKey : moduleKey + "/";
+
+    const CommandLine& cmdLine      = compiler.cmdLine();
+    const std::string  moduleKey    = cmdLine.modulePath.empty() ? std::string{} : pathKey(cmdLine.modulePath);
+    const std::string  modulePrefix = moduleKey.empty() || moduleKey.ends_with('/') ? moduleKey : moduleKey + "/";
 
     // Editor queries only search the requested module. Imported API files are included below
     // only when one of those queries points to a declaration inside them.
@@ -275,17 +301,19 @@ Result EditorIndex::write(CompilerInstance& compiler)
     {
         if (!file || !file->ast().hasSourceView())
             continue;
+
         if (isEditorServiceCommand(cmdLine.command) && !file->isEditorActive())
             continue;
 
-        const std::string key      = pathKey(file->path());
-        const bool        inModule = !moduleKey.empty()
-                                         ? key == moduleKey || key.starts_with(modulePrefix)
-                                         : std::ranges::any_of(cmdLine.files, [&](const fs::path& path) { return key == pathKey(path); });
+        const std::string key = pathKey(file->path());
+
+        const bool inModule = !moduleKey.empty() ? key == moduleKey || key.starts_with(modulePrefix) : std::ranges::any_of(cmdLine.files, [&](const fs::path& path) { return key == pathKey(path); });
+
         if (!inModule)
             continue;
 
         modulePaths.insert(key);
+
         std::ostringstream occurrences;
         std::ostringstream propagations;
         if (file->ast().root().isValid() && !file->isRuntime() && !file->isImportedApi())
@@ -302,15 +330,18 @@ Result EditorIndex::write(CompilerInstance& compiler)
                 writer.implicitPropagations();
             }
         }
+
         indexedSources.emplace(key, IndexedSource{.occurrences = occurrences.str(), .propagations = propagations.str()});
     }
 
     out << "{\"version\":1,\"complete\":" << (Stats::hasError() ? "false" : "true") << ",\"files\":[";
     bool first = true;
+
     for (const SourceFile* file : compiler.files())
     {
         if (!file || !file->ast().hasSourceView())
             continue;
+
         if (isEditorServiceCommand(cmdLine.command) && !file->isEditorActive())
             continue;
 
@@ -321,19 +352,24 @@ Result EditorIndex::write(CompilerInstance& compiler)
         if (!first)
             out << ',';
         first = false;
+
         out << "{\"path\":";
         writePath(out, file->path());
         out << ",\"text\":";
         writeString(out, file->sourceView());
+
         const auto source = indexedSources.find(key);
         out << ",\"occurrences\":[";
         if (source != indexedSources.end())
             out << source->second.occurrences;
+
         out << "],\"propagations\":[";
         if (source != indexedSources.end())
             out << source->second.propagations;
+
         out << "]}";
     }
+
     out << "]}";
     out.close();
     if (!out)
@@ -341,6 +377,7 @@ Result EditorIndex::write(CompilerInstance& compiler)
         std::println(stderr, "cannot write editor snapshot '{}'", compiler.cmdLine().editorIndex.string());
         return Result::Error;
     }
+
     return Result::Continue;
 }
 

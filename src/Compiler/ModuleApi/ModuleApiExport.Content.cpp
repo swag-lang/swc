@@ -339,7 +339,8 @@ namespace
             return;
 
         std::vector<ModuleApiTextEdit> edits;
-        const auto&                    tokens = srcView.tokens();
+
+        const auto& tokens = srcView.tokens();
 
         for (size_t tokenIndex = 0; tokenIndex < tokens.size(); ++tokenIndex)
         {
@@ -364,22 +365,28 @@ namespace
                     case TokenId::SymLeftParen:
                         parenDepth++;
                         break;
+
                     case TokenId::SymRightParen:
                         parenDepth--;
                         break;
+
                     case TokenId::SymAttrStart:
                     case TokenId::SymLeftBracket:
                         bracketDepth++;
                         break;
+
                     case TokenId::SymRightBracket:
                         bracketDepth--;
                         break;
+
                     case TokenId::SymLeftCurly:
                         curlyDepth++;
                         break;
+
                     case TokenId::SymRightCurly:
                         curlyDepth--;
                         break;
+
                     default:
                         break;
                 }
@@ -391,6 +398,7 @@ namespace
 
                 const size_t separatorStart = srcView.tokenByteStart(token);
                 appendModuleApiAttributeEntry(entries, srcView, tokens, entryTokenIndex, listTokenIndex, separatorStart);
+
                 if (isSeparator)
                 {
                     entryTokenIndex = listTokenIndex + 1;
@@ -400,6 +408,7 @@ namespace
                 bool hasRemovedEntry = false;
                 Utf8 replacement     = "#[";
                 bool hasKeptEntry    = false;
+
                 for (const ModuleApiAttributeEntrySpan& entry : entries)
                 {
                     if (containsModuleApiAttributeName(attributeNames, entry.name))
@@ -413,6 +422,7 @@ namespace
                         entryText.remove_prefix(1);
                     while (!entryText.empty() && std::isspace(static_cast<unsigned char>(entryText.back())))
                         entryText.remove_suffix(1);
+
                     if (hasKeptEntry)
                         replacement += ", ";
                     replacement += entryText;
@@ -430,6 +440,7 @@ namespace
                         while (editEnd < ioContent.size() && std::isspace(static_cast<unsigned char>(ioContent[editEnd])))
                             editEnd++;
                     }
+
                     edits.push_back({
                         .start       = listStart,
                         .end         = editEnd,
@@ -442,8 +453,8 @@ namespace
             }
         }
 
-        // A kept list joined with ", " can come out longer than it was written. Only then do
-        // the edits shift the suffix one by one.
+        // Joining retained attributes with comma-space can lengthen a list. Use
+        // reverse-order replacement when one-pass compaction cannot apply.
         const bool shrinksOnly = std::ranges::all_of(edits, [](const ModuleApiTextEdit& edit) { return edit.replacement.size() <= edit.end - edit.start; });
         if (shrinksOnly)
         {
@@ -463,6 +474,7 @@ namespace
         SourceView srcView(SourceViewRef::invalid(), &lexFile);
         Lexer      lexer;
         lexer.tokenize(ctx, srcView, LexerFlagsE::AllowReservedIdentifiers);
+
         removeNamedModuleApiAttributes(srcView, ioContent, attributeNames);
     }
 
@@ -472,7 +484,9 @@ namespace
     {
         std::vector<ModuleApiAttributeListSpan> lists;
         std::vector<ModuleApiTextEdit>          edits;
-        const auto&                             tokens = srcView.tokens();
+
+        const auto& tokens = srcView.tokens();
+
         for (size_t tokenIndex = 0; tokenIndex < tokens.size(); ++tokenIndex)
         {
             if (tokens[tokenIndex].id != TokenId::SymAttrStart)
@@ -480,6 +494,7 @@ namespace
 
             const size_t listStart = srcView.tokenByteStart(tokens[tokenIndex]);
             uint32_t     depth     = 1;
+
             for (size_t listTokenIndex = tokenIndex + 1; listTokenIndex < tokens.size(); ++listTokenIndex)
             {
                 const Token& token = tokens[listTokenIndex];
@@ -524,6 +539,7 @@ namespace
         SourceView srcView(SourceViewRef::invalid(), &lexFile);
         Lexer      lexer;
         lexer.tokenize(ctx, srcView, LexerFlagsE::AllowReservedIdentifiers);
+
         normalizeModuleApiAttributes(srcView, ioContent);
     }
 
@@ -539,6 +555,7 @@ namespace
 
         Formatter formatter(options);
         SWC_RESULT(formatter.prepare(ctx.global(), outContent.view()));
+
         outContent = formatter.text();
         return Result::Continue;
     }
@@ -613,6 +630,7 @@ namespace
 
         SmallVector<AstNodeRef> usingRefs;
         file.ast().appendNodes(usingRefs, rootNode.cast<AstFile>().spanUsingsRef);
+
         for (const AstNodeRef usingRef : usingRefs)
         {
             if (usingRef.isInvalid())
@@ -652,9 +670,11 @@ namespace
     uint32_t commonNamespacePrefixCount(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
     {
         const uint32_t limit = std::min<uint32_t>(static_cast<uint32_t>(lhs.size()), static_cast<uint32_t>(rhs.size()));
-        uint32_t       count = 0;
+
+        uint32_t count = 0;
         while (count < limit && lhs[count] == rhs[count])
             ++count;
+
         return count;
     }
 
@@ -663,6 +683,7 @@ namespace
         Utf8 indent;
         for (uint32_t i = 0; i < depth; ++i)
             indent += "    ";
+
         return indent;
     }
 

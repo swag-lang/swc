@@ -70,6 +70,7 @@ namespace SymbolInternal
     {
         out.clear();
         out.reserve(bindings.size());
+
         for (const auto& binding : bindings)
             out.push_back({.idRef = binding.idRef, .exprRef = binding.exprRef, .typeRef = binding.typeRef, .cstRef = binding.cstRef});
     }
@@ -108,7 +109,8 @@ namespace SymbolInternal
             return;
         }
 
-        auto& newEntry          = entries.emplace_back();
+        auto& newEntry = entries.emplace_back();
+
         newEntry.payloadContext = payloadContext;
         newEntry.ownerAst       = &ownerAst;
         newEntry.sourceRef      = sourceRef;
@@ -141,6 +143,7 @@ bool Symbol::isAttribute() const noexcept
 {
     if (!isFunction())
         return false;
+
     return cast<SymbolFunction>().isAttribute();
 }
 
@@ -148,6 +151,7 @@ bool Symbol::isLetVariable() const noexcept
 {
     if (!isVariable())
         return false;
+
     return cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::Let);
 }
 
@@ -155,6 +159,7 @@ bool Symbol::isFunctionLocalVariable() const noexcept
 {
     if (!isVariable())
         return false;
+
     return cast<SymbolVariable>().isFunctionLocalVariable();
 }
 
@@ -184,6 +189,7 @@ bool Symbol::isWaitSatisfied(TaskStateKind kind) const noexcept
         default:
             if (const auto* function = safeCast<SymbolFunction>())
                 return function->isJitWaitSatisfied(kind);
+
             return false;
     }
 
@@ -199,6 +205,7 @@ void Symbol::setTyped(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::Typed))
         return;
+
     flags_.add(SymbolFlagsE::Typed);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymTyped});
@@ -208,6 +215,7 @@ void Symbol::setConstraintsResolved(TaskContext& ctx)
 {
     if (areConstraintsResolved())
         return;
+
     flags_.add(SymbolFlagsE::ConstraintsResolved);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymConstraintsResolved});
@@ -217,6 +225,7 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::SemaCompleted))
         return;
+
 #if SWC_DEV_MODE
     if (const auto* function = safeCast<SymbolFunction>())
     {
@@ -227,6 +236,7 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
         }
     }
 #endif
+
     flags_.add(SymbolFlagsE::SemaCompleted);
     ctx.compiler().noteSymbolSemaCompleted();
     ctx.compiler().onSymbolSemaCompleted(ctx, *this);
@@ -239,6 +249,7 @@ void Symbol::setCodeGenCompleted(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::CodeGenCompleted))
         return;
+
     flags_.add(SymbolFlagsE::CodeGenCompleted);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymCodeGenCompleted});
@@ -249,6 +260,7 @@ void Symbol::setCodeGenPreSolved(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::CodeGenPreSolved))
         return;
+
     flags_.add(SymbolFlagsE::CodeGenPreSolved);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymCodeGenPreSolved});
@@ -258,6 +270,7 @@ void Symbol::setDeclared(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::Declared))
         return;
+
     flags_.add(SymbolFlagsE::Declared);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymDeclared});
@@ -267,9 +280,11 @@ void Symbol::setIgnored(TaskContext& ctx) noexcept
 {
     if (flags_.has(SymbolFlagsE::Ignored))
         return;
+
     flags_.add(SymbolFlagsE::Ignored);
     if (auto* const function = safeCast<SymbolFunction>())
         function->noteOwnCallGraphChanged();
+
     SymbolFunction::noteCallGraphChanged();
     ctx.compiler().notifyAlive();
 }
@@ -297,6 +312,7 @@ const AttributeList& Symbol::attributes() const
     const AttributeList* published = attributes_.load(std::memory_order_acquire);
     if (published)
         return *published;
+
     return EMPTY_ATTRIBUTES;
 }
 
@@ -357,6 +373,7 @@ bool Symbol::isType() const
         const auto& symAlias = cast<SymbolAlias>();
         if (symAlias.aliasedSymbol())
             return symAlias.aliasedSymbol()->isType();
+
         return symAlias.typeRef().isValid();
     }
 
@@ -368,6 +385,7 @@ bool Symbol::inSwagNamespace(const TaskContext& ctx) const noexcept
     const SymbolMap* map = ownerSymMap();
     if (!map)
         return false;
+
     return map->isNamespace() && map->idRef() == ctx.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
 }
 
@@ -375,10 +393,13 @@ bool Symbol::deepCompare(const Symbol* other) const noexcept
 {
     if (this == other)
         return true;
+
     if (kind_ != other->kind_)
         return false;
+
     if (isFunction())
         return cast<SymbolFunction>().deepCompare(other->cast<SymbolFunction>());
+
     return true;
 }
 
@@ -386,6 +407,7 @@ std::string_view Symbol::name(const TaskContext& ctx) const
 {
     if (idRef_.isInvalid())
         return "";
+
     const Identifier& id = ctx.idMgr().get(idRef_);
     return id.name;
 }
@@ -407,20 +429,18 @@ uint32_t Symbol::scopedNameHash(const TaskContext& ctx) const
     uint32_t   h        = Math::hash(fullName.view());
     if (h == 0)
         h = 1;
+
     scopedNameHash_.store(h, std::memory_order_relaxed);
     return h;
 }
 
 void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const
 {
-    // Walk scopes from inner -> outer
+    // Collect inner scopes first, then emit the name in reverse order.
     SmallVector8<const Symbol*> scopeChain;
-
-    // Add the symbol itself
     scopeChain.push_back(this);
     size_t length = name(ctx).size() + 1;
 
-    // Walk owner scopes
     const SymbolMap* map = ownerSymMap_;
     while (map)
     {
@@ -433,11 +453,11 @@ void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const
     // as often; one reservation covers every part and separator.
     out.reserve(out.size() + length);
 
-    // Emit in reverse (outer to inner)
     for (const auto& it : std::ranges::reverse_view(scopeChain))
     {
         if (!out.empty())
             out.append(".");
+
         out.append(it->name(ctx));
     }
 }

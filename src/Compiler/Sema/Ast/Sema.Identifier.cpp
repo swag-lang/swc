@@ -477,8 +477,9 @@ namespace
 
         SmallVector<Symbol*> specializedFunctions;
         SymbolStruct*        specializedStruct = nullptr;
-        bool                 sawFunction       = false;
-        bool                 sawStruct         = false;
+
+        bool sawFunction = false;
+        bool sawStruct   = false;
 
         for (const Symbol* baseSym : baseSymbols)
         {
@@ -515,8 +516,10 @@ namespace
                         SmallVector<const Symbol*> ambiguous;
                         ambiguous.push_back(specializedStruct);
                         ambiguous.push_back(instance);
+
                         return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), ambiguous.span());
                     }
+
                     specializedStruct = instance;
                 }
             }
@@ -539,6 +542,7 @@ namespace
         if (specializedStruct)
         {
             const TypeRef specializedTypeRef = SemaHelpers::ensureStructTypeRef(sema, *specializedStruct);
+
             sema.setSymbol(sema.curNodeRef(), specializedStruct);
             sema.setType(sema.curNodeRef(), specializedTypeRef);
             return Result::Continue;
@@ -553,6 +557,7 @@ namespace
                     sema.setSymbol(sema.curNodeRef(), functions.front());
                 else
                     sema.setSymbolList(sema.curNodeRef(), functions.span());
+
                 return Result::Continue;
             }
         }
@@ -564,13 +569,13 @@ namespace
 
         return SemaError::raise(sema, DiagnosticId::sema_err_not_type, sema.curNodeRef());
     }
-
 }
 
 Result AstIdentifier::semaPostNode(Sema& sema) const
 {
     // An unresolved identifier inside #defined can already be folded to false.
     const SemaNodeView view = sema.curViewConstant();
+
     // Macro injection pre-resolves caller names before declarations in the injected
     // block exist. A caller constant still needs the local-shadow check below.
     if (view.cstRef().isValid() && !hasFlag(AstIdentifierFlagsE::MacroInjectCallerBinding))
@@ -586,6 +591,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             sema.setConstant(sema.curNodeRef(), storedView.cstRef());
             sema.setIsValue(sema.curNodeRef());
             sema.unsetIsLValue(sema.curNodeRef());
+
             return Result::Continue;
         }
     }
@@ -602,12 +608,11 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     {
         if (!hasFlag(AstIdentifierFlagsE::MacroInjectCallerBinding))
         {
-            // A pre-resolved 'late' global read (e.g. an auto-inlined body clone, which
-            // preserves resolved symbols) takes this early return, so it must request the
-            // null-read guard here - the general guard-setup path further below is skipped.
-            // Without it an inlined read of an unset 'late' global dereferences null.
+            // Pre-resolved late globals skip ordinary lookup. Install their read guard
+            // here as well, including when an inline clone preserves the symbol.
             if (storedSymbol->isVariable() && storedSymbol->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
                 SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));
+
             return Result::Continue;
         }
 
@@ -645,12 +650,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             if (parentNode.is(AstNodeId::NamedType))
                 return Result::Continue;
 
-            // The type-name (`what`) of a typed struct literal `T{...}`. A cross-Ast inline clone
-            // carries its already-resolved type here (the symbol can't survive the clone because a
-            // node payload holds a type OR a symbol, not both); re-resolving the bare name `T` in
-            // the destination scope would fail when `T` is namespace-private to the callee
-            // (e.g. Math.Rectangle.topLeft returning `Point{.x, .y}`). The carried type is enough
-            // for the struct initializer, so do not look the name up again.
+            // A cross-AST clone may retain the resolved type of T{...} without its
+            // symbol, since a node stores either. Reusing that type avoids looking
+            // up namespace-private T again in the destination scope.
             if (const auto* structInit = parentNode.safeCast<AstStructInitializerList>();
                 structInit && structInit->nodeWhatRef == sema.curNodeRef())
                 return Result::Continue;
@@ -662,16 +664,16 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
                 if (const auto* cast = parentNode.safeCast<AstCastExpr>(); cast && cast->nodeTypeRef == sema.curNodeRef())
                     return Result::Continue;
             }
+
             if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
             {
                 if (symbolView.sym() || symbolView.hasSymbolList())
                     return Result::Continue;
             }
 
-            // Generic specialization can clone a type parameter into a plain identifier and
-            // pre-seed its resolved type (for example in `#sizeof(T)`). Only skip lookup in
-            // compiler intrinsics that accept a type-only operand; declaration identifiers
-            // still need normal symbol binding even if their final type has already been set.
+            // Generic clones may seed a type on an identifier such as #sizeof(T).
+            // Type-only operands can skip lookup, while declarations still need
+            // symbol binding even after their final type is known.
             if (!symbolView.sym() && !symbolView.hasSymbolList())
             {
                 if (hasFlag(AstIdentifierFlagsE::GenericTypeBinding))
@@ -701,6 +703,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         const Result ret = Match::match(sema, lookUpCxt, idRef);
         if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
             return sema.waitCompilerDefined(idRef, codeRef());
+
         SWC_RESULT(ret);
 
         // A call inside an impl can see the current impl before sibling impls have
@@ -714,25 +717,25 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             SWC_RESULT(SemaSymbolLookup::bindSymbolList(sema, sema.curNodeRef(), false, lookUpCxt.symbols().span()));
         else
             SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
+
         sym = sema.curViewSymbol().sym();
     }
+
     if (sym && sym->isVariable())
     {
         const SymbolVariable& symVar = sym->cast<SymbolVariable>();
         symVar.markReferenced();
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && symVar.isInlineBound())
         {
-            // A read that '#ast' produced after the body was cloned resolves, by name, to the
-            // callee's own parameter through the inline scope's symbol map. Bind THIS node to
-            // what the expansion bound that parameter to. It has to be a rebinding of the node's
-            // stored symbol, not a substitute: a substitute leaves the ABI parameter as the
-            // node's committed truth, and every path that pins stored symbols - a receiver cloned
-            // for a nested expansion, a detached binding clone, codegen - reads it back and asks
-            // the CALLER's frame for an incoming argument it does not have.
+            // A name produced by #ast after inlining may resolve to the callee parameter.
+            // Rebind this node's stored symbol to the caller binding: a substitute alone
+            // leaves ABI-parameter references in clones and codegen, where the caller
+            // has no such incoming argument.
             for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
             {
                 if (!payload->sourceFunction || inlinePayloadUsesCallerScope(payload))
                     continue;
+
                 const SemaClone::ParamBinding* binding = nullptr;
                 for (const auto& candidate : payload->argMappings)
                 {
@@ -758,11 +761,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
                     return Result::Continue;
                 }
 
-                // A homed binding - every parameter of an ordinary inline whose body holds
-                // '#ast' gets one - is a plain pre-resolved use of the home: bind the node to the
-                // home symbol, exactly as a pre-resolved clone of that use would be bound. A home
-                // that still carries a binding type (a variadic pack) is read through the
-                // clone-time cast below instead, so the read keeps the parameter's type.
+                // Use the pre-resolved home for ordinary inline parameters with #ast.
+                // A binding that still carries a type, such as a variadic pack, uses
+                // the clone-time cast below to retain its parameter type.
                 if (binding->exprRef.isValid() && !binding->typeRef.isValid())
                 {
                     const AstNode& bound = sema.node(binding->exprRef);
@@ -781,17 +782,21 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
                 const AstNodeRef              replacement = SemaClone::cloneAst(sema, curRef, context);
                 if (replacement.isInvalid())
                     return Result::Error;
+
                 sema.setSubstitute(curRef, replacement);
                 sema.restartCurrentNode(replacement);
                 return Result::Continue;
             }
         }
-        const IdentifierRef   meId                        = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
-        const bool            isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
-        const bool            isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (inlinePayloadUsesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));
-        const bool            isImplicitReceiver          = symVar.idRef() == meId;
-        const bool            isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined);
-        const SymbolFunction* localFnBoundary             = !isMacroInjectClosureCapture && !isCallerScopeClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(sema, *sema.currentFunction(), symVar) : nullptr;
+
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+
+        const bool isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
+        const bool isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (inlinePayloadUsesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));
+        const bool isImplicitReceiver          = symVar.idRef() == meId;
+        const bool isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined);
+
+        const SymbolFunction* localFnBoundary = !isMacroInjectClosureCapture && !isCallerScopeClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(sema, *sema.currentFunction(), symVar) : nullptr;
 
         // A name only asked for its type ('#typeof(x)') crosses no boundary either. That test
         // walks the visit path to its root, so it is asked only of a name that would cross one.
@@ -817,15 +822,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             }
 
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
-        // A 'late' global read is guarded like a 'late' field: the storage is zero
-        // (null) until the first assignment while the exposed type is non-null. Request
-        // the null-read guard here; a pure assignment target, '&g' or a null comparison clears
-        // it. Struct fields are reached through member access, so a bare identifier
-        // carrying the LateInit flag is always a global - no static cross-function proof
-        // is possible, so the runtime guard always stays.
+        // Late globals start as zero storage behind a non-null exposed type.
+        // Guard reads at runtime; assignments, address-taking and null tests clear
+        // the guard. Cross-function analysis cannot prove these globals set.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
             SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));
     }
@@ -841,8 +844,10 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             diag.last().addSpan(sym->codeRange(sema.ctx()));
         }
         diag.report(sema.ctx());
+
         return Result::Error;
     }
+
     return Result::Continue;
 }
 

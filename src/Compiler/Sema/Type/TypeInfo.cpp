@@ -1413,27 +1413,34 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
 
         case TypeInfoKind::Array:
             return ctx.typeMgr().get(payloadArray_.typeRef).isCompleted(ctx);
+
         case TypeInfoKind::Function:
         {
             if (payloadFunction_.sym->returnTypeRef().isValid() && !ctx.typeMgr().get(payloadFunction_.sym->returnTypeRef()).isCompleted(ctx))
                 return false;
+
             for (const auto& param : payloadFunction_.sym->parameters())
                 if (!ctx.typeMgr().get(param->typeRef()).isCompleted(ctx))
                     return false;
+
             return true;
         }
+
         case TypeInfoKind::TypeValue:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::TypedVariadic:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
         case TypeInfoKind::CodeBlock:
             return ctx.typeMgr().get(payloadTypeRef_.typeRef).isCompleted(ctx);
+
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
             for (const TypeRef tr : payloadAggregate_.types)
                 if (!ctx.typeMgr().get(tr).isCompleted(ctx))
                     return false;
+
             return true;
+
         default:
             break;
     }
@@ -1471,8 +1478,10 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
             auto& symStruct = payloadSymStruct();
             if (symStruct.isSemaCompleted() && symStruct.hasConcreteLayout())
                 return nullptr;
+
             return &symStruct;
         }
+
         case TypeInfoKind::Enum:
             return directBlockingSymbol(&payloadSymEnum());
         case TypeInfoKind::Interface:
@@ -1491,10 +1500,8 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
                     return sym;
             }
 
-            // Function type completeness is purely a signature question. The backing
-            // `SymbolFunction` can be an abstract callable descriptor (for example a
-            // function-typed variable parameter) with no declaration/body to sema.
-            // Waiting on that symbol creates fake dependencies for indirect calls.
+            // Function-type completeness depends only on the signature. A callable descriptor
+            // may have no declaration or body, so waiting on its symbol invents dependencies.
             return nullptr;
         }
 
@@ -1511,7 +1518,9 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
             for (const TypeRef tr : payloadAggregate_.types)
                 if (Symbol* sym = typeBlockingSymbol(ctx, tr))
                     return sym;
+
             return nullptr;
+
         default:
             break;
     }
@@ -1558,15 +1567,19 @@ bool TypeInfo::isAnyTypeInfo(const TaskContext& ctx) const noexcept
 {
     if (isTypeInfo())
         return true;
+
     if (isAlias())
         return ctx.typeMgr().get(payloadSymAlias().underlyingTypeRef()).isAnyTypeInfo(ctx);
+
     if (!isConst())
         return false;
     if (!isValuePointer())
         return false;
+
     const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
     if (!type.isStruct())
         return false;
+
     return type.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::TypeInfo);
 }
 
@@ -1574,8 +1587,10 @@ bool TypeInfo::isPointerLikeAliasAware(const TaskContext& ctx) const noexcept
 {
     if (isPointerLike())
         return true;
+
     if (!isAlias())
         return false;
+
     return ctx.typeMgr().get(payloadSymAlias().underlyingTypeRef()).isPointerLikeAliasAware(ctx);
 }
 
@@ -1583,14 +1598,17 @@ bool TypeInfo::isConvertibleToBoolAliasAware(const TaskContext& ctx) const noexc
 {
     if (isConvertibleToBool())
         return true;
+
     if (!isAlias())
         return false;
+
     return ctx.typeMgr().get(payloadSymAlias().underlyingTypeRef()).isConvertibleToBoolAliasAware(ctx);
 }
 
 TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExpand expandFlags) const noexcept
 {
     SWC_ASSERT(typeRef_.isValid());
+
     TypeRef         result = typeRef_;
     const TypeInfo* type   = this;
 
@@ -1616,12 +1634,14 @@ TypeRef TypeInfo::unwrap(const TaskContext& ctx, TypeRef defaultTypeRef, TypeExp
 
         if (sub.isInvalid())
             break;
+
         result = sub;
         type   = &ctx.typeMgr().get(sub);
     }
 
     if (result == typeRef_)
         return defaultTypeRef;
+
     return result;
 }
 

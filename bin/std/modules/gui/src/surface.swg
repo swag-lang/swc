@@ -409,6 +409,11 @@ impl Surface
 
     internal mtd paint()
     {
+        // Publishing a layered frame also places the native window. Keep the pending repaint
+        // until restoration instead of replacing Windows' minimized bounds with the full frame.
+        if .isMinimized do
+            return
+
         .paintWnd(.wnd)
     }
 

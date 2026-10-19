@@ -1095,6 +1095,8 @@ impl Surface
     {
         if .isMinimized do
             return
+        if not .isMaximized do
+            .restoredPosition = .position
         .isMinimized = true
         if not .app.renderer.needsNativeWindow()
         {

@@ -4,6 +4,50 @@
 
 using Core, Win32, Ogl
 
+// Repainting while minimized must not replace the native icon bounds with the full-size frame.
+// Restoration retains the latest normal placement, including before the first maximize.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 320, 180, surfaceId: "gui-minimized-paint-test")
+    surface.show()
+
+    for maximize in [false, true]
+    {
+        let normal = Math.Rectangle{60, 50, 400, 240}
+        surface.setPosition(normal)
+        if maximize do
+            surface.showMaximized()
+        let bounds = surface.position
+        surface.showMinimized()
+
+        var minimized: RECT
+        let readMinimized = GetWindowRect(surface.win32Handle(), &minimized)
+        Swag.assert(readMinimized)
+        for 3
+        {
+            surface.invalidate()
+            app.runFrame()
+            var current: RECT
+            let readCurrent = GetWindowRect(surface.win32Handle(), &current)
+            Swag.assert(readCurrent)
+            Swag.assert(current.left == minimized.left and current.top == minimized.top)
+            Swag.assert(current.right == minimized.right and current.bottom == minimized.bottom)
+            Swag.assert(surface.isMinimized and surface.isDirty)
+            Swag.assert(surface.position == bounds)
+        }
+
+        surface.requestRestore()
+        app.runFrame()
+        Swag.assert(not surface.isMinimized and surface.isMaximized == maximize)
+        Swag.assert(surface.position == bounds)
+        Swag.assert(not surface.isDirty)
+        surface.showNormal()
+        Swag.assert(surface.position == normal)
+    }
+}
+
 struct PlacementObservation
 {
     hides:              u32

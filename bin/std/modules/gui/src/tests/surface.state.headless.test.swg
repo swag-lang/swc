@@ -3,6 +3,34 @@
 
 using Core
 
+// Minimizing a normal surface preserves its latest bounds and defers repaints until restoration.
+#test
+{
+    var cpu: RenderCpu
+    var app: Application
+    app.setRenderer(&cpu)
+
+    let surface = expect app.createSurface(40, 40, 320, 180)
+    surface.show()
+
+    for bounds in [Math.Rectangle{40, 40, 320, 180}, Math.Rectangle{60, 50, 400, 240}]
+    {
+        surface.setPosition(bounds)
+        surface.requestMinimize()
+        app.runFrame()
+        surface.invalidate()
+        app.runFrame()
+        Swag.assert(surface.isMinimized and surface.isDirty)
+        Swag.assert(surface.position == bounds)
+
+        surface.requestRestore()
+        app.runFrame()
+        Swag.assert(not surface.isMinimized and not surface.isMaximized)
+        Swag.assert(surface.position == bounds)
+        Swag.assert(not surface.isDirty)
+    }
+}
+
 // Maximizing, resizing, and restoring a CPU surface keeps its target and layout in sync without
 // creating a native window. The platform assigns maximized bounds only when a HWND exists.
 #test

@@ -18,34 +18,29 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    // Formatted file names are computed lazily on first access: the Absolute mode resolves
-    // through fs::weakly_canonical (per-component disk syscalls), and is only ever needed
-    // when a diagnostic or file location is actually formatted, which is rare during a clean
-    // compile. Computing all three eagerly here made SourceFile construction dominate file
-    // loading when building the standard library.
     nodePayloadContext_ = std::make_unique<NodePayload>();
     unitTest_           = std::make_unique<Verify>(this);
 }
 
 SourceFile::~SourceFile() = default;
 
-// The narrow spelling of the path, as '#file' and every source location constant store it. A
-// function compiled with runtime guards stores one location per guard, so the conversion from
-// the native path is made once per file instead.
+// Location constants and runtime guards repeatedly need a narrow path.
+// Cache its conversion once per source file.
 const Utf8& SourceFile::pathString() const
 {
     std::call_once(pathStringOnce_, [this] { pathString_ = path_.string(); });
     return pathString_;
 }
 
-// The same path with forward slashes, as the runtime symbol table names a function's file: every
-// function of a linked artifact asks for it.
+// Runtime symbol tables use a cached path with forward slashes.
 const Utf8& SourceFile::genericPathString() const
 {
     std::call_once(genericPathStringOnce_, [this] { genericPathString_ = Utf8(path_); });
     return genericPathString_;
 }
 
+// Resolve formatted names lazily: absolute paths require filesystem calls,
+// and most files never appear in a diagnostic.
 const Utf8& SourceFile::formattedFileName(const TaskContext* ctx) const
 {
     const auto displayMode = ctx ? ctx->cmdLine().filePathDisplay : FileSystem::FilePathDisplayMode::AsIs;
@@ -100,6 +95,7 @@ void SourceFile::setContent(std::shared_ptr<const SourceContent> content)
 {
     SWC_ASSERT(!ast().hasSourceView());
     SWC_ASSERT(content);
+
     content_.clear();
     sharedContent_ = std::move(content);
 }
@@ -118,6 +114,7 @@ void SourceFile::setContent(const std::string_view content)
 
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
+
     sharedContent_.reset();
 }
 
@@ -125,6 +122,7 @@ void SourceFile::beginEditorRevision(const std::string_view content, const bool 
 {
     SWC_ASSERT(nodePayloadContext_ != nullptr);
     SWC_ASSERT(ast().hasSourceView());
+
     if (!force && sourceView() == content)
         return;
 
@@ -133,21 +131,25 @@ void SourceFile::beginEditorRevision(const std::string_view content, const bool 
     nextContent.resize(content.size());
     if (!content.empty())
         std::memcpy(nextContent.data(), content.data(), content.size());
+
     nextContent.insert(nextContent.end(), TRAILING_0, 0);
 
     auto nextPayload = std::make_unique<NodePayload>();
     nextPayload->retainEditorSymbols();
+
     priorRevisions_.reserve(priorRevisions_.size() + 1);
     PriorRevision previousRevision;
     previousRevision.content       = std::move(content_);
     previousRevision.sharedContent = std::move(sharedContent_);
     previousRevision.nodePayload   = std::move(nodePayloadContext_);
     previousRevision.revisionId    = revisionId_;
+
     priorRevisions_.push_back(std::move(previousRevision));
 
     content_            = std::move(nextContent);
     nodePayloadContext_ = std::move(nextPayload);
     ++revisionId_;
+
     hasError_   = false;
     hasWarning_ = false;
     {
@@ -165,6 +167,7 @@ void SourceFile::addErrorLineRange(const uint32_t lineStart, const uint32_t line
         std::min(lineStart, lineEnd),
         std::max(lineStart, lineEnd),
     };
+
     const std::scoped_lock lock(errorLinesMutex_);
     if (std::ranges::find(errorLineRanges_, range) == errorLineRanges_.end())
         errorLineRanges_.push_back(range);
@@ -222,13 +225,15 @@ Result SourceFile::loadContent(TaskContext& ctx)
     if (FileSystem::readBinaryFile(path_, content_, ioError) != Result::Continue)
     {
         const DiagnosticId diagId = ioError.problem == FileSystem::IoProblem::OpenRead ? DiagnosticId::io_err_open_file : DiagnosticId::io_err_read_file;
-        Diagnostic         diag   = Diagnostic::get(diagId, ref());
+
+        Diagnostic diag = Diagnostic::get(diagId, ref());
         FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path_, ioError.because);
         diag.report(ctx);
+
         return Result::Error;
     }
 
-    // Ensure we have at least 4 characters in the buffer
+    // Pad lookahead reads beyond the final source byte with zeroes.
     for (int i = 0; i < TRAILING_0; i++)
         content_.push_back(0);
 

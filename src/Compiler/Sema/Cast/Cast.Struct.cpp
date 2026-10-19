@@ -87,11 +87,9 @@ namespace
         return AstNodeRef::invalid();
     }
 
-    // A named argument copies the payload of the value it wraps when it resolves, and that happens
-    // before the enclosing literal converts the value to the field type. When that conversion is a
-    // runtime one the value node is substituted by a cast, and the constant the wrapper kept is no
-    // longer what the field holds: codegen emits a constant node and skips its children, so the
-    // conversion is never lowered. Re-run the inheritance against the substituted value.
+    // Named arguments inherit their value before field conversion. A later
+    // runtime cast can leave a stale constant on the wrapper, causing codegen
+    // to skip the converted child. Refresh from the substituted value.
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef fieldNodeRef)
     {
         if (fieldNodeRef.isInvalid() || !sema.ast().hasNode(fieldNodeRef))
@@ -114,6 +112,7 @@ namespace
 
         if (outSrcView)
             *outSrcView = codeRange.srcView;
+
         return &codeRange.srcView->token(codeRef.tokRef);
     }
 
@@ -171,6 +170,7 @@ namespace
             args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
         args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(srcCount));
         args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(dstCount));
+
         return res;
     }
 
@@ -179,6 +179,7 @@ namespace
         const Result res                    = ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_field_type, ctx.srcTypeRef, ctx.dstTypeRef, dstField.name(ctx.sema->ctx()));
         ctx.castRequest->failure.optTypeRef = srcFieldTypeRef;
         ctx.castRequest->failure.addArgument(Diagnostic::ARG_FIELD_TYPE, dstField.typeRef());
+
         return res;
     }
 
@@ -188,9 +189,11 @@ namespace
         const Result           res       = args.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, args.srcTypeRef, args.dstTypeRef, fieldName);
         if (args.srcType->isAggregateStruct())
             args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
+
         args.castRequest->failure.noteId      = DiagnosticId::sema_note_required_struct_field_declared_here;
         args.castRequest->failure.noteCodeRef = field.codeRef();
         args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, fieldName);
+
         return res;
     }
 
@@ -229,6 +232,7 @@ namespace
         const AstNodeRef nodeRef = aggregateFieldNodeRef(args, fieldIndex, expectedCount);
         if (nodeRef.isInvalid())
             return SourceCodeRef::invalid();
+
         return args.sema->node(nodeRef).codeRef();
     }
 
@@ -238,6 +242,7 @@ namespace
         const SourceCodeRef fieldRef = aggregateFieldRef(args, fieldIndex, expectedCount);
         if (fieldRef.isValid())
             args.castRequest->errorCodeRef = fieldRef;
+
         const Result res = args.castRequest->fail(id, args.srcTypeRef, args.dstTypeRef, value);
         if (id == DiagnosticId::sema_err_unnamed_parameter && args.srcType->isAggregateStruct())
             args.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
@@ -250,6 +255,7 @@ namespace
                 args.castRequest->failure.addArgument(Diagnostic::ARG_VALUES, availableFields);
             }
         }
+
         args.castRequest->errorCodeRef = previous;
         return res;
     }
@@ -260,6 +266,7 @@ namespace
         const SourceCodeRef fieldRef = aggregateFieldRef(args, fieldIndex, expectedCount);
         if (fieldRef.isValid())
             args.castRequest->errorCodeRef = fieldRef;
+
         const Result res               = failStructFieldCount(args, srcCount, dstCount);
         args.castRequest->errorCodeRef = previous;
         return res;
@@ -267,18 +274,19 @@ namespace
 
     CastRequest makeFieldCastRequest(const CastAggregateArgs& args, AstNodeRef fieldNodeRef, const SourceCodeRef& fieldRef)
     {
-        // Recursive aggregate casts need the literal's children to retarget their runtime
-        // storage, so the request targets the value a named-argument wrapper holds. A literal
-        // field also reports a conversion it cannot make at that value, whatever its nesting.
+        // Target the wrapped value so nested literal casts can retarget child
+        // storage and report failures at the innermost field expression.
         const AstNodeRef valueNodeRef = aggregateFieldValueNodeRef(*args.sema, fieldNodeRef);
         const bool       ownValue     = valueNodeRef.isValid() && fieldNodeRef != args.castRequest->errorNodeRef;
-        CastRequest      elemCtx(args.castRequest->kind);
+
+        CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags        = args.castRequest->flags;
         elemCtx.errorNodeRef = valueNodeRef.isValid() ? valueNodeRef : args.castRequest->errorNodeRef;
         if (!ownValue)
             elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
         elemCtx.probing = args.castRequest->probing;
         elemCtx.applyAutoCast(*args.sema, valueNodeRef);
+
         return elemCtx;
     }
 
@@ -312,6 +320,7 @@ namespace
         SemaNodeView valueView(*args.sema, valueNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         SWC_RESULT(Cast::castIfNeeded(*args.sema, valueView, dstElemType, elemCtx.kind, elemCtx.flags));
         refreshNamedArgumentPayload(*args.sema, fieldNodeRef);
+
         return Result::Continue;
     }
 
@@ -332,8 +341,8 @@ namespace
     {
         switch (castKind)
         {
-            // Assigning calls 'opSet' whether or not it is implicit, so a value assigned whole,
-            // such as a literal whose fields convert through 'opSet', converts the same way.
+            // Assignment calls opSet without requiring implicit; whole-value
+            // conversions and literal field initialization follow the same rule.
             case CastKind::Explicit:
             case CastKind::Initialization:
             case CastKind::Assignment:
@@ -413,6 +422,7 @@ namespace
         castRequest.errorCodeRef = codeRef;
         castRequest.errorNodeRef = srcNodeRef;
         castRequest.flags.add(CastFlagsE::UfcsArgument);
+
         if (srcNodeRef.isValid())
         {
             const ConstantRef srcCstRef = sema.viewConstant(srcNodeRef).cstRef();
@@ -426,10 +436,12 @@ namespace
         const TypeInfo& receiverType = sema.typeMgr().get(receiverTypeRef);
         if (!receiverType.isReferenceOrNonNullValuePointer())
             return OpCastRank::Bad;
+
         if (!receiverType.isConst())
         {
             if (srcNodeRef.isInvalid() || !sema.isLValue(srcNodeRef))
                 return OpCastRank::Bad;
+
             return OpCastRank::MutableReceiver;
         }
 
@@ -451,7 +463,8 @@ namespace
 
         CastRequest castRequest(CastKind::Parameter);
         castRequest.errorCodeRef = codeRef;
-        const Result castResult  = Cast::castAllowed(sema, castRequest, srcTypeRef, paramTypeRef);
+
+        const Result castResult = Cast::castAllowed(sema, castRequest, srcTypeRef, paramTypeRef);
         if (castResult != Result::Continue)
             return SetCastRank::Bad;
 
@@ -490,6 +503,7 @@ namespace
         SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(*args.sema, args.dstTypeRef));
 
         SWC_ASSERT(srcNames.size() == srcTypes.size());
+
         constexpr size_t K_INVALID_FIELD_INDEX = std::numeric_limits<size_t>::max();
         srcToDst.assign(srcTypes.size(), K_INVALID_FIELD_INDEX);
         std::vector dstUsed(dstFields.size(), false);
@@ -497,6 +511,7 @@ namespace
 
         bool   seenNamed = false;
         size_t nextPos   = 0;
+
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
             const IdentifierRef name         = srcNames[i];
@@ -529,6 +544,7 @@ namespace
                 const Result res = failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_struct_cast_duplicate_field, args.sema->idMgr().get(name).name);
                 if (dstFieldInitRefs[dstIndex].isValid())
                     setStructFieldFailureNote(*args.castRequest, DiagnosticId::sema_note_previous_struct_field_initializer, dstFieldInitRefs[dstIndex], args.sema->idMgr().get(name).name);
+
                 return res;
             }
 
@@ -537,14 +553,16 @@ namespace
             dstFieldInitRefs[dstIndex] = fieldNodeRef;
         }
 
-        // Naming a field in a literal writes it, so the write side of the member access rule
-        // applies here exactly as it would to 'value.field = ...'.
+        // Literal initializers write fields, so use ordinary member access
+        // and write permissions.
         const SourceViewRef siteViewRef = args.castRequest->errorNodeRef.isValid() ? args.sema->node(args.castRequest->errorNodeRef).srcViewRef() : SourceViewRef::invalid();
+
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
             const size_t dstIndex = srcToDst[i];
             if (dstIndex == K_INVALID_FIELD_INDEX || !dstFields[dstIndex])
                 continue;
+
             if (!SemaAccess::canAccessMember(*args.sema, *dstFields[dstIndex], siteViewRef) || !SemaAccess::canWriteMember(*args.sema, *dstFields[dstIndex], siteViewRef))
                 return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_struct_cast_field_access, dstFields[dstIndex]->name(args.sema->ctx()));
         }
@@ -557,6 +575,7 @@ namespace
             const SymbolVariable* field = dstFields[i];
             if (!field || dstUsed[i])
                 continue;
+
             if (SymbolStruct::fieldRequiresExplicitInitialization(*args.sema, *field))
                 return failStructMissingFieldNoDefault(args, *field);
         }
@@ -564,8 +583,7 @@ namespace
         return Result::Continue;
     }
 
-    // A value read from storage, a variable, a field, an element or a call result, rather than
-    // a literal whose field expressions each convert. Such a value is copied as it is.
+    // Stored aggregates copy as values; their fields have no expressions to convert.
     bool isStoredAggregateValue(const Sema& sema, AstNodeRef nodeRef)
     {
         while (sema.node(nodeRef).is(AstNodeId::ParenExpr))
@@ -575,9 +593,8 @@ namespace
         return node.is(AstNodeId::Identifier) || node.is(AstNodeId::MemberAccessExpr) || node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::CallExpr);
     }
 
-    // A literal converts each field through its own expression. A stored value of a struct-literal
-    // type has no such expressions: at run time it is copied as it is, so like a struct it converts
-    // only to a struct whose fields have the same types. A constant value folds field by field.
+    // Runtime copies need matching field types. Only literals with independent
+    // expressions or constants folded field by field can convert their fields.
     Result checkAggregateValueFieldTypes(const CastAggregateArgs& args, const std::vector<TypeRef>& srcTypes, const std::vector<SymbolVariable*>& dstFields, const std::vector<size_t>& srcToDst)
     {
         if (args.castRequest->constantFoldingResult().isValid() || args.castRequest->errorNodeRef.isInvalid())
@@ -595,8 +612,7 @@ namespace
         return Result::Continue;
     }
 
-    // A value that does not convert to its field names that field and its struct. A field value
-    // that is itself a literal has already named the innermost field that failed.
+    // Preserve an inner literal's more precise failure; otherwise name this field.
     void nameFailedField(const CastAggregateArgs& args, const SymbolVariable& dstField)
     {
         CastFailure& failure = args.castRequest->failure;
@@ -614,9 +630,11 @@ namespace
             const SymbolVariable& dstField  = *dstFields[srcToDst[i]];
             const AstNodeRef      fieldNode = aggregateFieldNodeRef(args, i, srcTypes.size());
             const SourceCodeRef   fieldRef  = fieldNode.isValid() ? args.sema->node(fieldNode).codeRef() : SourceCodeRef::invalid();
-            const Result          res       = checkElemCast(args, srcTypes[i], dstField.typeRef(), fieldNode, fieldRef);
+
+            const Result res = checkElemCast(args, srcTypes[i], dstField.typeRef(), fieldNode, fieldRef);
             if (res == Result::Error)
                 nameFailedField(args, dstField);
+
             SWC_RESULT(res);
         }
 
@@ -648,6 +666,7 @@ namespace
                 args.castRequest->outConstRef = ConstantRef::invalid();
                 return Result::Continue;
             }
+
             castedByDst[dstIndex] = castedRef;
         }
 
@@ -655,6 +674,7 @@ namespace
         {
             SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
             writes.reserve(values.size());
+
             // Defaults precede explicit writes. Reapplying an omitted alternative's
             // default here could overwrite the selected member of a union.
             for (size_t i = 0; i < values.size(); ++i)
@@ -663,9 +683,11 @@ namespace
                 const SymbolVariable& field    = *dstFields[dstIndex];
                 writes.push_back({field.offset(), field.typeRef(), castedByDst[dstIndex]});
             }
+
             args.castRequest->outConstRef = ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, writes.span());
             return Result::Continue;
         }
+
         if (SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, args.dstTypeRef))
         {
             args.castRequest->outConstRef = ConstantRef::invalid();
@@ -676,9 +698,11 @@ namespace
         {
             if (castedByDst[i].isValid())
                 continue;
+
             const SymbolVariable* field = dstFields[i];
             if (!field)
                 continue;
+
             castedByDst[i] = field->defaultValueRef();
         }
 
@@ -693,6 +717,7 @@ namespace
         {
             if (!castedByDst[i].isValid())
                 continue;
+
             const TypeRef   fieldTypeRef = dstFields[i]->typeRef();
             const TypeInfo& fieldType    = args.sema->typeMgr().get(fieldTypeRef);
             const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
@@ -702,6 +727,7 @@ namespace
         }
 
         args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
+
         return Result::Continue;
     }
 
@@ -714,17 +740,20 @@ namespace
             args.castRequest->outConstRef = ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, std::span{&write, 1});
             return Result::Continue;
         }
+
         if (SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, args.dstTypeRef))
         {
             args.castRequest->outConstRef = ConstantRef::invalid();
             return Result::Continue;
         }
+
         const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
         SWC_ASSERT(structSize);
 
         ByteArray                  buffer(structSize);
         const std::span<std::byte> bytes = buffer.span();
         SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
+
         const TypeRef   fieldTypeRef = field.typeRef();
         const TypeInfo& fieldType    = args.sema->typeMgr().get(fieldTypeRef);
         const uint64_t  fieldSize    = fieldType.sizeOf(args.sema->ctx());
@@ -733,6 +762,7 @@ namespace
         SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, std::span{bytes.data() + fieldOffset, fieldSize}, fieldValueRef, fieldType));
 
         args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
+
         return Result::Continue;
     }
 
@@ -757,9 +787,9 @@ namespace
             args.castRequest->outConstRef = ConstantRef::invalid();
             return Result::Continue;
         }
+
         return foldSingleFieldStructConstant(args, field, castedRef);
     }
-
 }
 
 bool Cast::resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo)
@@ -784,13 +814,16 @@ bool Cast::resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef,
     outInfo.exprRef    = exprRef;
     outInfo.literalRef = suffixLiteral->nodeLiteralRef;
     outInfo.suffix     = suffix;
+
     if (exprRef.isValid() && sema.node(exprRef).is(AstNodeId::UnaryExpr))
     {
         const Token* unaryTok = safeToken(sema, sema.node(exprRef).codeRef());
         if (!unaryTok)
             return false;
+
         outInfo.unaryOp = unaryTok->id;
     }
+
     return true;
 }
 
@@ -801,6 +834,7 @@ TokenRef Cast::userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRe
         return sema.node(suffixInfo.literalRef).tokRef();
     if (nodeRef.isValid())
         return sema.node(nodeRef).tokRef();
+
     return TokenRef::invalid();
 }
 
@@ -809,8 +843,12 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     const TypeInfo&         srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo&         dstType = sema.typeMgr().get(dstTypeRef);
     const CastAggregateArgs ctx{&sema, &castRequest, srcTypeRef, dstTypeRef, &srcType, &dstType};
-    const SourceCodeRef     codeRef = castRequest.errorCodeRef.isValid() ? castRequest.errorCodeRef : castRequest.errorNodeRef.isValid() ? sema.node(castRequest.errorNodeRef).codeRef()
-                                                                                                                                         : sema.node(sema.curNodeRef()).codeRef();
+
+    const SourceCodeRef codeRef = castRequest.errorCodeRef.isValid()
+                                      ? castRequest.errorCodeRef
+                                  : castRequest.errorNodeRef.isValid()
+                                      ? sema.node(castRequest.errorNodeRef).codeRef()
+                                      : sema.node(sema.curNodeRef()).codeRef();
 
     SWC_RESULT(sema.waitSemaCompleted(&dstType.payloadSymStruct(), codeRef));
 
@@ -829,6 +867,7 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
         SWC_RESULT(mapAggregateStructFields(ctx, srcToDst));
         SWC_RESULT(validateAggregateStructElementCasts(ctx, srcTypes, dstFields, srcToDst));
         SWC_RESULT(foldAggregateStructConstant(ctx, srcToDst));
+
         return checkAggregateValueFieldTypes(ctx, srcTypes, dstFields, srcToDst);
     }
 
@@ -856,6 +895,7 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
     const TypeInfo*    ownerType = &typeMgr.get(srcTypeRef);
     if (const TypeInfo* unwrappedType = ownerType->unwrapAliasEnumType(sema.ctx()))
         ownerType = unwrappedType;
+
     if (ownerType->isReference())
     {
         ownerType = &typeMgr.get(ownerType->payloadTypeRef());
@@ -876,6 +916,7 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
 
     auto            bestRank = OpCastRank::Bad;
     SymbolFunction* bestFn   = nullptr;
+
     for (SymbolFunction* calledFn : candidates)
     {
         if (!calledFn)
@@ -923,15 +964,15 @@ Result Cast::resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& code
 
     auto            bestRank = SetCastRank::Bad;
     SymbolFunction* bestFn   = nullptr;
+
     for (Symbol* candidate : candidates)
     {
         auto* calledFn = candidate ? candidate->safeCast<SymbolFunction>() : nullptr;
         if (!calledFn)
             continue;
 
-        // Struct conversion probing only needs the operator signature. Waiting
-        // on the body can create cycles when the operator itself uses values
-        // that need the same conversion machinery.
+        // Only the operator signature is needed here. Waiting on its body can
+        // cycle when that body needs the same conversion machinery.
         SWC_RESULT(sema.waitTyped(calledFn, codeRef));
 
         if (!allowsStructSetCast(*calledFn, castKind))
@@ -953,6 +994,7 @@ Result Cast::resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& code
 
     outCalledFn     = bestFn;
     outParamTypeRef = bestFn->parameters().size() >= 2 ? bestFn->parameters()[1]->typeRef() : TypeRef::invalid();
+
     return Result::Continue;
 }
 

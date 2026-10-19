@@ -510,8 +510,9 @@ namespace
         // #run executes this helper during sema. Keep it out of the enclosing
         // function's runtime call dependencies: it does not survive into the
         // runtime dependency graph used by JIT/native test discovery.
-        SemaFrame frame           = sema.frame();
-        auto&     symFn           = storedSym->cast<SymbolFunction>();
+        SemaFrame frame = sema.frame();
+        auto&     symFn = storedSym->cast<SymbolFunction>();
+
         frame.currentAttributes() = symFn.attributes();
         frame.setEnclosingFunction(sema.currentFunction());
         frame.setCurrentFunction(&symFn);

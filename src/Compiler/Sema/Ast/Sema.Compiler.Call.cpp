@@ -46,6 +46,7 @@ namespace
         {
             if (isMacroFunction(function))
                 return true;
+
             function = function->parentLexicalFunction();
         }
 
@@ -57,10 +58,12 @@ namespace
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
         if (!inlinePayload)
             inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+
         while (inlinePayload)
         {
             if (isMacroFunctionOrNestedInMacro(inlinePayload->sourceFunction))
                 return inlinePayload;
+
             inlinePayload = inlinePayload->parentInlinePayload;
         }
 
@@ -91,6 +94,7 @@ namespace
         const std::string_view tokenValue = srcView.tokenString(tokenRef);
         if (tokenValue.size() >= 2)
             return tokenValue.substr(1, tokenValue.size() - 2);
+
         return tokenValue;
     }
 
@@ -121,6 +125,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_VALUE, value);
         diag.addArgument(Diagnostic::ARG_VALUES, allowedValues);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -170,6 +175,7 @@ namespace
             return SemaFileError::reportCompilerFileError(sema, DiagnosticId::cmd_err_invalid_file, nodeRef, resolvedPath, because);
 
         outPath = std::move(resolvedPath);
+
         return Result::Continue;
     }
 
@@ -221,6 +227,7 @@ namespace
                 return resolveNestedRawRef(bindingNode.cast<AstCompilerCodeExpr>().nodeExprRef);
             if (bindingNode.is(AstNodeId::CompilerCodeBlock))
                 return resolveNestedRawRef(bindingNode.cast<AstCompilerCodeBlock>().nodeBodyRef);
+
             return resolveNestedRawRef(binding->exprRef);
         }
 
@@ -251,6 +258,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_inject_requires_code, nodeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, typeRef.isValid() ? sema.typeMgr().get(typeRef).toName(sema.ctx()) : Utf8{"<unknown>"});
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -260,8 +268,10 @@ namespace
         {
             case TokenId::KwdBreak:
                 return AstNodeId::BreakStmt;
+
             case TokenId::KwdContinue:
                 return AstNodeId::ContinueStmt;
+
             default:
                 return AstNodeId::Invalid;
         }
@@ -321,6 +331,7 @@ namespace
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
+
         for (const AstNodeRef childRef : children)
         {
             if (injectCloneDependsOnContext(sema, childRef, bindings, replacements))
@@ -343,6 +354,7 @@ namespace
             const TokenId   replacementId = sema.srcView(node.srcViewRef()).token(replacementInstructionRefs[i]).id;
             const AstNodeId nodeId        = injectReplacementNodeId(replacementId);
             SWC_ASSERT(nodeId != AstNodeId::Invalid);
+
             appendInjectReplacement(outReplacements, nodeId, replacementNodeRefs[i]);
         }
     }
@@ -387,6 +399,7 @@ namespace
             {
                 SmallVector<AstNodeRef> bindingNodes;
                 sema.ast().appendNodes(bindingNodes, injectNode->spanBindingNodeRef);
+
                 for (const AstNodeRef bindingRef : bindingNodes)
                 {
                     if (bindingRef == childRef)
@@ -406,6 +419,7 @@ namespace
             return true;
         if (symbol.isStruct() && symbol.cast<SymbolStruct>().isGenericRoot())
             return true;
+
         return symbol.isTyped();
     }
 
@@ -427,11 +441,13 @@ namespace
                 frame.popBindingVar();
             while (!frame.bindingTypes().empty())
                 frame.popBindingType();
+
             frame.setCurrentInlinePayload(inlinePayload.parentInlinePayload);
             frame.setInlineContextRootRef(AstNodeRef::invalid());
             frame.setLookupScope(inlinePayload.callerScope);
             frame.setLookupScopeOverrideNodes(nullptr);
             frame.setUpLookupScope(inlinePayload.callerScope);
+
             for (SymbolVariable* bindingVar : inlinePayload.callerBindingVars)
                 frame.pushBindingVar(bindingVar);
             for (const TypeRef bindingType : inlinePayload.callerBindingTypes)
@@ -439,7 +455,9 @@ namespace
 
             const IdentifierRef idRef       = SemaHelpers::resolveIdentifier(sema, sema.node(nodeRef).codeRef());
             const Result        matchResult = Match::match(sema, lookUpCxt, idRef);
-            sema.frame()                    = savedFrame;
+
+            sema.frame() = savedFrame;
+
             if (matchResult == Result::Continue &&
                 lookUpCxt.count() == 1 &&
                 lookUpCxt.first() &&
@@ -453,10 +471,12 @@ namespace
         SmallVector<AstNodeRef> children;
         const AstNode&          parentNode = sema.node(nodeRef);
         parentNode.collectChildrenFromAst(children, sema.ast());
+
         for (const AstNodeRef childRef : children)
         {
             if (shouldSkipMacroInjectPreResolveChild(sema, parentNode, childRef))
                 continue;
+
             SWC_RESULT(preResolveMacroInjectCallerIdentifiers(sema, childRef, inlinePayload, nodeRef));
         }
 

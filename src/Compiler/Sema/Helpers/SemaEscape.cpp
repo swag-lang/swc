@@ -5235,17 +5235,13 @@ namespace SemaEscape
     {
         if (exprRef.isInvalid())
             return nullptr;
+
         return rootStorageOf(sema, exprRef);
     }
 
-    // A structural change of storage that a local view is reading. The iteration check
-    // below is the same rule restricted to loops; this one covers every view:
-    // 'let v: string = s' then 's.append("...")' then reading 'v' reads a buffer the
-    // append may have moved.
-    //
-    // Only the RECORDING happens here, where the flow state proves the view is live.
-    // Whether the view is read afterwards cannot be answered yet - the statements that
-    // follow are not resolved, so their identifiers carry no symbol.
+    // Record structural changes while flow state proves which views are live. Later
+    // statements are not resolved yet, so defer checking whether those views are read
+    // after the mutation (for example, reading v after 'v = s; s.append(...)').
     void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
     {
         if (!isStructuralMutationCallee(sema, calledFn))
@@ -5254,6 +5250,7 @@ namespace SemaEscape
         SemaEscapeProjection mutationProjection;
         if (!mutatedReceiverProjection(sema, callRef, mutationProjection))
             return;
+
         const SymbolVariable* root = mutationProjection.root;
 
         const SourceCodeRange mutationRange = sema.node(callRef).codeRange(sema.ctx());
@@ -5265,9 +5262,8 @@ namespace SemaEscape
         const SourceCodeRange evaluationRange   = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
         const uint32_t        evaluationEndSpan = evaluationRange.srcView == mutationRange.srcView ? evaluationRange.offset + evaluationRange.len : mutationRange.offset + mutationRange.len;
 
-        // Only a value that OWNS a heap payload can have that payload moved or freed by
-        // a method call. A plain aggregate has nothing to reallocate, so a view into it
-        // survives any change to its fields.
+        // Only owning payloads can move or be freed here. Views of a plain aggregate
+        // survive changes to its fields because there is no payload to reallocate.
         if (!designatedStorageHasOwningLifecycle(sema, root->typeRef()))
             return;
 
@@ -5297,11 +5293,13 @@ namespace SemaEscape
             record.mutationName            = calledFn.name(sema.ctx());
             record.borrowedPayloadField    = borrowedField ? borrowedField : (ownedPayloadProjection(sema, info, sourceProjection) ? firstProjectionField(sourceProjection) : nullptr);
             record.receiverProjectionField = firstProjectionField(mutationProjection);
+
             for (const SemaEscapeDetachedPayloadField& detached : info.detachedOwnedPayloadFields)
             {
                 if (detached.owner == mutationProjection.root && detached.field)
                     record.detachedPayloadFields.push_back(detached.field);
             }
+
             record.guards = guards;
             sema.addBorrowInvalidation(record);
         }
@@ -5316,10 +5314,8 @@ namespace SemaEscape
         if (!currentFn)
             return Result::Continue;
 
-        // A nested function completes first: it judges only the views declared in it and
-        // leaves the enclosing body's records alone. Ownership is decided on the view's
-        // symbol rather than on source ranges, because a '#test' or '#init' block spans
-        // no more than its own keyword.
+        // Nested functions judge only their own views. Use symbol ownership: source
+        // ranges of test/init blocks may cover only the keyword, not the entire body.
         SmallVector<SemaBorrowInvalidation> mine;
         SmallVector<SemaBorrowInvalidation> rest;
         for (const SemaBorrowInvalidation& record : sema.borrowInvalidations())
@@ -5333,17 +5329,16 @@ namespace SemaEscape
         if (mine.empty())
             return Result::Continue;
 
-        // Source order, so the report does not depend on the order the calls were
-        // analyzed in.
+        // Report in source order, independent of semantic call-analysis order.
         std::ranges::sort(mine, [](const SemaBorrowInvalidation& a, const SemaBorrowInvalidation& b) {
             if (a.mutationRange.offset != b.mutationRange.offset)
                 return a.mutationRange.offset < b.mutationRange.offset;
+
             return a.viewVar < b.viewVar;
         });
 
-        // Whether the callee can really move the payload is a summary fact, and summaries
-        // are only final once the module has no pending sema job: hand the finished
-        // wording over and let 'reportDeferredChecks' apply the condition.
+        // Reallocation effects depend on final module summaries. Prepare the diagnostic
+        // now and let reportDeferredChecks evaluate its conditions after sema completes.
         for (SemaBorrowInvalidation& record : mine)
         {
             const AstNodeRef bodyRef = record.bodyRef.isValid() ? record.bodyRef : declRef;
@@ -5359,12 +5354,13 @@ namespace SemaEscape
             check.receiverProjectionField = record.receiverProjectionField;
             check.detachedPayloadFields   = std::move(record.detachedPayloadFields);
             check.guards                  = std::move(record.guards);
-            check.diagId                  = DiagnosticId::sanity_err_borrow_invalidated;
-            check.fileRef                 = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
-            check.siteRange               = record.mutationRange;
-            check.symName                 = record.sourceVar->name(sema.ctx());
-            check.valueName               = record.mutationName;
-            check.what                    = record.viewVar->name(sema.ctx());
+
+            check.diagId    = DiagnosticId::sanity_err_borrow_invalidated;
+            check.fileRef   = sema.srcView(sema.node(declRef).srcViewRef()).fileRef();
+            check.siteRange = record.mutationRange;
+            check.symName   = record.sourceVar->name(sema.ctx());
+            check.valueName = record.mutationName;
+            check.what      = record.viewVar->name(sema.ctx());
 
             check.noteId      = DiagnosticId::sema_note_borrow_taken_here;
             check.noteSymName = record.viewVar->name(sema.ctx());
@@ -5382,9 +5378,8 @@ namespace SemaEscape
 
     Result checkIterationMutation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
     {
-        // Only a method can mutate its receiver, a 'const' method cannot, and operator
-        // methods (opIndex/opIndexSet/opSlice/opData/opCount/opCast/opVisit ...) are
-        // element or view access rather than a structural change of the collection.
+        // Const methods cannot mutate the collection. Operator methods access elements
+        // or views and are excluded from this structural-mutation check.
         if (!calledFn.isMethod() || calledFn.isConst())
             return Result::Continue;
 
@@ -5396,19 +5391,21 @@ namespace SemaEscape
         if (calleeView.starts_with("op"))
             return Result::Continue;
 
-        // The receiver is the first non-interface argument of the resolved call; for the
-        // projection match prefer the syntactic method receiver ('holder.items.add' ->
-        // 'holder.items'), whose field path survives resolution intact.
+        // The first non-interface argument is the receiver. Prefer its parsed syntax
+        // for projection matching because resolution can lose the original field path.
         SmallVector<ResolvedCallArgument> args;
         sema.appendResolvedCallArguments(callRef, args);
+
         AstNodeRef receiverRef = AstNodeRef::invalid();
         for (const ResolvedCallArgument& arg : args)
         {
             if (arg.passKind == CallArgumentPassKind::InterfaceObject)
                 continue;
+
             receiverRef = argumentValueRef(sema, arg.argRef);
             break;
         }
+
         if (receiverRef.isInvalid())
             return Result::Continue;
 
@@ -5435,16 +5432,15 @@ namespace SemaEscape
             if (!iterationMutationHitsSource(sourceProj, sourceExact, receiverProj, receiverExact))
                 continue;
 
-            // The mutation is structural only when it targets the ITERATED COLLECTION
-            // itself. A non-const method owned by another struct mutates one element's
-            // own storage (a String inside an Array'String reached through the loop's
-            // address binding), which the iteration snapshot survives.
+            // Mutating a different struct changes an element's storage, not the iterated
+            // collection itself; that leaves the iteration snapshot valid.
             if (const SymbolStruct* calleeOwner = calledFn.ownerStruct())
             {
                 const TypeRef sourceTypeRef = expressionTypeRef(sema, borrow.sourceRef);
                 if (sourceTypeRef.isValid())
                 {
                     const TypeInfo& sourceType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef);
+
                     // A fixed array has no method-owned structure to invalidate. A method
                     // reached through its element binding can only change that element.
                     if (sourceType.isArray())
@@ -5454,8 +5450,7 @@ namespace SemaEscape
                 }
             }
 
-            // Spare the find-then-remove-then-exit pattern: the loop does not iterate again
-            // after the mutation, so the snapshot is never read stale.
+            // A loop exit after removal prevents another read of the iteration snapshot.
             if (mutationFollowedByLoopExit(sema, borrow.bodyRef, callRef))
                 continue;
 
@@ -5468,6 +5463,7 @@ namespace SemaEscape
                 diag.last().addArgument(Diagnostic::ARG_SYM, receiverProj.root->name(sema.ctx()));
                 diag.last().addSpan(sema.node(borrow.sourceRef).codeRange(sema.ctx()));
             }
+
             diag.report(sema.ctx());
             return Result::Error;
         }
@@ -5495,6 +5491,7 @@ namespace SemaEscape
         {
             if (!inlineSourceFn)
                 return reportBorrowEscape(sema, returnRef, info, "a return value");
+
             return Result::Continue;
         }
 
@@ -5504,12 +5501,12 @@ namespace SemaEscape
         {
             if (!inlineSourceFn)
                 emitDeferredCallEscape(sema, info, returnRef, "a return value", SemaEscapeSummaryEdgeKind::ReturnToReturn);
+
             return Result::Continue;
         }
 
-        // An inline return produces an intermediate value in the caller; it does not
-        // return from the caller. Only the caller's own return feeds its summary, after
-        // accounting for how it consumes that value (notably an indexed element load).
+        // Inline returns produce intermediate caller values. Only the caller's own
+        // return contributes origins after accounting for how it consumes that value.
         if (!inlineSourceFn && info.kind == SemaEscapeKind::Parameter)
         {
             SymbolFunction* currentFn = sema.currentFunction();
@@ -5554,6 +5551,7 @@ namespace SemaEscape
         diag.addNote(DiagnosticId::sema_note_borrow_source_declared_here);
         diag.last().addArgument(Diagnostic::ARG_SYM, root->name(sema.ctx()));
         diag.last().addSpan(root->codeRange(sema.ctx()));
+
         diag.report(sema.ctx());
         return Result::Error;
     }

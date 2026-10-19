@@ -28,14 +28,16 @@ namespace
     {
         uint8_t       ints = 0;
         CallFloatArgs floats;
-        bool          hasStackArgs        = false;
-        bool          hasRegisterHomeSlot = false;
+
+        bool hasStackArgs        = false;
+        bool hasRegisterHomeSlot = false;
     };
 
     CallArgMasks computeCallArgMasks(const CallConv& conv, std::span<const ABICall::ArgLayout> argLayouts)
     {
         CallArgMasks              result;
         ABICall::ArgRegisterState registerState;
+
         for (uint32_t i = 0; i < argLayouts.size(); ++i)
         {
             const ABICall::ArgLayout& arg      = argLayouts[i];
@@ -45,8 +47,10 @@ namespace
                 result.hasStackArgs = true;
                 continue;
             }
+
             if (arg.needsHome)
                 result.hasRegisterHomeSlot = true;
+
             if (regIndex >= 8)
                 continue;
 
@@ -73,6 +77,7 @@ namespace
         result.reserve(args.size());
         for (const T& arg : args)
             result.push_back({.numBits = static_cast<uint8_t>(arg.numBits ? arg.numBits : 64), .isFloat = arg.isFloat, .needsHome = needsRegisterHome(arg)});
+
         return result;
     }
 
@@ -90,13 +95,14 @@ namespace
 
     void emitCallArgs(MicroBuilder& builder, const CallConv& conv, std::span<const ABICall::Arg> args, MicroReg regBase, MicroReg regTmp)
     {
-        // JIT bridge path: pack arguments in memory and expand them into ABI locations.
+        // The JIT bridge expands the packed argument array into ABI locations.
         if (args.empty())
             return;
 
         const auto numArgs = static_cast<uint32_t>(args.size());
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(args.data()));
 
+        // Store stack arguments first, while scratch registers can still be used freely.
         ABICall::ArgRegisterState registerState;
         ABICall::ArgStackState    stackState;
         for (uint32_t i = 0; i < numArgs; ++i)
@@ -205,7 +211,7 @@ namespace
 
     PreparedCallStackAdjust computePreparedCallStackAdjust(CallConvKind callConvKind, const ABICall::PreparedCall& preparedCall)
     {
-        // This will avoid to double-adjust the stack when prepareArgs already reserved call space.
+        // prepareArgs may already have reserved call space; restore it without reserving twice.
         PreparedCallStackAdjust result;
         if (preparedCall.stackAlreadyAdjusted)
         {
@@ -257,10 +263,13 @@ namespace
     {
         if (arg.isFloat && arg.numBits == 128)
             return false;
+
         if (arg.isAddressed)
             return arg.isFloat || !arg.constrainToArgLane || !arg.srcReg.isVirtualInt();
+
         if (arg.isFloat)
             return !arg.srcReg.isVirtualFloat();
+
         return !arg.srcReg.isVirtualInt();
     }
 
@@ -274,6 +283,7 @@ namespace
         SWC_INTERNAL_CHECK(hasScratchRegs);
         SWC_INTERNAL_CHECK(regBase.isValid());
         SWC_INTERNAL_CHECK(regTmp.isValid());
+
         emitReturnWriteBack(builder, conv, ret, regBase);
     }
 }
@@ -314,12 +324,14 @@ uint32_t ABICall::argumentIndexForFunctionParameter(TaskContext& ctx, CallConvKi
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(returnTypeRef), ABITypeNormalize::Usage::Return);
     if (normalizedRet.isIndirect)
         return parameterIndex + 1;
+
     return parameterIndex;
 }
 
 uint32_t ABICall::argumentRegisterIndex(const CallConv& conv, std::span<const ArgLayout> argLayouts, uint32_t argIndex)
 {
     SWC_ASSERT(argIndex < argLayouts.size());
+
     const bool isFloat = argLayouts[argIndex].isFloat;
     if (!conv.independentArgBanks)
         return conv.canPassArgInRegister(argIndex, isFloat) ? argIndex : K_NO_ARG_REGISTER;
@@ -352,6 +364,7 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
         uint64_t         stackBytes    = 0;
         uint64_t         homeBytes     = 0;
         ArgRegisterState registerState;
+
         for (uint32_t i = 0; i < argLayouts.size(); ++i)
         {
             const ArgLayout& arg = argLayouts[i];
@@ -359,14 +372,17 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
             {
                 if (i < argIndex && arg.needsHome)
                     homeBytes += stackSlotSize;
+
                 continue;
             }
 
             const uint32_t argBytes = std::max(stackSlotSize, static_cast<uint32_t>(arg.numBits) / 8);
             if (argBytes > stackSlotSize)
                 stackBytes = (stackBytes + argBytes - 1) & ~static_cast<uint64_t>(argBytes - 1);
+
             if (i == argIndex)
                 return stackBytes;
+
             stackBytes += argBytes;
         }
 
@@ -386,6 +402,7 @@ uint64_t ABICall::callArgStackOffset(const CallConv& conv, std::span<const ArgLa
     {
         if (conv.canPassArgInRegister(i, argLayouts[i].isFloat))
             continue;
+
         const uint32_t argSize = std::max(stackSlotSize, static_cast<uint32_t>(argLayouts[i].numBits) / 8);
         result += argSize;
     }
@@ -420,13 +437,15 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, uint32_t num
     // Reserve shadow space + stack args, then restore call-site alignment before CALL pushes RIP.
     const CallConv& conv = CallConv::get(callConvKind);
     SWC_ASSERT(!conv.independentArgBanks || numArgs == 0);
+
     const uint32_t numRegArgs    = conv.numArgRegisterSlots();
     const uint32_t stackSlotSize = conv.stackSlotSize();
     const uint32_t numStackArgs  = numArgs > numRegArgs ? numArgs - numRegArgs : 0;
     const uint32_t stackArgsSize = numStackArgs * stackSlotSize;
     const uint32_t frameBaseSize = conv.stackShadowSpace + stackArgsSize;
-    const uint32_t stackAlign    = conv.stackAlignment ? conv.stackAlignment : 16;
-    const uint32_t alignPad      = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
+
+    const uint32_t stackAlign = conv.stackAlignment ? conv.stackAlignment : 16;
+    const uint32_t alignPad   = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
     return frameBaseSize + alignPad;
 }
 
@@ -439,6 +458,7 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
         uint64_t         frameBaseSize = 0;
         uint64_t         homeBytes     = 0;
         ArgRegisterState registerState;
+
         for (const ArgLayout& arg : argLayouts)
         {
             const bool inRegister = registerState.nextIndependent(conv, arg.isFloat) != K_NO_ARG_REGISTER;
@@ -446,15 +466,19 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
             {
                 if (arg.needsHome)
                     homeBytes += stackSlotSize;
+
                 continue;
             }
 
             const uint32_t argBytes = std::max(stackSlotSize, static_cast<uint32_t>(arg.numBits) / 8);
             if (argBytes > stackSlotSize)
                 frameBaseSize = (frameBaseSize + argBytes - 1) & ~static_cast<uint64_t>(argBytes - 1);
+
             frameBaseSize += argBytes;
         }
+
         frameBaseSize += homeBytes;
+
         const uint32_t stackAlign = conv.stackAlignment;
         const uint32_t alignPad   = (stackAlign + K_CALL_PUSH_SIZE - (frameBaseSize % stackAlign)) % stackAlign;
         SWC_ASSERT(frameBaseSize + alignPad <= UINT32_MAX);
@@ -471,6 +495,7 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
     {
         if (conv.canPassArgInRegister(i, argLayouts[i].isFloat))
             continue;
+
         stackArgsSize += std::max(stackSlotSize, static_cast<uint32_t>(argLayouts[i].numBits) / 8);
     }
 

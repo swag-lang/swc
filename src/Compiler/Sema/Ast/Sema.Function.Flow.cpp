@@ -1176,6 +1176,7 @@ namespace
         const SemaNodeView   nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         SmallVector<Symbol*> symbols;
         collectCalleeSymbolsWithFallback(sema, nodeCallee, symbols);
+
         SmallVector<AstNodeRef> args;
         call.collectArguments(args, sema.ast());
 
@@ -1194,6 +1195,7 @@ namespace
             {
                 if (fn->isGenericRoot() && isLambdaBindingExpr(sema, childRef))
                     continue;
+
                 SWC_RESULT(SemaGeneric::resolveFunctionCallParamType(sema, *fn, call.nodeExprRef, args.span(), ufcsArg, childRef, paramTypeRef, true));
             }
 
@@ -1222,6 +1224,7 @@ namespace
     Result resolveCallArgumentLambdaBindingType(Sema& sema, const T& call, AstNodeRef childRef, TypeRef& outBindingTypeRef)
     {
         outBindingTypeRef = TypeRef::invalid();
+
         // Named and parenthesized values need lambda context only when they wrap a lambda.
         // Resolving an ordinary value's dependent parameter type here precedes deduction.
         if (!isLambdaBindingExpr(sema, childRef))
@@ -1230,6 +1233,7 @@ namespace
         const SemaNodeView   nodeCallee = sema.view(call.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         SmallVector<Symbol*> symbols;
         collectCalleeSymbolsWithFallback(sema, nodeCallee, symbols);
+
         SmallVector<AstNodeRef> args;
         call.collectArguments(args, sema.ast());
 
@@ -1292,14 +1296,17 @@ namespace
             {
                 Utf8 intrinsicName = "Swag.";
                 intrinsicName += Token::intrinsicName(node.intrinsicId);
+
                 const IdentifierRef idRef = sema.idMgr().addIdentifierOwned(intrinsicName);
 
                 MatchContext lookUpCxt;
                 lookUpCxt.codeRef = node.codeRef();
                 SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
                 SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, childRef, true, lookUpCxt.symbols().span()));
+
                 return Result::SkipChildren;
             }
+
             return Result::Continue;
         }
 
@@ -1319,6 +1326,7 @@ namespace
         SWC_RESULT(resolveCallArgumentContextBindingType(sema, node, childRef, bindingTypeRef));
         if (!bindingTypeRef.isValid())
             SWC_RESULT(resolveCallArgumentLambdaBindingType(sema, node, childRef, bindingTypeRef));
+
         if (bindingTypeRef.isValid())
         {
             auto frame = sema.frame();
@@ -1361,12 +1369,12 @@ namespace
 
         SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef()));
         SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).addRuntimeSafety(Runtime::SafetyWhat::Assert);
+
         return Result::Continue;
     }
 
-    // `Swag.assert(cond)` panics when `cond` is false, so the statements after it are only
-    // reachable with `cond` true: its flow facts hold for the remainder of the enclosing
-    // block, exactly like the surviving branch of a guard-style `if ... do return`.
+    // Once assert succeeds, its condition's true facts hold for the rest of the
+    // enclosing block, like a guard whose false branch exits.
     void setupIntrinsicAssertNarrowFacts(Sema& sema, const AstIntrinsicCallExpr& node)
     {
         const AstNodeRef conditionRef = sema.ast().nthNode(node.spanChildrenRef, 0);
@@ -1411,6 +1419,7 @@ namespace
             return Result::Continue;
         if (!intrinsicNeedsMathRuntimeSafety(node.intrinsicId))
             return Result::Continue;
+
         return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Math, node.codeRef());
     }
 
@@ -1436,6 +1445,7 @@ namespace
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
         if (!storageType.isScalarNumeric())
             return TypeRef::invalid();
+
         return operandTypeRef;
     }
 
@@ -1465,6 +1475,7 @@ namespace
                 const TypeRef rightStorageTypeRef = aliasStorageTypeRef(sema, sema.viewType(args[1]).typeRef());
                 if (rightStorageTypeRef.isValid() && rightStorageTypeRef != selectedReturnTypeRef)
                     return Result::Continue;
+
                 break;
             }
 
@@ -1489,6 +1500,7 @@ namespace
 
         if (resultTypeRef.isValid())
             sema.setType(sema.curNodeRef(), resultTypeRef);
+
         return Result::Continue;
     }
 

@@ -61,6 +61,7 @@ namespace
             outSteps.push_back({.field = field, .isPointer = usingFieldIsPointer});
             if (usingTargetStruct == &targetStruct || resolveUsingMemberPathRec(codeGen, *usingTargetStruct, targetStruct, outSteps, visited))
                 return true;
+
             outSteps.pop_back();
         }
 
@@ -90,10 +91,9 @@ namespace
         TypeRef  memberTypeRef = TypeRef::invalid();
     };
 
-    // How many indirections separate the left VALUE from the object its members live in.
-    // Mirrors what member resolution peels in sema: every reference layer is transparent,
-    // and a pointer is dereferenced exactly once. A plain '*T' or '&T' is one; a binding
-    // to a pointer slot ('&*T', what an 'opIndex' hands back) is two.
+    // Match sema: peel all reference layers, then at most one pointer. A value
+    // of type '*T' or '&T' needs one step; a reference to a pointer slot
+    // ('&*T', as returned by opIndex) needs two.
     uint32_t memberAccessDerefDepth(CodeGen& codeGen, const TypeInfo& leftTypeInfo)
     {
         uint32_t        depth = 0;
@@ -106,6 +106,7 @@ namespace
 
         if (walk->isAnyPointer())
             ++depth;
+
         return depth;
     }
 
@@ -198,31 +199,34 @@ namespace
     {
         const CodeGenNodePayload& leftPayload        = codeGen.payload(node.nodeLeftRef);
         const TypeRef             preOverrideTypeRef = CodeGenExprView::payloadTypeRef(codeGen, leftPayload, node.nodeLeftRef);
-        const SemaNodeView        rightView          = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*             rightSym           = rightView.sym();
+
+        const SemaNodeView rightView = codeGen.viewSymbol(node.nodeRightRef);
+        const Symbol*      rightSym  = rightView.sym();
         if (!rightSym)
             rightSym = recoverMemberAccessRightSymbol(codeGen, node.nodeRightRef);
         SWC_ASSERT(rightSym != nullptr);
         if (!rightSym)
             return Result::Error;
+
         const auto& semaSymVar  = rightSym->cast<SymbolVariable>();
         TypeRef     leftTypeRef = CodeGenStructHelpers::resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, preOverrideTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), leftTypeRef);
-        // The receiver override above resolves the concrete struct for FIELD lookup, but the
-        // payload still carries the receiver's indirection: a pointer receiver dereferences.
+
+        // Concrete receiver overrides select the field layout but retain the payload's
+        // original indirection. Pointer receivers still need a dereference.
         const TypeInfo& indirectionInfo = leftTypeInfo.isPointerOrReference() ? leftTypeInfo : codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), preOverrideTypeRef);
 
-        // Runtime member accesses inside generic instances must use the field symbol of the active
-        // specialization. Reusing the root generic field leaks stale offsets and field types into
-        // codegen, which breaks layout-sensitive member/index chains.
+        // Resolve fields in the active generic specialization. Root generic symbols
+        // retain offsets and types that can be wrong for the runtime layout.
         const SymbolVariable* concreteSymVar = CodeGenStructHelpers::tryResolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaSymVar);
         const SymbolVariable& symVar         = concreteSymVar ? *concreteSymVar : semaSymVar;
 
-        const TypeRef                    memberTypeRef = symVar.typeRef();
-        const CodeGenNodePayload&        payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
-        MicroBuilder&                    builder       = codeGen.builder();
-        const ScopedDebugSource          debugSource(builder, leftPayload.sourceCodeRef);
+        const TypeRef             memberTypeRef = symVar.typeRef();
+        const CodeGenNodePayload& payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
+        const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
+
         SmallVector<StructUsingPathStep> usingPath;
         if (leftTypeRef.isValid())
             resolveStructMemberPath(codeGen, leftTypeRef, symVar, usingPath);
@@ -230,8 +234,8 @@ namespace
         MicroReg baseAddressReg = leftPayload.reg;
         if (indirectionInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())
         {
-            // Member access through a pointer/reference or `typeinfo` works on the pointee object, not
-            // on the storage that currently holds that pointer value.
+            // Use the pointee object as the member base. Address-backed pointer
+            // values must first be loaded from their storage.
             if (leftPayload.isAddress())
             {
                 baseAddressReg = codeGen.nextVirtualIntRegister();
@@ -258,16 +262,14 @@ namespace
 
             if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
             {
-                // Member access still needs an address, so spill small by-value aggregates to temporary
-                // storage before computing the field offset.
+                // Spill small by-value aggregates so field offsets have an address base.
                 const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
                 builder.emitLoadMemReg(spillAddrReg, 0, leftPayload.reg, CodeGenTypeHelpers::bitsFromStorageSize(leftSize));
                 baseAddressReg = spillAddrReg;
             }
         }
 
-        // Replay the resolved `using` chain so the final member offset is computed from the subobject that
-        // actually owns the requested field.
+        // Replay the using chain to compute offsets from the field's owning subobject.
         for (const auto& step : usingPath)
         {
             SWC_ASSERT(step.field != nullptr);
@@ -321,9 +323,8 @@ namespace
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
         const ScopedDebugSource   debugSource(builder, leftPayload.sourceCodeRef);
 
-        // Interface methods can be overloaded ('#fwd' variants): the right identifier may
-        // still reference the first homonym, so prefer the overload selected by the call
-        // resolution, stored on the enclosing call node.
+        // Prefer the method selected on the enclosing call: the right identifier
+        // can still name the first homonym of an overloaded '#fwd' method.
         const Symbol* methodSym = nullptr;
 
         const AstNodeRef parentRef = codeGen.visit().parentNodeRef(0);
@@ -339,11 +340,13 @@ namespace
             const SemaNodeView rightView = codeGen.viewSymbol(node.nodeRightRef);
             methodSym                    = rightView.sym();
         }
+
         if (!methodSym)
             methodSym = recoverMemberAccessRightSymbol(codeGen, node.nodeRightRef);
         SWC_ASSERT(methodSym != nullptr);
         if (!methodSym)
             return Result::Error;
+
         const auto& methodFunc = methodSym->cast<SymbolFunction>();
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
@@ -359,6 +362,7 @@ namespace
     {
         if (!leftView.sym())
             return true;
+
         return !leftView.sym()->isType() &&
                !leftView.sym()->isNamespace() &&
                !leftView.sym()->isModule() &&
@@ -426,6 +430,7 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 
     if (childRef == nodeRightRef)
         return Result::SkipChildren;
+
     return Result::Continue;
 }
 
@@ -434,17 +439,15 @@ Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     if (!hasFlag(AstMemberAccessExprFlagsE::OptionalAccess))
         return Result::Continue;
 
-    // Child callbacks receive the RESOLVED child (a qualification cast can rewrite
-    // the direct left node, e.g. the UFCS receiver bind of a '?.' method call), so
-    // the left child is identified through resolved references.
+    // Child callbacks use resolved references: qualification casts, including
+    // UFCS receiver binds, can replace the direct left node.
     const AstNodeRef resolvedLeftRef = codeGen.resolvedNodeRef(nodeLeftRef);
     SWC_ASSERT(resolvedLeftRef.isValid());
     if (codeGen.resolvedNodeRef(childRef) != resolvedLeftRef)
         return Result::Continue;
 
-    // '?.': test the freshly generated left value and take the enclosing chain's null
-    // exit when it is null. The rest of the member access then runs on a proven
-    // non-null value.
+    // Exit the enclosing optional chain on null so the remaining member access
+    // runs with a proven non-null receiver.
     const auto* chainState = codeGen.findEnclosingNodePayload<OptionalChainCodeGenPayload>(AstNodeId::OptionalChainExpr);
     SWC_ASSERT(chainState != nullptr && chainState->falseLabel.isValid());
 
@@ -469,15 +472,15 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     const Symbol*      rightSym  = rightView.sym();
     if (!rightSym)
         rightSym = recoverMemberAccessRightSymbol(codeGen, nodeRightRef);
+
     if (rightSym)
     {
-        // A static data member (`var` in an `impl`) has a single global storage, so
-        // `instance.staticMember` must resolve to that global - never to `instance +
-        // offset`. Only instance fields use the runtime base-relative access below;
-        // statics fall through to the scoped-symbol materialization (same as the
-        // type-qualified `Type.staticMember` case).
+        // Static impl members always use global storage, even through an instance.
+        // Only instance fields use base-relative offsets; let statics fall through
+        // to scoped-symbol materialization.
         if (leftIsRuntimeValue && rightSym->isVariable() && !rightSym->cast<SymbolVariable>().hasGlobalStorage())
             return finalizeRuntimeMemberAccess(codeGen, codeGenStructMemberAccess(codeGen, *this));
+
         if (rightSym->isFunction() || rightSym->isType() || rightSym->isNamespace() || rightSym->isModule() || rightSym->isImpl())
             return Result::Continue;
     }

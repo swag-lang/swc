@@ -1309,14 +1309,15 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     if (hasConcreteLayout())
         return Result::Continue;
 
-    // A struct's post-node sema can park after this ran (impl registrations) and re-runs it on
-    // resume, while other jobs already read the published numbers through field walks. Compute
-    // into locals and publish once at the end: a reader must never observe a transient zero or
-    // a partially accumulated size.
+    // Post-node semantic analysis can resume after waiting for impl registrations,
+    // while other jobs already read the published layout. Compute locally and publish
+    // only at the end so readers never observe partial sizes or transient zeroes.
     uint64_t sizeInBytes = 0;
     uint32_t alignment   = 1;
+
     uint32_t structPack  = 0;
     uint32_t structAlign = 0;
+
     tryGetSwagLayoutAttributeValue(structPack, ctx, attributes().attributes, "Pack");
     tryGetSwagLayoutAttributeValue(structAlign, ctx, attributes().attributes, "Align");
 
@@ -1331,9 +1332,11 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
 
         const AttributeList& fieldAttributes = symVar.attributes();
         const auto           ownAttributes   = std::span{fieldAttributes.attributes}.subspan(inheritedAttributePrefixCount(fieldAttributes, attributes()));
-        const uint64_t       sizeOf          = type.sizeOf(ctx);
-        const uint32_t       alignOf         = effectiveFieldAlignment(ctx, type, ownAttributes, structPack);
-        alignment                            = std::max(alignment, alignOf);
+
+        const uint64_t sizeOf  = type.sizeOf(ctx);
+        const uint32_t alignOf = effectiveFieldAlignment(ctx, type, ownAttributes, structPack);
+
+        alignment = std::max(alignment, alignOf);
 
         if (isUnion())
         {
@@ -1374,9 +1377,11 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
         const SymbolVariable& field = *fields_[i];
         if (!field.isUsingField())
             continue;
+
         const TypeInfo& fieldType = ctx.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, field.typeRef());
         if (!fieldType.isStruct())
             continue;
+
         for (const uint32_t slotOffset : fieldType.payloadSymStruct().dynamicSlotOffsets())
             dynamicSlotOffsets.push_back(static_cast<uint32_t>(fieldOffsets[i]) + slotOffset);
     }
@@ -1385,7 +1390,8 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     {
         addExtraFlag(SymbolStructFlagsE::OwnDynamicSlot);
         const uint32_t slotAlignment = structPack ? std::min(structPack, static_cast<uint32_t>(alignof(void*))) : alignof(void*);
-        alignment                    = std::max(alignment, slotAlignment);
+
+        alignment = std::max(alignment, slotAlignment);
         sizeInBytes += (slotAlignment - sizeInBytes % slotAlignment) % slotAlignment;
         dynamicSlotOffsets.push_back(static_cast<uint32_t>(sizeInBytes));
         sizeInBytes += sizeof(void*);
@@ -1400,7 +1406,6 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     for (size_t i = 0; i < fields_.size(); ++i)
         fields_[i]->setOffset(static_cast<uint32_t>(fieldOffsets[i]));
 
-    // Size is what hasConcreteLayout() gates on, so it goes last.
     dynamicSlotOffsets_ = std::move(dynamicSlotOffsets);
     if (isDynamic())
         addExtraFlag(SymbolStructFlagsE::DynamicStorage);
@@ -1415,6 +1420,8 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
             }
         }
     }
+
+    // Publish size last: hasConcreteLayout() uses it as the readiness gate.
     alignment_.store(alignment, std::memory_order_release);
     sizeInBytes_.store(sizeInBytes, std::memory_order_release);
 
@@ -1455,6 +1462,7 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     const std::unique_lock lk(mutexSpecOps_);
     if (!specOpsSet_.insert(&symFunc))
         return Result::Continue;
+
     specOps_.push_back(&symFunc);
 
     switch (kind)
@@ -1523,6 +1531,7 @@ const SymbolFunction* SymbolStruct::effectiveOpInit(const TaskContext& ctx) cons
 
     if (const SymbolFunction* init = opaqueInit(ctx))
         return init;
+
     return findGeneratedInitWrapper(ctx, *this);
 }
 
@@ -1530,6 +1539,7 @@ const SymbolFunction* SymbolStruct::opaqueInit(const TaskContext& ctx) const
 {
     if (!attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
         return nullptr;
+
     const SymbolFunction* function = findGeneratedImplicitMethod(ctx, *this, "swagOpaqueInit");
     return function && function->isForeign() ? function : nullptr;
 }
@@ -1586,6 +1596,7 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root, const GenericInstanceO
     if (root)
     {
         addExtraFlag(SymbolStructFlagsE::GenericInstance);
+
         auto& data   = ensureGenericData();
         data.rootSym = root;
         data.origin  = origin;
@@ -1593,6 +1604,7 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root, const GenericInstanceO
     else
     {
         removeExtraFlag(SymbolStructFlagsE::GenericInstance);
+
         if (auto* data = genericData())
             data->rootSym = nullptr;
     }
@@ -1624,6 +1636,7 @@ SymbolStruct* SymbolStruct::genericRootSym() noexcept
 {
     if (const auto* data = genericData())
         return data->rootSym;
+
     return nullptr;
 }
 
@@ -1631,6 +1644,7 @@ const SymbolStruct* SymbolStruct::genericRootSym() const noexcept
 {
     if (const auto* data = genericData())
         return data->rootSym;
+
     return nullptr;
 }
 
@@ -1660,6 +1674,7 @@ bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, Small
 {
     if (const auto* data = genericData())
         return data->instances.tryGetArgs(instance, outArgs);
+
     return false;
 }
 
@@ -1698,8 +1713,10 @@ bool SymbolStruct::isGenericCompletionActive(const TaskContext& ctx) const noexc
 bool SymbolStruct::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
 {
     SWC_ASSERT(isGenericCompletionOwner(ctx));
+
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
+
     const auto previousState = data->completionState.fetch_add(1, std::memory_order_acq_rel);
     SWC_ASSERT((previousState & K_GENERIC_COMPLETION_DEPTH_MASK) != K_GENERIC_COMPLETION_DEPTH_MASK);
     if ((previousState & K_GENERIC_COMPLETION_DEPTH_MASK) != 0)
@@ -1715,6 +1732,7 @@ void SymbolStruct::finishGenericCompletion() const noexcept
 {
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
+
     const auto previousState = data->completionState.fetch_sub(1, std::memory_order_acq_rel);
     SWC_ASSERT((previousState & K_GENERIC_COMPLETION_DEPTH_MASK) != 0);
 }

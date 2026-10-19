@@ -389,6 +389,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
         addFlag(SymbolFlagsE::MachineCodeEmitted);
         return Result::Continue;
     }
+
     auto& builder = microInstrBuilder(ctx);
     // Mark which return ABI register bank the function may write. Later backend
     // passes use this to preserve live return registers through epilog generation.
@@ -398,10 +399,12 @@ Result SymbolFunction::emit(TaskContext& ctx)
     }
     else
     {
-        const CallConv&                        callConv      = CallConv::get(callConvKind());
+        const CallConv& callConv = CallConv::get(callConvKind());
+
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, callConv, ctx.typeMgr().get(returnTypeRef()), ABITypeNormalize::Usage::Return);
         builder.setRetUsesAbiRegs(!normalizedRet.isFloat, normalizedRet.isFloat);
     }
+
     // The static sanitizer runs the checks whose sanity guard is on for this function:
     // the build-config default combined with any `#[Swag.Sanity(...)]` override on it.
     const uint16_t sanitizerSafetyMask = attributes().effectiveSanityMask(ctx.compiler().buildCfg().sanityGuards);
@@ -412,15 +415,15 @@ Result SymbolFunction::emit(TaskContext& ctx)
         return emitResult;
     }
 
-    // Before register allocation the debug base is a virtual register; CodeView can only encode a
-    // physical one. Replace it with the physical home the backend resolved, so the debug records
-    // for locals name a real frame register instead of being dropped.
+    // CodeView requires a physical frame register. Replace the pre-allocation virtual
+    // debug base with its resolved home so local-variable records can be emitted.
     if (loweredMicroCode_.debugStackBasePhysReg.isValid())
         setDebugStackBaseReg(loweredMicroCode_.debugStackBasePhysReg);
 
     // Lowered machine code keeps the emitted bytes/debug info/relocations.
     // The micro builder itself is transient and otherwise retains per-function IR memory.
     releaseMicroInstrBuilder();
+
     if (hasLoweredCode())
         addFlag(SymbolFlagsE::MachineCodeEmitted);
 
@@ -439,6 +442,7 @@ bool SymbolFunction::isJitWaitSatisfied(TaskStateKind kind) const noexcept
     // observes readiness or publishes the scheduler's waiter to a later producer.
     if (kind == TaskStateKind::SemaWaitSymJitPrepared)
         return (jitState_.flags.fetch_or(0, std::memory_order_acq_rel) & static_cast<uint8_t>(JitStateE::Prepared)) != 0;
+
     if (kind != TaskStateKind::SemaWaitSymJitPatched && kind != TaskStateKind::SemaWaitSymJitCompleted)
         return false;
 
@@ -477,9 +481,11 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
 
     const IdentifierRef adapterId = ctx.idMgr().addIdentifierOwned(std::format("__closure_adapter_{}", ctx.compiler().atomicId().fetch_add(1)));
     auto* const         adapter   = make<SymbolFunction>(ctx, decl(), tokRef(), adapterId, SymbolFlagsE::Zero);
+
     adapter->setOwnerSymMap(ownerSymMap());
     adapter->setReturnTypeRef(returnTypeRef());
     adapter->setCallConvKind(callConvKind());
+
     if (isClosure())
         adapter->addExtraFlag(SymbolFunctionFlagsE::Closure);
     if (isMethod())
@@ -490,6 +496,7 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
         adapter->addExtraFlag(SymbolFunctionFlagsE::Const);
     if (hasVariadicParam())
         adapter->addExtraFlag(SymbolFunctionFlagsE::Variadic);
+
     adapter->setAttributes(ctx, attributes());
     adapter->setRtAttributeFlags(rtAttributeFlags());
 
@@ -508,6 +515,7 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
 
     closureAdapterPublished_.store(adapter, std::memory_order_release);
     outAdapter = adapter;
+
     return Result::Continue;
 }
 
@@ -531,12 +539,14 @@ Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction
 
     const SymbolFunction* pendingFunction       = nullptr;
     const auto*           weakRelocationBlocker = waiterSymbol ? waiterSymbol->safeCast<SymbolFunction>() : nullptr;
+
     for (SymbolFunction* function : functions)
     {
         if (ctx.state().jitEmissionError)
             return Result::Error;
         if (!function)
             continue;
+
         if (function->isIgnored())
         {
             ctx.state().jitEmissionError = true;
@@ -606,6 +616,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
     }
 
     JIT::prepare(ctx, jitExecMemory_, loweredMicroCode_.bytes, loweredMicroCode_.unwindInfo, loweredMicroCode_.codeRelocations);
+
     const void* entry = jitExecMemory_.entryPoint();
     if (!entry)
     {
@@ -617,6 +628,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
     ctx.compiler().registerPreparedJitFunction(this);
     ctx.compiler().notifyAlive();
     ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymJitPrepared});
+
     return true;
 }
 
@@ -642,8 +654,10 @@ Result SymbolFunction::jitPatch(TaskContext& ctx)
         ctx.compiler().notifyAlive();
         ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymJitPatched});
     }
+
     if (patchResult == Result::Error)
         ctx.state().jitEmissionError = true;
+
     return patchResult;
 }
 
@@ -659,8 +673,10 @@ void SymbolFunction::jitFinalize(TaskContext& ctx)
         return;
 
     JIT::finalize(jitExecMemory_);
+
     void* entry = jitPatchAddress();
     SWC_ASSERT(entry != nullptr);
+
     ctx.compiler().publishJitFunctionEntry(*this, entry);
     ctx.compiler().notifyAlive();
 }

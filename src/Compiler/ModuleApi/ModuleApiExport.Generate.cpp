@@ -363,29 +363,35 @@ namespace
     {
         if (bytes.empty())
             return;
+
         result += std::format("    internal swagOpaqueStorage{}: [{}] u8", offset, bytes.size());
         if (std::ranges::any_of(bytes, [](std::byte value) { return value != std::byte{0}; }))
         {
             result += " = [";
+
             for (size_t i = 0; i < bytes.size(); ++i)
             {
                 if (i)
                     result += ", ";
+
                 result += std::format("{}", std::to_integer<uint8_t>(bytes[i]));
             }
+
             result += "]";
         }
+
         result += eol;
     }
 
     void appendOpaqueByteStorage(Utf8& result, std::span<const std::byte> bytes, uint64_t offset, std::string_view eol)
     {
-        // Long zero runs need storage, not thousands of literal elements. Keep short
-        // gaps inside their surrounding range so sparse defaults do not create a field
-        // for each zero byte in a scalar's representation.
+        // Emit long zero runs as storage fields; keep short gaps in their surrounding
+        // byte range to avoid a field for every zero in a scalar representation.
         constexpr size_t MIN_ZERO_RUN = 64;
-        size_t           rangeStart   = 0;
-        size_t           cursor       = 0;
+
+        size_t rangeStart = 0;
+        size_t cursor     = 0;
+
         while (cursor < bytes.size())
         {
             if (bytes[cursor] != std::byte{0})
@@ -393,9 +399,11 @@ namespace
                 ++cursor;
                 continue;
             }
+
             const size_t zeroStart = cursor;
             while (cursor < bytes.size() && bytes[cursor] == std::byte{0})
                 ++cursor;
+
             if (cursor - zeroStart < MIN_ZERO_RUN)
                 continue;
 
@@ -403,6 +411,7 @@ namespace
             appendOpaqueByteStorageRange(result, bytes.subspan(zeroStart, cursor - zeroStart), offset + zeroStart, eol);
             rangeStart = cursor;
         }
+
         appendOpaqueByteStorageRange(result, bytes.subspan(rangeStart), offset + rangeStart, eol);
     }
 
@@ -414,6 +423,7 @@ namespace
         else
         {
             result += " = \"";
+
             for (const unsigned char value : std::string_view{slot.value.ptr, slot.value.length})
             {
                 if (value == '"' || value == '\\')
@@ -426,8 +436,10 @@ namespace
                 else
                     result += static_cast<char>(value);
             }
+
             result += '"';
         }
+
         result += eol;
     }
 
@@ -441,18 +453,22 @@ namespace
             needsRuntimeDefault = true;
             return Result::Continue;
         }
+
         ConstantRef defaultRef = ConstantRef::invalid();
         SWC_RESULT(owner.computeDefaultValue(sema, owner.typeRef(), defaultRef));
         needsRuntimeDefault = defaultRef.isInvalid();
         if (needsRuntimeDefault)
             return Result::Continue;
 
-        const ConstantValue&          constant = ctx.cstMgr().get(defaultRef);
-        const auto                    bytes    = constant.getStruct();
+        const ConstantValue& constant = ctx.cstMgr().get(defaultRef);
+        const auto           bytes    = constant.getStruct();
+
         SmallVector<OpaqueStringSlot> slots;
+
         needsRuntimeDefault = !collectOpaqueStringSlots(ctx, slots, owner.typeRef(), bytes, 0);
         if (needsRuntimeDefault)
             return Result::Continue;
+
         std::ranges::sort(slots, {}, &OpaqueStringSlot::offset);
 
         // The typed slots are also the relocation inventory. If a representation carries
@@ -462,6 +478,7 @@ namespace
         {
             std::vector<DataSegmentRelocation> relocations;
             ctx.cstMgr().shardDataSegment(dataRef.shardIndex).copyRelocations(relocations, dataRef.offset, static_cast<uint32_t>(bytes.size()));
+
             for (const DataSegmentRelocation& relocation : relocations)
             {
                 const uint64_t offset = relocation.offset - dataRef.offset;
@@ -475,6 +492,7 @@ namespace
         }
 
         uint64_t cursor = 0;
+
         for (const OpaqueStringSlot& slot : slots)
         {
             if (slot.offset < cursor)
@@ -483,10 +501,12 @@ namespace
                 outFields.clear();
                 return Result::Continue;
             }
+
             appendOpaqueByteStorage(outFields, bytes.subspan(cursor, slot.offset - cursor), cursor, eol);
             appendOpaqueStringStorage(outFields, slot, eol);
             cursor = slot.offset + sizeof(Runtime::String);
         }
+
         appendOpaqueByteStorage(outFields, bytes.subspan(cursor), cursor, eol);
         return Result::Continue;
     }
@@ -501,14 +521,18 @@ namespace
     void appendOpaqueForeignMethod(TaskContext& ctx, Utf8& result, const OpaqueForeignMethod& method, std::string_view eol)
     {
         SWC_ASSERT(method.function);
+
         SmallVector<Utf8> attributes;
         attributes.push_back(Utf8{std::format("Foreign(function: \"{}\")", method.function->computePublicApiSymbolName(ctx))});
         collectMissingFunctionAttributes(attributes, *method.function, false, {});
+
         const auto implicitAttribute = std::ranges::find(attributes, "Implicit");
         if (implicitAttribute != attributes.end())
             attributes.erase(implicitAttribute);
+
         if (method.implicit)
             attributes.push_back("Implicit");
+
         result += "    ";
         result += buildAttributeListLine(attributes.span(), eol);
         result += "    private mtd ";
@@ -519,7 +543,8 @@ namespace
 
     struct OpaqueLifecycleOperation
     {
-        SpecOpKind            kind;
+        SpecOpKind kind;
+
         const SymbolFunction* effective = nullptr;
         const SymbolFunction* direct    = nullptr;
     };
@@ -533,11 +558,13 @@ namespace
         Utf8 fields;
         bool needsRuntimeDefault = false;
         SWC_RESULT(buildOpaqueDefaultStorage(ctx, fields, needsRuntimeDefault, root, eol));
+
         const OpaqueLifecycleOperation operations[] = {
             {SpecOpKind::OpDrop, symbolStruct->effectiveOpDrop(ctx), symbolStruct->opDrop()},
             {SpecOpKind::OpPostCopy, symbolStruct->effectiveOpPostCopy(ctx), symbolStruct->opPostCopy()},
             {SpecOpKind::OpPostMove, symbolStruct->effectiveOpPostMove(ctx), symbolStruct->opPostMove()},
         };
+
         const bool hasLifecycle = std::ranges::any_of(operations, [](const OpaqueLifecycleOperation& operation) { return operation.effective != nullptr; });
 
         Utf8 prefix;
@@ -550,6 +577,7 @@ namespace
         }
 
         static constexpr std::string_view MATERIALIZED_LAYOUT_ATTRIBUTES[] = {"Pack", "Opaque"};
+
         removeModuleApiAttributes(ctx, prefix, MATERIALIZED_LAYOUT_ATTRIBUTES);
 
         Utf8       result;
@@ -590,6 +618,7 @@ namespace
         result += prefix;
         if (!result.empty() && result.back() != ' ' && result.back() != '\t')
             result += ' ';
+
         result += "{";
         result += eol;
 
@@ -612,12 +641,15 @@ namespace
 
             const std::string_view fieldText = fields.view();
             size_t                 cursor    = 0;
+
             while (cursor < fieldText.size())
             {
                 const size_t end  = fieldText.find('\n', cursor);
                 const size_t next = end == std::string_view::npos ? fieldText.size() : end + 1;
+
                 result += "    ";
                 result += fieldText.substr(cursor, next - cursor);
+
                 cursor = next;
             }
 
@@ -628,6 +660,7 @@ namespace
             result += fields;
 
         result += "}";
+
         if (hasLifecycle || (needsRuntimeDefault && !requiresExplicitInit))
         {
             result += eol;
@@ -641,6 +674,7 @@ namespace
             {
                 const SymbolFunction* initFunction = symbolStruct->effectiveOpInit(ctx);
                 SWC_ASSERT(initFunction);
+
                 if (needsRuntimeDefault)
                     appendOpaqueForeignMethod(ctx, result, {initFunction, "swagOpaqueInit", true}, eol);
 
@@ -657,9 +691,8 @@ namespace
 
                 appendOpaqueForeignMethod(ctx, result, {operation.effective, SemaSpecOp::generatedLifecycleWrapperName(operation.kind), true}, eol);
 
-                // Public direct operations retain their original targets for explicit calls.
-                // Otherwise a private special operation preserves lifecycle classification;
-                // automatic dispatch selects the complete implicit provider wrapper above.
+                // Keep public direct targets for explicit calls. Private operations retain
+                // lifecycle classification while automatic dispatch uses provider wrappers.
                 if (!operation.direct || !operation.direct->isPublic())
                     appendOpaqueForeignMethod(ctx, result, {operation.effective, SemaSpecOp::specOpFunctionName(operation.kind), false}, eol);
             }
@@ -689,6 +722,7 @@ namespace
         AstNodeRef declRef;
         if (!tryFindReachableNodeRef(sourceFile->ast(), symbolFunction.decl(), declRef))
             return false;
+
         return isExportedPublicDeclScope(*sourceFile, declRef, symbolFunction);
     }
 

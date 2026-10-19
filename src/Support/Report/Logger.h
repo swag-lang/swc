@@ -25,9 +25,10 @@ public:
         Utf8                        label;
         Utf8                        value;
         std::vector<FieldValuePart> valueParts;
-        LogColor                    labelColor  = LogColor::Gray;
-        LogColor                    valueColor  = LogColor::White;
-        uint32_t                    indentLevel = 0;
+
+        LogColor labelColor  = LogColor::Gray;
+        LogColor valueColor  = LogColor::White;
+        uint32_t indentLevel = 0;
     };
 
     struct FieldGroupStyle
@@ -35,13 +36,15 @@ public:
         LogColor titleColor        = LogColor::BrightCyan;
         LogColor defaultLabelColor = LogColor::Gray;
         LogColor defaultValueColor = LogColor::White;
-        size_t   lineIndent        = 2;
-        size_t   indentPerLevel    = 2;
-        size_t   minLabelWidth     = 16;
-        size_t   maxLabelWidth     = 28;
-        size_t   maxLineWidth      = 108;
-        bool     blankLineBefore   = true;
-        bool     blankLineAfter    = false;
+
+        size_t lineIndent     = 2;
+        size_t indentPerLevel = 2;
+        size_t minLabelWidth  = 16;
+        size_t maxLabelWidth  = 28;
+        size_t maxLineWidth   = 108;
+
+        bool blankLineBefore = true;
+        bool blankLineAfter  = false;
     };
 
     Logger() = default;
@@ -142,16 +145,19 @@ public:
         Logger* logger_ = nullptr;
     };
 
-    void   lock();
-    void   unlock();
+    void lock();
+    void unlock();
+
     size_t beginProgress(ProgressFrames frames);
     void   updateProgress(size_t progressId, ProgressFrames frames);
     void   endProgress(size_t progressId, std::string_view finalLine);
     void   cancelProgress(size_t progressId);
-    void   resetStageClaims();
-    bool   claimStageOnce(std::string_view key);
-    void   pushStageMute() { stageMuteDepth_++; }
-    void   popStageMute()
+
+    void resetStageClaims();
+    bool claimStageOnce(std::string_view key);
+
+    void pushStageMute() { stageMuteDepth_++; }
+    void popStageMute()
     {
         SWC_ASSERT(stageMuteDepth_ != 0);
         stageMuteDepth_--;
@@ -167,8 +173,10 @@ public:
     static void print(const TaskContext& ctx, std::string_view message);
     static void printDim(const TaskContext& ctx, std::string_view message);
     static void printStdErr(LogColor color, std::string_view message, bool resetColor = true);
+
     static void printField(const TaskContext& ctx, const FieldEntry& entry, const FieldGroupStyle& style = FieldGroupStyle{});
     static void printFieldGroup(const TaskContext& ctx, std::string_view title, const std::vector<FieldEntry>& entries, const FieldGroupStyle& style = FieldGroupStyle{});
+
     static void printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot = ".", size_t messageColumn = 60);
     static void printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, LogColor dotColor, std::string_view dot, size_t messageColumn = 60);
     static void printHeaderCentered(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, size_t centerColumn = 24);
@@ -194,14 +202,15 @@ private:
     std::vector<ActiveProgress> activeProgress_;
     std::thread                 animator_;
     std::vector<Utf8>           claimedStageKeys_;
-    std::atomic<bool>           stopAnimator_      = false;
-    size_t                      outputBlockDepth_  = 0;
-    size_t                      stageMuteDepth_    = 0;
-    size_t                      nextProgressId_    = 0;
-    bool                        progressRendered_  = false;
-    bool                        cursorHidden_      = false;
-    bool                        permanentLineOpen_ = false;
-    bool                        stagesDetailed_    = false;
+
+    std::atomic<bool> stopAnimator_      = false;
+    size_t            outputBlockDepth_  = 0;
+    size_t            stageMuteDepth_    = 0;
+    size_t            nextProgressId_    = 0;
+    bool              progressRendered_  = false;
+    bool              cursorHidden_      = false;
+    bool              permanentLineOpen_ = false;
+    bool              stagesDetailed_    = false;
 };
 
 SWC_END_NAMESPACE();

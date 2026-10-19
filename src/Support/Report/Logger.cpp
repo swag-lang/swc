@@ -24,8 +24,10 @@ namespace
         Utf8     result;
         uint32_t columns = 0;
         size_t   pos     = 0;
+
         while (pos < line.size() && columns < maxColumns)
         {
+            // Preserve escape sequences without counting them as visible columns.
             if (line[pos] == '\x1b' && pos + 1 < line.size() && line[pos + 1] == '[')
             {
                 const size_t start = pos;
@@ -36,6 +38,7 @@ namespace
                     if (c >= 0x40 && c <= 0x7e)
                         break;
                 }
+
                 result.append(line.substr(start, pos - start));
                 continue;
             }
@@ -48,11 +51,13 @@ namespace
                 size = 3;
             else if ((lead & 0xf8) == 0xf0)
                 size = 4;
+
             size = std::min(size, line.size() - pos);
             result.append(line.substr(pos, size));
             pos += size;
             columns++;
         }
+
         return result;
     }
 
@@ -103,6 +108,7 @@ namespace
         Utf8 out;
         out.append(indentWidth, ' ');
         appendColoredText(out, ctx, labelColor, entry.label);
+
         const size_t padding = labelWidth < labelColumn ? labelColumn - labelWidth + 2 : 2;
         out.append(padding, ' ');
         appendValue(out, ctx, entry, valueColor);
@@ -137,6 +143,7 @@ void Logger::unlock()
     outputBlockDepth_--;
     if (outputBlockDepth_ == 0)
         renderProgressNoLock();
+
     mutexAccess_.unlock();
 }
 
@@ -145,6 +152,7 @@ size_t Logger::beginProgress(ProgressFrames frames)
     const std::scoped_lock lock(mutexAccess_);
     if (!animator_.joinable())
         animator_ = std::thread([this] { animateLoop(); });
+
     const size_t progressId = ++nextProgressId_;
     activeProgress_.push_back({.id = progressId, .frames = std::move(frames), .startTick = std::chrono::steady_clock::now()});
     animatorWake_.notify_all();
@@ -161,6 +169,7 @@ void Logger::updateProgress(const size_t progressId, ProgressFrames frames)
     {
         if (progress.id != progressId)
             continue;
+
         progress.frames = std::move(frames);
         return;
     }
@@ -186,8 +195,10 @@ void Logger::endProgress(const size_t progressId, const std::string_view finalLi
     std::cout << finalLine;
     if (finalLine.empty() || finalLine.back() != '\n')
         std::cout << "\n";
+
     if (activeProgress_.empty())
         showCursorNoLock();
+
     std::cout << std::flush;
 }
 
@@ -207,6 +218,7 @@ void Logger::cancelProgress(const size_t progressId)
 
     if (activeProgress_.empty())
         showCursorNoLock();
+
     std::cout << std::flush;
 }
 
@@ -345,6 +357,7 @@ void Logger::printFieldGroup(const TaskContext& ctx, const std::string_view titl
     {
         if (style.blankLineBefore)
             std::cout << "\n";
+
         std::cout << LogColorHelper::toAnsi(ctx, style.titleColor);
         std::cout << title;
         std::cout << LogColorHelper::toAnsi(ctx, LogColor::Reset);
@@ -381,6 +394,7 @@ void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::s
     style.minLabelWidth          = std::min(legacyColumn, static_cast<size_t>(28));
     style.maxLabelWidth          = style.minLabelWidth;
     style.maxLineWidth           = std::max(style.maxLineWidth, style.minLabelWidth + 2 + Utf8Helper::countChars(message));
+
     printField(ctx, entry, style);
 }
 
@@ -430,6 +444,7 @@ void Logger::animateLoop()
 
         if (stopAnimator_.load(std::memory_order_acquire))
             return;
+
         if (!mutexAccess_.try_lock())
             continue;
 
@@ -457,6 +472,7 @@ void Logger::showCursorNoLock()
 {
     if (!cursorHidden_)
         return;
+
     Os::setStdoutCursorVisible(true);
     cursorHidden_ = false;
 }
@@ -475,6 +491,7 @@ void Logger::renderProgressNoLock()
     Utf8           line       = progress.frames[progress.frameIndex];
     line += Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
     line += "\x1b[0m";
+
     const uint32_t columns = Os::stdoutColumnCount();
     if (columns > 1)
         line = clipAnsiLine(line, columns - 1);
@@ -485,9 +502,11 @@ void Logger::renderProgressNoLock()
         Os::setStdoutCursorVisible(false);
         cursorHidden_ = true;
     }
+
     frame += "\r";
     frame += line;
     frame += "\x1b[0m\x1b[K";
+
     std::cout.write(frame.data(), static_cast<std::streamsize>(frame.size()));
     std::cout << std::flush;
     progressRendered_ = true;

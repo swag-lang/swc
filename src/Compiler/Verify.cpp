@@ -15,13 +15,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Consumes optional "@..." at position i and applies constraint to directive.
-    // Returns a new index (i advanced), or leaves the directive at default if malformed.
+    // Line constraints default to the directive's own line; signed offsets are relative to it.
     size_t parseLineConstraint(const LangSpec& langSpec, std::string_view comment, size_t i, VerifyDirective& directive)
     {
         const uint32_t baseLine = directive.myCodeRange.line;
 
-        // default is exact base line unless "@..." overrides it
         directive.allowedLines.clear();
         directive.lineMin = baseLine;
         directive.lineMax = baseLine;
@@ -29,7 +27,7 @@ namespace
         if (i >= comment.size() || comment[i] != '@')
             return i;
 
-        ++i; // consume '@'
+        ++i;
 
         if (i < comment.size() && comment[i] == '*')
         {
@@ -42,7 +40,7 @@ namespace
 
         if (i < comment.size() && comment[i] == '(')
         {
-            ++i; // consume '('
+            ++i;
             std::vector<uint32_t> lines;
 
             while (i < comment.size())
@@ -78,12 +76,13 @@ namespace
                     ++i;
                     continue;
                 }
+
                 break;
             }
 
-            // consume until ')'
             while (i < comment.size() && comment[i] != ')')
                 ++i;
+
             if (i < comment.size() && comment[i] == ')')
                 ++i;
 
@@ -93,7 +92,6 @@ namespace
                 directive.lineMin      = 0;
                 directive.lineMax      = 0;
             }
-            // else keep default exact(baseLine)
 
             return i;
         }
@@ -114,7 +112,6 @@ namespace
             const int32_t  lineAValue = static_cast<int32_t>(baseLine) + offA;
             const uint32_t lineA      = lineAValue > 0 ? static_cast<uint32_t>(lineAValue) : 1u;
 
-            // range?
             if (i + 1 < comment.size() && comment[i] == '.' && comment[i + 1] == '.')
             {
                 i += 2;
@@ -123,7 +120,7 @@ namespace
                 bool hasSignB = false;
                 if (!Utf8Helper::parseSignedOrAbs(langSpec, comment, i, offB, hasSignB) || !hasSignB)
                 {
-                    // malformed range end -> just treat as exact lineA
+                    // A malformed range end still leaves a usable start-line constraint.
                     directive.allowedLines.clear();
                     directive.lineMin = lineA;
                     directive.lineMax = lineA;
@@ -132,6 +129,7 @@ namespace
 
                 const int32_t  lineBValue = static_cast<int32_t>(baseLine) + offB;
                 const uint32_t lineB      = lineBValue > 0 ? static_cast<uint32_t>(lineBValue) : 1u;
+
                 directive.allowedLines.clear();
                 directive.lineMin = std::min(lineA, lineB);
                 directive.lineMax = std::max(lineA, lineB);
@@ -165,11 +163,9 @@ void Verify::tokenize(TaskContext& ctx)
     else if (ctx.cmdLine().semaOnly)
         srcView_->setSemaOnly();
 
-    // Get all comments from the file
     Lexer lexer;
     lexer.tokenizeRaw(ctx, *srcView_);
 
-    // Parse all comments to find a verify directive
     for (const SourceTrivia& trivia : srcView_->trivia())
     {
         const std::string_view comment = trivia.tok.string(*srcView_);
@@ -214,6 +210,7 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
             directive.touched = true;
             if (elemIndex == 0)
                 dismiss = true;
+
             break;
         }
     }
@@ -234,8 +231,10 @@ bool Verify::hasUntouchedErrorDirectiveInLineRange(const uint32_t lineStart, con
     {
         if (directive.touched || directive.kind != DiagnosticSeverity::Error)
             continue;
+
         if (!directive.match.starts_with(matchPrefix))
             continue;
+
         if (directive.myCodeRange.line >= firstLine && directive.myCodeRange.line <= lastLine)
             return true;
     }
@@ -258,6 +257,7 @@ void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView
     {
         const std::scoped_lock lk(directivesMutex_);
         missingRanges.reserve(directives_.size());
+
         for (const VerifyDirective& directive : directives_)
         {
             if (!directive.touched)
@@ -293,6 +293,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         size_t       i     = start;
         while (i < comment.size() && langSpec.isLetter(comment[i]))
             i++;
+
         const std::string_view word = comment.substr(start, i - start);
         if (word == "error")
             directive.kind = DiagnosticSeverity::Error;
@@ -308,15 +309,12 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
             continue;
         }
 
-        // Base location info
         const uint32_t byteStart = trivia.tok.byteStart + static_cast<uint32_t>(pos);
         const uint32_t byteLen   = static_cast<uint32_t>(LangSpec::VERIFY_COMMENT_EXPECTED.size()) + static_cast<uint32_t>(word.size());
         directive.myCodeRange.fromOffset(ctx, *srcView_, byteStart, byteLen);
         directive.codeRange = directive.myCodeRange;
 
-        // Handle @*, @+ etc. suffix
-        // Handle @... suffix (line constraints)
-        // Supported:
+        // Optional line constraints:
         //   @*                  => anywhere
         //   @+                  => +1
         //   @-                  => -1
@@ -324,8 +322,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
         //   @+A..+B / @-A..+B   => relative range (inclusive)
         //   @(+A,+B,...)        => one-of relative offsets list
         //   @(<abs>,<abs>,...)  => one-of absolute lines (if no sign)
-        // Note:
-        //   baseline is directive.myLoc.line (line of the directive comment token)
+        // Offsets start from directive.myCodeRange.line, the directive comment's line.
         i = parseLineConstraint(langSpec, comment, i, directive);
 
         // Find and parse all `{{ ... }}` blocks following this directive

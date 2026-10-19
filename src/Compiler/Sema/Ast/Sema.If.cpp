@@ -25,9 +25,8 @@ namespace
         Symbol*     maskedConditionSymbol = nullptr;
         ConstantRef maskedConditionCstRef = ConstantRef::invalid();
 
-        // How many flow facts the frame around the 'if' held when the true branch started. A kill
-        // that branch records reaches every live frame, so it outlives the branch for the code
-        // after the 'if'; the false branch never runs it, and starts from this count again.
+        // Restore the false branch's starting facts after true-branch kills have
+        // propagated to the surrounding live frames.
         uint32_t narrowFactsAtThen = UINT32_MAX;
     };
 
@@ -37,6 +36,7 @@ namespace
             return symVar->cstRef();
         if (const auto* symConst = symbol.safeCast<SymbolConstant>())
             return symConst->cstRef();
+
         return ConstantRef::invalid();
     }
 
@@ -68,6 +68,7 @@ namespace
             return singleDecl->hasFlag(AstVarDeclFlagsE::Let);
         if (const auto* multiDecl = declNode.safeCast<AstMultiVarDecl>())
             return multiDecl->hasFlag(AstVarDeclFlagsE::Let);
+
         return false;
     }
 
@@ -126,7 +127,8 @@ namespace
         if (conditionCstRef.isInvalid())
             return;
 
-        auto& payload                 = sema.ensureSemaPayload<IfSemaPayload>(ifRef);
+        auto& payload = sema.ensureSemaPayload<IfSemaPayload>(ifRef);
+
         payload.maskedConditionSymbol = conditionSym;
         payload.maskedConditionCstRef = conditionCstRef;
         setConditionSymbolConstantRef(*conditionSym, ConstantRef::invalid());
@@ -172,11 +174,9 @@ namespace
         if (resolvedNode.is(AstNodeId::AssignStmt))
             return resolvedNode.cast<AstAssignStmt>().nodeLeftRef;
 
-        // When the `with` expression is an address-of (`&var`), unwrap to the underlying
-        // variable so that configureWithBindings can use the direct variable binding path.
-        // Without this, the address-of expression would be stored as a baseExprRef and
-        // cloned during auto-member resolution, but the clone's children are never visited
-        // by the codegen walker (they are not part of the original AST tree).
+        // Bind &var directly to its variable. Auto-member resolution would otherwise
+        // clone the address expression, whose children codegen never visits because
+        // they are outside the original AST.
         if (resolvedNode.is(AstNodeId::UnaryExpr))
         {
             const Token& tok = sema.token(resolvedNode.codeRef());
@@ -210,6 +210,7 @@ namespace
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
                 diag.addArgument(Diagnostic::ARG_TYPE, rawTypeRef);
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
@@ -228,10 +229,9 @@ namespace
             else if (typeInfo.isEnum())
                 symMap = &typeInfo.payloadSymEnum();
 
-            // Every 'with' subject is recorded as an auto-member binding, whatever shape it has,
-            // and carries the rank that says how deeply it is nested. A binding var cannot answer
-            // that question: they are one flat list, shared with the receiver and with the frames a
-            // closure inherits, so a nested 'with' would not be ranked against an enclosing one.
+            // Rank every with subject by nesting depth. The flat binding-variable
+            // list also holds receivers and inherited closure bindings, so it cannot
+            // rank nested with subjects on its own.
             SymbolVariable* symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
 
             const bool namedVar = symVar &&
@@ -241,12 +241,16 @@ namespace
                                    symVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
                                    symVar->isClosureCapture());
 
-            // A subject that has a name is reached through its symbol; anything else is reached by
-            // re-evaluating the place the header wrote. Keeping the two shapes apart matters at
-            // code generation: a cloned expression's children are not walked, so a named subject
-            // must not be turned into a cloned expression.
+            // Named subjects must use their symbols: codegen does not visit cloned
+            // expression children. Only unnamed subjects use a base expression.
             const AstNodeRef subjectExprRef = namedVar ? AstNodeRef::invalid() : baseExprRef;
-            bodyScope.addAutoMemberBinding({.symMap = symMap, .typeRef = normalizedTypeRef, .symVar = namedVar ? symVar : nullptr, .baseExprRef = subjectExprRef, .order = sema.nextAutoMemberOrder(), .inlinePayload = sema.frame().currentInlinePayload()});
+            bodyScope.addAutoMemberBinding(
+                {.symMap        = symMap,
+                 .typeRef       = normalizedTypeRef,
+                 .symVar        = namedVar ? symVar : nullptr,
+                 .baseExprRef   = subjectExprRef,
+                 .order         = sema.nextAutoMemberOrder(),
+                 .inlinePayload = sema.frame().currentInlinePayload()});
 
             // A named subject stays a binding var too: that is what resolves its bare name inside
             // the block, and the duplicate candidate collapses during collection.
@@ -259,6 +263,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, errorRef);
         diag.addArgument(Diagnostic::ARG_TYPE, normalizedTypeRef);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 

@@ -19,6 +19,7 @@ namespace
             if (model.gapHasNewline(i))
                 return false;
         }
+
         return true;
     }
 
@@ -29,6 +30,7 @@ namespace
             if (model.gapBefore(i).origText.find_first_of("\r\n") != std::string_view::npos)
                 return false;
         }
+
         return true;
     }
 
@@ -49,6 +51,7 @@ namespace
             if (piece.depth == innerDepth && piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::EnumValueStart}))
                 count++;
         }
+
         return count;
     }
 
@@ -59,6 +62,7 @@ namespace
             if (!model.piece(i).removed && model.piece(i).isComment)
                 return true;
         }
+
         return false;
     }
 
@@ -69,6 +73,7 @@ namespace
             if (!model.piece(i).removed && model.piece(i).is(TokenId::SymLeftCurly))
                 return true;
         }
+
         return false;
     }
 
@@ -82,13 +87,13 @@ namespace
         {
             if (block.kind == FormatBlockKind::Function)
                 return options.allowShortClosuresOnSingleLine;
-            // An anonymous struct type written on one line is held there; one the
-            // author already spread over several is left as written. Normalizing
-            // it into a block instead would open a brace in the middle of a type
-            // and hand its members to two passes that indent them differently.
+
+            // Inline anonymous structs keep their source shape. Expanding them would
+            // let both list layout and brace layout indent the same members.
             if (block.kind == FormatBlockKind::Struct && options.allowShortStructsOnSingleLine == FormatShortBlockStyle::Source &&
                 blockWasSingleLine(model, block))
                 return FormatShortBlockStyle::Source;
+
             return FormatShortBlockStyle::Preserve;
         }
 
@@ -116,6 +121,7 @@ namespace
                     if (options.allowShortLoopsOnSingleLine)
                         style = *options.allowShortLoopsOnSingleLine ? FormatShortBlockStyle::Inline : FormatShortBlockStyle::Never;
                 }
+
                 return style;
             }
 
@@ -139,6 +145,7 @@ namespace
         const FormatShortBlockStyle style = configuredShortStyle(model, block);
         if (style == FormatShortBlockStyle::Source)
             return blockWasSingleLine(model, block);
+
         return (style == FormatShortBlockStyle::Inline || style == FormatShortBlockStyle::Always) && blockIsSingleLine(model, block);
     }
 
@@ -149,6 +156,7 @@ namespace
             if (piece > block.openPiece && piece < block.closePiece && sourceKeepsBlockSingleLine(model, block))
                 return true;
         }
+
         return false;
     }
 
@@ -173,11 +181,13 @@ namespace
                 {
                     if (blockIsEmpty(*model_, block))
                         continue;
+
                     const bool singleLine = blockIsSingleLine(*model_, block);
                     if (it->second == SiblingLayout::Split && singleLine)
                         splitBlock(block);
                     else if (it->second == SiblingLayout::Join && !singleLine)
                         tryJoinBlock(block);
+
                     continue;
                 }
 
@@ -238,10 +248,8 @@ namespace
                 if (blockIsSingleLine(*model_, block))
                     continue;
 
-                // A brace that belongs to an expression or a type and that has no
-                // short-body option of its own keeps its shape: opening a block
-                // in the middle of a type expression leaves its members to the
-                // list layout and the brace layout at once, and they disagree.
+                // Preserve expression and type bodies without a short-body policy;
+                // otherwise list and brace layout would both control their members.
                 if (block.exprLevel && configuredShortStyle(*model_, block) == FormatShortBlockStyle::Preserve)
                     continue;
 
@@ -260,9 +268,8 @@ namespace
             Join,
         };
 
-        // Braced bodies whose siblings decide their layout: a group that mixes
-        // one-line and expanded bodies takes a single layout, whatever the
-        // short-block options would say for each body alone.
+        // Mixed sibling bodies share one layout, overriding the short-block
+        // policy that would apply to each body independently.
         std::unordered_map<uint32_t, SiblingLayout> siblingLayouts() const
         {
             std::unordered_map<uint32_t, SiblingLayout> result;
@@ -281,8 +288,10 @@ namespace
                     expanded                              = expanded || !shape.oneLine;
                     compact                               = compact && shape.compact;
                 }
+
                 if (!oneLine || !expanded)
                     continue;
+
                 for (const uint32_t i : group)
                 {
                     if (bodies[i].openPiece != INVALID_PIECE)
@@ -303,8 +312,10 @@ namespace
                     expanded                              = expanded || !shape.oneLine;
                     compact                               = compact && shape.compact && shape.valid;
                 }
+
                 if (!oneLine || !expanded || !compact)
                     continue;
+
                 for (const uint32_t i : group)
                 {
                     if (bodies[i].openPiece != INVALID_PIECE)
@@ -327,8 +338,10 @@ namespace
                     oneLine                    = oneLine || shape.oneLine;
                     expanded                   = expanded || !shape.oneLine;
                 }
+
                 if (!braced || !oneLine || !expanded)
                     continue;
+
                 for (const auto& [chain, index] : group)
                     result[model_->branchChains()[chain].branches[index].openPiece] = SiblingLayout::Split;
             }
@@ -352,6 +365,7 @@ namespace
                 const bool isStmt = piece.depth == innerDepth && piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::EnumValueStart});
                 if (first || isStmt)
                     model_->setGapBreak(i, 1, inner.view());
+
                 first = false;
             }
 
@@ -383,9 +397,11 @@ namespace
                 {
                     if (model_->piece(i).removed)
                         continue;
+
                     width += FormatModel::textColumns(model_->piece(i).text, std::max(options_->tabWidth, 1u));
                     width += i == firstContent ? 1 : model_->gapColumns(i);
                 }
+
                 width += 2; // " }"
                 if (width > options_->columnLimit)
                     return;
@@ -396,8 +412,10 @@ namespace
                 const uint32_t prev = model_->prevPiece(block.openPiece);
                 if (prev == INVALID_PIECE || model_->piece(prev).isComment)
                     return;
+
                 model_->setGapSpaces(block.openPiece, 1);
             }
+
             model_->setGapSpaces(firstContent, 1);
             model_->setGapSpaces(block.closePiece, 1);
         }
@@ -429,8 +447,10 @@ namespace
         {
             if (!compact)
                 return;
+
             if (model_->gapHasNewline(block.closePiece))
                 model_->setGapSpaces(block.closePiece, 0);
+
             if (model_->gapHasNewline(block.openPiece) && block.openPiece != block.headPiece)
             {
                 const uint32_t prev = model_->prevPiece(block.openPiece);
@@ -448,9 +468,11 @@ namespace
                 {
                     if (!model_->gapHasNewline(block.openPiece) || block.openPiece == block.headPiece)
                         break;
+
                     const uint32_t prev = model_->prevPiece(block.openPiece);
                     if (prev == INVALID_PIECE || model_->piece(prev).isComment)
                         break;
+
                     model_->setGapSpaces(block.openPiece, 1);
                     break;
                 }
@@ -459,6 +481,7 @@ namespace
                 {
                     if (model_->gapHasNewline(block.openPiece) || block.openPiece == block.headPiece)
                         break;
+
                     model_->setGapBreak(block.openPiece, 1, model_->lineIndentOf(block.headPiece));
                     break;
                 }
@@ -496,6 +519,7 @@ namespace
                 if (block.closePiece == closePiece)
                     return blockIsSingleLine(*model_, block);
             }
+
             return false;
         }
 
@@ -541,6 +565,7 @@ namespace
         {
             if (!options_->breakBeforeWhere)
                 return;
+
             const bool breakBefore = *options_->breakBeforeWhere;
 
             for (uint32_t i = 0; i < model_->numPieces(); ++i)
@@ -565,12 +590,13 @@ namespace
 
         struct CaseArm
         {
-            uint32_t colon      = INVALID_PIECE; // the `:` of the label
-            uint32_t body       = INVALID_PIECE; // first body piece (INVALID when the arm is empty)
-            bool     editable   = false;
-            bool     oneLine    = false; // body shares the label line
-            bool     joinable   = false; // single one-line statement, no comments, no braces
-            bool     splittable = false; // plain statement body (braced / commented arms keep their layout)
+            uint32_t colon = INVALID_PIECE; // the `:` of the label
+            uint32_t body  = INVALID_PIECE; // first body piece (INVALID when the arm is empty)
+
+            bool editable   = false;
+            bool oneLine    = false; // body shares the label line
+            bool joinable   = false; // single one-line statement, no comments, no braces
+            bool splittable = false; // plain statement body (braced / commented arms keep their layout)
         };
 
         CaseArm analyzeArm(const uint32_t colonPiece) const
@@ -591,18 +617,17 @@ namespace
             arm.oneLine  = !model_->gapHasNewline(body);
             if (bodyPiece.is(TokenId::SymLeftCurly) || bodyPiece.isComment)
                 return arm; // braced or commented bodies keep their layout
+
             arm.splittable = true;
 
             const uint32_t caseEnd = findCaseBodyEnd(colonPiece);
             if (caseEnd == INVALID_PIECE)
                 return arm;
 
-            // A line break inside a call, an index, or a literal is the wrapping
-            // pass's decision, and that pass runs after this one: counting it
-            // here makes an arm look long that comes out on one line, and the
-            // next run of the formatter would then join the whole switch. Only
-            // the breaks this pass owns — the ones outside any list, including
-            // every line of a `{ ... }` body — say that the arm is long.
+            // Wrapping runs later and can remove line breaks inside calls, indexes,
+            // or literals. Count only breaks outside lists when deciding whether
+            // an arm is joinable, including breaks in braced statement bodies.
+            // Otherwise case layout can change again on the next formatting pass.
             uint32_t stmtCount = 0;
             uint32_t listDepth = 0;
             bool     joinable  = true;
@@ -610,6 +635,7 @@ namespace
             {
                 if (p == INVALID_PIECE)
                     break;
+
                 const FormatPiece& cur = model_->piece(p);
                 if (cur.isComment)
                     joinable = false;
@@ -643,9 +669,8 @@ namespace
                 model_->setGapSpaces(arm.body, 1);
         }
 
-        // `case` bodies per switch: `uniform` joins every arm onto its label
-        // only when the WHOLE switch is made of single-statement arms (jump
-        // tables), and expands everything otherwise.
+        // `uniform` keeps arms compact only when every nonempty body is a joinable
+        // single statement; otherwise it expands the splittable bodies.
         void runShortCases() const
         {
             const FormatCaseBodyStyle style = options_->caseBodyStyle;
@@ -667,6 +692,7 @@ namespace
                     if (!piece.removed && piece.hasRole(FormatRoleE::CaseColon) && piece.depth == labelDepth)
                         arms.push_back(analyzeArm(p));
                 }
+
                 if (arms.empty())
                     continue;
 
@@ -690,6 +716,7 @@ namespace
                             if (arm.body != INVALID_PIECE && !arm.joinable)
                                 allShort = false;
                         }
+
                         for (const CaseArm& arm : arms)
                         {
                             if (allShort)
@@ -724,12 +751,16 @@ namespace
                     while (last != INVALID_PIECE && model_->piece(last).isComment &&
                            model_->gapHasNewline(last) && model_->lineIndentOf(last) == model_->lineIndentOf(p))
                         last = model_->prevPiece(last);
+
                     return last;
                 }
+
                 if (cur.depth == depth && cur.is(TokenId::SymRightCurly))
                     return last;
+
                 last = p;
             }
+
             return last;
         }
 
@@ -769,10 +800,8 @@ namespace
 
         for (const FormatBlock& block : model.blocks())
         {
-            // An anonymous struct written inside an expression or a type — the
-            // `{first: u64, count: u64}` of a generic argument — is not a
-            // declaration body: exploding it over four lines and dropping its
-            // separator commas rewrites a type as if it were a definition.
+            // Anonymous structs embedded in expressions or types retain their shape.
+            // Splitting members and dropping commas would treat them as declarations.
             const bool isEnum   = block.kind == FormatBlockKind::Enum && model.options().oneEnumValuePerLine.value_or(false);
             const bool isStruct = block.kind == FormatBlockKind::Struct && model.options().oneStructFieldPerLine.value_or(false);
             if ((!isEnum && !isStruct) || block.exprLevel || !model.rangeEditable(block.openPiece, block.closePiece) || blockKeepsMembersSingleLine(model, block))
@@ -788,6 +817,7 @@ namespace
                 if (!piece.removed && piece.depth == innerDepth && piece.hasRole(memberRole))
                     members.push_back(i);
             }
+
             if (isStruct)
             {
                 // A top-level comma after a complete `name: type` field can
@@ -823,6 +853,7 @@ namespace
                         separators.push_back(i);
                     }
                 }
+
                 std::ranges::sort(members);
             }
 
@@ -846,20 +877,21 @@ namespace
 
             const Utf8 base(model.lineIndentOf(block.headPiece));
             const Utf8 inner = FormatPassUtil::indentPlusOne(model, base.view());
+
             // One member per line still leaves authored paragraphs between member groups.
             for (const uint32_t member : members)
             {
                 if (!model.gapHasNewline(member))
                     model.setGapBreak(member, 1, inner.view());
             }
+
             if (!isStruct || !model.gapHasNewline(block.closePiece))
                 model.setGapBreak(block.closePiece, 1, base.view());
         }
     }
 
-    // `using` is part of an aggregate field declaration, never a standalone
-    // line. Repair source that separated it from the field name and keep the
-    // prefix canonical before aggregate layout and alignment run.
+    // Keep the aggregate field's `using` prefix on the declaration line
+    // before member layout and alignment run.
     void normalizeUsingFields(FormatModel& model)
     {
         for (uint32_t i = 0; i < model.numPieces(); ++i)
@@ -877,8 +909,8 @@ namespace
         }
     }
 
-    // Pulls the declaration that follows each modifier 'isModifier' accepts up onto the modifier's
-    // line, unless it opens a braced group.
+    // Join each accepted modifier to the declaration that follows it,
+    // unless the modifier opens a braced group.
     template<typename F>
     void joinModifiersToNextLine(FormatModel& model, F&& isModifier)
     {
@@ -897,17 +929,15 @@ namespace
         }
     }
 
-    // Storage modifiers govern the declaration that follows them. Keep that relationship
-    // visible on one line (`late field: T`, `tls private var value`) while preserving a
-    // braced group as its own section.
+    // Keep storage modifiers attached to their declaration, while leaving
+    // braced modifier groups as separate sections.
     void normalizeStorageModifiers(FormatModel& model)
     {
         joinModifiersToNextLine(model, [](const FormatPiece& modifier) { return Token::isStorageModifier(modifier.id); });
     }
 
-    // An unbraced access modifier governs exactly one declaration. Keeping the
-    // two on one line makes that scope visible and leaves braced access groups
-    // as the only section-shaped form.
+    // An unbraced access modifier governs one declaration; join the two so
+    // braced access groups remain visibly distinct.
     void normalizeAccessModifiers(FormatModel& model)
     {
         if (!model.options().inlineAccessModifiers.value_or(false))
@@ -933,12 +963,12 @@ namespace
             const uint32_t next = model.nextPiece(i);
             if (next != INVALID_PIECE && !model.gapHasNewline(next))
                 continue; // same-line successor: `;` still separates
+
             model.removePiece(i);
         }
     }
 
-    // `[1, 2, 3,]` → `[1, 2, 3]`. A comma sitting against its closing bracket
-    // separates nothing; the base writes 38 000 lists without one.
+    // `[1, 2, 3,]` becomes `[1, 2, 3]`; separators between items stay.
     void removeTrailingCommas(FormatModel& model)
     {
         if (!model.options().removeTrailingCommas.value_or(false))
@@ -986,6 +1016,7 @@ namespace
             const uint32_t open = model.nextPiece(i);
             if (open == INVALID_PIECE || model.piece(open).isNot(TokenId::SymLeftParen))
                 continue;
+
             const uint32_t close = model.piece(open).match;
             if (close == INVALID_PIECE || !model.rangeEditable(open, close))
                 continue;
@@ -1004,6 +1035,7 @@ namespace
                 if (!model.piece(p).removed && model.gapHasNewline(p))
                     multiLine = true;
             }
+
             if (multiLine)
                 continue;
 
@@ -1024,17 +1056,17 @@ namespace FormatPass
     {
         removeConditionParentheses(model);
         splitSameLineStatements(model);
+
         normalizeUsingFields(model);
         normalizeAggregateMembers(model);
         normalizeStorageModifiers(model);
         normalizeAccessModifiers(model);
+
         removeTrailingCommas(model);
     }
 
-    // What makes a `;` redundant is the end of line right after it, and where
-    // the lines end is only settled once wrapping has run. Removing earlier
-    // leaves the semicolons that wrapping pushes to an end of line, and the
-    // next run of the formatter takes them out instead.
+    // Wrapping decides which semicolons end a line. Remove them afterward
+    // so the next formatting pass cannot discover more redundant separators.
     void redundantSemicolons(FormatModel& model)
     {
         removeRedundantSemicolons(model);

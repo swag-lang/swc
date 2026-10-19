@@ -16,11 +16,11 @@ SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
 
 void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
-    // Constant-only consumers, including compile-time calls, must see the same
-    // narrowed value as type checking. A null constant on an impossible edge
-    // must not make a guarded call look executable at compile time.
+    // Constant-only consumers must share type checking's narrowed view. A null
+    // from an impossible edge must not make a guarded call executable at compile time.
     if (mode != SemaNodeViewResolveE::Stored && part.has(SemaNodeViewPartE::Constant) && sema.frame().hasNarrowFacts())
         part.add(SemaNodeViewPartE::Type);
+
     computeInner(sema, ref, part, mode);
 
     // Flow-narrowing: when the current frame proves this access path non-null, expose the
@@ -36,9 +36,8 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
             typeRef_ = narrowedTypeRef;
             type_    = &sema.typeMgr().get(typeRef_);
 
-            // A propagated null CONSTANT belongs to the un-taken path: inside the guarded
-            // region the value is proven non-null, so the constant must not flow further
-            // (e.g. an inlined `return null` folded into the guarded variable).
+            // A propagated null belongs to the untaken path. The guard proves this
+            // value non-null, so discard the constant before it propagates further.
             if (part.has(SemaNodeViewPartE::Constant) && cstRef_.isValid() && cst_ && cst_->isNullValue(sema.ctx()))
             {
                 cstRef_ = ConstantRef::invalid();
@@ -46,9 +45,8 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
             }
             else if (part.has(SemaNodeViewPartE::Constant) && cstRef_.isValid() && cst_ && cst_->typeRef() != narrowedTypeRef)
             {
-                // An identity cast can commit this constant back to the expression and
-                // replace its symbol payload. Keep the narrowed type on that value too,
-                // so a resumed call does not lose the proof after constant propagation.
+                // Identity casts can write this constant back and replace its symbol payload.
+                // Preserve the narrowed type so resumed calls retain the proof.
                 ConstantValue narrowedConstant = *cst_;
                 narrowedConstant.setTypeRef(narrowedTypeRef);
                 cstRef_ = sema.cstMgr().addConstant(sema.ctx(), narrowedConstant);
@@ -61,16 +59,19 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
 void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
     // Reset everything first, as compute() can be called multiple times on the same view.
-    node_         = nullptr;
-    cst_          = nullptr;
-    type_         = nullptr;
-    sym_          = nullptr;
-    symList_      = {};
-    hasSymbol_    = false;
-    hasSymList_   = false;
+    node_ = nullptr;
+    cst_  = nullptr;
+    type_ = nullptr;
+
+    sym_        = nullptr;
+    symList_    = {};
+    hasSymbol_  = false;
+    hasSymList_ = false;
+
     queryNodeRef_ = ref;
     cstRef_       = ConstantRef::invalid();
     typeRef_      = TypeRef::invalid();
+
     computedPart_ = part;
     mode_         = mode;
 
@@ -78,6 +79,7 @@ void SemaNodeView::computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart par
         nodeRef_ = ref;
     else
         nodeRef_ = sema.getSubstituteRef(ref);
+
     if (!nodeRef_.isValid())
         return;
 
@@ -156,9 +158,8 @@ void SemaNodeView::assignSymbolList(std::span<Symbol*> symbols)
 
 bool SemaNodeView::loadResolvedSymbols(const Sema& sema, AstNodeRef targetRef, SemaNodeViewResolveE resolveMode)
 {
-    // Read the symbol payload from a single snapshot. Splitting this into hasSymbol()/getSymbol()
-    // (two separate atomic payload reads) races with a concurrent kind transition on shared
-    // generic eval nodes and can reinterpret a non-symbol payload as a store offset.
+    // One atomic snapshot must choose both symbol kind and payload. Separate
+    // has/get reads can race with kind transitions on shared generic eval nodes.
     const NodePayload::ResolvedSymbols resolved = resolveMode == SemaNodeViewResolveE::Stored ? sema.resolveSymbolsStored(targetRef) : sema.resolveSymbols(targetRef);
 
     if (resolved.isSymbolList)
@@ -188,7 +189,6 @@ void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
     SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
 
     symbols.clear();
-
     if (hasSymList_)
     {
         symbols.append(symList_.data(), symList_.size());
@@ -202,10 +202,12 @@ void SemaNodeView::getSymbols(SmallVector<Symbol*>& symbols) const
 std::span<Symbol* const> SemaNodeView::symbols() const&
 {
     SWC_ASSERT(computedPart_.has(SemaNodeViewPartE::Symbol));
+
     if (hasSymList_)
         return symList_;
     if (hasSymbol_)
         return {&sym_, 1};
+
     return {};
 }
 

@@ -30,9 +30,10 @@ enum class SemaNodeViewResolveE : uint8_t
 struct SemaNodeView
 {
     SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All, SemaNodeViewResolveE mode = SemaNodeViewResolveE::Resolved);
-    void    compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All, SemaNodeViewResolveE mode = SemaNodeViewResolveE::Resolved);
-    void    computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode);
-    void    recompute(Sema& sema, SemaNodeViewPart part = SemaNodeViewPartE::All);
+    void compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part = SemaNodeViewPartE::All, SemaNodeViewResolveE mode = SemaNodeViewResolveE::Resolved);
+    void computeInner(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode);
+    void recompute(Sema& sema, SemaNodeViewPart part = SemaNodeViewPartE::All);
+
     void    getSymbols(SmallVector<Symbol*>& symbols) const;
     Symbol* singleSymbol() const;
 
@@ -40,27 +41,33 @@ struct SemaNodeView
     std::span<Symbol* const> symbols() const&;
     std::span<Symbol* const> symbols() const&& = delete;
 
-    const AstNode*           node() const;
-    const AstNode*&          node();
-    const ConstantValue*     cst() const;
-    const ConstantValue*&    cst();
-    const TypeInfo*          type() const;
-    const TypeInfo*&         type();
+    const AstNode*  node() const;
+    const AstNode*& node();
+
+    const ConstantValue*  cst() const;
+    const ConstantValue*& cst();
+
+    const TypeInfo*  type() const;
+    const TypeInfo*& type();
+
     Symbol*                  sym() const;
     Symbol*&                 sym();
     std::span<Symbol* const> symList() const;
     std::span<Symbol*>&      symList();
 
-    AstNodeRef   nodeRef() const;
-    AstNodeRef&  nodeRef();
+    AstNodeRef  nodeRef() const;
+    AstNodeRef& nodeRef();
+
     ConstantRef  cstRef() const;
     ConstantRef& cstRef();
-    TypeRef      typeRef() const;
-    TypeRef&     typeRef();
-    bool         hasType() const;
-    bool         hasConstant() const;
-    bool         hasSymbol() const;
-    bool         hasSymbolList() const;
+
+    TypeRef  typeRef() const;
+    TypeRef& typeRef();
+
+    bool hasType() const;
+    bool hasConstant() const;
+    bool hasSymbol() const;
+    bool hasSymbolList() const;
 
 private:
     void assignSymbolList(std::span<Symbol*> symbols);
@@ -71,14 +78,17 @@ private:
     const AstNode*       node_;
     const ConstantValue* cst_;
     const TypeInfo*      type_;
-    Symbol*              sym_;
-    std::span<Symbol*>   symList_ = {};
-    bool                 hasSymbol_;
-    bool                 hasSymList_;
-    AstNodeRef           queryNodeRef_ = AstNodeRef::invalid();
-    AstNodeRef           nodeRef_      = AstNodeRef::invalid();
-    ConstantRef          cstRef_       = ConstantRef::invalid();
-    TypeRef              typeRef_      = TypeRef::invalid();
+
+    Symbol*            sym_;
+    std::span<Symbol*> symList_ = {};
+    bool               hasSymbol_;
+    bool               hasSymList_;
+
+    AstNodeRef  queryNodeRef_ = AstNodeRef::invalid();
+    AstNodeRef  nodeRef_      = AstNodeRef::invalid();
+    ConstantRef cstRef_       = ConstantRef::invalid();
+    TypeRef     typeRef_      = TypeRef::invalid();
+
     SemaNodeViewPart     computedPart_ = SemaNodeViewPartE::Zero;
     SemaNodeViewResolveE mode_;
 };

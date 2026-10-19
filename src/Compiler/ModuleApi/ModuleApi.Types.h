@@ -9,16 +9,16 @@ class SourceContent;
 
 struct ModuleApiPublicEntry
 {
-    AstNodeRef                 rootRef = AstNodeRef::invalid();
-    const Symbol*              symbol  = nullptr;
+    AstNodeRef    rootRef = AstNodeRef::invalid();
+    const Symbol* symbol  = nullptr;
+
     std::vector<IdentifierRef> namespacePath;
 };
 
 struct ModuleApiFileEntry
 {
-    // Candidate public symbols recorded while sema is still running. AST-dependent
-    // classification is deferred to resolvePendingEntries(), which runs post-sema:
-    // walking a file's AST while other sema jobs mutate it is a data race.
+    // Record candidates during semantic analysis; classify them after it completes.
+    // Traversing an AST while another semantic worker mutates it would race.
     std::vector<const Symbol*> pendingSymbols;
 
     // Resolved entries, produced from pendingSymbols by resolvePendingEntries().

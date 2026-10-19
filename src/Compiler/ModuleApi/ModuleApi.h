@@ -16,6 +16,7 @@ namespace ModuleApi
     {
     public:
         Result openRead(Utf8& outBecause, const fs::path& directory);
+
         Result beginPublication(Utf8& outBecause, const fs::path& directory);
         Result completePublication(Utf8& outBecause);
 
@@ -27,6 +28,7 @@ namespace ModuleApi
     bool   isCurrentModuleSourceFile(const SourceFile& sourceFile);
     bool   isPublishedFile(const fs::path& path);
     Result writeSnapshot(TaskContext& ctx, std::span<const SourceSnapshot> files, const fs::path& sourceDirectory, const fs::path& destinationDirectory);
+
     void   onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol);
     Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries, bool diagnosticsOnly = false);
     Result exportFiles(TaskContext& ctx);

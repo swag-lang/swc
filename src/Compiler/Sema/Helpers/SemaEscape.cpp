@@ -903,6 +903,7 @@ namespace
     {
         if (typeRef.isInvalid())
             return nullptr;
+
         const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         return type.isStructOrArray() && typeCanCarryBorrowImpl(sema, type.typeRef()) ? &type : nullptr;
     }
@@ -913,9 +914,9 @@ namespace
     {
         pointerRef             = argumentValueRef(sema, pointerRef);
         SemaEscapeInfo pointer = expressionEscapeInfoRec(sema, pointerRef, budget);
-        // A may-return summary cannot prove that a returned pointer exclusively
-        // aliases its input slot. Keep opaque result snapshots as a conservative
-        // lifetime bound when reading their pointee contents.
+
+        // A may-return summary cannot prove exclusive aliasing of the input slot.
+        // Keep opaque result snapshots as conservative bounds on pointee lifetimes.
         if (!pointer.hasBorrow())
         {
             auto snapshot = std::make_shared<SemaEscapeDeferredCallSnapshot>();
@@ -925,26 +926,27 @@ namespace
                 pointer.deferredCalls.push_back(std::move(snapshot));
             }
         }
+
         const AstNodeRef resolvedPointer = sema.resolvedNodeRef(pointerRef);
-        // A deeper dereference may have discarded an independent scalar carrier.
-        // Keep that route conservative, but never invent a borrow of an otherwise
-        // untracked pointer variable's local slot.
+        // A deeper dereference may lose an independent carrier. Keep that route
+        // conservative without inventing a borrow of an untracked pointer's slot.
         if (!pointer.hasBorrow() && resolvedPointer.isValid() &&
             (sema.node(resolvedPointer).is(AstNodeId::IndexExpr) || sema.node(resolvedPointer).is(AstNodeId::IndexListExpr)))
             pointer = storageBorrowInfo(sema, pointerRef, valueTypeRef);
+
         if (pointer.viaErasedPayload)
             return pointer;
+
         const TypeInfo* valueType = structuralBorrowCarrierType(sema, valueTypeRef);
         if (!valueType)
             return pointer;
 
         const TypeRef normalizedValueTypeRef = valueType->typeRef();
         const TypeRef sourceTypeRef          = pointer.sourceVar ? unwrapAliasEnum(sema, pointer.sourceVar->typeRef()) : TypeRef::invalid();
-        // An address of a known aggregate subobject still names the enclosing
-        // variable's slot. Loading its contents must instead follow the original
-        // value projection, including through a local pointer alias. Requiring
-        // both that projection and its actual value type excludes pointer casts
-        // that merely reinterpret an unrelated enclosing object.
+
+        // Loading an aggregate subobject follows its original value projection, including
+        // through local pointer aliases. Match the projected value type as well to exclude
+        // casts that reinterpret an unrelated enclosing object.
         if (pointer.sourceRef.isValid() && structuralBorrowCarrierType(sema, sourceTypeRef) &&
             sourceTypeRef != normalizedValueTypeRef &&
             unwrapAliasEnum(sema, expressionTypeRef(sema, pointer.sourceRef)) == normalizedValueTypeRef)
@@ -953,6 +955,7 @@ namespace
             if (storageProjection(sema, pointer.sourceRef, projection) && projection.root == pointer.sourceVar && !projection.components.empty())
                 return expressionEscapeInfoWithTarget(sema, pointer.sourceRef, valueTypeRef, budget);
         }
+
         // The runtime interface view exposes the carrier's two stored pointers,
         // not the address of the local interface slot used to inspect them.
         const bool interfaceContents = sourceTypeRef.isValid() && sema.typeMgr().get(sourceTypeRef).isInterface() &&
@@ -967,6 +970,7 @@ namespace
                 contents.sourceRef = pointerRef;
                 setParameterOrigin(sema, contents, *pointer.sourceVar);
             }
+
             contents.typeRef = valueTypeRef;
             return contents;
         }
@@ -988,16 +992,17 @@ namespace
                 }
             }
         }
+
         // An owning buffer's slot does not bound the lifetime of copied contents.
         // Exact field provenance was handled by the earlier returns.
         if (onlyOwnedStorageBorrow(pointer))
             return {};
 
-        // Only the conservative fallback still describes the slot used to read
-        // these contents. Exact projections and known aggregate contents returned
-        // above retain their own allocation identity.
+        // Only the fallback still describes the slot used for the read. Exact projections
+        // and known aggregate contents retain their own allocation identity above.
         if (pointer.hasBorrow())
             pointer.markStoredFieldBorrow();
+
         pointer.typeRef = valueTypeRef;
         return pointer;
     }
@@ -1014,19 +1019,24 @@ namespace
         {
             if (!snapshot)
                 continue;
+
             for (const SemaEscapeDeferredCheck& check : snapshot->checks)
             {
                 if (!check.ownerSource || check.viaStoredField || check.indirect)
                     return false;
+
                 hasOwner = true;
             }
+
             for (const SemaEscapeSummaryEdge& edge : snapshot->edges)
             {
                 if (!edge.viaOwnedPayload || edge.viaStoredField || edge.calleeIndirect || edge.callerIndirect)
                     return false;
+
                 hasOwner = true;
             }
         }
+
         return hasOwner;
     }
 
@@ -1087,6 +1097,7 @@ namespace
             if (operandTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), operandTypeRef).isAny())
                 info.viaErasedPayload = true;
         }
+
         return info;
     }
 
@@ -1120,10 +1131,9 @@ namespace
 
     SemaEscapeInfo anyBoxEscapeInfo(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef, TypeRef resultTypeRef)
     {
-        // A constant box is lowered into the compiler data segment. Every runtime box
-        // instead points either at the lvalue being boxed or at hidden cast storage in
-        // the current frame; the outer 'any' must not outlive that storage even when
-        // the boxed value is itself a pointer to longer-lived data.
+        // Constant boxes live in the compiler data segment. Runtime boxes point at an
+        // lvalue or hidden frame storage, which must outlive the outer 'any' even when
+        // the boxed value points to longer-lived data.
         if (sema.viewConstant(castRef).hasConstant())
             return {};
 
@@ -1131,9 +1141,8 @@ namespace
         bool                  wholeVariable = false;
         const SymbolVariable* sourceVar     = storageRootVariable(sema, sourceRef, false, wholeVariable);
 
-        // Pointer and reference parameters are carried as values. Boxing the parameter
-        // therefore points at the cast's local copy, not at the caller-owned pointee that
-        // the ordinary borrow provenance describes.
+        // Boxing a pointer/reference parameter points at the cast's local value copy,
+        // rather than the caller-owned pointee described by its ordinary borrow info.
         bool valueBackedParameter = false;
         if (sourceVar && wholeVariable && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
@@ -1154,10 +1163,12 @@ namespace
         }
 
         const AstNodeRef resolvedSourceRef = sema.resolvedNodeRef(sourceRef);
-        info.kind                          = SemaEscapeKind::Materialized;
-        info.sourceRef                     = resolvedSourceRef.isValid() ? resolvedSourceRef : sourceRef;
-        info.typeRef                       = resultTypeRef;
-        info.sourceScopeDepth              = sema.currentScopeDepth();
+
+        info.kind             = SemaEscapeKind::Materialized;
+        info.sourceRef        = resolvedSourceRef.isValid() ? resolvedSourceRef : sourceRef;
+        info.typeRef          = resultTypeRef;
+        info.sourceScopeDepth = sema.currentScopeDepth();
+
         return info;
     }
 
@@ -1191,6 +1202,7 @@ namespace
             info.typeRef = resultTypeRef;
             if (sourceTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef).isAny())
                 info.viaErasedPayload = true;
+
             return info;
         }
 
@@ -1223,21 +1235,20 @@ namespace
                     operandNode.is(AstNodeId::StructLiteral) ||
                     operandNode.is(AstNodeId::StructInitializerList))
                 {
-                    // A structural cast of an rvalue is ALWAYS materialized by the compiler
-                    // into a frame-lifetime runtime storage (Cast::runtimeStorageTypeRef:
-                    // array->slice/string, value->any, struct->interface, ...): local bindings
-                    // are safe, but the storage still dies with the frame. Only a user
-                    // 'opCast' borrows the rvalue itself - its runtime storage holds the
-                    // call RESULT, not the source, and the source dies at end of statement.
+                    // Built-in structural casts materialize rvalue sources in frame-lifetime
+                    // storage, so local bindings remain safe until that frame dies. User opCast
+                    // instead stores its result and borrows the source rvalue, whose lifetime
+                    // ends with the statement.
                     const auto* specOp   = sema.semaPayload<CastSpecOpPayload>(castRef);
                     const bool  isOpCast = specOp && specOp->kind == CastSpecialOpPayloadKind::OpCast && specOp->calledFn;
 
                     info.kind      = isOpCast ? SemaEscapeKind::Temporary : SemaEscapeKind::Materialized;
                     info.sourceRef = resolvedOperandRef;
                     info.typeRef   = resultTypeRef;
-                    // The runtime storage behaves like an anonymous local of the
-                    // CURRENT scope: a shallower destination outlives it.
+
+                    // The anonymous storage belongs to this scope; shallower destinations outlive it.
                     info.sourceScopeDepth = sema.currentScopeDepth();
+
                     return info;
                 }
             }
@@ -1248,10 +1259,8 @@ namespace
         return {};
     }
 
-    // The element type of an indexable expression (a builtin array or a slice), or invalid
-    // when the expression is neither. Reads the RESOLVED node's type: indexing a struct
-    // container decays the operand to a slice through an implicit 'opCast', so the raw
-    // identifier still types as the struct while the resolved cast types as the slice.
+    // Read the resolved array/slice type: implicit opCast may decay a struct container
+    // to a slice while the raw identifier still has the struct type.
     TypeRef indexedElementTypeRef(Sema& sema, AstNodeRef indexedRef)
     {
         const TypeRef indexedTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, indexedRef));
@@ -1263,18 +1272,18 @@ namespace
             return indexedType.payloadArrayElemTypeRef();
         if (indexedType.isSlice())
             return indexedType.payloadTypeRef();
+
         return TypeRef::invalid();
     }
 
-    // Does this index read a whole ELEMENT out by value? The copy aliases neither the
-    // container storage nor whatever the indexed expression borrowed to reach it: a
-    // pointer stored in a buffer keeps addressing its own object however much the buffer
-    // moves. A REFERENCE-typed result is an alias, and a carrier result of a different
-    // type is a sub-slice over the elements; both keep the borrow.
+    // A whole element copied by value keeps its own pointee, independent of the
+    // container's storage. References and results of a different carrier type
+    // (sub-slices) still alias the container and retain its borrow.
     bool indexReadsElementByValue(Sema& sema, TypeRef resultTypeRef, AstNodeRef indexedRef)
     {
         if (!resultTypeRef.isValid())
             return false;
+
         const TypeInfo& resultType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef);
         if (!isDirectBorrowCarrier(resultType) || resultType.isReference())
             return false;
@@ -1310,6 +1319,7 @@ namespace
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, indexedRef, budget);
         if (structuralBorrowCarrierType(sema, resultTypeRef) && !info.viaErasedPayload)
             return aggregatePointeeBorrowInfo(sema, indexedRef, resultTypeRef, budget);
+
         // A slot copy normally has an independent pointee. An erased payload's
         // elements may point back into the payload, so retain its lifetime instead.
         if (indexReadsElementByValue(sema, resultTypeRef, indexedRef) && !info.viaErasedPayload)
@@ -1330,12 +1340,9 @@ namespace
         return storageBorrowInfo(sema, indexedRef, resultTypeRef);
     }
 
-    // 'p[]' reads the value stored in the box a parameter designates. That value still
-    // carries the caller's storage for every escape rule, but it is not the box: a
-    // callee releasing it releases what the box holds, and the caller's box - a field,
-    // a local - stays alive. Only a read through the parameter itself names that value
-    // exactly; an address derived from the parameter reaches a value at some other
-    // offset of the pointee, which no caller can name.
+    // Dereferencing a pointer parameter loads what the caller's slot holds. Releasing
+    // that value does not release the slot itself. Track an exact pointee origin only
+    // for direct parameter reads; derived offsets cannot be named at the call site.
     void parameterPointeeBorrowInfo(Sema& sema, SemaEscapeInfo& ioInfo, AstNodeRef derefRef, AstNodeRef pointerRef)
     {
         if (ioInfo.kind != SemaEscapeKind::Parameter || ioInfo.viaOwnedPayload || ioInfo.viaStoredField)
@@ -1363,6 +1370,7 @@ namespace
             const auto*      index      = operandRef.isValid() ? sema.node(operandRef).safeCast<AstIndexExpr>() : nullptr;
             AstNodeRef       carrierRef = index ? index->nodeExprRef : AstNodeRef::invalid();
             AstNodeRef       memberRef  = operandRef;
+
             for (uint32_t depth = 0; memberRef.isValid() && depth < K_STORAGE_WALK_BUDGET; ++depth)
             {
                 const auto* member = sema.node(memberRef).safeCast<AstMemberAccessExpr>();
@@ -1372,18 +1380,23 @@ namespace
                     // pointer's allocation, not the slot that holds the pointer.
                     if (const auto* memberIndex = sema.node(memberRef).safeCast<AstIndexExpr>())
                         carrierRef = memberIndex->nodeExprRef;
+
                     break;
                 }
+
                 const TypeRef leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, member->nodeLeftRef));
                 if (leftTypeRef.isValid() && sema.typeMgr().get(leftTypeRef).isAnyPointer())
                 {
                     carrierRef = member->nodeLeftRef;
                     break;
                 }
+
                 if (isDirectBorrowCarrier(sema, leftTypeRef))
                     break;
+
                 memberRef = sema.resolvedNodeRef(member->nodeLeftRef);
             }
+
             if (carrierRef.isValid() && isDirectBorrowCarrier(sema, expressionTypeRef(sema, carrierRef)))
             {
                 // An element or field address preserves the pointer's borrow, including
@@ -1395,23 +1408,25 @@ namespace
                     return info;
                 }
             }
+
             return storageBorrowInfo(sema, unary.nodeExprRef, expressionTypeRef(sema, unaryRef), true);
         }
 
         SemaEscapeInfo info = expressionEscapeInfoRec(sema, unary.nodeExprRef, budget);
         if (Token::isDeref(tok.id) && structuralBorrowCarrierType(sema, expressionTypeRef(sema, unaryRef)) && !info.viaErasedPayload)
             return aggregatePointeeBorrowInfo(sema, unary.nodeExprRef, expressionTypeRef(sema, unaryRef), budget);
+
         if (Token::isDeref(tok.id))
             parameterPointeeBorrowInfo(sema, info, unaryRef, unary.nodeExprRef);
+
         if (info.hasBorrow())
             info.typeRef = expressionTypeRef(sema, unaryRef);
+
         return info;
     }
 
-    // A closure value carries the borrows of its captures: capturing by reference borrows
-    // the source storage itself, and capturing a borrowing value (a pointer to a local, ...)
-    // by value propagates that borrow. The borrow is reported only when the closure value
-    // escapes (return, assignment to escaping storage, ...), not at the capture itself.
+    // By-reference captures borrow source storage; by-value captures propagate borrows
+    // already in the value. Diagnose only when the closure escapes, not at capture time.
     SemaEscapeInfo closureEscapeInfo(Sema& sema, AstNodeRef closureRef, const AstClosureExpr& closure, uint32_t& budget)
     {
         SmallVector<AstNodeRef> captures;
@@ -1422,6 +1437,7 @@ namespace
         for (const AstNodeRef captureRef : captures)
         {
             const auto& captureArg = sema.node(captureRef).cast<AstClosureArgument>();
+
             // An initialized capture names an expression, not necessarily a variable. Follow
             // its value or designated storage just as a normal initializer or address would.
             if (captureArg.hasFlag(AstClosureArgumentFlagsE::Address))
@@ -1439,11 +1455,13 @@ namespace
             SemaEscapeInfo info = expressionEscapeInfoRec(sema, captureArg.nodeIdentifierRef, budget);
             if (!info.hasBorrow())
                 info = deferredCallBorrowInfo(sema, captureArg.nodeIdentifierRef);
+
             result = mergeEscapeInfo(sema, result, info);
         }
 
         if (result.hasBorrow())
             result.typeRef = closureTypeRef;
+
         return result;
     }
 
@@ -1451,6 +1469,7 @@ namespace
     {
         if (!budget || nodeRef.isInvalid())
             return {};
+
         budget--;
 
         const AstNode& rawNode = sema.node(nodeRef);
@@ -1470,6 +1489,7 @@ namespace
             Symbol* symbol = view.singleSymbol();
             if (!symbol || !symbol->isFunction())
                 return nullptr;
+
             return &symbol->cast<SymbolFunction>();
         };
 

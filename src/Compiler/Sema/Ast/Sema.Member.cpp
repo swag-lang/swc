@@ -14,14 +14,17 @@ namespace
         if (node.projectionId == TokenId::IntrinsicCountOf)
         {
             auto [newRef, substitute] = sema.ast().makeNode<AstNodeId::CountOfExpr>(tokNameRef);
-            substitute->nodeExprRef   = node.nodeLeftRef;
-            substituteRef             = newRef;
+
+            substitute->nodeExprRef = node.nodeLeftRef;
+            substituteRef           = newRef;
         }
         else
         {
             SWC_ASSERT(node.projectionId == TokenId::IntrinsicDataOf);
-            const std::array children   = {node.nodeLeftRef};
-            auto [newRef, substitute]   = sema.ast().makeNode<AstNodeId::IntrinsicCall>(tokNameRef);
+            const std::array children = {node.nodeLeftRef};
+
+            auto [newRef, substitute] = sema.ast().makeNode<AstNodeId::IntrinsicCall>(tokNameRef);
+
             substitute->intrinsicId     = TokenId::IntrinsicDataOf;
             substitute->spanChildrenRef = sema.ast().pushSpan(std::span<const AstNodeRef>{children});
             substituteRef               = newRef;
@@ -29,6 +32,7 @@ namespace
 
         sema.setSubstitute(sema.curNodeRef(), substituteRef);
         sema.restartCurrentNode(substituteRef);
+
         return Result::Continue;
     }
 }
@@ -44,6 +48,7 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
     if (const auto* ident = sema.node(nodeRightRef).safeCast<AstIdentifier>())
         allowOverloadSet = allowOverloadSet || ident->hasFlag(AstIdentifierFlagsE::InCompilerDefined);
+
     return SemaHelpers::resolveMemberAccess(sema, sema.curNodeRef(), *this, allowOverloadSet);
 }
 
@@ -51,6 +56,7 @@ Result AstMemberAccessExpr::semaPostNode(Sema& sema) const
 {
     if (projectionId == TokenId::Invalid)
         return Result::Continue;
+
     return substituteNativeProjection(sema, *this);
 }
 

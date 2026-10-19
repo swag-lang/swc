@@ -27,16 +27,17 @@ Result AstInterfaceDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     TaskContext& ctx = sema.ctx();
 
-    // Creates symbol with type
     auto&          symItf     = sema.curViewSymbol().sym()->cast<SymbolInterface>();
     const TypeInfo itfType    = TypeInfo::makeInterface(&symItf);
     const TypeRef  itfTypeRef = ctx.typeMgr().addType(itfType);
+
     symItf.setTypeRef(itfTypeRef);
     symItf.setTyped(sema.ctx());
 
     SemaFrame frame = sema.frame();
     frame.setCurrentInterface(&symItf);
     sema.pushFramePopOnPostNode(std::move(frame));
+
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type | SemaScopeFlagsE::Interface);
     sema.curScope().setSymMap(&symItf);
 
@@ -48,6 +49,7 @@ Result AstInterfaceDecl::semaPostNode(Sema& sema)
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolInterface>();
     SWC_RESULT(sym.canBeCompleted(sema));
     sym.setSemaCompleted(sema.ctx());
+
     return Result::Continue;
 }
 

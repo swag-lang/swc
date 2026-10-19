@@ -34,6 +34,7 @@ namespace
 
         result += " -> ";
         result += cycle.front()->name(ctx);
+
         return result;
     }
 
@@ -60,22 +61,27 @@ namespace
                 return "waiting for typing";
             case TaskStateKind::SemaWaitSymConstraintsResolved:
                 return "waiting for constraint evaluation";
+
             case TaskStateKind::SemaWaitSymSemaCompleted:
                 return "waiting for semantic analysis completion";
+
             case TaskStateKind::SemaWaitSymCodeGenPreSolved:
                 return "waiting for code generation presolve";
             case TaskStateKind::SemaWaitSymCodeGenCompleted:
                 return "waiting for code generation completion";
+
             case TaskStateKind::SemaWaitSymJitPrepared:
                 return "waiting for JIT preparation";
             case TaskStateKind::SemaWaitSymJitPatched:
                 return "waiting for JIT patching";
             case TaskStateKind::SemaWaitSymJitCompleted:
                 return "waiting for JIT completion";
+
             case TaskStateKind::SemaWaitTypeCompleted:
                 return "waiting for type completion";
             case TaskStateKind::SemaWaitTypeInfoGeneration:
                 return "waiting for typeinfo generation";
+
             default:
                 return "waiting for dependency completion";
         }
@@ -88,6 +94,7 @@ namespace
         {
             const SymbolStruct* ownerStruct = function->ownerStruct();
             const SymbolImpl*   ownerImpl   = function->declImplContext();
+
             std::println(stdout, "stalled-dependency-debug:");
             std::println(stdout,
                          "  blockedFn={} declared={:d} typed={:d} sema={:d} ignored={:d} genericRoot={:d} genericInstance={:d} lazy={:d} lazyRunning={:d} declNodeRef={}",
@@ -101,6 +108,7 @@ namespace
                          function->hasExtraFlag(SymbolFunctionFlagsE::LazyBody),
                          function->hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning),
                          function->declNodeRef().isValid() ? function->declNodeRef().get() : 0);
+
             if (ownerStruct)
             {
                 std::println(stdout,
@@ -142,16 +150,17 @@ namespace
             }
         }
 #endif
+
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_stalled_dependency, state.codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, stalledDependencyName(ctx, sema, state));
         diag.addArgument(Diagnostic::ARG_WHAT, stalledDependencyReason(state));
         if (state.waiterSymbol)
             diag.addArgument(Diagnostic::ARG_VALUE, state.waiterSymbol->name(ctx));
+
         diag.report(ctx);
     }
 
-    // The Swag spelling of a type name another language uses ('int', 'double', 'usize'), written by
-    // habit where no visible name is close enough to suggest.
+    // Suggest familiar foreign type names only when no visible name is close enough.
     std::string_view swagTypeForForeignName(std::string_view name)
     {
         static constexpr std::pair<std::string_view, std::string_view> NAMES[] = {
@@ -167,6 +176,7 @@ namespace
             {"double", "f64"},
             {"boolean", "bool"},
             {"str", "string"},
+
             {"i8", "s8"},
             {"i16", "s16"},
             {"i32", "s32"},
@@ -174,6 +184,7 @@ namespace
             {"isize", "s64"},
             {"usize", "u64"},
             {"size_t", "u64"},
+
             {"int8_t", "s8"},
             {"int16_t", "s16"},
             {"int32_t", "s32"},
@@ -270,12 +281,14 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
         const auto    itEdge = graph_.edges.find({sym, next});
         if (itEdge == graph_.edges.end())
             continue;
+
         Sema* edgeSema = CompilerInstance::tryGetJobSema(itEdge->second.job);
         if (!edgeSema)
             continue;
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
         diag.last().addArgument(Diagnostic::ARG_TOK, next->name(*ctx_));
+
         const auto& loc = itEdge->second;
         if (loc.nodeRef.isValid() && edgeSema->ast().hasNode(loc.nodeRef))
         {
@@ -289,9 +302,8 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
         }
     }
 
-    // A function whose return type comes from its '=>' body closes the cycle by itself when that
-    // body calls an overload of the same name: the overload set is only complete once this
-    // function is typed. Say so, since an explicit return type is the whole repair.
+    // An expression body calling its own overload set can wait on its inferred
+    // return type. An explicit return type breaks that cycle.
     for (const Symbol* sym : cycle)
     {
         const auto* functionDecl = sym->isFunction() ? sym->declAs<AstFunctionDecl>() : nullptr;
@@ -353,6 +365,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     ctx.global().jobMgr().waitingJobs(jobs, clientId);
 
     ctx_ = &ctx;
+
     std::unordered_set<const Symbol*> reportedSymbols;
 
     for (const auto job : jobs)
@@ -378,9 +391,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
         if (state.kind == TaskStateKind::SemaWaitIdentifier)
         {
-            // Nothing can be published any more, so an auto-scope wait has its answer: the
-            // member is genuinely absent from the scope the wait recorded. Report it against
-            // that type, and list what the type does offer, rather than as a bare unknown name.
+            // Publication has ended. Report the absent member against the
+            // recorded auto-scope type and list the members that are available.
             if (state.autoScopeTypeRef.isValid())
             {
                 reportMissingAutoScopeMember(*sema, ctx, state);
@@ -395,17 +407,19 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             }
             else
             {
-                // The paused job still stands on the unresolved name, so its scopes are those the
-                // lookup searched. A name equal to the query was there but could not be used.
+                // Paused scopes retain the lookup context. Exclude exact matches:
+                // they were already found but could not be used.
                 const std::string_view name = sema->idMgr().get(state.idRef).name;
                 std::vector<Utf8>      names;
                 Match::collectVisibleNames(*sema, state.codeRef, names);
                 std::erase(names, Utf8{name});
+
                 if (const std::optional<Utf8> suggestion = Utf8Helper::bestMatch(name, names))
                     diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
                 else if (const std::string_view swagType = swagTypeForForeignName(name); !swagType.empty())
                     diag.addArgument(Diagnostic::ARG_VALUE, swagType);
             }
+
             diag.report(ctx);
         }
     }
@@ -436,6 +450,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             {
                 if (suppressStalledDependencies)
                     break;
+
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -455,6 +470,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                     break;
                 if (suppressStalledDependencies)
                     break;
+
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -465,6 +481,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                     break;
                 if (suppressStalledDependencies)
                     break;
+
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }
@@ -475,6 +492,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                     break;
                 if (suppressStalledDependencies)
                     break;
+
                 reportStalledDependency(*sema, ctx, state);
                 break;
             }

@@ -502,6 +502,7 @@ namespace
         {
             const auto&    dep        = requireCacheEntry(cache, types[i]);
             const uint32_t elemOffset = baseOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
             addTypeRelocation(storage, elemOffset, offsetof(Runtime::TypeValue, pointedType), dep.offset);
         }
     }
@@ -510,9 +511,11 @@ namespace
     {
         if (symFunc.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
             return false;
+
         const auto* decl = symFunc.declAs<AstFunctionDecl>();
         if (decl && decl->spanConstraintsRef.isValid())
             return interfaceTable && symFunc.areConstraintsResolved();
+
         return true;
     }
 
@@ -529,6 +532,7 @@ namespace
 
         const TypeRef valueTypeRef = cst.typeRef();
         SWC_ASSERT(valueTypeRef.isValid());
+
         const TypeRef boxedValueTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, valueTypeRef, valueCstRef, AstNodeRef::invalid());
         SWC_ASSERT(boxedValueTypeRef.isValid());
 
@@ -559,7 +563,8 @@ namespace
             return;
 
         const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::AttributeParam>(static_cast<uint32_t>(attribute.params.size()));
-        rtAttribute.params.ptr               = paramsPtr;
+
+        rtAttribute.params.ptr = paramsPtr;
         storage.addRelocation(attributeOffset + offsetof(Runtime::Attribute, params.ptr), paramsOffset);
 
         const TaskContext& ctx = sema.ctx();
@@ -571,7 +576,8 @@ namespace
 
             if (srcParam.nameIdRef.isValid())
             {
-                const auto& id       = ctx.idMgr().get(srcParam.nameIdRef);
+                const auto& id = ctx.idMgr().get(srcParam.nameIdRef);
+
                 dstParam.name.length = storage.addString(paramOffset, offsetof(Runtime::AttributeParam, name.ptr), id.name);
             }
 
@@ -586,10 +592,12 @@ namespace
         if (attributes.attributes.empty())
             return;
 
-        auto* attrsSlice                   = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
-        attrsSlice->count                  = attributes.attributes.size();
+        auto* attrsSlice  = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
+        attrsSlice->count = attributes.attributes.size();
+
         const auto [attrsOffset, attrsPtr] = storage.reserveSpan<Runtime::Attribute>(static_cast<uint32_t>(attributes.attributes.size()));
-        attrsSlice->ptr                    = attrsPtr;
+
+        attrsSlice->ptr = attrsPtr;
         storage.addRelocation(ownerOffset + attributesFieldOffset + offsetof(Runtime::Slice<Runtime::Attribute>, ptr), attrsOffset);
 
         for (uint32_t i = 0; i < attributes.attributes.size(); ++i)
@@ -626,12 +634,14 @@ namespace
             return;
 
         const auto [valuesOffset, valuesPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(values.size()));
-        rtType.values.ptr                    = valuesPtr;
-        entry.enumValuesOffset               = valuesOffset;
+
+        rtType.values.ptr      = valuesPtr;
+        entry.enumValuesOffset = valuesOffset;
         storage.addRelocation(offset + offsetof(Runtime::TypeInfoEnum, values.ptr), valuesOffset);
 
         const TypeInfo& rawType   = ctx.typeMgr().get(rawTypeRef);
         const uint64_t  valueSize = rawType.sizeOf(ctx);
+
         // All values share their underlying layout. Refill one temporary after each payload
         // has been materialized, preserving zero padding and omitted aggregate elements.
         std::vector<std::byte> valueBytes;
@@ -643,8 +653,9 @@ namespace
             Runtime::TypeValue&    tv         = valuesPtr[i];
             const uint32_t         elemOffset = valuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
             const std::string_view name       = symValue->name(ctx);
-            tv.name.length                    = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), name);
-            tv.crc                            = Math::crc32(name);
+
+            tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), name);
+            tv.crc         = Math::crc32(name);
 
             // Enum values keep their declared enum type, while the pointed payload stores the lowered raw bytes.
             storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, pointedType), offset);
@@ -655,6 +666,7 @@ namespace
 
             const ConstantValue& enumCst     = ctx.cstMgr().get(symValue->cstRef());
             const ConstantRef    rawValueRef = enumCst.isEnumValue() ? enumCst.getEnumValue() : symValue->cstRef();
+
             valueBytes.assign(valueSize, std::byte{0});
             ConstantLower::lowerToBytes(sema, valueBytes, rawValueRef, rawType);
 
@@ -662,6 +674,7 @@ namespace
             const Result materializeRes = ConstantLower::materializeStaticPayload(sema, valueOffset, storage, rawType, valueBytes);
             SWC_ASSERT(materializeRes == Result::Continue);
             SWC_ASSERT(valueOffset != INVALID_REF);
+
             storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
             tv.value = storage.ptr<std::byte>(valueOffset);
         }
@@ -671,7 +684,8 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
-        const Utf8 name          = type.toName(ctx);
+        const Utf8 name = type.toName(ctx);
+
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
 
         if (type.isStruct())
@@ -681,9 +695,11 @@ namespace
             if (!slots.empty())
             {
                 const auto [slotsOffset, slotsPtr] = storage.reserveSpan<Runtime::DynamicStructInfo>(static_cast<uint32_t>(slots.size()));
-                rtType.dynamicSlots.ptr            = slotsPtr;
-                rtType.dynamicSlots.count          = slots.size();
+
+                rtType.dynamicSlots.ptr   = slotsPtr;
+                rtType.dynamicSlots.count = slots.size();
                 storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, dynamicSlots.ptr), slotsOffset);
+
                 for (size_t i = 0; i < slots.size(); ++i)
                 {
                     slotsPtr[i].type   = &rtType.base;
@@ -691,11 +707,13 @@ namespace
                     storage.addRelocation(slotsOffset + static_cast<uint32_t>(i * sizeof(Runtime::DynamicStructInfo)) + offsetof(Runtime::DynamicStructInfo, type), offset);
                 }
             }
+
             if (!SymbolStruct::typeRequiresExplicitInitialization(sema, symStruct.typeRef()))
             {
                 if (const auto* opInit = symStruct.effectiveOpInit(ctx))
                     storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opInit), opInit, true);
             }
+
             if (const auto* opDrop = symStruct.effectiveOpDrop(ctx))
                 storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opDrop), opDrop, true);
             if (const auto* opPostCopy = symStruct.effectiveOpPostCopy(ctx))
@@ -721,10 +739,12 @@ namespace
         if (type.isAggregateStruct())
         {
             const auto& aggregate = type.payloadAggregate();
-            rtType.fields.count   = aggregate.types.size();
+
+            rtType.fields.count = aggregate.types.size();
 
             entry.structFieldsCount = static_cast<uint32_t>(aggregate.types.size());
             entry.structFieldTypes.clear();
+
             entry.usingFieldsCount = 0;
             entry.usingFieldTypes.clear();
             entry.usingFieldsOffset = 0;
@@ -736,8 +756,9 @@ namespace
             }
 
             const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structFieldsCount);
-            entry.structFieldsOffset             = fieldsOffset;
-            rtType.fields.ptr                    = fieldsPtr;
+
+            entry.structFieldsOffset = fieldsOffset;
+            rtType.fields.ptr        = fieldsPtr;
             storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
 
             uint64_t curOffset = 0;
@@ -748,17 +769,20 @@ namespace
 
                 Runtime::TypeValue& tv         = fieldsPtr[i];
                 const uint32_t      elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
                 if (aggregate.names.size() > i && aggregate.names[i].isValid())
                 {
                     const auto& id = ctx.idMgr().get(aggregate.names[i]);
+
                     tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), id.name);
                     tv.crc         = Math::crc32(id.name);
                 }
 
                 const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
                 const uint32_t  align     = std::max<uint32_t>(fieldType.alignOf(ctx), 1);
-                curOffset                 = ((curOffset + align - 1) / align) * align;
-                tv.offset                 = static_cast<uint32_t>(curOffset);
+
+                curOffset = ((curOffset + align - 1) / align) * align;
+                tv.offset = static_cast<uint32_t>(curOffset);
                 curOffset += fieldType.sizeOf(ctx);
             }
 

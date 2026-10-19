@@ -28,13 +28,15 @@ namespace
 
     Result dynamicTypeQueryAllowed(Sema& sema, CastRequest& request, TypeRef sourceRef, TypeRef targetRef, const DynamicTypeQueryVisit* previous = nullptr, bool readOnly = false)
     {
-        TypeManager& typeMgr   = sema.typeMgr();
-        sourceRef              = typeMgr.unwrapNonStrictAlias(sourceRef);
-        targetRef              = typeMgr.unwrapNonStrictAlias(targetRef);
+        TypeManager& typeMgr = sema.typeMgr();
+        sourceRef            = typeMgr.unwrapNonStrictAlias(sourceRef);
+        targetRef            = typeMgr.unwrapNonStrictAlias(targetRef);
+
         const TypeInfo& source = typeMgr.get(sourceRef);
         const TypeInfo& target = typeMgr.get(targetRef);
         if (source.isNullable() && !target.isNullable())
             return request.fail(DiagnosticId::sema_err_cannot_cast, sourceRef, targetRef);
+
         const bool sourcePointer = source.isPointerOrReference();
         const bool targetPointer = target.isPointerOrReference();
         if ((sourcePointer || source.isInterface()) && source.isConst() && !target.isConst())
@@ -54,6 +56,7 @@ namespace
             if (visit->sourceRef == sourceRef && visit->targetRef == targetRef)
                 return request.fail(DiagnosticId::sema_err_cannot_cast, sourceRef, targetRef);
         }
+
         const DynamicTypeQueryVisit current{sourceRef, targetRef, previous};
         readOnly |= target.isConst();
 
@@ -62,14 +65,17 @@ namespace
         if (sourcePointer && targetPointer &&
             (source.payloadTypeRef() == typeMgr.typeVoid() || target.payloadTypeRef() == typeMgr.typeVoid()))
             return request.fail(DiagnosticId::sema_err_cannot_cast, sourceRef, targetRef);
+
         if (sourcePointer && targetPointer)
             return dynamicTypeQueryAllowed(sema, request, source.payloadTypeRef(), target.payloadTypeRef(), &current, target.isConst());
         if (sourcePointer && target.isInterface())
             return dynamicTypeQueryAllowed(sema, request, source.payloadTypeRef(), targetRef, &current, readOnly);
+
         if (source.isStruct() && (target.isStruct() || target.isInterface()))
         {
             SWC_RESULT(sema.waitSemaCompleted(&source, request.errorNodeRef));
             SWC_RESULT(sema.waitSemaCompleted(&target, request.errorNodeRef));
+
             const SymbolStruct& sourceStruct = source.payloadSymStruct();
             if (target.isInterface())
             {
@@ -80,21 +86,26 @@ namespace
                         return result;
                 }
             }
+
             for (const SymbolVariable* field : sourceStruct.fields())
             {
                 if (!field->isUsingField())
                     continue;
+
                 TypeRef         fieldTypeRef = typeMgr.unwrapNonStrictAlias(field->typeRef());
                 const TypeInfo& fieldType    = typeMgr.get(fieldTypeRef);
                 if (fieldType.isConst() && !readOnly)
                     continue;
+
                 if (fieldType.isAnyPointer())
                     fieldTypeRef = fieldType.payloadTypeRef();
+
                 const Result result = dynamicTypeQueryAllowed(sema, request, fieldTypeRef, targetRef, &current, readOnly);
                 if (result != Result::Error)
                     return result;
             }
         }
+
         return request.fail(DiagnosticId::sema_err_cannot_cast, sourceRef, targetRef);
     }
 
@@ -143,7 +154,6 @@ namespace
         const TypeInfo& objectType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), objectTypeRef);
         return objectType.isStruct();
     }
-
 }
 
 TypeRef Cast::indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -276,8 +286,7 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
 
 Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
 {
-    // Some callers propagate a pre-existing semantic error through the cast layer without
-    // populating a cast-specific diagnostic. In that case, preserve the original failure.
+    // Preserve an earlier semantic failure when no cast diagnostic was recorded.
     if (f.diagId == DiagnosticId::None)
         return Result::Error;
 
@@ -296,10 +305,11 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
             diag = SemaError::report(sema, f.diagId, stateCodeRef);
         }
     }
+
     f.applyArguments(diag);
 
-    // A 'let' binding is read-only without its type saying so: the source is shown as the 'const'
-    // type it is read as, or the message would name a qualifier the reader cannot see.
+    // let makes the source read-only without a type qualifier. Show its effective
+    // const type so the diagnostic explains the qualifier being checked.
     if (f.diagId == DiagnosticId::sema_err_cannot_cast_const && f.srcTypeRef.isValid())
     {
         const TypeInfo& srcType = sema.typeMgr().get(f.srcTypeRef);
@@ -326,6 +336,7 @@ Result Cast::emitCastFailure(Sema& sema, const CastFailure& f)
             diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), f.noteCodeRef.tokRef));
         }
     }
+
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -357,15 +368,16 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
         return Result::Continue;
 
-    const TypeInfo& srcType         = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
-    const TypeInfo& dstType         = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
-    const bool      needsRetarget   = (srcType.isAggregateArray() && dstType.isArrayOrSlice()) || (srcType.isAggregateStruct() && dstType.isStruct());
+    const TypeInfo& srcType       = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
+    const TypeInfo& dstType       = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
+    const bool      needsRetarget = (srcType.isAggregateArray() && dstType.isArrayOrSlice()) || (srcType.isAggregateStruct() && dstType.isStruct());
     if (!needsRetarget)
         return Result::Continue;
 
     TypeRef storageTypeRef = dstTypeRef;
     if (srcType.isAggregateArray() && dstType.isSlice())
         storageTypeRef = aggregateArraySliceStorageTypeRef(sema, srcType, dstType);
+
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 
@@ -374,6 +386,7 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     {
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
         SWC_RESULT(sema.waitSemaCompleted(&storageType, nodeRef));
+
         payload->runtimeStorageSym->setTypeRef(storageTypeRef);
         return Result::Continue;
     }
@@ -414,6 +427,7 @@ Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastReques
     SmallVector<SymbolStructUsingPathStep> usingPath;
     bool                                   hasUsingPath = false;
     SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcStructTypeRef, dstStructTypeRef, usingPath, hasUsingPath));
+
     outFound = hasUsingPath && !SymbolStruct::usingPathHasPointerStep(usingPath);
     return Result::Continue;
 }
@@ -426,6 +440,7 @@ TypeRef interfaceObjectStructTypeRef(const TypeManager& typeMgr, const TaskConte
     const TypeInfo* sourceType = &typeMgr.get(sourceTypeRef);
     if (const TypeInfo* unwrappedType = sourceType->unwrapAliasEnumType(ctx))
         sourceType = unwrappedType;
+
     if (sourceType->isStruct())
         return sourceType->typeRef();
 
@@ -439,6 +454,7 @@ TypeRef interfaceObjectStructTypeRef(const TypeManager& typeMgr, const TaskConte
     const TypeInfo* objectType = &typeMgr.get(objectTypeRef);
     if (const TypeInfo* unwrappedType = objectType->unwrapAliasEnumType(ctx))
         objectType = unwrappedType;
+
     if (!objectType->isStruct())
         return TypeRef::invalid();
 
@@ -458,6 +474,7 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
         outInfo.kind          = DynamicStructCastSourceKind::StructPointerLike;
         outInfo.structTypeRef = sema.typeMgr().structTypeInfo();
         outInfo.sourceIsConst = true;
+
         return true;
     }
 
@@ -465,6 +482,7 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
     {
         outInfo.kind          = DynamicStructCastSourceKind::Interface;
         outInfo.sourceIsConst = sourceType.isConst();
+
         return true;
     }
 
@@ -472,6 +490,7 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
     {
         outInfo.kind          = DynamicStructCastSourceKind::Any;
         outInfo.sourceIsConst = sourceType.isConst();
+
         return true;
     }
 
@@ -483,6 +502,7 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
             outInfo.kind          = DynamicStructCastSourceKind::StructPointerLike;
             outInfo.structTypeRef = pointeeType.typeRef();
             outInfo.sourceIsConst = sourceType.isConst();
+
             return true;
         }
     }
@@ -496,6 +516,7 @@ bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRe
     outInfo.kind          = DynamicStructCastSourceKind::StructAddress;
     outInfo.structTypeRef = sourceType.typeRef();
     outInfo.sourceIsConst = sourceType.isConst();
+
     return true;
 }
 
@@ -511,21 +532,26 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
         sourceRef = castNode->nodeExprRef;
     else if (const auto* autoCast = view.node()->safeCast<AstAutoCastExpr>())
         sourceRef = autoCast->nodeExprRef;
+
     SemaNodeView    sourceView     = sema.viewTypeConstant(sourceRef);
     TypeRef         sourceTypeRef  = SemaHelpers::aliasEnumType(sema, sourceView).typeRef();
     const TypeInfo* targetTypeInfo = &sema.typeMgr().get(dstTypeRef);
     if (const TypeInfo* unwrappedType = targetTypeInfo->unwrapAliasEnumType(sema.ctx()))
         targetTypeInfo = unwrappedType;
+
     if (targetTypeInfo->isTypeInfo())
     {
         TypeRef baseTypeRef = TypeRef::invalid();
         SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, baseTypeRef, sema.node(view.nodeRef()).codeRef()));
+
         TypeInfoFlags targetFlags = TypeInfoFlagsE::Const;
         if (targetTypeInfo->isNullable())
             targetFlags.add(TypeInfoFlagsE::Nullable);
+
         const TypeRef pointerTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(baseTypeRef, targetFlags));
         targetTypeInfo               = &sema.typeMgr().get(pointerTypeRef);
     }
+
     const TypeInfo& targetType    = *targetTypeInfo;
     const TypeRef   targetTypeRef = targetType.typeRef();
 
@@ -534,21 +560,26 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
         representedTypeRef = sourceView.typeRef();
     else if (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), sourceTypeRef))
         representedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, sourceView);
+
     if (representedTypeRef.isValid() && sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), targetTypeRef))
     {
         // Here the destination names the metadata object, not the type it describes.
         ConstantRef metadataRef = ConstantRef::invalid();
         SWC_RESULT(sema.makeRuntimeTypeInfo(metadataRef, representedTypeRef, sourceRef));
+
         TypeInfo resultType = targetType;
         if (tryCast)
             resultType.addFlag(TypeInfoFlagsE::Nullable);
+
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
         CastRequest   metadataCast(CastKind::Implicit);
         metadataCast.probing      = true;
         metadataCast.errorNodeRef = view.nodeRef();
-        const Result compatible   = castAllowed(sema, metadataCast, sema.cstMgr().get(metadataRef).typeRef(), resultTypeRef);
+
+        const Result compatible = castAllowed(sema, metadataCast, sema.cstMgr().get(metadataRef).typeRef(), resultTypeRef);
         if (compatible == Result::Pause)
             return Result::Pause;
+
         if (compatible == Result::Continue || tryCast)
         {
             ConstantValue result = compatible == Result::Continue ? sema.cstMgr().get(metadataRef) : ConstantValue::makeNull(sema.ctx());
@@ -558,17 +589,20 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
             view.recompute(sema);
             return Result::Continue;
         }
+
         sema.setConstant(sourceRef, metadataRef);
         sema.setIsValue(sourceRef);
         sourceView.recompute(sema);
         sourceTypeRef      = sourceView.typeRef();
         representedTypeRef = TypeRef::invalid();
     }
+
     if (representedTypeRef.isValid())
     {
         CastRequest request(CastKind::Implicit);
-        request.probing         = true;
-        request.errorNodeRef    = view.nodeRef();
+        request.probing      = true;
+        request.errorNodeRef = view.nodeRef();
+
         const Result compatible = dynamicTypeQueryAllowed(sema, request, representedTypeRef, dstTypeRef);
         if (compatible == Result::Pause)
             return Result::Pause;
@@ -583,10 +617,12 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
             SWC_RESULT(sema.makeRuntimeTypeInfo(resultRef, representedTypeRef, view.nodeRef()));
             result = sema.cstMgr().get(resultRef);
         }
+
         result.setTypeRef(resultTypeRef);
         sema.setConstant(view.nodeRef(), sema.cstMgr().addConstant(sema.ctx(), result));
         sema.setIsValue(view.nodeRef());
         view.recompute(sema);
+
         return Result::Continue;
     }
 
@@ -595,6 +631,7 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
     {
         if (tryCast)
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_dynamic_cast_destination, view.nodeRef(), dstTypeRef);
+
         return SemaError::raiseCannotCast(sema, view.nodeRef(), sourceTypeRef, dstTypeRef);
     }
 
@@ -604,8 +641,10 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
         TypeRef baseTypeRef = TypeRef::invalid();
         SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, baseTypeRef, sema.node(sourceRef).codeRef()));
     }
+
     if (!resolveDynamicStructCastSourceInfo(sema, sourceRef, sourceTypeRef, sourceInfo))
         return SemaError::raiseCannotCast(sema, view.nodeRef(), sourceTypeRef, dstTypeRef);
+
     if (sourceInfo.sourceIsConst && !targetType.isConst())
     {
         CastRequest request(CastKind::Explicit);
@@ -618,13 +657,16 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
     {
         const TypeInfo& structType = sema.typeMgr().get(sourceInfo.structTypeRef);
         SWC_RESULT(sema.waitSemaCompleted(&structType, sourceRef));
+
         if (!structType.payloadSymStruct().isDynamic() && !targetType.isInterface())
         {
             CastRequest request(CastKind::Implicit);
-            request.probing       = true;
-            request.errorNodeRef  = view.nodeRef();
+            request.probing      = true;
+            request.errorNodeRef = view.nodeRef();
+
             TypeInfo staticTarget = targetType;
             staticTarget.addFlag(TypeInfoFlagsE::Nullable);
+
             const Result staticCast = castAllowed(sema, request, sourceTypeRef, sema.typeMgr().addType(staticTarget));
             if (staticCast == Result::Pause)
                 return Result::Pause;
@@ -635,6 +677,7 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
                 SmallVector<SymbolStructUsingPathStep> path;
                 if (!targetObject.isStruct())
                     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_downcast_dynamic, sourceRef, sourceInfo.structTypeRef);
+
                 SWC_RESULT(sema.waitSemaCompleted(&targetObject, sourceRef));
                 if (!structType.payloadSymStruct().resolveUsingFieldPath(sema.ctx(), targetObject.payloadSymStruct(), path))
                     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_downcast_dynamic, sourceRef, sourceInfo.structTypeRef);
@@ -645,20 +688,26 @@ Result Cast::castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, Cas
     TypeInfo resultType = targetType;
     if (tryCast)
         resultType.addFlag(TypeInfoFlagsE::Nullable);
+
     dstTypeRef = sema.typeMgr().addType(resultType);
     sema.clearConstant(view.nodeRef());
     sema.setType(view.nodeRef(), dstTypeRef);
     sema.setIsValue(view.nodeRef());
+
     auto& payload              = SemaHelpers::ensureCodeGenLoweringPayload(sema, view.nodeRef());
     payload.dynamicCast        = true;
     payload.assumedDynamicCast = assumeCast;
+
     if (assumeCast && !flags.has(CastFlagsE::Fallible))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, view.nodeRef(), Runtime::SafetyWhat::Assume, sema.node(view.nodeRef()).codeRef()));
+
     SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, view.nodeRef(), IdentifierManager::RuntimeFunctionKind::DynamicCast, sema.node(view.nodeRef()).codeRef()));
+
     if (targetType.isInterface())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, view.nodeRef(), sema.node(view.nodeRef()), dstTypeRef, "__dynamic_cast_storage"));
     else if (assumeCast && resultType.isNullable() && sourceInfo.kind == DynamicStructCastSourceKind::Any && payload.hasDynamicCastCheck())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, view.nodeRef(), sema.node(view.nodeRef()), sema.typeMgr().typeBool(), "__dynamic_cast_null_match"));
+
     view.recompute(sema);
     return Result::Continue;
 }
@@ -667,6 +716,7 @@ CastFlags Cast::autoCastFlags(const AstModifierFlags modifierFlags)
 {
     CastFlags castFlags = modifierCastFlags(modifierFlags);
     castFlags.add(CastFlagsE::DeducedDestination);
+
     return castFlags;
 }
 
@@ -678,9 +728,11 @@ AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, 
     substNodePtr->setCodeRef(node.codeRef());
     substNodePtr->nodeTypeRef = AstNodeRef::invalid();
     substNodePtr->nodeExprRef = nodeRef;
+
     sema.setSubstitute(nodeRef, substNodeRef);
     sema.setType(substNodeRef, dstTypeRef);
     sema.setIsValue(*substNodePtr);
+
     return substNodeRef;
 }
 
@@ -692,8 +744,10 @@ AstNodeRef Cast::createCastNode(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeR
     substNodePtr->setCodeRef(node.codeRef());
     substNodePtr->nodeTypeRef = AstNodeRef::invalid();
     substNodePtr->nodeExprRef = nodeRef;
+
     sema.setType(substNodeRef, dstTypeRef);
     sema.setIsValue(*substNodePtr);
+
     return substNodeRef;
 }
 

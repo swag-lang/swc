@@ -24,6 +24,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_number_too_big, codeRef);
         diag.addArgument(Diagnostic::ARG_VALUE, value);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -33,8 +34,10 @@ namespace
         {
             case TokenId::StringLine:
                 return 1;
+
             case TokenId::StringMultiLine:
                 return 3;
+
             default:
                 SWC_UNREACHABLE();
         }
@@ -46,6 +49,7 @@ namespace
 
         const auto it = std::ranges::upper_bound(srcView.lines(), tok.byteStart);
         SWC_ASSERT(it != srcView.lines().begin());
+
         return tok.byteStart - *std::prev(it) + stringDelimiterSize(tok.id);
     }
 
@@ -123,6 +127,7 @@ namespace
                 ++i;
                 if (i + 1 < str.size() && str[i + 1] == '\n')
                     ++i;
+
                 continue;
             }
 
@@ -144,7 +149,6 @@ namespace
             SWC_ASSERT(langSpec.isHexNumber(h));
 
             value <<= 4;
-
             if (langSpec.isHexNumber(h))
             {
                 const unsigned char c = (h >= 'A' && h <= 'F') ? (h + 32) : h;
@@ -215,6 +219,7 @@ namespace
     {
         if (kind == LiteralChildBindingKind::StructLike)
             return SemaHelpers::resolveStructLikeChildBindingType(sema, children, childRef, targetTypeRef, outBindingTypeRef);
+
         return SemaHelpers::resolveArrayLikeChildBindingType(sema, sema.visit().preChildIndex(), targetTypeRef, outBindingTypeRef);
     }
 
@@ -236,16 +241,15 @@ namespace
             sema.pushFramePopOnPostChild(std::move(frame), childRef);
             if (outPushed)
                 *outPushed = true;
+
             break;
         }
 
         return Result::Continue;
     }
 
-    // When an array literal has no outer binding type (e.g. `const X = [E.A, .B, .C]`), an
-    // auto-member element like `.B` has no scope to resolve against. Fall back to the element
-    // type already resolved for an earlier sibling, so the first concrete element types the
-    // rest of the array.
+    // Without an expected type, an earlier element supplies the scope for
+    // auto-members: [E.A, .B, .C] resolves .B and .C against E.
     Result pushArrayLiteralSiblingBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef)
     {
         if (sema.node(childRef).isNot(AstNodeId::AutoMemberAccessExpr))
@@ -269,17 +273,10 @@ namespace
         return Result::Continue;
     }
 
-    // Gives every element of a runtime array literal a width.
-    //
-    // An element written as a bare number carries none of its own, and a zero-sized element does
-    // not merely occupy nothing in an aggregate: the layout skips it, so every element after it
-    // moves up and the literal materializes with fewer values than it lists. `[a, b, 0, a, b, 0]`
-    // read back as `a b a b 0 0` before this, silently, wherever the aggregate reached memory.
-    //
-    // The width comes from the elements that already have one, exactly as it does for a literal
-    // whose elements are all constant: concretizing a bare number on its own lands it on `s32`
-    // and would drag a narrower sibling up with it. Elements of several different types name no
-    // single width, and there the bare number falls back to its own default.
+    // Unsized elements have no runtime width and would be skipped by aggregate
+    // layout. Prefer an existing common concrete scalar type; otherwise give
+    // each constant its default width. Defaulting before checking siblings
+    // could widen an otherwise narrow array to s32.
     Result sizeUnsizedArrayElements(Sema& sema, std::span<const AstNodeRef> elements, SmallVector<TypeRef>& elemTypes)
     {
         TypeRef sizedTypeRef = TypeRef::invalid();
@@ -319,6 +316,7 @@ namespace
             {
                 ConstantRef concretizedRef;
                 SWC_RESULT(Cast::concretizeConstant(sema, concretizedRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+
                 sema.setConstant(view.nodeRef(), concretizedRef);
                 view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             }
@@ -329,9 +327,8 @@ namespace
         return Result::Continue;
     }
 
-    // `var pair = {rank, str}` declares an anonymous struct whose fields take the names of the
-    // identifiers; the same literal handed to a typed slot, a parameter, or a generic argument
-    // lists values in field order. Only an untyped declaration initializer reads the first way.
+    // Only an untyped declaration infers field names from {rank, str}. Typed
+    // slots, parameters and generic arguments use positional fields.
     bool isUntypedVarInitializer(const Sema& sema, AstNodeRef nodeRef)
     {
         const AstNodeRef parentRef = sema.visit().parentNodeRef();

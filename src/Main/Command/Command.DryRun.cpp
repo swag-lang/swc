@@ -52,17 +52,20 @@ namespace
 
     struct DryRunNativePreview
     {
-        bool                                enabled        = false;
-        bool                                mayRunArtifact = false;
-        Runtime::BuildCfgBackendKind        backendKind    = Runtime::BuildCfgBackendKind::None;
-        NativeArtifactPaths                 paths;
+        bool enabled        = false;
+        bool mayRunArtifact = false;
+
+        Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::None;
+        NativeArtifactPaths          paths;
+
         Os::WindowsToolchainPaths           toolchain;
         Os::WindowsToolchainDiscoveryResult toolchainResult = Os::WindowsToolchainDiscoveryResult::Ok;
     };
 
     struct DryRunFormatPreview
     {
-        bool   enabled             = false;
+        bool enabled = false;
+
         size_t totalFiles          = 0;
         size_t rewrittenFiles      = 0;
         size_t unchangedFiles      = 0;
@@ -194,11 +197,13 @@ namespace
         addInfoEntry(entries, "Resolved inputs", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"), LogColor::BrightGreen);
         if (nativePreview.enabled || nativePreview.backendKind != Runtime::BuildCfgBackendKind::None)
             addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind));
+
         addInfoEntry(entries, "Compile-time execution", "suppressed", LogColor::BrightGreen);
         addInfoEntry(entries, "Filesystem mutation", "suppressed", LogColor::BrightGreen);
         addInfoEntry(entries, "External processes", "suppressed", LogColor::BrightGreen);
         if (nativePreview.enabled)
             addInfoEntry(entries, "Native command detail", "stable flags are exact; source-driven inputs are shown as placeholders", LogColor::BrightYellow);
+
         Logger::printFieldGroup(ctx, "Dry Run", entries, nextInfoGroupStyle(hasPrintedGroup, 28));
     }
 
@@ -213,17 +218,20 @@ namespace
         addInfoEntry(entries, "Module source files", Utf8Helper::countWithLabel(inputSummary.moduleSrc, "file"));
         addInfoEntry(entries, "Imported API files", Utf8Helper::countWithLabel(inputSummary.importedApiFiles, "file"));
         addInfoEntry(entries, "Runtime files", Utf8Helper::countWithLabel(inputSummary.runtimeFiles, "file"));
+
         addInfoEntry(entries, "Workspace path", cmdLine.workspacePath);
         addInfoEntry(entries, "Workspace module", cmdLine.workspaceModuleFilter);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
         addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         if (cmdLine.command == CommandKind::Doc)
             addInfoEntry(entries, "Documentation directory", DocGenerator::outputDirectory(ctx.compiler()));
+
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);
         addUtf8Set(entries, "Import API modules", cmdLine.importApiModules);
         addPathSet(entries, "Import API directories", cmdLine.importApiDirs);
         addPathSet(entries, "Import API files", cmdLine.importApiFiles);
+
         Logger::printFieldGroup(ctx, "Resolved Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 
@@ -233,6 +241,7 @@ namespace
         std::vector<Logger::FieldEntry> entries;
         uint32_t                        index      = 1;
         const Utf8                      inputCount = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
+
         if (cmdLine.command != CommandKind::Unittest)
             addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
 
@@ -253,6 +262,7 @@ namespace
                     // implicit runtime inputs and generated caches; say so when inputs were dropped.
                     if (inputSummary.totalFiles > formatPreview.totalFiles)
                         addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(inputSummary.totalFiles - formatPreview.totalFiles, " outside the format selection (runtime or generated)")));
+
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", formatFileCountWithSuffix(formatPreview.totalFiles, "")));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("rewrite {}", formatFileCountWithSuffix(formatPreview.rewrittenFiles, " whose formatted output differs")));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("skip {}", formatFileCountWithSuffix(formatPreview.unchangedFiles, " because formatted output is unchanged")));
@@ -291,13 +301,16 @@ namespace
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
+
                 if (nativePreview.enabled)
                 {
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
+
                     if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
+
                     if (isRunLikeCommand(cmdLine.command) && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
@@ -312,13 +325,16 @@ namespace
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (cmdLine.testJit)
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "compile and execute eligible JIT #test functions discovered during semantic analysis");
+
                 if (nativePreview.enabled)
                 {
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
+
                     if (nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("copy dependency DLLs/PDBs into {} when the module sets 'publishDependencies'", Utf8(nativePreview.paths.artifactPath.parent_path())));
+
                     if (nativePreview.mayRunArtifact)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
@@ -353,6 +369,7 @@ namespace
         if (!nativePreview.paths.pdbPath.empty())
             addInfoEntry(entries, "PDB path", nativePreview.paths.pdbPath);
         addInfoEntry(entries, "Link inputs", "in memory");
+
         Logger::printFieldGroup(ctx, "Native Outputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 

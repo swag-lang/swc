@@ -30,8 +30,8 @@ namespace
         return !symbolStruct.isGenericRoot() || symbolStruct.isGenericInstance();
     }
 
-    // Layout numbers of a concrete struct are never zero once its layout ran. Returns 0 for the
-    // shapes that legitimately have no layout (a generic root, or a struct still being laid out).
+    // Concrete structs must have nonzero layout values after layout completes.
+    // Generic roots legitimately report zero.
     uint64_t checkedStructLayoutValue(const SymbolStruct& symbolStruct, const uint64_t value, const char* what)
     {
         if (!isConcreteStructLayoutPending(symbolStruct))
@@ -74,15 +74,13 @@ namespace
 
     bool isRuntimeReflectedMethod(const SymbolFunction& symFunc)
     {
-        // Runtime TypeInfo only publishes callable, concrete methods. Generic roots,
-        // implicit wrappers and half-typed methods would produce dangling method
-        // table entries or signatures that cannot be reflected safely.
+        // Publish only callable, concrete methods so reflection cannot expose dangling
+        // entries or incomplete signatures.
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
             return false;
 
-        // Half-declared methods are excluded by the signature checks below anyway; testing the
-        // atomic flags first also keeps this from reading an attribute list a concurrent sema
-        // pass may still be growing.
+        // Check atomic completion flags before reading attributes, which may still be
+        // changing during semantic analysis.
         if (!symFunc.isDeclared() || !symFunc.isTyped())
             return false;
 
@@ -133,20 +131,22 @@ namespace
         if (const SymbolFunction* symFunc = registeredLifecycleFunction(ownerStruct, kind); symFunc && symFunc->isSemaCompleted())
             return symFunc;
 
-        // Generated wrappers can be registered before every explicit method is
-        // fully completed. Prefer a completed user-visible lifecycle overload when
-        // one exists, then fall back to the registered pointer.
+        // Generated wrappers may register before explicit methods complete. Prefer a
+        // completed user-visible overload before falling back to the registered pointer.
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
         {
             if (!symFunc || symFunc->isIgnored())
                 continue;
+
             // Attributes and the declaration context are published by semantic completion.
             if (!symFunc->isDeclared() || !symFunc->isTyped() || !symFunc->isSemaCompleted())
                 continue;
+
             if (symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                 continue;
             if (const SymbolImpl* symImpl = symFunc->declImplContext(); symImpl && symImpl->isForInterface())
                 continue;
+
             if (symFunc->specOpKind() == kind)
                 return symFunc;
         }
@@ -164,12 +164,15 @@ namespace
         {
             if (!symFunc)
                 continue;
+
             // The completion flags are atomic and gate the rest: a method whose sema is still
             // running may have its attribute list mutated concurrently, so it must not be read.
             if (!symFunc->isDeclared() || !symFunc->isTyped() || !symFunc->isSemaCompleted())
                 continue;
+
             if (!symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                 continue;
+
             if (symFunc->name(ctx) == expectedName)
                 return symFunc;
         }
@@ -248,9 +251,10 @@ namespace
 
     struct ImplicitDefaultSummary
     {
-        bool                allZero      = true;
-        bool                requiresInit = false;
-        ImplicitDefaultKind lastKind     = ImplicitDefaultKind::AllZero;
+        bool allZero      = true;
+        bool requiresInit = false;
+
+        ImplicitDefaultKind lastKind = ImplicitDefaultKind::AllZero;
 
         void add(ImplicitDefaultKind childKind)
         {
@@ -263,8 +267,10 @@ namespace
         {
             if (allZero)
                 return ImplicitDefaultKind::AllZero;
+
             if (requiresInit)
                 return childCount == 1 && lastKind == ImplicitDefaultKind::RequiresInit ? ImplicitDefaultKind::RequiresInit : ImplicitDefaultKind::MixedRequiringInit;
+
             return ImplicitDefaultKind::Mixed;
         }
     };
@@ -275,6 +281,7 @@ namespace
             return ImplicitDefaultKind::Mixed;
 
         ImplicitDefaultSummary summary;
+
         for (size_t i = 0; i < childValues.size(); ++i)
             summary.add(classifyConstantImplicitDefault(sema, childTypes[i], childValues[i]));
 
@@ -284,6 +291,7 @@ namespace
     ImplicitDefaultKind classifyRepeatedConstantImplicitDefault(Sema& sema, const std::span<const ConstantRef> childValues, const TypeRef childTypeRef)
     {
         ImplicitDefaultSummary summary;
+
         for (const ConstantRef childValueRef : childValues)
             summary.add(classifyConstantImplicitDefault(sema, childTypeRef, childValueRef));
 
@@ -295,13 +303,14 @@ namespace
         if (cstRef.isInvalid())
             return ImplicitDefaultKind::Mixed;
 
-        const ConstantValue& cst          = sema.cstMgr().get(cstRef);
-        const TypeInfo&      type         = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
+        const ConstantValue& cst  = sema.cstMgr().get(cstRef);
+        const TypeInfo&      type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
 
         if (cst.isEnumValue())
         {
             if (!type.isIntLike())
                 return ImplicitDefaultKind::Mixed;
+
             return classifyConstantImplicitDefault(sema, type.typeRef(), cst.getEnumValue());
         }
 
@@ -319,6 +328,7 @@ namespace
             if (type.isPointerOrReference() || type.isAnyString() || type.isSlice() || type.isAny() || type.isInterface() ||
                 type.isTypeInfo() || type.isFunction())
                 return ImplicitDefaultKind::AllZero;
+
             return ImplicitDefaultKind::Mixed;
         }
 
@@ -344,8 +354,10 @@ namespace
         {
             if (cst.isValuePointer())
                 return cst.getValuePointer() == 0 ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
             if (cst.isBlockPointer())
                 return cst.getBlockPointer() == 0 ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
             return ImplicitDefaultKind::Mixed;
         }
 
@@ -354,6 +366,7 @@ namespace
             uint64_t totalCount = type.arrayTotalElementCount();
             if (cst.getAggregateArray().size() != totalCount)
                 return ImplicitDefaultKind::Mixed;
+
             return classifyRepeatedConstantImplicitDefault(sema, cst.getAggregateArray(), type.payloadArrayElemTypeRef());
         }
 
@@ -369,6 +382,7 @@ namespace
     ImplicitDefaultKind classifyAggregateTypeImplicitDefault(Sema& sema, const std::span<const TypeRef> childTypes)
     {
         ImplicitDefaultSummary summary;
+
         for (const TypeRef childTypeRef : childTypes)
             summary.add(classifyTypeImplicitDefault(sema, childTypeRef));
 
@@ -392,10 +406,12 @@ namespace
         {
             const auto& symStruct = type.payloadSymStruct();
             symStruct.computeImplicitDefaultFlags(sema);
+
             if (symStruct.requiresExplicitInitialization())
                 return ImplicitDefaultKind::MixedRequiringInit;
             if (symStruct.hasImplicitAllZeroDefault())
                 return ImplicitDefaultKind::AllZero;
+
             return ImplicitDefaultKind::Mixed;
         }
 
@@ -403,6 +419,7 @@ namespace
         {
             if (std::ranges::any_of(type.payloadArrayDims(), [](const uint64_t dim) { return dim == 0; }))
                 return ImplicitDefaultKind::AllZero;
+
             return classifyTypeImplicitDefault(sema, type.payloadArrayElemTypeRef());
         }
 
@@ -847,8 +864,8 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
 {
     if (!typeHasDynamicStorage(sema.ctx(), originalType))
         return Result::Continue;
-    const TypeInfo& type          = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
-    const TypeRef   typeRef       = type.typeRef();
+    const TypeInfo& type    = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
+    const TypeRef   typeRef = type.typeRef();
     if (type.isArray())
     {
         const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());

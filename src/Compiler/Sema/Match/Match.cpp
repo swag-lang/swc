@@ -22,6 +22,7 @@ namespace
     {
         if (symbol.isFunction())
             return symbol.cast<SymbolFunction>().isGenericRoot();
+
         return symbol.isStruct() && symbol.cast<SymbolStruct>().isGenericRoot();
     }
 
@@ -43,8 +44,10 @@ namespace
     {
         if (lhs.srcViewRef() != rhs.srcViewRef())
             return lhs.srcViewRef() < rhs.srcViewRef();
+
         if (lhs.tokRef() != rhs.tokRef())
             return lhs.tokRef() < rhs.tokRef();
+
         return lhs.kind() < rhs.kind();
     }
 
@@ -79,6 +82,7 @@ namespace
     void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchPriority& priority)
     {
         SWC_ASSERT(symMap != nullptr);
+
         for (const SymbolMap* existing : lookUpCxt.symMaps)
         {
             if (existing == symMap)
@@ -121,18 +125,12 @@ namespace
         return false;
     }
 
-    // A namespace declared by the current module always wins over a same-named namespace reaching
-    // us from a dependency. Without this, a single `using Lib` anywhere in a module makes an
-    // unqualified `Testing` mean `Lib.Testing` even though the module declares its own `Testing`,
-    // and the module can no longer name its own namespaces. Code that wants the imported one
-    // qualifies it (`Lib.Testing`).
-    //
-    // Only namespaces are arbitrated here. Every other kind of symbol keeps the plain scope
-    // priority, where a `using` legitimately brings a name closer than the module root.
+    // Prefer this module's namespaces over same-named dependency namespaces. Otherwise
+    // using Lib could hide the module's own Testing behind Lib.Testing, which remains
+    // accessible by qualification. Other symbol kinds retain normal scope priority.
     void preferOwnModuleNamespace(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     {
-        // Only unqualified lookups are arbitrated. A hinted one is already precise: `ExportApi.Shared`
-        // asks for that exact namespace and must not be redirected to the current module's.
+        // A hinted lookup already selects an exact map; preserve that namespace.
         if (lookUpCxt.symMapHint || lookUpCxt.empty())
             return;
 
@@ -157,6 +155,7 @@ namespace
 
         SmallVector<const SymbolMap*> usingSymMaps;
         symMap->copyUsingSymMaps(usingSymMaps, &sema.compiler());
+
         for (const SymbolMap* usingSymMap : usingSymMaps)
         {
             const MatchPriority usingPriority{.scopeDepth = priority.scopeDepth, .visibility = VisibilityTier::UsingDirective};
@@ -169,9 +168,8 @@ namespace
         if (!root)
             return nullptr;
 
-        // Every unqualified lookup walks this path two or three times. A lookup in one map at one
-        // priority keeps its homonyms in chain order, so the namespace it would report first is
-        // the first one in the chain.
+        // Namespace homonyms retain chain order within one map and priority.
+        // Follow the first one, as lookup would.
         const SymbolMap* current = root;
         for (const IdentifierRef idRef : nsPath)
         {
@@ -208,9 +206,8 @@ namespace
         return followNamespacePath(importRoot, nsPath.first(1));
     }
 
-    // Every member lookup on a struct comes through here, and most structs have no `using` field:
-    // those return before walking their fields, and the set of structs already walked is only
-    // filled once there is one to follow.
+    // Most structs have no using field. Avoid walking fields or filling the visited set
+    // until there is a using target to follow.
     Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, PointerSet<const SymbolStruct>& visited)
     {
         if (!symStruct.mayHaveUsingField())
@@ -231,8 +228,10 @@ namespace
             constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::UsingDirective};
 
             addSymMap(lookUpCxt, target, priority);
+
             if (visited.empty())
                 visited.insert(&symStruct);
+
             if (visited.insert(target))
                 SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, *target, visited));
         }
@@ -260,24 +259,20 @@ namespace
         }
     }
 
-    // 'idRef' is the name the lookup that follows asks for. A scope's own symbols are only ever
-    // matched by that name, so the ones carrying another are left where they are instead of
-    // being judged hidden or not and copied into the context for every identifier resolved.
+    // Copy only matching local symbols into the context, so unrelated identifiers
+    // need no visibility checks.
     Result collect(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         lookUpCxt.symMaps.clear();
         lookUpCxt.symMapPriorities.clear();
 
-        // If we have a symMapHint, treat it as a "precise" lookup
-        // and give it top priority.
+        // A hinted map defines a precise lookup at the highest priority.
         if (lookUpCxt.symMapHint)
         {
             constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::LocalScope};
 
-            // If the caller hints a struct scope, but we're currently inside an `impl Interface for Struct`
-            // block for that same struct, member lookup must also consider the current impl scope.
-            // This keeps the rule centralized (all lookups benefit), instead of having ad-hoc fixes
-            // in member-access/auto-member-access.
+            // Inside impl Interface for Struct, a struct hint must also search that impl's
+            // scope. Keep this rule shared by all member lookup paths.
             if (lookUpCxt.symMapHint->isStruct())
             {
                 const auto& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
@@ -294,7 +289,8 @@ namespace
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct() && !lookUpCxt.skipUsingFieldMembers)
             {
-                const auto&                    structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+                const auto& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+
                 PointerSet<const SymbolStruct> visited;
                 SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, structSym, visited));
             }
@@ -358,7 +354,8 @@ namespace
 
         // Outside any namespace the path of a root is the root itself: adding it again at the
         // root priority, with its `using` directives, would only find every map already there.
-        const bool          atNamespaceRoot = sema.frame().nsPath().empty();
+        const bool atNamespaceRoot = sema.frame().nsPath().empty();
+
         const MatchPriority filePathPriority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::FileNamespace};
         addNamespacePathSymMap(sema, lookUpCxt, fileNamespace, filePathPriority);
 
@@ -369,11 +366,9 @@ namespace
             addPersistedUsingSymMaps(sema, lookUpCxt, fileNamespace, fileRootPriority);
         }
 
-        // Symbols imported from other modules live under the empty-named import-root namespace
-        // (as siblings of this module's namespace) so they keep their own hierarchy (e.g. `Lib`,
-        // `Os`). An imported-API file's own relative names resolve against that root, so the
-        // current namespace path must be walked from there too (e.g. `Lib.Math.Point` inside the
-        // generated `lib.swg`).
+        // Imported modules keep their namespace hierarchy under the import root.
+        // Imported API files resolve relative names there too, so walk their current
+        // namespace path from that root (for example, Lib.Math.Point in lib.swg).
         const SymbolNamespace* importRoot = sema.compiler().importRootNamespace();
         if (importRoot == &sema.moduleNamespace())
             importRoot = nullptr;

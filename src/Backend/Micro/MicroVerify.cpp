@@ -581,6 +581,7 @@ Result MicroVerify::reportError(const MicroPassContext& context, std::string_vie
 {
     if (shouldLogVerifyError(context))
         Logger::print(*context.taskContext, std::format("[micro-verify] {}{}: {}\n", phase, formatVerifyContext(context), message));
+
     return Result::Error;
 }
 
@@ -588,6 +589,7 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
 {
     if (!isEnabled(context))
         return Result::Continue;
+
     if (!context.instructions || !context.operands)
         return Result::Continue;
 
@@ -611,6 +613,7 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
             const bool isMemBase = hasMem && operandIndex == info.memBaseOperandIndex;
             if (modes[operandIndex] == MicroInstrRegMode::None && !isMemBase)
                 continue;
+
             SWC_RESULT(verifyVirtualRegisterOperand(context, phase, instructionIdx, operandIndex, ops[operandIndex].reg));
         }
     }
@@ -628,13 +631,15 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 
     uint64_t hash = K_HASH_OFFSET_BASIS;
 
+    // Relocation hashes follow instruction order, independent of storage slot assignment.
     std::vector instructionOrdinalByRef(context.instructions->slotCount(), K_ORDINAL_INVALID);
 
     uint32_t instructionOrdinal = 0;
     for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
     {
         instructionOrdinalByRef[it.current.get()] = instructionOrdinal++;
-        const MicroInstr& inst                    = *it;
+
+        const MicroInstr& inst = *it;
 
         mixHash(hash, static_cast<uint8_t>(inst.op));
         mixHash(hash, inst.numOperands);
@@ -666,6 +671,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
     {
         const auto& relocations = context.builder->codeRelocations();
         mixHash(hash, relocations.size());
+
         for (const auto& relocation : relocations)
         {
             mixHash(hash, static_cast<uint8_t>(relocation.kind));
@@ -695,6 +701,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 
         std::ranges::sort(entries, [](const auto* lhs, const auto* rhs) { return lhs->first.packed < rhs->first.packed; });
         mixHash(hash, entries.size());
+
         for (const auto* entry : entries)
         {
             mixHash(hash, entry->first.packed);
@@ -721,20 +728,23 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
 
     if (!context.instructions)
         return reportError(context, phase, "missing instruction storage");
+
     if (!context.operands)
         return reportError(context, phase, "missing operand storage");
 
     if (outStructuralHash)
         *outStructuralHash = K_HASH_OFFSET_BASIS;
 
-    const uint32_t        instructionSlotCount     = context.instructions->slotCount();
-    uint32_t              iteratedInstructionCount = 0;
+    const uint32_t instructionSlotCount     = context.instructions->slotCount();
+    uint32_t       iteratedInstructionCount = 0;
+
     std::vector<uint32_t> instructionOrdinalByRef;
     std::vector<uint8_t>  definedLabels;
     std::vector<uint32_t> jumpTargets;
     std::vector<uint32_t> relocationExpectedRefs;
     std::vector<uint32_t> relocationCountByRef;
 
+    // Relocation hashes use instruction order rather than storage slot assignment.
     if (outStructuralHash)
         instructionOrdinalByRef.assign(instructionSlotCount, K_ORDINAL_INVALID);
 

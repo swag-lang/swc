@@ -854,6 +854,7 @@ namespace
                     if (ufcsArg.isValid())
                         assigned[0] = 1;
                 }
+
                 if (!assigned[paramIndex])
                 {
                     assigned[paramIndex] = 1;
@@ -885,6 +886,7 @@ namespace
                     return true;
                 }
             }
+
             return false;
         });
     }
@@ -902,6 +904,7 @@ namespace
             {
                 if (hasExplicitLastArgumentBinding(sema, paramDescs.span(), args, ufcsArg))
                     return TypeRef::invalid();
+
                 return sema.typeMgr().typeVoid();
             }
         }
@@ -913,6 +916,7 @@ namespace
                 return TypeRef::invalid();
             if (hasExplicitLastArgumentBinding(sema, fn, args, ufcsArg))
                 return TypeRef::invalid();
+
             return params.back()->type(sema.ctx()).payloadTypeRef();
         }
 
@@ -944,6 +948,7 @@ namespace
                     searchRef = sema.visit().parentNodeRef(up);
                     if (searchRef.isInvalid())
                         return AstNodeRef::invalid();
+
                     continue;
 
                 default:
@@ -970,6 +975,7 @@ namespace
                     const AstNode& siblingNode = sema.node(siblingRef);
                     if (siblingNode.is(AstNodeId::EmbeddedBlock) || siblingNode.is(AstNodeId::CompilerCodeBlock))
                         return siblingRef;
+
                     return AstNodeRef::invalid();
                 }
 
@@ -988,7 +994,6 @@ namespace
 
     AstNodeRef makeTrailingCodeBlockArgument(Sema& sema, AstNodeRef siblingRef, TypeRef payloadTypeRef)
     {
-        // An explicit trailing code literal is already a code node: consume it as-is.
         if (auto* codeBlock = sema.node(siblingRef).safeCast<AstCompilerCodeBlock>())
         {
             codeBlock->payloadTypeRef = payloadTypeRef;
@@ -999,6 +1004,7 @@ namespace
         wrappedPtr->setCodeRef(sema.node(siblingRef).codeRef());
         wrappedPtr->nodeBodyRef    = siblingRef;
         wrappedPtr->payloadTypeRef = payloadTypeRef;
+
         return wrappedRef;
     }
 
@@ -1065,6 +1071,7 @@ namespace
         {
             if (childRef == ufcsArg)
                 return params[0];
+
             paramStart = 1;
         }
 
@@ -1113,6 +1120,7 @@ namespace
     {
         SmallVector<AstNodeRef> args;
         call.collectArguments(args, sema.ast());
+
         const AstNodeRef      ufcsArg = resolveUfcsReceiverArg(sema, call.nodeExprRef);
         const SymbolVariable* param   = mappedCallParameter(sema, args.span(), fn, childRef, ufcsArg);
         return param && param->type(sema.ctx()).isCodeBlock() ? param : nullptr;
@@ -1130,6 +1138,7 @@ namespace
             return isLambdaBindingExpr(sema, childNode.cast<AstNamedArgument>().nodeArgRef);
         if (childNode.is(AstNodeId::ParenExpr))
             return isLambdaBindingExpr(sema, childNode.cast<AstParenExpr>().nodeExprRef);
+
         return false;
     }
 

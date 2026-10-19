@@ -2,6 +2,7 @@
 #include "Support/Core/Utf8.h"
 
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -78,6 +79,28 @@ namespace CommandPrint
     inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const fs::path& value, const LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
     {
         addInfoEntry(entries, label, Utf8(value), valueColor, indentLevel, labelColor);
+    }
+
+    inline void addNativeToolchainEntries(std::vector<Logger::FieldEntry>& entries, const Os::WindowsToolchainDiscoveryResult toolchainResult, const Os::WindowsToolchainPaths& toolchain)
+    {
+        switch (toolchainResult)
+        {
+            case Os::WindowsToolchainDiscoveryResult::Ok:
+                addInfoEntry(entries, "Status", "ready", LogColor::BrightGreen);
+                addInfoEntry(entries, "Linker", "integrated (swc)");
+                addInfoEntry(entries, "MSVC library path", toolchain.vcLibPath);
+                addInfoEntry(entries, "Windows SDK UM libs", toolchain.sdkUmLibPath);
+                addInfoEntry(entries, "Windows SDK UCRT libs", toolchain.sdkUcrtLibPath);
+                break;
+
+            case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
+                addInfoEntry(entries, "Status", "missing MSVC toolchain", LogColor::BrightRed);
+                break;
+
+            case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
+                addInfoEntry(entries, "Status", "missing Windows SDK", LogColor::BrightRed);
+                break;
+        }
     }
 
     inline void addInfoEntryParts(std::vector<Logger::FieldEntry>& entries, const std::string_view label, std::vector<Logger::FieldValuePart> valueParts, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)

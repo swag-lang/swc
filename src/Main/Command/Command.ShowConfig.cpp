@@ -163,24 +163,7 @@ namespace
         Logger::printFieldGroup(ctx, "Native Paths", entries, nextInfoGroupStyle(hasPrintedGroup));
 
         entries.clear();
-        switch (toolchainResult)
-        {
-            case Os::WindowsToolchainDiscoveryResult::Ok:
-                addInfoEntry(entries, "Status", "ready", LogColor::BrightGreen);
-                addInfoEntry(entries, "Linker", "integrated (swc)");
-                addInfoEntry(entries, "MSVC library path", toolchain.vcLibPath);
-                addInfoEntry(entries, "Windows SDK UM libs", toolchain.sdkUmLibPath);
-                addInfoEntry(entries, "Windows SDK UCRT libs", toolchain.sdkUcrtLibPath);
-                break;
-
-            case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
-                addInfoEntry(entries, "Status", "missing MSVC toolchain", LogColor::BrightRed);
-                break;
-
-            case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
-                addInfoEntry(entries, "Status", "missing Windows SDK", LogColor::BrightRed);
-                break;
-        }
+        CommandPrint::addNativeToolchainEntries(entries, toolchainResult, toolchain);
 
         Logger::printFieldGroup(ctx, "Native Toolchain", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
     }

@@ -402,24 +402,7 @@ namespace
 
         std::vector<Logger::FieldEntry> entries;
 
-        switch (nativePreview.toolchainResult)
-        {
-            case Os::WindowsToolchainDiscoveryResult::Ok:
-                addInfoEntry(entries, "Status", "ready", LogColor::BrightGreen);
-                addInfoEntry(entries, "Linker", "integrated (swc)");
-                addInfoEntry(entries, "MSVC library path", nativePreview.toolchain.vcLibPath);
-                addInfoEntry(entries, "Windows SDK UM libs", nativePreview.toolchain.sdkUmLibPath);
-                addInfoEntry(entries, "Windows SDK UCRT libs", nativePreview.toolchain.sdkUcrtLibPath);
-                break;
-
-            case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
-                addInfoEntry(entries, "Status", "missing MSVC toolchain", LogColor::BrightRed);
-                break;
-
-            case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
-                addInfoEntry(entries, "Status", "missing Windows SDK", LogColor::BrightRed);
-                break;
-        }
+        CommandPrint::addNativeToolchainEntries(entries, nativePreview.toolchainResult, nativePreview.toolchain);
 
         Logger::printFieldGroup(ctx, "Native Toolchain", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
     }

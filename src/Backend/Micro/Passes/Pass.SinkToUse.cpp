@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -235,6 +236,8 @@ namespace
                 {
                     addressSsa.clear();
                     addressSsa.build(*context.builder, storage, operands, context.encoder);
+                    if (context.optimizerStats && context.optimizerStats->activePass)
+                        ++context.optimizerStats->activePass->ssaBuilds;
                     addressSsaReady = true;
                 }
                 if (!addressSsa.sameValueAt(ops[1].reg, instrRefs[i], instrRefs[useIdx]))
@@ -381,12 +384,18 @@ Result MicroSinkToUsePass::run(MicroPassContext& context)
 
     bool       changedAny   = false;
     const auto K_MAX_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.sinkToUseRounds, MicroOptimizationLimits::SinkToUse::K_MAX_ROUNDS);
+    uint32_t   rounds       = 0;
+    bool       stopped      = false;
     for (uint32_t round = 0; round < K_MAX_ROUNDS; ++round)
     {
-        if (!sinkRound(context))
+        ++rounds;
+        stopped = sinkRound(context);
+        if (!stopped)
             break;
         changedAny = true;
     }
+    if (context.optimizerStats)
+        context.optimizerStats->observeBudget("sink-to-use-rounds", rounds, K_MAX_ROUNDS, stopped);
 
     if (changedAny)
         context.passChanged = true;

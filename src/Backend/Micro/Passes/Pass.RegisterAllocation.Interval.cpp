@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
@@ -2637,6 +2638,10 @@ bool MicroRegisterAllocationPass::runIntervalAllocation()
     if (denseVirtualRegs_.regs().empty())
         return false;
 
+    auto* stats = context_->optimizerStats ? context_->optimizerStats->activePass : nullptr;
+    if (stats)
+        ++stats->intervalAttempts;
+
     // The walk consults fixed intervals built from concrete claims; the
     // existing scan computes them later (inside assignGlobalRegisters), and
     // the computation is idempotent.
@@ -2647,13 +2652,21 @@ bool MicroRegisterAllocationPass::runIntervalAllocation()
         std::vector<LiveInterval> intervals;
         buildLiveIntervals(intervals);
         if (!walkIntervals(std::move(intervals), result))
+        {
+            if (stats)
+                ++stats->intervalFallbacks;
             return false;
+        }
     }
 
     // Later legalization borrows a register only around its short staging
     // sequence, preserving the concrete occupant in a frame slot.
     if (!applyIntervalAllocation(result))
+    {
+        if (stats)
+            ++stats->intervalFallbacks;
         return false;
+    }
 
     // What the later sweeps need from the first: the registers a scratch may
     // borrow around when nothing is free, and the debug local-stack base.

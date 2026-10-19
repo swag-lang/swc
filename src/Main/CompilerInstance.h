@@ -41,6 +41,7 @@ class SourceFile;
 class JITExecManager;
 class CompilerMessageTypeInfoJob;
 class NativeBackendBuilder;
+class MicroOptimizerStats;
 struct ModuleSetupInputApplier;
 struct CommandLine;
 struct WorkspaceModuleLink;
@@ -130,6 +131,8 @@ public:
     const Global&      global() const { return *(global_); }
     const CommandLine& cmdLine() const { return *(cmdLine_); }
     JobClientId        jobClientId() const { return jobClientId_; }
+
+    MicroOptimizerStats* optimizerStats() const { return optimizerStats_.get(); }
 
     template<typename T, typename... ARGS>
     T* makeJob(ARGS&&... args) const
@@ -679,6 +682,7 @@ private:
     std::atomic<uint64_t> nativeGlobalFunctionInitTargetsVersion_{1};
 
     std::vector<PerThreadData>                                                                                   perThreadData_;
+    std::unique_ptr<MicroOptimizerStats>                                                                         optimizerStats_;
     std::atomic<uint32_t>                                                                                        atomicId_ = 0;
     std::atomic<AstCompilerFunc*>                                                                                mainFunc_{nullptr};
     std::vector<Utf8>                                                                                            foreignLibs_;

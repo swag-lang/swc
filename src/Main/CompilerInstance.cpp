@@ -3,6 +3,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/RuntimeContext.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
@@ -358,6 +359,9 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     global_(&global),
     buildCfg_(cmdLine.defaultBuildCfg)
 {
+    if (cmdLine.optimizerStats)
+        optimizerStats_ = std::make_unique<MicroOptimizerStats>();
+
     // Headless test runs must never block on an interactive panic dialog. The test
     // command auto-injects the 'swag.test' run-arg (see effectiveGeneratedArtifactRunArgs),
     // so treat it as headless too even though the raw run-args don't list it yet.

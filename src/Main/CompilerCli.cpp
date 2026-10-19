@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/CompilerCli.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
@@ -63,6 +64,8 @@ ExitCode runCompilerCli(const int argc, char* argv[])
     {
         CompilerInstance compiler(global, cmdLine);
         result = compiler.run();
+        if (compiler.optimizerStats())
+            compiler.optimizerStats()->print(startupCtx);
         if (!cmdLine.editorIndex.empty() && EditorIndex::write(compiler) != Result::Continue)
             result = ExitCode::ErrorCommand;
     }

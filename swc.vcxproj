@@ -322,6 +322,7 @@
         <ClCompile Include="src\Backend\Micro\MicroPassHelpers.cpp"/>
         <ClCompile Include="src\Backend\Micro\MicroSsaState.cpp"/>
         <ClCompile Include="src\Backend\Micro\MicroPassManager.cpp"/>
+        <ClCompile Include="src\Backend\Micro\MicroOptimizerStats.cpp"/>
         <ClCompile Include="src\Backend\Micro\MicroVerify.cpp"/>
         <ClCompile Include="src\Backend\Encoder\X64Encoder.cpp"/>
         <ClCompile Include="src\Backend\Encoder\X64Unwind.cpp"/>
@@ -677,6 +678,7 @@
         <ClInclude Include="src\Backend\Sanitizer\SanitizerState.h"/>
         <ClInclude Include="src\Backend\Sanitizer\SanitizerValue.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPassManager.h"/>
+        <ClInclude Include="src\Backend\Micro\MicroOptimizerStats.h"/>
         <ClInclude Include="src\Backend\JIT\JIT.h"/>
         <ClInclude Include="src\Backend\JIT\JITExecManager.h"/>
         <ClInclude Include="src\Backend\JIT\JITMemory.h"/>

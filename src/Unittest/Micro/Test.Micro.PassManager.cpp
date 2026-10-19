@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 
 #if SWC_HAS_UNITTEST
 
@@ -8,6 +9,7 @@
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroVerify.h"
 #include "Main/Stats.h"
 #include "Unittest/Unittest.h"
@@ -16,6 +18,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    class AnalysisProbePass final : public MicroPass
+    {
+    public:
+        std::string_view name() const override { return "test-analysis-probe"; }
+        Result           run(MicroPassContext& context) override
+        {
+            context.builder->invalidateControlFlowGraph();
+            MicroSsaState local;
+            if (!MicroSsaState::ensureFor(context, local) || !MicroSsaState::ensureFor(context, local))
+                return Result::Error;
+            context.builder->controlFlowGraph();
+            return Result::Continue;
+        }
+    };
+
     struct Rewrite
     {
         uint64_t from;
@@ -104,6 +121,93 @@ namespace
         size_t saved_;
     };
 }
+
+SWC_TEST_BEGIN(MicroOptimizerStats_DistinguishesCapStopsFromFinalSweepConvergence)
+{
+    for (const uint32_t budget : {1u, 4u})
+    {
+        MicroBuilder             builder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimizer.iterations.postRaSweeps = budget;
+        builder.setBackendBuildCfg(config);
+        builder.emitLoadRegImm(MicroReg::intReg(0), ApInt(0, 64), MicroOpBits::B64);
+        const auto value = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+        constexpr Rewrite    steps[] = {{0, 1}, {1, 2}, {2, 3}};
+        ImmediateRewritePass rewrite(value, steps);
+        MicroPassManager     manager;
+        manager.addPostRaOptimPass(rewrite);
+        MicroOptimizerFunctionStats profile;
+        MicroPassContext            passContext;
+        passContext.optimizerStats = &profile;
+        SWC_RESULT(builder.runPasses(manager, nullptr, passContext));
+        if (profile.activePass || profile.passes.size() != 1 || profile.budgets.size() != 1)
+            return Result::Error;
+        const auto& pass = profile.passes.front();
+        const auto& cap  = profile.budgets.front();
+        if (pass.calls != budget || pass.changed != std::min(budget, 3u) || pass.errors ||
+            pass.inputInstructions != 2 * budget || pass.outputInstructions != 2 * budget ||
+            cap.name != "post-ra-sweeps" || cap.observations != 1 || cap.peakWork != budget ||
+            cap.minLimit != budget || cap.maxLimit != budget || cap.stopped != (budget == 1 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroOptimizerStats_CountsBuiltAndReusedAnalyses)
+{
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegImm(MicroReg::virtualIntReg(1), ApInt(7, 64), MicroOpBits::B64);
+    builder.emitRet();
+    AnalysisProbePass probe;
+    MicroPassManager  manager;
+    manager.addStartPass(probe);
+    MicroOptimizerFunctionStats profile;
+    MicroPassContext            passContext;
+    passContext.optimizerStats = &profile;
+    SWC_RESULT(builder.runPasses(manager, nullptr, passContext));
+    const auto& pass = profile.passes.front();
+    return pass.calls == 1 && pass.changed == 0 && pass.cfgBuilds == 1 && pass.ssaQueries == 2 && pass.ssaBuilds == 1 ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroOptimizerStats_AggregatesWorkersWithoutSharingFunctionState)
+{
+    MicroOptimizerStats        totals;
+    std::array<std::thread, 4> workers;
+    for (uint32_t i = 0; i < workers.size(); ++i)
+    {
+        workers[i] = std::thread([&totals, i] {
+            MicroOptimizerFunctionStats profile;
+            auto&                       pass = profile.pass("test-profile");
+            pass.calls                       = 1;
+            pass.changed                     = i % 2;
+            pass.cfgBuilds                   = 2;
+            pass.ssaQueries                  = 3;
+            pass.ssaBuilds                   = 1;
+            pass.treeCalls                   = 7;
+            pass.failedSeeds                 = 1;
+            profile.observeBudget("test-cap", i + 1, i + 2, false);
+            profile.observeBudget("test-cap", i + 3, i + 2, true);
+            totals.merge(profile);
+        });
+    }
+    for (auto& worker : workers)
+        worker.join();
+    const auto snapshot = totals.snapshot();
+    if (totals.functions() != 4 || snapshot.passes.size() != 1 || snapshot.budgets.size() != 1 || snapshot.activePass)
+        return Result::Error;
+    const auto& pass = snapshot.passes.front();
+    const auto& cap  = snapshot.budgets.front();
+    if (pass.calls != 4 || pass.changed != 2 || pass.cfgBuilds != 8 || pass.ssaQueries != 12 ||
+        pass.ssaBuilds != 4 || pass.treeCalls != 28 || pass.failedSeeds != 4 ||
+        cap.observations != 8 || cap.stopped != 4 || cap.peakWork != 6 || cap.minLimit != 2 || cap.maxLimit != 5)
+        return Result::Error;
+    MicroOptimizerStats independent;
+    return independent.functions() == 0 && independent.snapshot().passes.empty() ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(MicroPassManager_PostRa_RechecksSuffixAfterEachMutation)
 {

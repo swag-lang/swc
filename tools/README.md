@@ -25,6 +25,37 @@ of `#test` source files without removing the implementation sources they exercis
 with `integration.` are excluded from ordinary test runs and require explicit selection. Anything else is
 forwarded to the compiler.
 
+Use `--optimizer-stats` on `build`, `run`, `test`, `smoke`, or `sema` to report backend
+work in either compiler executable. For example:
+
+```text
+bin\swc.dm.exe --num-cores 6 tools\unittests.swgs dm native -bc release --file-filter unroll_counter_domain --optimizer-stats --num-cores 6
+```
+
+The report contains CSV tables sorted by pass and budget name. Pass times measure only
+`pass.run`, including its analysis work, and sum elapsed worker time across calls; they are
+neither command wall time nor process CPU time. Instruction counts sum the input and output
+of every invocation, including repeated sweeps. `changed` counts calls reporting a rewrite,
+not individual rewrites. CFG builds count actual rebuilds; SSA queries count `ensureFor` calls,
+and builds include incremental refreshes and the sink pass's explicit address snapshot.
+SLP records recursive tree calls, successful tuple memo hits,
+candidate seeds and failed seed trees. Interval-allocation attempts exclude ineligible functions
+and functions without virtual registers; fallbacks count attempted allocations that did not apply.
+
+Budget rows cover the configurable iteration caps, SLP depth/plan size, and counted-loop
+expansion checks, with rows only for checks reached by the pipelines. `observations` counts checks
+or completed loop invocations, `peak_work` is the largest observed value, and the limit range includes per-function overrides. `stopped` counts
+checks that refused work or loops ending after a changing final sweep; convergence on the last
+allowed sweep is not a stop. A stop does not establish that more work would improve code.
+SLP depth is zero-based; retained plan size does not measure failed exploration work.
+
+Profiling bypasses native function-object reuse so those passes execute. Use `--rebuild` when
+workspace artifact reuse could skip compilation altogether. Without this option, profiling does
+not allocate records, read a clock, or synchronize workers. Compare unprofiled compiles for
+command time and peak memory: collecting these observations adds overhead. Defaults and generated
+code policy are unchanged by profiling. Compare final code with `--print-micro` and measure
+runtime cost separately.
+
 ## Build the compiler manually
 
 `release.bat` is the owner-only full-machine entry point for producing `swc.exe`. Release enables

@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -857,15 +858,22 @@ Result MicroInductionVariablePass::run(MicroPassContext& context)
     // Most functions have one natural loop; keep its header without allocating a hash table.
     SmallVector<MicroInstrRef, 4> processedHeaders;
     const auto                    K_MAX_LOCAL_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.inductionVariableRounds, MicroOptimizationLimits::InductionVariable::K_MAX_LOCAL_ROUNDS);
+    uint32_t                      rounds             = 0;
+    bool                          stopped            = false;
     for (uint32_t round = 0; round < K_MAX_LOCAL_ROUNDS; ++round)
     {
+        ++rounds;
         bool hasOtherLoop = false;
-        if (!reduceRound(context, processedHeaders, hasOtherLoop))
+        const bool changed      = reduceRound(context, processedHeaders, hasOtherLoop);
+        stopped                 = changed && hasOtherLoop;
+        if (!changed)
             break;
         context.passChanged = true;
         if (!hasOtherLoop)
             break;
     }
+    if (context.optimizerStats)
+        context.optimizerStats->observeBudget("induction-variable-rounds", rounds, K_MAX_LOCAL_ROUNDS, stopped);
     return Result::Continue;
 }
 

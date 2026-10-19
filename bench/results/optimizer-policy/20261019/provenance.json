@@ -1,0 +1,135 @@
+{
+  "source_inspection_commit": "66a871160945258f594e1375119dbfb0f1119559",
+  "compiler_sha256": "2632f5d17587bbad372e65f11c11f24ce38c43d0c4d40340e8608a9d44bd4417",
+  "compiler_original_mtime": 1792391161.9101684,
+  "runtime_files": {
+    "allocator.pages.swg": "4c537a471c1c6af1419da326f6e88fb2dde2fe11d566ca13d4fca90d66c1ec9f",
+    "allocator.swg": "cdff48012afdcebef576aa64c02d2e6074940b53dac188874b65bd7671ceaf3f",
+    "allocator.testing.swg": "2e281cfd1ddd1f699c9cb9edf66fef98e58fa7c93318b02ca323fffcefade905",
+    "atomic.swg": "95faa3b3528d4a105dc61c9179451463daa58504f45eae04227e259ca748ee68",
+    "attributes.swg": "d5ae2daf2f38c9188752eea6ac92997cddbeef67a8f28af81b744c10e26fbbcf",
+    "bootstrapallocator.swg": "1e29cc7615637cb4d193ea424179ea14ab0ac743b5ee56e3fe589fae4b4937c5",
+    "build.swg": "707849a7173464e51a54657d9297657e89f62af812b7bfd2a59422daa9fd3190",
+    "context.swg": "1e2798defe097284156e17263099e0995acdcdb966695ff1556d8d405e9b0c40",
+    "core.swg": "eb84dbfe7e56d2bb8b85936b1ebef0da51b9e1639fb0ab03380a34b96bd457e9",
+    "error.swg": "d46fc604677e17d872f26fcd886ae5d9600135e506aabb97040361da74352f38",
+    "error.testing.swg": "d210c13455675dca92320f9f0bc91ff2f351276423156e67b676bbec5c502f9a",
+    "executor.swg": "e7c6d453241b6e21cf5e6f5f4e0921df828b0c538df6e26a216fcab09bcc2e78",
+    "intrinsics.swg": "955b7363331d5cb52a3321c3a82628b5e72ffa02f243feb88cc23aa6f5b2459a",
+    "iteration.swg": "79bc7d52f024f27578b8c92a7c00655efef15f5e0a219d7c2b24f11741faf63b",
+    "limits.swg": "1630d53dfcfdee157b40f26d0aa2a3cb8cd557a29856145118587a273c28fcb2",
+    "memory.swg": "3208426dbfda5527407b0daf755984d5411b87751d2cc5d5be01abe74876af16",
+    "os.win32.swg": "87ebde4acc66ab0165de8c63bfe1e6d2b5e374a4c733420216ccc8b3232b4237",
+    "parallel.swg": "9543adbe88e96a70a6c1cc6f7a998ea328f51be3b614c8b4fea9f04f320efa30",
+    "print.swg": "bb37537d1ad043d3682b891a918069250f7ba8a657f6de4a3c98f21b8e938663",
+    "reflection.swg": "b0e51524adce670c272391b26f6d92ba4b0542e695a0a297083c1ac586cf6ea7",
+    "scheduler.swg": "ba08a956bfb11fc8467529a3f4b2aff2809c2924e1a37dd117ff401122f2d6c1",
+    "scratchallocator.swg": "46b4d8058bbfd29bfeedb6885ffeade9ce7247a00407c1dc5fce5d114efa000d",
+    "symbols.swg": "30371556b5e6f82e6bf402e3d42f453b7006a7a2a737647d8a730dcbf5d2397a",
+    "sync.swg": "84daede198d4d0c7f8b34d14ee3464224b42220a53b234a6c02f8901f749e1af",
+    "task.swg": "f0cc4edf82c13aa7769da42a4d585c413ce6b76a7cdacd5377c7c6215fd25168",
+    "tests.swg": "570ed9f687e72daf2258e9d360a9b8e7766ab028127a5fac699d47d8bdd775be",
+    "tls.swg": "3a50594ae7924996eef56bf9eb97ba7caa3697eb29ff045823e11ac2f13563c5",
+    "valueborrow.swg": "169be81f3cd842c9d990ae9658aeade450750f235cd8b09d766a0b9b77ed2879"
+  },
+  "cpu": "Intel Core Ultra 9 185H",
+  "compiler_workers": 6,
+  "compile_affinity": "OS-selected, unpinned; clock/core/OS interference is not eliminated.",
+  "paired_runtime_affinity_mask": 1,
+  "compiled_program_preset": "release",
+  "native_test_jit": false,
+  "native_test_excluded_input": "bin/unittests/native/compiler/build_cfg.swg (asserts zero/default budgets)",
+  "native_passed_per_run": 3854,
+  "native_runs": 12,
+  "native_input_tree_sha256": "186c827c609928cb71bd91464ec3924f5ab02c035982eaeac8569e6c986fd966",
+  "benchmark_inputs": {
+    "binarytrees.swg": "a0d9ebd81716540fdb840b8c4d5a8c0a08a79d474e52247cb65a78d56027e792",
+    "bytemap.swg": "939b31a4d71ed2d18cc7ce97a845106ae5a0ff8ec21ec7591680d86fa32be553",
+    "chacha.swg": "c1607040e20fbdfc362587a2b834d9eef386399301db3d287cfbd65243d9bd74",
+    "common.swg": "115222c2e0030de72041e2a8f89e097736d9826ca0747b9d851cafdef49a3fa6",
+    "csvagg.swg": "be7d9503659704df04738c60f79056ec067f1271f7177fa8f78f8088c06000ee",
+    "dijkstra.swg": "18e51a99a6f7aaedfdb363cb3c214c934e33b275601d312f7a2bcc8bdd4c8c8b",
+    "fannkuch.swg": "580c078af4a278cad28c45f4e21a6c30308048149446012d13b1f5d808581c9c",
+    "leven.swg": "7626d8c5a18adf7fb6ef2ff8ea3bec93f9aa1dd982e1610be8a5f66181140b04",
+    "lz77.swg": "275a4dd3576795db60298c6353580120891f2d45214a7c24358fb854f6a50977",
+    "nbody.swg": "166c21d7edca00f91b45132151a25fa6e2c23b7a6408599f854aab6155803d8c",
+    "raytrace.swg": "763cb8af79ac65efb37f96c06b02ca5d987846e68698161816163c8c5182f2fa",
+    "sha256.swg": "5e0cd017fbb56e01718c364ff07c8c590dfa90ca3ef34915be458679b8acbfbc",
+    "sort.swg": "95d48d06d17d437d6c2c16c690e31598ec779546804dcd1e7759ee33b3cf4cbe",
+    "wordfreq.swg": "e07ccafe8236df438eb82558da81cd2df8bfc4b197841c6c2c4aeddc736b6053"
+  },
+  "win32_api_sha256": "91c4823a2ce235c1e0a7727b9a4b34df30b03ff67089101af4733e9e6e25611e",
+  "llvm_tag": "llvmorg-22.1.4",
+  "llvm_sources": [
+    {
+      "path": "lib/Transforms/Scalar/LoopUnrollPass.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Transforms/Scalar/LoopUnrollPass.cpp",
+      "sha256": "48f534634c74fde8be49a7cca2c08f945b2ea08fd6f55090abdde6ae36b28ea8"
+    },
+    {
+      "path": "lib/Transforms/Vectorize/SLPVectorizer.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Transforms/Vectorize/SLPVectorizer.cpp",
+      "sha256": "b2d70135124723718179a4f5792d699a549016dcbdf6d305f4504a3f5b30752e"
+    },
+    {
+      "path": "lib/Transforms/Scalar/LICM.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Transforms/Scalar/LICM.cpp",
+      "sha256": "534e85a1767a2914f91a6b6853130f5bc1dc7e69ecd7b81980633e15aad38038"
+    },
+    {
+      "path": "lib/Transforms/Scalar/JumpThreading.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Transforms/Scalar/JumpThreading.cpp",
+      "sha256": "5fb649464ff60073d44f774662d1a402cc28a805fbfac047f1560a62ad64dfa4"
+    },
+    {
+      "path": "lib/CodeGen/PeepholeOptimizer.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/CodeGen/PeepholeOptimizer.cpp",
+      "sha256": "6a23df45ba3f03a1ab2154d46bd1a670bd375a8e2f3f9ce313c25383073c3ee9"
+    },
+    {
+      "path": "lib/CodeGen/RegAllocGreedy.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/CodeGen/RegAllocGreedy.cpp",
+      "sha256": "dd8dfbd24f931b4e22167a2d27cbcd54945227d7f3f651aacc40aec9ad740ea5"
+    },
+    {
+      "path": "lib/Analysis/ValueTracking.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Analysis/ValueTracking.cpp",
+      "sha256": "a7ed53f41496206ccb59df6f628f2833ca4b47a42ee3a7456847a031e9eae3b3"
+    },
+    {
+      "path": "include/llvm/Analysis/ValueTracking.h",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/include/llvm/Analysis/ValueTracking.h",
+      "sha256": "71d4de15aa8a34da5cec51c456c581bdbd012184c7de8dbb709a64287d1974e8"
+    },
+    {
+      "path": "lib/CodeGen/CalcSpillWeights.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/CodeGen/CalcSpillWeights.cpp",
+      "sha256": "8cfcdf82c6934b01eb47a03fb92bb6cc56ad63c836ea812ee7fc97b700a601fa"
+    },
+    {
+      "path": "lib/Passes/PassBuilderPipelines.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Passes/PassBuilderPipelines.cpp",
+      "sha256": "6af4a16444ac71a5fb66b120c411a8bc203a3a32d06d5f2929f44548cc41d623"
+    },
+    {
+      "path": "include/llvm/Transforms/InstCombine/InstCombine.h",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/include/llvm/Transforms/InstCombine/InstCombine.h",
+      "sha256": "0236592efe1bc715aca78f89f8e0ee6a69ac9cfc7c2d13cd2f48567bf8c918cb"
+    },
+    {
+      "path": "lib/Target/X86/X86TargetTransformInfo.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Target/X86/X86TargetTransformInfo.cpp",
+      "sha256": "c65c9a3442d45f64987737f683863ce2bd6f7fb854f31ab48ef13be594866a99"
+    },
+    {
+      "path": "lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp",
+      "sha256": "6d645a9bf9011d12a95405fae928c1f39294846baa7c8c74ff0610ee0249d5dc"
+    },
+    {
+      "path": "lib/Target/X86/X86SelectionDAGInfo.cpp",
+      "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-22.1.4/llvm/lib/Target/X86/X86SelectionDAGInfo.cpp",
+      "sha256": "c0c69345420b4a6a878b524a38b06984e1521682acb7d08a5e6ff6c68166f7b0"
+    }
+  ]
+}

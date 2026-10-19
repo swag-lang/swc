@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 
 #if SWC_HAS_UNITTEST
 
@@ -73,6 +74,47 @@ SWC_TEST_BEGIN(SlpVectorize_PacksZeroStoresWithoutConstantLoads)
                 Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem))
                 return Result::Error;
         }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_ProfilesDepthRejectionsAndFailedTreeWork)
+{
+    for (const uint32_t maxDepth : {1u, 8u})
+    {
+        MicroBuilder             builder(ctx);
+        X64Encoder               encoder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimLevel                           = Runtime::BuildCfgBackendOptimLevel::O2;
+        config.vectorize                            = true;
+        config.optimizer.vectorization.maxTreeDepth = maxDepth;
+        builder.setBackendBuildCfg(config);
+        const auto sp = encoder.stackPointerReg();
+        for (uint32_t lane = 0; lane < 2; ++lane)
+        {
+            const auto value = MicroReg::virtualFloatReg(lane + 1);
+            builder.emitLoadRegMem(value, sp, 0x40 + lane * 8, MicroOpBits::B64);
+            for (uint32_t stage = 0; stage < 4; ++stage)
+                builder.emitOpBinaryRegReg(value, value, MicroOp::FloatSqrt, MicroOpBits::B64);
+            builder.emitLoadMemReg(sp, 0x80 + lane * 8, value, MicroOpBits::B64);
+        }
+        builder.emitRet();
+        MicroSlpVectorizePass slp;
+        MicroPassManager      manager;
+        manager.addStartPass(slp);
+        MicroOptimizerFunctionStats profile;
+        MicroPassContext            passContext;
+        passContext.optimizerStats = &profile;
+        SWC_RESULT(builder.runPasses(manager, &encoder, passContext));
+        const auto& pass  = profile.passes.front();
+        const auto  depth = std::ranges::find(profile.budgets, "slp-tree-depth", &MicroOptimizerBudgetStats::name);
+        if (depth == profile.budgets.end() || depth->minLimit != maxDepth || pass.treeCalls <= pass.seeds || !pass.seeds)
+            return Result::Error;
+        if ((maxDepth == 1) != (depth->stopped != 0) || (maxDepth == 1) != (pass.failedSeeds != 0))
+            return Result::Error;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != (maxDepth == 1 ? 0u : 1u))
+            return Result::Error;
     }
     return Result::Continue;
 }

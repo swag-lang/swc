@@ -61,6 +61,106 @@ SWC_TEST_BEGIN(MicroLoopUnroll_UsesConfiguredTripBudget)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(LoopUnroll_TripDistanceRespectsCounterDomain)
+{
+    struct Case
+    {
+        MicroOpBits bits;
+        MicroCond   cond;
+        uint64_t    start;
+        uint64_t    bound;
+        uint64_t    step;
+        uint32_t    trips;
+    };
+    // A zero expected count means the proof must refuse the loop. In particular,
+    // wrapping across the signed maximum does not reach a negative bound in
+    // ascending signed order, even when unsigned subtraction suggests two trips.
+    constexpr Case cases[] = {
+        {MicroOpBits::B64, MicroCond::Below, 1'000'000'000, 1'000'000'004, 1, 4},
+        {MicroOpBits::B32, MicroCond::Below, UINT32_MAX - 4, UINT32_MAX, 1, 4},
+        {MicroOpBits::B64, MicroCond::Below, UINT64_MAX - 6, UINT64_MAX, 2, 3},
+        {MicroOpBits::B32, MicroCond::Less, INT32_MAX - 6, INT32_MAX, 2, 3},
+        {MicroOpBits::B64, MicroCond::Less, INT64_MAX - 6, INT64_MAX, 2, 3},
+        {MicroOpBits::B32, MicroCond::Less, UINT32_MAX - 3, 4, 2, 4},
+        {MicroOpBits::B64, MicroCond::Less, UINT64_MAX - 3, 4, 2, 4},
+        {MicroOpBits::B64, MicroCond::Less, uint64_t{1} << 63, (uint64_t{1} << 63) + 6, 2, 3},
+        {MicroOpBits::B32, MicroCond::Less, INT32_MAX - 1, uint64_t{1} << 31, 1, 0},
+        {MicroOpBits::B64, MicroCond::Less, INT64_MAX - 1, uint64_t{1} << 63, 1, 0},
+        {MicroOpBits::B32, MicroCond::Below, UINT32_MAX - 1, 0, 1, 0},
+        {MicroOpBits::B64, MicroCond::Below, UINT64_MAX - 1, 0, 1, 0},
+        {MicroOpBits::B32, MicroCond::Below, UINT32_MAX - 3, UINT32_MAX, 2, 0},
+        {MicroOpBits::B64, MicroCond::Below, UINT64_MAX - 3, UINT64_MAX, 2, 0},
+        {MicroOpBits::B32, MicroCond::Less, UINT32_MAX - 3, 3, 2, 0},
+        {MicroOpBits::B64, MicroCond::Below, 7, 7, 1, 0},
+    };
+    for (const Case& test : cases)
+    {
+        const uint32_t width   = getNumBits(test.bits);
+        const uint64_t mask    = test.bits == MicroOpBits::B32 ? UINT32_MAX : UINT64_MAX;
+        const MicroReg counter = MicroReg::virtualIntReg(1);
+        const MicroReg base    = CallConv::get(CallConvKind::Swag).stackPointer;
+        MicroBuilder   builder(ctx);
+        const auto     header = builder.createLabel();
+        builder.emitLoadRegImm(counter, ApInt(test.start, width), test.bits);
+        builder.placeLabel(header);
+        builder.emitLoadMemReg(base, 0x20, counter, test.bits);
+        builder.emitOpBinaryRegImm(counter, ApInt(test.step, width), MicroOp::Add, test.bits);
+        builder.emitCmpRegImm(counter, ApInt(test.bound, width), test.bits);
+        builder.emitJumpToLabel(test.cond, test.bits, header);
+        builder.emitLoadMemReg(base, 0x28, counter, test.bits);
+        builder.emitRet();
+
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != (test.trips ? 0u : 1u))
+            return Result::Error;
+        if (!test.trips)
+            continue;
+
+        // Check the value seen by every original/cloned store, including a
+        // post-loop reader, rather than only counting removed branches.
+        std::unordered_map<MicroReg, uint64_t> constants;
+        uint32_t                               stores = 0;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadRegImm)
+                constants[ops[0].reg] = ops[2].valueU64;
+            if (inst.op != MicroInstrOpcode::LoadMemReg)
+                continue;
+            const uint64_t expected = stores < test.trips ? (test.start + stores * test.step) & mask : test.bound;
+            if (constants.at(ops[1].reg) != expected)
+                return Result::Error;
+            ++stores;
+        }
+        if (stores != test.trips + 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(LoopUnroll_NarrowClearDoesNotProveInitialCounter)
+{
+    for (const MicroOpBits clearBits : {MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder builder(ctx);
+        const auto   counter = MicroReg::virtualIntReg(1);
+        const auto   header  = builder.createLabel();
+        builder.emitClearReg(counter, clearBits);
+        builder.placeLabel(header);
+        builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, counter, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(4, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+        builder.emitRet();
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != (clearBits == MicroOpBits::B16 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
 {
     for (const uint64_t bound : {uint64_t{16}, uint64_t{17}})

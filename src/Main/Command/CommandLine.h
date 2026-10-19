@@ -254,6 +254,7 @@ struct CommandLine
 
     // '--print-micro' requests, each '<function pattern>[:<stage>]'.
     std::vector<Utf8> printMicro;
+    bool              optimizerStats = false;
     std::vector<Utf8> runArgs;
 
     // Raw '--warn-*' values, in the order the options accept them. They become

@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Report/Assert.h"
@@ -276,6 +277,9 @@ void MicroSsaState::pruneRemovedUses()
 
 const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, MicroSsaState& localState)
 {
+    auto* stats = context.optimizerStats ? context.optimizerStats->activePass : nullptr;
+    if (stats)
+        ++stats->ssaQueries;
     if (context.ssaState)
     {
         if (!context.ssaState->isValid())
@@ -284,6 +288,8 @@ const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, M
                 return nullptr;
 
             context.ssaState->build(*context.builder, *context.instructions, *context.operands, context.encoder);
+            if (stats)
+                ++stats->ssaBuilds;
         }
 
         return context.ssaState;
@@ -292,7 +298,11 @@ const MicroSsaState* MicroSsaState::ensureFor(const MicroPassContext& context, M
         return nullptr;
 
     if (!localState.isValid())
+    {
         localState.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+        if (stats)
+            ++stats->ssaBuilds;
+    }
 
     return &localState;
 }

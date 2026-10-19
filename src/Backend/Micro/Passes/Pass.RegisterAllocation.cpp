@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -4745,11 +4746,19 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     // once, so a value copied into several others takes more than one round.
 
     const auto K_MAX_JOIN_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.registerJoinRounds, MicroOptimizationLimits::RegisterAllocation::K_MAX_JOIN_ROUNDS);
-    for (uint32_t round = 0; round < K_MAX_JOIN_ROUNDS && coalesceSameValueCopies(); ++round)
+    uint32_t   rounds            = 0;
+    bool       stopped           = false;
+    for (uint32_t round = 0; round < K_MAX_JOIN_ROUNDS; ++round)
     {
+        ++rounds;
+        stopped = coalesceSameValueCopies();
+        if (!stopped)
+            break;
         if (!analyze())
             return Result::Continue;
     }
+    if (context.optimizerStats)
+        context.optimizerStats->observeBudget("register-join-rounds", rounds, K_MAX_JOIN_ROUNDS, stopped);
     setupPools();
 
     // The gated interval path replaces everything below when it

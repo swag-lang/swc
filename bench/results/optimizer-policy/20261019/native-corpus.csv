@@ -1,0 +1,13 @@
+profile,order,exit,wall_ms,first_stdout_ms,cpu_ms,peak_job_bytes,peak_proc_bytes,peak_working_set_bytes,tuned,tested,campaign
+baseline,0,0,20275.2877,,41281.25,844173312,771379200,660979712,"[""tuned       12_896 functions • 12 s 619 ms""]","[""tested      3_854 passed • 20 s 145 ms""]",
+slp12,1,0,13063.6264,,27000.0,848670720,766033920,656101376,"[""tuned       12_896 functions • 9 s 354 ms""]","[""tested      3_854 passed • 12 s 938 ms""]",
+postra4,2,0,19880.8925,,49203.125,816095232,755785728,643928064,"[""tuned       12_896 functions • 15 s 348 ms""]","[""tested      3_854 passed • 19 s 737 ms""]",
+baseline,3,0,14228.1522,,33046.875,857686016,785620992,670101504,"[""tuned       12_896 functions • 10 s 220 ms""]","[""tested      3_854 passed • 14 s 116 ms""]",
+inner_lean,4,0,15474.4008,,33656.25,840151040,758026240,647294976,"[""tuned       12_896 functions • 11 s 270 ms""]","[""tested      3_854 passed • 15 s 344 ms""]",
+growth2,5,0,13855.297,,34062.5,833708032,763326464,652947456,"[""tuned       12_896 functions • 9 s 785 ms""]","[""tested      3_854 passed • 13 s 721 ms""]",
+slp32,6,0,31850.5616,,74593.75,811642880,775766016,666804224,"[""tuned       12_896 functions • 24 s 425 ms""]","[""tested      3_854 passed • 31 s 661 ms""]",
+baseline,7,0,17534.3361,,35875.0,803950592,766980096,657629184,"[""tuned       12_896 functions • 12 s 811 ms""]","[""tested      3_854 passed • 17 s 393 ms""]",
+baseline,0,0,14116.172,,29250.0,844636160,780079104,667774976,"[""tuned       12_896 functions • 9 s 490 ms""]","[""tested      3_854 passed • 13 s 983 ms""]",repeat
+slp32,1,0,12655.0708,,26906.25,848093184,781635584,672079872,"[""tuned       12_896 functions • 9 s 2 ms""]","[""tested      3_854 passed • 12 s 526 ms""]",repeat
+slp12,2,0,13643.3974,,26937.5,824131584,762155008,650313728,"[""tuned       12_896 functions • 9 s 890 ms""]","[""tested      3_854 passed • 13 s 519 ms""]",repeat
+baseline,3,0,12227.8704,,24734.375,829280256,771276800,657641472,"[""tuned       12_896 functions • 8 s 705 ms""]","[""tested      3_854 passed • 12 s 108 ms""]",repeat

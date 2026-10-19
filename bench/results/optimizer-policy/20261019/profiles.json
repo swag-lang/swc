@@ -1,0 +1,29 @@
+{
+  "baseline": {},
+  "slp12": {
+    "vectorization.maxTreeDepth": 12
+  },
+  "slp32": {
+    "vectorization.maxTreeDepth": 32
+  },
+  "postra4": {
+    "iterations.postRaSweeps": 4
+  },
+  "inner_lean": {
+    "iterations.loopInvariantRounds": 8,
+    "iterations.inductionVariableRounds": 8,
+    "iterations.sinkToUseRounds": 1,
+    "iterations.registerJoinRounds": 1,
+    "iterations.postRaHoistLevels": 1
+  },
+  "growth2": {
+    "unroll.maxTrips": 32,
+    "unroll.maxTotalInstructions": 1152,
+    "unroll.maxOrdinaryTotalInstructions": 768,
+    "unroll.maxBranchedTotalInstructions": 192,
+    "unroll.maxNestedTotalInstructions": 1536
+  },
+  "slp64_synthetic_only": {
+    "vectorization.maxTreeDepth": 64
+  }
+}

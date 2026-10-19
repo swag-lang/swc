@@ -283,6 +283,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--show-config", nullptr,
         &cmdLine_->showConfig,
         "Show the resolved command, environment, toolchain, and native artifact configuration, then exit");
+    add(HelpOptionGroup::Development, "sema test build run smoke", "--optimizer-stats", nullptr,
+        &cmdLine_->optimizerStats,
+        "Report per-pass time, analysis work, and observed optimizer budgets when compilation ends; bypass native function reuse");
 
 #if SWC_DEV_MODE
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",

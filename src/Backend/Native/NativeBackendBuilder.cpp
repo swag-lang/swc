@@ -1103,6 +1103,9 @@ void NativeBackendBuilder::prepareFunctionCache()
 
 bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
 {
+    // Profiling needs to execute the passes even when an object is reusable.
+    if (ctx().cmdLine().optimizerStats)
+        return false;
     if (!functionCacheEnabled_)
         return false;
 

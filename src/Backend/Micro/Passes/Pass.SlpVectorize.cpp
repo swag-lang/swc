@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroRelocation.h"
@@ -901,13 +902,14 @@ namespace
     class TreeBuilder
     {
     public:
-        TreeBuilder(BlockScan& scan, VectorPlan& plan, const Runtime::BuildCfgBackendOptimizerVectorization& tuning, bool nonDestructive, bool canLoadMask) :
+        TreeBuilder(BlockScan& scan, VectorPlan& plan, const MicroPassContext& context, bool nonDestructive, bool canLoadMask) :
             scan_(&scan),
             plan_(&plan),
             nonDestructive_(nonDestructive),
             canLoadMask_(canLoadMask),
-            maxTreeDepth_(std::min(MicroOptimizationLimits::configured(tuning.maxTreeDepth, K_MAX_TREE_DEPTH), K_MAX_TREE_DEPTH)),
-            maxPlanInstructions_(MicroOptimizationLimits::configured(tuning.maxPlanInstructions, K_MAX_PLAN_INSTRS))
+            maxTreeDepth_(std::min(MicroOptimizationLimits::configured(context.optimizer().vectorization.maxTreeDepth, K_MAX_TREE_DEPTH), K_MAX_TREE_DEPTH)),
+            maxPlanInstructions_(MicroOptimizationLimits::configured(context.optimizer().vectorization.maxPlanInstructions, K_MAX_PLAN_INSTRS)),
+            stats_(context.optimizerStats)
         {
         }
 
@@ -915,12 +917,27 @@ namespace
         // tuple.ids[i], or K_INVALID_ID when the tuple cannot be vectorized.
         uint32_t build(const TupleKey& tuple, uint32_t depth)
         {
-            if (depth > maxTreeDepth_ || plan_->totalInstrs() > maxPlanInstructions_)
+            if (stats_)
+            {
+                if (stats_->activePass)
+                    ++stats_->activePass->treeCalls;
+                stats_->observeBudget("slp-tree-depth", depth, maxTreeDepth_, depth > maxTreeDepth_);
+            }
+            if (depth > maxTreeDepth_)
+                return K_INVALID_ID;
+            const size_t planInstructions = plan_->totalInstrs();
+            if (stats_)
+                stats_->observeBudget("slp-plan-instructions", planInstructions, maxPlanInstructions_, planInstructions > maxPlanInstructions_);
+            if (planInstructions > maxPlanInstructions_)
                 return K_INVALID_ID;
 
             const auto memoIt = plan_->tupleRegs.find(tuple);
             if (memoIt != plan_->tupleRegs.end())
+            {
+                if (stats_ && stats_->activePass)
+                    ++stats_->activePass->treeMemoHits;
                 return memoIt->second;
+            }
 
             // A permutation of an already-built tuple is one shuffle.
             const TupleKey sorted = sortedKeyOf(tuple);
@@ -1319,6 +1336,7 @@ namespace
         bool        canLoadMask_    = false;
         uint32_t    maxTreeDepth_;
         uint32_t    maxPlanInstructions_;
+        MicroOptimizerFunctionStats* stats_;
     };
 
     // ------------------------------------------------------------------
@@ -2002,7 +2020,7 @@ namespace
         // Build the seed groups: complete 16-byte chunks of candidates.
         VectorPlan             plan;
         const bool             canLoadMask = fn.context->builder && fn.context->taskContext && fn.context->taskContext->hasCompiler();
-        TreeBuilder            builder(scan, plan, fn.context->optimizer().vectorization, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary(), canLoadMask);
+        TreeBuilder            builder(scan, plan, *fn.context, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary(), canLoadMask);
         std::vector<SeedGroup> vectorized;
 
         for (auto& [rootKey, candidates] : candidatesByRoot)
@@ -2046,6 +2064,12 @@ namespace
         {
             SeedGroup& group = vectorized[groupIndex];
             group.planReg    = builder.build(group.tuple, 0);
+            if (fn.context->optimizerStats && fn.context->optimizerStats->activePass)
+            {
+                ++fn.context->optimizerStats->activePass->seeds;
+                if (group.planReg == K_INVALID_ID)
+                    ++fn.context->optimizerStats->activePass->failedSeeds;
+            }
             if (group.planReg != K_INVALID_ID)
             {
                 if (retainedGroups != groupIndex)

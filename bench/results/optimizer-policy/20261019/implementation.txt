@@ -1,0 +1,116 @@
+Optimizer policy implementation follow-up
+
+This follows the pre-change LLVM/policy audit in analysis.txt. All 149 numeric defaults
+remain unchanged. No O3 preset or FP-policy change is introduced.
+
+1. Counted-loop recognition.
+
+The ordinary counted-loop proof normalizes 32-bit values and biases signed bit
+patterns into unsigned comparison order. A positive distance divisible by the
+positive step gives the exact number of trips without signed host overflow. Every
+increment stays inside the comparison domain and the exit counter is preserved.
+Wrapping, reversed, and non-exact progressions are refused. Byte/word clears do
+not establish a complete integer starting value on x64.
+
+The one-million term guard now protects only closed-form sum arithmetic and the
+signed arithmetic in nested-loop size estimation. Existing step, trip and growth
+budgets still govern expansion. Offset.high falls from 7 to 5 printed Micro
+instructions: four constant stores and ret, matching Offset.low. Both keep sum 6.
+The C++ tests check cloned values and a live post-loop counter across signed and
+unsigned 32/64-bit boundaries, non-unit steps, zero crossings and rejected wraps.
+
+The widened numeric domain also reaches the existing paired partial-unroll rule.
+ChaCha's data-generation loop has 4,194,304 trips and now receives two body copies.
+Its main grows from 418 to 434 printed Micro instructions; total benchmark-source
+Micro grows from 626 to 642. The printed diff is confined to data generation before
+the timed work; quarterRound stays at 45 instructions and the remaining source
+functions stay unchanged. This extra static code is an observed tradeoff, not an
+established runtime improvement. Raytrace stays at 618 source instructions.
+Checksums remain Raytrace=56061776 and ChaCha=633277775 before/after.
+
+2. Opt-in observations.
+
+--optimizer-stats is available in both compiler executables. Function pipelines
+collect locally and merge once into compiler-owned totals. Without the option,
+profiling allocates no records, takes no timestamps and locks no profiling mutex.
+Null checks and the profile pointer remain; this is not a zero-overhead claim.
+
+Pass rows record calls, calls reporting a rewrite, returned errors, cumulative
+elapsed time inside pass.run, summed input/output instruction counts, actual CFG
+builds, SSA requests/builds, SLP recursive visits/memo hits/seed failures and attempted
+interval-allocation fallbacks. SSA builds include incremental refreshes and the
+sink pass's explicit address snapshot. Manager validation and bookkeeping outside
+pass.run are excluded. Times include profiling costs and worker preemption.
+
+Budget rows cover all configurable iteration caps, counted-loop expansion checks,
+and SLP tree depth/retained plan size. They do not cover every one of the 149 fixed
+catalog limits, memory-copy lowering, all initializer searches, or promotion caps.
+Rows appear only when a supported check is reached. An observation at the limit
+that converges is not a stop; a final changing sweep or a refused tree/expansion is.
+A stop does not prove that more work would produce useful optimization. Per-function
+attribution and detailed rejection reasons remain calibration work.
+
+Native function-object reuse is bypassed when profiling. A warmed standalone cache
+with an incremental index still executes 249 pipelines under the option and prints
+CHECK=6 OTHER=6. Workspace-level artifact reuse can still skip compilation; use
+--rebuild for a full observation. No profiling bit enters code policy/cache identity.
+
+3. What these observations establish.
+
+Normal builds (without --print-micro) contain runtime and generated pipelines as
+well as benchmark functions. In this sample, Raytrace has 252 pipelines and ChaCha
+254. Their pre-RA peaks are 8/24 and 9/24 sweeps; post-RA peaks are 9/24 and 5/24,
+with no stops. Pre-prologue cleanup stops after a changing second sweep in 65/251
+and 65/253 invocations. This is a candidate for attribution, not justification for
+raising its default: later cleanup also runs. SLP depth peaks at 0 and 8 in these
+normal benchmark builds, with no depth stops. Most observed ceilings cost no extra
+rounds simply because they are large.
+
+The deep supported chain reaches depth 64 under defaults and produces 67 Micro
+instructions. The configured depth 32 stops one recursive visit at depth 33 and
+retains 134 instructions. Both print CHECK=5.23606798. The aggregated limit range
+32..512 reflects per-module/runtime defaults, rather than an override silently
+being applied to every function. Retained plan size and failed exploration remain
+distinct work measures.
+
+The normalized printed source Micro is identical with/without profiling for both
+benchmarks and offset-domain.swg. These listings and checksums are evidence for
+these inputs, not a general semantic-equivalence or machine-performance proof.
+The printer abbreviates some operand forms. Dumps force listed functions to be
+lowered, including unreachable ones, so their counts are not normal-build timings.
+Use the normal profiled-build rows for pass/budget observations.
+
+4. Timing limits and validation.
+
+The screening includes an identical-binary A/A control, rotating order, separate
+external caches, six compiler workers and a machine admission check before every
+build/test. First repetitions are warmups. Complete blocks retain four repetitions
+for Raytrace and three for ChaCha; incomplete blocks stay only in the raw data.
+A baseline build varied from roughly 170-220 ms to 2742 ms after admission while
+external load changed. The timing series was stopped; the retained samples cannot
+establish a compile-time gain or regression. CPU-time controls also vary. Peak job
+memory stays around 65 MiB for Raytrace and 72 MiB for ChaCha in these probes, with
+no precise memory-regression claim. Profiling-only samples are functional smokes
+under load, not overhead estimates. No tuned default is selected from these data.
+
+Both compiler executables build, including the final Release bookkeeping changes.
+The static repository validator passes. The DevMode C++ suite reports 1536 passed; the
+collector's console relay then hit a Windows encoding error after storing that
+green output, so the already-passing suite was not repeated. The unroll selection
+passes 14 JIT plus 14 native tests with swc.dm and release program configuration.
+The new domain file passes 3 JIT plus 3 native tests in each of swc/release,
+swc.dm/release and swc.dm/devmode. Swag sources were passed through swc format.
+The CLI help exposes the option with default false.
+
+The timing/dump/deep-chain probes identify the first frozen after binary. Final
+normal profiles, the cache check, the domain test and both benchmark on/off dumps
+were repeated after the final profiling-bookkeeping rebuild. Source Micro matches
+the earlier after listings. Both executable hashes and this distinction are retained.
+
+The CSV files retain raw screening measurements, complete-block summaries, pass
+rows, budget rows and normalized source-code hashes/counts. implementation.code.txt
+retains the focused loop/depth listings; implementation.provenance.json documents
+binary/input hashes, commands, cache isolation, scope and validation. Unrelated
+concurrent compiler commits limit causal before/after timing attribution. Calibration
+and an eventual O3 policy remain in compiler.optimization.133. The counter-domain
+outcome formerly recorded as compiler.optimization.134 is complete.

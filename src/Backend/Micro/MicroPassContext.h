@@ -12,6 +12,7 @@ class MicroOperandStorage;
 class MicroBuilder;
 class MicroSsaState;
 struct MicroSsaValueScratch;
+struct MicroOptimizerFunctionStats;
 class TaskContext;
 class Encoder;
 class SymbolFunction;
@@ -102,6 +103,9 @@ struct MicroPassContext
 
     // Temporary SSA value propagation storage owned by the worker running this pipeline.
     MicroSsaValueScratch* ssaValueScratch = nullptr;
+
+    // Null unless optimizer profiling was requested. Never shared with another worker.
+    MicroOptimizerFunctionStats* optimizerStats = nullptr;
 
     const Runtime::BuildCfgBackendOptimizer& optimizer() const;
 

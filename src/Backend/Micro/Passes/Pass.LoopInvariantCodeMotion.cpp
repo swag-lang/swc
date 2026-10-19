@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -1263,12 +1264,18 @@ Result MicroLoopInvariantCodeMotionPass::run(MicroPassContext& context)
 
     bool       changedAny   = false;
     const auto K_MAX_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.loopInvariantRounds, MicroOptimizationLimits::LoopInvariantCodeMotion::K_MAX_ROUNDS);
+    uint32_t   rounds       = 0;
+    bool       stopped      = false;
     for (uint32_t round = 0; round < K_MAX_ROUNDS; ++round)
     {
-        if (!licmHoistRound(context))
+        ++rounds;
+        stopped = licmHoistRound(context);
+        if (!stopped)
             break;
         changedAny = true;
     }
+    if (context.optimizerStats)
+        context.optimizerStats->observeBudget("loop-invariant-rounds", rounds, K_MAX_ROUNDS, stopped);
 
     if (changedAny)
         context.passChanged = true;

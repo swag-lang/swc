@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPrinter.h"
@@ -1103,7 +1104,21 @@ Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder,
         context.validateMicro = ctx_->cmdLine().validateMicro;
 #endif
 
-    return passes.run(context);
+    // Allocate profiling records only on request. A caller-supplied profile lets
+    // unit tests inspect the exact pass/budget boundary without CLI output.
+    std::unique_ptr<MicroOptimizerFunctionStats> profile;
+    if (!context.optimizerStats && ctx_ && ctx_->hasCompiler() && ctx_->compiler().optimizerStats())
+    {
+        profile                = std::make_unique<MicroOptimizerFunctionStats>();
+        context.optimizerStats = profile.get();
+    }
+    const Result result = passes.run(context);
+    if (profile)
+    {
+        ctx_->compiler().optimizerStats()->merge(*profile);
+        context.optimizerStats = nullptr;
+    }
+    return result;
 }
 
 Result MicroBuilder::runPasses(Encoder* encoder, MicroPassContext& context)

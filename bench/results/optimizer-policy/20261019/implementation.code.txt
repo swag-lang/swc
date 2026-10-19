@@ -1,0 +1,234 @@
+offset-before / Offset.high / 7 instructions
+load_reg_imm rax, b64, 0x3B9ACA00
+load_addr_reg_mem rdx, [rax + 0xFFFFFFFFC4653600], b64
+load_amc_mem_reg [rcx + rdx * 0x8], rdx, b64 <- b64
+op_binary_reg_imm add, rax, 0x1, b64
+cmp_reg_imm rax, 0x3B9ACA04, b64
+jump_cond b, b32 L0
+ret
+
+offset-before / Offset.low / 5 instructions
+load_mem_imm [rcx], 0x0, b64
+load_mem_imm [rcx + 0x8], 0x1, b64
+load_mem_imm [rcx + 0x10], 0x2, b64
+load_mem_imm [rcx + 0x18], 0x3, b64
+ret
+
+offset-after / Offset.high / 5 instructions
+load_mem_imm [rcx], 0x0, b64
+load_mem_imm [rcx + 0x8], 0x1, b64
+load_mem_imm [rcx + 0x10], 0x2, b64
+load_mem_imm [rcx + 0x18], 0x3, b64
+ret
+
+offset-after / Offset.low / 5 instructions
+load_mem_imm [rcx], 0x0, b64
+load_mem_imm [rcx + 0x8], 0x1, b64
+load_mem_imm [rcx + 0x10], 0x2, b64
+load_mem_imm [rcx + 0x18], 0x3, b64
+ret
+
+deep-default / Deep.deep / 67 instructions
+load_reg_mem xmm0, [rip], b128
+vec_unary_reg_mem vec.sqrtf64, xmm1, [rcx], b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm1, xmm1, xmm0, b128
+vec_unary_reg_reg vec.sqrtf64, xmm1, xmm1, b128
+op_binary_reg_reg_reg vec.addf64, xmm0, xmm1, xmm0, b128
+store_vec_mem_reg [rcx + 0x20], xmm0, b128
+ret
+
+deep-slp32 / Deep.deep / 134 instructions
+load_reg_mem xmm0, [rcx], b64
+load_reg_mem xmm1, [rcx + 0x8], b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+load_reg_mem xmm2, [rip], b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+op_binary_reg_reg fsqrt, xmm0, xmm0, b64
+op_binary_reg_reg_reg fadd, xmm0, xmm0, xmm2, b64
+op_binary_reg_reg fsqrt, xmm1, xmm1, b64
+op_binary_reg_reg_reg fadd, xmm1, xmm1, xmm2, b64
+load_mem_reg [rcx + 0x20], xmm0, b64
+load_mem_reg [rcx + 0x28], xmm1, b64
+ret

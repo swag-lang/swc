@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -156,6 +157,11 @@ namespace
     // outer unroll would only multiply loops.
     bool flattenedNestSize(uint64_t& outTotal, const MicroPassContext& context, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<MicroInstrRef>& order, const LabelTable& labels, const CountedLoop& outer)
     {
+        // This estimator evaluates derived offsets in signed host arithmetic.
+        // Large counters can still unroll under the ordinary growth budgets.
+        if (outer.initValue > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_BOUND ||
+            outer.trips > (MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_BOUND - outer.initValue) / outer.step)
+            return false;
         const auto limits = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
         struct InnerLoop
         {
@@ -1106,9 +1112,10 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 continue;
             if (cmpOps[2].hasWideImmediateValue() || addOps[3].hasWideImmediateValue())
                 continue;
-            const uint64_t bound = cmpOps[2].valueU64;
+            const uint64_t mask  = counterBits == MicroOpBits::B32 ? UINT32_MAX : UINT64_MAX;
+            const uint64_t bound = cmpOps[2].valueU64 & mask;
             const uint64_t step  = addOps[3].valueU64;
-            if (step < 1 || step > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_STEP || bound > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_BOUND)
+            if (step < 1 || step > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_STEP)
                 continue;
 
             // The counter's starting constant, from the straight-line preheader.
@@ -1130,6 +1137,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                 if (cand->op == MicroInstrOpcode::ClearReg)
                 {
+                    // x64 clears at least 32 bits to zero the complete integer
+                    // register. A byte/word clear does not prove the initial value.
+                    const auto* initOps = cand->ops(operands);
+                    if (!initOps || (initOps[1].opBits != MicroOpBits::B32 && initOps[1].opBits != MicroOpBits::B64))
+                        break;
                     initValue = 0;
                     haveInit  = true;
                 }
@@ -1144,14 +1156,24 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 }
                 break;
             }
-            if (!haveInit || initValue >= bound || (bound - initValue) % step != 0)
+            // Bias signed bit patterns into unsigned order. The distance then
+            // works across zero without signed host overflow. An exact positive
+            // distance proves that every increment, including the final one,
+            // stays in the comparison's domain and exits at the bound.
+            initValue &= mask;
+            const uint64_t signBias = cond == MicroCond::Less ? (mask >> 1) + 1 : 0;
+            const uint64_t startKey = initValue ^ signBias;
+            const uint64_t endKey   = bound ^ signBias;
+            if (!haveInit || startKey >= endKey || (endKey - startKey) % step != 0)
                 continue;
             // A single trip still loses its latch: the body runs once either way.
-            const uint64_t trips = (bound - initValue) / step;
+            const uint64_t trips = (endKey - startKey) / step;
 
             const uint32_t bodyBegin = h + 1;
             const uint32_t bodyEnd   = jccOrdinal - 2;
             const uint32_t bodyCount = bodyEnd - bodyBegin;
+            if (context.optimizerStats && bodyCount)
+                context.optimizerStats->observeBudget("unroll-body-instructions", bodyCount, limits.maxBodyInstructions, bodyCount > limits.maxBodyInstructions);
             if (!bodyCount || bodyCount > limits.maxBodyInstructions)
                 continue;
 
@@ -1160,7 +1182,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // The bound limits each term to one million, so the progression
             // calculation below fits in 64 bits before the accumulator's
             // intentional modular addition.
-            if (bodyCount == 1 && cond == MicroCond::Below)
+            if (bodyCount == 1 && cond == MicroCond::Below && bound <= MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_BOUND)
             {
                 const MicroInstrRef bodyRef = order[bodyBegin];
                 const MicroInstr*   body    = storage.ptr(bodyRef);
@@ -1237,6 +1259,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                                  trips > limits.maxTotalInstructions / bodyCount &&
                                  bodyCount >= MicroOptimizationLimits::LoopUnroll::K_MIN_PAIRED_BODY_INSTR && bodyCount <= limits.maxOrdinaryBodyInstructions;
             const uint64_t copies = partial ? 2 : trips;
+            if (context.optimizerStats)
+            {
+                const uint64_t expanded = copies > UINT64_MAX / bodyCount ? UINT64_MAX : copies * bodyCount;
+                context.optimizerStats->observeBudget("unroll-total-instructions", expanded, limits.maxTotalInstructions, copies > limits.maxTotalInstructions / bodyCount);
+            }
             if (copies > limits.maxTotalInstructions / bodyCount)
                 continue;
 
@@ -1333,6 +1360,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // each copy. This can repay the branch duplication within the overall
             // code-size cap; ordinary branched loops keep the smaller budget.
             const bool foldsTableIndices = indexedConstantLoads != 0;
+            if (context.optimizerStats && !foldsTableIndices && !partial)
+                context.optimizerStats->observeBudget("unroll-trips", trips, limits.maxTrips, trips > limits.maxTrips);
             if (trips > limits.maxTrips && !foldsTableIndices && !partial)
                 continue;
 
@@ -1342,14 +1371,24 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             {
                 const CountedLoop outer{.bodyBegin = bodyBegin, .bodyEnd = bodyEnd, .counter = counter, .initValue = initValue, .step = step, .trips = trips};
                 uint64_t          flattened = 0;
-                flattensNest                = flattenedNestSize(flattened, context, storage, operands, order, labels, outer) && flattened <= limits.maxNestedTotalInstructions;
+                const bool        estimated = flattenedNestSize(flattened, context, storage, operands, order, labels, outer);
+                if (context.optimizerStats && estimated)
+                    context.optimizerStats->observeBudget("unroll-nested-total-instructions", flattened, limits.maxNestedTotalInstructions, flattened > limits.maxNestedTotalInstructions);
+                flattensNest = estimated && flattened <= limits.maxNestedTotalInstructions;
             }
 
             // One trip copies nothing, so no size limit applies to it.
             const bool growsCode = trips > 1 && !flattensNest;
+            if (context.optimizerStats && growsCode && (!foldsTableIndices || trips > limits.maxWideTableTrips))
+            {
+                context.optimizerStats->observeBudget("unroll-ordinary-body-instructions", bodyCount, limits.maxOrdinaryBodyInstructions, bodyCount > limits.maxOrdinaryBodyInstructions);
+                context.optimizerStats->observeBudget("unroll-ordinary-total-instructions", bodyCount * copies, limits.maxOrdinaryTotalInstructions, bodyCount * copies > limits.maxOrdinaryTotalInstructions);
+            }
             if (growsCode && (!foldsTableIndices || trips > limits.maxWideTableTrips) &&
                 (bodyCount > limits.maxOrdinaryBodyInstructions || bodyCount * copies > limits.maxOrdinaryTotalInstructions))
                 continue;
+            if (context.optimizerStats && growsCode && !internalLabels.empty() && !foldsTableIndices)
+                context.optimizerStats->observeBudget("unroll-branched-total-instructions", bodyCount * trips, limits.maxBranchedTotalInstructions, bodyCount * trips > limits.maxBranchedTotalInstructions);
             if (growsCode && !internalLabels.empty() && bodyCount * trips > limits.maxBranchedTotalInstructions && !foldsTableIndices)
                 continue;
 

@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -1800,12 +1801,18 @@ Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
     // The frame-reachability answer is a property of the function, so the rounds below share one.
     FrameReachability framePrivacy;
     const auto        K_MAX_LEVELS = MicroOptimizationLimits::configured(context.optimizer().iterations.postRaHoistLevels, MicroOptimizationLimits::PostRALoopHoist::K_MAX_LEVELS);
+    uint32_t          levels       = 0;
+    bool              stopped      = false;
     for (uint32_t level = 0; level < K_MAX_LEVELS; ++level)
     {
-        if (!hoistRound(context, conv, framePrivacy))
+        ++levels;
+        stopped = hoistRound(context, conv, framePrivacy);
+        if (!stopped)
             break;
         context.passChanged = true;
     }
+    if (context.optimizerStats)
+        context.optimizerStats->observeBudget("post-ra-hoist-levels", levels, K_MAX_LEVELS, stopped);
 
     while (hoistFoldedBitwiseOperand(context, conv))
         context.passChanged = true;

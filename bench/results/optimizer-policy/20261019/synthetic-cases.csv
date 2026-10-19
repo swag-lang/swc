@@ -1,0 +1,12 @@
+case,profile,function,output,text_bytes,sha256,instructions,memory_instructions,frame_accesses
+offset-domain,baseline,Synthetic.high,CHECK=6 OTHER=6,38438,2616747d86db6c300d7c549bcd8abd9a7596e6d4c36062cd1c85d44d88bf959b,7,2,0
+offset-domain,baseline,Synthetic.low,CHECK=6 OTHER=6,38438,d8f901f0297555faf866d45cfc3509ff2bad5b35aaf3f485aa25b0b9a3e375e0,5,4,0
+offset-domain,baseline,Synthetic.__main,CHECK=6 OTHER=6,38438,67157bfe4f955c692cc4d10112447a653aeb461ecb64e5cc63bea8e280b21835,64,36,3
+deep-slp,baseline,Synthetic.deep,CHECK=5.23606798,38534,66f97125480a9c9f9d9bb78488f74716e34d68a1357d8bf588f390b0b4556976,67,3,0
+deep-slp,baseline,Synthetic.__main,CHECK=5.23606798,38534,f3d1b44cc9ebd87aaeafbaed777fadd18f6c04cee35fb22247e2088c0cf37b97,44,24,3
+deep-slp,slp12,Synthetic.deep,CHECK=5.23606798,38822,5da4dd53163c46ccf097f9afff3a80ed6418a139f979772ffcedd4b5ce073b80,134,5,0
+deep-slp,slp12,Synthetic.__main,CHECK=5.23606798,38822,f3d1b44cc9ebd87aaeafbaed777fadd18f6c04cee35fb22247e2088c0cf37b97,44,24,3
+deep-slp,slp32,Synthetic.deep,CHECK=5.23606798,38822,5da4dd53163c46ccf097f9afff3a80ed6418a139f979772ffcedd4b5ce073b80,134,5,0
+deep-slp,slp32,Synthetic.__main,CHECK=5.23606798,38822,f3d1b44cc9ebd87aaeafbaed777fadd18f6c04cee35fb22247e2088c0cf37b97,44,24,3
+deep-slp,slp64,Synthetic.deep,CHECK=5.23606798,38534,66f97125480a9c9f9d9bb78488f74716e34d68a1357d8bf588f390b0b4556976,67,3,0
+deep-slp,slp64,Synthetic.__main,CHECK=5.23606798,38534,f3d1b44cc9ebd87aaeafbaed777fadd18f6c04cee35fb22247e2088c0cf37b97,44,24,3

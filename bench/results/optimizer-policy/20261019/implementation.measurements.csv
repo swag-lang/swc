@@ -1,0 +1,31 @@
+task,entry,repeat,warmup,exit,wall_ms,first_stdout_ms,cpu_ms,peak_job_bytes,peak_proc_bytes,peak_working_set_bytes,scope,complete_control_block
+raytrace,before,0,True,0,189.4633,,640.625,68575232,67289088,69246976,compiler timing screening,False
+raytrace,before_control,0,True,0,192.4415,,625.0,68120576,66834432,68874240,compiler timing screening,False
+raytrace,after,0,True,0,807.4296,,640.625,67452928,66170880,68972544,compiler timing screening,False
+chacha,before_control,0,True,0,305.5222,,671.875,74403840,73121792,74461184,compiler timing screening,False
+chacha,after,0,True,0,323.7621,,750.0,76460032,75194368,76718080,compiler timing screening,False
+chacha,before,0,True,0,243.0262,,625.0,76087296,74821632,75960320,compiler timing screening,False
+raytrace,before_control,1,False,0,194.7973,,703.125,68370432,67096576,68780032,compiler timing screening,True
+raytrace,after,1,False,0,173.9352,,656.25,68313088,67031040,68993024,compiler timing screening,True
+raytrace,before,1,False,0,168.3942,,562.5,68259840,66981888,68886528,compiler timing screening,True
+chacha,after,1,False,0,209.8243,,593.75,74416128,73138176,74276864,compiler timing screening,True
+chacha,before,1,False,0,240.5209,,812.5,75776000,74493952,75460608,compiler timing screening,True
+chacha,before_control,1,False,0,221.6919,,546.875,74235904,72953856,74285056,compiler timing screening,True
+raytrace,after,2,False,0,222.5222,,781.25,69103616,67825664,69545984,compiler timing screening,True
+raytrace,before,2,False,0,214.5388,,703.125,68005888,66740224,68329472,compiler timing screening,True
+raytrace,before_control,2,False,0,189.1002,,593.75,68997120,67715072,69607424,compiler timing screening,True
+chacha,before,2,False,0,273.4681,,796.875,76627968,75345920,76468224,compiler timing screening,True
+chacha,before_control,2,False,0,243.9864,,593.75,76759040,75481088,76767232,compiler timing screening,True
+chacha,after,2,False,0,254.9086,,656.25,77598720,76320768,77234176,compiler timing screening,True
+raytrace,before,3,False,0,2742.2379,,7390.625,67366912,66105344,67776512,compiler timing screening,True
+raytrace,before_control,3,False,0,175.3651,,500.0,66727936,65454080,67129344,compiler timing screening,True
+raytrace,after,3,False,0,232.5237,,578.125,66531328,65253376,67182592,compiler timing screening,True
+chacha,before_control,3,False,0,250.8556,,687.5,76283904,75005952,75911168,compiler timing screening,True
+chacha,after,3,False,0,264.9991,,828.125,77750272,76468224,77238272,compiler timing screening,True
+chacha,before,3,False,0,263.8454,,812.5,75010048,73736192,75124736,compiler timing screening,True
+raytrace,before_control,4,False,0,236.8534,,828.125,68694016,67407872,69165056,compiler timing screening,True
+raytrace,after,4,False,0,327.9163,,562.5,70778880,69492736,71016448,compiler timing screening,True
+raytrace,before,4,False,0,214.1602,,656.25,68743168,67473408,69230592,compiler timing screening,True
+chacha,after,4,False,0,338.2623,,812.5,76062720,74792960,75780096,compiler timing screening,False
+raytrace,after_profiled,0,False,0,414.0465,,687.5,69136384,67809280,69685248,profiling smoke under load,False
+chacha,after_profiled,0,False,0,242.4336,,609.375,74547200,73277440,74891264,profiling smoke under load,False

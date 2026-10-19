@@ -100,6 +100,7 @@ public:
     const std::unordered_set<MicroReg>& forwardableStorageBases() const;
     uint32_t                            nextVirtualIntRegIndexHint() const;
     const MicroControlFlowGraph&        controlFlowGraph();
+    uint64_t                            controlFlowGraphBuildId() const { return controlFlowGraph_.buildId(); }
     void                                invalidateControlFlowGraph();
 
     Result        runPasses(Encoder* encoder, MicroPassContext& context);

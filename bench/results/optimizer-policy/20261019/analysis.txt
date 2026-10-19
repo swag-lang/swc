@@ -1,0 +1,219 @@
+Pre-change audit: see implementation.txt for the subsequent counter-domain fix, profiling observations and validation.
+
+Backend optimizer policy review, 19 October 2026
+
+The 149 catalog entries do not form one optimization-strength control. Most are
+bounded analyses; others are profitability estimates, code-growth policies,
+register reserves, representation requirements or convergence backstops. The
+comments previously explained purpose and exhaustion, which is useful evidence
+about semantics but does not establish that an exact numeric value is optimal.
+This review changes role comments only. Every non-comment token in the catalog,
+including all default values, is unchanged. No O3 level is introduced.
+
+The source reference is LLVM 22.1.4, pinned rather than inferred from a moving
+Doxygen page. provenance.json records the inspected Swag commit separately from
+the measured Release compiler SHA-256, frozen runtime/benchmark input hashes,
+and the LLVM source hashes. The inspected commit is not a claim that the compiler
+binary was built from precisely that commit. Every policy comparison uses the
+same frozen binary and inputs.
+
+1. Read the roles before adjusting a number.
+
+- 96 analysis-budget entries bound local discovery, proof walks or batching.
+  Exhaustion usually means unknown, conservatively live, or no rewrite. Lowering
+  them can miss optimization; it saves time only when the relevant work is
+  actually performed. LICM/induction batching can shift work into another outer
+  sweep. SinkToUse and post-RA hoisting run only in their first allocation or
+  cleanup sweep, so the same recovery argument does not apply to them.
+- 13 growth-policy entries contain duplication or inline expansion. Their quality
+  effect is non-monotonic: more copies can expose constants and remove branches,
+  but also increase register pressure, spills, instruction bytes and later pass
+  work. Memory's 256-byte cap and loop instruction caps have different units.
+- 20 profitability-policy entries estimate worthwhile work or register benefit.
+  A larger estimate may reject an optimization. These are not compile-work caps.
+- Seven register-reserve/register-pressure entries govern scarce physical state.
+  Keep proven scratch requirements separate from optional pressure margins.
+  Seven integer scratch registers (four named operands plus three legalization
+  temporaries) and four float scratch registers (three plus one) have a concrete
+  feasibility rationale; they are not an O3 opportunity to consume more registers.
+- Ten guard/contract/representation entries include one required O0 sweep, strict
+  convergence, allocator fallback guards, proof domains and exact pattern sizes.
+  The shared 24-sweep default is explicitly mixed: pre-RA exhaustion is an error,
+  whereas post-RA exhaustion retains valid code. It should have separate named
+  defaults even if both stay 24. The public overrides are already separate.
+- Two layout entries are x64 fetch/padding policy. Sixteen-byte loop alignment
+  and a 32-byte branch boundary are not budgets for analysis.
+- One storage-strategy entry selects dense register lookup versus a sparse map.
+  The 1<<20 threshold does not change the answer or optimization opportunity.
+  Storage grows on demand; a reached index near the cap costs about 4 MiB per
+  dense kind, not 4 MiB for every ordinary function. An adaptive density decision
+  is a time/memory opportunity, independent of optimization level.
+
+limits.csv assesses every entry: role, units, purpose, consumer references,
+credibility, effects of raising/lowering, O3 suitability, a pinned LLVM analogue
+and the next useful experiment. Similar purpose is not a numeric equivalence.
+No exact heuristic optimum is claimed for uncalibrated entries.
+
+2. What the LLVM comparison establishes.
+
+LLVM's loop unroller uses default cost thresholds 150 and 300 for O3, then applies
+target preferences and profitability reasoning. Swag's 384 ordinary expanded
+Micro instructions and LLVM's 150 cost units cannot be ranked directly. The useful
+comparison is the separation of analysis effort, growth, target costs and legality.
+LLVM also separates trip-count analysis from actual expansion. Source:
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/lib/Transforms/Scalar/LoopUnrollPass.cpp
+
+LLVM SLP defaults to recursive depth 12, look-ahead depth 2 and a scheduling-region
+budget 100000. Swag's depth 512 is a priority to investigate, not evidence that 12
+is a safe replacement. Swag's 4096 retained plan nodes do not measure the same work
+as LLVM's scheduling budget. In Swag the check happens before appending nodes and
+does not charge every failed traversal. Cached-tuple lookup also follows the depth
+check, so even already-built tuples can be rejected at the depth boundary. A true
+work budget should count failed attempts, cache hits and candidate visits as well
+as retained nodes, with a separate implementation recursion guard. A negative
+cache would need to account for remaining depth/work: failure at a deep occurrence
+does not prove failure when the same tuple is considered nearer a root. Source:
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/lib/Transforms/Vectorize/SLPVectorizer.cpp
+
+LLVM LICM has a cap of 100 MemorySSA clobbering queries and a separate 250-access
+promotion limit. Those bound different units and can trade precision for time.
+Neither is equivalent to Swag's 64 hoisting rounds. Generic LLVM ValueTracking
+recursion depth 6 and machine peephole PHI depth 10 provide credible orders of
+magnitude for Swag's common 4..32 proof horizons, without calibrating each one.
+Sources:
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/lib/Transforms/Scalar/LICM.cpp
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/include/llvm/Analysis/ValueTracking.h
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/lib/CodeGen/PeepholeOptimizer.cpp
+
+LLVM InstCombine's default is one worklist-backed invocation. Its historical
+change removed mostly redundant fixed-point verification work after measuring
+actual iteration distributions. That is a useful method, not a reason to replace
+Swag's multi-pass 24-sweep safety ceiling with one. Swag already shares lazy SSA
+and prunes stable pass suffixes; measure remaining rebuilds before redesigning it.
+Sources:
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/include/llvm/Transforms/InstCombine/InstCombine.h
+https://reviews.llvm.org/D154579
+
+LLVM spill weighting uses block-frequency information and target adjustments.
+Swag's global 10^depth and store-placement 8^depth are distinct surrogate models.
+Their disagreement is a calibration lead, not proof that either should simply be
+changed to the other. The 1024 density scale controls precision, the divisor 2
+admission and the call weight 10 relative benefit. Historical benchmark comments
+justify keeping a conservative baseline, not claiming a present-day optimum.
+Source:
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/lib/CodeGen/CalcSpillWeights.cpp
+
+LLVM's x86 MC branch-boundary padding is disabled by default (boundary option 0),
+with 32-byte padding available as a separate policy. Swag applies its loop-focused
+scheme in optimized code. Target CPU/hotness and padding bytes should decide it;
+the existing bit-mask/division calculations do not support setting their boundary
+constant to zero as an enable/disable switch. Source:
+https://github.com/llvm/llvm-project/blob/llvmorg-22.1.4/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
+
+3. What was measured.
+
+The Release compiler, runtime, Win32 generated API and benchmark sources were
+copied outside the checkout before measurement. Builds use six workers, fresh
+private work/output roots and --rebuild, which disables native function-cache hits.
+Every new build/test case was admitted by the repository CPU/memory check.
+All program configurations keep release's existing safety, FP and target policy.
+The profile deltas are in profiles.json; inner_lean and growth2 are combined
+screening profiles, not single-variable attribution experiments.
+
+There are 72 timed builds: three rotated-order repetitions of six profiles across
+raytrace, chacha, sha256 and leven. Micro dumps were compiled separately, outside
+the timers. The initial 216 runtime samples are screening measurements. A second
+504-run experiment alternates all profiles plus an identical-executable A/A
+control on one fixed performance-core affinity bit, discarding two warm-up rounds
+and keeping 18 observations per profile/task. Compilation remains unpinned, with
+six compiler workers. Hardware: Intel Core Ultra 9 185H.
+
+The 12 native corpus runs cover all six profiles and repeated baseline/SLP checks.
+Each passes 3854 tests through the native backend with test JIT disabled. The
+build_cfg.swg input is excluded because it explicitly asserts zero/default budgets,
+which this experiment deliberately overrides. Its exclusion applies to the
+baseline too. Repeated baselines range from about 12.23 to 20.28 seconds; SLP32
+ranges from 12.66 to 31.85 seconds. This is not evidence for an algorithmic slowdown
+or speedup. The A/A runtime control also has substantial paired spread. No claimed
+percentage compile/runtime win survives these controls well enough for a default
+change. Raw wall/CPU/peak-memory samples remain in the CSVs rather than being
+replaced by a best-case narrative.
+
+The comparison hashes canonicalize generated main names, instruction reference
+numbers, branch-label IDs and relocation addresses. Counts are pre-emit Micro
+instruction counts for benchmark source functions, not weighted dynamic execution
+costs. Memory/frame counts are syntactic proxies, not measured cache misses or a
+precise count of spills. Whole-image .text size also includes runtime functions.
+Equal normalized Micro shapes and matching checksums are useful evidence for these
+inputs, not a general semantic-equivalence or performance proof.
+
+4. Concrete findings.
+
+- SLP12 and SLP32 keep the same normalized benchmark-source Micro as SLP512 on all
+  four ordinary tasks. A deliberately deep, eligible two-lane sqrt/add chain is a
+  counterexample: defaults produce 67 Micro instructions with packed sqrt; depths
+  12 and 32 produce 134 scalar instructions. Depth 64 restores 67 instructions.
+  All cases print CHECK=5.23606798. This tests graph eligibility, not runtime speed.
+  A new default of 12 or 32 cannot be justified by the four unchanged benchmarks.
+- Four post-RA sweeps retain four extra copies in raytrace.trace (154 -> 158),
+  including a register self-copy. The whole benchmark-source count is 618 -> 622.
+  Less cleanup is therefore not output-neutral even when every correctness test
+  still passes. Runtime impact is not established by these timing samples.
+- inner_lean changes register choices and frame traffic as well as cleanup. It
+  cannot support an assertion that LICM/induction rounds alone are wasteful.
+- Doubling selected growth budgets expands Chacha's source Micro from 626 to 1014
+  (+62%) and Levenshtein from 617 to 702 (+14%), with no repeatable runtime win
+  established here. This does not disprove selective larger unrolling; it rejects
+  assuming that a universal 2x multiplier is a justified O3 default.
+- A four-trip loop starting at zero is fully unrolled into four constant stores
+  plus ret (five instructions). The equivalent rebased loop starting at 1e9 keeps
+  a loop (seven static instructions), despite the same four outputs. The
+  1,000,000 bound is checked before full-unroll discovery, although its documented
+  arithmetic motivation is the closed-form progression calculation. Keep the
+  progression safe, but consider computing trip count with checked/wide arithmetic
+  and applying the magnitude guard only to the operation that needs it. Both
+  current functions produce sum 6. This is a concrete missed-optimization lead,
+  not yet a validated compiler change or a measured zero-cost speedup.
+
+The source cases and normalized instructions are included next to this report.
+The integer-chain pilot was not a depth calibration: address-mode formation made
+its scalar graph opaque to this vectorizer. The retained deep-slp.swg instead uses
+supported floating sqrt/add nodes; only its final measurements are summarized.
+
+5. Priorities and an O3 boundary.
+
+First, collect per-pass wall/CPU time and counters for attempts, units consumed,
+cap hits, successful rewrites at the last allowed step, preserved unknown/live
+answers, SSA/CFG rebuilds and allocation fallback. Use a cheap disabled default,
+worker-local counters and deterministic aggregation. The current output says how
+long tuning took, not which of the 149 constants consumed useful work.
+
+For more optimization with little extra compile work, prioritize avoidable
+recognition restrictions such as the large-start four-trip loop and exact
+encoding-cost decisions instead of the worst-case three-reader byte cap. Test
+cached SLP tuple reuse before rejecting on new-recursion budget. Preserve all
+arithmetic, alias and register-feasibility proofs. These are candidates requiring
+focused compiler regression tests, not promises of free speed.
+
+For less compile work with unchanged output, prioritize remaining analysis
+rebuilds/repeated failed searches, adaptive dense storage and worklists that
+revisit affected instructions. Cap-hit distributions can then identify genuinely
+wasted optional rounds. Lowering a rarely reached ceiling cannot save routine
+work; lowering first-sweep-only work can permanently lose an optimization.
+
+An O3 experiment should retain O2 legality, strict convergence guards, stack
+protection, target legality and FP semantics. Give selected profitable functions
+more measured analysis work and expansion, while enforcing per-function output
+and register-pressure budgets and falling back to valid O2-quality decisions when
+optional work expires. Include text size, startup and spills in the objective.
+Do not raise every constant, lower required scratch reserves, weaken arithmetic
+proofs, or enable unsafe/approximate math merely because O3 was selected. Clang's
+optimization-level and fast-math controls likewise express separate contracts:
+https://clang.llvm.org/docs/CommandGuide/clang.html
+
+A candidate default must pass the relevant semantic/native tests and show a
+repeatable improvement outside bracketed unchanged-binary controls on small and
+large real consumers. Include long expression trees, branch-heavy functions,
+loops with many exits and register pressure. Sweep one dimension at a time after
+this combined-profile screen. No single profile measured here currently meets
+that standard for replacing the defaults.

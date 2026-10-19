@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroVerify.h"
@@ -254,7 +255,29 @@ namespace
             printPassInstructions(context, pass, true);
 
         context.passChanged = false;
-        SWC_RESULT(pass.run(context));
+        MicroOptimizerPassStats*              stats = nullptr;
+        std::chrono::steady_clock::time_point started;
+        uint64_t                              cfgBuildId = 0;
+        if (context.optimizerStats)
+        {
+            stats                              = &context.optimizerStats->pass(pass.name());
+            context.optimizerStats->activePass = stats;
+            ++stats->calls;
+            stats->inputInstructions += context.instructions ? context.instructions->count() : 0;
+            cfgBuildId = context.builder ? context.builder->controlFlowGraphBuildId() : 0;
+            started    = std::chrono::steady_clock::now();
+        }
+        const Result passResult = pass.run(context);
+        if (stats)
+        {
+            stats->elapsedNs += static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - started).count());
+            stats->changed += context.passChanged ? 1 : 0;
+            stats->errors += passResult == Result::Error ? 1 : 0;
+            stats->outputInstructions += context.instructions ? context.instructions->count() : 0;
+            stats->cfgBuilds += context.builder ? context.builder->controlFlowGraphBuildId() - cfgBuildId : 0;
+            context.optimizerStats->activePass = nullptr;
+        }
+        SWC_RESULT(passResult);
 
         uint64_t storageRevisionAfter = storageRevisionBefore;
         if (context.instructions && (context.passChanged || verifyMicro))
@@ -347,9 +370,12 @@ namespace
         if (passes.empty())
             return Result::Continue;
 
-        size_t passesToRun = passes.size();
+        size_t   passesToRun = passes.size();
+        uint32_t sweeps      = 0;
+        bool     stopped     = false;
         for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
         {
+            ++sweeps;
             // Forwarding that relies on the freshly allocated IR runs only
             // on the first sweep. Later sweeps may still apply local rewrites
             // that reprove liveness on the current instruction stream.
@@ -368,6 +394,7 @@ namespace
                 }
             }
 
+            stopped = iterationMutated;
             if (!iterationMutated)
                 break;
 
@@ -378,6 +405,8 @@ namespace
         }
 
         context.isFirstOptimizationSweep = true;
+        if (context.optimizerStats)
+            context.optimizerStats->observeBudget("post-ra-sweeps", sweeps, maxIterations, stopped);
 
         return Result::Continue;
     }
@@ -411,8 +440,10 @@ namespace
 
         bool   reachedFixedPoint = false;
         size_t passesToRun       = passes.size();
+        uint32_t sweeps            = 0;
         for (uint32_t iteration = 0; iteration < settings.maxIterations; ++iteration)
         {
+            ++sweeps;
             context.isFirstAllocationSweep = iteration == 0;
             if (iteration == 0)
             {
@@ -481,6 +512,8 @@ namespace
 #endif
         }
 
+        if (context.optimizerStats)
+            context.optimizerStats->observeBudget(settings.name, sweeps, settings.maxIterations, !reachedFixedPoint);
         if (!reachedFixedPoint)
         {
             context.ssaState = nullptr;
@@ -761,12 +794,16 @@ Result MicroPassManager::run(MicroPassContext& context) const
     if (!postRaOptimPasses_.empty() && !postRaSetupPasses_.empty())
     {
         const auto prePrologueSweeps = MicroOptimizationLimits::configured(context.optimizer().iterations.prePrologueSweeps, MicroOptimizationLimits::Pipeline::K_PRE_PROLOGUE_SWEEPS);
+        uint32_t   sweeps            = 0;
+        bool       stopped           = false;
         for (uint32_t iteration = 0; iteration < prePrologueSweeps; ++iteration)
         {
+            ++sweeps;
             SWC_RESULT(runPass(context, *postRaPeepholePass_, verifyCache));
             bool changed = context.passChanged;
             SWC_RESULT(runPass(context, *prePrologueDcePass_, verifyCache));
             changed |= context.passChanged;
+            stopped = changed;
 
             // Both passes read only the instructions and a context this loop leaves alone: a
             // sweep that changes neither hands the next one the same input, which it would
@@ -774,6 +811,8 @@ Result MicroPassManager::run(MicroPassContext& context) const
             if (!changed)
                 break;
         }
+        if (context.optimizerStats)
+            context.optimizerStats->observeBudget("pre-prologue-sweeps", sweeps, prePrologueSweeps, stopped);
     }
 
     SWC_RESULT(runLinearPasses(context, postRaSetupPasses_, verifyCache));

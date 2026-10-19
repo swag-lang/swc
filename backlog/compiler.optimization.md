@@ -869,3 +869,20 @@ new language syntax.
 - Done when: final short-key code and repeated paired wordfreq measurements establish
   competitive cost, or isolate a reproducible remaining gap whose implementation can be
   specified here.
+
+### compiler.optimization.133 — Calibrate optional optimizer work independently of convergence guards
+
+- Evidence: the [policy review](../bench/results/optimizer-policy/20261019/analysis.txt) classifies
+  all 149 defaults. The [observations](../bench/results/optimizer-policy/20261019/implementation.txt)
+  show no pre-RA/post-RA stops in the two benchmark probes, but frequent changing final
+  pre-prologue sweeps. Reducing SLP depth from 512 to 32 doubles a supported deep chain's Micro
+  instructions. Timing controls remain too noisy to select a replacement default or O3 multiplier.
+- Next: correlate `--optimizer-stats` with function listings and add function/sweep attribution
+  for late useful rewrites and SLP rejection reasons. Cover remaining analysis budgets where
+  observed work warrants it; distinguish retained plan size from failed exploration. Evaluate
+  cached tuple reuse before depth rejection and measure selected policies on a quiet machine,
+  keeping convergence guards, optional work, output growth and pressure independent.
+- Done when: representative paired campaigns identify repeatable Pareto improvements, the chosen
+  defaults preserve the relevant code/semantic boundaries, and any O3 policy increases useful work
+  without changing arithmetic, FP or allocation-feasibility contracts.
+- Related: compiler.optimization.029, compiler.optimization.032, compiler.optimization.035.

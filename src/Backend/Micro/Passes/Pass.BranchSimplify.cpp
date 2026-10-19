@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
+#include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -8117,8 +8118,11 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
     thread_local ProgramLayoutCache shortCircuitLayout;
     const auto                      K_MAX_THREAD_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.branchThreadRounds, MicroOptimizationLimits::BranchSimplify::K_MAX_THREAD_ROUNDS);
+    uint32_t                        rounds              = 0;
+    bool                            stopped             = false;
     for (uint32_t round = 0; round < K_MAX_THREAD_ROUNDS; ++round)
     {
+        ++rounds;
         shortCircuitLayout.invalidate();
         if (round == 0 && scanCache.layoutBuilt)
             shortCircuitLayout.borrow(scanCache.scan.layout);
@@ -8150,12 +8154,15 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         // targets and relocations. A preceding rewrite makes it stale.
         if (roundChanged || !scanCache.layoutBuilt || scanCache.scan.layout.hasAnyLabel)
             roundChanged |= eraseUnreferencedLabels(storage, operands, context, relocationCache);
+        stopped = roundChanged;
         if (!roundChanged)
             break;
         rewrote(true);
         if (context.builder)
             context.builder->invalidateControlFlowGraph();
     }
+    if (context.optimizerStats)
+        context.optimizerStats->observeBudget("branch-thread-rounds", rounds, K_MAX_THREAD_ROUNDS, stopped);
     if (changed && context.builder)
         context.builder->invalidateControlFlowGraph();
     rewrote(convertEqualityChainsToBitTests(storage, operands, context, scanCache, relocationCache));

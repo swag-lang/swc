@@ -43,6 +43,7 @@ public:
     static ApsInt makeSigned64(int64_t val) { return ApsInt(val, 64, false); }
     static ApsInt makeUnsigned32(uint32_t val) { return ApsInt(val, 32, true); }
     static ApsInt makeUnsigned64(uint64_t val) { return ApsInt(val, 64, true); }
+
     static ApsInt makeSigned(int64_t val) { return ApsInt(val, MAX_BITS, false); }
     static ApsInt makeUnsigned(uint64_t val) { return ApsInt(val, MAX_BITS, true); }
 
@@ -55,8 +56,9 @@ public:
     void   mul(const ApsInt& rhs, bool& overflow);
     ApsInt div(const ApsInt& rhs, bool& overflow);
     void   mod(const ApsInt& rhs, bool& overflow);
-    void   shiftLeft(uint64_t amount, bool& overflow);
-    void   shiftRight(uint64_t amount);
+
+    void shiftLeft(uint64_t amount, bool& overflow);
+    void shiftRight(uint64_t amount);
 
     bool     same(const ApsInt& other) const;
     int      compare(const ApsInt& other) const;
@@ -79,9 +81,10 @@ public:
     uint32_t minBits() const;
 
 protected:
-    static constexpr uint64_t ZERO      = 0;
-    static constexpr uint64_t ONE       = 1;
-    bool                      unsigned_ = false;
+    static constexpr uint64_t ZERO = 0;
+    static constexpr uint64_t ONE  = 1;
+
+    bool unsigned_ = false;
 };
 
 SWC_END_NAMESPACE();

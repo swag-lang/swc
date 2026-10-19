@@ -30,13 +30,14 @@ public:
     int      compare(const ApInt& other) const;
     uint32_t hash() const;
 
-    bool     isZero() const;
-    void     setZero();
-    bool     testBit(uint64_t bitIndex) const;
-    void     clearBit(uint64_t bitIndex);
-    void     setBit(uint64_t bitIndex);
-    void     setAllBits();
-    void     invertAllBits();
+    bool isZero() const;
+    void setZero();
+    bool testBit(uint64_t bitIndex) const;
+    void clearBit(uint64_t bitIndex);
+    void setBit(uint64_t bitIndex);
+    void setAllBits();
+    void invertAllBits();
+
     bool     isSignBitSet() const;
     bool     isSignBitClear() const;
     bool     isNegative() const;
@@ -50,9 +51,11 @@ public:
     void bitwiseOr(const ApInt& rhs);
     void bitwiseAnd(const ApInt& rhs);
     void bitwiseXor(const ApInt& rhs);
+
     void logicalShiftLeft(uint64_t amount, bool& overflow);
     void logicalShiftRight(uint64_t amount);
     void arithmeticShiftRight(uint64_t amount);
+
     void abs(bool& overflow);
     void negate(bool& overflow);
 
@@ -79,10 +82,12 @@ public:
 
     bool eq(const ApInt& rhs) const;
     bool ne(const ApInt& rhs) const;
+
     bool ult(const ApInt& rhs) const;
     bool ule(const ApInt& rhs) const;
     bool ugt(const ApInt& rhs) const;
     bool uge(const ApInt& rhs) const;
+
     bool slt(const ApInt& rhs) const;
     bool sle(const ApInt& rhs) const;
     bool sgt(const ApInt& rhs) const;

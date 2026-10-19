@@ -46,6 +46,7 @@ namespace Math
     FoldStatus foldUnaryInt(ApsInt& outResult, const ApsInt& value, FoldUnaryOp op)
     {
         outResult = value;
+
         switch (op)
         {
             case FoldUnaryOp::Plus:
@@ -58,6 +59,7 @@ namespace Math
                 outResult.negate(overflow);
                 if (overflow)
                     return FoldStatus::Overflow;
+
                 outResult.setUnsigned(false);
                 return FoldStatus::Ok;
             }
@@ -74,6 +76,7 @@ namespace Math
     FoldStatus foldUnaryFloat(ApFloat& outResult, const ApFloat& value, FoldUnaryOp op)
     {
         outResult = value;
+
         switch (op)
         {
             case FoldUnaryOp::Plus:
@@ -101,6 +104,7 @@ namespace Math
             {
                 if (options.shiftBitWidth != 0)
                     return FoldStatus::LargeShift;
+
                 outAmount = std::numeric_limits<uint64_t>::max();
                 return FoldStatus::Ok;
             }
@@ -108,13 +112,15 @@ namespace Math
             outAmount = static_cast<uint64_t>(right.asI64());
             if (options.shiftBitWidth != 0 && outAmount >= options.shiftBitWidth)
                 return FoldStatus::LargeShift;
+
             return FoldStatus::Ok;
         }
     }
 
     FoldStatus foldBinaryInt(ApsInt& outResult, const ApsInt& left, const ApsInt& right, FoldBinaryOp op, const FoldBinaryIntOptions& options)
     {
-        outResult          = left;
+        outResult = left;
+
         const bool isShift = op == FoldBinaryOp::ShiftLeft || op == FoldBinaryOp::ShiftRight || op == FoldBinaryOp::ShiftArithmeticRight;
         if (!isShift && outResult.isUnsigned() != right.isUnsigned())
             return FoldStatus::Unsupported;
@@ -137,12 +143,14 @@ namespace Math
             case FoldBinaryOp::Divide:
                 if (right.isZero())
                     return FoldStatus::DivisionByZero;
+
                 outResult.div(right, overflow);
                 break;
 
             case FoldBinaryOp::Modulo:
                 if (right.isZero())
                     return FoldStatus::DivisionByZero;
+
                 outResult.mod(right, overflow);
                 break;
 
@@ -164,6 +172,7 @@ namespace Math
                 const FoldStatus shiftStatus = computeShiftAmount(shiftAmount, right, options);
                 if (shiftStatus != FoldStatus::Ok)
                     return shiftStatus;
+
                 outResult.shiftLeft(shiftAmount, overflow);
                 break;
             }
@@ -174,6 +183,7 @@ namespace Math
                 const FoldStatus shiftStatus = computeShiftAmount(shiftAmount, right, options);
                 if (shiftStatus != FoldStatus::Ok)
                     return shiftStatus;
+
                 outResult.shiftRight(shiftAmount);
                 break;
             }
@@ -200,6 +210,7 @@ namespace Math
         {
             if (options.ignoreShiftOverflow && op == FoldBinaryOp::ShiftLeft)
                 return FoldStatus::Ok;
+
             return FoldStatus::Overflow;
         }
 
@@ -209,6 +220,7 @@ namespace Math
     FoldStatus foldBinaryFloat(ApFloat& outResult, const ApFloat& left, const ApFloat& right, FoldBinaryOp op)
     {
         outResult = left;
+
         switch (op)
         {
             case FoldBinaryOp::Add:
@@ -226,6 +238,7 @@ namespace Math
             case FoldBinaryOp::Divide:
                 if (right.isZero())
                     return FoldStatus::DivisionByZero;
+
                 outResult.div(right);
                 return FoldStatus::Ok;
 
@@ -241,6 +254,7 @@ namespace Math
             case FoldIntrinsicUnaryFloatOp::Sqrt:
                 if (value < 0.0)
                     return FoldStatus::InvalidArgument;
+
                 outResult = std::sqrt(value);
                 break;
 
@@ -271,12 +285,14 @@ namespace Math
             case FoldIntrinsicUnaryFloatOp::ASin:
                 if (value < -1.0 || value > 1.0)
                     return FoldStatus::InvalidArgument;
+
                 outResult = std::asin(value);
                 break;
 
             case FoldIntrinsicUnaryFloatOp::ACos:
                 if (value < -1.0 || value > 1.0)
                     return FoldStatus::InvalidArgument;
+
                 outResult = std::acos(value);
                 break;
 
@@ -287,18 +303,21 @@ namespace Math
             case FoldIntrinsicUnaryFloatOp::Log:
                 if (value <= 0.0)
                     return FoldStatus::InvalidArgument;
+
                 outResult = std::log(value);
                 break;
 
             case FoldIntrinsicUnaryFloatOp::Log2:
                 if (value <= 0.0)
                     return FoldStatus::InvalidArgument;
+
                 outResult = std::log2(value);
                 break;
 
             case FoldIntrinsicUnaryFloatOp::Log10:
                 if (value <= 0.0)
                     return FoldStatus::InvalidArgument;
+
                 outResult = std::log10(value);
                 break;
 
@@ -336,6 +355,7 @@ namespace Math
 
         if (std::isnan(outResult))
             return FoldStatus::InvalidArgument;
+
         return FoldStatus::Ok;
     }
 
@@ -351,6 +371,7 @@ namespace Math
                 outResult = std::pow(left, right);
                 if (std::isnan(outResult))
                     return FoldStatus::InvalidArgument;
+
                 return FoldStatus::Ok;
 
             default:

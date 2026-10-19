@@ -37,6 +37,7 @@ ApsInt ApsInt::div(const ApsInt& rhs, bool& overflow)
     SWC_ASSERT(unsigned_ == rhs.unsigned_);
     if (unsigned_)
         return ApsInt{ApInt::div(rhs, overflow), true};
+
     return ApsInt{divSigned(rhs, overflow), false};
 }
 
@@ -65,6 +66,7 @@ bool ApsInt::same(const ApsInt& other) const
 {
     if (unsigned_ != other.unsigned_)
         return false;
+
     return ApInt::same(other);
 }
 
@@ -146,6 +148,7 @@ Utf8 ApsInt::toString() const
 {
     if (unsigned_)
         return ApInt::toString();
+
     return toSignedString();
 }
 
@@ -154,6 +157,7 @@ int64_t ApsInt::asI64() const
     SWC_ASSERT(fits64());
     if (unsigned_)
         return static_cast<int64_t>(as64());
+
     return as64Signed();
 }
 
@@ -161,6 +165,7 @@ uint32_t ApsInt::minBits() const
 {
     if (unsigned_)
         return ApInt::minBits();
+
     return minBitsSigned();
 }
 
@@ -168,6 +173,7 @@ bool ApsInt::fits64() const
 {
     if (unsigned_)
         return fit64();
+
     return fit64Signed();
 }
 

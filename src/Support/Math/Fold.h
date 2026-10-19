@@ -32,9 +32,11 @@ namespace Math
         Multiply,
         Divide,
         Modulo,
+
         BitwiseAnd,
         BitwiseOr,
         BitwiseXor,
+
         ShiftLeft,
         ShiftRight,
         ShiftArithmeticRight,
@@ -46,20 +48,25 @@ namespace Math
         Sin,
         Cos,
         Tan,
+
         Sinh,
         Cosh,
         Tanh,
+
         ASin,
         ACos,
         ATan,
+
         Log,
         Log2,
         Log10,
+
         Floor,
         Ceil,
         Trunc,
         Round,
         Abs,
+
         Exp,
         Exp2,
     };
@@ -78,19 +85,22 @@ namespace Math
     struct FoldBinaryIntOptions
     {
         bool     ignoreShiftOverflow = false;
-        uint32_t shiftBitWidth       = 0; // Width of the shifted value; zero for an unsized constant, which any amount may shift.
+        uint32_t shiftBitWidth       = 0; // Width of the shifted value; zero means unsized.
     };
 
     DiagnosticId foldStatusDiagnosticId(FoldStatus status);
     bool         isSafetyError(FoldStatus status);
     bool         requiresNonZeroRhs(FoldBinaryOp op);
-    FoldStatus   foldUnaryInt(ApsInt& outResult, const ApsInt& value, FoldUnaryOp op);
-    FoldStatus   foldUnaryFloat(ApFloat& outResult, const ApFloat& value, FoldUnaryOp op);
-    FoldStatus   foldBinaryInt(ApsInt& outResult, const ApsInt& left, const ApsInt& right, FoldBinaryOp op, const FoldBinaryIntOptions& options = {});
-    FoldStatus   foldBinaryFloat(ApFloat& outResult, const ApFloat& left, const ApFloat& right, FoldBinaryOp op);
-    FoldStatus   foldIntrinsicUnaryFloat(double& outResult, double value, FoldIntrinsicUnaryFloatOp op);
-    FoldStatus   foldIntrinsicBinaryFloat(double& outResult, double left, double right, FoldIntrinsicBinaryFloatOp op);
-    FoldStatus   foldIntrinsicTernaryFloat(ApFloat& outResult, const ApFloat& first, const ApFloat& second, const ApFloat& third, FoldIntrinsicTernaryFloatOp op);
+
+    FoldStatus foldUnaryInt(ApsInt& outResult, const ApsInt& value, FoldUnaryOp op);
+    FoldStatus foldUnaryFloat(ApFloat& outResult, const ApFloat& value, FoldUnaryOp op);
+
+    FoldStatus foldBinaryInt(ApsInt& outResult, const ApsInt& left, const ApsInt& right, FoldBinaryOp op, const FoldBinaryIntOptions& options = {});
+    FoldStatus foldBinaryFloat(ApFloat& outResult, const ApFloat& left, const ApFloat& right, FoldBinaryOp op);
+
+    FoldStatus foldIntrinsicUnaryFloat(double& outResult, double value, FoldIntrinsicUnaryFloatOp op);
+    FoldStatus foldIntrinsicBinaryFloat(double& outResult, double left, double right, FoldIntrinsicBinaryFloatOp op);
+    FoldStatus foldIntrinsicTernaryFloat(ApFloat& outResult, const ApFloat& first, const ApFloat& second, const ApFloat& third, FoldIntrinsicTernaryFloatOp op);
 }
 
 SWC_END_NAMESPACE();

@@ -84,14 +84,17 @@ namespace
                     p += 48;
                     i -= 48;
                 } while (i >= 48);
+
                 seed ^= s1 ^ s2;
             }
+
             while (i > 16)
             {
                 seed = wymix(wyr8(p) ^ SECRET[1], wyr8(p + 8) ^ seed);
                 p += 16;
                 i -= 16;
             }
+
             a = wyr8(p + i - 16);
             b = wyr8(p + i - 8);
         }
@@ -99,6 +102,7 @@ namespace
         a ^= SECRET[1];
         b ^= seed;
         wymum(&a, &b);
+
         return wymix(a ^ SECRET[0] ^ len, b ^ SECRET[1]);
     }
 }
@@ -114,6 +118,7 @@ namespace Math
     {
         if (!v.data())
             return 0;
+
         return wyhash(v.data(), v.size(), seed) & 0xFFFFFFFF;
     }
 
@@ -139,6 +144,7 @@ namespace Math
             for (int k = 0; k < 8; ++k)
                 crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
         }
+
         return ~crc;
     }
 

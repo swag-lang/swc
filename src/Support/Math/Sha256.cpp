@@ -27,6 +27,7 @@ std::array<uint8_t, 32> sha256(const std::span<const std::byte> data)
     msg.push_back(0x80);
     while (msg.size() % 64 != 56)
         msg.push_back(0);
+
     for (int i = 7; i >= 0; --i)
         msg.push_back(static_cast<uint8_t>(bitLen >> (8 * i)));
 
@@ -57,14 +58,15 @@ std::array<uint8_t, 32> sha256(const std::span<const std::byte> data)
             const uint32_t s0    = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
             const uint32_t maj   = (a & b) ^ (a & c) ^ (b & c);
             const uint32_t temp2 = s0 + maj;
-            hh                   = g;
-            g                    = f;
-            f                    = e;
-            e                    = d + temp1;
-            d                    = c;
-            c                    = b;
-            b                    = a;
-            a                    = temp1 + temp2;
+
+            hh = g;
+            g  = f;
+            f  = e;
+            e  = d + temp1;
+            d  = c;
+            c  = b;
+            b  = a;
+            a  = temp1 + temp2;
         }
 
         h[0] += a;
@@ -85,6 +87,7 @@ std::array<uint8_t, 32> sha256(const std::span<const std::byte> data)
         out[i * 4 + 2] = static_cast<uint8_t>(h[i] >> 8);
         out[i * 4 + 3] = static_cast<uint8_t>(h[i]);
     }
+
     return out;
 }
 

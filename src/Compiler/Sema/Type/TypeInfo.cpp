@@ -916,6 +916,7 @@ namespace
                 out.insert(start, 1, '(');
                 out += ")";
             }
+
             out += "?";
         }
     }
@@ -957,6 +958,7 @@ Utf8 TypeInfo::toFamily(const TaskContext& ctx) const
             return "rune";
         case TypeInfoKind::CString:
             return "cstring";
+
         case TypeInfoKind::Enum:
             return "enum";
         case TypeInfoKind::Struct:
@@ -972,27 +974,33 @@ Utf8 TypeInfo::toFamily(const TaskContext& ctx) const
         case TypeInfoKind::TypeInfo:
         case TypeInfoKind::TypeValue:
             return "typeinfo";
+
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
             return "pointer";
         case TypeInfoKind::MoveReference:
             return "move reference";
+
         case TypeInfoKind::Int:
             return "integer";
         case TypeInfoKind::Float:
             return "float";
+
         case TypeInfoKind::Slice:
             return "slice";
         case TypeInfoKind::Array:
             return "array";
+
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
             return "aggregate";
+
         case TypeInfoKind::Variadic:
         case TypeInfoKind::TypedVariadic:
             return "variadic";
         case TypeInfoKind::Simd:
             return "simd vector";
+
         default:
             SWC_UNREACHABLE();
     }
@@ -1136,19 +1144,20 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
-TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims,
-                             TypeRef                          elementTypeRef,
-                             TypeInfoFlags                    flags,
-                             const std::span<const TypeRef>&  indexTypeRefs)
+TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags, const std::span<const TypeRef>& indexTypeRefs)
 {
     SWC_ASSERT(indexTypeRefs.empty() || indexTypeRefs.size() == dims.size());
+
     TypeInfo ti{TypeInfoKind::Array, flags};
     std::construct_at(&ti.payloadArray_.dims, dims.begin(), dims.end());
+
     if (std::ranges::any_of(indexTypeRefs, [](TypeRef typeRef) { return typeRef.isValid(); }))
         std::construct_at(&ti.payloadArray_.indexTypeRefs, indexTypeRefs.begin(), indexTypeRefs.end());
     else
         std::construct_at(&ti.payloadArray_.indexTypeRefs);
+
     ti.payloadArray_.typeRef = elementTypeRef;
+
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -1156,9 +1165,11 @@ TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims,
 TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types)
 {
     SWC_ASSERT(types.size() == names.size());
+
     TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
     std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
     std::construct_at(&ti.payloadAggregate_.names, names.begin(), names.end());
+
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -1168,6 +1179,7 @@ TypeInfo TypeInfo::makeAggregateArray(const std::span<const TypeRef>& types)
     TypeInfo ti{TypeInfoKind::AggregateArray, TypeInfoFlagsE::Const};
     std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
     std::construct_at(&ti.payloadAggregate_.names);
+
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
 }
@@ -1213,6 +1225,7 @@ uint64_t TypeInfo::arrayTotalElementCount(uint64_t count) const
 {
     for (const uint64_t dim : payloadArrayDims())
         count *= dim;
+
     return count;
 }
 
@@ -1221,6 +1234,7 @@ uint64_t TypeInfo::sliceCountFromArrayCast(TaskContext& ctx, const TypeInfo& dst
     const uint64_t dstElementSize = dstElementType.sizeOf(ctx);
     if (dstElementSize)
         return sizeOf(ctx) / dstElementSize;
+
     return arrayTotalElementCount();
 }
 
@@ -1264,8 +1278,10 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         case TypeInfoKind::Array:
         {
             uint64_t count = ctx.typeMgr().get(payloadArray_.typeRef).sizeOf(ctx);
+
             for (const uint64_t d : payloadArray_.dims)
                 count *= d;
+
             return count;
         }
 
@@ -1291,17 +1307,21 @@ uint64_t TypeInfo::sizeOf(TaskContext& ctx) const
         {
             uint64_t size  = 0;
             uint32_t align = 1;
+
             for (const TypeRef tr : payloadAggregate_.types)
             {
                 const TypeInfo& ty = ctx.typeMgr().get(tr);
                 const uint64_t  s  = ty.sizeOf(ctx);
                 if (!s)
                     continue;
+
                 const uint32_t a = std::max<uint32_t>(ty.alignOf(ctx), 1);
-                align            = std::max(align, a);
-                size             = ((size + static_cast<uint64_t>(a) - 1) / static_cast<uint64_t>(a)) * static_cast<uint64_t>(a);
+
+                align = std::max(align, a);
+                size  = ((size + static_cast<uint64_t>(a) - 1) / static_cast<uint64_t>(a)) * static_cast<uint64_t>(a);
                 size += s;
             }
+
             size = ((size + static_cast<uint64_t>(align) - 1) / static_cast<uint64_t>(align)) * static_cast<uint64_t>(align);
             return size;
         }
@@ -1317,14 +1337,18 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
     {
         case TypeInfoKind::Void:
             return 0;
+
         case TypeInfoKind::Bool:
             return 1;
+
         case TypeInfoKind::Char:
         case TypeInfoKind::Rune:
             return 4;
+
         case TypeInfoKind::Int:
         case TypeInfoKind::Float:
             return static_cast<uint32_t>(sizeOf(ctx));
+
         case TypeInfoKind::CString:
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
@@ -1349,6 +1373,7 @@ uint32_t TypeInfo::alignOf(TaskContext& ctx) const
             uint32_t align = 1;
             for (const TypeRef tr : payloadAggregate_.types)
                 align = std::max(align, ctx.typeMgr().get(tr).alignOf(ctx));
+
             return align;
         }
 

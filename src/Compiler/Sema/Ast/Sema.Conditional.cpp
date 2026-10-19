@@ -281,12 +281,9 @@ Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
 
 Result AstConditionalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    // A branch only evaluates on its side of the condition, so the facts pushed for it in
-    // 'semaPreNodeChild' still hold here -- and this is the last point where they do, because
-    // the frame is popped immediately after. Pin the proven type on the branch node: the join
-    // and the conversions in 'semaPostNode' run without those facts, so 'c ? p : q!' would
-    // join a still-nullable 'p' with a non-null 'q!' and hand back a nullable result the
-    // caller has to assert a second time.
+    // Pin the branch's proven type before its narrowing frame is popped. The later
+    // join and conversions run without those facts and would otherwise widen a
+    // proven non-null branch back to its declared nullable type.
     if (childRef != nodeTrueRef && childRef != nodeFalseRef)
         return Result::Continue;
     if (!sema.frame().hasNarrowFacts())
@@ -307,20 +304,18 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     SemaNodeView nodeTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
     SemaNodeView nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
 
-    // Value-check
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeTrueView));
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeFalseView));
     sema.setIsValue(*this);
 
     SWC_RESULT(SemaHelpers::materializeMovedValue(sema, nodeTrueView));
     SWC_RESULT(SemaHelpers::materializeMovedValue(sema, nodeFalseView));
+
     bool ownsValue = SemaHelpers::ownsExpressionValue(sema, nodeTrueView.nodeRef()) ||
                      SemaHelpers::ownsExpressionValue(sema, nodeFalseView.nodeRef());
 
-    // Condition must be bool
     SWC_RESULT(SemaCheck::castToBool(sema, nodeCondView));
 
-    // Make both branches compatible
     TypeRef typeRef = TypeRef::invalid();
     SWC_RESULT(resolveConditionalResultType(sema, typeRef, nodeTrueView, nodeFalseView));
 
@@ -337,17 +332,18 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         ConstantRef falseConstant;
         SWC_RESULT(Cast::concretizeConstant(sema, trueConstant, nodeTrueView.nodeRef(), nodeTrueView.cstRef(), TypeInfo::Sign::Unknown));
         SWC_RESULT(Cast::concretizeConstant(sema, falseConstant, nodeFalseView.nodeRef(), nodeFalseView.cstRef(), TypeInfo::Sign::Unknown));
+
         typeRef = sema.typeMgr().promote(sema.cstMgr().get(trueConstant).typeRef(), sema.cstMgr().get(falseConstant).typeRef(), true);
     }
 
     sema.setType(sema.curNodeRef(), typeRef);
 
-    // Constant folding
     if (nodeCondView.cstRef().isValid() && !ownsValue)
     {
         const AstNodeRef selectedBranchRef  = nodeCondView.cst()->getBool() ? nodeTrueRef : nodeFalseRef;
         SemaNodeView     selectedBranchView = sema.viewNodeTypeConstant(selectedBranchRef);
         SWC_RESULT(Cast::cast(sema, selectedBranchView, typeRef, CastKind::Implicit));
+
         sema.setSubstitute(sema.curNodeRef(), selectedBranchView.nodeRef());
         if (selectedBranchView.cstRef().isValid())
             sema.setConstant(sema.curNodeRef(), selectedBranchView.cstRef());
@@ -367,6 +363,7 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
         {
             SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeTrueView.nodeRef(), nodeTrueView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
             SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeFalseView.nodeRef(), nodeFalseView.typeRef(), typeRef, AstModifierFlagsE::Zero, false));
+
             SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ownsValue = true;
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, typeRef, "__conditional_value"));
         }
@@ -392,14 +389,12 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     const SemaNodeView nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);
     SemaNodeView       nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
-    // Value-check
     SWC_RESULT(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
     SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
-    // Fused '?.' chain: the fallback replaces the chain's null outcome, and the
-    // produced value flows through untested (its own value may legitimately be
-    // zero or false).
+    // A fused ?. chain chooses the fallback only on a null exit, even when the
+    // produced value is zero or false.
     if (isFusedOptionalChainLeft(sema, nodeLeftView))
     {
         const TypeRef resultTypeRef = nodeLeftView.typeRef();
@@ -422,16 +417,14 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         fallbackType.addFlag(TypeInfoFlagsE::Nullable);
         fallbackTypeRef = sema.typeMgr().addType(fallbackType);
     }
+
     SWC_RESULT(Cast::cast(sema, nodeRightView, fallbackTypeRef, CastKind::Implicit));
     sema.setType(sema.curNodeRef(), resultTypeRef);
 
-    // Constant folding
     if (nodeLeftView.cstRef().isValid())
     {
-        // 'orelse' asks presence, not truthiness, and its operand is always a nullable-capable
-        // family: a constant left selects the fallback exactly when it is null. Reading that
-        // from the constant keeps the condition rules off a spelling that is not a condition,
-        // where they would reject the dead fallback a non-null left deliberately keeps.
+        // Select by null presence rather than boolean truthiness. A non-null left
+        // keeps its fallback unreachable without imposing condition-type rules.
         const bool        leftIsFalse = nodeLeftView.cst()->isNullValue(sema.ctx());
         const auto        selectedRef = leftIsFalse ? nodeRightView.nodeRef() : nodeLeftView.nodeRef();
         const ConstantRef selectedCst = leftIsFalse ? nodeRightView.cstRef() : nodeLeftView.cstRef();
@@ -447,6 +440,7 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
                 resultCst.setTypeRef(resultTypeRef);
                 resultCstRef = sema.cstMgr().addConstant(sema.ctx(), resultCst);
             }
+
             sema.setConstant(sema.curNodeRef(), resultCstRef);
         }
         else
@@ -496,12 +490,14 @@ Result AstOptionalChainExpr::semaPostNode(Sema& sema)
             resultType.addFlag(TypeInfoFlagsE::Nullable);
             resultTypeRef = sema.typeMgr().addType(resultType);
         }
+
         sema.setType(sema.curNodeRef(), resultTypeRef);
 
         // Wide results (string, slice, interface, ...) join through an address:
         // the null outcome needs zeroed storage to point at.
         if (exprType.sizeOf(sema.ctx()) > 8)
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, resultTypeRef, "__optional_chain_storage"));
+
         return Result::Continue;
     }
 

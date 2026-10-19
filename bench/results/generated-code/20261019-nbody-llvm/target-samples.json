@@ -1,0 +1,941 @@
+{
+  "pin_mask": "0x55401",
+  "samples": [
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "zig",
+      "ms": 820.649,
+      "wall_ms": 1636.8977,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "clang",
+      "ms": 964.5712,
+      "wall_ms": 1625.5676,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "clang-full",
+      "ms": 394.5046,
+      "wall_ms": 897.2217,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "clang-full-noslp",
+      "ms": 647.1392,
+      "wall_ms": 1067.8743,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "ldc",
+      "ms": 556.884,
+      "wall_ms": 1123.4957,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "ldc-inline",
+      "ms": 464.0407,
+      "wall_ms": 1023.1604,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "rust",
+      "ms": 699.8793,
+      "wall_ms": 1509.791,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "swag-before",
+      "ms": 1118.61419998,
+      "wall_ms": 1993.1548,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 0,
+      "tag": "swag-after",
+      "ms": 563.20480001,
+      "wall_ms": 1078.7198,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "zig",
+      "ms": 367.0098,
+      "wall_ms": 789.5799,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "clang",
+      "ms": 481.0696,
+      "wall_ms": 866.653,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "clang-full",
+      "ms": 368.9176,
+      "wall_ms": 736.889,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "clang-full-noslp",
+      "ms": 487.1445,
+      "wall_ms": 833.0353,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "ldc",
+      "ms": 906.3546,
+      "wall_ms": 1500.1536,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "ldc-inline",
+      "ms": 1218.6592,
+      "wall_ms": 2553.318,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "rust",
+      "ms": 540.776,
+      "wall_ms": 1171.2451,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "swag-before",
+      "ms": 735.7587,
+      "wall_ms": 1162.888,
+      "check": "169096566666"
+    },
+    {
+      "phase": "warmup",
+      "round": 1,
+      "tag": "swag-after",
+      "ms": 716.75680001,
+      "wall_ms": 1146.4886,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "control-start",
+      "ms": 435.6295,
+      "wall_ms": 816.5357,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "zig",
+      "ms": 407.3492,
+      "wall_ms": 833.3559,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "clang",
+      "ms": 485.8367,
+      "wall_ms": 1045.3429,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "clang-full",
+      "ms": 796.2622,
+      "wall_ms": 1241.4159,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "clang-full-noslp",
+      "ms": 747.8388,
+      "wall_ms": 1266.708,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "ldc",
+      "ms": 580.3512,
+      "wall_ms": 1153.1437,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "ldc-inline",
+      "ms": 389.2282,
+      "wall_ms": 927.2957,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "rust",
+      "ms": 407.0148,
+      "wall_ms": 746.8105,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "swag-before",
+      "ms": 461.9544,
+      "wall_ms": 912.555,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "swag-after",
+      "ms": 727.53999999,
+      "wall_ms": 1122.4858,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 0,
+      "tag": "control-end",
+      "ms": 544.6174,
+      "wall_ms": 1106.8496,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "control-start",
+      "ms": 394.743,
+      "wall_ms": 787.2051,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "swag-after",
+      "ms": 449.21379996,
+      "wall_ms": 773.6511,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "swag-before",
+      "ms": 431.874,
+      "wall_ms": 744.9707,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "rust",
+      "ms": 417.3679,
+      "wall_ms": 771.84,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "ldc-inline",
+      "ms": 331.6448,
+      "wall_ms": 780.2347,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "ldc",
+      "ms": 566.2283,
+      "wall_ms": 1016.5891,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "clang-full-noslp",
+      "ms": 490.5339,
+      "wall_ms": 891.4974,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "clang-full",
+      "ms": 522.5688,
+      "wall_ms": 935.3173,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "clang",
+      "ms": 744.4047,
+      "wall_ms": 1301.2008,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "zig",
+      "ms": 1142.4461,
+      "wall_ms": 1820.7633,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 1,
+      "tag": "control-end",
+      "ms": 646.4355,
+      "wall_ms": 1108.4771,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "control-start",
+      "ms": 765.7218,
+      "wall_ms": 1374.2524,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "zig",
+      "ms": 553.6417,
+      "wall_ms": 1049.2561,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "clang",
+      "ms": 1405.2924,
+      "wall_ms": 2485.9128,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "clang-full",
+      "ms": 438.1289,
+      "wall_ms": 837.8986,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "clang-full-noslp",
+      "ms": 458.6544,
+      "wall_ms": 879.8824,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "ldc",
+      "ms": 486.6904,
+      "wall_ms": 921.5304,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "ldc-inline",
+      "ms": 343.7222,
+      "wall_ms": 783.6002,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "rust",
+      "ms": 403.8485,
+      "wall_ms": 741.2857,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "swag-before",
+      "ms": 575.52349998,
+      "wall_ms": 872.3332,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "swag-after",
+      "ms": 651.8622,
+      "wall_ms": 1108.0899,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 2,
+      "tag": "control-end",
+      "ms": 530.1896,
+      "wall_ms": 1006.086,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "control-start",
+      "ms": 357.1009,
+      "wall_ms": 720.8101,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "swag-after",
+      "ms": 596.8913,
+      "wall_ms": 905.3858,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "swag-before",
+      "ms": 826.4585,
+      "wall_ms": 1222.7826,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "rust",
+      "ms": 893.2266,
+      "wall_ms": 1438.406,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "ldc-inline",
+      "ms": 342.2987,
+      "wall_ms": 841.066,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "ldc",
+      "ms": 568.9578,
+      "wall_ms": 1051.6695,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "clang-full-noslp",
+      "ms": 500.7196,
+      "wall_ms": 847.0454,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "clang-full",
+      "ms": 587.9209,
+      "wall_ms": 1113.1791,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "clang",
+      "ms": 703.6183,
+      "wall_ms": 1392.2585,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "zig",
+      "ms": 346.4313,
+      "wall_ms": 744.1441,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 3,
+      "tag": "control-end",
+      "ms": 386.9949,
+      "wall_ms": 744.211,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "control-start",
+      "ms": 402.6844,
+      "wall_ms": 821.1917,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "zig",
+      "ms": 349.4396,
+      "wall_ms": 687.3566,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "clang",
+      "ms": 34.5827,
+      "wall_ms": 113.896,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "clang-full",
+      "ms": 29.2207,
+      "wall_ms": 84.4386,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "clang-full-noslp",
+      "ms": 27.7788,
+      "wall_ms": 61.4997,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "ldc",
+      "ms": 24.7545,
+      "wall_ms": 57.0542,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "ldc-inline",
+      "ms": 19.8807,
+      "wall_ms": 57.2556,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "rust",
+      "ms": 23.8284,
+      "wall_ms": 50.4116,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "swag-before",
+      "ms": 25.1577,
+      "wall_ms": 56.8581,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "swag-after",
+      "ms": 21.6099,
+      "wall_ms": 44.3304,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 4,
+      "tag": "control-end",
+      "ms": 19.0163,
+      "wall_ms": 45.5263,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "control-start",
+      "ms": 19.1778,
+      "wall_ms": 44.421,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "swag-after",
+      "ms": 23.3994,
+      "wall_ms": 50.1778,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "swag-before",
+      "ms": 25.07159999,
+      "wall_ms": 67.9948,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "rust",
+      "ms": 28.3854,
+      "wall_ms": 59.306,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "ldc-inline",
+      "ms": 27.5858,
+      "wall_ms": 78.3852,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "ldc",
+      "ms": 33.2056,
+      "wall_ms": 75.5636,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "clang-full-noslp",
+      "ms": 22.4103,
+      "wall_ms": 47.9174,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "clang-full",
+      "ms": 19.708,
+      "wall_ms": 44.4756,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "clang",
+      "ms": 29.8006,
+      "wall_ms": 59.8127,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "zig",
+      "ms": 25.4335,
+      "wall_ms": 51.3137,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 5,
+      "tag": "control-end",
+      "ms": 28.756,
+      "wall_ms": 72.9327,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "control-start",
+      "ms": 25.7509,
+      "wall_ms": 66.5551,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "zig",
+      "ms": 22.8221,
+      "wall_ms": 59.0414,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "clang",
+      "ms": 30.3979,
+      "wall_ms": 65.6813,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "clang-full",
+      "ms": 24.7632,
+      "wall_ms": 60.4622,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "clang-full-noslp",
+      "ms": 34.6718,
+      "wall_ms": 72.8882,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "ldc",
+      "ms": 33.0248,
+      "wall_ms": 83.3705,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "ldc-inline",
+      "ms": 20.3846,
+      "wall_ms": 57.6721,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "rust",
+      "ms": 22.7593,
+      "wall_ms": 46.8758,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "swag-before",
+      "ms": 21.7858,
+      "wall_ms": 44.9167,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "swag-after",
+      "ms": 23.3309,
+      "wall_ms": 79.4769,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 6,
+      "tag": "control-end",
+      "ms": 19.7731,
+      "wall_ms": 43.8138,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "control-start",
+      "ms": 21.5564,
+      "wall_ms": 50.0286,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "swag-after",
+      "ms": 22.05839998,
+      "wall_ms": 43.5932,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "swag-before",
+      "ms": 19.64850002,
+      "wall_ms": 40.7863,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "rust",
+      "ms": 20.552,
+      "wall_ms": 44.3054,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "ldc-inline",
+      "ms": 15.8673,
+      "wall_ms": 46.5733,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "ldc",
+      "ms": 35.0432,
+      "wall_ms": 164.5428,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "clang-full-noslp",
+      "ms": 75.5099,
+      "wall_ms": 153.9009,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "clang-full",
+      "ms": 25.6034,
+      "wall_ms": 76.8369,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "clang",
+      "ms": 30.8992,
+      "wall_ms": 70.4386,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "zig",
+      "ms": 20.7764,
+      "wall_ms": 56.6763,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 7,
+      "tag": "control-end",
+      "ms": 19.3718,
+      "wall_ms": 44.4843,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "control-start",
+      "ms": 21.9454,
+      "wall_ms": 47.5099,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "zig",
+      "ms": 21.5598,
+      "wall_ms": 49.7208,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "clang",
+      "ms": 27.0402,
+      "wall_ms": 53.5295,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "clang-full",
+      "ms": 22.7789,
+      "wall_ms": 51.0635,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "clang-full-noslp",
+      "ms": 30.5648,
+      "wall_ms": 79.4411,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "ldc",
+      "ms": 35.844,
+      "wall_ms": 107.8972,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "ldc-inline",
+      "ms": 22.4733,
+      "wall_ms": 88.2808,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "rust",
+      "ms": 26.2372,
+      "wall_ms": 61.2531,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "swag-before",
+      "ms": 23.28089997,
+      "wall_ms": 53.9504,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "swag-after",
+      "ms": 20.77960002,
+      "wall_ms": 45.1574,
+      "check": "169096566666"
+    },
+    {
+      "phase": "sample",
+      "round": 8,
+      "tag": "control-end",
+      "ms": 19.6713,
+      "wall_ms": 46.8963,
+      "check": "169096566666"
+    }
+  ]
+}

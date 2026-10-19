@@ -612,6 +612,12 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     const auto endIt   = context.instructions->view().end();
     if (beginIt != endIt)
     {
+        if (context.spillFrameEntryLo < context.spillFrameEntryHi)
+        {
+            const auto savedBytes = static_cast<int64_t>((pushedRegs_.size() + (useFramePointer_ ? 1 : 0)) * conv.stackSlotSize() + savedRegsStackSubSize_);
+            context.spillFrameEntryLo -= savedBytes;
+            context.spillFrameEntryHi -= savedBytes;
+        }
         insertSavedRegsPrologue(context, conv, beginIt.current);
         for (const SavedRegSlot& slot : savedRegSlots_)
             if (slot.reg.isFloat() && slot.reg.index() < 32)

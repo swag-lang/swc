@@ -4440,6 +4440,8 @@ void MicroRegisterAllocationPass::insertSpillFrame() const
 
     const MicroInstrRef firstRef = beginIt.current;
 
+    context_->spillFrameEntryLo -= static_cast<int64_t>(spillFrameSize);
+
     MicroInstrOperand stackAdjustOps[4];
     stackAdjustOps[0].reg      = conv_->stackPointer;
     stackAdjustOps[1].opBits   = MicroOpBits::B64;

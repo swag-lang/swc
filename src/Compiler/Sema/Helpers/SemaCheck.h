@@ -13,30 +13,36 @@ class SymbolVariable;
 namespace SemaCheck
 {
     Result modifiers(Sema& sema, const AstNode& node, AstModifierFlags mods, AstModifierFlags allowed);
+
     Result isValue(Sema& sema, AstNodeRef nodeRef);
     Result isValueOrType(Sema& sema, SemaNodeView& view);
     Result isValueOrTypeInfo(Sema& sema, SemaNodeView& view);
+
     Result prepareBoolExprValue(Sema& sema, SemaNodeView& view);
     Result castToBool(Sema& sema, SemaNodeView& view);
     Result conditionBinding(Sema& sema, AstNodeRef varDeclRef);
     Result typePattern(Sema& sema, AstNodeRef exprRef, bool binding = false);
+
     Result isConstant(Sema& sema, AstNodeRef nodeRef);
+
     bool   isReadOnlyParameterPath(Sema& sema, AstNodeRef nodeRef);
     bool   isImmutableBinding(Sema& sema, AstNodeRef nodeRef);
     bool   isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
     Result isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView, bool allowLetReferenceWriteThrough = false);
+
     Result isValidSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute);
+
     Result noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef& errorRef);
     Result noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds, bool forceCopy = false);
     Result checkMoveSourceCanReset(Sema& sema, AstNodeRef srcRef, TypeRef typeRef, AstModifierFlags modifierFlags);
-    void   unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef);
-    // A function that promises a value must produce one on every path: falling off the end of a
-    // block body emits no 'ret' at all, so control runs into whatever was emitted next. An
-    // expression body ('=> expr', and every short lambda) is the value, and never asks the
-    // question.
+
+    void unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef);
+
+    // Block bodies returning a value must stop on every path; falling through
+    // would emit no return. Expression bodies already supply the return value.
     Result missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef);
-    // Every local, parameter, and closure capture a body declares must be named somewhere in
-    // it. A parameter the body has no use for is spelled '?'.
+
+    // Report unused body declarations; intentionally unused parameters use ?.
     Result unusedVariables(Sema& sema, const SymbolFunction& sym);
 }
 

@@ -20,18 +20,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Whether a statement of 'blockRef' ends the block's local flow. A trailing block written
-    // after a call is that call's '#code' argument rather than a statement of the block, and
-    // whether it runs at all is the callee's decision, so it never ends the flow.
+    // Trailing #code blocks are call arguments whose execution the callee
+    // controls; they cannot end the enclosing statement block's local flow.
     bool stopsBlockFlow(Sema& sema, AstNodeRef blockRef, AstNodeRef childRef)
     {
         if (childRef.isInvalid() || sema.isImplicitCodeBlockArg(blockRef, childRef))
             return false;
+
         return SemaHelpers::stopsLocalFlow(sema, childRef, SemaHelpers::LocalFlowStop::Block);
     }
 
-    // The written return type of a function, a lambda or a closure. Invalid when the return
-    // type was inferred rather than written.
+    // Inferred return types have no source node to highlight.
     AstNodeRef functionReturnTypeNodeRef(const AstNode* decl)
     {
         if (!decl)
@@ -58,6 +57,7 @@ namespace
         diag.removeArgument(Diagnostic::ARG_SYM);
         diag.removeArgument(Diagnostic::ARG_SYM_FAM);
         diag.removeArgument(Diagnostic::ARG_A_SYM_FAM);
+
         return diag;
     }
 
@@ -85,6 +85,7 @@ namespace
         AstNodeRef resolvedNodeRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedNodeRef.isInvalid())
             resolvedNodeRef = nodeRef;
+
         return resolvedNodeRef;
     }
 
@@ -147,6 +148,7 @@ namespace
     {
         if (nodeRef.isInvalid())
             return nullptr;
+
         return sema.constAssignSourceParameter(nodeRef);
     }
 
@@ -160,6 +162,7 @@ namespace
             result = inlineParameterByBinding(sema, childRef);
             return result ? Ast::VisitResult::Stop : Ast::VisitResult::Continue;
         });
+
         return result;
     }
 
@@ -231,15 +234,18 @@ namespace
         const AstNode& node = sema.node(resolvedRef);
         if (node.is(AstNodeId::Identifier))
             return readOnlyAggregateParameterIdentifier(sema, resolvedRef);
+
         if (node.is(AstNodeId::MemberAccessExpr))
         {
             const auto& member = node.cast<AstMemberAccessExpr>();
             return isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) ? nullptr : readOnlyAggregateParameterPath(sema, member.nodeLeftRef);
         }
+
         if (node.is(AstNodeId::IndexExpr))
             return readOnlyAggregateParameterPath(sema, node.cast<AstIndexExpr>().nodeExprRef);
         if (node.is(AstNodeId::IndexListExpr))
             return readOnlyAggregateParameterPath(sema, node.cast<AstIndexListExpr>().nodeExprRef);
+
         return nullptr;
     }
 
@@ -267,11 +273,11 @@ namespace
             return node.cast<AstIndexExpr>().nodeExprRef;
         if (node.is(AstNodeId::IndexListExpr))
             return node.cast<AstIndexListExpr>().nodeExprRef;
+
         return AstNodeRef::invalid();
     }
 
-    // Whether selecting or indexing into 'baseRef' writes the storage a pointer designates rather
-    // than 'baseRef' itself.
+    // Selecting or indexing a pointer/slice writes its pointee, not the carrier.
     bool designatesPointee(Sema& sema, AstNodeRef baseRef)
     {
         const SemaNodeView view = sema.viewTypeSymbol(baseRef);
@@ -292,10 +298,9 @@ namespace
         if (sourceRef.isInvalid())
             return false;
 
-        // A read-only binding of an inlined parameter freezes the value it names, not the memory
-        // that value points to: indexing through a pointer or a slice, even one cast from a
-        // by-value integer parameter, writes the pointee, so only the pointer type's own
-        // constness can forbid it.
+        // Inline parameter bindings freeze their value, not its pointee.
+        // Pointer/slice indexing is governed by the type's own const qualifier,
+        // even when the pointer came from a by-value integer parameter.
         const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(sourceRef);
         if (!designatesPointee(sema, sourceRef) && isConstAssignmentTargetImpl(sema, sourceRef))
             return true;
@@ -347,6 +352,7 @@ namespace
 
         if (changed)
             view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
         return Result::Continue;
     }
 
@@ -366,14 +372,17 @@ namespace
             const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(member.nodeLeftRef);
             if (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceViewImpl(sema, sourceView))
                 return true;
+
             return !designatesPointee(sema, member.nodeLeftRef) && isConstAssignmentTargetImpl(sema, member.nodeLeftRef);
         }
+
         if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
             return isConstIndexedSource(sema, resolvedRef);
         if (node.is(AstNodeId::UnaryExpr))
             return isDerefConstSource(sema, node.cast<AstUnaryExpr>());
         if (node.is(AstNodeId::ParenExpr))
             return isConstAssignmentTargetImpl(sema, node.cast<AstParenExpr>().nodeExprRef);
+
         return false;
     }
 
@@ -393,6 +402,7 @@ namespace
             case AstModifierFlagsE::Complete: return TokenId::ModifierComplete;
             case AstModifierFlagsE::Move: return TokenId::ModifierMove;
             case AstModifierFlagsE::Relocate: return TokenId::ModifierRelocate;
+
             default:
                 SWC_UNREACHABLE();
         }
@@ -407,16 +417,14 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
         diag.addArgument(Diagnostic::ARG_WHAT, Token::toName(tokId));
 
-        // Generated or injected code can carry a modifier flag with no token of its own to
-        // point at, so the extra span is only added when the spelling is really in source.
+        // Generated modifier flags may have no source token to highlight.
         if (mdfRef.isValid())
             diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), mdfRef), "");
 
         diag.report(sema.ctx());
     }
 
-    // The global storage an assignment target ultimately writes into, or null when the target is
-    // not rooted at a global.
+    // Find global storage behind a target, or null for a non-global root.
     const SymbolVariable* assignedGlobalRoot(Sema& sema, AstNodeRef nodeRef)
     {
         while (true)
@@ -453,12 +461,12 @@ namespace
         }
     }
 
-    // Whether the enclosing function only ever runs at compile time. Its writes land in the
-    // compiler's own copy of the data segments, and only the segments emitted verbatim carry
-    // them into the artifact.
+    // Compile-time writes affect compiler data segments; only segments emitted
+    // with their bytes preserve those values in the artifact.
     bool inCompileTimeExecutedFunction(const Sema& sema)
     {
         const SymbolFunction* symFn = sema.currentFunction();
+
         // Ordinary inlining retains the callee's storage contract. A runtime helper cloned
         // into #run must not move its globals after other callers already lowered them.
         // Macros and mixins expand in their caller's execution context instead.
@@ -470,19 +478,19 @@ namespace
                 break;
             }
         }
+
         if (!symFn)
             return false;
 
-        // Attribute spelling is the ordinary surface form for a compiler function.
-        // Its declaration node is still a regular function in some compilation
-        // paths, so relying on the synthetic '#run' node shape loses writes made by
-        // '#[Swag.Compiler] func' helpers.
+        // Compiler-attributed helpers can retain ordinary function declarations.
+        // Checking only synthetic #run nodes would miss their global writes.
         if (symFn->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return true;
 
         const AstNode* decl = symFn->decl();
         if (!decl)
             return false;
+
         if (decl->is(AstNodeId::CompilerRunBlock) || decl->is(AstNodeId::CompilerRunExpr))
             return true;
         if (!decl->is(AstNodeId::CompilerFunc))
@@ -492,10 +500,8 @@ namespace
         return tokenId == TokenId::CompilerRun || tokenId == TokenId::CompilerAst || tokenId == TokenId::CompilerFuncMessage;
     }
 
-    // A global written by compile-time execution keeps that value only when its storage is emitted
-    // verbatim. The zero segment becomes '.bss', which carries a size and no bytes, so the write
-    // reaches the JIT half of the build and disappears from the artifact. Promote the storage on
-    // demand instead of making source code opt out of initialization to force the right segment.
+    // GlobalZero becomes .bss, which emits no bytes and loses compile-time
+    // writes. Promote written globals to initialized storage on demand.
     Result checkCompileTimeGlobalWrite(Sema& sema, AstNodeRef leftExprRef)
     {
         if (!inCompileTimeExecutedFunction(sema))
@@ -511,9 +517,11 @@ namespace
             return Result::Continue;
 
         SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
+
         const uint32_t alignment = std::max(1u, type.alignOf(sema.ctx()));
         const uint32_t offset    = sema.compiler().globalInitSegment().reserveBlock(static_cast<uint32_t>(size), alignment, true);
         symVar->setGlobalStorage(DataSegmentKind::GlobalInit, offset);
+
         return Result::Continue;
     }
 }
@@ -522,10 +530,9 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
 {
     AstModifierFlags unsupported = mods.maskInvert(allowed);
 
-    // 'FirstInit' has no source token: flow analysis sets it on an assignment it proved to be
-    // the first write after a dead default initialization. A node carrying it can be checked
-    // again - an inline expansion re-walks a body that was already analysed - and reporting it
-    // would ask for a spelling that does not exist.
+    // Flow analysis marks the first write after an elided default with FirstInit.
+    // It has no source token, so later checks such as inline revisits must not
+    // search for a spelling to report.
     unsupported.remove(AstModifierFlagsE::FirstInit);
     if (unsupported.none())
         return Result::Continue;
@@ -541,6 +548,7 @@ Result SemaCheck::isValue(Sema& sema, AstNodeRef nodeRef)
         return Result::Continue;
     if (isIgnoredValuePoison(sema, nodeRef))
         return Result::Error;
+
     return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, nodeRef);
 }
 
@@ -548,12 +556,14 @@ Result SemaCheck::noMoveRefType(Sema& sema, TypeRef typeRef, const SourceCodeRef
 {
     if (!typeRef.isValid() || !sema.typeMgr().get(typeRef).isMoveReference())
         return Result::Continue;
+
     return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_move_ref_type_context, errorRef, typeRef);
 }
 
 Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef srcTypeRef, TypeRef destTypeRef, AstModifierFlags modifierFlags, bool destReferenceBinds, bool forceCopy)
 {
     SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, srcRef, destTypeRef, modifierFlags, destReferenceBinds));
+
     // '#move'/'#relocate' transfer ownership: not a copy.
     if (modifierFlags.has(AstModifierFlagsE::Move) || modifierFlags.has(AstModifierFlagsE::Relocate))
         return Result::Continue;
@@ -562,32 +572,31 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
 
     const TypeManager& typeMgr = sema.typeMgr();
 
-    // The destination decides whether a copy happens: a value slot of struct type, or an
-    // assignment writing through a reference. Reference declarations bind (no copy), and
-    // pointer-typed destinations store an address.
+    // Copy checks concern aggregate value destinations and writes through references.
+    // Reference declarations bind; pointer destinations only store addresses.
     const TypeInfo* destType = &typeMgr.get(destTypeRef);
     if (destType->isReference())
     {
         if (destReferenceBinds)
             return Result::Continue;
+
         destType = &typeMgr.get(destType->payloadTypeRef());
     }
 
     if (const TypeInfo* unwrappedType = destType->unwrapAliasEnumType(sema.ctx()))
         destType = unwrappedType;
+
     if (!destType->isStruct() && !destType->isArray())
         return Result::Continue;
 
-    // Rvalue sources (call results, literals, constants) construct or move; a copy only
-    // happens when reading an existing storage location, directly (lvalue) or through a
-    // reference (including a '#move' parameter used without '#move').
+    // Rvalues construct or move. Copy checks apply when reading stored values,
+    // including a #move parameter used without #move.
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
     if (!forceCopy && !srcType.isReference() && !SemaHelpers::expressionBorrowsStorage(sema, srcRef))
         return Result::Continue;
 
-    // The copy variant generated from a '#fwd' parameter is discarded by overload
-    // resolution for non-copyable types: copies from the parameter itself are dead
-    // code there and must not error.
+    // Overload resolution discards the #fwd copy variant for non-copyable types,
+    // so copies from that parameter are dead code and must not report errors.
     const SemaNodeView srcSymView = sema.viewSymbol(srcRef);
     if (srcSymView.sym() && srcSymView.sym()->isVariable() && srcSymView.sym()->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::FwdCopy))
         return Result::Continue;
@@ -605,6 +614,7 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
         owningDiag.addArgument(Diagnostic::ARG_TYPE, checkTypeRef);
         if (owningTypeRef != checkTypeRef)
             owningDiag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, owningTypeRef);
+
         owningDiag.report(sema.ctx());
         return Result::Error;
     }
@@ -612,6 +622,7 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_copy_nocopy, srcRef);
     diag.addArgument(Diagnostic::ARG_TYPE, checkTypeRef);
     diag.report(sema.ctx());
+
     return Result::Error;
 }
 
@@ -619,6 +630,7 @@ Result SemaCheck::checkMoveSourceCanReset(Sema& sema, const AstNodeRef srcRef, T
 {
     if (srcRef.isValid() && typeRef.isValid() && modifierFlags.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate}))
         SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, srcRef, typeRef, modifierFlags, true));
+
     if (!modifierFlags.has(AstModifierFlagsE::Move) || srcRef.isInvalid() || typeRef.isInvalid())
         return Result::Continue;
 
@@ -645,6 +657,7 @@ Result SemaCheck::isValueOrType(Sema& sema, SemaNodeView& view)
     const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), view.typeRef()));
     sema.setConstant(view.nodeRef(), cstRef);
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
     return Result::Continue;
 }
 
@@ -661,6 +674,7 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& view)
     SWC_RESULT(sema.makeRuntimeTypeInfo(cstRef, view.typeRef(), view.nodeRef()));
     sema.setConstant(view.nodeRef(), cstRef);
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
     return Result::Continue;
 }
 
@@ -680,6 +694,7 @@ Result SemaCheck::prepareBoolExprValue(Sema& sema, SemaNodeView& view)
     const TypeRef valueTypeRef = normalizedType.payloadTypeRef();
     SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
     return Result::Continue;
 }
 
@@ -728,6 +743,7 @@ Result SemaCheck::conditionBinding(Sema& sema, AstNodeRef varDeclRef)
     diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, sema.typeMgr().typeBool());
     diag.report(sema.ctx());
+
     return Result::Error;
 }
 
@@ -735,8 +751,10 @@ Result SemaCheck::typePattern(Sema& sema, AstNodeRef exprRef, bool binding)
 {
     if (exprRef.isInvalid())
         return Result::Continue;
+
     while (const auto* paren = sema.node(exprRef).safeCast<AstParenExpr>())
         exprRef = paren->nodeExprRef;
+
     const AstNode& node     = sema.node(exprRef);
     const auto*    cast     = node.safeCast<AstCastExpr>();
     const auto*    autoCast = node.safeCast<AstAutoCastExpr>();
@@ -749,6 +767,7 @@ Result SemaCheck::typePattern(Sema& sema, AstNodeRef exprRef, bool binding)
     const TokenId token = sema.compiler().srcView(node.srcViewRef()).token(node.tokRef()).id;
     if (token == TokenId::KwdIs)
         return Result::Continue;
+
     return SemaError::raise(sema, binding ? DiagnosticId::sema_err_dynamic_cast_binding : DiagnosticId::sema_err_dynamic_cast_test, exprRef);
 }
 
@@ -769,6 +788,7 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
     bool                  hasName             = false;
     bool                  hasDefault          = false;
     const SymbolVariable* previousDefaultParm = nullptr;
+
     for (size_t i = 0; i < parameters.size(); i++)
     {
         const SymbolVariable& param = *(parameters[i]);
@@ -803,17 +823,17 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
             }
         }
 
-        // Variadic must be last
         if (type.isAnyVariadic() && i != parameters.size() - 1)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_variadic_not_last, param);
             if (param.idRef().isValid() && parameters[i + 1]->idRef().isValid())
                 diag.addArgument(Diagnostic::ARG_VALUE, parameters[i + 1]->name(sema.ctx()));
+
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        // A parameter without a default follows a parameter with a default value
+        // Required parameters must precede defaults, except trailing code blocks.
         if (param.hasExtraFlag(SymbolVariableFlagsE::Initialized))
         {
             hasDefault          = true;
@@ -824,12 +844,12 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_parameter_default_value_not_last, param);
             if (param.idRef().isValid() && previousDefaultParm && previousDefaultParm->idRef().isValid())
                 diag.addArgument(Diagnostic::ARG_VALUE, previousDefaultParm->name(sema.ctx()));
+
             diag.report(sema.ctx());
             return Result::Error;
         }
 
-        // If a parameter has a name, then what follows should have a name. A '?' parameter
-        // holds a name position the body leaves empty.
+        // Once a parameter is named, later parameters need names; ? reserves a slot.
         const AstNode* paramDecl = param.decl();
         const bool     unnamed   = paramDecl && paramDecl->is(AstNodeId::LambdaParam) && paramDecl->cast<AstLambdaParam>().hasFlag(AstLambdaParamFlagsE::Named);
         if (param.idRef().isValid() || unnamed)
@@ -848,11 +868,11 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
         auto diag = reportReadOnlyAssignment(sema, leftExprRef);
         if (const SymbolVariable* param = inlineParameterByBinding(sema, leftExprRef))
             diag.addArgument(Diagnostic::ARG_VALUE, param->name(sema.ctx()));
+
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    // Disallow assignment to immutable lvalues:
     if (leftView.sym())
     {
         if (leftView.sym()->isLetVariable())
@@ -862,17 +882,19 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
                                                   leftView.type()->isReference();
             if (!canWriteThroughReference)
             {
-                // A read-only capture is repaired in the capture list, not at the declaration the
-                // copy came from, so it gets its own message and points at the capture.
+                // Read-only captures are fixed in the capture list, so highlight
+                // that contract rather than the declaration copied into it.
                 const auto* symVar  = leftView.sym()->safeCast<SymbolVariable>();
                 const bool  capture = symVar && symVar->isClosureCapture();
 
                 auto diag = SemaError::report(sema, capture ? DiagnosticId::sema_err_assign_to_capture : DiagnosticId::sema_err_assign_to_let, leftExprRef);
                 SemaError::setReportArguments(sema, diag, leftView.sym());
+
                 diag.addNote(capture ? DiagnosticId::sema_note_capture_declared_here : DiagnosticId::sema_note_let_variable_declared_here);
                 diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
                 diag.last().addSpan(leftView.sym()->codeRange(sema.ctx()));
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
         }
@@ -881,16 +903,17 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, leftExprRef);
             SemaError::setReportArguments(sema, diag, leftView.sym());
+
             diag.addNote(DiagnosticId::sema_note_constant_declared_here);
             diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
             diag.last().addSpan(leftView.sym()->codeRange(sema.ctx()));
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
-        // A 'readonly' field is readable at the site that reached it, so name that contract
-        // instead of falling through to the generic read-only-storage message the const path
-        // would produce.
+        // Report the field's readonly contract before the generic const path
+        // loses the more precise reason for rejecting the write.
         const auto* field = leftView.sym()->safeCast<SymbolVariable>();
         if (field && field->isMemberReadOnly() && !SemaAccess::canWriteMember(sema, *field, sema.node(leftExprRef).srcViewRef()))
             return SemaAccess::reportMemberWrite(sema, *field, leftExprRef);
@@ -899,11 +922,13 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
     const SymbolVariable* readOnlyParameter = nonReassignableParameterIdentifier(sema, leftExprRef);
     if (!readOnlyParameter)
         readOnlyParameter = readOnlyAggregateParameterPath(sema, leftExprRef);
+
     if (readOnlyParameter)
     {
         auto diag = reportReadOnlyAssignment(sema, leftExprRef);
         diag.addArgument(Diagnostic::ARG_VALUE, readOnlyParameter->name(sema.ctx()));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -917,6 +942,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
         {
             const auto diag = reportReadOnlyAssignment(sema, leftExprRef);
             diag.report(sema.ctx());
+
             return Result::Error;
         }
     }
@@ -926,15 +952,16 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
         auto diag = reportReadOnlyAssignment(sema, leftExprRef);
         if (const SymbolVariable* param = inlineParameterByBindingPath(sema, leftExprRef))
             diag.addArgument(Diagnostic::ARG_VALUE, param->name(sema.ctx()));
+
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    // Left must be a l-value
     if (!sema.isLValue(leftExprRef) && !sema.isLValueStored(leftExprRef))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, leftExprRef);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -979,8 +1006,7 @@ void SemaCheck::unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef chil
     if (index + 1 >= children.size32())
         return;
 
-    // One report per block: everything past the first jump is unreachable for that same
-    // reason, so only the first one speaks.
+    // Report only the first unreachable statement after the block's first jump.
     for (uint32_t before = 0; before < index; before++)
     {
         if (stopsBlockFlow(sema, blockRef, children[before]))
@@ -995,9 +1021,8 @@ void SemaCheck::unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef chil
 
 namespace
 {
-    // Callers report the code after a '#[Swag.NoReturn]' call as unreachable, so a body that
-    // can reach its end would run code its callers were told to delete. A returned value
-    // would have no caller to receive it.
+    // NoReturn callers discard following code and cannot receive a value;
+    // reaching the body's end or returning a value would break that contract.
     Result checkNoReturnBody(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef)
     {
         const TypeRef returnTypeRef = sym.returnTypeRef();
@@ -1007,6 +1032,7 @@ namespace
             auto             diag              = SemaError::report(sema, DiagnosticId::sema_err_noreturn_return_type, returnTypeNodeRef.isValid() ? returnTypeNodeRef : bodyRef);
             diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(returnTypeRef).toName(sema.ctx()));
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -1016,7 +1042,9 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_noreturn_reaches_end, sym);
         if (sym.name(sema.ctx()).empty())
             diag.removeArgument(Diagnostic::ARG_SYM);
+
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 }
@@ -1026,16 +1054,14 @@ Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRe
     if (bodyRef.isInvalid() || sym.isForeign())
         return Result::Continue;
 
-    // A macro or a mixin has no frame of its own: its body is spliced into the caller, which
-    // is where the flow question belongs.
+    // Macro and mixin bodies share the caller's frame, which owns their flow check.
     if (sym.attributes().hasMacroOrMixin())
         return Result::Continue;
 
     if (sym.attributes().hasRtFlag(RtAttributeFlagsE::NoReturn))
         return checkNoReturnBody(sema, sym, bodyRef);
 
-    // A body that is not a block is the returned expression itself, whatever spelling brought
-    // it here: '=> expr' on a declaration, and a short lambda, which carries no flag at all.
+    // Non-block bodies already are the returned expression, including short lambdas.
     if (sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock))
         return Result::Continue;
 
@@ -1056,29 +1082,27 @@ Result SemaCheck::missingReturn(Sema& sema, const SymbolFunction& sym, AstNodeRe
     auto             diag              = SemaError::report(sema, DiagnosticId::sema_err_missing_return, returnTypeNodeRef.isValid() ? returnTypeNodeRef : bodyRef);
     diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, returnType.toName(sema.ctx()));
 
-    // A lambda or a closure has no name a reader would recognize, so it takes the wording
-    // that does not try to print one.
+    // Lambdas and closures need wording without an unwritten generated name.
     if (decl && decl->is(AstNodeId::FunctionDecl))
         diag.addArgument(Diagnostic::ARG_SYM, sym.name(sema.ctx()));
+
     diag.report(sema.ctx());
+
     return Result::Error;
 }
 
 namespace
 {
-    // A body cloned for a generic instance can keep a different set of '#static if' branches
-    // per instance, so a name one instance leaves unused may be the one another needs.
-    //
-    // A closure the caller wrote in code it hands to a generic expansion, such as the body of a
-    // loop over a generic collection, sits in a scope the expansion owns. It is still the caller's
-    // own text, which no instance of the expansion varies, so the walk stops at the first function
-    // whose text does not hold it.
+    // Generic instances keep different #static if branches, so uses vary per
+    // instance. Caller-written closures passed to an expansion do not vary;
+    // stop at the first lexical function whose source does not contain them.
     bool writtenInside(Sema& sema, const SymbolFunction& inner, const SymbolFunction& outer)
     {
         if (!outer.decl() || outer.srcViewRef() != inner.srcViewRef())
             return false;
         if (sema.ast().srcView().ref() != outer.srcViewRef())
             return true;
+
         const uint32_t tok = inner.tokRef().get();
         return tok >= outer.decl()->tokRef().get() && tok <= outer.decl()->tokRefEnd(sema.ast()).get();
     }
@@ -1091,6 +1115,7 @@ namespace
                 return false;
             if (function->isGenericInstance())
                 return true;
+
             const SymbolStruct* owner = function->ownerStruct();
             if (owner && owner->isGenericInstance())
                 return true;
@@ -1130,8 +1155,7 @@ namespace
 
 Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
 {
-    // No body to search, or no single body to judge: a macro or mixin only exists where it
-    // expands.
+    // Foreign/empty functions have no body to judge; generic uses vary by instance.
     if (sym.isEmpty() || sym.isForeign() || isInGenericInstance(sema, sym))
         return Result::Continue;
     if (sym.attributes().hasMacroOrMixin())
@@ -1139,22 +1163,22 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
     if (!SemaError::isCurrentModuleSymbol(sema, sym))
         return Result::Continue;
 
-    // A local function an inline expansion declared is the callee's, wrapped around code the call
-    // site injected: the callee's declaration answers for the first, the caller for the second.
+    // The callee owns inline-generated local declarations; the caller owns
+    // injected code. Check each name at its original declaration.
     if (sym.hasExtraFlag(SymbolFunctionFlagsE::InlineLocalFunction))
         return Result::Continue;
 
-    // Generated code ('#ast', '#[Swag.Operators]') has no author to answer for its names: its
-    // source view points back to where it was generated from.
+    // Generated source views refer to their origin, not an author of these names.
     const SourceView& srcView = sema.srcView(sym.srcViewRef());
     if (srcView.debugSourceCodeRef().isValid() || (srcView.ownerFileRef().isValid() && srcView.ownerFileRef() != srcView.fileRef()))
         return Result::Continue;
 
-    // An interface method's parameters belong to the interface: every implementation answers to
-    // those names, and the documentation refers to them, whatever a default body does with them.
+    // Interface parameter names serve implementations and documentation, even
+    // when a default body does not use them.
     const bool interfaceContract = sym.ownerSymMap() && sym.ownerSymMap()->isInterface();
 
     bool reported = false;
+
     for (const SymbolVariable* param : sym.parameters())
     {
         if (interfaceContract)
@@ -1166,8 +1190,7 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
         }
     }
 
-    // An alias the call site supplied can be declared by several expansions of the same call:
-    // one use among them is a use of the name the caller wrote.
+    // Repeated expansions can declare one caller alias: any use counts for all.
     SmallVector<SourceCodeRef> usedAliasNames;
     for (const SymbolVariable* local : sym.localVariables())
     {
@@ -1177,17 +1200,17 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
 
     SmallVector<SourceCodeRef> reportedAliasNames;
     TokenRef                   bodyEndRef = TokenRef::invalid();
+
     for (const SymbolVariable* local : sym.localVariables())
     {
         if (!local || local->hasExtraFlag(SymbolVariableFlagsE::Parameter))
             continue;
 
-        // A local whose type has a drop is a guard: its lifetime is its use, ended by the drop at
-        // the end of the scope.
+        // A local with opDrop is a guard: its scoped lifetime is its use.
         const bool guard = sema.typeMgr().hasLifecycleOperator(sema.ctx(), local->typeRef(), &SymbolStruct::opDrop);
 
-        // An inline expansion declares locals of the callee's: they answer here only when this
-        // body wrote their name, as an alias of the call or as code it passed to the callee.
+        // Callee locals count here only when this body supplied their names
+        // through a caller alias or injected code.
         if (local->isInlineExpansion())
         {
             const SourceCodeRef& aliasRef = local->callerNameRef();
@@ -1195,9 +1218,11 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
             {
                 if (local->isReferenced() || guard || std::ranges::find(usedAliasNames, aliasRef) != usedAliasNames.end() || std::ranges::find(reportedAliasNames, aliasRef) != reportedAliasNames.end())
                     continue;
+
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_unused_variable, aliasRef);
                 diag.addArgument(Diagnostic::ARG_SYM, local->idRef());
                 diag.report(sema.ctx());
+
                 reportedAliasNames.push_back(aliasRef);
                 reported = true;
                 continue;
@@ -1218,12 +1243,12 @@ Result SemaCheck::unusedVariables(Sema& sema, const SymbolFunction& sym)
         reported = true;
     }
 
-    // Captures are reported in declaration order, which takes a sorted copy of the whole map;
-    // most bodies capture nothing and skip it.
+    // Sort captures into declaration order only when the body has any.
     if (sym.hasClosureCapture())
     {
         std::vector<const Symbol*> symbols;
         sym.getAllSymbols(symbols, true);
+
         for (const Symbol* symbol : symbols)
         {
             const auto* capture = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;

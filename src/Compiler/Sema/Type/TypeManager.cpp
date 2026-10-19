@@ -437,6 +437,7 @@ TypeRef TypeManager::addAggregateArrayType(const std::span<const TypeRef> types)
                type.flags_ == flags &&
                std::ranges::equal(type.payloadAggregate_.types, types);
     });
+
     if (found.isValid())
         return found;
 
@@ -450,6 +451,7 @@ void TypeManager::publishInterned(InternStripe& stripe, const TypeInfo* type, si
         uint32_t       i    = static_cast<uint32_t>(placedHash >> INTERN_STRIPE_BITS) & mask;
         while (table.types[i].load(std::memory_order_relaxed))
             i = (i + 1) & mask;
+
         // The hash goes first: a reader that sees the type compares against a complete slot.
         table.hashes[i].store(placedHash, std::memory_order_relaxed);
         table.types[i].store(placed, std::memory_order_release);
@@ -464,6 +466,7 @@ void TypeManager::publishInterned(InternStripe& stripe, const TypeInfo* type, si
         grown->capacity = table ? table->capacity * 2 : 64;
         grown->types    = std::make_unique<std::atomic<const TypeInfo*>[]>(grown->capacity);
         grown->hashes   = std::make_unique<std::atomic<size_t>[]>(grown->capacity);
+
         if (table)
         {
             for (uint32_t i = 0; i < table->capacity; ++i)
@@ -484,8 +487,10 @@ void TypeManager::publishInterned(InternStripe& stripe, const TypeInfo* type, si
 const TypeInfo& TypeManager::get(TypeRef typeRef) const
 {
     SWC_ASSERT(typeRef.isValid());
+
     const uint32_t shardIndex = typeRef.get() >> LOCAL_BITS;
     SWC_ASSERT(shardIndex < SHARD_COUNT);
+
     const uint32_t localIndex = typeRef.get() & LOCAL_MASK;
     return *(shards_[shardIndex].store.ptr<TypeInfo>(localIndex));
 }
@@ -497,8 +502,10 @@ TypeRef TypeManager::unwrapNonStrictAlias(TypeRef typeRef) const
         const TypeInfo& type = get(typeRef);
         if (!type.isAlias() || type.payloadSymAlias().isStrict())
             break;
+
         typeRef = type.payloadSymAlias().underlyingTypeRef();
     }
+
     return typeRef;
 }
 
@@ -506,9 +513,11 @@ TypeRef TypeManager::unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) co
 {
     if (!typeRef.isValid())
         return TypeRef::invalid();
+
     const TypeInfo& typeInfo = get(typeRef);
     if (!typeInfo.isAliasOrEnum())
         return typeRef;
+
     return typeInfo.unwrapAliasEnum(ctx, typeRef);
 }
 
@@ -544,6 +553,7 @@ bool TypeManager::hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, 
                 if (hasLifecycleOperator(ctx, fieldTypeRef, lifecycleOperator))
                     return true;
             }
+
             return false;
         }
 
@@ -571,14 +581,11 @@ TypeRef TypeManager::promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) cons
     TypeRef result = lhs;
     if (lhs != rhs)
     {
-        // Promotion is table-driven over the builtin numeric set. Complex/user types
-        // should be rejected before this point; the assertions below catch violations
-        // close to the caller that forgot to filter them.
+        // Promotion is defined only for builtin numeric types. Callers must reject
+        // complex/user types before reaching this lookup.
         const uint32_t* indexL = promoteIndex_.find(lhs.get());
         const uint32_t* indexR = promoteIndex_.find(rhs.get());
 
-        // If this ever trips, you're trying to promote a type that was not in
-        // the numeric set when buildPromoteTable() was called.
         SWC_ASSERT(indexL != nullptr);
         SWC_ASSERT(indexR != nullptr);
 
@@ -603,8 +610,10 @@ uint32_t TypeManager::chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& 
 {
     constexpr uint32_t minBits = 32;
     constexpr uint32_t maxBits = 64;
-    const uint32_t     bits    = std::max(minRequiredBits, minBits);
-    overflow                   = bits > maxBits;
+
+    const uint32_t bits = std::max(minRequiredBits, minBits);
+
+    overflow = bits > maxBits;
     return bits;
 }
 
@@ -662,6 +671,7 @@ TypeRef TypeManager::runtimeType(IdentifierManager::PredefinedName name) const
     const RuntimeTypeKind kind = PREDEFINED_RUNTIME_MAP[static_cast<size_t>(name)];
     if (kind == RuntimeTypeKind::Count)
         return TypeRef::invalid();
+
     return runtimeType(kind);
 }
 
@@ -700,6 +710,7 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
         uint32_t resultBits = std::max(fBits, iBits);
         if (resultBits)
             resultBits = std::max(resultBits, 32u);
+
         return typeFloat(resultBits);
     }
 
@@ -723,6 +734,7 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
 
     if (uBits >= sBits)
         return unsignedRef;
+
     return signedRef;
 }
 
@@ -733,16 +745,20 @@ void TypeManager::buildPromoteTable()
         typeIntSigned_,
         typeInt_,
         typeFloat_,
+
         typeU8_,
         typeU16_,
         typeU32_,
         typeU64_,
+
         typeS8_,
         typeS16_,
         typeS32_,
         typeS64_,
+
         typeF32_,
         typeF64_,
+
         typeChar_,
         typeRune_};
 

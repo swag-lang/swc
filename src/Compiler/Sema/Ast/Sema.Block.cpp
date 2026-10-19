@@ -32,13 +32,9 @@ namespace
         return sema.token(parentNode.codeRef()).id == TokenId::KwdExpect;
     }
 
-    // Reports whether this file states a module setup *and* is compiled as ordinary source.
-    //
-    // Two files answer yes. A script is its own module file, and every file a setup '#load'
-    // reaches — from a script or from a 'module.swg' — is one too: a loaded file may state
-    // '#import' and '#load' of its own, so it is read by the same two passes under the same
-    // rule. A 'module.swg' is not on this list: it is never compiled as source, so its content
-    // belongs to the setup pass whole.
+    // Scripts and files reached by setup #load also compile as ordinary source.
+    // Both may declare nested #import and #load directives. A module.swg belongs
+    // entirely to the setup pass and never compiles as ordinary source.
     bool isModuleSetupStatedSourceFile(const Sema& sema)
     {
         const SourceFile* file = sema.file();
@@ -50,6 +46,7 @@ namespace
         const CommandLine& cmdLine = sema.ctx().cmdLine();
         if (!cmdLine.scriptMode || cmdLine.moduleFilePath.empty())
             return false;
+
         return FileSystem::pathEquals(file->path(), cmdLine.moduleFilePath);
     }
 
@@ -77,26 +74,20 @@ namespace
         if (!isModuleSetupStatedSourceFile(sema))
             return Result::Continue;
 
-        // Such a file is both a module-setup file and a regular source file. Process setup
-        // directives only during the setup pass, and everything else only during the regular
-        // pass. This is what lets a loaded file declare against the module's dependencies: the
-        // setup pass runs before any import is applied, so a 'using Core' read there would name
-        // a module that does not exist yet, while the regular pass sees the whole dependency
-        // set. Runtime bootstrap files still need full processing in the setup unit so
-        // declarations such as `Swag.compiler()` remain visible to setup `#run` blocks.
+        // Split setup directives from ordinary source: the setup pass runs before
+        // imports, while declarations such as using Core need the imported symbols.
+        // Runtime bootstrap declarations must remain visible to setup #run blocks.
         const bool setupDirective = isScriptModuleSetupChild(sema, childRef);
         if (sema.compiler().isModuleSetupMode())
             return setupDirective ? Result::Continue : Result::SkipChildren;
+
         return setupDirective ? Result::SkipChildren : Result::Continue;
     }
 
-    // Top-level symbols of an imported-API or runtime file are created under the shared
-    // import-root namespace (not this module's namespace). An imported module keeps its own
-    // namespace hierarchy (e.g. `Lib.Color`) instead of being nested under the importer
-    // (`Importer.Lib.Color`); the runtime, compiled into every module, keeps one canonical
-    // scoped name (`Swag.BaseError`) so its types carry the same runtime identity (descriptor
-    // fullname and crc) in every module. Lookup still uses the module namespace (so builtins
-    // like `Swag` and sibling imports resolve).
+    // Imported APIs and runtime files share the import root so scoped names and
+    // runtime type identities stay consistent across modules. Creation must retain
+    // Lib.Color rather than Importer.Lib.Color; lookup still uses the module
+    // namespace to resolve builtins and sibling imports.
     SymbolMap* topLevelCreationSymMap(Sema& sema)
     {
         const SourceFile* file = sema.file();
@@ -105,6 +96,7 @@ namespace
             if (SymbolNamespace* importRoot = sema.compiler().importRootNamespace())
                 return importRoot;
         }
+
         return &sema.moduleNamespace();
     }
 
@@ -113,6 +105,7 @@ namespace
         const SemaNodeView view = sema.viewSymbol(nodeRef);
         SWC_ASSERT(view.sym());
         SWC_ASSERT(view.sym()->isSymMap());
+
         return view.sym()->asSymMap();
     }
 }
@@ -123,6 +116,7 @@ Result AstFile::semaPreDecl(Sema& sema) const
     sema.setFileNamespace(*fileNamespace);
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel);
     sema.curScope().setSymMap(topLevelCreationSymMap(sema));
+
     return Result::Continue;
 }
 
@@ -141,8 +135,10 @@ Result AstFile::semaPreNode(Sema& sema)
 Result AstFile::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     SWC_RESULT(filterScriptModuleSetupChild(sema, childRef));
+
     if (!sema.frame().globalCompilerIfEnabled())
         return Result::SkipChildren;
+
     return Result::Continue;
 }
 
@@ -172,6 +168,7 @@ Result AstNamespaceDecl::pushNamespace(Sema& sema, const AstNode* node, SpanRef 
         SymbolFlags flags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
         if (sema.frame().currentAccess() == SymbolAccess::Private)
             flags.add(SymbolFlagsE::Private);
+
         auto*   ns  = Symbol::make<SymbolNamespace>(ctx, node, tokRef, idRef, flags);
         Symbol* res = symMap->addSingleSymbol(ctx, ns);
 
@@ -206,6 +203,7 @@ Result AstNamespaceDecl::popNamespace(Sema& sema, SpanRef spanNameRef)
     const size_t count = sema.ast().spanSize(spanNameRef);
     for (size_t i = 0; i < count; ++i)
         sema.frame().popNs();
+
     return Result::Continue;
 }
 
@@ -243,11 +241,9 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
             // so persist `using` imports on the owning symbol map as well.
             SymbolMap* ownerSymMap = SemaFrame::currentSymMap(sema);
 
-            // A runtime file's top-level `using` (e.g. `using Swag` in the bootstrap) is the prelude
-            // of every module: it is what lets the whole module — including generated imported-API
-            // sources — spell `Swag` members unqualified (`#[Inline]`). Runtime symbols are created
-            // under the import root, whose persisted usings unqualified lookups deliberately skip, so
-            // persist these on the module namespace, where they have always been collected from.
+            // Runtime top-level usings form each module's prelude, including its
+            // generated imported APIs. Unqualified lookup skips persisted usings
+            // on the import root, so retain them on the module namespace instead.
             if (ownerSymMap && ownerSymMap == sema.compiler().importRootNamespace())
             {
                 const SourceFile* file = sema.file();
@@ -257,11 +253,13 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
 
             if (ownerSymMap)
             {
-                const SourceFile*               sourceFile = sema.file();
+                const SourceFile* sourceFile = sema.file();
+
                 const SymbolMap::SourceRevision sourceRevision{
                     .fileRef  = sourceFile ? sourceFile->ref() : FileRef::invalid(),
                     .revision = sourceFile ? sourceFile->revisionId() : 0,
                 };
+
                 ownerSymMap->addUsingSymMap(sema.ctx(), usingSymMap, sourceRevision);
             }
         }
@@ -281,6 +279,7 @@ Result AstParenExpr::semaPostNode(Sema& sema)
     const AstNodeRef resolvedExprRef = sema.resolvedNodeRef(nodeExprRef);
     sema.inheritPayload(*this, resolvedExprRef);
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
+
     return Result::Continue;
 }
 
@@ -324,11 +323,13 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
         {
             auto* hiddenScope  = sema.curScopePtr();
             auto* bindingScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+
             bindingScope->setLookupParent(inlinePayload->callerScope);
 
             auto frame = sema.frame();
             frame.setUpLookupScope(hiddenScope);
             sema.pushFramePopOnPostNode(std::move(frame));
+
             return Result::Continue;
         }
     }
@@ -339,11 +340,9 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 
 Result AstEmbeddedBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
-    // From the first callee-origin statement of an ordinary-inline root, drop the
-    // caller's flow-narrowing facts: the body typechecked standalone and its meaning
-    // must not depend on the call site (Auto inlining runs in release only). The
-    // materialized argument bindings before that statement are caller code and were
-    // sema'd with the facts still live.
+    // An ordinary inline body must keep its standalone meaning, independent of
+    // caller narrowing facts. Preserve those facts for the argument bindings,
+    // then clear them at the first statement originating in the callee.
     const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
     if (inlinePayload &&
         inlinePayload->inlineRootRef == sema.curNodeRef() &&
@@ -369,6 +368,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
 {
     const auto&                node    = sema.curNode().cast<AstDeferStmt>();
     constexpr AstModifierFlags allowed = AstModifierFlagsE::Fail | AstModifierFlagsE::NoFail;
+
     SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, allowed));
 
     if (node.modifierFlags.has(AstModifierFlagsE::Fail) && node.modifierFlags.has(AstModifierFlagsE::NoFail))
@@ -395,6 +395,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
         frame.setCurrentBreakContent(AstNodeRef::invalid(), SemaFrame::BreakContextKind::None);
         frame.setCurrentCompilerScope(AstNodeRef::invalid());
         frame.setCurrentNamedCompilerScope(nullptr);
+
         sema.pushFramePopOnPostNode(std::move(frame));
     }
 
@@ -406,6 +407,7 @@ Result AstNamedArgument::semaPostNode(Sema& sema)
     const AstNodeRef resolvedArgRef = sema.resolvedNodeRef(nodeArgRef);
     sema.inheritPayload(*this, resolvedArgRef);
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedArgRef);
+
     return Result::Continue;
 }
 

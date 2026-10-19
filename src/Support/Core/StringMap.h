@@ -100,7 +100,6 @@ public:
         return *try_emplace(key, hash, init).first;
     }
 
-    // Find with precomputed hash.
     T* find(std::string_view key, uint32_t hash)
     {
         return findImpl(key, hash);
@@ -138,10 +137,11 @@ private:
     //  - EMPTY (0x80): never used
     //  - TOMB  (0xFE): tombstone
     //  - otherwise: 7-bit fingerprint (never 0) derived from hash's top byte | 1
-    static constexpr uint8_t EMPTY    = 0x80;
-    static constexpr uint8_t TOMB     = 0xFE;
-    static constexpr double  MAX_LOAD = 0.875; // 7/8
-    static constexpr size_t  INIT_CAP = 16;
+    static constexpr uint8_t EMPTY = 0x80;
+    static constexpr uint8_t TOMB  = 0xFE;
+
+    static constexpr double MAX_LOAD = 0.875; // 7/8
+    static constexpr size_t INIT_CAP = 16;
 
     struct Slot
     {
@@ -154,8 +154,9 @@ private:
 
     std::vector<uint8_t> ctrl;  // control bytes
     std::vector<Slot>    slots; // slots
-    size_t               mask      = 0;
-    size_t               sizeValue = 0;
+
+    size_t mask      = 0;
+    size_t sizeValue = 0;
 
     static constexpr bool isOccupied(uint8_t c) noexcept
     {
@@ -167,6 +168,7 @@ private:
         uint8_t fp = static_cast<uint8_t>((h >> 24) | 1u); // ensure non-zero, top 8 bits of 32-bit hash
         if (fp == EMPTY || fp == TOMB)
             fp = 1;
+
         return fp;
     }
 
@@ -174,9 +176,11 @@ private:
     {
         if (x < 2)
             return 2;
+
         --x;
         for (size_t i = 1; i < sizeof(size_t) * 8; i <<= 1)
             x |= (x >> i);
+
         return x + 1;
     }
 
@@ -187,7 +191,6 @@ private:
         std::vector<Slot> newSlots(newCapPow2);
         const size_t      newMask = newCapPow2 - 1;
 
-        // Move entries
         for (size_t i = 0; i < slots.size(); ++i)
         {
             if (!isOccupied(ctrl[i]))
@@ -212,6 +215,7 @@ private:
                     newSlots[idx] = std::move(moving);
                     break;
                 }
+
                 if (newSlots[idx].dist < dist)
                 {
                     std::swap(newCtrl[idx], fp);
@@ -219,6 +223,7 @@ private:
                     std::swap(newSlots[idx], moving);
                     dist = moving.dist;
                 }
+
                 ++dist;
                 idx = (idx + 1) & newMask;
             }
@@ -264,7 +269,6 @@ private:
             {
                 Slot& s = slots[idx];
 
-                // Equality check (FOUND)
                 if (c == fp && s.hash == hash && s.key == key)
                 {
                     on_found(s.value);
@@ -306,6 +310,7 @@ private:
                                 slots[ins] = std::move(carry);
                                 if (cc == EMPTY)
                                     ++sizeValue;
+
                                 return {&slots[target].value, true};
                             }
 
@@ -316,6 +321,7 @@ private:
                                 std::swap(slots[ins], carry);
                                 idist = carry.dist;
                             }
+
                             ++idist;
                             ins = (ins + 1) & mask;
                         }
@@ -344,6 +350,7 @@ private:
                             slots[ins] = std::move(carry);
                             if (cc == EMPTY)
                                 ++sizeValue;
+
                             return {&slots[idx].value, true};
                         }
 
@@ -380,6 +387,7 @@ private:
             const uint8_t c = ctrl[idx];
             if (c == EMPTY)
                 return false;
+
             if (isOccupied(c))
             {
                 const Slot& s = slots[idx];

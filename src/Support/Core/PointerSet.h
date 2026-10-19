@@ -4,13 +4,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// A membership set of pointers, held in one flat table.
-//
-// The compiler asks "have I already seen this symbol" tens of millions of times over a module, and
-// a node-based set answers each question with a heap allocation and a pointer chase. This one
-// stores the pointers themselves in a power-of-two table with linear probing: an insert is a
-// multiply, a mask and a compare. The first table is inline, so a set that stays small - most of
-// them - allocates nothing.
+// Flat pointer membership set with linear probing and an inline first table. Small
+// walks allocate nothing; larger ones keep keys contiguous instead of allocating
+// and chasing one node per insertion.
 template<typename T>
 class PointerSet
 {
@@ -27,6 +23,7 @@ public:
         {
             if (slots_[index] == value)
                 return false;
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -36,6 +33,7 @@ public:
         // Linear probing degrades sharply near a full table; keep it below three quarters.
         if (count_ * 4 > slots_.size() * 3)
             rehash(slots_.size() * 2);
+
         return true;
     }
 
@@ -49,25 +47,28 @@ public:
         {
             if (slots_[index] == value)
                 return true;
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
         return false;
     }
 
-    // A set that holds nothing has nothing to free. A large table that its last fill used only a
-    // little of is given back, so a set a worker keeps costs what the current walk inserts rather
-    // than the largest walk it has seen.
+    // Release a large table when the last walk used little of it, so a worker's
+    // retained capacity does not track its largest historical traversal.
     void clear() noexcept
     {
         if (!count_)
             return;
+
         if (slots_.size() > RELEASE_CAPACITY && count_ * 8 < slots_.size())
             slots_ = SmallVector<T*, INITIAL_CAPACITY>{};
         else
             std::ranges::fill(slots_, nullptr);
+
         count_ = 0;
     }
+
     size_t size() const noexcept { return count_; }
     bool   empty() const noexcept { return count_ == 0; }
 
@@ -95,9 +96,11 @@ private:
         {
             if (!value)
                 continue;
+
             size_t index = slotIndex(value, mask);
             while (slots_[index])
                 index = (index + 1) & mask;
+
             slots_[index] = value;
         }
     }
@@ -106,9 +109,8 @@ private:
     size_t                            count_ = 0;
 };
 
-// The same table for strong references. A walk that only asks "have I been through this node"
-// pays a node-based set one allocation per node visited; this one keeps its first table inline
-// and allocates only past it. The invalid reference marks a free slot, so it is never a member.
+// Flat membership set for strong references, with an inline first table. The invalid
+// reference is the empty-slot sentinel and cannot be inserted.
 template<typename R>
 class RefSet
 {
@@ -126,6 +128,7 @@ public:
         {
             if (slots_[index] == value)
                 return false;
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -135,6 +138,7 @@ public:
         // Linear probing degrades sharply near a full table; keep it below three quarters.
         if (count_ * 4 > slots_.size() * 3)
             rehash(slots_.size() * 2);
+
         return true;
     }
 
@@ -149,6 +153,7 @@ public:
         {
             if (slots_[index] == value)
                 return true;
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -175,9 +180,11 @@ private:
         {
             if (value == K_FREE)
                 continue;
+
             size_t index = slotIndex(value, mask);
             while (slots_[index] != K_FREE)
                 index = (index + 1) & mask;
+
             slots_[index] = value;
         }
     }
@@ -205,6 +212,7 @@ public:
         {
             if (slots_[index].key == key)
                 return slots_[index].value;
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -227,9 +235,11 @@ public:
                     ++live_;
                 else if (slots_[index].value && !value)
                     --live_;
+
                 slots_[index].value = value;
                 return;
             }
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -274,9 +284,11 @@ private:
         {
             if (slot.key == K_FREE)
                 continue;
+
             size_t index = slotIndex(slot.key, mask);
             while (slots_[index].key != K_FREE)
                 index = (index + 1) & mask;
+
             slots_[index] = slot;
         }
     }
@@ -302,6 +314,7 @@ public:
         {
             if (slots_[index].key == key)
                 return slots_[index].value;
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -322,6 +335,7 @@ public:
                 slots_[index].value = value;
                 return;
             }
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -375,9 +389,11 @@ private:
         {
             if (!slot.key)
                 continue;
+
             size_t index = slotIndex(slot.key, mask);
             while (slots_[index].key)
                 index = (index + 1) & mask;
+
             slots_[index] = slot;
         }
     }
@@ -416,6 +432,7 @@ public:
         {
             if (slots_[index].key == key)
                 return &slots_[index].value;
+
             index = (index + 1) & (slots_.size() - 1);
         }
 
@@ -463,10 +480,13 @@ public:
                 for (Slot& slot : slots_)
                     slot.key = K_FREE;
             }
+
             count_ = 0;
         }
+
         if constexpr (TrackOccupiedSlots)
             occupiedSlots_.clear();
+
         hasFreeKey_ = false;
     }
 

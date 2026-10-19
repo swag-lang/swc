@@ -13,7 +13,8 @@ public:
 
     static constexpr uint32_t CHUNK_SIZE = 1u << CHUNK_BITS;
     static constexpr uint32_t CHUNK_MASK = CHUNK_SIZE - 1;
-    using Chunk                          = std::array<std::atomic<T*>, CHUNK_SIZE>;
+
+    using Chunk = std::array<std::atomic<T*>, CHUNK_SIZE>;
 
     LookupTable()
     {
@@ -37,6 +38,7 @@ public:
             auto chunk = std::make_unique<Chunk>();
             for (std::atomic<T*>& slot : *chunk)
                 slot.store(nullptr, std::memory_order_relaxed);
+
             chunks_.push_back(std::move(chunk));
             publishChunkSnapshot();
         }
@@ -72,6 +74,7 @@ private:
 
         const auto* published = chunkSnapshot.get();
         publishedChunkStorage_.push_back(std::move(chunkSnapshot));
+
         publishedChunks_.store(published, std::memory_order_release);
     }
 

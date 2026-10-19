@@ -29,18 +29,21 @@ public:
     PagedStore& operator=(PagedStore&& other) noexcept;
 
     uint32_t pageSize() const noexcept { return pageSizeValue_; }
+
     // Route pages allocated from here on through the proximity arena (see
     // Os::allocProximityMemory). Each page remembers its own origin, so
     // enabling this on a store that already has pages is fine.
-    void     enableProximityPages() noexcept { proximityPages_ = true; }
+    void enableProximityPages() noexcept { proximityPages_ = true; }
+
     uint32_t size() const noexcept;
     uint32_t extentSize() const noexcept;
     bool     containsRef(Ref ref, uint32_t minSize = 1) const noexcept;
     uint8_t* seekPtr() const noexcept { return lastPtr_; }
-    void     clear() noexcept;
-    void     copyTo(std::span<std::byte> dst) const;
-    void     copyToPreserveOffsets(std::span<std::byte> dst) const;
-    void     restoreFromPreserveOffsets(std::span<const std::byte> src) const;
+
+    void clear() noexcept;
+    void copyTo(std::span<std::byte> dst) const;
+    void copyToPreserveOffsets(std::span<std::byte> dst) const;
+    void restoreFromPreserveOffsets(std::span<const std::byte> src) const;
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
     uint8_t* pushU16(uint16_t v) { return pushPod(v); }
@@ -53,11 +56,13 @@ public:
 
     std::pair<std::span<std::byte>, Ref>       reserveSpan(uint32_t size, uint32_t align = alignof(std::byte));
     std::pair<std::span<const std::byte>, Ref> pushCopySpan(std::span<const std::byte> payload, uint32_t align = alignof(std::byte));
-    Ref                                        reserveRange(uint32_t size, uint32_t align, bool zeroInit);
-    SpanRef                                    pushSpanContiguousRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
-    SpanRef                                    pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
-    SpanView                                   spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
-    Ref                                        findRef(const void* ptr) const noexcept;
+
+    Ref     reserveRange(uint32_t size, uint32_t align, bool zeroInit);
+    SpanRef pushSpanContiguousRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
+    SpanRef pushSpanRaw(const void* data, uint32_t elemSize, uint32_t elemAlign, uint32_t count);
+
+    SpanView spanView(Ref ref, uint32_t elemSize, uint32_t elemAlign) const;
+    Ref      findRef(const void* ptr) const noexcept;
 
     template<class T>
     Ref pushBack(const T& v)
@@ -71,6 +76,7 @@ public:
         {
             std::construct_at(static_cast<T*>(p), v);
         }
+
         return r;
     }
 
@@ -215,9 +221,8 @@ private:
         return reinterpret_cast<T*>((*pages)[pageIndex]->bytes() + offset);
     }
 
-    // Reading a reference is the hottest operation of the whole compiler — every semantic pass
-    // resolves node, type, and symbol handles through here — so the page snapshot is read inline
-    // rather than through a call.
+    // Node, type and symbol handles all read this snapshot on the semantic hot path.
+    // Keep the load inline to avoid a call on every dereference.
     const std::vector<Page*>* snapshotPages() const noexcept
     {
         const auto* pages = publishedPages_.load(std::memory_order_acquire);
@@ -231,19 +236,23 @@ private:
     std::vector<std::unique_ptr<Page>>                         pagesStorage_;
     std::vector<std::unique_ptr<const std::vector<Page*>>>     publishedPagesStorage_;
     std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
-    std::atomic<const std::vector<Page*>*>                     publishedPages_{nullptr};
-    std::atomic<const std::vector<PageRange>*>                 publishedPageRanges_{nullptr};
-    uint64_t                                                   totalBytes_    = 0;
-    uint32_t                                                   pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
+
+    std::atomic<const std::vector<Page*>*>     publishedPages_{nullptr};
+    std::atomic<const std::vector<PageRange>*> publishedPageRanges_{nullptr};
+
+    uint64_t totalBytes_    = 0;
+    uint32_t pageSizeValue_ = K_DEFAULT_PAGE_SIZE;
+
     // A page size is a power of two, which the constructor enforces, so splitting a reference into
     // a page and an offset is a shift and a mask. Keeping the size alone would leave the divisor a
     // runtime value and cost a hardware division on every dereference.
     uint32_t pageShift_      = std::countr_zero(K_DEFAULT_PAGE_SIZE);
     uint32_t pageMask_       = K_DEFAULT_PAGE_SIZE - 1;
     bool     proximityPages_ = false;
-    Page*    curPage_        = nullptr;
-    uint32_t curPageIndex_   = 0;
-    uint8_t* lastPtr_        = nullptr;
+
+    Page*    curPage_      = nullptr;
+    uint32_t curPageIndex_ = 0;
+    uint8_t* lastPtr_      = nullptr;
 };
 
 class PagedStore::SpanView
@@ -282,6 +291,7 @@ public:
     uint32_t elemAlign() const { return elementAlign_; }
 
     ChunkIterator chunksBegin() const;
+
     // Completion needs no page layout or iterator payload.
     constexpr std::default_sentinel_t chunksEnd() const noexcept { return {}; }
 

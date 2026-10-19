@@ -65,14 +65,17 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
         std::swap(pagesStorage_, other.pagesStorage_);
         std::swap(publishedPagesStorage_, other.publishedPagesStorage_);
         std::swap(publishedPageRangesStorage_, other.publishedPageRangesStorage_);
+
         const auto* leftSnapshot       = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
         const auto* rightSnapshot      = other.publishedPagesStorage_.empty() ? nullptr : other.publishedPagesStorage_.back().get();
         const auto* leftRangeSnapshot  = publishedPageRangesStorage_.empty() ? nullptr : publishedPageRangesStorage_.back().get();
         const auto* rightRangeSnapshot = other.publishedPageRangesStorage_.empty() ? nullptr : other.publishedPageRangesStorage_.back().get();
+
         publishedPages_.store(leftSnapshot, std::memory_order_release);
         other.publishedPages_.store(rightSnapshot, std::memory_order_release);
         publishedPageRanges_.store(leftRangeSnapshot, std::memory_order_release);
         other.publishedPageRanges_.store(rightRangeSnapshot, std::memory_order_release);
+
         std::swap(totalBytes_, other.totalBytes_);
         std::swap(pageSizeValue_, other.pageSizeValue_);
         std::swap(pageShift_, other.pageShift_);
@@ -82,6 +85,7 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
         std::swap(curPageIndex_, other.curPageIndex_);
         std::swap(lastPtr_, other.lastPtr_);
     }
+
     return *this;
 }
 
@@ -101,6 +105,7 @@ void PagedStore::clear() noexcept
         curPage_      = nullptr;
         curPageIndex_ = 0;
     }
+
     lastPtr_ = nullptr;
 }
 

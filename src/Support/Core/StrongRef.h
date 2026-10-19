@@ -2,21 +2,19 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Base template for strong type wrappers
 template<typename T>
 class StrongRef
 {
 public:
     StrongRef() = default;
+
     explicit constexpr StrongRef(uint32_t val) :
         value_(val)
     {
     }
 
-    // Explicit getter
     constexpr uint32_t get() const { return value_; }
 
-    // Comparison operators (only with the same type)
     constexpr bool operator==(const StrongRef& other) const { return value_ == other.value_; }
     constexpr bool operator!=(const StrongRef& other) const { return value_ != other.value_; }
     constexpr bool operator<(const StrongRef& other) const { return value_ < other.value_; }
@@ -31,7 +29,7 @@ public:
 
     StrongRef offset(int offset) { return StrongRef(value_ + offset); }
 
-    // Deleted conversion operators to prevent implicit casts
+    // Keep references distinct from booleans and integer values.
     explicit operator bool() const     = delete;
     explicit operator int() const      = delete;
     explicit operator uint32_t() const = delete;

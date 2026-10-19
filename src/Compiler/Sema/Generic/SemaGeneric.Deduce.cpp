@@ -28,8 +28,10 @@ namespace
     {
         if (const auto* structDecl = declNode.safeCast<AstStructDecl>())
             return structDecl->spanGenericParamsRef;
+
         if (const auto* unionDecl = declNode.safeCast<AstUnionDecl>())
             return unionDecl->spanGenericParamsRef;
+
         return SpanRef::invalid();
     }
 
@@ -37,8 +39,10 @@ namespace
     {
         if (const auto* structDecl = declNode.safeCast<AstStructDecl>())
             return structDecl->nodeBodyRef;
+
         if (const auto* unionDecl = declNode.safeCast<AstUnionDecl>())
             return unionDecl->nodeBodyRef;
+
         return AstNodeRef::invalid();
     }
 
@@ -46,35 +50,43 @@ namespace
 
     void setGenericTypeDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, AstNodeRef currentArgRef, TypeRef newTypeRef)
     {
-        outFailure            = {};
+        outFailure = {};
+
         outFailure.diagId     = DiagnosticId::sema_err_generic_type_deduction_conflict;
         outFailure.srcTypeRef = previousArg.typeRef;
         outFailure.dstTypeRef = newTypeRef;
         outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(idRef).name});
+
         if (previousArg.callArgIndex != UINT32_MAX)
             outFailure.addArgument(SemaGeneric::K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
+
         if (previousArg.diagRef.isValid())
         {
             outFailure.noteId      = DiagnosticId::sema_note_generic_previous_deduction;
             outFailure.noteNodeRef = previousArg.diagRef;
         }
+
         outFailure.nodeRef = currentArgRef;
     }
 
     void setGenericValueDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, AstNodeRef currentArgRef, ConstantRef newCstRef)
     {
-        outFailure        = {};
+        outFailure = {};
+
         outFailure.diagId = DiagnosticId::sema_err_generic_value_deduction_conflict;
         outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(idRef).name});
         outFailure.addArgument(Diagnostic::ARG_LEFT, sema.cstMgr().get(previousArg.cstRef).toString(sema.ctx()));
         outFailure.addArgument(Diagnostic::ARG_RIGHT, sema.cstMgr().get(newCstRef).toString(sema.ctx()));
+
         if (previousArg.callArgIndex != UINT32_MAX)
             outFailure.addArgument(SemaGeneric::K_ARG_PREV_INDEX, previousArg.callArgIndex + 1);
+
         if (previousArg.diagRef.isValid())
         {
             outFailure.noteId      = DiagnosticId::sema_note_generic_previous_deduction;
             outFailure.noteNodeRef = previousArg.diagRef;
         }
+
         outFailure.nodeRef = currentArgRef;
     }
 
@@ -83,9 +95,8 @@ namespace
         if (patternRef.isInvalid() || !argTypeRef.isValid())
             return patternRef;
 
-        // UFCS and operator receiver matching can implicitly take the address of a value.
-        // Deduction must therefore compare the value against the pointee pattern, not
-        // against the syntactic reference/pointer wrapper.
+        // UFCS and operator receivers can bind through an implicit address operation.
+        // Compare the value type with the pointee pattern when that operation applies.
         const TypeRef   effectiveArgTypeRef = SemaGeneric::unwrapGenericDeductionType(sema.ctx(), argTypeRef);
         const TypeInfo& argType             = sema.typeMgr().get(effectiveArgTypeRef);
         if (argType.isPointerOrReference())
@@ -144,14 +155,17 @@ namespace
         {
             SmallVector<AstNodeRef> vars;
             sema.ast().appendNodes(vars, paramNode->cast<AstVarDeclList>().spanChildrenRef);
+
             for (const AstNodeRef varRef : vars)
                 appendFunctionParamDesc(sema, varRef, outParams);
+
             return;
         }
 
         if (paramNode->is(AstNodeId::SingleVarDecl))
         {
-            const auto&                           varDecl = paramNode->cast<AstSingleVarDecl>();
+            const auto& varDecl = paramNode->cast<AstSingleVarDecl>();
+
             SemaGeneric::GenericFunctionParamDesc desc;
             desc.idRef           = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
             desc.typeRef         = varDecl.typeOrInitRef();
@@ -159,6 +173,7 @@ namespace
             desc.defaultRef      = varDecl.nodeInitRef;
             desc.isVariadic      = SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
             desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
+
             outParams.push_back(desc);
             return;
         }
@@ -168,6 +183,7 @@ namespace
             const auto&           multiVar = paramNode->cast<AstMultiVarDecl>();
             SmallVector<TokenRef> tokNames;
             sema.ast().appendTokens(tokNames, multiVar.spanNamesRef);
+
             for (const TokenRef tokNameRef : tokNames)
             {
                 SemaGeneric::GenericFunctionParamDesc desc;
@@ -177,8 +193,10 @@ namespace
                 desc.defaultRef      = multiVar.nodeInitRef;
                 desc.isVariadic      = SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
                 desc.hasExplicitType = multiVar.nodeTypeRef.isValid();
+
                 outParams.push_back(desc);
             }
+
             return;
         }
 
@@ -187,6 +205,7 @@ namespace
             SemaGeneric::GenericFunctionParamDesc desc;
             desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
             desc.isVariadic = false;
+
             outParams.push_back(desc);
         }
     }
@@ -236,6 +255,7 @@ namespace
 
         SmallVector<AstNodeRef> children;
         patternNode.collectChildrenFromAst(children, sema.ast());
+
         for (const AstNodeRef childRef : children)
         {
             if (patternCanDeduceMissingGenericParam(sema, params, resolvedArgs, childRef))
@@ -276,6 +296,7 @@ namespace
                 arg.diagRef      = exprRef;
                 arg.typeRef      = typeRef;
                 arg.callArgIndex = callArgIndex;
+
                 return true;
             }
 
@@ -301,6 +322,7 @@ namespace
 
             if (outFailure)
                 setGenericTypeDeductionFailure(sema, *outFailure, idRef, arg, exprRef, typeRef);
+
             return false;
         }
 
@@ -322,6 +344,7 @@ namespace
                 arg.typeRef      = typeRef;
                 arg.cstRef       = cstRef;
                 arg.callArgIndex = callArgIndex;
+
                 return true;
             }
 
@@ -333,6 +356,7 @@ namespace
 
             if (outFailure)
                 setGenericValueDeductionFailure(sema, *outFailure, idRef, arg, exprRef, cstRef);
+
             return false;
         }
 
@@ -344,6 +368,7 @@ namespace
         outFound            = false;
         outGenericRoot      = nullptr;
         outGenericRootIdRef = IdentifierRef::invalid();
+
         if (identRef.isInvalid())
             return Result::Continue;
 
@@ -396,6 +421,7 @@ namespace
             MatchContext lookUpCxt;
             lookUpCxt.codeRef = sema.node(exprRef).codeRef();
             SWC_RESULT(Match::match(sema, lookUpCxt, outGenericRootIdRef));
+
             for (const Symbol* sym : lookUpCxt.symbols())
             {
                 if (!sym || !sym->isStruct())
@@ -426,6 +452,7 @@ namespace
             const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
             if (!bindGenericValueParamImpl(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, typeRef, outFailure, mode))
                 return Result::Error;
+
             return Result::Continue;
         }
 

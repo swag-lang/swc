@@ -137,14 +137,9 @@ namespace
         }
     }
 
-    // Copies the caller's process command line into this artifact's own 'Swag.processInfo().args'.
-    //
-    // 'Swag.processInfo()' resolves to a per-artifact slot of the zero-initialized data segment, so every
-    // executable and every shared library starts with its own empty copy. Whoever owns the real
-    // command line -- the startup thunk of a native run, or the compiler for a JIT run -- passes it
-    // down the hook chain, and each artifact adopts it here. Without this an imported module
-    // answers 'Swag.args()' from a slot nobody ever filled, and code as ordinary as 'Env.hasArg' returns
-    // a different answer depending on which module it was compiled into.
+    // Each artifact has its own zero-initialized ProcessInfo. Adopt the command line
+    // supplied by native startup or the JIT compiler so imported modules see the
+    // same arguments, including the runtime's test-runner flags.
     void emitAdoptProcessArgs(MicroBuilder& builder, CompilerInstance& compiler, MicroReg processArgsReg, uint32_t& nextVirtualIntRegIndex)
     {
         const MicroLabelRef skipLabel = builder.createLabel();
@@ -230,6 +225,7 @@ Result NativeArtifactBuilder::build() const
         nativeValidate.validate();
     }
 #endif
+
     SWC_RESULT(buildRuntimeHook(builder_->ctx()));
     if (builder_->ctx().global().jobMgr().numWorkers() == 0)
     {
@@ -256,11 +252,13 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
             return Result::Continue;
     }
 
-    CompilerInstance& compiler                                   = builder_->compiler();
+    CompilerInstance& compiler = builder_->compiler();
+
     const auto [lifecycleStateOffset, lifecycleStateStorage]     = compiler.globalZeroSegment().reserve<uint32_t>();
     const auto [dynamicReferenceOffset, dynamicReferenceStorage] = compiler.globalZeroSegment().reserve<uint32_t>();
-    auto* const lifecycleStatePtr                                = reinterpret_cast<uint32_t*>(lifecycleStateStorage);
-    auto* const dynamicReferencePtr                              = reinterpret_cast<uint32_t*>(dynamicReferenceStorage);
+
+    auto* const lifecycleStatePtr   = reinterpret_cast<uint32_t*>(lifecycleStateStorage);
+    auto* const dynamicReferencePtr = reinterpret_cast<uint32_t*>(dynamicReferenceStorage);
     if (lifecycleStatePtr)
         *lifecycleStatePtr = 0;
     if (dynamicReferencePtr)
@@ -281,7 +279,6 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     builder.emitLoadRegReg(stageReg, callConv.intArgRegs[0], MicroOpBits::B64);
 
     RuntimeHookArgs hookArgs;
-
     hookArgs.tlsIdPlusOne = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegReg(hookArgs.tlsIdPlusOne, callConv.intArgRegs[1], MicroOpBits::B64);
 
@@ -309,16 +306,22 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Sync), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, syncLabel);
+
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Init), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, initLabel);
+
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::PreMain), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, preMainSelectLabel);
+
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::Drop), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dropLabel);
+
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicLoad), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicLoadLabel);
+
     builder.emitCmpRegImm(stageReg, ApInt(static_cast<uint64_t>(RuntimeHookStage::DynamicUnload), 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dynamicUnloadLabel);
+
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
     builder.placeLabel(syncLabel);
@@ -357,11 +360,13 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     {
         const MicroReg referenceReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegDataSegmentReloc(referenceReg, DataSegmentKind::GlobalZero, dynamicReferenceOffset);
+
         const MicroReg countReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegMem(countReg, referenceReg, 0, MicroOpBits::B32);
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B32);
         builder.emitLoadMemReg(referenceReg, 0, countReg, MicroOpBits::B32);
     }
+
     emitGuardedLifecycleBody(builder, RuntimeHookStage::Init, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->initFunctions); }, nextVirtualIntRegIndex);
 
     {
@@ -372,24 +377,29 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
         builder.emitOpBinaryRegImm(dynamicPreMainFlagsReg, ApInt(static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), 64), MicroOp::And, MicroOpBits::B64);
         builder.emitCmpRegImm(dynamicPreMainFlagsReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, dynamicPreMainCompilerLabel);
+
         emitGuardedLifecycleBody(builder, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->preMainFunctions); }, nextVirtualIntRegIndex);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, dynamicPreMainDoneLabel);
+
         builder.placeLabel(dynamicPreMainCompilerLabel);
         emitGuardedLifecycleBody(builder, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] { emitLifecycleCalls(builder, builder_->preMainFunctions); }, nextVirtualIntRegIndex, K_RUNTIME_HOOK_PREMAIN_COMPILER_DONE);
         builder.placeLabel(dynamicPreMainDoneLabel);
     }
+
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
     builder.placeLabel(dynamicUnloadLabel);
     {
         const MicroReg referenceReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegDataSegmentReloc(referenceReg, DataSegmentKind::GlobalZero, dynamicReferenceOffset);
+
         const MicroReg countReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegMem(countReg, referenceReg, 0, MicroOpBits::B32);
 
         const MicroLabelRef releaseDependenciesLabel = builder.createLabel();
         builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, releaseDependenciesLabel);
+
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B32);
         builder.emitLoadMemReg(referenceReg, 0, countReg, MicroOpBits::B32);
         builder.emitCmpRegImm(countReg, ApInt(0, 64), MicroOpBits::B32);
@@ -397,6 +407,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 
         const MicroReg lifecycleStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegDataSegmentReloc(lifecycleStateReg, DataSegmentKind::GlobalZero, lifecycleStateOffset);
+
         const MicroReg staticOwnerReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegMem(staticOwnerReg, lifecycleStateReg, 0, MicroOpBits::B32);
         builder.emitOpBinaryRegImm(staticOwnerReg, ApInt(K_RUNTIME_HOOK_STATIC_OWNER, 64), MicroOp::And, MicroOpBits::B32);
@@ -407,6 +418,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 
         builder.placeLabel(releaseDependenciesLabel);
     }
+
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::DynamicUnload, hookArgs, nextVirtualIntRegIndex);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
@@ -434,6 +446,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
         if (functionInfo.symbol)
             builder_->functionBySymbol.emplace(functionInfo.symbol, &functionInfo);
     }
+
     return Result::Continue;
 }
 
@@ -445,6 +458,7 @@ Result NativeArtifactBuilder::prepareOutputFolders() const
     SWC_RESULT(createOutDir(paths.outDir));
     if (!paths.staticLibraryPath.empty())
         SWC_RESULT(createOutDir(paths.staticLibraryPath.parent_path()));
+
     return Result::Continue;
 }
 
@@ -453,6 +467,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     outPaths.workDir.clear();
     outPaths.buildDir.clear();
     outPaths.objectPaths.clear();
+
     const auto buildCfgName = Utf8(builder_->compiler().buildCfg().name);
     if (!buildCfgName.empty())
         outPaths.name = FileSystem::sanitizeFileName(buildCfgName);
@@ -521,16 +536,19 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
 
         if (sourceRoot.empty())
             sourceRoot = FileSystem::currentPathNoThrow();
+
         outPaths.workDir = sourceRoot / ".output" / automaticWorkDirName(outPaths.name).c_str();
     }
 
     outPaths.buildDir          = outPaths.workDir;
     outPaths.artifactExtension = artifactExtension();
-    const auto buildCfgOutDir  = Utf8(builder_->compiler().buildCfg().outDir);
+
+    const auto buildCfgOutDir = Utf8(builder_->compiler().buildCfg().outDir);
     if (!buildCfgOutDir.empty())
         outPaths.outDir = fs::path(buildCfgOutDir.c_str());
     else
         outPaths.outDir = outPaths.workDir;
+
     outPaths.artifactPath = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
     outPaths.pdbPath      = outPaths.outDir / std::format("{}.pdb", outPaths.name);
 
@@ -591,6 +609,7 @@ Result NativeArtifactBuilder::createOutDir(const fs::path& outDir) const
     fs::create_directories(outDir, ec);
     if (ec)
         return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(outDir), Diagnostic::ARG_BECAUSE, ec.message());
+
     return Result::Continue;
 }
 
@@ -598,7 +617,6 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
 {
     const CommandLine& cmdLine = builder_->ctx().cmdLine();
     Utf8               key;
-
     key += std::format("cmd={};os={};arch={};backend={};sub={};name={};", static_cast<int>(cmdLine.command), static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), static_cast<int>(builder_->compiler().buildCfg().backendKind), static_cast<int>(builder_->compiler().buildCfg().backendSubKind), name);
 
     if (!cmdLine.modulePath.empty())
@@ -648,6 +666,7 @@ Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const
     fs::create_directories(buildDir, ec);
     if (ec)
         return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(buildDir), Diagnostic::ARG_BECAUSE, ec.message());
+
     return Result::Continue;
 }
 
@@ -684,10 +703,12 @@ void NativeArtifactBuilder::resetDataSections() const
 {
     builder_->mergedRData.name            = ".rdata";
     builder_->mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
-    builder_->mergedData.name             = ".data";
-    builder_->mergedData.characteristics  = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
-    builder_->mergedBss.name              = ".bss";
-    builder_->mergedBss.characteristics   = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+
+    builder_->mergedData.name            = ".data";
+    builder_->mergedData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
+
+    builder_->mergedBss.name            = ".bss";
+    builder_->mergedBss.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
 
     CompilerInstance& compiler = builder_->compiler();
 
@@ -695,8 +716,10 @@ void NativeArtifactBuilder::resetDataSections() const
     builder_->mergedRData.relocations.clear();
     builder_->mergedData.bytes.clear();
     builder_->mergedData.relocations.clear();
+
     builder_->mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
     builder_->mergedBss.bss     = builder_->mergedBss.bssSize != 0;
+
     for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
     builder_->rdataAllocations.clear();
@@ -739,6 +762,7 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
             {
                 if (!names)
                     names = &builder_->scopedSymbolNames();
+
                 if (relocation.targetShardIndex == INVALID_REF)
                 {
                     record.symbolName = names->dataBase;
@@ -796,7 +820,8 @@ Result NativeArtifactBuilder::partitionObjects() const
     builder_->objectDescriptions.clear();
 
     const size_t functionCount = std::ranges::count_if(builder_->functionInfos, [](const NativeFunctionInfo& info) { return !info.cacheHit; });
-    uint32_t     maxJobs       = builder_->ctx().cmdLine().numCores;
+
+    uint32_t maxJobs = builder_->ctx().cmdLine().numCores;
     if (!maxJobs)
         maxJobs = std::max<uint32_t>(1, builder_->ctx().global().jobMgr().numWorkers());
     if (!maxJobs)
@@ -832,10 +857,12 @@ Result NativeArtifactBuilder::partitionObjects() const
         NativeFunctionInfo& info = builder_->functionInfos[i];
         if (info.cacheHit)
             continue;
+
         const uint32_t objIndex = static_cast<uint32_t>(functionIndex++ % numJobs);
         info.jobIndex           = objIndex;
         builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
+
     return Result::Continue;
 }
 
@@ -848,6 +875,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
     // selected functions, while relocations between allocation objects preserve transitive roots.
     const size_t     functionCount = builder_->functionInfos.size();
     constexpr size_t memberLimit   = std::numeric_limits<uint16_t>::max();
+
     // Allocation sections follow .text and use signed 16-bit COFF section indices.
     constexpr uint32_t maxBatchSize = std::numeric_limits<int16_t>::max() - 1;
     uint32_t           batchSize    = 1;
@@ -860,6 +888,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
                 result += (mappings.size() + count - 1) / count;
             return result;
         };
+
         const size_t minimumCount = countObjects(maxBatchSize);
         if (minimumCount > memberLimit)
             return builder_->reportError(DiagnosticId::cmd_err_link_archive_member_limit, Diagnostic::ARG_COUNT, static_cast<uint64_t>(minimumCount));
@@ -874,8 +903,10 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
             else
                 upper = middle;
         }
+
         objectCount = countObjects(batchSize);
     }
+
     const auto numObjects = static_cast<uint32_t>(objectCount);
     builder_->objectDescriptions.resize(numObjects);
 
@@ -898,8 +929,8 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
         builder_->objectDescriptions[objIndex].functions.push_back(&info);
     }
 
-    // Every relocation into an allocation names the allocation's symbol in this layout, and
-    // several objects name the same one: the name is formatted here, once per allocation.
+    // Multiple objects can relocate to the same allocation. Format its symbol once
+    // here, when assigning the allocation to its archive member.
     const uint32_t scopeHash = builder_->scopedSymbolNames().scopeHash;
     uint32_t       objIndex  = static_cast<uint32_t>(functionCount + 1);
     for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
@@ -920,6 +951,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
             }
         }
     }
+
     SWC_ASSERT(objIndex == numObjects);
 
     return Result::Continue;
@@ -944,6 +976,7 @@ Result NativeArtifactBuilder::partitionIncrementalObject() const
     {
         if (info.cacheHit)
             continue;
+
         info.jobIndex = 0;
         description.functions.push_back(&info);
     }
@@ -984,6 +1017,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
 
     if (builder_->compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
+
     // Source-driven native tests can legitimately build an executable with no user-defined
     // #main: #test and lifecycle hooks still need a startup thunk to run.
     if (builder_->mainFunctions.empty() && builder_->testFunctions.empty() && builder_->initFunctions.empty() && builder_->preMainFunctions.empty() && builder_->dropFunctions.empty())
@@ -1026,11 +1060,9 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     hookArgs.tlsIdPlusOne = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegMem(hookArgs.tlsIdPlusOne, tlsStorageReg, 0, MicroOpBits::B64);
 
-    // '__setupRuntime' has just read the real command line from the operating system into this
-    // executable's own 'Swag.processInfo().args'. Hand that slot down the hook chain so every imported module
-    // adopts it: 'Swag.processInfo()' is per-artifact, so without this 'Swag.args()' answers the executable and
-    // comes back empty in every shared library, and the runtime's own 'swag.test' guard -- which
-    // is what makes a '#test' run at all -- never sees the argument the compiler passed.
+    // Runtime setup populated this executable's ProcessInfo from the OS command
+    // line. Pass it to imported modules so Swag.args() and their test guards
+    // observe the same arguments despite having separate ProcessInfo slots.
     hookArgs.processArgs = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegDataSegmentReloc(hookArgs.processArgs, DataSegmentKind::GlobalZero, builder_->compiler().nativeProcessInfoOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfo, args)));
 
@@ -1068,6 +1100,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             const SourceFile* sourceFile = builder_->compiler().ownerSourceFile(symbol->srcViewRef());
             if (!sourceFile)
                 sourceFile = builder_->compiler().sourceViewFile(*symbol);
+
             const Utf8           testPath    = sourceFile ? Utf8Helper::normalizePathForCompare(sourceFile->path()) : Utf8{};
             const ConstantRef    testPathRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, testPath));
             const ConstantValue& testPathCst = ctx.cstMgr().get(testPathRef);
@@ -1113,10 +1146,9 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
         const ABICall::PreparedCall preparedTestsDone = ABICall::prepareArgs(builder, testsDoneFn->callConvKind(), {});
         ABICall::callLocal(builder, testsDoneFn->callConvKind(), testsDoneFn, preparedTestsDone);
     }
-    // The test command runs a module's #test functions and nothing else. Letting #main run
-    // as well would start the real application at the end of a test pass, with the side
-    // effects that implies: windows, shell registration, and writes to the application's own
-    // data. Covering startup is a #test's job, not a side effect of testing.
+
+    // The test command must stop after #test functions: running #main would also
+    // launch the application and its side effects. Startup coverage belongs in #test.
     if (ctx.cmdLine().command != CommandKind::Test)
         emitLifecycleCalls(builder, builder_->mainFunctions);
 

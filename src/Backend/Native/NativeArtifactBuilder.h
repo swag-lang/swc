@@ -11,8 +11,9 @@ class TaskContext;
 
 struct NativeArtifactPaths
 {
-    Utf8     name;
-    Utf8     artifactExtension;
+    Utf8 name;
+    Utf8 artifactExtension;
+
     fs::path workDir;
     fs::path buildDir;
     fs::path outDir;
@@ -21,7 +22,8 @@ struct NativeArtifactPaths
 
     // The static archive a shared library publishes beside its DLL, from the same objects. Empty
     // unless the build was asked for one through CommandLine::staticLibraryOutDir.
-    fs::path              staticLibraryPath;
+    fs::path staticLibraryPath;
+
     std::vector<fs::path> objectPaths;
 
     // How the stage reports name the artifact: its file name, or the whole path when it has none.
@@ -54,14 +56,11 @@ private:
     Result partitionObjects() const;
 
 public:
-    // Re-splits the very same machine code one function per object, which is the granularity the
-    // archive is dead-stripped at: the linker pulls whole members, so a member holding ten
-    // functions puts ten functions in an executable that asked for one. Object 0 keeps writable
-    // data, while read-only allocations get their own transitively linked members. Large
-    // archives batch adjacent allocations to fit the 16-bit member directory.
+    // Partition lowered code into one-function members so archive extraction
+    // retains only the requested functions. Object 0 owns writable data; read-only
+    // allocations use transitively linked members, batched to fit the 16-bit directory.
     //
-    // Valid only once the artifact this module publishes has been lowered, because it overwrites
-    // the text offsets that lowering computed.
+    // Lowering must be complete: partitioning overwrites its text offsets.
     Result partitionArchiveObjects() const;
     Result partitionIncrementalObject() const;
     Result partitionIncrementalFunctionObjects() const;

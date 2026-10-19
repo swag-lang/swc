@@ -1605,11 +1605,11 @@ namespace
         if (symImpl.isForEnum())
             return ownerType;
 
-        // The receiver is the object's address: a non-null value pointer, const for
-        // 'mtd const'. References no longer exist as a surface type.
+        // The receiver is a non-null value pointer, const for mtd const.
         TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
         if (isConstReceiver)
             typeFlags.add(TypeInfoFlagsE::Const);
+
         return sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerType, typeFlags));
     }
 
@@ -1660,19 +1660,20 @@ namespace
         return receiver;
     }
 
-    // Enters the body of 'sym': a frame bound to its receiver and return type, and a local scope
-    // over its symbols.
     void enterFunctionBody(Sema& sema, SymbolFunction& sym)
     {
         auto frame = sema.frame();
+
         // Lookup-scope overrides are expression-local. A fresh function body must
         // start from its lexical scope or local declarations can miss themselves.
         frame.setLookupScope(nullptr);
         frame.setUpLookupScope(nullptr);
         frame.setIgnoreRuntimeAccess(false);
         frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+
         if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
             frame.pushBindingVar(receiver);
+
         // The return type binds a short body; a block body clears it at its first statement.
         frame.pushBindingType(sym.returnTypeRef());
         sema.pushFramePopOnPostNode(std::move(frame));
@@ -1732,6 +1733,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
             {
                 sym.addExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed);
                 sym.setConstraintsResolved(sema.ctx());
+
                 return Result::SkipChildren;
             }
 
@@ -1805,6 +1807,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         {
             TypeRef returnTypeRef = sema.viewType(nodeBodyRef).typeRef();
             SWC_RESULT(concretizeImplicitReturnTypeIfNeeded(sema, nodeBodyRef, returnTypeRef));
+
             sym.setReturnTypeRef(returnTypeRef);
             setIsTyped = true;
         }
@@ -1814,6 +1817,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         TypeRef returnType = sema.typeMgr().typeVoid();
         if (nodeReturnTypeRef.isValid())
             returnType = sema.viewType(nodeReturnTypeRef).typeRef();
+
         sym.setReturnTypeRef(returnType);
         setIsTyped = true;
     }
@@ -1822,6 +1826,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
     {
         if (sym.returnTypeRef().isValid() && sema.typeMgr().get(sym.returnTypeRef()).isCodeBlock())
             return SemaError::raiseCodeTypeRestricted(sema, nodeReturnTypeRef.isValid() ? nodeReturnTypeRef : childRef, sym.returnTypeRef());
+
         SWC_RESULT(SemaCheck::noMoveRefType(sema, sym.returnTypeRef(), sema.node(nodeReturnTypeRef.isValid() ? nodeReturnTypeRef : childRef).codeRef()));
 
         sym.setVariadicParamFlag(sema.ctx());
@@ -1838,6 +1843,7 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
             TypeRef foreignSimdTypeRef = TypeRef::invalid();
             if (sym.returnTypeRef().isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sym.returnTypeRef()).isSimd())
                 foreignSimdTypeRef = sym.returnTypeRef();
+
             for (const SymbolVariable* param : sym.parameters())
             {
                 if (foreignSimdTypeRef.isValid())
@@ -1851,16 +1857,18 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_foreign_simd_type, sema.curNodeRef(), SemaError::ReportLocation::Token);
                 diag.addArgument(Diagnostic::ARG_TYPE, foreignSimdTypeRef);
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
         }
 
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
+
         sym.setTypeRef(typeRef);
-        // Signature-only preparation can stop here before the declaring walk visits
-        // the body. Publish its deferred work before Typed wakes callers, otherwise
-        // they can consume an empty borrow summary and leave the body unanalysed.
+
+        // Publish deferred body work before Typed wakes signature-only callers,
+        // or they may consume an empty borrow summary while the body is unanalysed.
         if (!sym.isTyped() && canDelayFunctionBody(sema, *this, sym, functionDeclImplContext(sema, &sym)))
             sym.addExtraFlag(SymbolFunctionFlagsE::LazyBody);
         sym.setTyped(sema.ctx());
@@ -1892,6 +1900,7 @@ Result AstClosureExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
     auto& sym = functionExprSymbol(sema, sema.curNodeRef());
     SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
+
     return attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym);
 }
 

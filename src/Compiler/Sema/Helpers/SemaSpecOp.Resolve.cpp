@@ -913,13 +913,16 @@ namespace
         SWC_RESULT(matchSyntheticCall(sema, candidates, args, ufcsArg, allowNoMatch, resolvedArgs, matched));
         if (!matched)
             return Result::Continue;
+
         if (outMatched)
             *outMatched = true;
+
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
 
         auto& calledFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
         if (outCalledFn)
             *outCalledFn = &calledFn;
+
         sema.setType(sema.curNodeRef(), calledFn.returnTypeRef());
         sema.setIsValue(sema.curNode());
         sema.unsetIsLValue(sema.curNodeRef());
@@ -942,6 +945,7 @@ namespace
 
         if (allowInline)
             SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
+
         SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__spec_op_runtime_storage"));
         return Result::Continue;
     }
@@ -950,7 +954,9 @@ namespace
     {
         const AstNodeRef inlineRootRef = sema.hasSubstitute(indexExprRef) ? sema.resolvedNodeRef(indexExprRef) : AstNodeRef::invalid();
         auto*            payload       = sema.compiler().allocate<IndexSpecOpSemaPayload>();
-        payload->calledFn              = &calledFn;
+
+        payload->calledFn = &calledFn;
+
         // A re-resolved clone (a detached binding expression carried its source's
         // selection) legitimately replaces the previous selection.
         sema.clearSemaPayload(indexExprRef);
@@ -978,13 +984,13 @@ namespace
         {
             if (calledFn.specOpKind() == SpecOpKind::OpIndexPtr)
             {
-                // The expansion produces an address; the index expression designates
-                // its element. Keep both nodes so assigning the element's type cannot
-                // erase the expansion or make codegen read the pointer as the value.
+                // Keep the expansion's address distinct from the indexed element, so
+                // assigning the element type cannot erase it or make codegen load a pointer as a value.
                 auto [loadRef, load] = sema.ast().makeNode<AstNodeId::IndexExpr>(sema.node(indexExprRef).tokRef());
                 load->setCodeRef(sema.node(indexExprRef).codeRef());
                 load->nodeExprRef = inlineRootRef;
                 load->nodeArgRef  = makeSyntheticU64Arg(sema, sema.node(indexExprRef).codeRef(), 0);
+
                 sema.setType(loadRef, returnType.payloadTypeRef());
                 sema.setIsValue(loadRef);
                 sema.setIsLValue(loadRef);
@@ -1029,10 +1035,8 @@ namespace
             const TypeInfo*       receiverType = receiver ? &sema.typeMgr().get(receiver->typeRef()) : nullptr;
             if (receiverType && receiverType->isReferenceOrNonNullValuePointer())
             {
-                // A reference receiver bound the operand's value by materializing it and
-                // taking its address; the pointer-world receiver binds the same way, so a
-                // non-pointer operand passes its ADDRESS (loading its first bytes as the
-                // receiver pointer would index through the operand's leading field).
+                // Reference and non-null pointer receivers bind operand storage by address.
+                // Passing its first bytes as a pointer would instead follow the leading field.
                 const SemaNodeView operandView      = sema.viewNodeTypeSymbol(exprRef);
                 const bool         operandIsPointee = !operandView.type() || !operandView.type()->isPointerOrReference();
                 if (receiverType->isReference())
@@ -1071,6 +1075,7 @@ namespace
             sema.unsetIsLValue(sema.curNodeRef());
 
             SemaHelpers::addCurrentFunctionCallDependency(sema, calledFn);
+
             if (allowConstEval)
             {
                 SWC_RESULT(SemaJIT::tryRunConstCall(sema, *calledFn, sema.curNodeRef(), resolvedArgs.span()));
@@ -1193,18 +1198,14 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
         SWC_RESULT(collectSetCandidates(sema, *ownerStruct, node.codeRef(), node.nodeRightRef, candidates));
     else
         SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, false, candidates));
+
     if (candidates.empty())
         return Result::Continue;
 
-    // `#relocate` and `#nodrop` write into a target that is treated as uninitialized (or
-    // moved-from), with or without `#move`: the value is moved/copied into it bitwise, then
-    // opPostMove / opPostCopy fixes it up. They must never be rerouted through a by-value `opSet`,
-    // which reads the (uninitialized or moved-from) target - its `.buffer` aliasing check and
-    // `.allocator`/buffer reuse - corrupting move-only handles such as String/Array (e.g. crashing
-    // Array.popBack's raw relocation into its result slot, or corrupting Array.insertAt when it
-    // overwrites a slot whose buffer was just raw-moved to a neighbour, and whose bytes lifecycle
-    // safety has poisoned). A plain `#move` replaces an existing value, so it keeps its user `opSet`
-    // (move-only handles transfer ownership via the dedicated raw modifier).
+    // Relocate/nodrop target raw or moved-from storage. Use bitwise transfer followed
+    // by opPostMove/opPostCopy: a by-value opSet could inspect uninitialized or poisoned
+    // buffer/allocator fields. Plain move replaces an existing value and keeps its
+    // user opSet; raw ownership transfers require the dedicated modifier.
     if (tok.id == TokenId::SymEqual && node.modifierFlags.hasAny({AstModifierFlagsE::Relocate, AstModifierFlagsE::NoDrop}))
         return Result::Continue;
 
@@ -1256,7 +1257,8 @@ Result SemaSpecOp::tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstN
         return Result::Continue;
 
     sema.ensureSemaPayload<VarInitSpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
-    outHandled                                                               = calledFn != nullptr;
+
+    outHandled = calledFn != nullptr;
     return Result::Continue;
 }
 
@@ -1294,6 +1296,7 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
     AstNodeRef receiverRef = sema.resolvedNodeRef(node.nodeExprRef);
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
+
     SmallVector<ResolvedCallArgument> resolvedArgs;
     SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args, receiverRef, true, resolvedArgs, outMatched));
     return Result::Continue;
@@ -1322,6 +1325,7 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, Symbo
     AstNodeRef receiverRef = sema.resolvedNodeRef(node.nodeExprRef);
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
+
     bool matched = false;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args, receiverRef, true, &matched, false, true, &outCalledFn));
     outHandled = matched;
@@ -1341,10 +1345,12 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     const auto&        range        = sema.node(node.nodeArgRef).cast<AstRangeExpr>();
     const SemaNodeView nodeDownView = sema.viewTypeConstant(range.nodeExprDownRef);
     const SemaNodeView nodeUpView   = sema.viewTypeConstant(range.nodeExprUpRef);
-    int64_t            constDown    = 0;
-    int64_t            constUp      = 0;
-    bool               hasConstDown = false;
-    bool               hasConstUp   = false;
+
+    int64_t constDown    = 0;
+    int64_t constUp      = 0;
+    bool    hasConstDown = false;
+    bool    hasConstUp   = false;
+
     SWC_RESULT(checkSliceSpecOpBound(sema, range.nodeExprDownRef, nodeDownView, constDown, hasConstDown));
     SWC_RESULT(checkSliceSpecOpBound(sema, range.nodeExprUpRef, nodeUpView, constUp, hasConstUp));
 
@@ -1355,9 +1361,8 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
             return SemaError::raiseInvalidRangeBounds(sema, node.nodeArgRef, nodeDownView.cstRef(), nodeUpView.cstRef());
         }
 
-        // 'opSlice' takes an inclusive upper bound, so lowering an exclusive range subtracts
-        // one from it. An empty range has no inclusive spelling and would hand the hook a
-        // bound below its lower bound, so it is rejected here instead of at the hook.
+        // opSlice needs an inclusive upper bound. An empty exclusive range cannot be
+        // lowered by subtracting one without placing that bound below the lower bound.
         if (constDown == constUp && !range.hasFlag(AstRangeExprFlagsE::Inclusive))
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_empty_op_slice, node.nodeArgRef);
@@ -1427,6 +1432,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
 
     if (!matched)
         SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args, node.nodeExprRef, true, resolvedArgs, matched));
+
     if (!matched)
         return Result::Continue;
 
@@ -1448,9 +1454,11 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     sema.setIsValue(resultNodeRef);
     sema.unsetIsLValue(sema.curNodeRef());
     sema.unsetIsLValue(resultNodeRef);
+
     SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__spec_op_runtime_storage"));
 
-    auto* payload          = sema.compiler().allocate<SliceSpecOpSemaPayload>();
+    auto* payload = sema.compiler().allocate<SliceSpecOpSemaPayload>();
+
     payload->calledFn      = &calledFn;
     payload->countFn       = countFn;
     payload->lowerArgRef   = lowerArgRef;
@@ -1458,8 +1466,9 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     payload->lowerBoundRef = range.nodeExprDownRef;
     payload->upperBoundRef = range.nodeExprUpRef;
     payload->inclusive     = range.hasFlag(AstRangeExprFlagsE::Inclusive);
-    // Imported macro expansion can re-resolve a detached slice clone carrying the source
-    // lowering payload. The selected special operation is now final and owns fresh argument refs.
+
+    // Detached imported-macro clones may retain an old lowering payload. Replace it
+    // with the final operation and its freshly created argument refs.
     sema.clearSemaPayload(sema.curNodeRef());
     sema.setSemaPayload(sema.curNodeRef(), payload);
 

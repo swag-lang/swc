@@ -58,9 +58,10 @@ namespace
     {
         outTypeRef = TypeRef::invalid();
 
-        const TaskContext& ctx                    = sema.ctx();
-        const TypeRef      normalizedTrueTypeRef  = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeTrueView.typeRef(), nodeTrueView.cstRef(), nodeTrueView.nodeRef());
-        const TypeRef      normalizedFalseTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeFalseView.typeRef(), nodeFalseView.cstRef(), nodeFalseView.nodeRef());
+        const TaskContext& ctx = sema.ctx();
+
+        const TypeRef normalizedTrueTypeRef  = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeTrueView.typeRef(), nodeTrueView.cstRef(), nodeTrueView.nodeRef());
+        const TypeRef normalizedFalseTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeFalseView.typeRef(), nodeFalseView.cstRef(), nodeFalseView.nodeRef());
         if (normalizedTrueTypeRef == nodeTrueView.typeRef() && normalizedFalseTypeRef == nodeFalseView.typeRef())
             return Result::Continue;
 
@@ -87,14 +88,16 @@ namespace
         const bool preserveFalseAlias = falseTypeRef != concreteFalseTypeRef && concreteFalseTypeRef == resultTypeRef;
         if (preserveTrueAlias == preserveFalseAlias)
             return resultTypeRef;
+
         return preserveTrueAlias ? trueTypeRef : falseTypeRef;
     }
 
     TypeRef resolveConditionalNullabilityJoin(Sema& sema, const TypeRef trueTypeRef, const TypeRef falseTypeRef)
     {
-        const TypeInfo& rawTrueType          = sema.typeMgr().get(trueTypeRef);
-        const TypeInfo& trueType             = rawTrueType.unwrapAliasTypeOrSelf(sema.ctx());
-        const TypeRef   concreteTrueTypeRef  = trueType.typeRef();
+        const TypeInfo& rawTrueType         = sema.typeMgr().get(trueTypeRef);
+        const TypeInfo& trueType            = rawTrueType.unwrapAliasTypeOrSelf(sema.ctx());
+        const TypeRef   concreteTrueTypeRef = trueType.typeRef();
+
         const TypeInfo& rawFalseType         = sema.typeMgr().get(falseTypeRef);
         const TypeInfo& falseType            = rawFalseType.unwrapAliasTypeOrSelf(sema.ctx());
         const TypeRef   concreteFalseTypeRef = falseType.typeRef();
@@ -107,6 +110,7 @@ namespace
 
             TypeInfo resultType = valueType;
             resultType.addFlag(TypeInfoFlagsE::Nullable);
+
             const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
             return preserveUnambiguousConditionalAlias(resultTypeRef, trueTypeRef, concreteTrueTypeRef, falseTypeRef, concreteFalseTypeRef);
         }
@@ -116,6 +120,7 @@ namespace
 
         TypeInfo trueBaseType = trueType;
         trueBaseType.removeFlag(TypeInfoFlagsE::Nullable);
+
         TypeInfo falseBaseType = falseType;
         falseBaseType.removeFlag(TypeInfoFlagsE::Nullable);
         if (trueBaseType != falseBaseType)
@@ -202,6 +207,7 @@ namespace
 
         TypeInfo resultType = leftType;
         resultType.removeFlag(TypeInfoFlagsE::Nullable);
+
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
         if (resultTypeRef == concreteLeftTypeRef)
             return leftTypeRef;
@@ -224,13 +230,9 @@ namespace
         return !SemaHelpers::aliasEnumType(sema, nodeLeftView).isNullable();
     }
 
-    // 'orelse' substitutes a MISSING value, never a zero one, so its left operand has to be
-    // of a type that can carry null at all. Substituting a zero is a different question, and
-    // the ternary already answers it.
-    //
-    // The test is on the type's CAPABILITY, not on what flow analysis currently knows: a
-    // narrowed operand, or a generic instantiated with a non-null argument, keeps compiling.
-    // A dead fallback is a code-quality matter, not a broken contract.
+    // Check whether the type can represent null, independently of flow narrowing.
+    // Narrowed operands and non-null generic arguments remain valid; a dead
+    // fallback does not invalidate the operator.
     Result checkNullCoalescingOperand(Sema& sema, const SemaNodeView& nodeLeftView)
     {
         const TypeRef leftTypeRef = nodeLeftView.typeRef();

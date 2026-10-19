@@ -354,6 +354,7 @@ namespace
         diag.addNote(DiagnosticId::sema_note_previous_default_case);
         diag.last().addSpan(sema.node(switchPayload->firstDefaultRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -371,6 +372,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_enum_value_requires_dot, caseExprRef);
         diag.addArgument(Diagnostic::ARG_SYM, idRef);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 }
@@ -381,12 +383,9 @@ TypeRef SemaSwitch::caseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
     if (const TypeInfo* enumType = SemaSwitch::enumType(sema, switchType))
         return enumType->typeRef();
 
-    // A switch case only COMPARES against the operand, it never writes through it:
-    // like relational comparisons, a non-null pointer operand can be compared with
-    // `case null` (statically always false). Case values therefore cast to the
-    // nullable form of the operand type. This also keeps compilation independent of
-    // inlining: an inlined body whose nullable parameter was materialized from a
-    // non-null argument must still accept its `case null`.
+    // Cases compare pointers without writing through them, so allow case null
+    // even for a non-null operand. This also preserves source validity when
+    // inlining replaces a nullable parameter with a non-null argument.
     if (switchTypeRef.isValid())
     {
         if (switchType.isAnyPointer() && !switchType.isNullable())
@@ -408,6 +407,7 @@ Result SemaSwitch::normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef,
 
     SWC_RESULT(Cast::cast(sema, exprView, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
     exprView = sema.viewNodeTypeConstant(exprRef);
+
     return Result::Continue;
 }
 
@@ -421,11 +421,13 @@ Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef expr
     {
         const TypeInfo& originalPointee = sema.typeMgr().get(finalType.payloadTypeRef());
         const TypeInfo& pointee         = originalPointee.unwrapAliasTypeOrSelf(sema.ctx());
+
         // The dynamic marker belongs to the struct's attributes, which may still
         // be under analysis when a function first switches on its pointer.
         if (pointee.isStruct())
             SWC_RESULT(sema.waitSemaCompleted(&pointee, exprRef));
     }
+
     if (SemaSwitch::isDynamicType(sema, originalType) || finalType.isScalarNumeric() || finalType.isBool() || finalType.isString() || finalType.isAnyPointer() || finalType.isAnyTypeInfo(sema.ctx()))
         return Result::Continue;
 
@@ -441,15 +443,16 @@ Result AstSwitchStmt::semaPreNode(Sema& sema) const
     // and not an attribute: there is no symbol to hang an attribute on.
     const bool isComplete = modifierFlags.has(AstModifierFlagsE::Complete);
 
-    // Register switch
     SemaFrame frame = sema.frame();
     frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Switch);
     frame.setCurrentSwitch(sema.curNodeRef());
     sema.pushFramePopOnPostNode(std::move(frame));
 
-    auto* payload       = sema.compiler().allocate<SwitchPayload>();
+    auto* payload = sema.compiler().allocate<SwitchPayload>();
+
     payload->isComplete = isComplete;
     sema.setSemaPayload(sema.curNodeRef(), payload);
+
     return Result::Continue;
 }
 
@@ -480,6 +483,7 @@ bool SemaSwitch::alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstS
 
     SmallVector<AstNodeRef> children;
     Ast::nodeIdInfos(switchStmt.id()).collectChildren(children, sema.ast(), switchStmt);
+
     for (const AstNodeRef childRef : children)
     {
         if (childRef.isInvalid())
@@ -515,6 +519,7 @@ Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, 
         SWC_ASSERT(sym != nullptr);
         if (!sym->isEnumValue())
             continue;
+
         const auto&       value  = sym->cast<SymbolEnumValue>();
         const ConstantRef cstRef = value.cstRef();
         if (cstRef.isInvalid())
@@ -544,6 +549,7 @@ Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         SemaFrame frame = sema.frame();
         frame.setCurrentSwitchCase(childRef);
         sema.pushFramePopOnPostChild(std::move(frame), childRef);
+
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
         // Every case is a borrow-flow alternative starting from the switch entry state.
@@ -569,9 +575,10 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         auto* payload        = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
         payload->exprTypeRef = exprView.typeRef();
+
         SWC_RESULT(attachSwitchExprRuntimeDependencies(sema, *payload, exprView.typeRef(), sema.node(sema.curNodeRef()).codeRef()));
 
-        // Every case of a switch on an enum names the members bare, in its label and its body.
+        // Keep the enum scope available throughout the case labels and bodies.
         SemaSwitch::pushEnumScopeBinding(sema, SemaSwitch::enumType(sema, *exprView.type()));
     }
 
@@ -599,6 +606,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
 
     const SwitchPayload* payload = sema.semaPayload<SwitchPayload>(switchRef);
     SWC_ASSERT(payload != nullptr);
+
     const TypeRef switchTypeRef = payload->exprTypeRef;
 
     const AstNodeRef bindingRef = conditionBindingRef(sema.ast());
@@ -606,19 +614,24 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
     {
         if (switchTypeRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_binding_has_expr, bindingRef);
+
         if (childRef == nodeWhereRef || childRef == nodeBodyRef)
         {
             const Symbol* symbol = sema.viewSymbol(bindingRef).singleSymbol();
             if (symbol && symbol->isVariable() && symbol->typeInfo(sema.ctx()).isNullable())
             {
-                SemaFrame                          frame = sema.frame();
-                const std::array<const Symbol*, 1> path  = {symbol};
+                SemaFrame frame = sema.frame();
+
+                const std::array<const Symbol*, 1> path = {symbol};
+
                 frame.addNarrowFact(path, SemaNarrowFactKind::NonNull);
                 sema.pushFramePopOnPostChild(std::move(frame), childRef);
             }
         }
+
         return Result::Continue;
     }
+
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
     {

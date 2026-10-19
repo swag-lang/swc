@@ -1012,14 +1012,10 @@ namespace
 
         if (sema.node(sourceRef).is(AstNodeId::Identifier) && sema.node(clonedRef).is(AstNodeId::Identifier))
         {
-            // Use the stored symbol when present (the committed truth for already-resolved nodes).
-            // Fall back to the live (current-pass) symbol only when nothing is stored: a synthesized
-            // auto-member receiver (`makeAutoMemberLeftExpr`'s implicit-`me` `.` marker) is bound via
-            // setSymbol during the current resolution and may not be committed to the stored payload
-            // yet when a caller receiver expression is cloned for inline materialization. Without the
-            // fallback the cloned `.` is symbolless and re-resolves by name in the callee frame
-            // (caller `me` gone) and stalls. Stored-first keeps already-resolved identifiers (the
-            // common case) byte-for-byte unchanged.
+            // Prefer committed symbols. A synthesized implicit receiver may only have a
+            // current-pass binding when cloned for inline materialization. Preserve that
+            // binding too, or the clone tries to resolve the caller's receiver in the
+            // callee's scope and stalls.
             SemaNodeView  symbolView = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol);
             const Symbol* symbol     = symbolView.sym();
             if (!symbol)
@@ -1027,6 +1023,7 @@ namespace
                 symbolView = sema.viewSymbol(sourceRef);
                 symbol     = symbolView.sym();
             }
+
             // A cloned callable owns fresh locals and captures. Pinning its
             // identifiers back to the source callable shares mutable storage
             // metadata between the two independent code-generation jobs.
@@ -1037,12 +1034,14 @@ namespace
                     variable.hasExtraFlag(SymbolVariableFlagsE::Parameter) || variable.isClosureCapture())
                     return;
             }
+
             if (symbol)
             {
                 if (symbolView.hasSymbolList())
                     sema.setSymbolList(clonedRef, symbolView.symList());
                 else
                     sema.setSymbol(clonedRef, symbol);
+
                 sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
             }
             else
@@ -1057,6 +1056,7 @@ namespace
                 {
                     if (sourceView.typeRef().isValid())
                         sema.setType(clonedRef, sourceView.typeRef());
+
                     sema.setConstant(clonedRef, sourceView.cstRef());
                     sema.setIsValue(clonedRef);
                     sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::ConstantBinding);

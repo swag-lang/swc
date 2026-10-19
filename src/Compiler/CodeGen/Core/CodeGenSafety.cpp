@@ -215,6 +215,7 @@ namespace
         SWC_ASSERT(bits > 0 && bits <= 64);
         if (bits == 64)
             return 1ull << 63;
+
         const int64_t value = -(static_cast<int64_t>(1ull << (bits - 1)));
         return static_cast<uint64_t>(value);
     }
@@ -239,30 +240,37 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
 {
     codeGen.valueBorrowSites.clear();
     codeGen.needsValueBorrowRuntime = hasValueBorrowSafety(codeGen);
+
     RefSet<AstNodeRef> visited;
     struct PendingNode
     {
         AstNodeRef ref;
         bool       bodyEnabled;
     };
+
     SmallVector<PendingNode> pending;
     SmallVector<AstNodeRef>  children;
     pending.push_back({bodyRef, hasValueBorrowSafety(codeGen)});
+
     while (!pending.empty())
     {
         const PendingNode next = pending.back();
         pending.pop_back();
+
         const AstNodeRef ref = codeGen.resolvedNodeRef(next.ref);
         if (ref.isInvalid() || !visited.insert(ref))
             continue;
+
         const AstNode& node = codeGen.node(ref);
         if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
             continue;
+
         const auto* expansion   = codeGen.sema().inlinePayload(ref);
         const auto* lowering    = codeGen.loweringPayload(ref);
         const bool  bodyEnabled = expansion ? (expansion->runtimeSafetyMask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0 : next.bodyEnabled;
         const bool  enabled     = lowering && lowering->valueBorrowSafetyOverride >= 0 ? lowering->valueBorrowSafetyOverride != 0 : bodyEnabled;
         codeGen.needsValueBorrowRuntime |= enabled;
+
         const bool callerEnabled = expansion && (expansion->callerRuntimeSafetyMask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow));
         codeGen.needsValueBorrowRuntime |= callerEnabled;
         if (callerEnabled && expansion->inlineRootRef == ref)
@@ -271,12 +279,14 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
             {
                 if (binding.valueBorrowHomeRef.isInvalid())
                     continue;
+
                 frameSize = Math::alignUpU64(frameSize, alignof(Runtime::ValueBorrowRecord));
                 SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
                 codeGen.valueBorrowSites.push_back({binding.valueBorrowHomeRef, ref, binding.sourceParam->typeRef(), static_cast<uint32_t>(frameSize), true});
                 frameSize += sizeof(Runtime::ValueBorrowRecord);
             }
         }
+
         if (enabled && codeGen.sema().currentNodePayloadContext().hasResolvedCallArguments(ref))
         {
             const SymbolFunction* function = CodeGenCallHelpers::selectedCallFunction(codeGen, ref);
@@ -286,36 +296,45 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
                 if (callee.type() && callee.type()->isFunction())
                     function = &callee.type()->payloadSymFunction();
             }
+
             if (function)
             {
                 SmallVector<ResolvedCallArgument> args;
                 codeGen.appendResolvedCallArguments(ref, args);
+
                 const auto& params     = function->parameters();
                 size_t      paramIndex = 0;
+
                 for (size_t i = 0; i < args.size() && !params.empty(); ++i)
                 {
                     // Interface dispatch prepends the receiver object, which no declared parameter describes.
                     if (args[i].passKind == CallArgumentPassKind::InterfaceObject)
                         continue;
+
                     const size_t argParamIndex = paramIndex++;
                     if (args[i].argRef.isInvalid() || args[i].movesValueToParam)
                         continue;
+
                     const auto* param      = params[std::min(argParamIndex, params.size() - 1)];
                     TypeRef     borrowType = param->typeRef();
                     if (param->type(codeGen.ctx()).isVariadic())
                     {
                         borrowType       = codeGen.viewType(args[i].argRef).typeRef();
                         const auto& type = codeGen.typeMgr().get(borrowType);
+
                         // Untyped varargs keep large values by address, but spill small values
                         // and copy an existing 'any' descriptor into their own pack.
                         if (type.isAny() || type.sizeOf(codeGen.ctx()) <= 8)
                             continue;
                     }
+
                     if (!isBorrowedValueType(codeGen, borrowType))
                         continue;
+
                     const auto abi = ABITypeNormalize::normalize(codeGen.ctx(), CallConv::get(function->callConvKind()), codeGen.typeMgr().get(borrowType), ABITypeNormalize::Usage::Argument);
                     if (!abi.isIndirect || abi.needsIndirectCopy)
                         continue;
+
                     frameSize = Math::alignUpU64(frameSize, alignof(Runtime::ValueBorrowRecord));
                     SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
                     codeGen.valueBorrowSites.push_back({codeGen.resolvedNodeRef(args[i].argRef), ref, borrowType, static_cast<uint32_t>(frameSize), false});
@@ -323,6 +342,7 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
                 }
             }
         }
+
         children.clear();
         node.collectChildrenFromAst(children, codeGen.ast());
         for (const AstNodeRef child : children)
@@ -335,6 +355,7 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
     {
         if (!site.addressHome && site.scopeRef.isValid())
             codeGen.valueBorrowValueScopeRefs.insert(site.scopeRef);
+
         if (site.expressionRef.isValid())
             codeGen.valueBorrowExpressionRefs.insert(site.expressionRef);
     }

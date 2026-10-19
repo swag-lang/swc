@@ -2033,12 +2033,14 @@ namespace
         }
 
         auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
+
         // A by-value parameter is a mutable local of the callee, so a home whose address
         // the body takes must be a 'var': a 'let' home would answer 'const *T' where the
         // parameter answered '*T'.
         const bool materializedAsLet = !mat.forRuntimeSafety && !mat.needsMutableHome && !(mat.hasAddressUse && !mat.bindsByAddress) && !mat.capturedByRef;
         declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
         declPtr->tokNameRef          = paramNameRef;
+
         if (mat.forAddress && paramType.isReference())
         {
             declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
@@ -2055,6 +2057,7 @@ namespace
                   isInlineCoercibleLiteralArg(sema.node(ioBinding.exprRef)) || contextualLambda || SemaHelpers::canUseContextualBinding(sema, ioBinding.exprRef)))
         {
             AstNodeRef materializedTypeRef = AstNodeRef::invalid();
+
             // A synthesized receiver has no declaration to clone a type node from.
             if (const auto* paramDecl = param.declAs<AstSingleVarDecl>();
                 paramDecl && paramDecl->nodeTypeRef.isValid())
@@ -2062,6 +2065,7 @@ namespace
                 const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, context.sourceAst};
                 materializedTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);
             }
+
             if (materializedTypeRef.isInvalid())
             {
                 if (contextualLambda)
@@ -2072,6 +2076,7 @@ namespace
             else
                 declPtr->nodeTypeRef = materializedTypeRef;
         }
+
         declPtr->nodeInitRef            = clonedInitRef;
         SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, param, paramNameRef, *declPtr, materializedAsLet);
         sema.setSymbol(declRef, materializedSym);

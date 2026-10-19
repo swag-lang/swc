@@ -296,6 +296,7 @@ namespace
                 if (activeRef == ref)
                     return true;
             }
+
             return false;
         }
 
@@ -305,6 +306,7 @@ namespace
         {
             if (ref.isInvalid())
                 return ref;
+
             const AstNodeRef resolved = sema_->resolvedNodeRef(ref);
             return resolved.isValid() ? resolved : ref;
         }
@@ -316,6 +318,7 @@ namespace
             const SourceCodeRef& codeRef = node.codeRef();
             if (!codeRef.isValid())
                 return fallback;
+
             return sema_->token(codeRef).id;
         }
 
@@ -329,6 +332,7 @@ namespace
                 const AstNodeRef rawRef      = ref;
                 const AstNodeRef resolvedRef = resolve(ref);
                 bool             cycles      = false;
+
                 for (const AstNodeRef seenRef : seen)
                 {
                     if (seenRef == resolvedRef)
@@ -337,11 +341,13 @@ namespace
                         break;
                     }
                 }
+
                 ref = cycles ? rawRef : resolvedRef;
                 if (ref.isInvalid())
                     return ref;
                 if (!cycles)
                     seen.push_back(ref);
+
                 const AstNode& node = sema_->node(ref);
                 switch (node.id())
                 {
@@ -351,16 +357,19 @@ namespace
                     case AstNodeId::InitializerExpr:
                         ref = node.cast<AstInitializerExpr>().nodeExprRef;
                         break;
+
                     case AstNodeId::AutoCastExpr:
                         if (node.cast<AstAutoCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
                             return ref;
                         ref = node.cast<AstAutoCastExpr>().nodeExprRef;
                         break;
+
                     case AstNodeId::CastExpr:
                         if (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) || node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Fallible))
                             return ref;
                         ref = node.cast<AstCastExpr>().nodeExprRef;
                         break;
+
                     case AstNodeId::AsCastExpr:
                         return ref;
                     case AstNodeId::NamedArgument:
@@ -370,6 +379,7 @@ namespace
                         return ref;
                 }
             }
+
             return ref;
         }
 
@@ -377,10 +387,12 @@ namespace
         {
             if (ref.isInvalid())
                 return nullptr;
+
             const SemaNodeView view = sema_->viewSymbol(ref);
             Symbol*            sym  = view.hasSymbol() ? view.singleSymbol() : nullptr;
             if (!sym || !sym->isVariable())
                 return nullptr;
+
             return &sym->cast<SymbolVariable>();
         }
 
@@ -413,14 +425,17 @@ namespace
                         const int32_t idx = indexOfVariable(vars_, identifierVariable(ref));
                         if (idx < 0)
                             return false;
+
                         out.varIndex = idx;
                         if (!fieldChain.empty())
                         {
                             out.fieldIndex  = fieldIndexOf(vars_[idx], fieldChain.back());
                             out.nestedField = fieldChain.size() > 1;
                         }
+
                         return true;
                     }
+
                     case AstNodeId::MemberAccessExpr:
                     {
                         const auto&        member   = node.cast<AstMemberAccessExpr>();
@@ -428,21 +443,26 @@ namespace
                         const SemaNodeView view     = sema_->viewSymbol(member.nodeRightRef);
                         if (view.hasSymbol())
                             fieldSym = view.singleSymbol();
+
                         fieldChain.push_back(fieldSym);
                         ref = unwrap(member.nodeLeftRef);
                         if (ref.isInvalid())
                             return false;
+
                         break;
                     }
+
                     case AstNodeId::AutoMemberAccessExpr:
                     {
                         // Attribute an implicit receiver to an explicit 'with' target,
                         // or to the receiver of an opSet being analyzed.
                         if (withTargets_.empty() && fullInitReceiverIndex_ < 0)
                             return false;
+
                         out.varIndex = withTargets_.empty() ? fullInitReceiverIndex_ : withTargets_.back();
                         if (out.varIndex < 0)
                             return false;
+
                         const auto&        autoMember = node.cast<AstAutoMemberAccessExpr>();
                         const AstNodeRef   identRef   = autoMember.nodeIdentRef.isValid() ? autoMember.nodeIdentRef : ref;
                         const SemaNodeView view       = sema_->viewSymbol(identRef);
@@ -450,18 +470,22 @@ namespace
                         out.fieldIndex                = fieldIndexOf(vars_[out.varIndex], fieldSym);
                         return true;
                     }
+
                     case AstNodeId::IndexExpr:
                     {
                         out.indexed = true;
                         ref         = unwrap(node.cast<AstIndexExpr>().nodeExprRef);
                         if (ref.isInvalid())
                             return false;
+
                         break;
                     }
+
                     default:
                         return false;
                 }
             }
+
             return false;
         }
 
@@ -469,6 +493,7 @@ namespace
         {
             if (!var.fieldStruct || !fieldSym)
                 return -1;
+
             const auto& fields = var.fieldStruct->fields();
             for (uint32_t i = 0; i < fields.size() && i < 63; i++)
             {
@@ -814,8 +839,8 @@ namespace
             const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(sema_->ctx(), typeRef);
             var.typeHasDrop                         = lifecycle.hasDrop;
 
-            const TypeInfo& type          = sema_->typeMgr().get(typeRef);
-            const TypeInfo& storageType   = type.unwrapAliasTypeOrSelf(sema_->ctx());
+            const TypeInfo& type        = sema_->typeMgr().get(typeRef);
+            const TypeInfo& storageType = type.unwrapAliasTypeOrSelf(sema_->ctx());
 
             // Element-wise coverage needs a dedicated range analysis. A static array
             // with no safe default is nevertheless a useful single construction unit:

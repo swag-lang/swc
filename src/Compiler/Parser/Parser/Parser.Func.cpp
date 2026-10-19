@@ -149,13 +149,16 @@ AstNodeRef Parser::parseClosureArg()
         const uint32_t savedStopDepthParen   = closureCaptureStopDepthParen_;
         const uint32_t savedStopDepthBracket = closureCaptureStopDepthBracket_;
         const uint32_t savedStopDepthCurly   = closureCaptureStopDepthCurly_;
-        closureCaptureStopDepthParen_        = depthParen_;
-        closureCaptureStopDepthBracket_      = depthBracket_;
-        closureCaptureStopDepthCurly_        = depthCurly_;
-        nodePtr->nodeIdentifierRef           = parseExpression();
-        closureCaptureStopDepthParen_        = savedStopDepthParen;
-        closureCaptureStopDepthBracket_      = savedStopDepthBracket;
-        closureCaptureStopDepthCurly_        = savedStopDepthCurly;
+
+        closureCaptureStopDepthParen_   = depthParen_;
+        closureCaptureStopDepthBracket_ = depthBracket_;
+        closureCaptureStopDepthCurly_   = depthCurly_;
+        nodePtr->nodeIdentifierRef      = parseExpression();
+
+        closureCaptureStopDepthParen_   = savedStopDepthParen;
+        closureCaptureStopDepthBracket_ = savedStopDepthBracket;
+        closureCaptureStopDepthCurly_   = savedStopDepthCurly;
+
         return nodeRef;
     }
 
@@ -203,6 +206,7 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
     else
     {
         nodeType = AstNodeRef::invalid();
+
         if (is(TokenId::Identifier))
         {
             tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
@@ -219,7 +223,6 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
         }
     }
 
-    // Normal parameter
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::LambdaParam>(flags.has(AstLambdaParamFlagsE::Named) ? tokName : tokStart);
     nodePtr->flags()        = flags;
     nodePtr->nodeTypeRef    = nodeType;

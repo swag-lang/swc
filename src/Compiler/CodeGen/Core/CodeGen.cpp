@@ -329,8 +329,8 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& originalType  = codeGen.typeMgr().get(typeRef);
-        const TypeInfo& typeInfo      = originalType.unwrapAliasTypeOrSelf(codeGen.ctx());
+        const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo     = originalType.unwrapAliasTypeOrSelf(codeGen.ctx());
         if (typeInfo.isArray())
         {
             const uint64_t multiplier = typeInfo.arrayTotalElementCount();
@@ -2081,14 +2081,17 @@ Result CodeGen::preNode(AstNode& node)
         pushDeferScope(curNodeRef());
         deferScopes_.back().borrowOnly = true;
     }
+
     SWC_RESULT(info.codeGenPreNode(*this, node));
 
-    const AstNodeRef currentNodeRef  = curNodeRef();
+    const AstNodeRef currentNodeRef   = curNodeRef();
     void*            rawInlinePayload = nullptr;
     void*            rawOverride      = nullptr;
     sema().inlineContext(currentNodeRef, rawInlinePayload, rawOverride);
+
     const auto* inlinePayload  = static_cast<const SemaInlinePayload*>(rawInlinePayload);
     const auto* inlineOverride = static_cast<const SemaInlineContextOverride*>(rawOverride);
+
     if (inlinePayload && inlinePayload->inlineRootRef == currentNodeRef)
     {
         CodeGenFrame frame = this->frame();
@@ -2103,6 +2106,7 @@ Result CodeGen::preNode(AstNode& node)
                 frame.currentInlineContextRef().resultStorageSym = resultStorageSym;
             }
         }
+
         pushFrame(frame);
     }
     else if (inlineOverride)
@@ -2118,6 +2122,7 @@ Result CodeGen::preNode(AstNode& node)
                 frame.currentInlineContextRef().resultStorageReg = matchingInlineCtx->resultStorageReg;
                 frame.currentInlineContextRef().resultStorageSym = matchingInlineCtx->resultStorageSym;
             }
+
             // When no matching frame is found in the frame stack, we are inside a locally
             // compiled function (e.g., a local function inside a macro expansion). In that
             // case, any doneLabel created by emitInlineReturn must be placed at this boundary

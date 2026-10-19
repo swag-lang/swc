@@ -219,6 +219,7 @@ namespace
             const ConstantValue& value = sema.cstMgr().get(valueRef);
             if (!size)
                 return Result::Continue;
+
             std::span<const std::byte> source;
             DataSegmentRef             sourceRef;
             if (value.isStructOrArray() && value.isPayloadBorrowed())
@@ -227,20 +228,24 @@ namespace
                 if (source.size() != size || !sema.cstMgr().resolveConstantDataSegmentRef(sourceRef, valueRef, source.data()))
                     sourceRef = {};
             }
+
             if (sourceRef.isInvalid())
             {
                 std::vector<std::byte> lowered(size, std::byte{0});
                 SWC_RESULT(ConstantLower::lowerToBytes(sema, lowered, valueRef, type));
+
                 // Raw union bytes do not identify which writes established their pointers.
                 // Construction sites publish that inventory instead of guessing here.
                 if (ConstantHelpers::typeHasUnionStorage(sema.ctx(), type))
                 {
                     if (std::ranges::any_of(lowered, [](std::byte valueByte) { return valueByte != std::byte{0}; }))
                         return Result::Error;
+
                     replaceRange(offset, size);
                     std::fill_n(bytes.data() + offset, size, std::byte{0});
                     return Result::Continue;
                 }
+
                 uint32_t     materializedOffset = INVALID_REF;
                 DataSegment& segment            = sema.cstMgr().shardDataSegment(0);
                 SWC_RESULT(ConstantLower::materializeStaticPayload(sema, materializedOffset, segment, type, lowered));
@@ -251,6 +256,7 @@ namespace
             replaceRange(offset, size);
             if (size)
                 std::memcpy(bytes.data() + offset, source.data(), size);
+
             std::vector<DataSegmentRelocation> sourceRelocations;
             sema.cstMgr().shardDataSegment(sourceRef.shardIndex).copyRelocations(sourceRelocations, sourceRef.offset, static_cast<uint32_t>(size));
             for (DataSegmentRelocation relocation : sourceRelocations)
@@ -261,13 +267,14 @@ namespace
                     relocation.targetShardIndex = sourceRef.shardIndex;
                 relocations.push_back(relocation);
             }
+
             return Result::Continue;
         }
 
         Result writeDefault(const TypeInfo& declaredType, uint64_t size, uint64_t offset)
         {
-            Sema&           sema        = *sema_;
-            const TypeInfo& type        = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
+            Sema&           sema = *sema_;
+            const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
             if (!declaredType.isNonNullable() && !type.isNonNullable())
             {
                 if (type.isStruct())
@@ -281,6 +288,7 @@ namespace
                         {
                             if (!attribute.symbol || !attribute.symbol->inSwagNamespace(sema.ctx()) || attribute.symbol->name(sema.ctx()) != "Opaque")
                                 continue;
+
                             for (const AttributeParamInstance& param : attribute.params)
                             {
                                 if (param.nameIdRef == sema.idMgr().addIdentifier("runtimeDefault") && param.valueCstRef.isValid() && sema.cstMgr().get(param.valueCstRef).getBool())
@@ -288,10 +296,12 @@ namespace
                             }
                         }
                     }
+
                     for (const SymbolVariable* field : owner.fields())
                     {
                         if (!field || SymbolStruct::fieldRequiresExplicitInitialization(sema, *field))
                             continue;
+
                         const uint64_t fieldOffset = offset + field->offset();
                         if (field->defaultValueRef().isValid())
                             SWC_RESULT(writeValue(field->typeRef(), field->defaultValueRef(), fieldOffset));
@@ -301,8 +311,10 @@ namespace
                             SWC_RESULT(writeDefault(fieldType, fieldType.sizeOf(sema.ctx()), fieldOffset));
                         }
                     }
+
                     return Result::Continue;
                 }
+
                 if (type.isArray())
                 {
                     const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
@@ -312,9 +324,11 @@ namespace
                         for (uint64_t cursor = 0; cursor < size; cursor += elementSize)
                             SWC_RESULT(writeDefault(elementType, elementSize, offset + cursor));
                     }
+
                     return Result::Continue;
                 }
             }
+
             replaceRange(offset, size);
             std::fill_n(bytes.data() + offset, size, std::byte{0});
             return Result::Continue;
@@ -322,8 +336,8 @@ namespace
 
         Result collectDynamicRelocations(const TypeInfo& declaredType, uint64_t offset)
         {
-            Sema&           sema        = *sema_;
-            const TypeInfo& type        = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
+            Sema&           sema = *sema_;
+            const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
             if (type.isArray())
             {
                 const TypeInfo& elementType = sema.typeMgr().get(type.payloadArrayElemTypeRef());
@@ -346,15 +360,18 @@ namespace
                     DataSegmentRef target;
                     if (!sema.cstMgr().resolveDataSegmentRef(target, pointer))
                         return Result::Error;
+
                     replaceRange(slotOffset, sizeof(pointer));
                     relocations.push_back({.offset = static_cast<uint32_t>(slotOffset), .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = target.offset, .targetShardIndex = target.shardIndex});
                 }
+
                 for (const SymbolVariable* field : owner.fields())
                 {
                     if (field)
                         SWC_RESULT(collectDynamicRelocations(sema.typeMgr().get(field->typeRef()), offset + field->offset()));
                 }
             }
+
             return Result::Continue;
         }
     };
@@ -365,6 +382,7 @@ bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, const TypeInfo
     const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(ctx);
     if (!type.isArray() && !type.isStruct())
         return false;
+
     RefSet<TypeRef> visited;
     return typeHasUnionStorageRec(ctx, type, visited);
 }

@@ -635,8 +635,10 @@ void CompilerInstance::processCommand()
     {
         if (cmdLine().dryRun)
             Command::dryRun(*this);
+
         if (cmdLine().showConfig)
             Command::showConfig(*this);
+
         return;
     }
 
@@ -644,33 +646,41 @@ void CompilerInstance::processCommand()
     {
         case CommandKind::New:
             return;
+
         case CommandKind::Format:
             Command::format(*this);
             break;
+
         case CommandKind::Syntax:
             Command::syntax(*this);
             break;
+
         case CommandKind::Sema:
         case CommandKind::Service:
             Command::sema(*this);
             break;
+
         case CommandKind::Doc:
             Command::doc(*this);
             break;
+
         case CommandKind::Unittest:
             return;
+
         case CommandKind::Test:
             Command::test(*this);
             break;
+
         case CommandKind::Build:
             Command::build(*this);
             break;
+
+        // Smoke runs share the run path; their bounds and sandbox travel in the run arguments.
         case CommandKind::Run:
-        // A smoke run is an ordinary run with a bound on it and a sandbox around it, so it
-        // takes the same path; what differs travels in the run arguments.
         case CommandKind::Smoke:
             Command::run(*this);
             break;
+
         default:
             SWC_UNREACHABLE();
     }

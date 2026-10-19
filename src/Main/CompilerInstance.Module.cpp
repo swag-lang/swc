@@ -1648,40 +1648,50 @@ namespace
                     case Section::Dependencies:
                         outManifest.dependencyDirs.emplace_back(std::string(line));
                         break;
+
                     case Section::ApiReadTimes:
                     case Section::NativeReadTimes:
                     {
                         const size_t separator = line.find('\t');
                         if (separator == std::string_view::npos || separator + 1 == line.size())
                             return false;
+
                         fs::file_time_type::duration::rep ticks{};
                         const auto [last, error] = std::from_chars(line.data(), line.data() + separator, ticks);
                         if (error != std::errc{} || last != line.data() + separator)
                             return false;
+
                         fs::path directory{std::string(line.substr(separator + 1))};
                         if (!directory.is_absolute())
                             return false;
+
                         auto& readTimes           = currentSection == Section::ApiReadTimes ? outManifest.apiReadTimes : outManifest.nativeReadTimes;
                         const auto [it, inserted] = readTimes.emplace(directory.lexically_normal(), fs::file_time_type{fs::file_time_type::duration{ticks}});
                         SWC_UNUSED(it);
                         if (!inserted)
                             return false;
+
                         break;
                     }
+
                     case Section::Artifacts:
                         outManifest.artifacts.emplace_back(std::string(line));
                         break;
+
                     case Section::LinkObjects:
                     {
                         fs::path path{std::string(line)};
                         if (!path.is_absolute())
                             return false;
+
                         outManifest.linkObjects.push_back(std::move(path));
                         break;
                     }
+
                     case Section::LinkLibraries:
                         outManifest.linkLibraries.emplace_back(line);
                         break;
+
                     case Section::None:
                         break;
                 }
@@ -1689,6 +1699,7 @@ namespace
 
             if (end == content.size())
                 break;
+
             start = end + 1;
         }
 

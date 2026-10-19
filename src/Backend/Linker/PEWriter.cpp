@@ -495,6 +495,7 @@ void PEWriter::assignLayout()
 
     uint32_t rva        = Math::alignUpU32(headersSize, SECTION_ALIGNMENT);
     uint32_t fileOffset = headersSize;
+
     for (const uint32_t idx : order)
     {
         OutSection& section = sections_[idx];
@@ -510,6 +511,7 @@ void PEWriter::assignLayout()
             section.rawSize    = Math::alignUpU32(static_cast<uint32_t>(section.bytes.size()), FILE_ALIGNMENT);
             fileOffset += section.rawSize;
         }
+
         rva += Math::alignUpU32(section.virtualSize, SECTION_ALIGNMENT);
     }
 }
@@ -523,6 +525,7 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
     {
         const LinkSection& src = image_->sections[imageIdx];
         OutSection&        out = sections_[imageToOut_[imageIdx]];
+
         for (const LinkReloc& reloc : src.relocs)
         {
             bool           found     = false;
@@ -543,12 +546,14 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
+
                     const uint64_t inPlace = out.bytes.readLe64(reloc.offset);
                     const uint64_t value   = image_->imageBase + targetRva + inPlace + static_cast<uint64_t>(reloc.addend);
                     out.bytes.writeLe64(reloc.offset, value);
                     baseRelocSites_.push_back(out.rva + reloc.offset);
                     break;
                 }
+
                 case LinkRelocKind::Rva32:
                 {
                     if (reloc.offset + sizeof(uint32_t) > out.bytes.size())
@@ -556,11 +561,13 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
+
                     const uint32_t inPlace = out.bytes.readLe32(reloc.offset);
                     const uint32_t value   = targetRva + inPlace + static_cast<uint32_t>(reloc.addend);
                     out.bytes.writeLe32(reloc.offset, value);
                     break;
                 }
+
                 case LinkRelocKind::Rel32:
                 {
                     if (reloc.offset + sizeof(uint32_t) > out.bytes.size())
@@ -568,6 +575,7 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
+
                     // Measured from the end of the four patched bytes, which is
                     // where the instruction ends and therefore what the
                     // processor has in RIP while it executes.
@@ -579,6 +587,7 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
+
                     out.bytes.writeLe32(reloc.offset, static_cast<uint32_t>(static_cast<int32_t>(value)));
                     break;
                 }
@@ -591,11 +600,13 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
     {
         const OutSection& text  = sections_[textIndex_];
         const OutSection& idata = sections_[idataIndex_];
+
         for (const ImportThunk& thunk : thunks_)
         {
-            const uint32_t iatRva                             = idata.rva + thunk.iatSlotInIdata;
-            const uint32_t site                               = text.rva + thunk.textOffset;
-            const int32_t  disp                               = static_cast<int32_t>(iatRva) - static_cast<int32_t>(site + 6);
+            const uint32_t iatRva = idata.rva + thunk.iatSlotInIdata;
+            const uint32_t site   = text.rva + thunk.textOffset;
+            const int32_t  disp   = static_cast<int32_t>(iatRva) - static_cast<int32_t>(site + 6);
+
             sections_[textIndex_].bytes[thunk.textOffset + 0] = std::byte{0xFF};
             sections_[textIndex_].bytes[thunk.textOffset + 1] = std::byte{0x25};
             std::memcpy(sections_[textIndex_].bytes.data() + thunk.textOffset + 2, &disp, sizeof(disp));

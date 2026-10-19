@@ -150,8 +150,6 @@ namespace
         diag.report(ctx);
     }
 
-    // Says that a `.member` never resolved, against the scope the auto-scope wait recorded.
-    // Reached only once publication is over, which is what makes the absence a fact.
     // The Swag spelling of a type name another language uses ('int', 'double', 'usize'), written by
     // habit where no visible name is close enough to suggest.
     std::string_view swagTypeForForeignName(std::string_view name)
@@ -195,6 +193,7 @@ namespace
         return {};
     }
 
+    // Publication has finished, so the missing member can no longer appear in this scope.
     void reportMissingAutoScopeMember(Sema& sema, TaskContext& ctx, const TaskState& state)
     {
         const TypeInfo& typeInfo = sema.typeMgr().get(state.autoScopeTypeRef);

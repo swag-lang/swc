@@ -552,14 +552,17 @@ namespace
             result += "#[Swag.Opaque]";
             result += eol;
         }
+
         if (!TypeGen::lifecycleFlagsOfTypeRef(ctx, symbolStruct->typeRef()).canCopy && !snippetSpellsAttribute(prefix.view(), "NoCopy"))
         {
             result += "#[NoCopy]";
             result += eol;
         }
+
         // Typed relocation slots and byte spans must retain the provider's exact offsets.
         result += "#[Pack(1)]";
         result += eol;
+
         uint32_t alignValue = 0;
         if (symbolStruct->alignment() > 1 && !tryGetSwagAttributeIntValue(alignValue, ctx, *symbolStruct, "Align"))
         {
@@ -572,6 +575,7 @@ namespace
             result += ' ';
         result += "{";
         result += eol;
+
         if (needsRuntimeDefault)
         {
             result += "    internal swagOpaqueStorage: [";
@@ -588,6 +592,7 @@ namespace
             result += eol;
             result += "    {";
             result += eol;
+
             const std::string_view fieldText = fields.view();
             size_t                 cursor    = 0;
             while (cursor < fieldText.size())
@@ -598,11 +603,13 @@ namespace
                 result += fieldText.substr(cursor, next - cursor);
                 cursor = next;
             }
+
             result += "    }";
             result += eol;
         }
         else
             result += fields;
+
         result += "}";
         if (hasLifecycle || (needsRuntimeDefault && !requiresExplicitInit))
         {
@@ -612,30 +619,37 @@ namespace
             result += eol;
             result += "{";
             result += eol;
+
             if (!requiresExplicitInit)
             {
                 const SymbolFunction* initFunction = symbolStruct->effectiveOpInit(ctx);
                 SWC_ASSERT(initFunction);
                 if (needsRuntimeDefault)
                     appendOpaqueForeignMethod(ctx, result, {initFunction, "swagOpaqueInit", true}, eol);
+
                 // An imported lifecycle wrapper suppresses local wrapper generation. Keep
                 // reflection initialization available even for a serialized constant default.
                 if (hasLifecycle || symbolStruct->isUnion())
                     appendOpaqueForeignMethod(ctx, result, {initFunction, SemaSpecOp::generatedInitWrapperName(), true}, eol);
             }
+
             for (const OpaqueLifecycleOperation& operation : operations)
             {
                 if (!operation.effective)
                     continue;
+
                 appendOpaqueForeignMethod(ctx, result, {operation.effective, SemaSpecOp::generatedLifecycleWrapperName(operation.kind), true}, eol);
+
                 // Public direct operations retain their original targets for explicit calls.
                 // Otherwise a private special operation preserves lifecycle classification;
                 // automatic dispatch selects the complete implicit provider wrapper above.
                 if (!operation.direct || !operation.direct->isPublic())
                     appendOpaqueForeignMethod(ctx, result, {operation.effective, SemaSpecOp::specOpFunctionName(operation.kind), false}, eol);
             }
+
             result += "}";
         }
+
         outSnippet = result;
         return Result::Continue;
     }

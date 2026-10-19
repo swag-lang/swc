@@ -390,25 +390,33 @@ namespace
                 }
                 else
                     SWC_RESULT(emitSwitchValueEqualsJump(codeGen, switchState, expr.caseExprRef, successLabel));
+
                 continue;
             }
+
             SWC_ASSERT(switchState.dynamicCastFunction);
             const SemaNodeView resultView    = codeGen.viewType(expr.castRef);
             const TypeRef      resultTypeRef = resultView.typeRef();
             const TypeInfo&    resultType    = *resultView.type();
-            const TypeRef      targetTypeRef = resultType.isInterface()
-                                                   ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(codeGen.viewType(expr.typeExprRef).typeRef(), resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
-                                                   : resultTypeRef;
-            MicroReg           targetTypeReg = MicroReg::invalid();
+
+            const TypeRef targetTypeRef = resultType.isInterface()
+                                              ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(codeGen.viewType(expr.typeExprRef).typeRef(), resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
+                                              : resultTypeRef;
+
+            MicroReg targetTypeReg = MicroReg::invalid();
             SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, targetTypeRef));
+
             const MicroReg zeroReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegImm(zeroReg, ApInt(0, 64), MicroOpBits::B64);
+
             const MicroReg interfaceReg = resultType.isInterface() ? codeGen.runtimeStorageAddressReg(expr.castRef) : zeroReg;
             const MicroReg allowNullReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegImm(allowNullReg, ApInt(codeGen.typeMgr().get(switchState.compareTypeRef).isInterface() ? 1 : 0, 64), MicroOpBits::B64);
+
             const MicroReg args[]    = {targetTypeReg, switchState.dynamicSourceTypeReg, switchState.dynamicSourcePtrReg, interfaceReg, allowNullReg, zeroReg};
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
             SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *switchState.dynamicCastFunction, args, resultReg));
+
             MicroReg matchReg = resultReg;
             if (resultType.isInterface())
             {
@@ -416,10 +424,12 @@ namespace
                 matchReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(matchReg, interfaceReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
             }
+
             builder.emitCmpRegImm(matchReg, ApInt(0, 64), MicroOpBits::B64);
             if (casePayload->bindingSymbol)
             {
                 builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, failLabel);
+
                 CodeGenNodePayload boundPayload;
                 boundPayload.typeRef = casePayload->bindingSymbol->typeRef();
                 boundPayload.reg     = resultType.isInterface() ? interfaceReg : resultReg;
@@ -427,12 +437,14 @@ namespace
                     boundPayload.setIsAddress();
                 else
                     boundPayload.setIsValue();
+
                 codeGen.setVariablePayload(*casePayload->bindingSymbol, boundPayload);
                 builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, successLabel);
             }
             else
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, successLabel);
         }
+
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
         return Result::Continue;
     }

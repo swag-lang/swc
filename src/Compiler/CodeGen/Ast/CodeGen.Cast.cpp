@@ -144,9 +144,9 @@ namespace
         if (!sourceTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
 
-        const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
-        const TypeInfo&    dstType         = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
+        const TypeManager& typeMgr    = codeGen.typeMgr();
+        const TypeInfo&    sourceType = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&    dstType    = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         if (!sourceType.isPointerOrReference())
             return false;
         if (!dstType.isPointerOrReference())
@@ -268,9 +268,9 @@ namespace
         if (!sourceTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
 
-        const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
-        const TypeInfo&    dstType         = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
+        const TypeManager& typeMgr    = codeGen.typeMgr();
+        const TypeInfo&    sourceType = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&    dstType    = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         SWC_ASSERT(sourceType.isReference() && dstType.isAnyPointer());
 
         const TypeRef sourcePointeeTypeRef = typeMgr.unwrapAliasEnumOrSelf(codeGen.ctx(), sourceType.payloadTypeRef());
@@ -298,10 +298,10 @@ namespace
         if (!Cast::indirectValueCastTypeRef(codeGen.sema(), sourceTypeRef, dstTypeRef).isValid())
             return false;
 
-        TypeRef            readTypeRef     = sourceTypeRef;
-        CodeGenNodePayload readPayload     = sourcePayloadForCast(codeGen, srcNodeRef);
-        const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
+        TypeRef            readTypeRef = sourceTypeRef;
+        CodeGenNodePayload readPayload = sourcePayloadForCast(codeGen, srcNodeRef);
+        const TypeManager& typeMgr     = codeGen.typeMgr();
+        const TypeInfo&    sourceType  = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
         const TypeInfo*    readTypeInfo;
         if (sourceType.isAnyPointer())
         {
@@ -325,9 +325,9 @@ namespace
         SWC_ASSERT(readTypeInfo && !readTypeInfo->isReference());
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeInfo&   readType         = readTypeInfo->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
-        const MicroOpBits directBits       = CodeGenTypeHelpers::scalarStoreBits(readType, codeGen.ctx());
-        MicroBuilder&     builder          = codeGen.builder();
+        const TypeInfo&   readType   = readTypeInfo->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const MicroOpBits directBits = CodeGenTypeHelpers::scalarStoreBits(readType, codeGen.ctx());
+        MicroBuilder&     builder    = codeGen.builder();
         if (directBits != MicroOpBits::Zero)
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
@@ -358,9 +358,9 @@ namespace
         if (!sourceTypeRef.isValid() || !dstTypeRef.isValid())
             return Result::Continue;
 
-        const TypeManager& typeMgr         = codeGen.typeMgr();
-        const TypeInfo&    sourceType      = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
-        const TypeInfo&    dstType         = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
+        const TypeManager& typeMgr    = codeGen.typeMgr();
+        const TypeInfo&    sourceType = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&    dstType    = typeMgr.unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
         SWC_ASSERT(sourceType.isReference());
 
         if (!sourceType.payloadTypeRef().isValid())
@@ -384,9 +384,9 @@ namespace
         SWC_ASSERT(readTypeInfo);
         SWC_ASSERT(readPayload.isAddress());
 
-        const TypeInfo&   readType         = readTypeInfo->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
-        const MicroOpBits srcOpBits        = CodeGenTypeHelpers::numericOrBoolBits(readType);
-        const MicroOpBits dstOpBits        = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        const TypeInfo&   readType  = readTypeInfo->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(readType);
+        const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
         SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
         SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
         if (srcOpBits == MicroOpBits::Zero || dstOpBits == MicroOpBits::Zero)
@@ -919,12 +919,14 @@ namespace
                         found     = targetStruct.resolveUsingFieldPath(codeGen.ctx(), sourceStruct, path);
                         direction = -1;
                     }
+
                     const uint32_t pathCount = direction > 0 ? countFixedUsingPaths(codeGen.ctx(), sourceStruct, targetStruct) : countFixedUsingPaths(codeGen.ctx(), targetStruct, sourceStruct);
                     if (found && pathCount == 1 && std::ranges::none_of(path, [](const auto& step) { return step.isPointer; }))
                     {
                         int64_t offset = 0;
                         for (const auto& step : path)
                             offset += direction * step.field->offset();
+
                         const MicroLabelRef done = builder.createLabel();
                         if (offset)
                         {
@@ -933,14 +935,17 @@ namespace
                                 builder.emitCmpRegImm(sourcePtrReg, ApInt(0, 64), MicroOpBits::B64);
                                 builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
                             }
+
                             builder.emitOpBinaryRegImm(sourcePtrReg, ApInt(static_cast<uint64_t>(offset), 64), MicroOp::Add, MicroOpBits::B64);
                         }
+
                         builder.placeLabel(done);
                         codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef).reg = sourcePtrReg;
                         return Result::Continue;
                     }
                 }
             }
+
             SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(sourceTypeReg, codeGen, sourceInfo.structTypeRef));
         }
         else if (sourceInfo.kind == DynamicStructCastSourceKind::Interface)
@@ -948,13 +953,16 @@ namespace
             SWC_ASSERT(sourcePayload.isAddress());
             const MicroReg tableReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(tableReg, sourcePayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+
             sourceTypeReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+
             const MicroLabelRef done = builder.createLabel();
             builder.emitCmpRegImm(tableReg, ApInt(0, 64), MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
             builder.emitLoadRegMem(sourceTypeReg, tableReg, 0, MicroOpBits::B64);
             builder.placeLabel(done);
+
             builder.emitLoadRegMem(sourcePtrReg, sourcePayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
         }
         else
@@ -966,29 +974,36 @@ namespace
         }
 
         MicroReg targetTypeReg = MicroReg::invalid();
+
         // Qualify the borrowed view, not the nominal interface type used to find
         // its table. In particular, '#try' adds nullability only to the result.
         const TypeRef runtimeTargetTypeRef = resultType.isInterface()
                                                  ? codeGen.typeMgr().addType(TypeInfo::makeValuePointer(targetTypeRef, resultType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero))
                                                  : resultTypeRef;
         SWC_RESULT(CodeGenConstantHelpers::loadTypeInfoConstantReg(targetTypeReg, codeGen, runtimeTargetTypeRef));
+
         MicroReg interfaceReg = codeGen.nextVirtualIntRegister();
         if (resultType.isInterface())
             interfaceReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         else
             builder.emitLoadRegImm(interfaceReg, ApInt(0, 64), MicroOpBits::B64);
+
         const MicroReg resultReg          = codeGen.nextVirtualIntRegister();
         const MicroReg allowNullObjectReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegImm(allowNullObjectReg, ApInt(sourceInfo.kind == DynamicStructCastSourceKind::Interface ? 1 : 0, 64), MicroOpBits::B64);
+
         const bool checksBoxedNull = lowering->assumedDynamicCast && resultType.isNullable() && !resultType.isInterface() &&
                                      sourceInfo.kind == DynamicStructCastSourceKind::Any && lowering->hasDynamicCastCheck();
+
         MicroReg matchedNullReg = codeGen.nextVirtualIntRegister();
         if (checksBoxedNull)
             matchedNullReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         else
             builder.emitLoadRegImm(matchedNullReg, ApInt(0, 64), MicroOpBits::B64);
+
         const MicroReg args[] = {targetTypeReg, sourceTypeReg, sourcePtrReg, interfaceReg, allowNullObjectReg, matchedNullReg};
         SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *lowering->runtimeFunctionSymbol, args, resultReg));
+
         if (lowering->assumedDynamicCast && lowering->hasDynamicCastCheck())
         {
             const MicroLabelRef valid    = builder.createLabel();
@@ -998,8 +1013,10 @@ namespace
                 matchReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(matchReg, interfaceReg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
             }
+
             builder.emitCmpRegImm(matchReg, ApInt(0, 64), MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, valid);
+
             if (resultType.isNullable())
             {
                 if (checksBoxedNull)
@@ -1009,13 +1026,16 @@ namespace
                     builder.emitCmpRegImm(nullMatchReg, ApInt(0, 8), MicroOpBits::B8);
                     builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, valid);
                 }
+
                 const MicroReg nullReg = sourceInfo.kind == DynamicStructCastSourceKind::Interface ? sourceTypeReg : sourcePtrReg;
                 builder.emitCmpRegImm(nullReg, ApInt(0, 64), MicroOpBits::B64);
                 builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, valid);
             }
+
             SWC_RESULT(emitDynCastPanic(codeGen, codeGen.curNode()));
             builder.placeLabel(valid);
         }
+
         if (resultType.isInterface())
         {
             builder.emitLoadMemReg(interfaceReg, offsetof(Runtime::Interface, obj), resultReg, MicroOpBits::B64);
@@ -1023,6 +1043,7 @@ namespace
         }
         else
             codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef).reg = resultReg;
+
         return Result::Continue;
     }
 

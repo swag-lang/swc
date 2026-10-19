@@ -35,6 +35,7 @@ namespace
         for (size_t i = 0; i < lhs.size(); ++i)
         {
             curr[0] = static_cast<uint32_t>(i + 1);
+
             for (size_t j = 0; j < rhs.size(); ++j)
             {
                 const uint32_t cost = lhs[i] == rhs[j] ? 0u : 1u;
@@ -102,6 +103,7 @@ namespace
         const char8_t* start = cursor;
         while (langSpec.isIdentifierPart(cursor[0]))
             cursor++;
+
         auto   constPointer = reinterpret_cast<std::string_view::const_pointer>(start);
         size_t size         = static_cast<std::string_view::size_type>(cursor - start);
         return {constPointer, size};
@@ -116,6 +118,7 @@ namespace
         cursor++;
         while (langSpec.isIdentifierPart(cursor[0]))
             cursor++;
+
         auto   constPointer = reinterpret_cast<std::string_view::const_pointer>(start);
         size_t size         = static_cast<std::string_view::size_type>(cursor - start);
         return {constPointer, size};
@@ -125,6 +128,7 @@ namespace
     {
         if (std::strncmp(reinterpret_cast<const char*>(cursor), value.data(), value.size()) != 0)
             return false;
+
         cursor += value.size();
         return true;
     }
@@ -201,22 +205,19 @@ namespace
     }
 }
 
-// Helper: does the next char after the 'x'/'u'/'U' count as a hard terminator
-// for an escape in the given container token?
 bool Lexer::isTerminatorAfterEscapeChar(uint8_t c, TokenId container)
 {
-    // We only distinguish broadly between char and string by TokenId.
-    // For strings (single-line or multi-line), treat quote/EOL similarly.
+    // An unterminated escape must stop before its enclosing quote or line ending.
     if (container == TokenId::Character)
         return c == '\'' || c == '\n' || c == '\r';
 
-    // Strings
     return c == '"' || c == '\n' || c == '\r';
 }
 
 void Lexer::raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len)
 {
     if (hasUtf8Error_)
+
         return;
     hasUtf8Error_ = true;
     hasFileError_ = true;

@@ -655,6 +655,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                 std::string_view quoteLine = Utf8Helper::trim(lines[index]);
                 if (!quoteLine.starts_with(">"))
                     break;
+
                 quoteLine.remove_prefix(1);
                 if (!quoteLine.empty() && quoteLine.front() == ' ')
                     quoteLine.remove_prefix(1);
@@ -666,6 +667,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
             std::string_view defaultTitle;
             Utf8             icon;
             Utf8             title;
+
             if (!quoteLines.empty())
             {
                 struct QuoteKind
@@ -676,6 +678,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                     const Utf8* icon;
                     const Utf8* configuredTitle;
                 };
+
                 const DocPageOptions& options = *renderCtx.options;
                 const QuoteKind       kinds[] = {
                     {"NOTE:", "note", "Note", &options.quoteIconNote, &options.quoteTitleNote},
@@ -684,14 +687,17 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                     {"ATTENTION:", "attention", "Attention", &options.quoteIconAttention, &options.quoteTitleAttention},
                     {"EXAMPLE:", "example", "Example", &options.quoteIconExample, &options.quoteTitleExample},
                 };
+
                 for (const QuoteKind& candidate : kinds)
                 {
                     if (!Utf8Helper::trim(quoteLines.front()).starts_with(candidate.marker))
                         continue;
-                    kind                   = candidate.css;
-                    defaultTitle           = candidate.title;
-                    icon                   = *candidate.icon;
-                    title                  = candidate.configuredTitle->empty() ? Utf8(defaultTitle) : *candidate.configuredTitle;
+
+                    kind         = candidate.css;
+                    defaultTitle = candidate.title;
+                    icon         = *candidate.icon;
+                    title        = candidate.configuredTitle->empty() ? Utf8(defaultTitle) : *candidate.configuredTitle;
+
                     std::string_view first = Utf8Helper::trim(quoteLines.front());
                     first.remove_prefix(std::strlen(candidate.marker));
                     quoteLines.front() = Utf8(Utf8Helper::trim(first));

@@ -32,61 +32,71 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint16_t K_S_CONSTANT          = 0x1107;
+    constexpr uint16_t K_S_CONSTANT = 0x1107;
+
     // CodeView type records store their length in a uint16_t, so a single record (e.g. a field list)
     // cannot exceed 0xFFFF bytes. Field lists that would overflow are split into several records
     // chained with LF_INDEX. Match cl.exe/LLVM and cap below the hard limit to leave room for the
     // trailing LF_INDEX (8 bytes) and end-of-record padding.
     constexpr uint32_t K_CV_FIELDLIST_MAX_RECORD = 0xFF00;
-    constexpr uint32_t K_CV_FIRST_NONPRIM        = 0x1000;
-    constexpr uint32_t K_T_VOID                  = 0x0003;
-    constexpr uint32_t K_T_PVOID64               = 0x0603;
-    constexpr uint32_t K_T_BOOL08                = 0x0030;
-    constexpr uint32_t K_T_SHORT                 = 0x0011;
-    constexpr uint32_t K_T_USHORT                = 0x0021;
-    constexpr uint32_t K_T_CHAR                  = 0x0070;
-    constexpr uint32_t K_T_UCHAR                 = 0x0020;
-    constexpr uint32_t K_T_INT4                  = 0x0074;
-    constexpr uint32_t K_T_UINT4                 = 0x0075;
-    constexpr uint32_t K_T_INT8                  = 0x0013;
-    constexpr uint32_t K_T_UINT8                 = 0x0023;
-    constexpr uint32_t K_T_REAL32                = 0x0040;
-    constexpr uint32_t K_T_REAL64                = 0x0041;
+
+    constexpr uint32_t K_CV_FIRST_NONPRIM = 0x1000;
+
+    constexpr uint32_t K_T_VOID    = 0x0003;
+    constexpr uint32_t K_T_PVOID64 = 0x0603;
+    constexpr uint32_t K_T_BOOL08  = 0x0030;
+    constexpr uint32_t K_T_SHORT   = 0x0011;
+    constexpr uint32_t K_T_USHORT  = 0x0021;
+    constexpr uint32_t K_T_CHAR    = 0x0070;
+    constexpr uint32_t K_T_UCHAR   = 0x0020;
+    constexpr uint32_t K_T_INT4    = 0x0074;
+    constexpr uint32_t K_T_UINT4   = 0x0075;
+    constexpr uint32_t K_T_INT8    = 0x0013;
+    constexpr uint32_t K_T_UINT8   = 0x0023;
+    constexpr uint32_t K_T_REAL32  = 0x0040;
+    constexpr uint32_t K_T_REAL64  = 0x0041;
+
     constexpr uint8_t  K_CV_CALL_NEAR_C          = 0x00;
     constexpr uint16_t K_CV_TYPE_MOD_CONST       = 0x0001;
     constexpr uint16_t K_CV_MEMBER_ACCESS_PUBLIC = 0x0003;
-    constexpr uint32_t K_CV_PTR_ATTR_NEAR64      = 0x0000000C;
-    constexpr uint32_t K_CV_FRAMEPROC_FLAGS      = 0x00114200;
-    constexpr uint16_t K_CHKSUM_TYPE_NONE        = 0x00;
-    constexpr uint8_t  K_CHKSUM_TYPE_SHA256      = 0x03; // CV_SourceChksum_t::CHKSUM_TYPE_SHA_256
-    constexpr uint32_t K_CV_LINE_STATEMENT_BIT   = 0x80000000u;
-    constexpr uint16_t K_CV_ENCODED_FRAME_NONE   = 0x0000;
-    constexpr uint16_t K_CV_ENCODED_FRAME_RSP    = 0x0001;
-    constexpr uint16_t K_CV_ENCODED_FRAME_RBP    = 0x0002;
-    constexpr uint16_t K_CV_NUMERIC_LEAF         = 0x8000;
-    constexpr uint16_t K_LF_CHAR_NUMERIC         = 0x8000;
-    constexpr uint16_t K_LF_SHORT_NUMERIC        = 0x8001;
-    constexpr uint16_t K_LF_USHORT_NUMERIC       = 0x8002;
-    constexpr uint16_t K_LF_LONG_NUMERIC         = 0x8003;
-    constexpr uint16_t K_LF_ULONG_NUMERIC        = 0x8004;
-    constexpr uint16_t K_LF_QUADWORD_NUMERIC     = 0x8009;
-    constexpr uint16_t K_LF_UQUADWORD_NUMERIC    = 0x800A;
-    constexpr uint16_t K_CV_REG_RAX              = 328;
-    constexpr uint16_t K_CV_REG_RBX              = 329;
-    constexpr uint16_t K_CV_REG_RCX              = 330;
-    constexpr uint16_t K_CV_REG_RDX              = 331;
-    constexpr uint16_t K_CV_REG_RSI              = 332;
-    constexpr uint16_t K_CV_REG_RDI              = 333;
-    constexpr uint16_t K_CV_REG_RBP              = 334;
-    constexpr uint16_t K_CV_REG_RSP              = 335;
-    constexpr uint16_t K_CV_REG_R8               = 336;
-    constexpr uint16_t K_CV_REG_R9               = 337;
-    constexpr uint16_t K_CV_REG_R10              = 338;
-    constexpr uint16_t K_CV_REG_R11              = 339;
-    constexpr uint16_t K_CV_REG_R12              = 340;
-    constexpr uint16_t K_CV_REG_R13              = 341;
-    constexpr uint16_t K_CV_REG_R14              = 342;
-    constexpr uint16_t K_CV_REG_R15              = 343;
+
+    constexpr uint32_t K_CV_PTR_ATTR_NEAR64 = 0x0000000C;
+    constexpr uint32_t K_CV_FRAMEPROC_FLAGS = 0x00114200;
+
+    constexpr uint16_t K_CHKSUM_TYPE_NONE   = 0x00;
+    constexpr uint8_t  K_CHKSUM_TYPE_SHA256 = 0x03; // CV_SourceChksum_t::CHKSUM_TYPE_SHA_256
+
+    constexpr uint32_t K_CV_LINE_STATEMENT_BIT = 0x80000000u;
+
+    constexpr uint16_t K_CV_ENCODED_FRAME_NONE = 0x0000;
+    constexpr uint16_t K_CV_ENCODED_FRAME_RSP  = 0x0001;
+    constexpr uint16_t K_CV_ENCODED_FRAME_RBP  = 0x0002;
+
+    constexpr uint16_t K_CV_NUMERIC_LEAF      = 0x8000;
+    constexpr uint16_t K_LF_CHAR_NUMERIC      = 0x8000;
+    constexpr uint16_t K_LF_SHORT_NUMERIC     = 0x8001;
+    constexpr uint16_t K_LF_USHORT_NUMERIC    = 0x8002;
+    constexpr uint16_t K_LF_LONG_NUMERIC      = 0x8003;
+    constexpr uint16_t K_LF_ULONG_NUMERIC     = 0x8004;
+    constexpr uint16_t K_LF_QUADWORD_NUMERIC  = 0x8009;
+    constexpr uint16_t K_LF_UQUADWORD_NUMERIC = 0x800A;
+
+    constexpr uint16_t K_CV_REG_RAX = 328;
+    constexpr uint16_t K_CV_REG_RBX = 329;
+    constexpr uint16_t K_CV_REG_RCX = 330;
+    constexpr uint16_t K_CV_REG_RDX = 331;
+    constexpr uint16_t K_CV_REG_RSI = 332;
+    constexpr uint16_t K_CV_REG_RDI = 333;
+    constexpr uint16_t K_CV_REG_RBP = 334;
+    constexpr uint16_t K_CV_REG_RSP = 335;
+    constexpr uint16_t K_CV_REG_R8  = 336;
+    constexpr uint16_t K_CV_REG_R9  = 337;
+    constexpr uint16_t K_CV_REG_R10 = 338;
+    constexpr uint16_t K_CV_REG_R11 = 339;
+    constexpr uint16_t K_CV_REG_R12 = 340;
+    constexpr uint16_t K_CV_REG_R13 = 341;
+    constexpr uint16_t K_CV_REG_R14 = 342;
+    constexpr uint16_t K_CV_REG_R15 = 343;
 
     struct LineEntry
     {

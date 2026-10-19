@@ -17,10 +17,12 @@ namespace
         using Pn                                                        = IdentifierManager::PredefinedName;
         std::array<RuntimeTypeKind, static_cast<size_t>(Pn::Count)> map = {};
         map.fill(RuntimeTypeKind::Count);
-        map[static_cast<size_t>(Pn::TargetOs)]           = RuntimeTypeKind::TargetOs;
-        map[static_cast<size_t>(Pn::TargetArch)]         = RuntimeTypeKind::TargetArch;
-        map[static_cast<size_t>(Pn::CompilerCommand)]    = RuntimeTypeKind::CompilerCommand;
-        map[static_cast<size_t>(Pn::Operator)]           = RuntimeTypeKind::Operator;
+
+        map[static_cast<size_t>(Pn::TargetOs)]        = RuntimeTypeKind::TargetOs;
+        map[static_cast<size_t>(Pn::TargetArch)]      = RuntimeTypeKind::TargetArch;
+        map[static_cast<size_t>(Pn::CompilerCommand)] = RuntimeTypeKind::CompilerCommand;
+        map[static_cast<size_t>(Pn::Operator)]        = RuntimeTypeKind::Operator;
+
         map[static_cast<size_t>(Pn::TypeInfoKind)]       = RuntimeTypeKind::TypeInfoKind;
         map[static_cast<size_t>(Pn::TypeInfoNativeKind)] = RuntimeTypeKind::TypeInfoNativeKind;
         map[static_cast<size_t>(Pn::TypeInfoFlags)]      = RuntimeTypeKind::TypeInfoFlags;
@@ -39,19 +41,24 @@ namespace
         map[static_cast<size_t>(Pn::TypeInfoNamespace)]  = RuntimeTypeKind::TypeInfoNamespace;
         map[static_cast<size_t>(Pn::TypeInfoCodeBlock)]  = RuntimeTypeKind::TypeInfoCodeBlock;
         map[static_cast<size_t>(Pn::TypeInfoSimd)]       = RuntimeTypeKind::TypeInfoSimd;
-        map[static_cast<size_t>(Pn::TypeValue)]          = RuntimeTypeKind::TypeValue;
-        map[static_cast<size_t>(Pn::Attribute)]          = RuntimeTypeKind::Attribute;
-        map[static_cast<size_t>(Pn::AttributeParam)]     = RuntimeTypeKind::AttributeParam;
+
+        map[static_cast<size_t>(Pn::TypeValue)]      = RuntimeTypeKind::TypeValue;
+        map[static_cast<size_t>(Pn::Attribute)]      = RuntimeTypeKind::Attribute;
+        map[static_cast<size_t>(Pn::AttributeParam)] = RuntimeTypeKind::AttributeParam;
+
         map[static_cast<size_t>(Pn::Interface)]          = RuntimeTypeKind::Interface;
         map[static_cast<size_t>(Pn::SourceCodeLocation)] = RuntimeTypeKind::SourceCodeLocation;
         map[static_cast<size_t>(Pn::ErrorValue)]         = RuntimeTypeKind::ErrorValue;
-        map[static_cast<size_t>(Pn::ScratchAllocator)]   = RuntimeTypeKind::ScratchAllocator;
-        map[static_cast<size_t>(Pn::Context)]            = RuntimeTypeKind::Context;
-        map[static_cast<size_t>(Pn::ContextFlags)]       = RuntimeTypeKind::ContextFlags;
-        map[static_cast<size_t>(Pn::Module)]             = RuntimeTypeKind::Module;
-        map[static_cast<size_t>(Pn::ProcessInfo)]        = RuntimeTypeKind::ProcessInfo;
-        map[static_cast<size_t>(Pn::GlobalToDrop)]       = RuntimeTypeKind::GlobalToDrop;
-        map[static_cast<size_t>(Pn::BuildCfg)]           = RuntimeTypeKind::BuildCfg;
+
+        map[static_cast<size_t>(Pn::ScratchAllocator)] = RuntimeTypeKind::ScratchAllocator;
+        map[static_cast<size_t>(Pn::Context)]          = RuntimeTypeKind::Context;
+        map[static_cast<size_t>(Pn::ContextFlags)]     = RuntimeTypeKind::ContextFlags;
+
+        map[static_cast<size_t>(Pn::Module)]       = RuntimeTypeKind::Module;
+        map[static_cast<size_t>(Pn::ProcessInfo)]  = RuntimeTypeKind::ProcessInfo;
+        map[static_cast<size_t>(Pn::GlobalToDrop)] = RuntimeTypeKind::GlobalToDrop;
+        map[static_cast<size_t>(Pn::BuildCfg)]     = RuntimeTypeKind::BuildCfg;
+
         return map;
     }
 
@@ -180,6 +187,7 @@ TypeRef TypeManager::builtinType(TokenId tokenId) const
             return typeS32_;
         case TokenId::TypeS64:
             return typeS64_;
+
         case TokenId::TypeU8:
             return typeU8_;
         case TokenId::TypeU16:
@@ -188,10 +196,12 @@ TypeRef TypeManager::builtinType(TokenId tokenId) const
             return typeU32_;
         case TokenId::TypeU64:
             return typeU64_;
+
         case TokenId::TypeF32:
             return typeF32_;
         case TokenId::TypeF64:
             return typeF64_;
+
         case TokenId::TypeBool:
             return typeBool_;
         case TokenId::TypeString:
@@ -206,6 +216,7 @@ TypeRef TypeManager::builtinType(TokenId tokenId) const
             return typeRune_;
         case TokenId::TypeTypeInfo:
             return typeTypeInfo_;
+
         default:
             return TypeRef::invalid();
     }

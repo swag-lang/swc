@@ -788,17 +788,21 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
         int parsedValue = 0;
         if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportIntError(ctx, info, arg, value);
+
         **t = parsedValue;
         return true;
     }
+
     if (auto* t = std::get_if<uint32_t*>(&info.target))
     {
         uint32_t parsedValue = 0;
         if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportIntError(ctx, info, arg, value);
+
         **t = parsedValue;
         return true;
     }
+
     if (auto* t = std::get_if<Utf8*>(&info.target))
     {
         if (info.isEnum())
@@ -808,31 +812,37 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
                 markExplicitBuildCfgOverride(*cmdLine_, info.target);
             return parsed;
         }
+
         **t = value;
         markExplicitBuildCfgOverride(*cmdLine_, info.target);
         return true;
     }
+
     if (auto* t = std::get_if<fs::path*>(&info.target))
     {
         **t = value.c_str();
         markExplicitBuildCfgOverride(*cmdLine_, info.target);
         return true;
     }
+
     if (auto* t = std::get_if<std::vector<Utf8>*>(&info.target))
     {
         (*t)->push_back(value);
         return true;
     }
+
     if (auto* t = std::get_if<std::set<Utf8>*>(&info.target))
     {
         (*t)->insert(value);
         return true;
     }
+
     if (auto* t = std::get_if<std::set<fs::path>*>(&info.target))
     {
         (*t)->insert(value.c_str());
         return true;
     }
+
     if (auto* t = std::get_if<EnumIntTarget>(&info.target))
     {
         const bool parsed = parseEnumInt(ctx, info, arg, value, *t);

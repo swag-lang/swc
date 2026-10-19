@@ -699,16 +699,19 @@ namespace
             case MicroOp::VecAdd16: return {VEX_MAP_0F, 0x66, 0xFD};
             case MicroOp::VecAdd32: return {VEX_MAP_0F, 0x66, 0xFE};
             case MicroOp::VecAdd64: return {VEX_MAP_0F, 0x66, 0xD4};
+
             case MicroOp::VecSub8: return {VEX_MAP_0F, 0x66, 0xF8};
             case MicroOp::VecSub16: return {VEX_MAP_0F, 0x66, 0xF9};
             case MicroOp::VecSub32: return {VEX_MAP_0F, 0x66, 0xFA};
             case MicroOp::VecSub64: return {VEX_MAP_0F, 0x66, 0xFB};
+
             case MicroOp::VecMul16: return {VEX_MAP_0F, 0x66, 0xD5};
             case MicroOp::VecMul32: return {VEX_MAP_0F38, 0x66, 0x40};
             case MicroOp::VecMulHiS16: return {VEX_MAP_0F, 0x66, 0xE5};
             case MicroOp::VecMulHiU16: return {VEX_MAP_0F, 0x66, 0xE4};
             case MicroOp::VecMulS32Wide: return {VEX_MAP_0F38, 0x66, 0x28};
             case MicroOp::VecMulU32Wide: return {VEX_MAP_0F, 0x66, 0xF4};
+
             case MicroOp::VecSatAddS8: return {VEX_MAP_0F, 0x66, 0xEC};
             case MicroOp::VecSatAddS16: return {VEX_MAP_0F, 0x66, 0xED};
             case MicroOp::VecSatAddU8: return {VEX_MAP_0F, 0x66, 0xDC};
@@ -726,6 +729,7 @@ namespace
             case MicroOp::VecAndNot: return {VEX_MAP_0F, 0x66, 0xDF};
             case MicroOp::VecOr: return {VEX_MAP_0F, 0x66, 0xEB};
             case MicroOp::VecXor: return {VEX_MAP_0F, 0x66, 0xEF};
+
             case MicroOp::VecMinS8: return {VEX_MAP_0F38, 0x66, 0x38};
             case MicroOp::VecMinS16: return {VEX_MAP_0F, 0x66, 0xEA};
             case MicroOp::VecMinS32: return {VEX_MAP_0F38, 0x66, 0x39};
@@ -738,6 +742,7 @@ namespace
             case MicroOp::VecMaxU8: return {VEX_MAP_0F, 0x66, 0xDE};
             case MicroOp::VecMaxU16: return {VEX_MAP_0F38, 0x66, 0x3E};
             case MicroOp::VecMaxU32: return {VEX_MAP_0F38, 0x66, 0x3F};
+
             case MicroOp::VecCmpEq8: return {VEX_MAP_0F, 0x66, 0x74};
             case MicroOp::VecCmpEq16: return {VEX_MAP_0F, 0x66, 0x75};
             case MicroOp::VecCmpEq32: return {VEX_MAP_0F, 0x66, 0x76};
@@ -746,10 +751,12 @@ namespace
             case MicroOp::VecCmpGtS16: return {VEX_MAP_0F, 0x66, 0x65};
             case MicroOp::VecCmpGtS32: return {VEX_MAP_0F, 0x66, 0x66};
             case MicroOp::VecCmpGtS64: return {VEX_MAP_0F38, 0x66, 0x37};
+
             case MicroOp::VecPackSS16: return {VEX_MAP_0F, 0x66, 0x63};
             case MicroOp::VecPackSS32: return {VEX_MAP_0F, 0x66, 0x6B};
             case MicroOp::VecPackUS16: return {VEX_MAP_0F, 0x66, 0x67};
             case MicroOp::VecPackUS32: return {VEX_MAP_0F38, 0x66, 0x2B};
+
             case MicroOp::VecUnpackLo8: return {VEX_MAP_0F, 0x66, 0x60};
             case MicroOp::VecUnpackLo16: return {VEX_MAP_0F, 0x66, 0x61};
             case MicroOp::VecUnpackLo32: return {VEX_MAP_0F, 0x66, 0x62};
@@ -758,8 +765,10 @@ namespace
             case MicroOp::VecUnpackHi16: return {VEX_MAP_0F, 0x66, 0x69};
             case MicroOp::VecUnpackHi32: return {VEX_MAP_0F, 0x66, 0x6A};
             case MicroOp::VecUnpackHi64: return {VEX_MAP_0F, 0x66, 0x6D};
+
             case MicroOp::VecPermB: return {VEX_MAP_0F38, 0x66, 0x00};
             case MicroOp::VecBlendVB: return {VEX_MAP_0F3A, 0x66, 0x4C};
+
             case MicroOp::VecAddF32: return {VEX_MAP_0F, 0x00, 0x58};
             case MicroOp::VecAddF64: return {VEX_MAP_0F, 0x66, 0x58};
             case MicroOp::VecSubF32: return {VEX_MAP_0F, 0x00, 0x5C};
@@ -772,42 +781,56 @@ namespace
             case MicroOp::VecMinF64: return {VEX_MAP_0F, 0x66, 0x5D};
             case MicroOp::VecMaxF32: return {VEX_MAP_0F, 0x00, 0x5F};
             case MicroOp::VecMaxF64: return {VEX_MAP_0F, 0x66, 0x5F};
+
             case MicroOp::VecAbsS8: return {VEX_MAP_0F38, 0x66, 0x1C};
             case MicroOp::VecAbsS16: return {VEX_MAP_0F38, 0x66, 0x1D};
             case MicroOp::VecAbsS32: return {VEX_MAP_0F38, 0x66, 0x1E};
+
             case MicroOp::VecWidenLoS8: return {VEX_MAP_0F38, 0x66, 0x20};
             case MicroOp::VecWidenLoS16: return {VEX_MAP_0F38, 0x66, 0x23};
             case MicroOp::VecWidenLoS32: return {VEX_MAP_0F38, 0x66, 0x25};
             case MicroOp::VecWidenLoU8: return {VEX_MAP_0F38, 0x66, 0x30};
             case MicroOp::VecWidenLoU16: return {VEX_MAP_0F38, 0x66, 0x33};
             case MicroOp::VecWidenLoU32: return {VEX_MAP_0F38, 0x66, 0x35};
+
             case MicroOp::VecSqrtF32: return {VEX_MAP_0F, 0x00, 0x51};
             case MicroOp::VecSqrtF64: return {VEX_MAP_0F, 0x66, 0x51};
+
             case MicroOp::VecTruncF32ToS32: return {VEX_MAP_0F, 0xF3, 0x5B};
+
             case MicroOp::VecMoveMaskB: return {VEX_MAP_0F, 0x66, 0xD7};
             case MicroOp::VecMoveMaskF32: return {VEX_MAP_0F, 0x00, 0x50};
             case MicroOp::VecMoveMaskF64: return {VEX_MAP_0F, 0x66, 0x50};
+
             case MicroOp::VecRoundF32: return {VEX_MAP_0F3A, 0x66, 0x08};
             case MicroOp::VecRoundF64: return {VEX_MAP_0F3A, 0x66, 0x09};
+
             case MicroOp::VecCmpF32: return {VEX_MAP_0F, 0x00, 0xC2};
             case MicroOp::VecCmpF64: return {VEX_MAP_0F, 0x66, 0xC2};
+
             case MicroOp::VecShufF32: return {VEX_MAP_0F, 0x00, 0xC6};
             case MicroOp::VecAlignR: return {VEX_MAP_0F3A, 0x66, 0x0F};
             case MicroOp::VecClmul: return {VEX_MAP_0F3A, 0x66, 0x44};
+
             case MicroOp::VecShiftLeftV16: return {VEX_MAP_0F, 0x66, 0xF1};
             case MicroOp::VecShiftLeftV32: return {VEX_MAP_0F, 0x66, 0xF2};
             case MicroOp::VecShiftLeftV64: return {VEX_MAP_0F, 0x66, 0xF3};
+
             case MicroOp::VecShiftRightV16: return {VEX_MAP_0F, 0x66, 0xD1};
             case MicroOp::VecShiftRightV32: return {VEX_MAP_0F, 0x66, 0xD2};
             case MicroOp::VecShiftRightV64: return {VEX_MAP_0F, 0x66, 0xD3};
+
             case MicroOp::VecShiftRightAV16: return {VEX_MAP_0F, 0x66, 0xE1};
             case MicroOp::VecShiftRightAV32: return {VEX_MAP_0F, 0x66, 0xE2};
+
             case MicroOp::VecInsert8: return {VEX_MAP_0F3A, 0x66, 0x20};
             case MicroOp::VecInsert16: return {VEX_MAP_0F, 0x66, 0xC4};
             case MicroOp::VecInsert32: return {VEX_MAP_0F3A, 0x66, 0x22};
+
             default:
                 SWC_INTERNAL_ERROR();
         }
+
         return {};
     }
 
@@ -2166,6 +2189,7 @@ namespace
         {
             if (opBitsReg == MicroOpBits::B16)
                 store.pushU8(0x66);
+
             const bool wide = opBitsReg == MicroOpBits::B64;
             const bool b0   = isExtendedReg(regX64);
             const bool b1   = isExtendedReg(mulX64);
@@ -2186,6 +2210,7 @@ namespace
                 SWC_ASSERT(!reg.isFloat());
                 emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
                 break;
+
             case MicroOp::Compare:
                 if (floatCompare)
                 {
@@ -2195,12 +2220,14 @@ namespace
                 else
                     emitSpecCpuOp(store, mr ? getX64OpCode(op) : getX64RegMemOpCode(op), opBitsReg);
                 break;
+
             case MicroOp::ShiftLeft:
             case MicroOp::ShiftArithmeticLeft:
             case MicroOp::ShiftRight:
             case MicroOp::ShiftArithmeticRight:
                 SWC_ASSERT(mr && !reg.isFloat() && regX64 == X64Reg::Rcx);
                 emitSpecCpuOp(store, 0xD3, opBitsReg);
+
                 if (op == MicroOp::ShiftLeft || op == MicroOp::ShiftArithmeticLeft)
                     modRmReg = MODRM_REG_4;
                 else if (op == MicroOp::ShiftRight)
@@ -2208,11 +2235,13 @@ namespace
                 else
                     modRmReg = MODRM_REG_7;
                 break;
+
             case MicroOp::MultiplySigned:
                 SWC_ASSERT(!mr && !reg.isFloat() && opBitsReg != MicroOpBits::B8);
                 emitCpuOp(store, 0x0F);
                 emitCpuOp(store, 0xAF);
                 break;
+
             case MicroOp::PopCount:
             case MicroOp::LeadingZeroCount:
             case MicroOp::TrailingZeroCount:
@@ -2220,9 +2249,11 @@ namespace
                 emitCpuOp(store, 0x0F);
                 emitCpuOp(store, op);
                 break;
+
             case MicroOp::LoadEffectiveAddress:
                 emitSpecCpuOp(store, MicroOp::LoadEffectiveAddress, opBitsReg);
                 break;
+
             case MicroOp::FloatAdd:
             case MicroOp::FloatSubtract:
             case MicroOp::FloatMultiply:
@@ -2232,6 +2263,7 @@ namespace
                 SWC_ASSERT(!mr && floatArithmetic);
                 emitCpuOp(store, op);
                 break;
+
             case MicroOp::MoveSignExtend:
                 if (extendSrcBits == MicroOpBits::B8 || extendSrcBits == MicroOpBits::B16)
                 {
@@ -2245,6 +2277,7 @@ namespace
                     emitSpecCpuOp(store, MicroOp::MoveSignExtend, opBitsReg);
                 }
                 break;
+
             case MicroOp::Move:
                 if (extendSrcBits != MicroOpBits::Zero)
                 {
@@ -2269,6 +2302,7 @@ namespace
                     emitSpecCpuOp(store, mr ? getX64RegMemOpCode(MicroOp::Move) : getX64OpCode(MicroOp::Move), opBitsReg);
                 }
                 break;
+
             default:
                 SWC_UNREACHABLE();
         }

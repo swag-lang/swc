@@ -95,8 +95,8 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        const TypeInfo& type          = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
-        typeRef                       = type.typeRef();
+        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
+        typeRef              = type.typeRef();
         if (type.isPointerOrReference())
             typeRef = unwrapAliasEnum(sema, type.payloadTypeRef());
         return hasOwningLifecycle(sema, typeRef);
@@ -526,9 +526,9 @@ namespace
         bool             leftIsCarrier = false;
         if (leftTypeRef.isValid())
         {
-            const TypeInfo& leftType      = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), leftTypeRef);
-            leftIsCarrier                 = isDirectBorrowCarrier(leftType);
-            leftTypeRef                   = leftType.typeRef();
+            const TypeInfo& leftType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), leftTypeRef);
+            leftIsCarrier            = isDirectBorrowCarrier(leftType);
+            leftTypeRef              = leftType.typeRef();
             if (leftType.isAnyPointer())
                 leftTypeRef = unwrapAliasEnum(sema, leftType.payloadTypeRef());
         }
@@ -2132,6 +2132,7 @@ namespace
                     bool                  reqWhole    = false;
                     const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
                     const SemaEscapeInfo  carried     = reqVar ? sema.variableFieldEscapeInfo(*reqVar, "address") : SemaEscapeInfo{};
+
                     if (carried.viaOwnedPayload || carried.detachedOwnedPayload)
                     {
                         // The owner is releasing its own payload: not a free of the pointer
@@ -2145,6 +2146,7 @@ namespace
                                 SemaEscapeProjection  carriedProjection;
                                 const SymbolVariable* reallocatedField = ownedPayloadProjection(sema, carried, carriedProjection) ? firstProjectionField(carriedProjection) : nullptr;
                                 const uint64_t        origins          = parameterOriginsMask(*callerFn, carried);
+
                                 for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
                                 {
                                     const size_t i = std::countr_zero(remainingOrigins);
@@ -4263,6 +4265,7 @@ namespace
     {
         if (bodyRef.isInvalid() || fn.isForeign())
             return;
+
         fn.markBorrowEffectsComputed();
 
         // Include implicit lifecycle/operator calls as well as source-level calls.
@@ -4286,11 +4289,14 @@ namespace
             pending.pop_back();
             if (ref.isInvalid())
                 continue;
+
             const AstNode& node = sema.node(ref);
             if (node.is(AstNodeId::FunctionDecl) || node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
                 continue;
+
             if (hasUnmodeledBorrowHook(sema, ref, node))
                 fn.markExternalBorrowObservation();
+
             if (const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(ref))
             {
                 if (lowering->runtimeSafetyMask)
@@ -4298,6 +4304,7 @@ namespace
                 if (lowering->runtimeFunctionSymbol)
                     addExternalBorrowEdge(sema, fn, *lowering->runtimeFunctionSymbol, SemaEscapeSummaryEdgeKind::ExternalToExternal);
             }
+
             if (node.is(AstNodeId::Identifier))
             {
                 const SymbolVariable* var = identifierVariable(sema, ref);
@@ -4305,6 +4312,7 @@ namespace
                     !sema.viewConstant(ref).hasConstant())
                     fn.markExternalBorrowObservation();
             }
+
             if (node.is(AstNodeId::CallExpr))
             {
                 const SymbolFunction* callee = resolvedCallFunction(sema, ref, node.cast<AstCallExpr>().nodeExprRef);
@@ -4313,16 +4321,20 @@ namespace
                 else
                     fn.markExternalBorrowObservation();
             }
+
             if (node.is(AstNodeId::IntrinsicCallExpr) && Token::intrinsicObservesExternalBorrows(node.cast<AstIntrinsicCallExpr>().intrinsicId))
                 fn.markExternalBorrowObservation();
+
             if (node.is(AstNodeId::FailExpr) || node.is(AstNodeId::ErrorManagementStmt) ||
                 (node.is(AstNodeId::ErrorManagementExpr) && sema.token(node.codeRef()).id != TokenId::SymBang))
                 fn.markExternalBorrowObservation();
+
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, sema.ast());
             for (const AstNodeRef child : children)
                 pending.push_back(child);
         }
+
         if (!pending.empty())
             fn.markExternalBorrowObservation();
     }
@@ -4472,7 +4484,9 @@ namespace
                 pending.pop_back();
                 if (ref.isInvalid())
                     continue;
+
                 const AstNode& node = sema_->node(ref);
+
                 // Projection normalization strips casts and follows substituted
                 // nodes. It proves identity, not that evaluating that path is inert.
                 if (node.is(AstNodeId::CallExpr) || hasUnmodeledBorrowHook(*sema_, ref, node))
@@ -4483,11 +4497,13 @@ namespace
                     if (lowering && (lowering->runtimeSafetyMask || lowering->runtimeFunctionSymbol))
                         return false;
                 }
+
                 SmallVector<AstNodeRef> children;
                 node.collectChildrenFromAst(children, sema_->ast());
                 for (const AstNodeRef child : children)
                     pending.push_back(child);
             }
+
             return valid_;
         }
 
@@ -4495,21 +4511,25 @@ namespace
         {
             if (ref.isInvalid() || !spend())
                 return;
+
             const WalkDepth depth(depth_);
             const AstNode&  node = sema_->node(ref);
             if (hasUnmodeledBorrowHook(*sema_, ref, node))
                 valid_ = false;
+
             if (state.live)
             {
                 const auto* lowering = sema_->loweringPayload<CodeGenLoweringPayload>(ref);
                 if (lowering && (lowering->runtimeSafetyMask || lowering->runtimeFunctionSymbol))
                     valid_ = false;
             }
+
             if (node.is(AstNodeId::CallExpr))
             {
                 call(ref, node.cast<AstCallExpr>(), state);
                 return;
             }
+
             SemaEscapeProjection value;
             if (projection(ref, value))
             {
@@ -4518,6 +4538,7 @@ namespace
                     valid_ = false;
                     return;
                 }
+
                 if (value.root == slot_.root)
                 {
                     // Reading the whole receiver can create an alias even before
@@ -4527,22 +4548,27 @@ namespace
                         valid_ = false;
                     return;
                 }
+
                 if (value.root &&
                     ((value.root->hasGlobalStorage() && !sema_->viewConstant(ref).hasConstant()) ||
                      (!callArgument && signatureParameterFor(*sema_, *value.root) && isDirectBorrowCarrier(*sema_, value.root->typeRef()))))
                     valid_ = false;
+
                 // A projection's index can itself call code; only a field-only
                 // path is safe to stop walking here.
                 if (std::ranges::all_of(value.components, [](const auto& c) { return c.kind == SemaEscapeProjectionKind::Field; }))
                     return;
             }
+
             if (state.live && node.is(AstNodeId::IntrinsicCallExpr) && Token::intrinsicObservesExternalBorrows(node.cast<AstIntrinsicCallExpr>().intrinsicId))
                 valid_ = false;
+
             if (node.is(AstNodeId::ErrorManagementExpr) || node.is(AstNodeId::ErrorManagementStmt) || node.is(AstNodeId::FailExpr))
             {
                 if (state.live)
                     valid_ = false;
             }
+
             if (node.is(AstNodeId::ReturnStmt) || node.is(AstNodeId::DeferStmt) || node.is(AstNodeId::AssignStmt) ||
                 node.is(AstNodeId::BreakStmt) || node.is(AstNodeId::ContinueStmt) || node.is(AstNodeId::ScopedBreakStmt))
             {
@@ -4551,6 +4577,7 @@ namespace
                 valid_ = false;
                 return;
             }
+
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, sema_->ast());
             for (const AstNodeRef child : children)
@@ -4613,16 +4640,19 @@ namespace
         {
             if (ref.isInvalid() || !state.reachable || !spend())
                 return;
+
             const WalkDepth depth(depth_);
             const AstNode&  node = sema_->node(ref);
             if (hasUnmodeledBorrowHook(*sema_, ref, node))
                 valid_ = false;
+
             if (state.live)
             {
                 const auto* lowering = sema_->loweringPayload<CodeGenLoweringPayload>(ref);
                 if (lowering && (lowering->runtimeSafetyMask || lowering->runtimeFunctionSymbol))
                     valid_ = false;
             }
+
             switch (node.id())
             {
                 case AstNodeId::FunctionBody:
@@ -4633,6 +4663,7 @@ namespace
                 case AstNodeId::ElseIfStmt:
                     block(node, state);
                     return;
+
                 case AstNodeId::AssignStmt:
                 {
                     if (const auto* payload = sema_->semaPayload<AssignSpecOpPayload>(ref))
@@ -4643,11 +4674,13 @@ namespace
                             return;
                         }
                     }
+
                     const auto&          assign = node.cast<AstAssignStmt>();
                     SemaEscapeProjection left;
                     const bool           writesSlot = projection(assign.nodeLeftRef, left) && exactSlot(left);
                     if (writesSlot && !plainProjection(assign.nodeLeftRef, state.live))
                         valid_ = false;
+
                     expression(assign.nodeRightRef, state, writesSlot);
                     if (writesSlot)
                     {
@@ -4657,15 +4690,18 @@ namespace
                             sawStore_ = true;
                         return;
                     }
+
                     expression(assign.nodeLeftRef, state);
                     return;
                 }
+
                 case AstNodeId::IfStmt:
                 {
                     const auto& branch = node.cast<AstIfStmt>();
                     branches(branch.nodeConditionRef, branch.nodeIfBlockRef, branch.nodeElseBlockRef, state);
                     return;
                 }
+
                 case AstNodeId::IfVarDecl:
                 {
                     const auto& branch = node.cast<AstIfVarDecl>();
@@ -4673,12 +4709,14 @@ namespace
                     branches(branch.nodeWhereRef, branch.nodeIfBlockRef, branch.nodeElseBlockRef, state);
                     return;
                 }
+
                 case AstNodeId::DeferStmt:
                 {
                     const auto& deferred = node.cast<AstDeferStmt>();
                     defers_.push_back({deferred.nodeBodyRef, deferred.modifierFlags});
                     return;
                 }
+
                 case AstNodeId::ReturnStmt:
                 case AstNodeId::FailExpr:
                 {
@@ -4687,16 +4725,20 @@ namespace
                         valid_ = false;
                         return;
                     }
+
                     const bool failed = node.is(AstNodeId::FailExpr);
                     expression(failed ? node.cast<AstFailExpr>().nodeExprRef : node.cast<AstReturnStmt>().nodeExprRef, state);
                     if (failed && state.live)
                         valid_ = false;
+
                     unwind(state, 0, failed);
                     if (state.live)
                         valid_ = false;
+
                     state.reachable = false;
                     return;
                 }
+
                 case AstNodeId::FunctionDecl:
                 case AstNodeId::FunctionExpr:
                 case AstNodeId::ClosureExpr:
@@ -4704,6 +4746,7 @@ namespace
                     // before the slot becomes live; do not execute their bodies.
                     expression(ref, state);
                     return;
+
                 case AstNodeId::SwitchStmt:
                 case AstNodeId::BreakStmt:
                 case AstNodeId::ScopedBreakStmt:
@@ -4711,6 +4754,7 @@ namespace
                 case AstNodeId::UnreachableStmt:
                     valid_ = false;
                     return;
+
                 default:
                     // In particular, a polling loop with no stores or exits cannot
                     // retain a new alias. Unknown loop control is rejected by the

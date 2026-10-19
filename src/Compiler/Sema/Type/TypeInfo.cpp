@@ -591,6 +591,7 @@ namespace
             case TypeInfoKind::CString:
                 out += "cstring";
                 break;
+
             case TypeInfoKind::CodeBlock:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
@@ -601,6 +602,7 @@ namespace
                     out += "#code->";
                     appendTypeName(ctx, out, type, mode);
                 }
+
                 break;
             }
             case TypeInfoKind::TypeInfo:
@@ -621,19 +623,24 @@ namespace
                 else
                     out += typeInfo.payloadSymEnum().name(ctx);
                 break;
+
             case TypeInfoKind::Struct:
             {
                 const SymbolStruct& instance = typeInfo.payloadSymStruct();
                 const SymbolStruct* root     = instance.genericRootOrSelf();
                 SWC_ASSERT(root != nullptr);
+
                 if (mode == TypeNameMode::Full)
                     out += root->getFullScopedName(ctx);
                 else
                     out += root->name(ctx);
+
                 if (instance.isGenericInstance())
                     appendGenericStructInstanceArgs(out, instance, ctx, mode);
+
                 break;
             }
+
             case TypeInfoKind::Interface:
                 if (mode == TypeNameMode::Full)
                     out += typeInfo.payloadSymInterface().getFullScopedName(ctx);
@@ -646,12 +653,14 @@ namespace
                 else
                     out += typeInfo.payloadSymAlias().name(ctx);
                 break;
+
             case TypeInfoKind::Function:
             {
                 const SymbolFunction& function = typeInfo.payloadSymFunction();
                 out += function.isMethod() ? "mtd" : "func";
                 out += function.isClosure() ? "||" : "";
                 out += "(";
+
                 for (size_t i = 0; i < function.parameters().size(); ++i)
                 {
                     if (i != 0)
@@ -668,6 +677,7 @@ namespace
                     const TypeInfo& paramType = ctx.typeMgr().get(param->typeRef());
                     appendTypeName(ctx, out, paramType, mode);
                 }
+
                 out += ")";
 
                 if (function.returnTypeRef() != ctx.typeMgr().typeVoid())
@@ -872,6 +882,7 @@ Utf8 TypeInfo::toFullName(const TaskContext& ctx) const
 Utf8 TypeInfo::toFamily(const TaskContext& ctx) const
 {
     SWC_UNUSED(ctx);
+
     switch (kind_)
     {
         case TypeInfoKind::Bool:

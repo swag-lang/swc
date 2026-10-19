@@ -262,13 +262,16 @@ AstModifierFlags Parser::parseModifiers()
                     consume();
                     continue;
                 }
+
                 if (fwdCurMode_ == FwdParseMode::Move)
                 {
                     toSet = AstModifierFlagsE::Move;
                     break;
                 }
+
                 consume();
                 continue;
+
             default:
                 break;
         }

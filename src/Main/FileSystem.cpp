@@ -76,9 +76,11 @@ namespace
                 retryDeadline = now + std::chrono::seconds(2);
             if (now >= retryDeadline)
                 return Result::Error;
+
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
             file.clear();
         }
+
         error = {};
 
         const std::streampos fileSize = file.tellg();
@@ -119,7 +121,6 @@ namespace
 
         return Result::Continue;
     }
-
 }
 
 namespace

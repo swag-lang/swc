@@ -1357,31 +1357,38 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 const SanitizerValue* value = state.stack.find(slot);
                 if (value && value->isZero())
                     return;
+
                 SmallVector<int64_t> released;
                 appendAliasClass(released, state, slot);
+
                 const auto location = state.aliasPtrLocations.find(slot);
                 if (location != state.aliasPtrLocations.end())
                 {
                     state.pendingReleaseLocation = location->second;
                     state.pendingReleaseOrigin   = inst.debugSourceInfo.sourceCodeRef;
                 }
+
                 for (const int64_t alias : released)
                 {
                     state.freedPtrSlots.insertOrAssign(alias, inst.debugSourceInfo.sourceCodeRef);
+
                     const auto reg = state.aliasPtrRegs.find(alias);
                     if (reg != state.aliasPtrRegs.end())
                     {
                         SanitizerRegInfo info;
                         if (const auto* previous = findReg(state, reg->second))
                             info = *previous;
+
                         info.releasedPointer = true;
                         info.releasedOrigin  = inst.debugSourceInfo.sourceCodeRef;
                         setReg(state, reg->second, info);
                     }
                 }
             }
+
             return;
         }
+
         case MicroInstrOpcode::SanityInvalidate:
         {
             int64_t slot = 0;
@@ -1390,8 +1397,10 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 markMovedBorrows(state, slot, ops[1].valueU64);
                 state.movedFrom.insertOrAssign(slot, {.size = ops[1].valueU64, .origin = inst.debugSourceInfo.sourceCodeRef});
             }
+
             return;
         }
+
         case MicroInstrOpcode::LoadRegImm:
             setRegValue(state, ops[0].reg, SanitizerValue::makeConstant(ops[2].valueU64));
             return;

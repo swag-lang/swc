@@ -856,6 +856,7 @@ namespace
         JITExecManager::Completion completion = sema.compiler().jitExecMgr().consumeCompletion(sema.ctx(), nodeRef, codeRef);
         if (!completion.hasValue)
             return std::nullopt;
+
         return completion;
     }
 
@@ -868,6 +869,7 @@ namespace
         auto* pendingEntry = pendingJitCompletionPayload(*completion);
         if (pendingEntry && completion->result == Result::Continue)
             applyPendingJitResult(sema, nodeRef, *pendingEntry);
+
         return completion->result;
     }
 
@@ -879,6 +881,7 @@ namespace
         request.nodeRef      = nodeRef;
         request.codeRef      = sema.node(nodeRef).codeRef();
         request.runImmediate = runImmediate;
+
         return request;
     }
 
@@ -886,18 +889,19 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
-        // Synchronous completion and paused completion both flow through the same
-        // pending entry. That keeps constant materialization/cache updates identical
-        // regardless of whether the JIT manager had to switch threads.
+        // Apply synchronous and deferred results through the same pending entry
+        // so constant materialization and cache updates do not depend on scheduling.
         pendingEntry->resultMeta          = resultMeta;
         pendingEntry->setFoldedTypedConst = setFoldedTypedConst;
         request.completionPayload         = pendingEntry;
-        const Result submitResult         = sema.compiler().jitExecMgr().submit(ctx, request);
+
+        const Result submitResult = sema.compiler().jitExecMgr().submit(ctx, request);
         if (submitResult == Result::Pause)
             return Result::Pause;
 
         if (submitResult != Result::Continue)
             return submitResult;
+
         applyPendingJitResult(sema, nodeRef, *pendingEntry);
         return Result::Continue;
     }
@@ -968,10 +972,12 @@ namespace
         const AttributeList& attributes = calledFn.attributes();
         if (attributes.hasMacroOrMixin())
             return false;
+
         // Fallible calls depend on the runtime error context and must preserve
         // their TLS-visible side effects instead of being folded to a plain value.
         if (calledFn.isFallible())
             return false;
+
         if (!calledFn.isPure() && !attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
         if (calledFn.isForeign() && !attributes.hasRtFlag(RtAttributeFlagsE::ConstExpr))
@@ -1006,12 +1012,13 @@ namespace
         if (calledFn.parameters().empty())
             return false;
 
-        const TypeRef   receiverParamTypeRef      = sema.typeMgr().unwrapAlias(sema.ctx(), calledFn.parameters().front()->typeRef());
-        const TypeRef   normalizedReceiverTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), receiverTypeRef);
-        const TypeRef   receiverParamRef          = receiverParamTypeRef.isValid() ? receiverParamTypeRef : calledFn.parameters().front()->typeRef();
-        const TypeRef   receiverType              = normalizedReceiverTypeRef.isValid() ? normalizedReceiverTypeRef : receiverTypeRef;
-        const TypeInfo& receiverParam             = sema.typeMgr().get(receiverParamRef);
-        // The pointer-world receiver binds by address exactly as the reference did.
+        const TypeRef receiverParamTypeRef      = sema.typeMgr().unwrapAlias(sema.ctx(), calledFn.parameters().front()->typeRef());
+        const TypeRef normalizedReceiverTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), receiverTypeRef);
+        const TypeRef receiverParamRef          = receiverParamTypeRef.isValid() ? receiverParamTypeRef : calledFn.parameters().front()->typeRef();
+        const TypeRef receiverType              = normalizedReceiverTypeRef.isValid() ? normalizedReceiverTypeRef : receiverTypeRef;
+
+        const TypeInfo& receiverParam = sema.typeMgr().get(receiverParamRef);
+        // Both reference and non-null value-pointer receivers bind by address.
         if (!receiverParam.isReferenceOrNonNullValuePointer())
             return false;
         if (receiverParam.payloadTypeRef() != receiverType)
@@ -1054,14 +1061,13 @@ namespace
             return value.getStruct().size() == byteSize;
         if (value.isArray())
             return value.getArray().size() == byteSize;
+
         return true;
     }
 
 #if SWC_DEV_MODE
-    // The buffers below are written by JIT-executed user code during compile-time folding. A fold
-    // that writes past its receiver corrupts whatever the allocator placed next, and that defect
-    // has so far surfaced only as allocator assertions on innocent threads. The redzone turns the
-    // overflow into a report that names the fold that wrote it.
+    // A folding overflow may surface later as an allocator failure on another thread.
+    // Redzones identify the JIT-executed call that wrote past its buffer.
     constexpr uint64_t K_JIT_FOLD_REDZONE      = 64;
     constexpr uint8_t  K_JIT_FOLD_REDZONE_BYTE = 0xAB;
 #endif
@@ -1083,6 +1089,7 @@ namespace
         JITArgument arg;
         arg.typeRef  = typeRef;
         arg.valuePtr = valuePtr;
+
         outJitArgs.push_back(arg);
     }
 
@@ -1091,6 +1098,7 @@ namespace
     {
         auto& argStorage = outArgStorage.emplace_back();
         reserveJitFoldStorage(argStorage, storageSize);
+
         const uint64_t ptr = reinterpret_cast<uint64_t>(pointee);
         std::memcpy(argStorage.data(), &ptr, sizeof(ptr));
         pushJitArgument(outJitArgs, typeRef, argStorage.data());
@@ -1104,6 +1112,7 @@ namespace
             SWC_ASSERT(storage.size() >= K_JIT_FOLD_REDZONE);
             const uint64_t   size = storage.size() - K_JIT_FOLD_REDZONE;
             const std::byte* zone = storage.data() + size;
+
             for (uint64_t i = 0; i < K_JIT_FOLD_REDZONE; ++i)
             {
                 if (zone[i] == std::byte{K_JIT_FOLD_REDZONE_BYTE})
@@ -1137,6 +1146,7 @@ namespace
             const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
             if (resolvedArg.passKind != CallArgumentPassKind::Direct)
                 return Result::Continue;
+
             const SymbolVariable* param = calledFn.parameters()[i];
             SWC_ASSERT(param != nullptr);
 
@@ -1196,6 +1206,7 @@ namespace
             const uint64_t argStorageSize = argValueType.sizeOf(ctx);
             if (!argStorageSize)
                 return Result::Continue;
+
             SWC_ASSERT(argStorageSize <= std::numeric_limits<uint32_t>::max());
             if (argStorageSize > std::numeric_limits<uint32_t>::max())
                 return Result::Continue;
@@ -1213,12 +1224,12 @@ namespace
         return Result::Continue;
     }
 
-    // Reads the arguments the way buildConstCallArguments does, up to the first default it would
-    // have to materialize. A pure call with a runtime argument, which is most of them, is then
-    // turned down before its fold payload, a kilobyte of inline storage, is allocated for nothing.
+    // Mirror argument eligibility until a default needs materialization. Reject runtime
+    // arguments before allocating the fold payload and its inline storage.
     bool explicitArgumentsCanFold(Sema& sema, const SymbolFunction& calledFn, std::span<const ResolvedCallArgument> resolvedArgs)
     {
         SWC_ASSERT(resolvedArgs.size() == calledFn.parameters().size());
+
         for (size_t i = 0; i < resolvedArgs.size(); ++i)
         {
             const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
@@ -1239,6 +1250,7 @@ namespace
     {
         outBuilt           = false;
         outReceiverStorage = nullptr;
+
         if (resolvedArgs.size() != calledFn.parameters().size())
             return Result::Continue;
         if (resolvedArgs.empty() || hasAnyVariadicParameter(sema, calledFn))
@@ -1267,7 +1279,7 @@ namespace
             if (i == 0)
             {
                 const TypeInfo& argValueType = sema.typeMgr().get(argValueTypeRef);
-                // The pointer-world receiver binds by address exactly as the reference did.
+                // Both reference and non-null value-pointer receivers bind by address.
                 if (!argValueType.isReferenceOrNonNullValuePointer())
                     return Result::Continue;
 
@@ -1377,13 +1389,10 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 {
     SWC_RESULT(SemaCheck::isValue(sema, nodeExprRef));
 
-    ///////////////////////////////////////////
     // Resume path: consume deferred completion if present.
     if (const std::optional<Result> completion = consumeJitExecCompletionAndApply(sema, nodeExprRef))
         return *completion;
 
-    ///////////////////////////////////////////
-    // Fast exits and prerequisites.
     if (sema.viewConstant(nodeExprRef).hasConstant())
         return Result::Continue;
 
@@ -1395,17 +1404,18 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
 
     const TypeRef           exprTypeRef = sema.viewType(nodeExprRef).typeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
+
     SWC_RESULT(prepareJitFunction(sema, symFn));
 
-    ///////////////////////////////////////////
     // Build payload and submit with shared node lifecycle.
     const auto      pendingEntry = std::make_shared<JITPendingNodeData>();
     JITNodePayload& payload      = pendingEntry->payload;
     payload.resultStorage.resize(resultMeta.resultSize);
 
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeExprRef, false);
-    request.arg0                    = reinterpret_cast<uint64_t>(payload.resultStorage.data());
-    request.hasArg0                 = true;
+
+    request.arg0    = reinterpret_cast<uint64_t>(payload.resultStorage.data());
+    request.hasArg0 = true;
 
     return submitJitNode(sema, nodeExprRef, request, pendingEntry, resultMeta, false);
 }
@@ -1422,14 +1432,16 @@ Result SemaJIT::runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef n
 
     const TypeRef           exprTypeRef = sema.viewType(nodeExprRef).typeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
+
     SWC_RESULT(prepareJitFunction(sema, symFn));
 
     SmallVector<std::byte> resultStorage;
     resultStorage.resize(resultMeta.resultSize);
 
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeExprRef, true);
-    request.arg0                    = reinterpret_cast<uint64_t>(resultStorage.data());
-    request.hasArg0                 = true;
+
+    request.arg0    = reinterpret_cast<uint64_t>(resultStorage.data());
+    request.hasArg0 = true;
 
     const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
     if (jitResult != Result::Continue)
@@ -1441,51 +1453,46 @@ Result SemaJIT::runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef n
 
 Result SemaJIT::runFunctionResult(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)
 {
-    ///////////////////////////////////////////
     // Resume path: consume deferred completion if present.
     if (const std::optional<Result> completion = consumeJitExecCompletionAndApply(sema, nodeRef))
         return *completion;
 
-    ///////////////////////////////////////////
-    // Fast exits and prerequisites.
     if (sema.viewConstant(nodeRef).hasConstant())
         return Result::Continue;
+
     if (hasPendingJitNode(sema, nodeRef))
         return waitPendingJitNode(sema, symFn, nodeRef);
+
     if (!symFn.returnTypeRef().isValid())
         return Result::Error;
 
     const JITCallResultMeta resultMeta = computeJitCallResultMeta(sema, symFn.returnTypeRef());
     SWC_RESULT(prepareJitFunction(sema, symFn));
 
-    ///////////////////////////////////////////
     // Build payload and submit with shared node lifecycle.
     const auto      pendingEntry = std::make_shared<JITPendingNodeData>();
     JITNodePayload& payload      = pendingEntry->payload;
     payload.resultStorage.resize(resultMeta.resultSize);
 
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, false);
-    request.jitReturn               = JITReturn{.typeRef = symFn.returnTypeRef(), .valuePtr = payload.resultStorage.data()};
-    request.hasJitReturn            = true;
+
+    request.jitReturn    = JITReturn{.typeRef = symFn.returnTypeRef(), .valuePtr = payload.resultStorage.data()};
+    request.hasJitReturn = true;
 
     return submitJitNode(sema, nodeRef, request, pendingEntry, resultMeta, false);
 }
 
 Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, const bool forceEvaluation)
 {
-    ///////////////////////////////////////////
     // Resume path: consume deferred completion if present.
     if (const std::optional<Result> completion = consumeJitExecCompletionAndApply(sema, callRef))
         return *completion;
 
-    ///////////////////////////////////////////
-    // Eligibility and prerequisites.
     if (sema.isRunExprContext() && !forceEvaluation)
         return Result::Continue;
-    // With backend optimization explicitly disabled, pure-call folding is normally
-    // deferred for compile speed. But an explicit #[ConstExpr] function is required to be evaluable at
-    // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) - folding
-    // only proceeds below once the arguments are confirmed constant.
+
+    // Skip optional folding when optimization is disabled. Explicit ConstExpr functions
+    // must still fold when the argument checks below establish constant inputs.
     if (!sema.isOptimizeEnabled() &&
         !sema.isConstExprRequired() &&
         !forceEvaluation &&
@@ -1501,9 +1508,8 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (sema.isConstExprRequired() || forceEvaluation)
         SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
 
-    // Everything the eligibility reads, purity included, is final once semantic analysis
-    // completes. A function complete before the first test gets the same answer after the
-    // wait below, which then returns at once, so only an incomplete one is asked again.
+    // Eligibility facts, including purity, are final after semantic completion.
+    // Recheck after waiting only if the first decision used an incomplete function.
     const bool completedBeforeEligibility = calledFn.isSemaCompleted();
     if (!supportsConstCallJit(sema, calledFn, forceEvaluation))
         return Result::Continue;
@@ -1515,7 +1521,6 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (!completedBeforeEligibility && !supportsConstCallJit(sema, calledFn, forceEvaluation))
         return Result::Continue;
 
-    ///////////////////////////////////////////
     // Build payload and arguments for call folding.
     if (resolvedArgs.size() != calledFn.parameters().size() || hasAnyVariadicParameter(sema, calledFn))
         return Result::Continue;
@@ -1547,7 +1552,8 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
     const TypeRef           exprTypeRef = calledFn.returnTypeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
-    ConstCallCacheKey       cacheKey;
+
+    ConstCallCacheKey cacheKey;
     if (!forceEvaluation && !unstableMetadata && buildConstCallCacheKey(sema, cacheKey, calledFn, resolvedArgs, payload.jitArgs.span()))
     {
         if (const ConstantRef cachedRef = findConstCallCacheResult(sema, cacheKey); cachedRef.isValid())
@@ -1570,15 +1576,17 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         const ConstantRef resultCstRef = makeJitCallResultConstantRef(sema, resultMeta, payload.resultStorage.data());
         if (payload.constCallCacheKey)
             cacheConstCallResult(sema, std::move(*payload.constCallCacheKey), resultCstRef);
+
         sema.setFoldedTypedConst(callRef);
         sema.setConstant(callRef, resultCstRef);
         return Result::Continue;
     }
 
     JITExecManager::Request request = jitNodeRequest(sema, calledFn, callRef, false);
-    request.jitArgs                 = payload.jitArgs.span();
-    request.jitReturn               = JITReturn{.typeRef = exprTypeRef, .valuePtr = payload.resultStorage.data()};
-    request.hasJitReturn            = true;
+
+    request.jitArgs      = payload.jitArgs.span();
+    request.jitReturn    = JITReturn{.typeRef = exprTypeRef, .valuePtr = payload.resultStorage.data()};
+    request.hasJitReturn = true;
 
     return submitJitNode(sema, callRef, request, pendingEntry, resultMeta, true);
 }
@@ -1589,14 +1597,14 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
         return Result::Continue;
     if (sema.isRunExprContext())
         return Result::Continue;
+
     // A partial initializer reads the implicit receiver default. Replacing a runtime
     // default with the JIT argument buffer's zeros would change that value.
     if (!calledFn.hasFullInitialization() && receiverInitCstRef.isInvalid() && SymbolStruct::typeHasRuntimeImplicitDefault(sema, receiverTypeRef))
         return Result::Continue;
-    // With backend optimization explicitly disabled, pure-call folding is normally
-    // deferred for compile speed. But an explicit #[ConstExpr] function is required to be evaluable at
-    // compile time, so it must still fold when its arguments are constant (e.g. a `case` value) - folding
-    // only proceeds below once the arguments are confirmed constant.
+
+    // Skip optional folding when optimization is disabled. Explicit ConstExpr functions
+    // must still fold when the argument checks below establish constant inputs.
     if (!sema.isOptimizeEnabled() &&
         !sema.isConstExprRequired() &&
         !forceEvaluation &&
@@ -1606,12 +1614,14 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
     const SymbolFunction* currentFn = sema.currentFunction();
     if (currentFn == &calledFn)
         return Result::Continue;
+
     SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
 
     SmallVector<SmallVector<std::byte>> argStorage;
     SmallVector<JITArgument>            jitArgs;
-    const std::byte*                    receiverStorage = nullptr;
-    bool                                built           = false;
+
+    const std::byte* receiverStorage = nullptr;
+    bool             built           = false;
     SWC_RESULT(buildConstSetCallArguments(sema, built, calledFn, callRef, resolvedArgs, receiverTypeRef, receiverInitCstRef, receiverStorage, argStorage, jitArgs));
     if (!built)
         return Result::Continue;
@@ -1631,9 +1641,10 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
     SWC_RESULT(prepareJitFunction(sema, calledFn));
 
     JITExecManager::Request request = jitNodeRequest(sema, calledFn, callRef, true);
-    request.jitArgs                 = jitArgs.span();
-    request.jitReturn               = JITReturn{.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr};
-    request.hasJitReturn            = true;
+
+    request.jitArgs      = jitArgs.span();
+    request.jitReturn    = JITReturn{.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr};
+    request.hasJitReturn = true;
 
     const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
     verifyJitFoldRedzones(sema, calledFn, argStorage);
@@ -1649,18 +1660,14 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
 
 Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)
 {
-    ///////////////////////////////////////////
     // Resume path: consume deferred completion if present.
     if (const std::optional<JITExecManager::Completion> completion = consumeJitExecCompletion(sema, nodeRef))
         return completion->result;
 
-    ///////////////////////////////////////////
-    // Shared codegen/JIT preparation path.
     SWC_RESULT(prepareJitFunction(sema, symFn));
 
-    ///////////////////////////////////////////
-    // Submit statement execution to the JIT manager.
-    TaskContext&            ctx     = sema.ctx();
+    TaskContext& ctx = sema.ctx();
+
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, false);
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }
@@ -1681,7 +1688,8 @@ Result SemaJIT::runStatementImmediate(Sema& sema, SymbolFunction& symFn, AstNode
 {
     SWC_RESULT(prepareFunction(sema, symFn));
 
-    TaskContext&            ctx     = sema.ctx();
+    TaskContext& ctx = sema.ctx();
+
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, true);
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }

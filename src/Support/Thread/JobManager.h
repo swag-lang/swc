@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -39,6 +40,7 @@ public:
         {
             for (uint32_t i = 0; i < count; ++i)
                 fn(ctx, i);
+
             return;
         }
 
@@ -57,6 +59,7 @@ public:
             {
                 for (uint32_t i = next_->fetch_add(1, std::memory_order_relaxed); i < count_; i = next_->fetch_add(1, std::memory_order_relaxed))
                     (*fn_)(this->ctx(), i);
+
                 return JobResult::Done;
             }
 
@@ -73,6 +76,7 @@ public:
         jobs.reserve(workerCount);
         for (uint32_t i = 0; i < workerCount; ++i)
             jobs.push_back(std::make_unique<WorkerJob>(ctx, kind, nextIndex, count, fn));
+
         for (auto& job : jobs)
             enqueue(*job, priority, clientId);
         waitAll(clientId);
@@ -162,6 +166,7 @@ private:
     // secondary live-record registry or per-job hash node.
     std::atomic<JobClientId>                     nextClientId_{1}; // start at 1, 0 reserved as "default client"
     std::unordered_map<JobClientId, ClientState> clients_;
+
     // Enqueue assigns every index while holding mtx_.
     uint32_t nextIndex_ = 0;
 
@@ -170,11 +175,10 @@ private:
     // linked through keyWaitNext: the actual dependency owns those intrusive links.
     std::unordered_map<WaitKey, JobRecord*, WaitKeyHash> waiters_;
 
-    // Counts nonempty dependency lists and JIT owner aliases, not individual sleepers. Presence is read
-    // before taking mtx_, so symbol-state publication with no
-    // observed waiter avoids the scheduler lock. Hash collisions only cause a locked
-    // lookup in the authoritative waiters_ map. Counts change under mtx_ (release);
-    // wake() reads them without that lock (acquire).
+    // Counts nonempty dependency lists and JIT owner aliases, rather than sleepers.
+    // wake() reads this filter before taking mtx_ so a shard with no observed waiters
+    // can skip the scheduler lock. Collisions only cause an extra waiters_ lookup.
+    // Counts change under mtx_ with release ordering; wake() loads with acquire.
     // After registration, symbol waits synchronize with the producer's flag RMW;
     // JIT waits recheck completion under its publication mutex. Both handshakes
     // publish the filter to a later producer or observe an earlier completion.
@@ -188,9 +192,8 @@ private:
     void bumpClientCountLocked(ClientState& client, int delta);
 
 #if SWC_DEV_MODE
-    // Where a parallel build loses its workers: rounds that drain the whole client, sleepers a
-    // barrier moves and that park again afterwards, sleepers a dependency wakes precisely,
-    // and the share of worker time spent running jobs. Updated under mtx_.
+    // Barrier rounds, repeated sleeps, targeted wakes, and worker utilization.
+    // All counters are updated under mtx_.
     struct SchedulerStats
     {
         uint64_t barrierRounds   = 0;
@@ -198,15 +201,17 @@ private:
         uint64_t barrierReparked = 0;
         uint64_t dependencyWoken = 0;
         uint64_t jobsExecuted    = 0;
-        uint64_t busyNs          = 0;
-        uint64_t lockWaitNs      = 0; // contended acquisitions of mtx_ on the job paths
-        uint64_t poolIdleNs      = 0; // wall time with no job running: serial phases
+
+        uint64_t busyNs     = 0;
+        uint64_t lockWaitNs = 0; // contended acquisitions of mtx_ on the job paths
+        uint64_t poolIdleNs = 0; // wall time with no job running: serial phases
     };
 
-    void                                  lockCounted(std::unique_lock<std::mutex>& lk);
-    void                                  noteActiveWorkersLocked(size_t before);
-    void                                  accountStarvationLocked();
-    const char*                           setStatsPhase(const char* name);
+    void        lockCounted(std::unique_lock<std::mutex>& lk);
+    void        noteActiveWorkersLocked(size_t before);
+    void        accountStarvationLocked();
+    const char* setStatsPhase(const char* name);
+
     std::chrono::steady_clock::time_point poolIdleSince_;
 
     struct PhaseStats
@@ -217,14 +222,14 @@ private:
         uint64_t    starvedNs = 0;
     };
 
-    PhaseStats&                           phaseStatsLocked(const char* name);
+    PhaseStats& phaseStatsLocked(const char* name);
+
     std::vector<PhaseStats>               phaseStats_;
     const char*                           statsPhase_ = "other";
     std::chrono::steady_clock::time_point phaseSince_;
 
-    // Per job kind: how much work it does, its longest single job, and the worker time left
-    // idle while only jobs of that kind (and others) run and nothing is ready. A long tail of
-    // one kind is what keeps a wide pool waiting.
+    // Per-kind work and longest-job durations, plus worker time left idle while
+    // that kind runs with an empty ready queue. This exposes long scheduling tails.
     struct KindStats
     {
         uint64_t jobs      = 0;

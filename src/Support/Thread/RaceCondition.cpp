@@ -20,14 +20,15 @@ RaceCondition::RaceCondition(Instance* inst, Mode mode) :
         // Writers are exclusive across threads; reentrancy by the same thread is OK.
         if (inst_->writer == std::thread::id{})
         {
-            // No active writer. Readers must be zero to take writing (pure exclusivity).
+            // The first writer requires all read guards to have been released.
             SWC_FORCE_ASSERT(inst_->readers == 0);
+
             inst_->writer     = tid;
             inst_->writeDepth = 1;
         }
         else
         {
-            // Writer already presents; only the same thread may re-enter.
+            // Only the active writer can acquire a nested write guard.
             SWC_FORCE_ASSERT(inst_->writer == tid);
             ++inst_->writeDepth;
         }
@@ -53,11 +54,11 @@ RaceCondition::~RaceCondition()
         // Only the owning writer thread should be destroying a writing guard.
         SWC_FORCE_ASSERT(inst_->writer == tid);
         SWC_FORCE_ASSERT(inst_->writeDepth > 0);
+
         if (--inst_->writeDepth == 0)
         {
+            // Acquisition checks prevented foreign readers while the writer was active.
             inst_->writer = std::thread::id{};
-            // When writeDepth drops to zero, there should be no foreign readers
-            // because they were blocked by assertions on acquiring.
         }
     }
     else

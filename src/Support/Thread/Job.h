@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Main/TaskContext.h"
 #include "Support/Core/Result.h"
 #include "Support/Report/Assert.h"
@@ -53,10 +54,9 @@ struct WaitKey
     bool operator==(const WaitKey&) const = default;
     bool valid() const { return target != nullptr; }
 
-    // A job that waits for something to happen to a name (a symbol spelled that way, the impl
-    // blocks registering on it) waits on the name itself. The target is the identifier index
-    // offset by one, a value no object address takes. Identifier indices are per compiler, so a
-    // shared pool can see a spurious wake from another module; the job then checks and parks again.
+    // Name dependencies use the identifier index plus one as a non-null target.
+    // Indices are local to a compiler, so shared pools can wake a job for another
+    // module; it must recheck the dependency before sleeping again.
     static WaitKey name(IdentifierRef idRef, TaskStateKind kind) { return {reinterpret_cast<const void*>(static_cast<uintptr_t>(idRef.get()) + 1), kind}; }
 };
 
@@ -118,6 +118,7 @@ public:
     // Names what a long-running job worked on in scheduler statistics.
     virtual Utf8 statsLabel() const { return {}; }
 #endif
+
     TaskContext&       ctx() { return ctx_; }
     const TaskContext& ctx() const { return ctx_; }
     JobManager*        owner() const { return owner_; }
@@ -127,6 +128,7 @@ public:
     void               setRec(JobRecord* rec) { rec_ = rec; }
     JobPriority        priority() const { return rec_ ? rec_->priority : JobPriority::Normal; }
     JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
+
     static JobResult   toJobResult(const TaskContext& ctx, Result result);
     static const char* kindName(JobKind kind);
 
@@ -158,9 +160,10 @@ public:
 
 private:
     TaskContext ctx_;
-    JobKind     kind_  = JobKind::Invalid;
-    JobManager* owner_ = nullptr; // which manager, if any, owns this job right now
-    JobRecord*  rec_   = nullptr; // scheduler state for THIS manager run (from the pool)
+    JobKind     kind_ = JobKind::Invalid;
+
+    JobManager* owner_ = nullptr; // Manager currently owning this job, if any.
+    JobRecord*  rec_   = nullptr; // Pooled scheduler state for the current manager run.
 };
 
 SWC_END_NAMESPACE();

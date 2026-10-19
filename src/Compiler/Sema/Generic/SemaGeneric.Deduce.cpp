@@ -911,6 +911,7 @@ namespace
             const Result elemResult = deduceFromTypePattern(sema, params, resolvedArgs, elemPatternRef, elemTypeRef, argExprRef, callArgIndex, outFailure, mode);
             if (elemResult != Result::Continue)
                 return elemResult;
+
             previousTypeRef = elemTypeRef;
         }
 
@@ -928,6 +929,7 @@ namespace
         const Result aggregateResult = deduceFromAggregateArrayPatternRec(sema, params, trialResolvedArgs.span(), dims, 0, elemPatternRef, argType, argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode);
         if (aggregateResult == Result::Pause)
             return Result::Pause;
+
         if (aggregateResult != Result::Continue)
             return Result::Continue;
 
@@ -947,9 +949,8 @@ namespace
         if (patternRef.isInvalid() || !rawArgTypeRef.isValid())
             return Result::Continue;
 
-        // The matcher is intentionally permissive: most shape mismatches mean "this
-        // overload did not deduce here", not "the program is invalid". Only a direct
-        // conflict on a generic parameter reports through outFailure.
+        // Shape mismatches only stop deduction for this overload. Report through
+        // outFailure only when deductions conflict on the same generic parameter.
         const AstNode& patternNode = sema.node(patternRef);
         if (const auto* ident = patternNode.safeCast<AstIdentifier>())
         {
@@ -990,6 +991,7 @@ namespace
         {
             if (!argType.isCodeBlock())
                 return Result::Continue;
+
             return deduceFromTypePattern(sema, params, resolvedArgs, codeType->nodeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
         }
 
@@ -1009,6 +1011,7 @@ namespace
             // sides before binding dimension value parameters.
             SmallVector<AstNodeRef> dims;
             sema.ast().appendNodes(dims, arrayType->spanDimensionsRef);
+
             SmallVector<uint64_t> actualDims;
             TypeRef               actualElemTypeRef = argTypeRef;
             collectConcreteArrayShape(sema.typeMgr(), argTypeRef, actualDims, actualElemTypeRef);
@@ -1061,6 +1064,7 @@ namespace
 
             if (!argType.isSlice())
                 return Result::Continue;
+
             return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
         }
 
@@ -1068,6 +1072,7 @@ namespace
         {
             if (!argType.isMoveReference())
                 return Result::Continue;
+
             return deduceFromTypePattern(sema, params, resolvedArgs, moveRefType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
         }
 
@@ -1075,6 +1080,7 @@ namespace
         {
             if (!argType.isAnyPointer())
                 return Result::Continue;
+
             return deduceFromTypePattern(sema, params, resolvedArgs, valuePtrType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
         }
 
@@ -1082,6 +1088,7 @@ namespace
         {
             if (!argType.isAnyPointer())
                 return Result::Continue;
+
             return deduceFromTypePattern(sema, params, resolvedArgs, blockPtrType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
         }
 
@@ -1092,6 +1099,7 @@ namespace
         {
             if (!argType.isTypedVariadic())
                 return Result::Continue;
+
             return deduceFromTypePattern(sema, params, resolvedArgs, variadicType->nodeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure, mode);
         }
 
@@ -1101,7 +1109,8 @@ namespace
     void collectFunctionParamDescsImpl(Sema& sema, const SymbolFunction& root, const AstFunctionDecl& decl, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outParams)
     {
         SmallVector<SemaGeneric::GenericFunctionParamDesc> symbolParamDescs;
-        const auto&                                        symbolParams = root.parameters();
+
+        const auto& symbolParams = root.parameters();
         if (!symbolParams.empty())
         {
             symbolParamDescs.reserve(symbolParams.size());
@@ -1113,7 +1122,8 @@ namespace
                 const AstNode* paramNode = symParam->decl();
                 if (paramNode->is(AstNodeId::SingleVarDecl))
                 {
-                    const auto&                           varDecl = paramNode->cast<AstSingleVarDecl>();
+                    const auto& varDecl = paramNode->cast<AstSingleVarDecl>();
+
                     SemaGeneric::GenericFunctionParamDesc desc;
                     desc.idRef           = symParam->idRef();
                     desc.typeRef         = varDecl.typeOrInitRef();
@@ -1121,6 +1131,7 @@ namespace
                     desc.defaultRef      = varDecl.nodeInitRef;
                     desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(sema, symParam->typeRef()) || SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
                     desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
+
                     symbolParamDescs.push_back(desc);
                 }
                 else if (paramNode->is(AstNodeId::FunctionParamMe))
@@ -1128,6 +1139,7 @@ namespace
                     SemaGeneric::GenericFunctionParamDesc desc;
                     desc.idRef      = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
                     desc.isVariadic = false;
+
                     symbolParamDescs.push_back(desc);
                 }
             }
@@ -1139,7 +1151,8 @@ namespace
             return;
         }
 
-        SmallVector<AstNodeRef>                            params;
+        SmallVector<AstNodeRef> params;
+
         SmallVector<SemaGeneric::GenericFunctionParamDesc> declaredParamDescs;
         appendFunctionParamNodes(sema, decl.nodeParamsRef, params);
         declaredParamDescs.reserve(params.size());
@@ -1180,6 +1193,7 @@ namespace
             {
                 if (!desc.resolvedTypeRef.isValid())
                     desc.resolvedTypeRef = symbolParamDescs[symbolIndex].resolvedTypeRef;
+
                 desc.isVariadic = desc.isVariadic || symbolParamDescs[symbolIndex].isVariadic;
                 ++symbolIndex;
             }
@@ -1213,6 +1227,7 @@ namespace
         {
             ConstantRef newCstRef = ConstantRef::invalid();
             SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, valueArgRef, argView.cstRef(), TypeInfo::Sign::Unknown));
+
             if (!newCstRef.isValid())
                 return Result::Continue;
 
@@ -1228,6 +1243,7 @@ namespace
             {
                 ConstantRef newCstRef = ConstantRef::invalid();
                 SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, valueArgRef, argView.cstRef(), TypeInfo::Sign::Unknown));
+
                 if (newCstRef.isValid())
                 {
                     sema.setConstant(valueArgRef, newCstRef);

@@ -21,7 +21,6 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/EditorIndex.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"

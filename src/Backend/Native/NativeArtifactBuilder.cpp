@@ -8,7 +8,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Command/CommandLineParser.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"

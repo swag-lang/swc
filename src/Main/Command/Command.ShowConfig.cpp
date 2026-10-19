@@ -22,8 +22,7 @@ namespace
 {
     using CommandPrint::addBoolEntry;
     using CommandPrint::addInfoEntry;
-    using CommandPrint::addPathSet;
-    using CommandPrint::addUtf8Set;
+    using CommandPrint::addSetEntries;
     using CommandPrint::nextInfoGroupStyle;
 
     void printCommandLineOptions(const TaskContext& ctx, bool& hasPrintedGroup)
@@ -110,14 +109,14 @@ namespace
             addInfoEntry(entries, "Documentation directory", DocGenerator::outputDirectory(ctx.compiler()));
             addInfoEntry(entries, "Documentation stylesheet", cmdLine.docCss);
         }
-        addPathSet(entries, "Source directories", cmdLine.directories);
-        addPathSet(entries, "Source files", cmdLine.files);
-        addUtf8Set(entries, "Import API modules", cmdLine.importApiModules);
-        addPathSet(entries, "Import API directories", cmdLine.importApiDirs);
-        addPathSet(entries, "Import API files", cmdLine.importApiFiles);
-        addUtf8Set(entries, "File filters", cmdLine.fileFilter);
-        addUtf8Set(entries, "Test file filters", cmdLine.testFileFilter);
-        addUtf8Set(entries, "Test tag filters", cmdLine.testTagFilter);
+        addSetEntries(entries, "Source directories", cmdLine.directories);
+        addSetEntries(entries, "Source files", cmdLine.files);
+        addSetEntries(entries, "Import API modules", cmdLine.importApiModules);
+        addSetEntries(entries, "Import API directories", cmdLine.importApiDirs);
+        addSetEntries(entries, "Import API files", cmdLine.importApiFiles);
+        addSetEntries(entries, "File filters", cmdLine.fileFilter);
+        addSetEntries(entries, "Test file filters", cmdLine.testFileFilter);
+        addSetEntries(entries, "Test tag filters", cmdLine.testTagFilter);
         Logger::printFieldGroup(ctx, "Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 

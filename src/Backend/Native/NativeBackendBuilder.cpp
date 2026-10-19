@@ -21,7 +21,6 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"

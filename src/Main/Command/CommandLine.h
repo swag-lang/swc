@@ -338,6 +338,47 @@ inline bool isEditorServiceCommand(const CommandKind command)
     return command == CommandKind::Service;
 }
 
+inline Runtime::BuildCfgBackendKind effectiveBackendKind(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind currentKind)
+{
+    if (cmdLine.artifactKindExplicit)
+        return cmdLine.backendKind;
+    return currentKind;
+}
+
+inline Utf8 defaultArtifactName(const CommandLine& cmdLine)
+{
+    if (!cmdLine.name.empty())
+        return FileSystem::sanitizeFileName(cmdLine.name);
+
+    if (cmdLine.scriptMode && cmdLine.files.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.files.begin()->stem().string()));
+
+    if (!cmdLine.modulePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.modulePath.filename().string()));
+
+    if (!cmdLine.moduleFilePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.moduleFilePath.parent_path().filename().string()));
+
+    if (!cmdLine.workspacePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.workspacePath.filename().string()));
+
+    if (cmdLine.files.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.files.begin()->stem().string()));
+
+    if (cmdLine.directories.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.directories.begin()->filename().string()));
+
+    return "native";
+}
+
+inline Utf8 defaultModuleNamespace(const Utf8& artifactName)
+{
+    Utf8 result = artifactName;
+    if (!result.empty() && result[0] >= 'a' && result[0] <= 'z')
+        result[0] = static_cast<char>(result[0] - 'a' + 'A');
+    return result;
+}
+
 // Suffix carried by every file a build emits, so two commands that turn the same
 // sources into different programs can never share one.
 //

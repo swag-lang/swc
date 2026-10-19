@@ -490,7 +490,6 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstIdentifierFlagsE : AstNode::ParserFlags
 {
     Zero                     = 0,
@@ -506,22 +505,22 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>
 {
     static Result codeGenPostNode(CodeGen& codeGen);
-    Result        semaPostNode(Sema& sema) const;
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstQuotedExpr : AstNodeT<AstNodeId::QuotedExpr>
 {
     AstNodeRef nodeExprRef;
     AstNodeRef nodeSuffixRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeSuffixRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeSuffixRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
 {
     AstNodeRef nodeExprRef;
@@ -531,11 +530,11 @@ struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
         AstNode::collectChildren(out, {nodeExprRef});
         AstCompoundT::collectChildren(out, ast);
     }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstCallExprFlagsE : AstNode::ParserFlags
 {
     Zero             = 0,
@@ -550,20 +549,20 @@ struct AstCallExpr : AstCallExprT<AstNodeId::CallExpr, AstCallExprFlagsE>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstIntrinsicCallExpr : AstCallExprT<AstNodeId::IntrinsicCallExpr, AstCallExprFlagsE>
 {
     TokenId intrinsicId = TokenId::Invalid;
 
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     codeGenPreNode(CodeGen& codeGen) const;
-    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+
+    Result codeGenPreNode(CodeGen& codeGen) const;
+    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
 {
     AstNodeRef nodeWhatRef;
@@ -575,26 +574,26 @@ struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
         AstNode::collectChildren(out, ast, spanArgsRef);
     }
 
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstIndexExpr : AstNodeT<AstNodeId::IndexExpr>
 {
     AstNodeRef nodeExprRef;
     AstNodeRef nodeArgRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeArgRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
 {
     AstNodeRef nodeExprRef;
@@ -604,244 +603,237 @@ struct AstIndexListExpr : AstCompoundT<AstNodeId::IndexListExpr>
         AstNode::collectChildren(out, {nodeExprRef});
         AstCompoundT::collectChildren(out, ast);
     }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstUnnamedArgument : AstNodeT<AstNodeId::UnnamedArgument>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstNamedArgument : AstNodeT<AstNodeId::NamedArgument>
 {
     AstNodeRef nodeArgRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArgRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArgRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstParenExpr : AstNodeT<AstNodeId::ParenExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstNamedArgumentList : AstCompoundT<AstNodeId::NamedArgumentList>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstUnnamedArgumentList : AstCompoundT<AstNodeId::UnnamedArgumentList>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstLogicalExpr : AstBinaryT<AstNodeId::LogicalExpr>
 {
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
-    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNode(Sema& sema);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstRelationalExpr : AstBinaryT<AstNodeId::RelationalExpr>
 {
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+
+    Result codeGenPostNode(CodeGen& codeGen) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstBinaryExpr : AstBinaryT<AstNodeId::BinaryExpr>
 {
     AstModifierFlags modifierFlags;
 
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstUnaryExpr : AstNodeT<AstNodeId::UnaryExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
 {
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+
     static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
-    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNode(Sema& sema);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 // Root of a postfix chain containing at least one '?.' access: the single anchor
 // for the chain's null exit and the type of its "skipped" outcome.
 struct AstOptionalChainExpr : AstNodeT<AstNodeId::OptionalChainExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     static Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
     static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
-    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNode(Sema& sema);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
 {
     AstNodeRef nodeCondRef;
     AstNodeRef nodeTrueRef;
     AstNodeRef nodeFalseRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
+
     static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
     static Result codeGenPostNode(CodeGen& codeGen);
-    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNode(Sema& sema);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstInitializerExpr : AstNodeT<AstNodeId::InitializerExpr>
 {
     AstModifierFlags modifierFlags;
-    AstNodeRef       nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstBinaryLiteral : AstLiteralT<AstNodeId::BinaryLiteral>
 {
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstHexaLiteral : AstLiteralT<AstNodeId::HexaLiteral>
 {
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstIntegerLiteral : AstLiteralT<AstNodeId::IntegerLiteral>
 {
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstFloatLiteral : AstLiteralT<AstNodeId::FloatLiteral>
 {
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstStringLiteral : AstLiteralT<AstNodeId::StringLiteral>
 {
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCharacterLiteral : AstLiteralT<AstNodeId::CharacterLiteral>
 {
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstBoolLiteral : AstLiteralT<AstNodeId::BoolLiteral>
 {
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstNullLiteral : AstLiteralT<AstNodeId::NullLiteral>
 {
     static Result semaPreNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
     static Result codeGenPostNode(CodeGen& codeGen);
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerLiteral : AstLiteralT<AstNodeId::CompilerLiteral>
 {
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstSuffixLiteral : AstNodeT<AstNodeId::SuffixLiteral>
 {
     AstNodeRef nodeLiteralRef;
     AstNodeRef nodeSuffixRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLiteralRef, nodeSuffixRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLiteralRef, nodeSuffixRef}); }
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 {
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstAutoMemberAccessExprFlagsE : AstNode::ParserFlags
 {
     Zero              = 0,
@@ -854,12 +846,12 @@ struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr, AstAu
 {
     AstNodeRef nodeIdentRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstMemberAccessExprFlagsE : AstNode::ParserFlags
 {
     Zero           = 0,
@@ -871,32 +863,35 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAcce
 {
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
-    TokenId    projectionId = TokenId::Invalid;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    TokenId projectionId = TokenId::Invalid;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+
+    Result codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstAsCastExpr : AstNodeT<AstNodeId::AsCastExpr>
 {
     AstNodeRef nodeExprRef;
     AstNodeRef nodeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
-    Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+
+    Result codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstIsTypeExprFlagsE : uint8_t
 {
     Zero    = 0,
@@ -908,25 +903,26 @@ struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr, AstIsTypeExprFlagsE>
     AstNodeRef nodeExprRef;
     AstNodeRef nodeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstAutoCastExpr : AstNodeT<AstNodeId::AutoCastExpr>
 {
     AstModifierFlags modifierFlags;
-    AstNodeRef       nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstCastExprFlagsE : AstNode::ParserFlags
 {
     Zero            = 0,
@@ -938,29 +934,31 @@ enum class AstCastExprFlagsE : AstNode::ParserFlags
 struct AstCastExpr : AstNodeT<AstNodeId::CastExpr, AstCastExprFlagsE>
 {
     AstModifierFlags modifierFlags;
-    AstNodeRef       nodeTypeRef;
-    AstNodeRef       nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
-    Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    AstNodeRef nodeTypeRef;
+    AstNodeRef nodeExprRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeExprRef}); }
+
+    Result codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstEnumBody : AstCompoundT<AstNodeId::EnumBody>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
 {
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeBodyRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
+
     Result     semaPreDecl(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPreNode(Sema& sema) const;
@@ -968,18 +966,17 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
 {
     AstNodeRef nodeInitRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstQualifiedTypeFlagsE : AstNode::ParserFlags
 {
     Zero     = 0,
@@ -991,7 +988,8 @@ struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType, AstQualifiedTypeFla
 {
     AstNodeRef nodeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

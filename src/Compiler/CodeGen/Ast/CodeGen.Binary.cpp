@@ -31,14 +31,16 @@ namespace
 
     struct BinaryEncodeContext
     {
-        const CodeGenNodePayload* leftPayload         = nullptr;
-        const CodeGenNodePayload* rightPayload        = nullptr;
-        TypeRef                   leftOperandTypeRef  = TypeRef::invalid();
-        TypeRef                   rightOperandTypeRef = TypeRef::invalid();
-        TypeRef                   resultTypeRef       = TypeRef::invalid();
-        TypeRef                   operationTypeRef    = TypeRef::invalid();
-        BinaryEncodingKind        encodingKind        = BinaryEncodingKind::IntLike;
-        uint64_t                  pointerStride       = 0;
+        const CodeGenNodePayload* leftPayload  = nullptr;
+        const CodeGenNodePayload* rightPayload = nullptr;
+
+        TypeRef leftOperandTypeRef  = TypeRef::invalid();
+        TypeRef rightOperandTypeRef = TypeRef::invalid();
+        TypeRef resultTypeRef       = TypeRef::invalid();
+        TypeRef operationTypeRef    = TypeRef::invalid();
+
+        BinaryEncodingKind encodingKind  = BinaryEncodingKind::IntLike;
+        uint64_t           pointerStride = 0;
     };
 
     BinaryEncodingKind resolveBinaryEncodingKind(TokenId tokId, const TypeInfo& leftType, const TypeInfo& rightType)
@@ -201,12 +203,14 @@ namespace
         const SemaNodeView rightView = resolveBinaryOperandSemanticView(codeGen, node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
-        ctx.leftPayload                = &codeGen.payload(node.nodeLeftRef);
-        ctx.rightPayload               = &codeGen.payload(node.nodeRightRef);
-        ctx.leftOperandTypeRef         = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeLeftRef, leftView, *ctx.leftPayload);
-        ctx.rightOperandTypeRef        = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
-        ctx.leftOperandTypeRef         = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
-        ctx.rightOperandTypeRef        = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
+        ctx.leftPayload  = &codeGen.payload(node.nodeLeftRef);
+        ctx.rightPayload = &codeGen.payload(node.nodeRightRef);
+
+        ctx.leftOperandTypeRef  = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeLeftRef, leftView, *ctx.leftPayload);
+        ctx.rightOperandTypeRef = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
+        ctx.leftOperandTypeRef  = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
+        ctx.rightOperandTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
+
         const TypeInfo* resultTypeInfo = codeGen.curViewType().type();
         if (codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
         {
@@ -215,7 +219,8 @@ namespace
                 resultTypeInfo = storedResultType;
         }
         SWC_ASSERT(resultTypeInfo);
-        ctx.resultTypeRef                = resultTypeInfo->typeRef();
+        ctx.resultTypeRef = resultTypeInfo->typeRef();
+
         const TypeInfo& leftSemanticType = SemaHelpers::aliasEnumType(codeGen.sema(), leftView);
         const TypeInfo* operationType    = &leftSemanticType;
         const TypeInfo& resultType       = *resultTypeInfo;
@@ -227,6 +232,7 @@ namespace
             if (resultType.isFloat() != leftSemanticType.isFloat() || resultBits != opBits)
                 operationType = &resultType;
         }
+
         if (ctx.resultTypeRef.isValid() && resultIsBool)
         {
             const TypeInfo& leftOperandType = typeMgr.get(ctx.leftOperandTypeRef);
@@ -235,6 +241,7 @@ namespace
             if (operationType->isNumericIntLike())
                 ctx.resultTypeRef = operationType->typeRef();
         }
+
         ctx.operationTypeRef = operationType->typeRef();
         SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
         SWC_ASSERT(ctx.rightOperandTypeRef.isValid());
@@ -245,14 +252,12 @@ namespace
         ctx.encodingKind                  = resolveBinaryEncodingKind(tokId, leftSemanticType, rightSemanticType);
         if (ctx.encodingKind == BinaryEncodingKind::IntLike && operationType->isFloat())
         {
-            // An inlined parameter resolves to its call-site expression. That expression can
-            // still have an integer type even though the provider's binary expression, and the
-            // conversions materialized above, operate on floats. Keep the instruction family
-            // aligned with that normalized operation type.
+            // Inlined parameters can retain an integer call-site type even when the
+            // normalized operation uses floats. Match instructions to that operation type.
             ctx.encodingKind = BinaryEncodingKind::Float;
         }
-        // Pointer arithmetic is expressed in element units, so capture the stride once and reuse it in
-        // both offset and difference lowering.
+
+        // Pointer arithmetic uses element units; reuse the stride for offsets and differences.
         if (ctx.encodingKind == BinaryEncodingKind::PointerOffset)
         {
             const TypeInfo& pointerType = leftSemanticType.isAnyPointer() ? leftSemanticType : rightSemanticType;
@@ -274,8 +279,8 @@ namespace
         if (!operandPayload.isValue() || !operandPayload.typeRef.isValid() || operandPayload.typeRef == sourceTypeRef)
             return sourceTypeRef;
 
-        const TypeInfo& payloadType     = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandPayload.typeRef);
-        const TypeRef   payloadTypeRef  = payloadType.typeRef();
+        const TypeInfo& payloadType    = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandPayload.typeRef);
+        const TypeRef   payloadTypeRef = payloadType.typeRef();
         if (payloadTypeRef == sourceTypeRef)
             return sourceTypeRef;
 
@@ -296,9 +301,9 @@ namespace
             return;
 
         SWC_ASSERT(!srcType.isAliasOrEnum());
-        const TypeInfo&   dstType      = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
-        const MicroOpBits dstBits      = CodeGenTypeHelpers::numericOrBoolBits(dstType);
-        dstTypeRef                     = dstType.typeRef();
+        const TypeInfo&   dstType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), dstTypeRef);
+        const MicroOpBits dstBits = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        dstTypeRef                = dstType.typeRef();
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
         SWC_ASSERT(dstBits != MicroOpBits::Zero);
 
@@ -321,6 +326,7 @@ namespace
                 builder.emitLoadZeroExtendRegReg(dstReg, outReg, dstBits, srcBits);
             else
                 builder.emitLoadSignedExtendRegReg(dstReg, outReg, dstBits, srcBits);
+
             outReg = dstReg;
             return;
         }
@@ -358,7 +364,8 @@ namespace
 
     void materializeArithmeticOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef srcTypeRef, TypeRef dstTypeRef)
     {
-        srcTypeRef                = resolveArithmeticOperandPhysicalTypeRef(codeGen, operandPayload, srcTypeRef);
+        srcTypeRef = resolveArithmeticOperandPhysicalTypeRef(codeGen, operandPayload, srcTypeRef);
+
         const TypeInfo&   srcType = codeGen.typeMgr().get(srcTypeRef);
         const MicroOpBits srcBits = CodeGenTypeHelpers::numericOrBoolBits(srcType);
         SWC_ASSERT(srcBits != MicroOpBits::Zero);
@@ -428,6 +435,7 @@ namespace
         {
             MicroReg rightReg;
             materializeArithmeticOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.operationTypeRef);
+
             if (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent)
             {
                 SWC_RESULT(CodeGenSafety::emitDivOrModIntLike(codeGen, node, nodePayload.reg, rightReg, op, opBits, isSigned, tokId == TokenId::SymPercent));
@@ -459,8 +467,8 @@ namespace
         SWC_ASSERT(opBits != MicroOpBits::Zero);
 
         CodeGenNodePayload& nodePayload = codeGen.setPayloadValue(codeGen.curNodeRef(), encodeCtx.resultTypeRef);
-
         materializeArithmeticOperand(nodePayload.reg, codeGen, *encodeCtx.leftPayload, encodeCtx.leftOperandTypeRef, encodeCtx.operationTypeRef);
+
         MicroReg rightReg;
         materializeArithmeticOperand(rightReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, encodeCtx.operationTypeRef);
 
@@ -486,9 +494,8 @@ namespace
 
         if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
         {
-            // A count the source names rides in the instruction. Otherwise
-            // every lane shifts by the same count, carried in the low bits of
-            // a vector register.
+            // Encode constant counts directly. Runtime shifts apply one count to
+            // every lane, using the low bits of a vector register.
             const auto&    node   = codeGen.node(codeGen.curNodeRef()).cast<AstBinaryExpr>();
             const MicroReg lhsReg = CodeGenVectorHelpers::loadVectorOperand(codeGen, *encodeCtx.leftPayload);
             nodePayload.reg       = CodeGenVectorHelpers::emitConstantShift(codeGen, tokId, lhsReg, laneType, node.nodeRightRef);
@@ -497,6 +504,7 @@ namespace
 
             MicroReg countReg;
             materializeArithmeticOperand(countReg, codeGen, *encodeCtx.rightPayload, encodeCtx.rightOperandTypeRef, codeGen.typeMgr().typeU64());
+
             const MicroReg countVecReg = codeGen.nextVirtualFloatRegister();
             builder.emitLoadRegReg(countVecReg, countReg, MicroOpBits::B64);
             nodePayload.reg = CodeGenVectorHelpers::emitVariableShift(codeGen, tokId, lhsReg, countVecReg, laneType);
@@ -593,10 +601,11 @@ namespace
         MicroBuilder&             builder       = codeGen.builder();
         builder.emitLoadRegReg(resultPayload.reg, leftReg, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(resultPayload.reg, rightReg, MicroOp::Subtract, MicroOpBits::B64);
-        // Pointer subtraction produces a byte delta first; normalize it back to an element count for the
-        // language-level result.
+
+        // Convert the byte delta to an element count for the language-level result.
         if (encodeCtx.pointerStride != 1)
             builder.emitOpBinaryRegImm(resultPayload.reg, ApInt(encodeCtx.pointerStride, 64), MicroOp::DivideSigned, MicroOpBits::B64);
+
         return Result::Continue;
     }
 }
@@ -623,6 +632,7 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const TokenId             tokId     = Token::canonicalBinary(codeGen.token(codeRef()).id);
     const BinaryEncodeContext encodeCtx = buildBinaryEncodeContext(codeGen, *this, tokId);
+
     switch (encodeCtx.encodingKind)
     {
         case BinaryEncodingKind::IntLike:

@@ -38,10 +38,13 @@ namespace
                 if (extension == ".md")
                     paths.push_back(it->path());
             }
+
             it.increment(ec);
         }
+
         if (ec)
             return DocFile::reportError(ctx, helpRoot, FileSystem::normalizeSystemMessage(ec));
+
         std::ranges::sort(paths);
 
         std::unordered_set<Utf8> anchors;
@@ -62,19 +65,24 @@ namespace
                     guide.title = Utf8(Utf8Helper::trim(line.substr(2)));
                     guide.lines.erase(lineIt);
                 }
+
                 break;
             }
+
             if (guide.title.empty())
                 guide.title = Utf8Helper::toTitle(path.stem().string());
 
             guide.anchor = "guide_";
             guide.anchor += DocMarkdown::makeAnchor(guide.title);
+
             const Utf8 anchorBase = guide.anchor;
             uint32_t   suffix     = 2;
             while (!anchors.insert(guide.anchor).second)
                 guide.anchor = std::format("{}_{}", anchorBase, suffix++);
+
             guides.push_back(std::move(guide));
         }
+
         return Result::Continue;
     }
 
@@ -105,6 +113,7 @@ namespace
             comment += line;
             comment += "\n";
         }
+
         return comment;
     }
 
@@ -127,13 +136,16 @@ namespace
 
             if (hasMarkedBlock && !inMarkedBlock)
                 result.emplace_back();
+
             view = view.substr(3);
             if (view.starts_with(' '))
                 view.remove_prefix(1);
+
             result.emplace_back(view);
             inMarkedBlock  = true;
             hasMarkedBlock = true;
         }
+
         return result;
     }
 
@@ -167,6 +179,7 @@ namespace
         size_t                      memberCount = 0;
         for (const DocItem& item : document.items)
             memberCount += item.members.size();
+
         entries.reserve(document.items.size() + memberCount + document.namespaceNames.size() + document.guides.size());
 
         std::unordered_set<Utf8> namespaceNames;
@@ -189,6 +202,7 @@ namespace
                         break;
                     }
                 }
+
                 entries.push_back({.name = item.fullName, .anchor = DocMarkdown::makeAnchor(item.fullName), .detail = std::move(detail), .kind = DocSearch::kindLetter(item.kind)});
             }
 
@@ -203,6 +217,7 @@ namespace
                         break;
                     }
                 }
+
                 entries.push_back({.name = member.fullName, .anchor = DocMarkdown::makeAnchor(member.fullName), .detail = std::move(detail), .kind = item.kind == DocItemKind::Enum ? 'k' : 'v'});
             }
         }
@@ -211,6 +226,7 @@ namespace
             entries.push_back({.name = guide.title, .anchor = guide.anchor, .kind = 'h'});
         if (!document.fileComments.empty())
             entries.push_back({.name = "File documentation", .anchor = "file-documentation", .kind = 'h'});
+
         return entries;
     }
 
@@ -236,6 +252,7 @@ namespace
             if (FileSystem::readTextFile(path, source, error) == Result::Continue)
                 return extractModuleDocComment(source);
         }
+
         return {};
     }
 }
@@ -257,6 +274,7 @@ Result DocApi::generate(TaskContext& ctx, DocPageOptions options, const bool run
         SWC_RESULT(collectApiGuides(ctx, document.guides));
     collectFileDocComments(ctx.compiler(), document.fileComments, runtime);
     collectDocItems(ctx, document.items, runtime);
+
     renderApiDocument(ctx, document, options, runtime);
 
     Utf8 moduleName = ctx.compiler().buildCfg().moduleNamespace;
@@ -284,6 +302,7 @@ Result DocApi::generate(TaskContext& ctx, DocPageOptions options, const bool run
             content += DocMarkdown::renderLines(renderCtx, lines);
         }
     }
+
     content += "</section>\n";
     content += document.content;
 
@@ -304,4 +323,5 @@ Result DocApi::generate(TaskContext& ctx, DocPageOptions options, const bool run
     const Utf8 page = DocPage::construct(options, pageContent);
     return DocFile::write(ctx, outPath, page);
 }
+
 SWC_END_NAMESPACE();

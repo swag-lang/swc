@@ -20,6 +20,7 @@ namespace
 {
     std::mutex               g_RuntimeDocMutex;
     std::unordered_set<Utf8> g_GeneratedRuntimeDocs;
+
     std::mutex               g_StylesheetMutex;
     std::unordered_set<Utf8> g_GeneratedStylesheets;
 
@@ -28,36 +29,42 @@ namespace
         const Runtime::BuildCfgGenDoc& genDoc = compiler.buildCfg().genDoc;
 
         DocPageOptions result;
-        result.kind                = genDoc.kind;
-        result.theme               = genDoc.theme;
-        result.outputName          = Utf8(genDoc.outputName);
-        result.titleToc            = Utf8(genDoc.titleToc);
-        result.titleContent        = Utf8(genDoc.titleContent);
-        result.css                 = Utf8(genDoc.css);
-        result.icon                = Utf8(genDoc.icon);
-        result.morePages           = Utf8(genDoc.morePages);
-        result.quoteIconNote       = Utf8(genDoc.quoteIconNote);
-        result.quoteIconTip        = Utf8(genDoc.quoteIconTip);
-        result.quoteIconWarning    = Utf8(genDoc.quoteIconWarning);
-        result.quoteIconAttention  = Utf8(genDoc.quoteIconAttention);
-        result.quoteIconExample    = Utf8(genDoc.quoteIconExample);
+        result.kind         = genDoc.kind;
+        result.theme        = genDoc.theme;
+        result.outputName   = Utf8(genDoc.outputName);
+        result.titleToc     = Utf8(genDoc.titleToc);
+        result.titleContent = Utf8(genDoc.titleContent);
+        result.css          = Utf8(genDoc.css);
+        result.icon         = Utf8(genDoc.icon);
+        result.morePages    = Utf8(genDoc.morePages);
+
+        result.quoteIconNote      = Utf8(genDoc.quoteIconNote);
+        result.quoteIconTip       = Utf8(genDoc.quoteIconTip);
+        result.quoteIconWarning   = Utf8(genDoc.quoteIconWarning);
+        result.quoteIconAttention = Utf8(genDoc.quoteIconAttention);
+        result.quoteIconExample   = Utf8(genDoc.quoteIconExample);
+
         result.quoteTitleNote      = Utf8(genDoc.quoteTitleNote);
         result.quoteTitleTip       = Utf8(genDoc.quoteTitleTip);
         result.quoteTitleWarning   = Utf8(genDoc.quoteTitleWarning);
         result.quoteTitleAttention = Utf8(genDoc.quoteTitleAttention);
         result.quoteTitleExample   = Utf8(genDoc.quoteTitleExample);
-        result.brandName           = Utf8(genDoc.brandName);
-        result.brandUrl            = Utf8(genDoc.brandUrl);
-        result.navLinks            = Utf8(genDoc.navLinks);
-        result.footer              = Utf8(genDoc.footer);
-        result.syntaxDefaultColor  = genDoc.syntaxDefaultColor;
-        result.accentColor         = genDoc.accentColor;
-        result.hasSwagWatermark    = genDoc.hasSwagWatermark;
-        result.hasSymbolIndex      = genDoc.hasSymbolIndex;
-        result.hasSearch           = genDoc.hasSearch;
+
+        result.brandName = Utf8(genDoc.brandName);
+        result.brandUrl  = Utf8(genDoc.brandUrl);
+        result.navLinks  = Utf8(genDoc.navLinks);
+        result.footer    = Utf8(genDoc.footer);
+
+        result.syntaxDefaultColor = genDoc.syntaxDefaultColor;
+        result.accentColor        = genDoc.accentColor;
+
+        result.hasSwagWatermark = genDoc.hasSwagWatermark;
+        result.hasSymbolIndex   = genDoc.hasSymbolIndex;
+        result.hasSearch        = genDoc.hasSearch;
 
         if (!compiler.cmdLine().docCss.empty())
             result.css = compiler.cmdLine().docCss;
+
         return result;
     }
 
@@ -67,8 +74,10 @@ namespace
         result.kind           = Runtime::BuildCfgDocKind::Api;
         result.outputName     = "swag.runtime";
         result.titleContent   = "Swag Runtime";
+
         if (result.css.empty())
             result.css = "style.css";
+
         return result;
     }
 
@@ -83,6 +92,7 @@ namespace
         fs::create_directories(path, ec);
         if (ec)
             return reportDocDirectoryError(ctx, path, FileSystem::normalizeSystemMessage(ec));
+
         return Result::Continue;
     }
 
@@ -111,11 +121,11 @@ namespace
             g_GeneratedStylesheets.erase(stylesheetKey);
             return Result::Error;
         }
+
         return Result::Continue;
     }
 
-    // The leading '#global' directives of a documented source file configure the module, not
-    // the example, so the reader gains nothing from seeing them repeated on every chapter.
+    // Leading '#global' directives configure the module and are omitted from example chapters.
     bool isModulePreamble(const std::string_view code)
     {
         bool hasDirective = false;
@@ -126,8 +136,10 @@ namespace
                 continue;
             if (!value.starts_with("#global"))
                 return false;
+
             hasDirective = true;
         }
+
         return hasDirective;
     }
 
@@ -137,6 +149,7 @@ namespace
         Utf8                    result;
         size_t                  index   = 0;
         bool                    isFirst = true;
+
         while (index < lines.size())
         {
             Utf8 code;
@@ -145,6 +158,7 @@ namespace
                 code += lines[index++];
                 code += "\n";
             }
+
             if (!(isFirst && isModulePreamble(code)))
                 result += DocMarkdown::renderCodeBlock(ctx, code, true, &renderCtx);
             isFirst = false;
@@ -152,13 +166,16 @@ namespace
                 break;
 
             index++;
+
             std::vector<Utf8> comment;
             while (index < lines.size() && !Utf8Helper::trim(lines[index]).starts_with("*/"))
                 comment.push_back(lines[index++]);
             if (index < lines.size())
                 index++;
+
             result += DocMarkdown::renderLines(renderCtx, comment, 2);
         }
+
         return result;
     }
 
@@ -170,6 +187,7 @@ namespace
             if (file && file->hasFlag(FileFlagsE::ModuleSrc))
                 result.push_back(file);
         }
+
         std::ranges::sort(result, [](const SourceFile* lhs, const SourceFile* rhs) { return lhs->path().filename().string() < rhs->path().filename().string(); });
         return result;
     }
@@ -217,6 +235,7 @@ namespace
             {
                 if (hasOpenItem)
                     toc += "</li>\n";
+
                 while (currentLevel > level)
                 {
                     toc += "</ul>\n</li>\n";
@@ -228,6 +247,7 @@ namespace
             const Utf8 anchor = DocMarkdown::makeAnchor(file->name());
             toc.append(std::format("<li><a href=\"#{}\">{}</a>", anchor, Utf8Helper::escapeHtml(title)));
             hasOpenItem = true;
+
             content.append(std::format("<h{} id=\"{}\">{}</h{}>\n", level + 1, anchor, Utf8Helper::escapeHtml(title), level + 1));
 
             DocRenderContext fileRenderCtx    = renderCtx;
@@ -237,6 +257,7 @@ namespace
             else
                 content += renderExampleSource(ctx, fileRenderCtx, file->sourceView());
         }
+
         if (hasOpenItem)
             toc += "</li>\n";
         while (currentLevel > 1)
@@ -272,6 +293,7 @@ namespace
             size_t end = options.morePages.find(';', start);
             if (end == Utf8::npos)
                 end = options.morePages.size();
+
             const std::string_view value = Utf8Helper::trim(options.morePages.subView(start, end - start));
             if (!value.empty())
             {
@@ -282,12 +304,15 @@ namespace
                 Utf8 because;
                 if (FileSystem::resolveExistingFile(path, because) != Result::Continue)
                     return DocFile::reportError(ctx, path, because);
+
                 paths.push_back(path);
             }
+
             if (end == options.morePages.size())
                 break;
             start = end + 1;
         }
+
         return Result::Continue;
     }
 
@@ -308,6 +333,7 @@ namespace
                     if (extension == ".md" || extension == ".swg" || extension == ".swgs")
                         paths.push_back(it->path());
                 }
+
                 it.increment(ec);
             }
 
@@ -369,6 +395,7 @@ namespace
             SWC_RESULT(DocFile::write(ctx, outPath, page));
             outPaths.push_back(std::move(outPath));
         }
+
         return Result::Continue;
     }
 
@@ -396,6 +423,7 @@ namespace
             g_GeneratedRuntimeDocs.erase(runtimeKey);
             return Result::Error;
         }
+
         outNumFiles++;
         return Result::Continue;
     }
@@ -422,6 +450,7 @@ Result DocGenerator::generate(GenerateResult& outResult) const
         options.titleContent = "Module ";
         options.titleContent += defaultArtifactName(compiler.cmdLine());
     }
+
     SWC_RESULT(writeDocumentationStyles(ctx, options));
 
     switch (options.kind)
@@ -465,6 +494,7 @@ fs::path DocGenerator::outputDirectory(const CompilerInstance& compiler)
         return (cmdLine.modulePath / ".output" / "doc").lexically_normal();
     if (!cmdLine.moduleFilePath.empty())
         return (cmdLine.moduleFilePath.parent_path() / ".output" / "doc").lexically_normal();
+
     return (fs::current_path() / ".output" / "doc").lexically_normal();
 }
 

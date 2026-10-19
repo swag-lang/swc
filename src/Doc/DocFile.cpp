@@ -33,6 +33,7 @@ Result DocFile::read(TaskContext& ctx, const fs::path& path, std::string& outTex
     FileSystem::IoErrorInfo error;
     if (FileSystem::readTextFile(path, outText, error) != Result::Continue)
         return reportError(ctx, path, FileSystem::describeIoFailure(error));
+
     return Result::Continue;
 }
 
@@ -49,6 +50,7 @@ Result DocFile::write(TaskContext& ctx, const fs::path& path, const std::string_
     FileSystem::IoErrorInfo error;
     if (FileSystem::writeBinaryFile(path, content.data(), content.size(), error) != Result::Continue)
         return reportError(ctx, path, FileSystem::describeIoFailure(error));
+
     return Result::Continue;
 }
 
@@ -57,6 +59,7 @@ fs::path DocFile::outputPath(const CompilerInstance& compiler, const DocPageOpti
     Utf8 baseName = defaultOutputBaseName(compiler, options);
     baseName.make_lower();
     baseName += ".html";
+
     const fs::path result = DocGenerator::outputDirectory(compiler) / fs::path(baseName.c_str());
     return result.lexically_normal();
 }

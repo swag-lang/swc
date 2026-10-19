@@ -31,25 +31,30 @@ struct DocPageOptions
     Utf8                      css;
     Utf8                      icon;
     Utf8                      morePages;
-    Utf8                      quoteIconNote;
-    Utf8                      quoteIconTip;
-    Utf8                      quoteIconWarning;
-    Utf8                      quoteIconAttention;
-    Utf8                      quoteIconExample;
-    Utf8                      quoteTitleNote;
-    Utf8                      quoteTitleTip;
-    Utf8                      quoteTitleWarning;
-    Utf8                      quoteTitleAttention;
-    Utf8                      quoteTitleExample;
-    Utf8                      brandName;
-    Utf8                      brandUrl;
-    Utf8                      navLinks;
-    Utf8                      footer;
-    uint32_t                  syntaxDefaultColor = 0x00222222;
-    uint32_t                  accentColor        = 0;
-    bool                      hasSwagWatermark   = true;
-    bool                      hasSymbolIndex     = true;
-    bool                      hasSearch          = true;
+
+    Utf8 quoteIconNote;
+    Utf8 quoteIconTip;
+    Utf8 quoteIconWarning;
+    Utf8 quoteIconAttention;
+    Utf8 quoteIconExample;
+
+    Utf8 quoteTitleNote;
+    Utf8 quoteTitleTip;
+    Utf8 quoteTitleWarning;
+    Utf8 quoteTitleAttention;
+    Utf8 quoteTitleExample;
+
+    Utf8 brandName;
+    Utf8 brandUrl;
+    Utf8 navLinks;
+    Utf8 footer;
+
+    uint32_t syntaxDefaultColor = 0x00222222;
+    uint32_t accentColor        = 0;
+
+    bool hasSwagWatermark = true;
+    bool hasSymbolIndex   = true;
+    bool hasSearch        = true;
 };
 
 struct DocOverload
@@ -73,12 +78,13 @@ struct DocMember
 
 struct DocItem
 {
-    DocItemKind              kind = DocItemKind::Function;
-    Utf8                     fullName;
-    Utf8                     displayName;
-    Utf8                     ownerName;
-    Utf8                     namespaceName;
-    Utf8                     category;
+    DocItemKind kind = DocItemKind::Function;
+    Utf8        fullName;
+    Utf8        displayName;
+    Utf8        ownerName;
+    Utf8        namespaceName;
+    Utf8        category;
+
     std::vector<DocOverload> overloads;
     std::vector<DocMember>   members;
 };
@@ -98,28 +104,32 @@ struct DocFileComment
 
 struct DocRenderContext
 {
-    TaskContext*                              ctx                = nullptr;
-    const DocPageOptions*                     options            = nullptr;
+    TaskContext*          ctx     = nullptr;
+    const DocPageOptions* options = nullptr;
+
     const std::unordered_map<Utf8, Utf8>*     references         = nullptr;
     const std::unordered_map<Utf8, Utf8>*     externalReferences = nullptr;
     const std::unordered_map<Utf8, Utf8>*     externalModules    = nullptr;
     const std::vector<std::pair<Utf8, Utf8>>* anonymousTypeNames = nullptr;
-    Utf8                                      moduleName;
-    Utf8                                      headingAnchorPrefix;
-    std::span<const Utf8>                     genericNames;
+
+    Utf8                  moduleName;
+    Utf8                  headingAnchorPrefix;
+    std::span<const Utf8> genericNames;
 };
 
 struct DocApiDocument
 {
-    std::vector<DocItem>           items;
-    std::vector<DocGuide>          guides;
-    std::vector<DocFileComment>    fileComments;
-    std::vector<Utf8>              namespaceNames;
+    std::vector<DocItem>        items;
+    std::vector<DocGuide>       guides;
+    std::vector<DocFileComment> fileComments;
+    std::vector<Utf8>           namespaceNames;
+
     std::unordered_map<Utf8, Utf8> references;
     std::unordered_map<Utf8, Utf8> externalReferences;
     std::unordered_map<Utf8, Utf8> externalModules;
-    Utf8                           toc;
-    Utf8                           content;
+
+    Utf8 toc;
+    Utf8 content;
 };
 
 SWC_END_NAMESPACE();

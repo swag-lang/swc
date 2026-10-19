@@ -7,8 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // The reader types a name and reaches it; everything the box needs is the index the page
-    // appends below, so the page keeps working from a file:// URL and asks for nothing.
+    // The index is embedded in the page so search also works from file:// URLs.
     constexpr std::string_view SEARCH_SCRIPT = R"JS((function (rows) {
     "use strict";
 
@@ -290,6 +289,7 @@ namespace
                     break;
             }
         }
+
         return result;
     }
 }
@@ -315,11 +315,11 @@ char DocSearch::kindLetter(const DocItemKind kind)
         case DocItemKind::Function:
             return 'f';
     }
+
     SWC_UNREACHABLE();
 }
 
-// A result row shows one line of prose under the name, so the markup a summary carries for the
-// page is dropped rather than displayed: the row is text, and a long one is cut.
+// Search rows use a short plain-text summary, without the page's Markdown markup.
 Utf8 DocSearch::summarize(const std::string_view markdown)
 {
     Utf8   result;
@@ -331,6 +331,7 @@ Utf8 DocSearch::summarize(const std::string_view markdown)
     while (index < markdown.size())
     {
         const char c = markdown[index];
+
         // Code spans carry literal punctuation and link-shaped text. Strip their
         // delimiters without interpreting the payload as Markdown a second time.
         if (c == '`')
@@ -366,6 +367,7 @@ Utf8 DocSearch::summarize(const std::string_view markdown)
                     const size_t target = markdown.find(')', index);
                     index               = target == std::string_view::npos ? markdown.size() : target + 1;
                 }
+
                 wasSpace = false;
                 continue;
             }
@@ -374,6 +376,7 @@ Utf8 DocSearch::summarize(const std::string_view markdown)
         const bool isSpace = c == ' ' || c == '\t' || c == '\r' || c == '\n';
         if (!isSpace || !wasSpace)
             result += isSpace ? ' ' : c;
+
         wasSpace = isSpace;
         index++;
     }
@@ -381,9 +384,8 @@ Utf8 DocSearch::summarize(const std::string_view markdown)
     return Utf8Helper::truncate(Utf8Helper::trim(result), {.maxChars = 110});
 }
 
-// Guides and prose pages are documents rather than symbol lists, so their headings are what a
-// reader looks for. They are read back from the rendered page, which is where an anchor is
-// final: nothing else has to agree with the renderer about how one is spelled.
+// Prose pages are indexed by heading. Read anchors from the rendered HTML so
+// search uses the renderer's final spelling rather than deriving it again.
 void DocSearch::collectHeadings(std::vector<DocSearchEntry>& outEntries, const std::string_view html)
 {
     constexpr std::string_view idAttribute = " id=\"";
@@ -403,11 +405,13 @@ void DocSearch::collectHeadings(std::vector<DocSearchEntry>& outEntries, const s
         const size_t anchorEnd = html.find('"', index);
         if (anchorEnd == std::string_view::npos)
             break;
+
         const std::string_view anchor = html.substr(index, anchorEnd - index);
 
         const size_t textStart = html.find('>', anchorEnd);
         if (textStart == std::string_view::npos)
             break;
+
         const Utf8   closing = std::format("</h{}>", level);
         const size_t textEnd = html.find(closing.view(), textStart);
         if (textEnd == std::string_view::npos)
@@ -422,6 +426,7 @@ void DocSearch::collectHeadings(std::vector<DocSearchEntry>& outEntries, const s
                 at                  = tagEnd == std::string_view::npos ? textEnd : tagEnd;
                 continue;
             }
+
             title += html[at];
         }
 
@@ -431,6 +436,7 @@ void DocSearch::collectHeadings(std::vector<DocSearchEntry>& outEntries, const s
         title.replace_loop("&quot;", "\"");
         title.replace_loop("&#39;", "'");
         title.trim();
+
         if (!title.empty() && !anchor.empty())
             outEntries.push_back({.name = std::move(title), .anchor = Utf8(anchor), .kind = 'h'});
 
@@ -440,8 +446,7 @@ void DocSearch::collectHeadings(std::vector<DocSearchEntry>& outEntries, const s
 
 Utf8 DocSearch::script(const DocPageOptions& options, const std::span<const DocSearchEntry> entries)
 {
-    // A landing page is read whole, so a box searching its six headings costs the reader a
-    // control and saves them nothing. The script only appears where scrolling stops working.
+    // Small pages omit search to avoid adding a control for only a few entries.
     constexpr size_t minEntries = 8;
 
     if (!options.hasSearch || entries.size() < minEntries)
@@ -452,13 +457,16 @@ Utf8 DocSearch::script(const DocPageOptions& options, const std::span<const DocS
     for (const DocSearchEntry& entry : entries)
         capacity += entry.name.size() + entry.anchor.size() + entry.detail.size() + 8;
     result.reserve(capacity);
+
     result.append(SEARCH_SCRIPT);
     result += "([\n";
+
     for (const DocSearchEntry& entry : entries)
     {
         SWC_ASSERT(!entry.name.contains("|") && !entry.anchor.contains("|"));
         result.append(std::format("\"{}|{}|{}|{}\",\n", entry.kind, escapeScriptString(entry.name), escapeScriptString(entry.anchor), escapeScriptString(entry.detail)));
     }
+
     result += "]);\n</script>\n";
     return result;
 }
